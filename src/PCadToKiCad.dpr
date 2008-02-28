@@ -20,7 +20,7 @@
 
 program PCadToKiCad;
 
-{%File 'READ ME PCadToKiCad. txt'}
+{%File 'Readme'}
 
 uses
   Forms,
