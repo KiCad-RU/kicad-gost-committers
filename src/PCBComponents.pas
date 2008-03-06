@@ -1,6 +1,6 @@
 {*
  * PCadToKiCad, PCad ASCII to KiCad conversion utility
- * Copyright (C) 2007, 2008 Lubo Racko <lubo@lura.sk>
+ * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
  * Copyright (C) 2007, 2008 Alexander Lunev <alexanderlunev@mail.ru>
  *
  * This program is free software; you can redistribute it and/or modify
