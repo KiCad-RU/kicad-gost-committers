@@ -1,0 +1,216 @@
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
+ * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
+/**
+ * @file pcad2kicad_frame.cpp
+ */
+
+#include <wx/wx.h>
+#include <wx/config.h>
+
+#include <wx/filename.h>
+
+#include <pcad2kicad.h>
+#include <bitmaps.h>
+
+/*
+unit PCadToKiCadUnit;
+
+{
+ PCad ASCII file description:
+      www.eltm.ru/store/Altium/PCAD_2006_ASCII.pdf
+}
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, xmldom, XMLIntf, msxmldom, XMLDoc, ComCtrls, oxmldom,TextToXMLUnit,
+  PCBComponents,SCHComponents,ProcessXMLToPCBUnit,ProcessXMLToSCHUnit,LoadInputFileUnit,
+  XMLToObjectCommonProceduresUnit;
+
+type
+  TPCadToKiCadPCBForm = class(TForm)
+    OpenPCadFile: TOpenDialog;
+    Button1: TButton;
+    StatusBar: TStatusBar;
+    XMLDoc: TXMLDocument;
+    InputFile: TLabel;
+    Label1: TLabel;
+    Button2: TButton;
+    procedure ButtonPCBClick(Sender: TObject);
+    procedure ButtonSCHClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+  private
+  public
+  end;
+
+var
+  PCadToKiCadPCBForm: TPCadToKiCadPCBForm;
+
+implementation
+
+{$R *.dfm}
+
+procedure TPCadToKiCadPCBForm.ButtonPCBClick(Sender: TObject);
+var f:Tfilename;
+    Lines:tMemo;
+    PCB:THPCB;
+begin
+ OpenPCadFile.Filter:='PCad PCB Board ASCII |*.pcb|PCad PCB Library ASCII |*.lia';
+ if OpenPCadFile.Execute then
+  begin
+    ActualConversion:='PCB';
+    f:=OpenPCAdFile.FileName;
+    f:=AnsiUpperCase(f);
+    InputFile.Caption:=f;
+    Lines:=LoadInputFile(Application.MainForm,StatusBar,f);
+    TextToXML(StatusBar,ChangeFileExt(f,'.XML'),Lines);
+    PCB:=ProcessXMLToPCBLib(StatusBar,ChangeFileExt(f,'.XML'));
+    StatusBar.SimpleText:='Generating output file.... ';
+    if ExtractFileExt(f) = '.LIA' then PCB.WriteToFile(ChangeFileExt(f,'.MOD'),'L');
+    if ExtractFileExt(f) = '.PCB' then PCB.WriteToFile(ChangeFileExt(f,'.BRD'),'P');
+    StatusBar.SimpleText:='Done.';
+    Lines.free;
+    PCB.Free;
+    ActualConversion:='';
+  end;
+end;
+
+procedure TPCadToKiCadPCBForm.ButtonSCHClick(Sender: TObject);
+var f:Tfilename;
+    Lines:tMemo;
+    SCH:THSCH;
+begin
+ OpenPCadFile.Filter:='PCad SCH Schematics ASCII |*.sch|PCad SCH Library ASCII |*.lia';
+ if OpenPCadFile.Execute then
+  begin
+    ActualConversion:='SCH';
+    if ExtractFileExt(f) = '.LIA' then ActualConversion:='SCHLIB';
+    f:=OpenPCAdFile.FileName;
+    f:=AnsiUpperCase(f);
+    InputFile.Caption:=f;
+    Lines:=LoadInputFile(Application.MainForm,StatusBar,f);
+    TextToXML(StatusBar,ChangeFileExt(f,'.XML'),Lines);
+    SCH:=ProcessXMLToSCH(StatusBar,ChangeFileExt(f,'.XML'));
+    StatusBar.SimpleText:='Generating output file.... ';
+    if ExtractFileExt(f) = '.LIA' then SCH.WriteToFile(ChangeFileExt(f,'.LIB'),'L');
+    if ExtractFileExt(f) = '.SCH' then
+       begin // we convert also library for schematics file
+         SCH.WriteToFile(ChangeFileExt(f,'.KiCad.LIB'),'L');
+         SCH.WriteToFile(ChangeFileExt(f,'.KiCad.SCH'),'S');
+       end;
+    StatusBar.SimpleText:='Done.';
+    Lines.free;
+    SCH.Free;
+    ActualConversion:='';
+  end;
+end;
+*/
+
+void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
+}
+
+/*
+procedure TPCadToKiCadPCBForm.FormCreate(Sender: TObject);
+var x,s:string;
+    i:integer;
+
+function DoDepth(var s:string):integer;
+begin
+  s:=TrimLeft(s);
+  result:=0;
+  if (length(s)>0) then
+     if (s[1]='(') then
+     begin
+        result:=1;
+        s:=copy(s,2);
+     end;
+  if (length(s)>0) then
+     if (s[1]=')') then
+     begin
+        result:=-1;
+        s:=copy(s,2);
+     end;
+end;
+
+begin
+  DecimalSeparator:='.';
+  InputFile.Caption:='Software version 0.9.05 :-) . Please be tollerant in case of any bug... or not perfect conversion...';
+{
+//  s:='(wire (line (pt 6600 5200) (pt 5800 5200) (width 10.0) (netNameRef "R\\S\\T\\_\\R\\S\\") )';
+
+  s:='(padShape (layerNumRef 1) (padShapeType Polygon) (sides 8) (rotation 0.0) (outsideDiam 62mil) (shapeOutline';
+  i:=0;
+  while length(s)>0 do
+  begin
+    i:=i+DoDepth(s);
+    x:=GetWord(s);
+  end;
+  s:='(pt 15.5mil 31mil)';
+  while length(s)>0 do
+  begin
+    i:=i+DoDepth(s);
+    x:=GetWord(s);
+  end;
+  s:=')';
+  while length(s)>0 do
+  begin
+    i:=i+DoDepth(s);
+    x:=GetWord(s);
+  end;
+
+
+  s:=s+IntToStr(i);
+  x:=GetWord(s);
+}
+end;
+end.
+*/
+
+PCAD2KICAD_FRAME::PCAD2KICAD_FRAME( wxWindow* parent ) :
+    PCAD2KICAD_FRAME_BASE( parent )
+{
+    // Give an icon
+    //wxIcon icon;
+    //icon.CopyFromBitmap( KiBitmap( icon_pcad2kicad_xpm ) );
+    //SetIcon( icon );
+
+    GetSizer()->SetSizeHints( this );
+
+    // Set previous size and position
+    SetSize( m_FramePos.x, m_FramePos.y, m_FrameSize.x, m_FrameSize.y );
+
+    if( m_FramePos == wxDefaultPosition )
+        Centre();
+}
+
+PCAD2KICAD_FRAME::~PCAD2KICAD_FRAME()
+{
+    /* This needed for OSX: avoids furter OnDraw processing after this
+     * destructor and before the native window is destroyed
+     */
+    this->Freeze();
+}
