@@ -36,6 +36,9 @@
 #include <bitmaps.h>
 
 #include <LoadInputFile.h>
+#include <ProcessXMLtoSchUnit.h>
+#include <SchComponents.h>
+#include <TextToXMLUnit.h>
 
 /*
 unit PCadToKiCadUnit;
@@ -133,6 +136,7 @@ end;
 */
 
 void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
+    CSch sch;
     wxArrayString lines;
 
     wxFileDialog fileDlg( this, _("Open sch file"), wxEmptyString, wxEmptyString, _("PCad SCH Schematics ASCII |*.sch|PCad SCH Library ASCII |*.lia") );
@@ -147,7 +151,10 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
     m_inputFileName->SetLabel(fileName);
 
     LoadInputFile(fileName, m_statusBar, &lines);
-
+    wxFileName xmlFile(fileName);
+    xmlFile.SetExt(_("XML"));
+    TextToXML(m_statusBar, xmlFile.GetFullPath(), &lines);
+    sch = ProcessXMLtoSch(m_statusBar, xmlFile.GetFullPath());
 }
 
 /*
