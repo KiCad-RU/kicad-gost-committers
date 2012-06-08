@@ -35,6 +35,8 @@
 #include <pcad2kicad.h>
 #include <bitmaps.h>
 
+#include <LoadInputFile.h>
+
 /*
 unit PCadToKiCadUnit;
 
@@ -131,6 +133,21 @@ end;
 */
 
 void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
+    wxArrayString lines;
+
+    wxFileDialog fileDlg( this, _("Open sch file"), wxEmptyString, wxEmptyString, _("PCad SCH Schematics ASCII |*.sch|PCad SCH Library ASCII |*.lia") );
+    int diag = fileDlg.ShowModal();
+
+    if( diag != wxID_OK )
+        return;
+
+    m_actualConversion = _("SCH");
+    if (fileDlg.GetFilterIndex() == 1) m_actualConversion = _("SCHLIB");
+    wxString fileName = fileDlg.GetPath();
+    m_inputFileName->SetLabel(fileName);
+
+    LoadInputFile(fileName, m_statusBar, &lines);
+
 }
 
 /*
