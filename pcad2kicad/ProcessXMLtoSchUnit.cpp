@@ -31,6 +31,7 @@
 #include <wx/config.h>
 #include <wx/xml/xml.h>
 #include <ProcessXMLtoSchUnit.h>
+#include <XMLtoObjectCommonProceduresUnit.h>
 
 /*
 unit ProcessXMLToSCHUnit;
@@ -124,7 +125,15 @@ begin
     end;  
     result:=SCHLine;
 end;
+*/
 
+CSchLine *CreateLine(wxXmlNode *iNode, int symbolIndex) {
+    CSchLine *schLine;
+
+    return schLine;
+}
+
+/*
 function CreateBus(inode:IXMLNode):THSCHLine;
 var lNode:iXMLNode;
 begin
@@ -151,7 +160,15 @@ begin
    end;
   Result:=SCHLine;
 end;
+*/
 
+CSchLine *CreateBus(wxXmlNode *iNode) {
+    CSchLine *schLine;
+
+    return schLine;
+}
+
+/*
 function CreateJunction(inode:IXMLNode):THSCHJunction;
 var lNode:iXMLNode;
 begin
@@ -163,9 +180,15 @@ begin
          SCHJunction.Net:=trim(iNode.ChildNodes.FindNode('netNameRef').Attributes['Name']);
   Result:=SCHJunction;
 end;
+*/
 
+CSchJunction *CreateJunction(wxXmlNode *iNode) {
+    CSchJunction *schJunction;
 
+    return schJunction;
+}
 
+/*
 function CreateArc(inode:IXMLNode;SymbolIndex:integer):THSCHArc;
 var lNode,tNode:iXMLNode;
     si,so:string;
@@ -409,22 +432,22 @@ begin
 end;
 */
 
-/*void DoAlias(wxString alias, CSch *sch) {
+void DoAlias(wxString alias, CSch *sch) {
     int i;
     wxString a, n;
 
-    for (i = 0; i < sch->m_schComponents.GetCount; i++) {
-        if (CSchComponent(sch->m_schComponents[i]).m_objType == 'M') {
+    for (i = 0; i < (int)sch->m_schComponents.GetCount(); i++) {
+        if ((sch->m_schComponents[i])->m_objType == 'M') {
             n = alias;
-            a = GetWord(n);
+            a = GetWord(&n);
             n.Trim(true);
             n.Trim(false);
-            if (CSchModule(sch->m_schComponents[i]).m_name.text == n) {
-                CSchModule(sch->m_schComponents[i]).m_alias = CSchModule(sch->m_schComponents[i]).m_alias + ' ' + a;
+            if (((CSchModule *)sch->m_schComponents[i])->m_name.text == n) {
+                ((CSchModule *)sch->m_schComponents[i])->m_alias = ((CSchModule *)sch->m_schComponents[i])->m_alias + ' ' + a;
             }
         }
     }
-}*/
+}
 
 /*
 function CreateSCHSymbol(iNode:IXMLNode):THSCHSymbol;
@@ -544,7 +567,15 @@ begin
   end;
   result:=SCHSymbol;
 end;
+*/
 
+CSchSymbol *CreateSCHSymbol(wxXmlNode *iNode) {
+    CSchSymbol *schSymbol;
+
+    return schSymbol;
+}
+
+/*
 function CreateSCHLine(iNode:IXMLNode):THSCHLine;
 var lNode:IXMLNode;
 begin
@@ -556,8 +587,9 @@ begin
       //                  SCHWire.PartNum:=StrToInt(iNode.ChildNodes.FindNode('line').Text);
   result:=SCHLine;
 end;
+*/
 
-
+/*
 procedure DoLibrary(aNode:IXMLNode);  // FULL PROCES OF LIBRARY CONVERSION
 begin
        aNode:=XMLDoc.DocumentElement.ChildNodes.FindNode('library');
@@ -590,31 +622,32 @@ end;
 */
 
 // FULL PROCESS OF LIBRARY CONVERSION
-/*DoLibrary(wxXmlDocument *xmlDoc, CSch *sch) {
+void DoLibrary(wxXmlDocument *xmlDoc, CSch *sch) {
     wxXmlNode *aNode;
     wxString propValue;
 
-    aNode = FindNode(xmlDoc.GetRoot()->GetChildren(), wxT("library"));
+    aNode = FindNode(xmlDoc->GetRoot()->GetChildren(), wxT("library"));
     if (aNode) { // ORIGINAL Modules
         aNode = aNode->GetChildren();
         while (aNode) {
             if (aNode->GetNodeContent() == wxT("compDef"))
-                sch->m_schComponents.Add();
+                sch->m_schComponents.Add(new CSchModule());
             aNode = aNode->GetNext();
         }
     }
 
-    aNode = FindNode(xmlDoc.GetRoot()->GetChildren(), wxT("library"));
+    aNode = FindNode(xmlDoc->GetRoot()->GetChildren(), wxT("library"));
     if (aNode) { // ALIASes
         aNode = aNode->GetChildren();
         while (aNode) {
             if (aNode->GetNodeContent() == wxT("compAlias")) {
                 aNode->GetPropVal(wxT("Name"), &propValue);
-                DoAlias(propValue);
+                DoAlias(propValue, sch);
+            }
             aNode = aNode->GetNext();
         }
     }
-}*/
+}
 
 /*
 function CheckJunction(iSCHLine:THSCHLine;index:integer):THSCHJunction;
@@ -727,8 +760,13 @@ begin
       end;
  end;
 end;
+*/
 
+CSchJunction *CheckJunction(CSchLine *iSCHLine, int index) {
+    return NULL;
+}
 
+/*
 begin
   SCH:=THSCH.Create;
   try
@@ -842,21 +880,14 @@ end;
 end.
 */
 
-wxXmlNode *FindNode(wxXmlNode *child, wxString tag) {
-    while (child) {
-        if (child->GetName() == tag) return child;
-
-        child = child->GetNext();
-    }
-
-    return NULL;
-}
-
 CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName) {
     CSch sch;
     wxXmlDocument xmlDoc;
     wxXmlNode *aNode;
+    CSchComponent *schComp;
+    CSchJunction *schJunction;
     bool isJunction;
+    int i;
 
     if (!xmlDoc.Load(XMLFileName)) return sch;
 
@@ -875,6 +906,91 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName) {
     isJunction = false;
     //ActualConversion:='SCHLIB'; // access to global variable is not implemented !
 
-//    DoLibrary(&xmlDoc, &sch);
+    DoLibrary(&xmlDoc, &sch);
 
+    aNode = FindNode(xmlDoc.GetRoot()->GetChildren(), wxT("schematicDesign"));
+    if (aNode) {
+        //  SCHEMATIC FILE
+        // aNode is schematicDesign node actually
+        //ActualConversion:='SCH'; // access to global variable is not implemented !
+        aNode = FindNode(aNode->GetChildren(), wxT("sheet"))->GetChildren();
+        while (aNode) {
+            if (aNode->GetNodeContent() == wxT("symbol"))
+                sch.m_schComponents.Add(CreateSCHSymbol(aNode));
+
+            if (aNode->GetNodeContent() == wxT("wire"))
+                if (FindNode(aNode->GetChildren(), wxT("Line")))
+                    sch.m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("Line")), 0));
+
+            if (aNode->GetNodeContent() == wxT("bus"))
+                sch.m_schComponents.Add(CreateBus(aNode));
+
+            if (aNode->GetNodeContent() == wxT("junction"))
+                sch.m_schComponents.Add(CreateJunction(aNode));
+
+            aNode = aNode->GetNext();
+        }
+
+        // POSTPROCESS -- SET/OPTIMIZE NEW SCH POSITION
+
+        sch.m_sizeX = 1000000; sch.m_sizeY = 0;
+        for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
+            schComp = sch.m_schComponents[i];
+            if (schComp->m_positionY < sch.m_sizeY)
+                sch.m_sizeY = schComp->m_positionY;
+            if (schComp->m_positionX < sch.m_sizeX && schComp->m_positionX > 0)
+                sch.m_sizeX = schComp->m_positionX;
+        }
+        // correction
+        sch.m_sizeY = sch.m_sizeY - 1000;
+        sch.m_sizeX = sch.m_sizeX - 1000;
+        for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
+            schComp = sch.m_schComponents[i];
+            schComp->m_positionY -= sch.m_sizeY;
+            schComp->m_positionX -= sch.m_sizeX;
+            if (schComp->m_objType == 'L') {
+                ((CSchLine *)schComp)->m_toY -= sch.m_sizeY;
+                ((CSchLine *)schComp)->m_labelText.textPositionY -= sch.m_sizeY;
+                ((CSchLine *)schComp)->m_toX -= sch.m_sizeX;
+                ((CSchLine *)schComp)->m_labelText.textPositionX -= sch.m_sizeX;
+            }
+        }
+        // final sheet settings
+        for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
+            schComp = sch.m_schComponents[i];
+            if (schComp->m_positionY < sch.m_sizeY)
+                sch.m_sizeY = schComp->m_positionY;
+            if (schComp->m_positionX > sch.m_sizeX)
+                sch.m_sizeX = schComp->m_positionX;
+        }
+        sch.m_sizeY = -sch.m_sizeY; // is in absolute units
+        sch.m_sizeX = sch.m_sizeX + 1000;
+        sch.m_sizeY = sch.m_sizeY + 1000;
+        // A4 is minimum $Descr A4 11700 8267
+        if (sch.m_sizeX < 11700) sch.m_sizeX = 11700;
+        if (sch.m_sizeY < 8267) sch.m_sizeY = 8267;
+
+        // POSTPROCESS -- CREATE JUNCTIONS FROM NEWTLIST
+        if (!isJunction) {
+/*            if (wxMessageBox(wxT("There are not JUNCTIONS in your schematics file .") +
+                             wxT(" It can be, that your design is without Junctions.") +
+                             wxT(" But it can be that your input file is in obsolete format.") +
+                             wxT(" Would you like to run postprocess and create junctions from Netlist/Wires information ?") +
+                             wxT("    YOU HAVE TO CHECK/CORRECT Juntions in converted design, placement is only approximation !"),
+                             wxEmptyString, wxYES_NO) == wxYES)
+            {
+                for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
+                    schComp = sch.m_schComponents[i];
+                    if (schComp->m_objType == 'L') {
+                        schJunction = CheckJunction(schComp, i);
+                        if (schJunction)
+                            sch.m_schComponents.Add(schJunction);
+                    }
+                }
+            }*/
+        }
+
+    } //  SCHEMATIC FILE
+
+    return sch;
 }

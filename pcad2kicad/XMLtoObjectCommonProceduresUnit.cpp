@@ -30,6 +30,8 @@
 #include <wx/wx.h>
 #include <wx/config.h>
 
+#include <XMLtoObjectCommonProceduresUnit.h>
+
 /*
 unit XMLToObjectCommonProceduresUnit;
 
@@ -330,3 +332,13 @@ end;
 
 end.
 */
+
+wxXmlNode *FindNode(wxXmlNode *child, wxString tag) {
+    while (child) {
+        if (child->GetName() == tag) return child;
+
+        child = child->GetNext();
+    }
+
+    return NULL;
+}

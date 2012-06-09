@@ -31,6 +31,7 @@
 #define XMLTOOBJECTCOMMONPROCEDURESUNIT_H_
 
 #include <wx/wx.h>
+#include <wx/xml/xml.h>
 
 /*
 HTextValue = record
@@ -51,5 +52,7 @@ typedef struct _TTextValue {
 } TTextValue, *pTTextValue;
 
 extern wxString GetWord(wxString *s);
+
+extern wxXmlNode *FindNode(wxXmlNode *child, wxString tag);
 
 #endif // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_

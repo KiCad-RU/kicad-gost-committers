@@ -32,6 +32,15 @@
 
 #include <SchComponents.h>
 
+CSchComponent::CSchComponent() {
+}
+
+CSchComponent::~CSchComponent() {
+}
+
+void CSchComponent::WriteToFile(char *f, char ftype) {
+}
+
 /*
 unit SCHComponents;
 
@@ -73,12 +82,22 @@ var i:integer;
 begin
   ModuleObjects:=TList.Create;
 end;
+*/
 
+CSchModule::CSchModule() {
+}
+
+/*/
 destructor THSCHModule.Free;
 begin
   ModuleObjects.Free;
 end;
+*/
 
+CSchModule::~CSchModule() {
+}
+
+/*
 procedure THSCHArc.WriteToFile(var f:text;ftype:char);
 var     i:integer;
 begin
@@ -244,8 +263,12 @@ begin
      Writeln(f,'ENDDRAW');   // ??
      Writeln(f,'ENDDEF');   // ??
 end;
+*/
 
+void CSchModule::WriteToFile(char *f, char ftype) {
+}
 
+/*
 procedure THSCHSymbol.WriteToFile(var f:text;ftype:char);
 var i:integer;
     a,b,c,d:integer;
