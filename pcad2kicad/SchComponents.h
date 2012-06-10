@@ -234,10 +234,12 @@ protected:
    end;
 */
 
+WX_DEFINE_ARRAY(CSchComponent *, CSchComponentsArray);
+
 class CSchModule : public CSchComponent
 {
 public:
-    //wxArray m_moduleObject;
+    CSchComponentsArray m_moduleObjects;
     TTextValue m_name, m_reference;
     int m_numParts;
     wxString m_attachedPattern, m_moduleDescription, m_alias;
@@ -260,8 +262,6 @@ THSCH = class(TObject)
      destructor Free;
    end;
 */
-
-WX_DEFINE_ARRAY(CSchComponent *, CSchComponentsArray);
 
 class CSch : public wxObject
 {

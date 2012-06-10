@@ -81,8 +81,15 @@ begin
     if length(SCHPin.pinName.Text)=0 then SCHPin.pinName.Text:='~'; // Default
     result:=SCHPin;
 end;
+*/
 
+CSchPin *CreatePin(wxXmlNode *iNode) {
+    CSchPin *schPin = new CSchPin();
 
+    return schPin;
+}
+
+/*
 function CreateLine(inode:IXMLNode;SymbolIndex:integer):THSCHLine;
 var lNode:iXMLNode;
 begin
@@ -341,10 +348,15 @@ begin
     end;
    result:=SCHArc;
 end;
+*/
 
+CSchArc *CreateArc(wxXmlNode *iNode, int symbolIndex) {
+    CSchArc *schArc = new CSchArc();
 
+    return schArc;
+}
 
-
+/*
 function CreateSCHModule(inode:IXMLNode):THSCHModule;
 var lNode,tNode,ttNode:iXMLNode;
     AttachedPatternName,s:string;
@@ -407,9 +419,12 @@ begin
           end;
     end;
 end;
+*/
 
+void SetPinProperties(wxXmlNode *iNode, int symbolIndex) {
+}
 
-
+/*
 begin
   tNode:=iNode;
   while (tNode.NodeName<>'www.lura.sk') do tNode:=tNode.ParentNode;
@@ -475,7 +490,80 @@ begin
            end;
       end;
 end;
+*/
 
+void FindAndProcessSymbolDef(wxXmlNode *iNode, CSchModule *iSchModule, int symbolIndex, CSch *sch, wxString actualConversion) {
+    wxXmlNode *tNode, *ttNode;
+    wxString propValue, propValue2;
+
+    tNode = iNode;
+    while (tNode->GetNodeContent() != wxT("www.lura.sk"))
+        tNode = tNode->GetParent();
+
+    tNode = FindNode(tNode->GetChildren(), wxT("library"));
+    if (tNode) {
+        tNode = FindNode(tNode->GetChildren(), wxT("symbolDef"));
+        while (tNode) {
+            tNode->GetPropVal(wxT("Name"), &propValue);
+            if (FindNode(tNode->GetChildren(), wxT("originalName")))
+                FindNode(tNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue2);
+
+            if (tNode->GetNodeContent() == wxT("symbolDef") &&
+                 (propValue == iSchModule->m_attachedSymbols[symbolIndex] ||
+                 (FindNode(tNode->GetChildren(), wxT("originalName")) &&
+                  propValue2 == iSchModule->m_attachedSymbols[symbolIndex])))
+            {
+                ttNode = tNode;
+                tNode = FindNode(ttNode->GetChildren(), wxT("pin"));
+                while (tNode) {
+                    if (tNode->GetNodeContent() == wxT("pin") && FindNode(tNode->GetChildren(), wxT("pinNum")))
+                        SetPinProperties(tNode, symbolIndex);
+                    tNode = tNode->GetNext();
+                }
+                tNode = FindNode(ttNode->GetChildren(), wxT("line"));
+                while (tNode) {
+                    if (tNode->GetNodeContent() == wxT("line"))
+                        iSchModule->m_moduleObjects.Add(CreateLine(tNode, symbolIndex, sch, actualConversion));
+                    tNode = tNode->GetNext();
+                }
+                tNode = FindNode(ttNode->GetChildren(), wxT("arc"));
+                while (tNode) {
+                    if (tNode->GetNodeContent() == wxT("arc"))
+                        iSchModule->m_moduleObjects.Add(CreateArc(tNode, symbolIndex));
+                    tNode = tNode->GetNext();
+                }
+                tNode = FindNode(ttNode->GetChildren(), wxT("triplePointArc"));
+                while (tNode) {
+                    if (tNode->GetNodeContent() == wxT("triplePointArc"))
+                        iSchModule->m_moduleObjects.Add(CreateArc(tNode, symbolIndex));
+                    tNode = tNode->GetNext();
+                }
+
+                tNode = ttNode->GetChildren();
+                while (tNode) {
+                    if (tNode->GetNodeContent() == wxT("attr")) {
+                          // Reference
+                          tNode->GetPropVal(wxT("Name"), &propValue);
+                          propValue.Trim(false);
+                          propValue.Trim(true);
+                          if (propValue == wxT("RefDes"))
+                              SetTextParameters(tNode, &iSchModule->m_reference, sch->m_defaultMeasurementUnit, actualConversion);
+                          // Type
+                          if (propValue == wxT("Type {Type}"))
+                              SetTextParameters(tNode, &iSchModule->m_name, sch->m_defaultMeasurementUnit, actualConversion);
+                          // OR
+                          if (propValue == wxT("Type"))
+                              SetTextParameters(tNode, &iSchModule->m_name, sch->m_defaultMeasurementUnit, actualConversion);
+                    }
+                    tNode = tNode->GetNext();
+                }
+            }
+            if (tNode) tNode = tNode->GetNext();
+        }
+    }
+}
+
+/*
 begin
    SCHModule:=THSCHModule.Create();
    SCHModule.Name.Text:=TrimLeft(iNode.ChildNodes.FindNode('originalName').Attributes['Name']);
@@ -520,8 +608,60 @@ begin
 end;
 */
 
-CSchModule *CreateSchModule(wxXmlNode *iNode) {
-    CSchModule *schModule;
+CSchModule *CreateSchModule(wxXmlNode *iNode, wxStatusBar* statusBar, CSch *sch, wxString actualConversion) {
+    wxString propValue, str;
+    wxXmlNode *lNode, *tNode;
+    long num;
+    int i;
+    CSchModule *schModule = new CSchModule();
+
+    FindNode(iNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
+    propValue.Trim(false);
+    schModule->m_name.text = propValue;
+    schModule->m_objType = 'M';
+    statusBar->SetStatusText(wxT("Creating Component : ") + schModule->m_name.text);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("compHeader"));
+    if (lNode) {
+        if (FindNode(lNode->GetChildren(), wxT("refDesPrefix")))
+            FindNode(lNode->GetChildren(), wxT("refDesPrefix"))->GetPropVal(wxT("Name"), &schModule->m_reference.text);
+
+        if (FindNode(lNode->GetChildren(), wxT("numParts"))) {
+            FindNode(lNode->GetChildren(), wxT("numParts"))->GetNodeContent().ToLong(&num);
+            schModule->m_numParts = (int)num;
+        }
+    }
+
+    tNode = iNode->GetChildren();
+    while (tNode) {
+        if (tNode->GetNodeContent() == wxT("compPin"))
+            schModule->m_moduleObjects.Add(CreatePin(tNode));
+        if (tNode->GetNodeContent() == wxT("attachedSymbol")) {
+            if (FindNode(tNode->GetChildren(), wxT("altType"))) {
+                str = FindNode(tNode->GetChildren(), wxT("altType"))->GetNodeContent();
+                str.Trim(false);
+                str.Trim(true);
+                if (str == wxT("Normal"))
+                {
+                    FindNode(tNode->GetChildren(), wxT("partNum"))->GetNodeContent().ToLong(&num);
+                    FindNode(tNode->GetChildren(), wxT("symbolName"))->GetPropVal(wxT("Name"),
+                        &schModule->m_attachedSymbols[(int)num]);
+                }
+            }
+        }
+        if (tNode->GetNodeContent() == wxT("attachedPattern")) {
+            FindNode(tNode->GetChildren(), wxT("patternName"))->GetPropVal(wxT("Name"), &schModule->m_attachedPattern);
+        }
+        if (tNode->GetNodeContent() == wxT("attr")) {
+            tNode->GetPropVal(wxT("Name"), &propValue);
+            if (propValue.Len() > 13 && propValue.Left(12) == wxT("Description "))
+                schModule->m_moduleDescription = propValue.Left(13);
+        }
+        tNode = tNode->GetNext();
+    }
+
+    for (i = 0; i < schModule->m_numParts; i++)
+        FindAndProcessSymbolDef(iNode, schModule, i, sch, actualConversion);
 
     return schModule;
 }
@@ -879,7 +1019,7 @@ end;
 */
 
 // FULL PROCESS OF LIBRARY CONVERSION
-void DoLibrary(wxXmlDocument *xmlDoc, CSch *sch) {
+void DoLibrary(wxXmlDocument *xmlDoc, CSch *sch, wxStatusBar* statusBar, wxString actualConversion) {
     wxXmlNode *aNode;
     wxString propValue;
 
@@ -888,7 +1028,7 @@ void DoLibrary(wxXmlDocument *xmlDoc, CSch *sch) {
         aNode = aNode->GetChildren();
         while (aNode) {
             if (aNode->GetNodeContent() == wxT("compDef"))
-                sch->m_schComponents.Add(CreateSchModule(aNode));
+                sch->m_schComponents.Add(CreateSchModule(aNode, statusBar, sch, actualConversion));
             aNode = aNode->GetNext();
         }
     }
@@ -1265,7 +1405,7 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString *act
     isJunction = false;
     *actualConversion = wxT("SCHLIB");
 
-    DoLibrary(&xmlDoc, &sch);
+    DoLibrary(&xmlDoc, &sch, statusBar, *actualConversion);
 
     aNode = FindNode(xmlDoc.GetRoot()->GetChildren(), wxT("schematicDesign"));
     if (aNode) {

@@ -108,6 +108,15 @@ begin
 end;
 */
 
+CSchArc::CSchArc() {
+}
+
+CSchArc::~CSchArc() {
+}
+
+void CSchArc::WriteToFile(char *f, char ftype) {
+}
+
 /*
 procedure THSCHJunction.WriteToFile(var f:text;ftype:char);
 begin
@@ -223,8 +232,18 @@ begin
                    IntToStr(PinLength) + ' '+Orientation+' 30 30 '
                    +IntToStr(PartNum)+' 0 '+PType+' '+Shape);
 end;
+*/
 
+CSchPin::CSchPin() {
+}
 
+CSchPin::~CSchPin() {
+}
+
+void CSchPin::WriteToFile(char *f, char ftype) {
+}
+
+/*
 procedure THSCHModule.WriteToFile(var f:text;ftype:char);
 var i,SymbolIndex:integer;
 begin
