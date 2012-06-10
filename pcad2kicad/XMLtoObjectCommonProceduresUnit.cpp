@@ -30,6 +30,8 @@
 #include <wx/wx.h>
 #include <wx/config.h>
 
+#include <common.h>
+
 #include <XMLtoObjectCommonProceduresUnit.h>
 
 /*
@@ -174,14 +176,71 @@ begin
   if (((ActualConversion='PCB') or (ActualConversion='SCH')) and (axe='Y')) then result:=-i
   else result:=i; // Y axe is mirrored in compare with PCAD
 end;
+*/
 
+double StrToDoublePrecisionUnits(wxString s, char axe, wxString actualConversion) {
+    wxString ls;
+    double i;
+    int precision;
+    char u;
+
+    ls = s;
+    ls.Trim(true);
+    ls.Trim(false);
+    precision = 1;
+    if (actualConversion == wxT("PCB")) precision = 10;
+    if (actualConversion == wxT("SCH")) precision = 1;
+
+    if (ls.Len() > 0) {
+        u = ls[ls.Len() - 1];
+        while (ls.Len() > 0 &&
+             !(ls[ls.Len() - 1] == '.' ||
+               ls[ls.Len() - 1] == ',' ||
+               (ls[ls.Len() - 1] >= '0' && ls[ls.Len() - 1] <= '9')))
+        {
+            ls = ls.Left(ls.Len() - 1);
+        }
+
+        while (ls.Len() > 0 &&
+             !(ls[0] == '-' ||
+               ls[0] == '+' ||
+               ls[0] == '.' ||
+               ls[0] == ',' ||
+               (ls[0] >= '0' && ls[ls.Len() - 1] <= '9')))
+        {
+            ls = ls.Mid(1);
+        }
+
+        //if (pos(',',ls) > 0) DecimalSeparator:=',' else DecimalSeparator:='.';
+        if (u == 'm') {
+            ls.ToDouble(&i);
+            i = i * precision / 0.0254;
+        }
+        else {
+            ls.ToDouble(&i);
+            i = i * precision;
+        }
+    }
+    else i = 0.0;
+
+    if ((actualConversion == wxT("PCB") || actualConversion == wxT("SCH")) && axe == 'Y')
+        return -i;
+    else return i; // Y axe is mirrored in compare with PCAD
+}
+
+/*
 function StrToIntUnits(s:string;axe:char):integer;
 begin
   result:=Round(StrToDoublePrecisionUnits(s, axe));
 end;
 //Alexander Lunev modified (end)
+*/
 
+int StrToIntUnits(wxString s, char axe, wxString actualConversion) {
+    return KiROUND(StrToDoublePrecisionUnits(s, axe, actualConversion));
+}
 
+/*
 function GetAndCutWordWithMeasureUnits(var i,DefaultMeasurementUnit:string):string;
 var s1,s2:String;
 begin
@@ -204,8 +263,40 @@ begin
     if ((length(result)>0) and (result[length(result)] in ['.',',','0'..'9'])) then
            result:=result+DefaultMeasurementUnit;
 end;
+*/
 
+wxString GetAndCutWordWithMeasureUnits(wxString *i, wxString defaultMeasurementUnit) {
+    wxString s1, s2, result;
 
+    i->Trim(false);
+    result = wxEmptyString;
+    // value
+    while (i->Len() > 0 && (*i)[0] != ' ') {
+        result += i[0];
+        *i = i->Mid(1);
+    }
+    i->Trim(false);
+    // if there is also measurement unit
+    while (i->Len() > 0 &&
+           (((*i)[0] >= 'a' && (*i)[0] <= 'z') ||
+            ((*i)[0] >= 'A' && (*i)[0] <= 'Z')))
+    {
+        result += (*i)[0];
+        *i = i->Mid(1);
+    }
+    // and if not, add default....
+    if (result.Len() > 0 &&
+        (result[result.Len() - 1] == '.' ||
+         result[result.Len() - 1] == ',' ||
+         (result[result.Len() - 1] >= '0' && result[result.Len() - 1] <= '9')))
+    {
+        result += defaultMeasurementUnit;
+    }
+
+    return result;
+}
+
+/*
 function StrToInt1Units(s:string):integer;
 var precision:integer;
 begin
@@ -246,7 +337,14 @@ begin
     X:=StrToIntUnits(GetAndCutWordWithMeasureUnits(t,DefaultMeasurementUnit),'X');
     Y:=StrToIntUnits(GetAndCutWordWithMeasureUnits(t,DefaultMeasurementUnit),'Y');
 end;
+*/
 
+void SetPosition(wxString t, wxString defaultMeasurementUnit, int *x, int *y, wxString actualConversion) {
+    *x = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'X', actualConversion);
+    *y = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'Y', actualConversion);
+}
+
+/*
 //Alexander Lunev added (begin)
 procedure SetDoublePrecisionPosition(t,DefaultMeasurementUnit:string;var x,y:double);
 begin

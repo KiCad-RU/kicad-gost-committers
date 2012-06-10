@@ -53,6 +53,8 @@ typedef struct _TTextValue {
 
 extern wxString GetWord(wxString *s);
 
+extern void SetPosition(wxString t, wxString defaultMeasurementUnit, int *x, int *y, wxString actualConversion);
+
 extern wxXmlNode *FindNode(wxXmlNode *child, wxString tag);
 
 #endif // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_

@@ -182,8 +182,22 @@ begin
 end;
 */
 
-CSchJunction *CreateJunction(wxXmlNode *iNode) {
-    CSchJunction *schJunction;
+CSchJunction *CreateJunction(wxXmlNode *iNode, CSch *sch, bool *isJunction, wxString actualConversion) {
+    wxString propValue;
+    CSchJunction *schJunction = new CSchJunction();
+
+    *isJunction = true;
+    schJunction->m_objType = 'J';
+    if (FindNode(iNode->GetChildren(), wxT("pt"))) {
+        SetPosition(FindNode(iNode->GetChildren(), wxT("pt"))->GetNodeContent(),
+                    sch->m_defaultMeasurementUnit, &schJunction->m_positionX, &schJunction->m_positionY, actualConversion);
+    }
+    if (FindNode(iNode->GetChildren(), wxT("netNameRef"))) {
+        FindNode(iNode->GetChildren(), wxT("netNameRef"))->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(true);
+        propValue.Trim(false);
+        schJunction->m_net = propValue;
+    }
 
     return schJunction;
 }
@@ -880,7 +894,7 @@ end;
 end.
 */
 
-CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName) {
+CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString *actualConversion) {
     CSch sch;
     wxXmlDocument xmlDoc;
     wxXmlNode *aNode;
@@ -904,7 +918,7 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName) {
 
     // Allways also library file
     isJunction = false;
-    //ActualConversion:='SCHLIB'; // access to global variable is not implemented !
+    *actualConversion = wxT("SCHLIB");
 
     DoLibrary(&xmlDoc, &sch);
 
@@ -912,7 +926,7 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName) {
     if (aNode) {
         //  SCHEMATIC FILE
         // aNode is schematicDesign node actually
-        //ActualConversion:='SCH'; // access to global variable is not implemented !
+        *actualConversion = wxT("SCH");
         aNode = FindNode(aNode->GetChildren(), wxT("sheet"))->GetChildren();
         while (aNode) {
             if (aNode->GetNodeContent() == wxT("symbol"))
@@ -926,7 +940,7 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName) {
                 sch.m_schComponents.Add(CreateBus(aNode));
 
             if (aNode->GetNodeContent() == wxT("junction"))
-                sch.m_schComponents.Add(CreateJunction(aNode));
+                sch.m_schComponents.Add(CreateJunction(aNode, &sch, &isJunction, *actualConversion));
 
             aNode = aNode->GetNext();
         }
@@ -972,22 +986,22 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName) {
 
         // POSTPROCESS -- CREATE JUNCTIONS FROM NEWTLIST
         if (!isJunction) {
-/*            if (wxMessageBox(wxT("There are not JUNCTIONS in your schematics file .") +
-                             wxT(" It can be, that your design is without Junctions.") +
-                             wxT(" But it can be that your input file is in obsolete format.") +
-                             wxT(" Would you like to run postprocess and create junctions from Netlist/Wires information ?") +
-                             wxT("    YOU HAVE TO CHECK/CORRECT Juntions in converted design, placement is only approximation !"),
+            if (wxMessageBox(wxT("There are not JUNCTIONS in your schematics file ."
+                                 " It can be, that your design is without Junctions."
+                                 " But it can be that your input file is in obsolete format."
+                                 " Would you like to run postprocess and create junctions from Netlist/Wires information ?"
+                                 "    YOU HAVE TO CHECK/CORRECT Juntions in converted design, placement is only approximation !"),
                              wxEmptyString, wxYES_NO) == wxYES)
             {
                 for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
                     schComp = sch.m_schComponents[i];
                     if (schComp->m_objType == 'L') {
-                        schJunction = CheckJunction(schComp, i);
+                        schJunction = CheckJunction((CSchLine *)schComp, i);
                         if (schJunction)
                             sch.m_schComponents.Add(schJunction);
                     }
                 }
-            }*/
+            }
         }
 
     } //  SCHEMATIC FILE

@@ -154,7 +154,7 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
     wxFileName xmlFile(fileName);
     xmlFile.SetExt(_("XML"));
     TextToXML(m_statusBar, xmlFile.GetFullPath(), &lines);
-    sch = ProcessXMLtoSch(m_statusBar, xmlFile.GetFullPath());
+    sch = ProcessXMLtoSch(m_statusBar, xmlFile.GetFullPath(), &m_actualConversion);
 }
 
 /*

@@ -106,13 +106,25 @@ begin
                      +IntToStr(PartNum)+' 0 '+IntToStr(width)+' N '
                      +IntToStr(StartX)+' '+IntToStr(StartY)+' '+IntToStr(ToX)+' '+IntToStr(ToY));
 end;
+*/
 
+/*
 procedure THSCHJunction.WriteToFile(var f:text;ftype:char);
 begin
      Writeln(f,'Connection ~ '+IntToStr(PositionX)+' '+IntToStr(PositionY));
 end;
+*/
 
+CSchJunction::CSchJunction() {
+}
 
+CSchJunction::~CSchJunction() {
+}
+
+void CSchJunction::WriteToFile(char *f, char ftype) {
+}
+
+/*
 procedure THSCHLine.WriteToFile(var f:text;ftype:char);
 var lt:string;
 begin
