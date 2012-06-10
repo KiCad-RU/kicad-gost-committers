@@ -127,8 +127,61 @@ begin
 end;
 */
 
-CSchLine *CreateLine(wxXmlNode *iNode, int symbolIndex) {
-    CSchLine *schLine;
+CSchLine *CreateLine(wxXmlNode *iNode, int symbolIndex, CSch *sch, wxString actualConversion) {
+    wxXmlNode *lNode;
+    wxString propValue, str;
+    CSchLine *schLine = new CSchLine();
+    schLine->m_objType = 'L';
+    schLine->m_partNum = symbolIndex;
+
+    if (iNode->GetNodeContent() == wxT("line")) schLine->m_lineType = 'W'; // wire
+    if (FindNode(iNode->GetChildren(), wxT("width")))
+         schLine->m_width = StrToIntUnits(FindNode(iNode->GetChildren(), wxT("width"))->GetNodeContent(), ' ', actualConversion);
+    else schLine->m_width = 1; //default
+    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+    if (lNode) {
+        SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
+                    &schLine->m_positionX, &schLine->m_positionY, actualConversion);
+
+        lNode = lNode->GetNext();
+        while (lNode && lNode->GetNodeContent() != wxT("pt"))
+            lNode = lNode->GetNext();
+
+        if (lNode)
+            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
+                        &schLine->m_toX, &schLine->m_toY, actualConversion);
+    }
+
+    if (FindNode(iNode->GetChildren(), wxT("netNameRef"))) {
+        FindNode(iNode->GetChildren(), wxT("netNameRef"))->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        schLine->m_net = propValue;
+    }
+
+    schLine->m_labelText.textIsVisible = 0; // LABELS
+    schLine->m_labelText.text = schLine->m_net;  // can be better ?
+
+    lNode = iNode->GetParent();
+    if (lNode->GetNodeContent() == wxT("wire")) {
+        lNode = FindNode(lNode->GetChildren(), wxT("dispName"));
+        if (lNode) {
+            str = lNode->GetNodeContent();
+            str.Trim(false);
+            str.Trim(true);
+            if (str == wxT("True")) schLine->m_labelText.textIsVisible = 1;
+            lNode = lNode->GetParent();
+            lNode = FindNode(lNode->GetChildren(), wxT("text"));
+            if (lNode) {
+                if (FindNode(lNode->GetChildren(), wxT("pt")))
+                    SetPosition(FindNode(lNode->GetChildren(), wxT("pt"))->GetNodeContent(),
+                                sch->m_defaultMeasurementUnit, &schLine->m_labelText.textPositionX, &schLine->m_labelText.textPositionY, actualConversion);
+
+                if (FindNode(lNode->GetChildren(), wxT("rotation")))
+                    schLine->m_labelText.textRotation = StrToInt1Units(FindNode(lNode->GetChildren(), wxT("rotation"))->GetNodeContent());
+            }
+        }
+    }
 
     return schLine;
 }
@@ -162,8 +215,47 @@ begin
 end;
 */
 
-CSchLine *CreateBus(wxXmlNode *iNode) {
-    CSchLine *schLine;
+CSchLine *CreateBus(wxXmlNode *iNode, CSch *sch, wxString actualConversion) {
+    wxXmlNode *lNode;
+    wxString propValue;
+    CSchLine *schLine = new CSchLine();
+    schLine->m_objType = 'L';
+    schLine->m_lineType = 'B'; // Bus
+    schLine->m_labelText.textIsVisible = 0;
+    iNode->GetPropVal(wxT("Name"), &schLine->m_labelText.text);
+    schLine->m_labelText.text.Trim(false);
+    schLine->m_labelText.text.Trim(true);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+
+    if (lNode)
+        SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
+                    &schLine->m_positionX, &schLine->m_positionY, actualConversion);
+
+    if (lNode) lNode = lNode->GetNext();
+
+    if (lNode)
+        SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
+                    &schLine->m_toX, &schLine->m_toY, actualConversion);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("dispName"));
+    if (lNode) {
+        lNode->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        if (propValue == wxT("True"))
+            schLine->m_labelText.textIsVisible = 1;
+    }
+
+    lNode = FindNode(iNode->GetChildren(), wxT("text"));
+    if (lNode) {
+        if (FindNode(lNode->GetChildren(), wxT("pt")))
+            SetPosition(FindNode(lNode->GetChildren(), wxT("pt"))->GetNodeContent(),
+                        sch->m_defaultMeasurementUnit, &schLine->m_labelText.textPositionX, &schLine->m_labelText.textPositionY, actualConversion);
+
+        if (FindNode(lNode->GetChildren(), wxT("rotation")))
+            schLine->m_labelText.textRotation = StrToInt1Units(FindNode(lNode->GetChildren(), wxT("rotation"))->GetNodeContent());
+    }
 
     return schLine;
 }
@@ -934,10 +1026,10 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString *act
 
             if (aNode->GetNodeContent() == wxT("wire"))
                 if (FindNode(aNode->GetChildren(), wxT("Line")))
-                    sch.m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("Line")), 0));
+                    sch.m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("Line")), 0, &sch, *actualConversion));
 
             if (aNode->GetNodeContent() == wxT("bus"))
-                sch.m_schComponents.Add(CreateBus(aNode));
+                sch.m_schComponents.Add(CreateBus(aNode, &sch, *actualConversion));
 
             if (aNode->GetNodeContent() == wxT("junction"))
                 sch.m_schComponents.Add(CreateJunction(aNode, &sch, &isJunction, *actualConversion));

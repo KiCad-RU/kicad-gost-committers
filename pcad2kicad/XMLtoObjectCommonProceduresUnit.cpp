@@ -180,16 +180,15 @@ end;
 
 double StrToDoublePrecisionUnits(wxString s, char axe, wxString actualConversion) {
     wxString ls;
-    double i;
-    int precision;
+    double i, precision;
     char u;
 
     ls = s;
     ls.Trim(true);
     ls.Trim(false);
-    precision = 1;
-    if (actualConversion == wxT("PCB")) precision = 10;
-    if (actualConversion == wxT("SCH")) precision = 1;
+    precision = 1.0;
+    if (actualConversion == wxT("PCB")) precision = 10.0;
+    if (actualConversion == wxT("SCH")) precision = 1.0;
 
     if (ls.Len() > 0) {
         u = ls[ls.Len() - 1];
@@ -306,8 +305,16 @@ begin
   if (pos(',',s)>0) then DecimalSeparator:=',' else DecimalSeparator:='.';
   result:=Round(StrToFloat(s)*precision);
 end;
+*/
 
+int StrToInt1Units(wxString s) {
+    double num, precision = 10;
+    //if (pos(',',s)>0) then DecimalSeparator:=',' else DecimalSeparator:='.';
+    s.ToDouble(&num);
+    return KiROUND(num * precision);
+}
 
+/*
 function ValidateName(n:string):string;
 var i:integer;
     o:string;

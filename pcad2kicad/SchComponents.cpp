@@ -140,7 +140,18 @@ begin
                    +IntToStr(ToX)+' '+IntToStr(ToY));
   end;
 end;
+*/
 
+CSchLine::CSchLine() {
+}
+
+CSchLine::~CSchLine() {
+}
+
+void CSchLine::WriteToFile(char *f, char ftype) {
+}
+
+/*
 procedure THSCHLine.WriteLabelToFile(var f:text;ftype:char);
 var lr:char;
 begin
@@ -152,8 +163,12 @@ begin
    Writeln(f,LabelText.Text);
  end;
 end;
+*/
 
+void CSchLine::WriteLabelToFile(char *f, char ftype) {
+}
 
+/*
 procedure THSCHPin.WriteToFile(var f:text;ftype:char);
 var i:integer;
     Orientation,PType:char;
