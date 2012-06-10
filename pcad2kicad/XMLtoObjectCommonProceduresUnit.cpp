@@ -333,12 +333,24 @@ begin
     width:=StrToIntUnits(GetAndCutWordWithMeasureUnits(t,DefaultMeasurementUnit),' ');
 end;
 //Alexander Lunev added (end)
+*/
 
+void SetWidth(wxString t, wxString defaultMeasurementUnit, int *width, wxString actualConversion) {
+    *width = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), ' ', actualConversion);
+}
+
+/*
 procedure SetHeight(t,DefaultMeasurementUnit:string;var height:integer);
 begin
     height:=StrToIntUnits(GetAndCutWordWithMeasureUnits(t,DefaultMeasurementUnit),' ');
 end;
+*/
 
+void SetHeight(wxString t, wxString defaultMeasurementUnit, int *height, wxString actualConversion) {
+    *height = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), ' ', actualConversion);
+}
+
+/*
 procedure SetPosition(t,DefaultMeasurementUnit:string;var x,y:integer);
 begin
     X:=StrToIntUnits(GetAndCutWordWithMeasureUnits(t,DefaultMeasurementUnit),'X');
@@ -375,8 +387,37 @@ begin
      tNode:=iNode.ChildNodes.FindNode('textStyleRef');
         if Assigned(tNode) then  SetFontProperty(tNode,tv,DefaultMeasurementUnit);
 end;
+*/
 
+void SetTextParameters(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
+    wxXmlNode *tNode;
+    wxString str;
 
+    tNode = FindNode(iNode->GetChildren(), wxT("pt"));
+    if (tNode) SetPosition(tNode->GetNodeContent(), defaultMeasurementUnit, &tv->textPositionX, &tv->textPositionY, actualConversion);
+
+    tNode = FindNode(iNode->GetChildren(), wxT("rotation"));
+    if (tNode) {
+        str = tNode->GetNodeContent();
+        str.Trim(false);
+        tv->textRotation = StrToInt1Units(str);
+    }
+
+    tv->textIsVisible = 1;
+    tNode = FindNode(iNode->GetChildren(), wxT("isVisible"));
+    if (tNode) {
+        str = tNode->GetNodeContent();
+        str.Trim(false);
+        str.Trim(true);
+        if (str == wxT("True")) tv->textIsVisible = 1;
+        else tv->textIsVisible = 0;
+    }
+
+    tNode = FindNode(iNode->GetChildren(), wxT("textStyleRef"));
+    if (tNode) SetFontProperty(tNode, tv, defaultMeasurementUnit, actualConversion);
+}
+
+/*
 procedure SetFontProperty(iNode:IXMLNode;var tv:HTextValue;DefaultMeasurementUnit:string);
 var n:string;
 begin
@@ -403,8 +444,43 @@ begin
              end;
 
 end;
+*/
 
+void SetFontProperty(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
+    wxString n, propValue;
 
+    iNode->GetPropVal(wxT("Name"), &n);
+
+    while (iNode->GetNodeContent() != wxT("www.lura.sk"))
+        iNode = iNode->GetParent();
+
+    iNode = FindNode(iNode->GetChildren(), wxT("library"));
+    if (iNode) iNode = FindNode(iNode->GetChildren(), wxT("textStyleDef"));
+    if (iNode) {
+        while (true) {
+            iNode->GetPropVal(wxT("Name"), &propValue);
+            propValue.Trim(false);
+            propValue.Trim(true);
+            if (propValue == n) break;
+            iNode = iNode->GetNext();
+        }
+        if (iNode) {
+            iNode = FindNode(iNode->GetChildren(), wxT("font"));
+            if (iNode) {
+                if (FindNode(iNode->GetChildren(), wxT("fontHeight")))
+                    ////SetWidth(iNode.ChildNodes.FindNode('fontHeight').Text,DefaultMeasurementUnit,tv.TextHeight);
+                    // Fixed By Lubo, 02/2008
+                    SetHeight(FindNode(iNode->GetChildren(), wxT("fontHeight"))->GetNodeContent(),
+                              defaultMeasurementUnit, &tv->textHeight, actualConversion);
+                if (FindNode(iNode->GetChildren(), wxT("strokeWidth")))
+                    SetWidth(FindNode(iNode->GetChildren(), wxT("strokeWidth"))->GetNodeContent(),
+                             defaultMeasurementUnit, &tv->textstrokeWidth, actualConversion);
+            }
+        }
+    }
+}
+
+/*
 procedure CorrectTextPosition(var VAlue:HTextValue;Rotation:integer);
 begin
      Value.CorrectedPositionX:=Value.TextPositionX;

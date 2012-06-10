@@ -675,8 +675,151 @@ begin
 end;
 */
 
-CSchSymbol *CreateSCHSymbol(wxXmlNode *iNode) {
-    CSchSymbol *schSymbol;
+CSchSymbol *CreateSCHSymbol(wxXmlNode *iNode, CSch *sch, wxString actualConversion) {
+    wxXmlNode *lNode;
+    wxString propValue, str;
+    long num;
+    bool t, r;
+    CSchSymbol *schSymbol = new CSchSymbol();
+    schSymbol->m_objType = 'S';
+
+    if (FindNode(iNode->GetChildren(), wxT("partNum"))) {
+        FindNode(iNode->GetChildren(), wxT("partNum'"))->GetNodeContent().ToLong(&num);
+        schSymbol->m_partNum = (int)num;
+    }
+
+    if (FindNode(iNode->GetChildren(), wxT("symbolRef"))) {
+        FindNode(iNode->GetChildren(), wxT("symbolRef"))->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        schSymbol->m_module.text = propValue;
+    }
+
+    if (FindNode(iNode->GetChildren(), wxT("refDesRef"))) {
+        FindNode(iNode->GetChildren(), wxT("refDesRef"))->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        schSymbol->m_reference.text = propValue;
+    }
+
+    if (FindNode(iNode->GetChildren(), wxT("pt"))) {
+        SetPosition(FindNode(iNode->GetChildren(), wxT("pt"))->GetNodeContent(),
+                    sch->m_defaultMeasurementUnit, &schSymbol->m_positionX, &schSymbol->m_positionY, actualConversion);
+    }
+
+    if (FindNode(iNode->GetChildren(), wxT("isFlipped"))) {
+        str = FindNode(iNode->GetChildren(), wxT("isFlipped"))->GetNodeContent();
+        str.Trim(false);
+        str.Trim(true);
+        if (str == wxT("True")) schSymbol->m_mirror = 1;
+    }
+
+    if (FindNode(iNode->GetChildren(), wxT("rotation")))
+        schSymbol->m_rotation = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("rotation"))->GetNodeContent());
+
+
+    lNode = iNode->GetChildren();
+    // update physical symbol textts positions
+    t = false; r = false;
+    while (lNode) {
+        if (lNode->GetNodeContent() == wxT("attr")) {
+            lNode->GetPropVal(wxT("Name"), &propValue);
+            propValue.Trim(false);
+            propValue.Trim(true);
+            if (propValue == wxT("Value")) { // WHY ???? IS IT SWITCHED IN PCAD ?
+                r = true;
+                SetTextParameters(lNode, &schSymbol->m_reference, sch->m_defaultMeasurementUnit, actualConversion);
+            }
+
+            if (propValue == wxT("RefDes")) { // WHY ???? IS IT SWITCHED IN PCAD ?
+                r = true;
+                SetTextParameters(lNode, &schSymbol->m_typ, sch->m_defaultMeasurementUnit, actualConversion);
+            }
+        }
+        lNode = lNode->GetNext();
+    }
+
+    lNode = iNode;
+    // also symbol from library as name of component as is known in schematics library
+    while (lNode->GetNodeContent() != wxT("www.lura.sk"))
+        lNode = lNode->GetParent();
+
+    lNode = FindNode(lNode->GetChildren(), wxT("netlist"));
+    if (lNode) {
+        lNode = FindNode(lNode->GetChildren(), wxT("compInst"));
+        while (lNode) {
+            lNode->GetPropVal(wxT("Name"), &propValue);
+            if (lNode->GetNodeContent() == wxT("compInst") && propValue == schSymbol->m_reference.text) {
+                // Type - or Value , depends on version
+                if (FindNode(lNode->GetChildren(), wxT("compValue"))) {
+                    FindNode(lNode->GetChildren(), wxT("compValue"))->GetPropVal(wxT("Name"), &propValue);
+                    propValue.Trim(false);
+                    propValue.Trim(true);
+                    schSymbol->m_typ.text = propValue;
+                }
+                else if (FindNode(lNode->GetChildren(), wxT("originalName"))) {
+                    FindNode(lNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
+                    schSymbol->m_typ.text = propValue;
+                }
+                // Pattern
+                if (FindNode(lNode->GetChildren(), wxT("patternName"))) {
+                    FindNode(lNode->GetChildren(), wxT("patternName"))->GetPropVal(wxT("Name"), &propValue);
+                    schSymbol->m_attachedPattern = propValue;
+                }
+                else if (FindNode(lNode->GetChildren(), wxT("originalName"))) {
+                    FindNode(lNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
+                    schSymbol->m_attachedPattern = propValue;
+                }
+                // Symbol
+                if (FindNode(lNode->GetChildren(), wxT("originalName"))) {
+                    FindNode(lNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
+                    schSymbol->m_attachedSymbol = propValue;
+                }
+                else if (FindNode(lNode->GetChildren(), wxT("compRef"))) {
+                    FindNode(lNode->GetChildren(), wxT("compRef"))->GetPropVal(wxT("Name"), &propValue);
+                    schSymbol->m_attachedSymbol = propValue;
+                }
+            }
+            lNode = lNode->GetNext();
+        }
+    }
+
+    // is reference position missing ?
+    lNode = iNode;
+    if (r == false || t == false) {
+        while (lNode->GetNodeContent() != wxT("www.lura.sk"))
+            lNode = lNode->GetParent();
+
+        lNode = FindNode(lNode->GetChildren(), wxT("library"));
+        if (lNode) {
+            lNode = FindNode(lNode->GetChildren(), wxT("symbolDef"));
+            while (lNode) {
+                lNode->GetPropVal(wxT("Name"), &propValue);
+                if (lNode->GetNodeContent() == wxT("symbolDef") && propValue == schSymbol->m_module.text) {
+                    lNode = lNode->GetChildren();
+                    while (lNode) {
+                        if (lNode->GetNodeContent() == wxT("attr")) {
+                            // Reference
+                            lNode->GetPropVal(wxT("Name"), &propValue);
+                            propValue.Trim(false);
+                            propValue.Trim(true);
+                            if (propValue == wxT("RefDes"))
+                                SetTextParameters(lNode, &schSymbol->m_reference, sch->m_defaultMeasurementUnit, actualConversion);
+                            // Type
+                            if (propValue == wxT("Type {Type}"))
+                                SetTextParameters(lNode, &schSymbol->m_typ, sch->m_defaultMeasurementUnit, actualConversion);
+                            // OR
+                            if (propValue == wxT("Type"))
+                                SetTextParameters(lNode, &schSymbol->m_typ, sch->m_defaultMeasurementUnit, actualConversion);
+                        }
+                        lNode = lNode->GetNext();
+                    }
+                }
+
+                if (lNode) lNode = lNode->GetNext();
+            }
+        }
+    }
 
     return schSymbol;
 }
@@ -1022,7 +1165,7 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString *act
         aNode = FindNode(aNode->GetChildren(), wxT("sheet"))->GetChildren();
         while (aNode) {
             if (aNode->GetNodeContent() == wxT("symbol"))
-                sch.m_schComponents.Add(CreateSCHSymbol(aNode));
+                sch.m_schComponents.Add(CreateSCHSymbol(aNode, &sch, *actualConversion));
 
             if (aNode->GetNodeContent() == wxT("wire"))
                 if (FindNode(aNode->GetChildren(), wxT("Line")))

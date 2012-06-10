@@ -383,8 +383,18 @@ No Mirror 	 1   0    0   -1
       Writeln(f,' '+IntToStr(a)+' '+IntToStr(b)+' '+IntToStr(c)+' '+IntToStr(d)+' ');
      // FOOTPRINT
 end;
+*/
 
+CSchSymbol::CSchSymbol() {
+}
 
+CSchSymbol::~CSchSymbol() {
+}
+
+void CSchSymbol::WriteToFile(char *f, char ftype) {
+}
+
+/*
 procedure THSCH.WriteToFile(FileName:string;ftype:char);
 var f:text;
     i:integer;
