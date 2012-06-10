@@ -32,6 +32,7 @@
 #include <wx/xml/xml.h>
 #include <ProcessXMLtoSchUnit.h>
 #include <XMLtoObjectCommonProceduresUnit.h>
+#include <common.h>
 
 /*
 unit ProcessXMLToSCHUnit;
@@ -517,8 +518,15 @@ begin
                  FindAndProcessSymbolDef(iNode,SCHModule,i);
    result:=SCHModule;
 end;
+*/
 
+CSchModule *CreateSchModule(wxXmlNode *iNode) {
+    CSchModule *schModule;
 
+    return schModule;
+}
+
+/*
 procedure DoAlias(alias:string);
 var i:integer;
     a,n:string;
@@ -880,7 +888,7 @@ void DoLibrary(wxXmlDocument *xmlDoc, CSch *sch) {
         aNode = aNode->GetChildren();
         while (aNode) {
             if (aNode->GetNodeContent() == wxT("compDef"))
-                sch->m_schComponents.Add(new CSchModule());
+                sch->m_schComponents.Add(CreateSchModule(aNode));
             aNode = aNode->GetNext();
         }
     }
@@ -935,7 +943,35 @@ BEGIN
   y:=Round((a2*c1 - a1*c2)/denom);
   code:=0
 END;
+*/
 
+void LinesIntersect(const int x1, const int y1, const int x2, const int y2, // first line
+                    const int x3, const int y3, const int x4, const int y4, // second line
+                    int *code, // =0 OK; =1 lines parallel
+                    int *x, int *y) { // intersection point
+    long double a1, a2, b1, b2, c1, c2; // Coefficients of line eqns./
+    long double denom;
+
+    a1 = y2 - y1;
+    b1 = x1 - x2;
+    c1 = (long double)x2 * (long double)y1 - (long double)x1 * (long double)y2;  // a1*x + b1*y + c1 = 0 is line 1
+
+    a2 = y4 - y3;
+    b2 = x3 - x4;
+    c2 = (long double)x4 * (long double)y3 - (long double)x3 * (long double)y4;  // a2*x + b2*y + c2 = 0 is line 2
+
+    denom = a1 * b2 - a2 * b1;
+    if (denom == 0) {
+        *code = 1;
+    }
+    else {
+        *x = KiROUND((b1 * c2 - b2 * c1) / denom);
+        *y = KiROUND((a2 * c1 - a1 * c2) / denom);
+        *code = 0;
+    }
+}
+
+/*
 function IsPointOnLine(x,y:integer;l:THSCHLine):boolean;
 VAR
     px,py:boolean;
@@ -959,8 +995,34 @@ begin
   end
   else result:=false;
 end;
+*/
 
+bool IsPointOnLine(int x, int y, CSchLine *l) {
+    long double a, b, c; // Coefficients of line eqns./
+    bool px, py, result;
 
+    a = l->m_toY - l->m_positionY;
+    b = l->m_positionX - l->m_toX;
+    c = (long double)l->m_toX * (long double)l->m_positionY -
+        (long double)l->m_positionX * (long double)l->m_toY;  // a1*x + b1*y + c1 = 0 is line 1
+    px = false; py = false;
+    if (a * (long double)x + b * (long double)y + c == 0) {
+        if (l->m_positionX <= l->m_toX && x >= l->m_positionX && x <= l->m_toX)
+            px = true;
+        if (l->m_toX <= l->m_positionX && x >= l->m_toX && x <= l->m_positionX)
+            px = true;
+        if (l->m_positionY <= l->m_toY && y >= l->m_positionY && y <= l->m_toY)
+            py = true;
+        if (l->m_toY <= l->m_positionY && y >= l->m_toY && y <= l->m_positionY)
+            py = true;
+        if (px && py) result = true;
+    }
+    else result = false;
+
+    return result;
+}
+
+/*
 function CJunction(x,y:integer;net:string):THSCHJunction;
 begin
   result:=THSCHJunction.Create(); // midle of line intersection
@@ -969,7 +1031,19 @@ begin
   result.PositionY:=y;
   result.Net:=iSCHLine.Net;
 end;
+*/
 
+CSchJunction *CJunction(int x, int y, wxString net) {
+    CSchJunction *result = new CSchJunction(); // middle of line intersection
+    result->m_objType = 'J';
+    result->m_positionX = x;
+    result->m_positionY = y;
+    result->m_net = net;
+
+    return result;
+}
+
+/*
 begin
  result:=nil;
  for i:=0 to SCH.SCHComponents.Count-1 do
@@ -1011,8 +1085,44 @@ begin
 end;
 */
 
-CSchJunction *CheckJunction(CSchLine *iSCHLine, int index) {
-    return NULL;
+CSchJunction *CheckJunction(CSchLine *iSchLine, int index, CSch *sch) {
+    CSchJunction *result = NULL;
+    int i, j, code, x, y;
+    bool p;
+
+    for (i = 0; i < (int)sch->m_schComponents.GetCount(); i++) {
+        if ((sch->m_schComponents[i])->m_objType == 'L' &&
+             index != i) { // not  for itself
+            if (iSchLine->m_net == ((CSchLine *)sch->m_schComponents[i])->m_net) {
+                // IS JUNCTION ????
+                LinesIntersect(iSchLine->m_positionX, iSchLine->m_positionY, iSchLine->m_toX, iSchLine->m_toY,
+                               ((CSchLine *)sch->m_schComponents[i])->m_positionX,
+                               ((CSchLine *)sch->m_schComponents[i])->m_positionY,
+                               ((CSchLine *)sch->m_schComponents[i])->m_toX,
+                               ((CSchLine *)sch->m_schComponents[i])->m_toY,
+                               &code, &x, &y);
+                if (code == 0) {
+                    // there is intersection, is it inside line segment ?
+                    if (IsPointOnLine(x, y, iSchLine)) {
+                        // Point Candidate
+                        // Firstly to check if the otrher line with dufferent NET is crossing this point, if so, there is not point !
+                        p = true;
+                        for (j = 0; j < (int)sch->m_schComponents.GetCount(); j++) {
+                            if ((sch->m_schComponents[j])->m_objType == 'L'
+                                 && p) { // not  for itself
+                                if (((CSchLine *)sch->m_schComponents[j])->m_net != ((CSchLine *)sch->m_schComponents[i])->m_net)
+                                    if (IsPointOnLine(x, y, (CSchLine *)sch->m_schComponents[j]))
+                                           p = false; // NOT POINT - net cross
+                            }
+                        }
+                        if (p) result = CJunction(x, y, iSchLine->m_net);
+                    }
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 /*
@@ -1231,7 +1341,7 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString *act
                 for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
                     schComp = sch.m_schComponents[i];
                     if (schComp->m_objType == 'L') {
-                        schJunction = CheckJunction((CSchLine *)schComp, i);
+                        schJunction = CheckJunction((CSchLine *)schComp, i, &sch);
                         if (schJunction)
                             sch.m_schComponents.Add(schJunction);
                     }
