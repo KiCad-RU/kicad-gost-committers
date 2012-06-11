@@ -29,8 +29,9 @@
 
 #include <wx/wx.h>
 #include <wx/config.h>
-
 #include <wx/filename.h>
+
+#include <common.h>
 
 #include <SchComponents.h>
 
@@ -135,6 +136,7 @@ CSchJunction::~CSchJunction() {
 }
 
 void CSchJunction::WriteToFile(wxFile *f, char ftype) {
+    f->Write(wxString::Format("Connection ~ %d %d\n", m_positionX, m_positionY));
 }
 
 /*
@@ -162,6 +164,19 @@ CSchLine::~CSchLine() {
 }
 
 void CSchLine::WriteToFile(wxFile *f, char ftype) {
+    wxString lt;
+
+    if (ftype == 'L')
+        f->Write(wxString::Format("P 2 %d 0 %d %d %d %d %d N\n",
+                 m_partNum, m_width, m_positionX, m_positionY, m_toX, m_toY));
+
+    if (ftype == 'S') {
+        if (m_lineType == 'W') lt = wxString("Wire");
+        if (m_lineType == 'B') lt = wxString("Bus");
+        f->Write(wxT("Wire ") + lt + wxT(" Line\n"));
+        f->Write(wxString::Format("               %d %d %d %d\n",
+                 m_positionX, m_positionY, m_toX, m_toY));
+    }
 }
 
 /*
@@ -531,6 +546,83 @@ CSchSymbol::~CSchSymbol() {
 }
 
 void CSchSymbol::WriteToFile(wxFile *f, char ftype) {
+    char orientation;
+    wxString visibility, str;
+    int a, b, c, d;
+
+    CorrectTextPosition(&m_typ, m_rotation);
+    CorrectTextPosition(&m_reference, m_rotation);
+    // Go out
+    str = m_attachedSymbol;
+    str.Replace(wxT(" "), wxT("~"), true);
+    f->Write(wxT("L ") + str + ' ' + m_reference.text + wxT("\n"));
+    f->Write(wxString::Format("U %d 1 00000000\n", m_partNum));
+    f->Write(wxString::Format("P %d %d\n", m_positionX, m_positionY));
+    // REFERENCE
+    if (m_reference.textRotation == 900) orientation = 'V';
+    else orientation = 'H';
+    if (m_reference.textIsVisible == 1) visibility = wxT("0000");
+    else visibility = wxT("0001");
+    f->Write(wxT("F 0 \"") + m_reference.text + wxT("\" ") + orientation + ' ' +
+        wxString::Format("%d %d %d",
+                         m_reference.correctedPositionX + m_positionX,
+                         m_reference.correctedPositionY + m_positionY,
+                         KiROUND((double)m_reference.textHeight / 2.0)) + ' ' + visibility + wxT(" C C\n"));
+
+    // TYP
+    if (m_typ.textIsVisible == 1) visibility = wxT("0000");
+    else visibility = wxT("0001");
+
+    if (m_typ.textRotation == 900 || m_typ.textRotation == 2700) orientation = 'V';
+    else orientation = 'H';
+    f->Write(wxT("F 1 \"") + m_typ.text + wxT("\" ") + orientation + ' ' +
+        wxString::Format("%d %d %d",
+                         m_typ.correctedPositionX + m_positionX,
+                         m_typ.correctedPositionY + m_positionY,
+                         KiROUND((double)m_typ.textHeight / 2.0)) + ' ' + visibility + wxT(" C C\n"));
+
+//  SOME ROTATION MATRICS ?????????????
+//    1    2900 5200
+/*  270 :
+No Mirror       0    -1   -1    0
+   MirrorX      0    -1    1    0
+   MirrorY      0    -1    1    0
+
+  180  :
+No Mirror      -1   0    0     1
+   MirrorX     -1   0    0    -1
+   MirrorY      1   0    0     1
+
+  R90  :
+No Mirror       0    1    1    0
+   MirrorX      0    1   -1    0
+   MirrorY      0    1    -1   0
+
+  0    :
+No Mirror       1   0    0   -1
+   MirrorX      1   0    0    1
+   MirrorY     -1   0    0   -1
+*/
+    f->Write(wxString::Format(" 	%d %d %d\n", m_partNum, m_positionX, m_positionY));
+    // Miror is negative in compare with PCad represenation...
+    a = 0; b = 0; c = 0; d = 0;
+
+    if (m_mirror == 0) {
+        if (m_rotation == 0) {a = 1; d = -1; }
+        if (m_rotation == 900) { b = -1; c = -1; }
+        if (m_rotation == 1800) { a = -1; d = 1; }
+        if (m_rotation == 2700) { b = 1; c = 1; }
+    }
+
+    if (m_mirror == 1) {
+        if (m_rotation == 0) { a = -1; d = -1; }
+        if (m_rotation == 900) { b = 1; c = -1; }
+        if (m_rotation == 1800) { a = 1; d = 1; }
+        if (m_rotation == 2700) { b = -1; c = 1; }
+    }
+
+    f->Write(wxString::Format(" %d %d %d %d \n", a, b, c, d));
+    // FOOTPRINT
 }
 
 /*
