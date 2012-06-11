@@ -35,6 +35,8 @@
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 
+#define DEFAULT_SYMBOL_PIN_LENGTH 300
+
 /*
 THSCHComponent = class (TObject)
      ObjType:char;

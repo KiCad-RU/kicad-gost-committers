@@ -350,8 +350,56 @@ begin
 end;
 */
 
-CSchArc *CreateArc(wxXmlNode *iNode, int symbolIndex) {
+CSchArc *CreateArc(wxXmlNode *iNode, int symbolIndex, CSch *sch, wxString actualConversion) {
+    wxXmlNode *lNode;
+    wxString propValue;
+    double r;
     CSchArc *schArc = new CSchArc();
+
+    schArc->m_objType = 'A';
+    schArc->m_partNum = symbolIndex;
+    if (FindNode(iNode->GetChildren(), wxT("width")))
+         schArc->m_width = StrToIntUnits(FindNode(iNode->GetChildren(), wxT("width"))->GetNodeContent(), ' ', actualConversion);
+    else schArc->m_width = 1; //default
+
+    if (iNode->GetNodeContent() == wxT("triplePointArc")) {
+        // origin
+        lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+        if (lNode)
+            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
+                    &schArc->m_positionX, &schArc->m_positionY, actualConversion);
+        // First - starting point in PCAS is ENDING point in KiCAd
+        lNode = lNode->GetNext();
+        if (lNode)
+            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
+                    &schArc->m_toX, &schArc->m_toY, actualConversion);
+        // Second - ending point in PCAS is STARTING point in KiCAd
+        lNode = lNode->GetNext();
+        if (lNode)
+            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
+                    &schArc->m_startX, &schArc->m_startY, actualConversion);
+        // now temporary, it can be fixed later.....
+        //SCHArc.StartAngle:=0;
+        //SCHArc.SweepAngle:=3600;
+    }
+
+    if (iNode->GetNodeContent() == wxT("arc")) {
+        lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+        if (lNode)
+            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
+                    &schArc->m_positionX, &schArc->m_positionY, actualConversion);
+
+        lNode = FindNode(iNode->GetChildren(), wxT("radius"));
+        if (lNode)
+            schArc->m_radius = StrToIntUnits(lNode->GetNodeContent(), ' ', actualConversion);
+        r = StrToIntUnits(lNode->GetNodeContent(), ' ', actualConversion);
+        schArc->m_startAngle = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("startAngle"))->GetNodeContent());
+        schArc->m_startX = KiROUND(schArc->m_positionX + r * sin((schArc->m_startAngle - 900.0) * M_PI / 1800.0));
+        schArc->m_startY = KiROUND(schArc->m_positionY - r * cos((schArc->m_startAngle - 900) * M_PI / 1800.0));
+        schArc->m_sweepAngle = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("sweepAngle"))->GetNodeContent());
+        schArc->m_toX = KiROUND(schArc->m_positionX + r * sin((schArc->m_startAngle + schArc->m_sweepAngle - 900.0) * M_PI / 1800.0));
+        schArc->m_toY = KiROUND(schArc->m_positionY - r * cos((schArc->m_startAngle + schArc->m_sweepAngle - 900.0) * M_PI / 1800.0));
+    }
 
     return schArc;
 }
@@ -421,7 +469,70 @@ begin
 end;
 */
 
-void SetPinProperties(wxXmlNode *iNode, int symbolIndex) {
+static void SetPinProperties(wxXmlNode *iNode, CSchModule *iSchModule, int symbolIndex, CSch *sch, wxString actualConversion) {
+    CSchPin *schPin;
+    wxString pn, t, str;
+    TTextValue lpn;
+    int i;
+
+    pn = FindNode(iNode->GetChildren(), wxT("pinNum"))->GetNodeContent();
+    pn.Trim(false);
+    pn.Trim(true);
+
+    for (i = 0; i < (int)iSchModule->m_moduleObjects.GetCount(); i++) {
+        if ((iSchModule->m_moduleObjects[i])->m_objType == 'P') {
+            schPin = (CSchPin *)iSchModule->m_moduleObjects[i];
+            if (schPin->m_pinNum.text == pn &&
+                schPin->m_partNum == symbolIndex) {
+                schPin->m_isVisible = 1; // This pin is described, it means is visible
+                schPin->m_pinLength = DEFAULT_SYMBOL_PIN_LENGTH; // Default value
+                if (FindNode(iNode->GetChildren(), wxT("pinLength"))) {
+                    t = FindNode(iNode->GetChildren(), wxT("pinLength"))->GetNodeContent();
+                    schPin->m_pinLength =
+                        StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, sch->m_defaultMeasurementUnit), ' ', actualConversion);
+                }
+                if (FindNode(iNode->GetChildren(), wxT("outsideEdgeStyle"))) {
+                    str = FindNode(iNode->GetChildren(), wxT("outsideEdgeStyle"))->GetNodeContent();
+                    str.Trim(false);
+                    str.Trim(true);
+                    schPin->m_edgeStyle = str;
+                }
+                if (FindNode(iNode->GetChildren(), wxT("rotation")))
+                    schPin->m_rotation = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("rotation"))->GetNodeContent());
+                if (FindNode(iNode->GetChildren(), wxT("pt"))) {
+                    SetPosition(FindNode(iNode->GetChildren(), wxT("pt"))->GetNodeContent(),
+                               sch->m_defaultMeasurementUnit,
+                               &schPin->m_positionX,
+                               &schPin->m_positionY,
+                               actualConversion);
+                }
+                if (FindNode(iNode->GetChildren(), wxT("isFlipped"))) {
+                    str = FindNode(iNode->GetChildren(), wxT("isFlipped"))->GetNodeContent();
+                    str.Trim(false);
+                    str.Trim(true);
+                    if (str == wxT("True")) schPin->m_mirror = 1;
+                }
+                if (FindNode(iNode->GetChildren(), wxT("pinName"))) {
+                    lpn = schPin->m_number;
+                    if (FindNode(FindNode(iNode->GetChildren(), wxT("pinName")), wxT("text"))) {
+                        SetTextParameters(FindNode(FindNode(iNode->GetChildren(), wxT("pinName")), wxT("text")),
+                                          &lpn,
+                                          sch->m_defaultMeasurementUnit,
+                                          actualConversion);
+                    }
+                }
+                if (FindNode(iNode->GetChildren(), wxT("pinDes"))) {
+                    lpn = schPin->m_pinName;
+                    if (FindNode(FindNode(iNode->GetChildren(), wxT("pinDes")), wxT("text"))) {
+                        SetTextParameters(FindNode(FindNode(iNode->GetChildren(), wxT("pinDes")), wxT("text")),
+                                          &lpn,
+                                          sch->m_defaultMeasurementUnit,
+                                          actualConversion);
+                    }
+                }
+            }
+        }
+    }
 }
 
 /*
@@ -492,7 +603,7 @@ begin
 end;
 */
 
-void FindAndProcessSymbolDef(wxXmlNode *iNode, CSchModule *iSchModule, int symbolIndex, CSch *sch, wxString actualConversion) {
+static void FindAndProcessSymbolDef(wxXmlNode *iNode, CSchModule *iSchModule, int symbolIndex, CSch *sch, wxString actualConversion) {
     wxXmlNode *tNode, *ttNode;
     wxString propValue, propValue2;
 
@@ -517,7 +628,7 @@ void FindAndProcessSymbolDef(wxXmlNode *iNode, CSchModule *iSchModule, int symbo
                 tNode = FindNode(ttNode->GetChildren(), wxT("pin"));
                 while (tNode) {
                     if (tNode->GetNodeContent() == wxT("pin") && FindNode(tNode->GetChildren(), wxT("pinNum")))
-                        SetPinProperties(tNode, symbolIndex);
+                        SetPinProperties(tNode, iSchModule, symbolIndex, sch, actualConversion);
                     tNode = tNode->GetNext();
                 }
                 tNode = FindNode(ttNode->GetChildren(), wxT("line"));
@@ -529,13 +640,13 @@ void FindAndProcessSymbolDef(wxXmlNode *iNode, CSchModule *iSchModule, int symbo
                 tNode = FindNode(ttNode->GetChildren(), wxT("arc"));
                 while (tNode) {
                     if (tNode->GetNodeContent() == wxT("arc"))
-                        iSchModule->m_moduleObjects.Add(CreateArc(tNode, symbolIndex));
+                        iSchModule->m_moduleObjects.Add(CreateArc(tNode, symbolIndex, sch, actualConversion));
                     tNode = tNode->GetNext();
                 }
                 tNode = FindNode(ttNode->GetChildren(), wxT("triplePointArc"));
                 while (tNode) {
                     if (tNode->GetNodeContent() == wxT("triplePointArc"))
-                        iSchModule->m_moduleObjects.Add(CreateArc(tNode, symbolIndex));
+                        iSchModule->m_moduleObjects.Add(CreateArc(tNode, symbolIndex, sch, actualConversion));
                     tNode = tNode->GetNext();
                 }
 
