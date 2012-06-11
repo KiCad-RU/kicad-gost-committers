@@ -529,6 +529,31 @@ end;
 end.
 */
 
+void CorrectTextPosition(TTextValue *value, int rotation) {
+    value->correctedPositionX = value->textPositionX;
+    value->correctedPositionY = value->textPositionY;
+    value->correctedPositionY = value->correctedPositionY - KiROUND((double)value->textHeight / 3.0);
+    value->correctedPositionX = value->correctedPositionX + KiROUND(((double)value->text.Len() / 1.4) * ((double)value->textHeight / 1.8));
+    if (rotation == 900) {
+        value->correctedPositionX = -value->textPositionY;
+        value->correctedPositionY = value->textPositionX;
+        value->correctedPositionX = value->correctedPositionX + KiROUND((double)value->textHeight / 3.0);
+        value->correctedPositionY = value->correctedPositionY + KiROUND(((double)value->text.Len() / 1.4) * ((double)value->textHeight / 1.8));
+    }
+    if (rotation == 1800) {
+        value->correctedPositionX = -value->textPositionX;
+        value->correctedPositionY = -value->textPositionY;
+        value->correctedPositionY = value->correctedPositionY + KiROUND((double)value->textHeight / 3.0);
+        value->correctedPositionX = value->correctedPositionX - KiROUND(((double)value->text.Len() / 1.4) * ((double)value->textHeight / 1.8));
+    }
+    if (rotation == 2700) {
+        value->correctedPositionX = value->textPositionY;
+        value->correctedPositionY = -value->textPositionX;
+        value->correctedPositionX = value->correctedPositionX + KiROUND((double)value->textHeight / 1.0);
+        value->correctedPositionY = value->correctedPositionY - KiROUND(((double)value->text.Len() / 3.4) * ((double)value->textHeight / 1.8));
+    }
+}
+
 wxXmlNode *FindNode(wxXmlNode *child, wxString tag) {
     while (child) {
         if (child->GetName() == tag) return child;

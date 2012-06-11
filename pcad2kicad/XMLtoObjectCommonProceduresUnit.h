@@ -60,6 +60,7 @@ extern wxString ValidateName(wxString n);
 extern void SetPosition(wxString t, wxString defaultMeasurementUnit, int *x, int *y, wxString actualConversion);
 extern void SetTextParameters(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion);
 extern void SetFontProperty(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion);
+extern void CorrectTextPosition(TTextValue *value, int rotation);
 
 extern wxXmlNode *FindNode(wxXmlNode *child, wxString tag);
 

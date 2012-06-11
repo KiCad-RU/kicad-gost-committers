@@ -314,6 +314,64 @@ end;
 */
 
 void CSchModule::WriteToFile(wxFile *f, char ftype) {
+    int i, symbolIndex;
+    CorrectTextPosition(&m_name, m_rotation);
+    CorrectTextPosition(&m_reference, m_rotation);
+    // Go out
+    f->Write(wxT("\n"));
+    f->Write(wxT("#\n"));
+    f->Write(wxT("# ") + m_name.text + wxT("\n"));
+    f->Write(wxT("#\n"));
+    f->Write("DEF " + ValidateName(m_name.text) + " U 0 40 Y Y " + wxString::Format("%d F N\n", m_numParts));
+
+    // REFERENCE
+    f->Write(wxT("F0 \"") + m_reference.text + "\" " +
+        wxString::Format("%d %d 50 H V C C\n", m_reference.correctedPositionX, m_reference.correctedPositionY));
+    // NAME
+    f->Write(wxT("F1 \"") + m_name.text + "\" " +
+        wxString::Format("%d %d 50 H V C C\n", m_name.correctedPositionX, m_name.correctedPositionY));
+    // FOOTPRINT
+    f->Write(wxT("F2 \"") + m_attachedPattern + wxT("\" 0 0 50 H I C C\n")); // invisible as default
+
+    // Footprints filter
+    if (m_attachedPattern.Len() > 0) {
+        //$FPLIST  //SCHModule.AttachedPattern
+        //14DIP300*
+        //SO14*
+        //$ENDFPLIST
+        f->Write(wxT("$FPLIST\n"));
+        f->Write(' ' + m_attachedPattern + wxT("*\n"));
+        f->Write(wxT("$ENDFPLIST\n"));
+    }
+    // Alias
+    if (m_alias.Len() > 0) {
+        // ALIAS 74LS37 7400 74HCT00 74HC00
+        f->Write(wxT("ALIAS") + m_alias + wxT("\n"));
+    }
+
+    f->Write(wxT("DRAW\n"));
+    for (symbolIndex = 0; i < m_numParts; i++) {
+        // LINES=POLYGONS
+        for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
+            if (m_moduleObjects[i]->m_objType == 'L')
+                if (((CSchLine *)m_moduleObjects[i])->m_partNum == symbolIndex)
+                    m_moduleObjects[i]->WriteToFile(f, ftype);
+        }
+        // ARCS
+        for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
+            if (m_moduleObjects[i]->m_objType == 'A')
+                if (((CSchArc *)m_moduleObjects[i])->m_partNum == symbolIndex)
+                    m_moduleObjects[i]->WriteToFile(f, ftype);
+        }
+        // PINS
+        for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
+            if (m_moduleObjects[i]->m_objType == 'P')
+                if (((CSchPin *)m_moduleObjects[i])->m_partNum == symbolIndex)
+                    m_moduleObjects[i]->WriteToFile(f, ftype);
+        }
+    }
+    f->Write(wxT("ENDDRAW\n"));   // ??
+    f->Write(wxT("ENDDEF\n"));   // ??
 }
 
 /*
@@ -513,44 +571,44 @@ void CSch::WriteToFile(wxString fileName, char ftype) {
     if (ftype == 'L') {
         // LIBRARY
         f.Open(fileName, wxFile::write);
-        f.Write(wxT("EESchema-LIBRARY Version 2.3  Date: 01/1/2001-01:01:01"));
-        f.Write(wxEmptyString);
+        f.Write(wxT("EESchema-LIBRARY Version 2.3  Date: 01/1/2001-01:01:01\n"));
+        f.Write(wxT("\n"));
         for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
             if (m_schComponents[i]->m_objType == 'M')
                 m_schComponents[i]->WriteToFile(&f, ftype);
         }
-        f.Write(wxT("# End Library"));
+        f.Write(wxT("# End Library\n"));
         f.Close();    // also modules descriptions
 
         wxFileName dcmFile(fileName);
         dcmFile.SetExt(wxT("DCM"));
         f.Open(dcmFile.GetFullPath(), wxFile::write);
-        f.Write(wxT("EESchema-DOCLIB  Version 2.0  Date: 01/01/2000-01:01:01"));
+        f.Write(wxT("EESchema-DOCLIB  Version 2.0  Date: 01/01/2000-01:01:01\n"));
         for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
             if (m_schComponents[i]->m_objType == 'M') {
-                f.Write(wxT("#"));
-                f.Write(wxT("$CMP ") + ValidateName(((CSchModule *)m_schComponents[i])->m_name.text));
-                f.Write(wxT("D ") + ((CSchModule *)m_schComponents[i])->m_moduleDescription);
-                f.Write(wxT("K ")); //no information avaleible
-                f.Write(wxT("$ENDCMP"));
+                f.Write(wxT("#\n"));
+                f.Write(wxT("$CMP ") + ValidateName(((CSchModule *)m_schComponents[i])->m_name.text) + wxT("\n"));
+                f.Write(wxT("D ") + ((CSchModule *)m_schComponents[i])->m_moduleDescription + wxT("\n"));
+                f.Write(wxT("K \n")); //no information available
+                f.Write(wxT("$ENDCMP\n"));
             }
         }
-        f.Write(wxT("#"));
-        f.Write(wxT("#End Doc Library"));
+        f.Write(wxT("#\n"));
+        f.Write(wxT("#End Doc Library\n"));
         f.Close();
     } // LIBRARY
 
     if (ftype == 'S') {
         // SCHEMATICS
         f.Open(fileName, wxFile::write);
-        f.Write(wxT("EESchema Schematic File Version 1"));
+        f.Write(wxT("EESchema Schematic File Version 1\n"));
         wxFileName tmpFile(fileName);
         tmpFile.SetExt(wxEmptyString);
-        f.Write(wxT("LIBS:") + tmpFile.GetFullPath());
-        f.Write(wxT("EELAYER 43  0"));
-        f.Write(wxT("EELAYER END"));
-        f.Write(wxT("$Descr User ") + wxString::Format("%d", m_sizeX) + ' ' + wxString::Format("%d", m_sizeY));
-        f.Write(wxT("$EndDescr"));
+        f.Write(wxT("LIBS:") + tmpFile.GetFullPath() + wxT("\n"));
+        f.Write(wxT("EELAYER 43  0\n"));
+        f.Write(wxT("EELAYER END\n"));
+        f.Write(wxT("$Descr User ") + wxString::Format("%d", m_sizeX) + ' ' + wxString::Format("%d", m_sizeY) + wxT("\n"));
+        f.Write(wxT("$EndDescr\n"));
         // Junctions
         for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
             if (m_schComponents[i]->m_objType == 'J')
@@ -569,13 +627,13 @@ void CSch::WriteToFile(wxString fileName, char ftype) {
         // Symbols
         for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
             if (m_schComponents[i]->m_objType == 'S') {
-                f.Write(wxT("$Comp"));
+                f.Write(wxT("$Comp\n"));
                 m_schComponents[i]->WriteToFile(&f, ftype);
-                f.Write(wxT("$EndComp"));
+                f.Write(wxT("$EndComp\n"));
             }
         }
 
-        f.Write(wxT("$EndSCHEMATC"));
+        f.Write(wxT("$EndSCHEMATC\n"));
         f.Close();
     } // SCHEMATICS
 }
