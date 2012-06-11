@@ -466,7 +466,7 @@ void SetFontProperty(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasureme
 
     iNode->GetPropVal(wxT("Name"), &n);
 
-    while (iNode->GetNodeContent() != wxT("www.lura.sk"))
+    while (iNode->GetName() != wxT("www.lura.sk"))
         iNode = iNode->GetParent();
 
     iNode = FindNode(iNode->GetChildren(), wxT("library"));

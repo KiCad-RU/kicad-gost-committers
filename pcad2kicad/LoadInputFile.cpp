@@ -325,14 +325,14 @@ void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLi
     wxString s, w;
     int fileLine = 0, depth = 0, i = 0;
 
-    statusBar->SetStatusText(_("Opening file : ") + fileName);
+    statusBar->SetStatusText(wxT("Opening file : ") + fileName);
 
     f.Open(fileName);
 
     s = GetLine(&f, true);
     while (s != wxT("END OF INPUT FILE")) {
         fileLine++;
-        statusBar->SetStatusText(_("Processing input file - actual line : ") + wxString::Format("%d", fileLine) + _("/")
+        statusBar->SetStatusText(wxT("Processing input file - actual line : ") + wxString::Format("%d", fileLine) + wxT("/")
             + wxString::Format("%d", lines.GetCount()) + s);
 
         s.Trim(false);
@@ -355,9 +355,9 @@ void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLi
         s = GetLine(&f, false);
     }
 
-    statusBar->SetStatusText(_("Input file processed  : ") + wxString::Format("%d", fileLine) + _(" lines."));
+    statusBar->SetStatusText(wxT("Input file processed  : ") + wxString::Format("%d", fileLine) + wxT(" lines."));
     while (lines.GetCount() > 0) {
-        statusBar->SetStatusText(_("Optimizing  : ") + wxString::Format("%d", lines.GetCount()));
+        statusBar->SetStatusText(wxT("Optimizing  : ") + wxString::Format("%d", lines.GetCount()));
         tLines->Add(lines[lines.GetCount()-1]);
         lines.RemoveAt(lines.GetCount()-1);
     }
