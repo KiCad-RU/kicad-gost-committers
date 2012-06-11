@@ -139,22 +139,41 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
     CSch sch;
     wxArrayString lines;
 
-    wxFileDialog fileDlg( this, _("Open sch file"), wxEmptyString, wxEmptyString, _("PCad SCH Schematics ASCII |*.sch|PCad SCH Library ASCII |*.lia") );
+    wxFileDialog fileDlg( this, wxT("Open sch file"), wxEmptyString, wxEmptyString, wxT("PCad SCH Schematics ASCII |*.sch|PCad SCH Library ASCII |*.lia") );
     int diag = fileDlg.ShowModal();
 
     if( diag != wxID_OK )
         return;
 
-    m_actualConversion = _("SCH");
-    if (fileDlg.GetFilterIndex() == 1) m_actualConversion = _("SCHLIB");
+    m_actualConversion = wxT("SCH");
+    if (fileDlg.GetFilterIndex() == 1) m_actualConversion = wxT("SCHLIB");
     wxString fileName = fileDlg.GetPath();
     m_inputFileName->SetLabel(fileName);
 
     LoadInputFile(fileName, m_statusBar, &lines);
     wxFileName xmlFile(fileName);
-    xmlFile.SetExt(_("XML"));
+    xmlFile.SetExt(wxT("XML"));
     TextToXML(m_statusBar, xmlFile.GetFullPath(), &lines);
     sch = ProcessXMLtoSch(m_statusBar, xmlFile.GetFullPath(), &m_actualConversion);
+
+    m_statusBar->SetStatusText(wxT("Generating output file.... "));
+    wxFileName outFile(fileName);
+    if (fileDlg.GetFilterIndex() == 1) {
+        outFile.SetExt(wxT("LIB"));
+        sch.WriteToFile(outFile.GetFullPath(), 'L');
+    }
+    else {
+        // we convert also library for schematics file
+        outFile.SetExt(wxT("KiCad.LIB"));
+        sch.WriteToFile(outFile.GetFullPath(), 'L');
+        outFile.SetExt(wxT("KiCad.SCH"));
+        sch.WriteToFile(outFile.GetFullPath(), 'S');
+    }
+
+    m_statusBar->SetStatusText(wxT("Done."));
+    //Lines.free;
+    //SCH.Free;
+    m_actualConversion = wxEmptyString;
 }
 
 /*

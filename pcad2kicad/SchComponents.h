@@ -60,7 +60,6 @@ public:
     CSchComponent();
     ~CSchComponent();
 
-protected:
     virtual void WriteToFile(char *f, char ftype);
 };
 
@@ -83,7 +82,6 @@ public:
     CSchSymbol();
     ~CSchSymbol();
 
-protected:
     virtual void WriteToFile(char *f, char ftype);
 };
 
@@ -108,7 +106,6 @@ public:
     CSchPin();
     ~CSchPin();
 
-protected:
     virtual void WriteToFile(char *f, char ftype);
 };
 
@@ -131,7 +128,6 @@ public:
     CSchArc();
     ~CSchArc();
 
-protected:
     virtual void WriteToFile(char *f, char ftype);
 };
 
@@ -150,7 +146,6 @@ public:
     CSchJunction();
     ~CSchJunction();
 
-protected:
     virtual void WriteToFile(char *f, char ftype);
 };
 
@@ -206,7 +201,6 @@ public:
     CSchLine();
     ~CSchLine();
 
-protected:
     virtual void WriteToFile(char *f, char ftype);
     virtual void WriteLabelToFile(char *f, char ftype);
 };
@@ -250,7 +244,6 @@ public:
     CSchModule();
     ~CSchModule();
 
-protected:
     virtual void WriteToFile(char *f, char ftype);
 };
 
@@ -275,7 +268,6 @@ public:
     CSch();
     ~CSch();
 
-protected:
     virtual void WriteToFile(wxString fileName, char ftype);
 };
 

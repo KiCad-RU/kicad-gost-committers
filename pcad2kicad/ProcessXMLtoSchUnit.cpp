@@ -84,7 +84,41 @@ end;
 */
 
 CSchPin *CreatePin(wxXmlNode *iNode) {
+    wxString str, propValue;
+    long num;
     CSchPin *schPin = new CSchPin();
+
+    schPin->m_objType = 'P';
+//    SCHLine.PartNum:=SymbolIndex;
+    iNode->GetPropVal(wxT("Name"), &schPin->m_number.text);
+    schPin->m_pinNum.text = '0'; // Default
+    schPin->m_isVisible = 0; // Default is not visible
+//    SCHPin.pinName.Text:='~'; // Default
+    if (FindNode(iNode->GetChildren(), wxT("symPinNum"))) {
+        str = FindNode(iNode->GetChildren(), wxT("symPinNum"))->GetNodeContent();
+        str.Trim(false);
+        str.Trim(true);
+        schPin->m_pinNum.text = str;
+    }
+//    SCHPin.pinName.Text:=SCHPin.pinNum.Text; // Default
+    if (FindNode(iNode->GetChildren(), wxT("pinName"))) {
+        FindNode(iNode->GetChildren(), wxT("pinName"))->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        schPin->m_pinName.text = propValue;
+    }
+    if (FindNode(iNode->GetChildren(), wxT("pinType"))) {
+        str = FindNode(iNode->GetChildren(), wxT("pinType"))->GetNodeContent();
+        str.Trim(false);
+        str.Trim(true);
+        schPin->m_pinType = str;
+    }
+    if (FindNode(iNode->GetChildren(), wxT("partNum"))) {
+        FindNode(iNode->GetChildren(), wxT("partNum"))->GetNodeContent().ToLong(&num);
+        schPin->m_partNum = (int)num;
+    }
+
+    if (schPin->m_pinName.text.Len() == 0) schPin->m_pinName.text = '~'; // Default
 
     return schPin;
 }
