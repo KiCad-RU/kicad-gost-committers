@@ -326,7 +326,22 @@ begin
     end;
     result:=o;
 end;
+*/
 
+wxString ValidateName(wxString n) {
+    wxString o;
+    int i;
+
+    o = wxEmptyString;
+    for (i = 0; i < (int)n.Len(); i++) {
+        if (n[i] == ' ') o += '_';
+        else o += n[i];
+    }
+
+    return o;
+}
+
+/*
 //Alexander Lunev added (begin)
 procedure SetWidth(t,DefaultMeasurementUnit:string;var width:integer);
 begin

@@ -30,6 +30,8 @@
 #include <wx/wx.h>
 #include <wx/config.h>
 
+#include <wx/filename.h>
+
 #include <SchComponents.h>
 
 CSchComponent::CSchComponent() {
@@ -38,7 +40,7 @@ CSchComponent::CSchComponent() {
 CSchComponent::~CSchComponent() {
 }
 
-void CSchComponent::WriteToFile(char *f, char ftype) {
+void CSchComponent::WriteToFile(wxFile *f, char ftype) {
 }
 
 /*
@@ -114,7 +116,7 @@ CSchArc::CSchArc() {
 CSchArc::~CSchArc() {
 }
 
-void CSchArc::WriteToFile(char *f, char ftype) {
+void CSchArc::WriteToFile(wxFile *f, char ftype) {
 }
 
 /*
@@ -130,7 +132,7 @@ CSchJunction::CSchJunction() {
 CSchJunction::~CSchJunction() {
 }
 
-void CSchJunction::WriteToFile(char *f, char ftype) {
+void CSchJunction::WriteToFile(wxFile *f, char ftype) {
 }
 
 /*
@@ -157,7 +159,7 @@ CSchLine::CSchLine() {
 CSchLine::~CSchLine() {
 }
 
-void CSchLine::WriteToFile(char *f, char ftype) {
+void CSchLine::WriteToFile(wxFile *f, char ftype) {
 }
 
 /*
@@ -174,7 +176,7 @@ begin
 end;
 */
 
-void CSchLine::WriteLabelToFile(char *f, char ftype) {
+void CSchLine::WriteLabelToFile(wxFile *f, char ftype) {
 }
 
 /*
@@ -240,7 +242,7 @@ CSchPin::CSchPin() {
 CSchPin::~CSchPin() {
 }
 
-void CSchPin::WriteToFile(char *f, char ftype) {
+void CSchPin::WriteToFile(wxFile *f, char ftype) {
 }
 
 /*
@@ -311,7 +313,7 @@ begin
 end;
 */
 
-void CSchModule::WriteToFile(char *f, char ftype) {
+void CSchModule::WriteToFile(wxFile *f, char ftype) {
 }
 
 /*
@@ -410,7 +412,7 @@ CSchSymbol::CSchSymbol() {
 CSchSymbol::~CSchSymbol() {
 }
 
-void CSchSymbol::WriteToFile(char *f, char ftype) {
+void CSchSymbol::WriteToFile(wxFile *f, char ftype) {
 }
 
 /*
@@ -505,4 +507,75 @@ end.
 */
 
 void CSch::WriteToFile(wxString fileName, char ftype) {
+    wxFile f;
+    int i;
+
+    if (ftype == 'L') {
+        // LIBRARY
+        f.Open(fileName, wxFile::write);
+        f.Write(wxT("EESchema-LIBRARY Version 2.3  Date: 01/1/2001-01:01:01"));
+        f.Write(wxEmptyString);
+        for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
+            if (m_schComponents[i]->m_objType == 'M')
+                m_schComponents[i]->WriteToFile(&f, ftype);
+        }
+        f.Write(wxT("# End Library"));
+        f.Close();    // also modules descriptions
+
+        wxFileName dcmFile(fileName);
+        dcmFile.SetExt(wxT("DCM"));
+        f.Open(dcmFile.GetFullPath(), wxFile::write);
+        f.Write(wxT("EESchema-DOCLIB  Version 2.0  Date: 01/01/2000-01:01:01"));
+        for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
+            if (m_schComponents[i]->m_objType == 'M') {
+                f.Write(wxT("#"));
+                f.Write(wxT("$CMP ") + ValidateName(((CSchModule *)m_schComponents[i])->m_name.text));
+                f.Write(wxT("D ") + ((CSchModule *)m_schComponents[i])->m_moduleDescription);
+                f.Write(wxT("K ")); //no information avaleible
+                f.Write(wxT("$ENDCMP"));
+            }
+        }
+        f.Write(wxT("#"));
+        f.Write(wxT("#End Doc Library"));
+        f.Close();
+    } // LIBRARY
+
+    if (ftype == 'S') {
+        // SCHEMATICS
+        f.Open(fileName, wxFile::write);
+        f.Write(wxT("EESchema Schematic File Version 1"));
+        wxFileName tmpFile(fileName);
+        tmpFile.SetExt(wxEmptyString);
+        f.Write(wxT("LIBS:") + tmpFile.GetFullPath());
+        f.Write(wxT("EELAYER 43  0"));
+        f.Write(wxT("EELAYER END"));
+        f.Write(wxT("$Descr User ") + wxString::Format("%d", m_sizeX) + ' ' + wxString::Format("%d", m_sizeY));
+        f.Write(wxT("$EndDescr"));
+        // Junctions
+        for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
+            if (m_schComponents[i]->m_objType == 'J')
+                m_schComponents[i]->WriteToFile(&f, ftype);
+        }
+        // Lines
+        for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
+            if (m_schComponents[i]->m_objType == 'L')
+                m_schComponents[i]->WriteToFile(&f, ftype);
+        }
+        // Labels of lines - line and bus names
+        for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
+            if (m_schComponents[i]->m_objType == 'L')
+                ((CSchLine *)m_schComponents[i])->WriteLabelToFile(&f, ftype);
+        }
+        // Symbols
+        for (i = 0; i < (int)m_schComponents.GetCount(); i++) {
+            if (m_schComponents[i]->m_objType == 'S') {
+                f.Write(wxT("$Comp"));
+                m_schComponents[i]->WriteToFile(&f, ftype);
+                f.Write(wxT("$EndComp"));
+            }
+        }
+
+        f.Write(wxT("$EndSCHEMATC"));
+        f.Close();
+    } // SCHEMATICS
 }

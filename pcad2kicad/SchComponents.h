@@ -60,7 +60,7 @@ public:
     CSchComponent();
     ~CSchComponent();
 
-    virtual void WriteToFile(char *f, char ftype);
+    virtual void WriteToFile(wxFile *f, char ftype);
 };
 
 /*
@@ -82,7 +82,7 @@ public:
     CSchSymbol();
     ~CSchSymbol();
 
-    virtual void WriteToFile(char *f, char ftype);
+    virtual void WriteToFile(wxFile *f, char ftype);
 };
 
 /*
@@ -106,7 +106,7 @@ public:
     CSchPin();
     ~CSchPin();
 
-    virtual void WriteToFile(char *f, char ftype);
+    virtual void WriteToFile(wxFile *f, char ftype);
 };
 
 /*
@@ -128,7 +128,7 @@ public:
     CSchArc();
     ~CSchArc();
 
-    virtual void WriteToFile(char *f, char ftype);
+    virtual void WriteToFile(wxFile *f, char ftype);
 };
 
 /*
@@ -146,7 +146,7 @@ public:
     CSchJunction();
     ~CSchJunction();
 
-    virtual void WriteToFile(char *f, char ftype);
+    virtual void WriteToFile(wxFile *f, char ftype);
 };
 
 
@@ -201,8 +201,8 @@ public:
     CSchLine();
     ~CSchLine();
 
-    virtual void WriteToFile(char *f, char ftype);
-    virtual void WriteLabelToFile(char *f, char ftype);
+    virtual void WriteToFile(wxFile *f, char ftype);
+    virtual void WriteLabelToFile(wxFile *f, char ftype);
 };
 
 //THSCHDottedWire = class (THSCHComponent)
@@ -244,7 +244,7 @@ public:
     CSchModule();
     ~CSchModule();
 
-    virtual void WriteToFile(char *f, char ftype);
+    virtual void WriteToFile(wxFile *f, char ftype);
 };
 
 /*
