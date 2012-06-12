@@ -548,8 +548,8 @@ static void SetPinProperties(wxXmlNode *iNode, CSchModule *iSchModule, int symbo
                 }
                 if (FindNode(iNode->GetChildren(), wxT("pinName"))) {
                     lpn = schPin->m_number;
-                    if (FindNode(FindNode(iNode->GetChildren(), wxT("pinName")), wxT("text"))) {
-                        SetTextParameters(FindNode(FindNode(iNode->GetChildren(), wxT("pinName")), wxT("text")),
+                    if (FindNode(FindNode(iNode->GetChildren(), wxT("pinName"))->GetChildren(), wxT("text"))) {
+                        SetTextParameters(FindNode(FindNode(iNode->GetChildren(), wxT("pinName"))->GetChildren(), wxT("text")),
                                           &lpn,
                                           sch->m_defaultMeasurementUnit,
                                           actualConversion);
@@ -557,8 +557,8 @@ static void SetPinProperties(wxXmlNode *iNode, CSchModule *iSchModule, int symbo
                 }
                 if (FindNode(iNode->GetChildren(), wxT("pinDes"))) {
                     lpn = schPin->m_pinName;
-                    if (FindNode(FindNode(iNode->GetChildren(), wxT("pinDes")), wxT("text"))) {
-                        SetTextParameters(FindNode(FindNode(iNode->GetChildren(), wxT("pinDes")), wxT("text")),
+                    if (FindNode(FindNode(iNode->GetChildren(), wxT("pinDes"))->GetChildren(), wxT("text"))) {
+                        SetTextParameters(FindNode(FindNode(iNode->GetChildren(), wxT("pinDes"))->GetChildren(), wxT("text")),
                                           &lpn,
                                           sch->m_defaultMeasurementUnit,
                                           actualConversion);

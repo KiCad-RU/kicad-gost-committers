@@ -704,7 +704,68 @@ end;
 */
 
 wxXmlNode *FindPatternMultilayerSection(wxXmlNode *iNode, wxString *iPatGraphRefName) {
-    wxXmlNode *result;
+    wxXmlNode *result, *pNode, *lNode;
+    wxString propValue, patName;
+
+    result = NULL;
+    pNode = iNode; //pattern;
+    lNode = iNode;
+    if (lNode->GetName() == wxT("compDef")) { // calling from library  conversion we need to find pattern
+        lNode->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        patName = ValidateName(propValue);
+        if (FindNode(lNode->GetChildren(), wxT("attachedPattern"))) {
+            FindNode(FindNode(lNode->GetChildren(), wxT("attachedPattern"))->GetChildren(), wxT("patternName"))->GetPropVal(wxT("Name"), &propValue);
+            propValue.Trim(false);
+            propValue.Trim(true);
+            patName = ValidateName(propValue);
+        }
+
+        lNode = FindModulePatternDefName(lNode->GetParent(), patName);
+        pNode = lNode; //pattern;
+    }
+
+    lNode = NULL;
+    if (pNode)
+       lNode = FindNode(pNode->GetChildren(), wxT("multiLayer"));  //Old file format
+
+    *iPatGraphRefName = wxEmptyString;  //default
+    if (lNode) result = lNode;
+    else {
+        // New file format
+        if (FindNode(iNode->GetChildren(), wxT("patternGraphicsNameRef"))) {
+            FindNode(iNode->GetChildren(), wxT("patternGraphicsNameRef"))->GetPropVal(wxT("Name"), iPatGraphRefName);
+        }
+///////////////////////////////////////////////////////////////////////
+//        lNode:=iNode.ChildNodes.FindNode('patternGraphicsDef');  before
+//        Fixed 02/08, Sergeys imput file format
+//        Did it work before  ????
+//        lNode:=pNode.ChildNodes.FindNode('patternGraphicsDef');  Nw for some files
+//////////////////////////////////////////////////////////////////////
+        if (FindNode(iNode->GetChildren(), wxT("patternGraphicsDef")))
+            lNode = FindNode(iNode->GetChildren(), wxT("patternGraphicsDef"));
+        else
+            lNode = FindNode(pNode->GetChildren(), wxT("patternGraphicsDef"));
+
+        if (*iPatGraphRefName == wxEmptyString) {  // no patern delection, the first is actual...
+            if (lNode) {
+                result = FindNode(lNode->GetChildren(), wxT("multiLayer"));
+                lNode = NULL;
+            }
+        }
+
+        while (lNode) {   // selected by name
+            if (lNode->GetName() == wxT("patternGraphicsDef")) {
+                FindNode(lNode->GetChildren(), wxT("patternGraphicsNameDef"))->GetPropVal(wxT("Name"), &propValue);
+                if (propValue == *iPatGraphRefName) {
+                    result = FindNode(lNode->GetChildren(), wxT("multiLayer"));
+                    lNode = NULL;
+                }
+                else lNode = lNode->GetNext();
+            }
+            else lNode = lNode->GetNext();
+        }
+    }
 
     return result;
 }
