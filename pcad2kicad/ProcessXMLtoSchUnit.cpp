@@ -1524,7 +1524,7 @@ end;
 end.
 */
 
-CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString *actualConversion) {
+CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion) {
     CSch sch;
     wxXmlDocument xmlDoc;
     wxXmlNode *aNode;
@@ -1548,29 +1548,29 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString *act
 
     // Allways also library file
     isJunction = false;
-    *actualConversion = wxT("SCHLIB");
+    actualConversion = wxT("SCHLIB");
 
-    DoLibrary(&xmlDoc, &sch, statusBar, *actualConversion);
+    DoLibrary(&xmlDoc, &sch, statusBar, actualConversion);
 
     aNode = FindNode(xmlDoc.GetRoot()->GetChildren(), wxT("schematicDesign"));
     if (aNode) {
         //  SCHEMATIC FILE
         // aNode is schematicDesign node actually
-        *actualConversion = wxT("SCH");
+        actualConversion = wxT("SCH");
         aNode = FindNode(aNode->GetChildren(), wxT("sheet"))->GetChildren();
         while (aNode) {
             if (aNode->GetName() == wxT("symbol"))
-                sch.m_schComponents.Add(CreateSCHSymbol(aNode, &sch, *actualConversion));
+                sch.m_schComponents.Add(CreateSCHSymbol(aNode, &sch, actualConversion));
 
             if (aNode->GetName() == wxT("wire"))
                 if (FindNode(aNode->GetChildren(), wxT("Line")))
-                    sch.m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("Line")), 0, &sch, *actualConversion));
+                    sch.m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("Line")), 0, &sch, actualConversion));
 
             if (aNode->GetName() == wxT("bus"))
-                sch.m_schComponents.Add(CreateBus(aNode, &sch, *actualConversion));
+                sch.m_schComponents.Add(CreateBus(aNode, &sch, actualConversion));
 
             if (aNode->GetName() == wxT("junction"))
-                sch.m_schComponents.Add(CreateJunction(aNode, &sch, &isJunction, *actualConversion));
+                sch.m_schComponents.Add(CreateJunction(aNode, &sch, &isJunction, actualConversion));
 
             aNode = aNode->GetNext();
         }

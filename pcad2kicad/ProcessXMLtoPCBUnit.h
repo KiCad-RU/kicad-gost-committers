@@ -33,6 +33,6 @@
 #include <wx/wx.h>
 #include <PCBComponents.h>
 
-CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString *actualConversion);
+CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion);
 
 #endif // PROCESSXMLTOPCBUNIT_H_

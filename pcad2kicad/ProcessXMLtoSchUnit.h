@@ -33,6 +33,6 @@
 #include <wx/wx.h>
 #include <SchComponents.h>
 
-CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString *actualConversion);
+CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion);
 
 #endif // PROCESSXMLTOSCHUNIT_H_

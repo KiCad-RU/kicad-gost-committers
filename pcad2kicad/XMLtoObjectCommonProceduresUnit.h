@@ -52,7 +52,7 @@ typedef struct _TTextValue {
 } TTextValue, *pTTextValue;
 
 extern wxString GetWord(wxString *s);
-
+extern wxXmlNode *FindPinMap(wxXmlNode *iNode);
 extern int StrToIntUnits(wxString s, char axe, wxString actualConversion);
 extern wxString GetAndCutWordWithMeasureUnits(wxString *i, wxString defaultMeasurementUnit);
 extern int StrToInt1Units(wxString s);

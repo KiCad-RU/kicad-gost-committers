@@ -205,7 +205,15 @@ begin
      end;
     result:=PCBVia;
 end;
+*/
 
+CPCBVia *CreateVia(wxXmlNode *iNode) {
+    CPCBVia *pcbVia;
+
+    return pcbVia;
+}
+
+/*
 function CreateComponentLine(inode:IXMLNode;l:integer):THPCBLine;
 var lNode,tNode:iXMLNode;
     si,so:string;
@@ -582,8 +590,15 @@ begin
        end;
     end;
 end;
+*/
 
+wxXmlNode *FindModulePatternDefName(wxXmlNode *iNode, wxString iName) {
+    wxXmlNode *result;
 
+    return result;
+}
+
+/*
 procedure   SetPadName(pin,name:string;mc:THPCBModule);
 var i:integer;
 begin
@@ -594,9 +609,21 @@ begin
                  then THPCBPad(mc.ModuleObjects[i]).Name.Text:=name;
     end;
 end;
+*/
 
+void SetPadName(wxString pin, wxString name, CPCBModule *mc) {
+    int i;
+    long num;
 
+    pin.ToLong(&num);
+    for (i = 0; i < (int)mc->m_moduleObjects.GetCount(); i++) {
+        if (mc->m_moduleObjects[i]->m_objType == 'P')
+            if (((CPCBPad *)mc->m_moduleObjects[i])->m_number == num)
+                ((CPCBPad *)mc->m_moduleObjects[i])->m_name.text = name;
+    }
+}
 
+/*
 function CreatePCBModule(inode:IXMLNode):THPCBModule;
 var lNode,tNode,ttNode:iXMLNode;
     AttachedPatternName:string;
@@ -736,8 +763,15 @@ begin
          if Assigned(lNode) then lNode := lNode.NextSibling;
      end;
 end;
+*/
 
+wxXmlNode *FindCompDefName(wxXmlNode *iNode, wxString iName) {
+    wxXmlNode *result;
 
+    return result;
+}
+
+/*
 procedure SetTextProperty(iNode:IXMLNode;var tv:HTextValue; iPatGraphRefName:string; xmlName:string);
 var tNode,t1NOde:IXMLNode;
     pn,n:string;
@@ -778,7 +812,12 @@ begin
         SetTextParameters(tNode,tv,PCB.DefaultMeasurementUnit);
      end;
 end;
+*/
 
+void SetTextProperty(wxXmlNode *iNode, TTextValue *tv, wxString iPatGraphRefName, wxString xmlName) {
+}
+
+/*
 begin
    lNode:=iNode.ChildNodes.First;
    while  Assigned(lNode) do
@@ -857,7 +896,105 @@ begin
 end;
 */
 
-void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb) {
+void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxString actualConversion) {
+    wxXmlNode *lNode, *tNode, *mNode;
+    CPCBModule *mc;
+    wxString cn, str, propValue;
+    int i;
+
+    lNode = iNode->GetChildren();
+    while (lNode) {
+        mc = NULL;
+        if (lNode->GetName() == wxT("pattern")) {
+            FindNode(lNode->GetChildren(), wxT("patternRef"))->GetPropVal(wxT("Name"), &cn);
+            cn = ValidateName(cn);
+            tNode = FindNode(xmlDoc->GetRoot()->GetChildren(), wxT("library"));
+            if (tNode && cn.Len() > 0) {
+                tNode = FindModulePatternDefName(tNode, cn);
+                if (tNode) mc = CreatePCBModule(tNode);
+            }
+
+            if (mc) {
+                mc->m_compRef = cn; // default - in new version of file it is updated later....
+                tNode = FindNode(lNode->GetChildren(), wxT("refDesRef"));
+                if (tNode) {
+                    tNode->GetPropVal(wxT("Name"), &mc->m_name.text);
+                    SetTextProperty(lNode, &mc->m_name, mc->m_patGraphRefName, wxT("RefDes"));
+                    SetTextProperty(lNode, &mc->m_value, mc->m_patGraphRefName, wxT("Value"));
+                }
+
+                tNode = FindNode(lNode->GetChildren(), wxT("pt"));
+                if (tNode) SetPosition(tNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &mc->m_positionX, &mc->m_positionY, actualConversion);
+
+                tNode = FindNode(lNode->GetChildren(), wxT("rotation"));
+                if (tNode) {
+                    str = tNode->GetNodeContent();
+                    str.Trim(false);
+                    mc->m_rotation = StrToInt1Units(str);
+                }
+
+                tNode = FindNode(lNode->GetChildren(), wxT("isFlipped"));
+                if (tNode) {
+                    str = tNode->GetNodeContent();
+                    str.Trim(false);
+                    str.Trim(true);
+                    if (str == wxT("True")) mc->m_mirror = 1;
+                }
+
+                tNode = iNode;
+                while (tNode->GetName() != wxT("www.lura.sk"))
+                    tNode = tNode->GetParent();
+
+                tNode = FindNode(tNode->GetChildren(), wxT("netlist"));
+                if (tNode) {
+                    tNode = FindNode(tNode->GetChildren(), wxT("compInst"));
+                    while (tNode) {
+                        tNode->GetPropVal(wxT("Name"), &propValue);
+                        if (propValue == mc->m_name.text) {
+                            if (FindNode(tNode->GetChildren(), wxT("compValue"))) {
+                                FindNode(tNode->GetChildren(), wxT("compValue"))->GetPropVal(wxT("Name"), &mc->m_value.text);
+                                mc->m_value.text.Trim(false);
+                                mc->m_value.text.Trim(true);
+                            }
+
+                            if (FindNode(tNode->GetChildren(), wxT("compRef"))) {
+                                FindNode(tNode->GetChildren(), wxT("compRef"))->GetPropVal(wxT("Name"), &mc->m_compRef);
+                                mc->m_compRef.Trim(false);
+                                mc->m_compRef.Trim(true);
+                            }
+
+                            tNode = NULL;
+                        }
+                        else tNode = tNode->GetNext();
+                    }
+                }
+
+                // map pins
+                tNode = FindNode(xmlDoc->GetRoot()->GetChildren(), wxT("library"));
+                tNode = FindCompDefName(tNode, mc->m_compRef);
+                if (tNode) {
+                    tNode = FindPinMap(tNode);
+                    if (tNode && tNode->GetDepth() > 0) {
+                        mNode = tNode->GetChildren();
+                        for (i = 0; i <= ((tNode->GetDepth() - 1) / 2); i++) {
+                            if (mNode->GetName() == wxT("padNum")) {
+                                str = mNode->GetNodeContent();
+                                mNode = mNode->GetNext();
+                                mNode->GetPropVal(wxT("Name"), &propValue);
+                                SetPadName(str, propValue, mc);
+                                mNode = mNode->GetNext();
+                            }
+                        }
+                    }
+                }
+
+                pcb->m_pcbComponents.Add(mc);
+            }
+        }
+        else if (lNode->GetName() == wxT("via")) pcb->m_pcbComponents.Add(CreateVia(lNode));
+
+        lNode = lNode->GetNext();
+    }
 }
 
 /*
@@ -1188,7 +1325,7 @@ end;
 end.
 */
 
-CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString *actualConversion) {
+CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion) {
     CPCB pcb;
     wxXmlDocument xmlDoc;
     wxXmlNode *aNode;
@@ -1241,7 +1378,7 @@ CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString *
         while (aNode) {
             // Components/modules
             if (aNode->GetName() == wxT("multiLayer"))
-                DoPCBComponents(aNode, &pcb);
+                DoPCBComponents(aNode, &pcb, &xmlDoc, actualConversion);
             // objects
             if (aNode->GetName() == wxT("layerContents"))
                 DoLayerContentsObjects(aNode, &pcb.m_pcbComponents, statusBar);

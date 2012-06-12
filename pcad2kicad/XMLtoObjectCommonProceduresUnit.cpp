@@ -142,9 +142,19 @@ begin
    if Assigned(lNode) then
                       result:=lNode.ChildNodes.FindNode('padPinMap');
 end;
+*/
 
+wxXmlNode *FindPinMap(wxXmlNode *iNode) {
+    wxXmlNode *result, *lNode;
 
+    result = NULL;
+    lNode = FindNode(iNode->GetChildren(), wxT("attachedPattern"));
+    if (lNode) result = FindNode(lNode->GetChildren(), wxT("padPinMap"));
 
+    return result;
+}
+
+/*
 //Alexander Lunev modified (begin)
 function StrToDoublePrecisionUnits(s:string;axe:char):double;
 var ls:string;
