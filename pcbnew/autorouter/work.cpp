@@ -1,9 +1,13 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ *
+ * Copyright (C) 1992-2012 KiCad Developers, see change_log.txt for contributors.
+ *
+ * First copyright (C) Randy Nevin, 1989 (see PCBCA package)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,6 +27,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+
 /**
  * @file work.cpp
  * @brief Automatic routing routines
@@ -32,8 +37,8 @@
 #include <common.h>
 
 #include <pcbnew.h>
+#include <autorout.h>
 #include <cell.h>
-#include <ar_protos.h>
 
 
 struct CWORK /* a unit of work is a hole-pair to connect */
@@ -56,12 +61,6 @@ static CWORK* Head    = NULL;
 static CWORK* Tail    = NULL;
 static CWORK* Current = NULL;
 
-
-void InitWork();
-void ReInitWork();
-int  SetWork( int, int, int, int, int, RATSNEST_ITEM*, int );
-void GetWork( int*, int*, int*, int*, int*, RATSNEST_ITEM** );
-void SortWork();
 
 
 /* initialize the work list */
@@ -93,13 +92,10 @@ void ReInitWork()
  */
 static int GetCost( int r1, int c1, int r2, int c2 );
 
-int SetWork( int            r1,
-             int            c1,
+int SetWork( int            r1, int            c1,
              int            n_c,
-             int            r2,
-             int            c2,
-             RATSNEST_ITEM* pt_ch,
-             int            pri )
+             int            r2, int            c2,
+             RATSNEST_ITEM* pt_ch, int            pri )
 {
     CWORK* p;
 
@@ -220,18 +216,17 @@ void SortWork()
 }
 
 
-/* Calculate the cost of a net:
+/* Calculate the cost of a ratsnest:
  *   cost = (| dx | + | dy |) * disability
  *   disability = 1 if dx or dy = 0, max if | dx | # | dy |
  */
 static int GetCost( int r1, int c1, int r2, int c2 )
 {
     int   dx, dy, mx, my;
-    float incl;
+    double incl = 1.0;
 
     dx   = abs( c2 - c1 );
     dy   = abs( r2 - r1 );
-    incl = 1.0;
     mx   = dx;
     my   = dy;
 
@@ -241,7 +236,7 @@ static int GetCost( int r1, int c1, int r2, int c2 )
     }
 
     if( mx )
-        incl += (2 * (float) my / mx);
+        incl += (2 * (double) my / mx);
 
     return (int) ( ( dx + dy ) * incl );
 }

@@ -2,7 +2,29 @@
  * @file zones_polygons_test_connections.cpp
  */
 
-using namespace std;
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
 
 #include <algorithm> // sort
 
@@ -28,7 +50,7 @@ void Merge_SubNets_Connected_By_CopperAreas( BOARD* aPcb, int aNetcode );
 bool sort_areas( const ZONE_CONTAINER* ref, const ZONE_CONTAINER* tst )
 {
     if( ref->GetNet() == tst->GetNet() )
-        return ref->m_FilledPolysList.size() < tst->m_FilledPolysList.size();
+        return ref->GetFilledPolysList().size() < tst->GetFilledPolysList().size();
     else
         return ref->GetNet() < tst->GetNet();
 }
@@ -71,7 +93,7 @@ void BOARD::Test_Connections_To_Copper_Areas( int aNetcode )
             continue;
         if( (aNetcode >= 0) && ( aNetcode != curr_zone->GetNet() ) )
             continue;
-        if( curr_zone->m_FilledPolysList.size() == 0 )
+        if( curr_zone->GetFilledPolysList().size() == 0 )
             continue;
         zones_candidates.push_back(curr_zone);
     }
@@ -120,10 +142,11 @@ void BOARD::Test_Connections_To_Copper_Areas( int aNetcode )
 
         // test if a candidate is inside a filled area of this zone
         unsigned indexstart = 0, indexend;
-        for( indexend = 0; indexend < curr_zone->m_FilledPolysList.size(); indexend++ )
+        std::vector<CPolyPt> polysList = curr_zone->GetFilledPolysList();
+        for( indexend = 0; indexend < polysList.size(); indexend++ )
         {
             // end of a filled sub-area found
-            if( curr_zone->m_FilledPolysList[indexend].end_contour )
+            if( polysList[indexend].end_contour )
             {
                 subnet++;
                 EDA_RECT bbox = curr_zone->CalculateSubAreaBoundaryBox( indexstart, indexend );
@@ -162,7 +185,7 @@ void BOARD::Test_Connections_To_Copper_Areas( int aNetcode )
 
                     if( bbox.Contains( pos1 ) )
                     {
-                        if( TestPointInsidePolygon( curr_zone->m_FilledPolysList, indexstart,
+                        if( TestPointInsidePolygon( polysList, indexstart,
                                                     indexend, pos1.x, pos1.y ) )
                             connected = true;
                     }
@@ -170,7 +193,7 @@ void BOARD::Test_Connections_To_Copper_Areas( int aNetcode )
                     {
                         if( bbox.Contains( pos2 ) )
                         {
-                            if( TestPointInsidePolygon( curr_zone->m_FilledPolysList,
+                            if( TestPointInsidePolygon( polysList,
                                                         indexstart, indexend,
                                                         pos2.x, pos2.y ) )
                                 connected = true;

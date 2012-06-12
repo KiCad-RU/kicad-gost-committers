@@ -1,6 +1,29 @@
 /**
  * @file zones_convert_brd_items_to_polygons_with_Boost.cpp
  */
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
 
 /* Functions to convert some board items to polygons
  * (pads, tracks ..)
@@ -471,6 +494,7 @@ int CopyPolygonsFromKPolygonListToFilledPolysList( ZONE_CONTAINER* aZone,
                                                    KPolygonSet&    aKPolyList )
 {
     int count = 0;
+    std::vector<CPolyPt> polysList;
 
     for( unsigned ii = 0; ii < aKPolyList.size(); ii++ )
     {
@@ -487,14 +511,15 @@ int CopyPolygonsFromKPolygonListToFilledPolysList( ZONE_CONTAINER* aZone,
             // Flag this corner if starting a hole connection segment:
             // This is used by draw functions to draw only useful segments (and not extra segments)
             // corner.utility = (aBoolengine->GetPolygonPointEdgeType() == KB_FALSE_EDGE) ? 1 : 0;
-            aZone->m_FilledPolysList.push_back( corner );
+            polysList.push_back( corner );
             count++;
         }
 
         corner.end_contour = true;
-        aZone->m_FilledPolysList.pop_back();
-        aZone->m_FilledPolysList.push_back( corner );
+        polysList.pop_back();
+        polysList.push_back( corner );
     }
+    aZone->AddFilledPolysList( polysList );
 
     return count;
 }
@@ -503,7 +528,8 @@ int CopyPolygonsFromKPolygonListToFilledPolysList( ZONE_CONTAINER* aZone,
 int CopyPolygonsFromFilledPolysListTotKPolygonList( ZONE_CONTAINER* aZone,
                                                     KPolygonSet&    aKPolyList )
 {
-    unsigned corners_count = aZone->m_FilledPolysList.size();
+    std::vector<CPolyPt> polysList = aZone->GetFilledPolysList();
+    unsigned corners_count = polysList.size();
     int      count = 0;
     unsigned ic    = 0;
 
@@ -511,7 +537,7 @@ int CopyPolygonsFromFilledPolysListTotKPolygonList( ZONE_CONTAINER* aZone,
 
     for( unsigned ii = 0; ii < corners_count; ii++ )
     {
-        CPolyPt* corner = &aZone->m_FilledPolysList[ic];
+        CPolyPt* corner = &polysList[ic];
 
         if( corner->end_contour )
             polycount++;
@@ -527,7 +553,7 @@ int CopyPolygonsFromFilledPolysListTotKPolygonList( ZONE_CONTAINER* aZone,
         {
             for( ; ic < corners_count; ic++ )
             {
-                CPolyPt* corner = &aZone->m_FilledPolysList[ic];
+                CPolyPt* corner = &polysList[ic];
                 cornerslist.push_back( KPolyPoint( corner->x, corner->y ) );
                 count++;
 

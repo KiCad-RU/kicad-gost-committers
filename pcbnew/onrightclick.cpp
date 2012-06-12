@@ -621,6 +621,9 @@ void PCB_EDIT_FRAME::createPopUpMenuForZones( ZONE_CONTAINER* edge_zone, wxMenu*
         }
 
         zones_menu->AppendSeparator();
+        AddMenuItem( zones_menu, ID_POPUP_PCB_ZONE_DUPLICATE,
+                     _( "Duplicate Zone" ), KiBitmap( add_zone_xpm ) );
+
         AddMenuItem( zones_menu, ID_POPUP_PCB_ZONE_ADD_SIMILAR_ZONE,
                      _( "Add Similar Zone" ), KiBitmap( add_zone_xpm ) );
 
@@ -631,7 +634,7 @@ void PCB_EDIT_FRAME::createPopUpMenuForZones( ZONE_CONTAINER* edge_zone, wxMenu*
         AddMenuItem( zones_menu, ID_POPUP_PCB_FILL_ZONE, _( "Fill Zone" ),
                      KiBitmap( fill_zone_xpm ) );
 
-        if( edge_zone->m_FilledPolysList.size() > 0 )
+        if( edge_zone->GetFilledPolysList().size() > 0 )
         {
             AddMenuItem( zones_menu, ID_POPUP_PCB_REMOVE_FILLED_AREAS_IN_CURRENT_ZONE,
                          _( "Remove Filled Areas in Zone" ), KiBitmap( zone_unfill_xpm ) );

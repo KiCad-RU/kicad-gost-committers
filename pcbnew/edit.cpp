@@ -1,9 +1,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2012 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -467,6 +468,13 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         SetCurItem( NULL ); // Outlines can have changed
         break;
 
+    case ID_POPUP_PCB_ZONE_DUPLICATE:
+    {
+        ZONE_CONTAINER* zone = (ZONE_CONTAINER*) GetCurItem();
+        duplicateZone( &dc, zone );
+    }
+    break;
+
     case ID_POPUP_PCB_ZONE_ADD_SIMILAR_ZONE:
         m_canvas->MoveCursorToCrossHair();
         m_canvas->SetAutoPanRequest( true );
@@ -579,7 +587,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         {
             // Remove filled areas in zone
             ZONE_CONTAINER* zone_container = GetBoard()->GetArea( ii );
-            zone_container->m_FilledPolysList.clear();
+            zone_container->ClearFilledPolysList();
         }
 
         SetCurItem( NULL );        // CurItem might be deleted by this command, clear the pointer

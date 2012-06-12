@@ -244,8 +244,7 @@ void LEGACY_PLUGIN::loadAllSections( bool doAppend )
 
         else if( TESTLINE( "$TRACK" ) )
         {
-            TRACK* insertBeforeMe = doAppend ? NULL : m_board->m_Track.GetFirst();
-            loadTrackList( insertBeforeMe, PCB_TRACE_T );
+            loadTrackList( PCB_TRACE_T );
         }
 
         else if( TESTLINE( "$NCLASS" ) )
@@ -270,8 +269,7 @@ void LEGACY_PLUGIN::loadAllSections( bool doAppend )
 
         else if( TESTLINE( "$ZONE" ) )
         {
-            SEGZONE* insertBeforeMe = doAppend ? NULL : m_board->m_Zone.GetFirst();
-            loadTrackList( insertBeforeMe, PCB_ZONE_T );
+            loadTrackList( PCB_ZONE_T );
         }
 
         else if( TESTLINE( "$GENERAL" ) )
@@ -403,7 +401,7 @@ void LEGACY_PLUGIN::loadGENERAL()
         else if( TESTLINE( "BoardThickness" ) )
         {
             BIU thickn = biuParse( line + SZ( "BoardThickness" ) );
-            m_board->GetDesignSettings().m_BoardThickness = thickn;
+            m_board->GetDesignSettings().SetBoardThickness( thickn );
         }
 
         /*
@@ -1888,7 +1886,7 @@ void LEGACY_PLUGIN::loadPCB_TEXT()
 }
 
 
-void LEGACY_PLUGIN::loadTrackList( TRACK* aInsertBeforeMe, int aStructType )
+void LEGACY_PLUGIN::loadTrackList( int aStructType )
 {
     while( READLINE( m_reader ) )
     {
@@ -1961,17 +1959,17 @@ void LEGACY_PLUGIN::loadTrackList( TRACK* aInsertBeforeMe, int aStructType )
         default:
         case PCB_TRACE_T:
             newTrack = new TRACK( m_board );
-            m_board->m_Track.Insert( newTrack, aInsertBeforeMe );
+            m_board->m_Track.Append( newTrack );
             break;
 
         case PCB_VIA_T:
             newTrack = new SEGVIA( m_board );
-            m_board->m_Track.Insert( newTrack, aInsertBeforeMe );
+            m_board->m_Track.Append( newTrack );
             break;
 
         case PCB_ZONE_T:     // this is now deprecated, but exist in old boards
             newTrack = new SEGZONE( m_board );
-            m_board->m_Zone.Insert( (SEGZONE*) newTrack, (SEGZONE*) aInsertBeforeMe );
+            m_board->m_Zone.Append( (SEGZONE*) newTrack );
             break;
         }
 
@@ -2258,6 +2256,7 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
         else if( TESTLINE( "$POLYSCORNERS" ) )
         {
             // Read the PolysList (polygons used for fill areas in the zone)
+            std::vector<CPolyPt> polysList;
 
             while( READLINE( m_reader ) )
             {
@@ -2273,8 +2272,9 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
                 bool    end_contour = intParse( data, &data );  // end_countour was a bool when file saved, so '0' or '1' here
                 int     utility     = intParse( data );
 
-                zc->m_FilledPolysList.push_back( CPolyPt( x, y, end_contour, utility ) );
+               polysList.push_back( CPolyPt( x, y, end_contour, utility ) );
             }
+            zc->AddFilledPolysList( polysList );
         }
 
         else if( TESTLINE( "$FILLSEGMENTS" ) )
@@ -2823,7 +2823,7 @@ void LEGACY_PLUGIN::saveGENERAL( const BOARD* aBoard ) const
     fprintf( m_fp, "Ndraw %d\n",            aBoard->m_Drawings.GetCount() );
     fprintf( m_fp, "Ntrack %d\n",           aBoard->GetNumSegmTrack() );
     fprintf( m_fp, "Nzone %d\n",            aBoard->GetNumSegmZone() );
-    fprintf( m_fp, "BoardThickness %s\n",   fmtBIU( aBoard->GetDesignSettings().m_BoardThickness ).c_str() );
+    fprintf( m_fp, "BoardThickness %s\n",   fmtBIU( aBoard->GetDesignSettings().GetBoardThickness() ).c_str() );
     fprintf( m_fp, "Nmodule %d\n",          aBoard->m_Modules.GetCount() );
     fprintf( m_fp, "Nnets %d\n",            aBoard->GetNetCount() );
     fprintf( m_fp, "$EndGENERAL\n\n" );
@@ -3391,7 +3391,7 @@ void LEGACY_PLUGIN::SaveModule3D( const MODULE* me ) const
                     // using "diff", then switch to more concise form for release builds.
                     "Sc %lf %lf %lf\n",
 #else
-                    "Sc %.16g %.16g %.16g\n",
+                    "Sc %.10g %.10g %.10g\n",
 #endif
                     t3D->m_MatScale.x,
                     t3D->m_MatScale.y,
@@ -3401,7 +3401,7 @@ void LEGACY_PLUGIN::SaveModule3D( const MODULE* me ) const
 #if defined(DEBUG)
                     "Of %lf %lf %lf\n",
 #else
-                    "Of %.16g %.16g %.16g\n",
+                    "Of %.10g %.10g %.10g\n",
 #endif
                     t3D->m_MatPosition.x,
                     t3D->m_MatPosition.y,
@@ -3411,7 +3411,7 @@ void LEGACY_PLUGIN::SaveModule3D( const MODULE* me ) const
 #if defined(DEBUG)
                     "Ro %lf %lf %lf\n",
 #else
-                    "Ro %.16g %.16g %.16g\n",
+                    "Ro %.10g %.10g %.10g\n",
 #endif
                     t3D->m_MatRotation.x,
                     t3D->m_MatRotation.y,
@@ -3569,7 +3569,7 @@ void LEGACY_PLUGIN::saveZONE_CONTAINER( const ZONE_CONTAINER* me ) const
     }
 
     // Save the PolysList
-    const CPOLY_PTS& fv = me->m_FilledPolysList;
+    const CPOLY_PTS& fv = me->GetFilledPolysList();
     if( fv.size() )
     {
         fprintf( m_fp, "$POLYSCORNERS\n" );

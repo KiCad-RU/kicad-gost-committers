@@ -1,8 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2006 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -913,6 +914,24 @@ ZoneConnection ZONE_CONTAINER::GetPadConnection( D_PAD* aPad ) const
     else
         return aPad->GetZoneConnection();
 }
+
+
+void ZONE_CONTAINER::AddPolygon( std::vector< wxPoint >& aPolygon )
+{
+    if( aPolygon.empty() )
+        return;
+
+    for( unsigned i = 0;  i < aPolygon.size();  i++ )
+    {
+        if( i == 0 )
+            m_Poly->Start( GetLayer(), aPolygon[i].x, aPolygon[i].y, GetHatchStyle() );
+        else
+            AppendCorner( aPolygon[i] );
+    }
+
+    m_Poly->Close();
+}
+
 
 
 wxString ZONE_CONTAINER::GetSelectMenuText() const

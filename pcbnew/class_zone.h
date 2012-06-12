@@ -209,6 +209,7 @@ public:
     const wxString& GetNetName() const                  { return m_Netname; };
     void SetNetName( const wxString& aName )            { m_Netname = aName; }
 
+    /// How to fill areas: 0 = use filled polygons, 1 => fill with segments.
     void SetFillMode( int aFillMode )                   { m_FillMode = aFillMode; }
     int GetFillMode() const                             { return m_FillMode; }
 
@@ -429,6 +430,11 @@ public:
         return m_Poly->GetHatchStyle();
     }
 
+    void SetHatchStyle( CPolyLine::hatch_style aStyle )
+    {
+        m_Poly->SetHatchStyle( aStyle );
+    }
+
      /**
      * Function TransformShapeWithClearanceToPolygon
      * Convert the track shape to a closed polygon
@@ -456,6 +462,34 @@ public:
      * @param aZoneToCompare = zone to compare with "this"
      */
     bool IsSame( const ZONE_CONTAINER &aZoneToCompare );
+
+   /**
+     * Function ClearFilledPolysList
+     * clears the list of filled polygons.
+     */
+    void ClearFilledPolysList()
+    {
+        m_FilledPolysList.clear();
+    }
+
+   /**
+     * Function GetFilledPolysList
+     * returns a reference to the list of filled polygons.
+     * @return Reference to the list of filled polygons.
+     */
+    const std::vector<CPolyPt>& GetFilledPolysList() const
+    {
+        return m_FilledPolysList;
+    }
+
+   /**
+     * Function AddFilledPolysList
+     * sets the list of filled polygons.
+     */
+    void AddFilledPolysList( std::vector<CPolyPt>& aPolysList )
+    {
+        m_FilledPolysList = aPolysList;
+    }
 
     /**
      * Function GetSmoothedPoly
@@ -487,6 +521,18 @@ public:
 
     unsigned int GetCornerRadius() const { return cornerRadius; };
 
+    void AddPolygon( std::vector< wxPoint >& aPolygon );
+
+    void AddFilledPolygon( std::vector< CPolyPt >& aPolygon )
+    {
+        m_FilledPolysList.insert( m_FilledPolysList.end(), aPolygon.begin(), aPolygon.end() );
+    }
+
+    void AddFillSegments( std::vector< SEGMENT >& aSegments )
+    {
+        m_FillSegmList.insert( m_FillSegmList.end(), aSegments.begin(), aSegments.end() );
+    }
+
     virtual wxString GetSelectMenuText() const;
 
     virtual BITMAP_DEF GetMenuImage() const { return  add_zone_xpm; }
@@ -505,7 +551,7 @@ public:
     int                   m_ZoneClearance;                  // clearance value
     int                   m_ZoneMinThickness;               // Min thickness value in filled areas
 
-    // How to fill areas: 0 = use filled polygons, != 0 fill with segments.
+    /// How to fill areas: 0 => use filled polygons, 1 => fill with segments.
     int                   m_FillMode;
 
     // number of segments to convert a circle to a polygon (uses
@@ -521,16 +567,6 @@ public:
 
     // true when a zone was filled, false after deleting the filled areas
     bool                  m_IsFilled;
-
-    /* set of filled polygons used to draw a zone as a filled area.
-     * from outlines (m_Poly) but unlike m_Poly these filled polygons have no hole
-     * (they are* all in one piece)  In very simple cases m_FilledPolysList is same
-     * as m_Poly.  In less simple cases (when m_Poly has holes) m_FilledPolysList is
-     * a polygon equivalent to m_Poly, without holes but with extra outline segment
-     * connecting "holes" with external main outline.  In complex cases an outline
-     * described by m_Poly can have many filled areas
-     */
-    std::vector <CPolyPt> m_FilledPolysList;
 
     /* set of segments used to fill area, when fill zone by segment is used.
      *  ( m_FillMode == 1 )
@@ -549,6 +585,16 @@ private:
     // if priorities are equal, a DRC error is set
     unsigned              m_priority;
     ZoneConnection        m_PadConnection;
+
+    /* set of filled polygons used to draw a zone as a filled area.
+     * from outlines (m_Poly) but unlike m_Poly these filled polygons have no hole
+     * (they are* all in one piece)  In very simple cases m_FilledPolysList is same
+     * as m_Poly.  In less simple cases (when m_Poly has holes) m_FilledPolysList is
+     * a polygon equivalent to m_Poly, without holes but with extra outline segment
+     * connecting "holes" with external main outline.  In complex cases an outline
+     * described by m_Poly can have many filled areas
+     */
+    std::vector <CPolyPt> m_FilledPolysList;
 };
 
 
