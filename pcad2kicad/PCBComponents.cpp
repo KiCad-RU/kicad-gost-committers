@@ -43,149 +43,6 @@ uses
 
 
 type
-   // simple text with its position, rotation and so on....
-//   HSCHTextVAlue = record
-//     Text:string;
-//     TextPositionX,TextPositionY,
-//     TextOrientation,TextHeight,
-//     TextUnit,
-//     TextConvert:integer;
-//   end;
-
-
-
-   // Netlist structures
-   THNetNode = class (TObject)
-      CompRef:string;
-      PinRef:string;
-   end;
-
-   THNet = class (TObject)
-      Name:string;
-      NetNodes:TList;
-      constructor Create(iname:string);
-      destructor  Free;
-   end;
-
-   // basic parent class for PCB objects
-   THPCBComponent  = class(TObject)
-       Tag:integer;
-       ObjType:char;
-       PCadLayer:integer;
-       KiCadLayer:integer;
-       timestamp:integer;
-       PositionX,PositionY:integer;
-       Rotation:integer;
-       Name:HTextValue;   // name has also privete positions, rotations nand so on....
-       Net:string;
-       CompRef,PatGraphRefName:string;    // internal ussage for XL parsing
-       constructor Create(); virtual;
-       procedure WriteToFile(var f:text;ftype:char); overload; virtual; abstract;
-       procedure SetPosOffset(x_offs:integer;y_offs:integer); virtual;
-   end;
-
-
-   THPCBPadShape = class(THPCBComponent)
-      Shape:string;
-      Width:integer;
-      Height:integer;
-   end;
-   THPCBViaShape = THPCBPadShape; // same as pad shape
-
-   THPCBPad = class(THPCBComponent)
-     Number:integer;
-     Hole:integer;
-     Shapes:TList;
-     constructor Create(iName:string); overload;
-     procedure WriteToFile(var f:text;ftype:char;r:integer); reintroduce;  overload; //override;
-     destructor Free;
-   end;
-
-   THPCBVia = class(THPCBPad)  // will be replaced by pad in next version ????
-     constructor Create();
-   end;
-
-   THPCBLine = class(THPCBComponent)  // Line , routes and drawings
-      Width:integer;
-      ToX:integer;
-      ToY:integer;
-      constructor Create(); override;
-      procedure WriteToFile(var f:text;ftype:char); override;
-      procedure SetPosOffset(x_offs:integer;y_offs:integer); override;
-   end;
-
-//Alexander Lunev modified (begin)
-   THPCBPolygon = class(THPCBComponent)
-      Width:integer;
-      outline:TList;    // collection of boundary/outline lines - objects  THPCBLine
-      fill_lines:TList;
-      constructor Create(); override;
-      procedure WriteToFile(var f:text;ftype:char); override;
-      procedure WriteOutlineToFile(var f:text;ftype:char);
-      procedure SetPosOffset(x_offs:integer;y_offs:integer); override;
-   end;
-//Alexander Lunev modified (end)
-
-//Alexander Lunev added (begin)
-   TVertex = class (TObject)
-      x: double;
-      y: double;
-   end;
-
-   THPCBCopperPour = class(THPCBPolygon)
-      islands:TList;
-   end;
-
-   THPCBCutout = class(THPCBComponent)
-      outline:TList;    // collection of boundary/outline lines - objects  THPCBLine
-      constructor Create();
-      procedure WriteToFile(var f:text;ftype:char); override;
-   end;
-//Alexander Lunev added (end)
-
-
-   THPCBArc = class(THPCBComponent)
-      StartX:integer;
-      StartY:integer;
-      Angle:integer;
-      Width:integer;
-      constructor Create();
-      procedure WriteToFile(var f:text;ftype:char); override;
-      procedure SetPosOffset(x_offs:integer;y_offs:integer); override;
-   end;
-
-   THPCBText = class(THPCBComponent)   // for text value is using Name property of parent
-      constructor Create();
-      procedure WriteToFile(var f:text;ftype:char); override;
-      procedure SetPosOffset(x_offs:integer;y_offs:integer); override;
-   end;
-
-  // Full Module/Component class
-   THPCBModule = class(THPCBComponent)
-     Value:HTextValue;       // has reference (Name from parent) and value
-     ModuleObjects:TList;    // set of cobjects lile THPCBLines,THPCBPads,THPCBVias,....
-     Mirror:integer;
-     constructor Create(iName:string); overload;
-     procedure WriteToFile(var f:text;ftype:char); override;
-     procedure Flip;
-     destructor Free;
-   end;
-
-// B O A R D
-   THPCB = class(TObject)
-     PCBComponents:TList;      // THPCB Modules,Lines,Routes,Texts, .... and so on
-     PCBNetlist:TList;         // THPCBNet objects collection
-     DefaultMeasurementUnit:string;
-     LayersMap: Array [0..27] of integer; // flexible layers mapping
-     SizeX,SizeY:integer;
-     constructor Create();
-     procedure WriteToFile(FileName:string;ftype:char);
-     function GetNewTimestamp():integer;
-     destructor Free;
-     private timestamp_cnt:integer;
-   end;
-
-
 
 implementation
 
@@ -285,37 +142,98 @@ begin;
   Name:=iName;
   NetNodes:=TList.Create();
 end;
+*/
 
+CNet::CNet(wxString iName) {
+    m_name = iName;
+}
+
+/*
 destructor THNet.Free;
 begin
    NetNodes.Free;
 end;
+*/
 
+CNet::~CNet() {
+}
+
+/*
 constructor THPCBComponent.Create();
 begin
    timestamp:=0;
 end;
+*/
 
+CPCBComponent::CPCBComponent() {
+    m_tag = 0;
+    m_objType = '?';
+    m_PCadLayer = 0;
+    m_KiCadLayer = 0;
+    m_timestamp = 0;
+    m_positionX = 0;
+    m_positionY = 0;
+    m_rotation = 0;
+    InitTTextValue(&m_name);
+    m_net = wxEmptyString;
+    m_compRef = wxEmptyString;
+    m_patGraphRefName = wxEmptyString;
+}
+
+CPCBComponent::~CPCBComponent() {
+}
+
+void CPCBComponent::WriteToFile(wxFile *f, char ftype) {
+}
+
+/*
 procedure THPCBComponent.SetPosOffset(x_offs:integer;y_offs:integer);
 begin
   PositionX:=PositionX + x_offs;
   PositionY:=PositionY + y_offs;
 end;
+*/
 
+void CPCBComponent::SetPosOffset(int x_offs, int y_offs) {
+    m_positionX += x_offs;
+    m_positionY += y_offs;
+}
+
+/*
 constructor THPCBLine.Create();
 begin
    inherited;
    ObjType:='L';
 end;
+*/
 
+CPCBLine::CPCBLine() {
+    CPCBComponent::CPCBComponent();
+    m_width = 0;
+    m_toX = 0;
+    m_toY = 0;
+    m_objType = 'L';
+}
+
+CPCBLine::~CPCBLine() {
+}
+
+/*
 procedure THPCBLine.SetPosOffset(x_offs:integer;y_offs:integer);
 begin
   inherited;
   ToX:=ToX + x_offs;
   ToY:=ToY + y_offs;
 end;
+*/
 
+void CPCBLine::SetPosOffset(int x_offs, int y_offs) {
+    CPCBComponent::SetPosOffset(x_offs, y_offs);
+    m_toX += x_offs;
+    m_toY += y_offs;
+}
 
+/*
 procedure THPCBLine.WriteToFile(var f:text;ftype:char);
 var     i:integer;
         s,l:string;
@@ -333,7 +251,12 @@ var     i:integer;
         else Writeln(f,'De '+IntToStr(KiCadLayer)+' 0 0 ' + IntToHex(timestamp, 8) + ' 0');
    end;
  end;
+*/
 
+void CPCBLine::WriteToFile(wxFile *f, char ftype) {
+}
+
+/*
 //Alexander Lunev modified (begin)
 constructor THPCBPolygon.Create();
 begin
@@ -342,8 +265,18 @@ begin
    outline:=TList.Create();
    fill_lines:=TList.Create();
 end;
+*/
 
+CPCBPolygon::CPCBPolygon() {
+    CPCBComponent::CPCBComponent();
+    m_width = 0;
+    m_objType = 'Z';
+}
 
+CPCBPolygon::~CPCBPolygon() {
+}
+
+/*
 procedure THPCBPolygon.WriteToFile(var f:text;ftype:char);
 var     i:integer;
  begin
@@ -357,7 +290,12 @@ var     i:integer;
 
  end;
   //Alexander Lunev modified (end)
+*/
 
+void CPCBPolygon::WriteToFile(wxFile *f, char ftype) {
+}
+
+/*
 //Alexander Lunev added (begin)
 procedure THPCBPolygon.WriteOutlineToFile(var f:text;ftype:char);
 var     i:integer;
@@ -379,7 +317,12 @@ begin
    Writeln(f,'$endCZONE_OUTLINE');
   end;
 end;
+*/
 
+void CPCBPolygon::WriteOutlineToFile(wxFile *f, char ftype) {
+}
+
+/*
 procedure THPCBPolygon.SetPosOffset(x_offs:integer;y_offs:integer);
 var i:integer;
 begin
@@ -391,30 +334,58 @@ begin
   for i:=0 to outline.Count-1 do
      THPCBLine(outline[i]).SetPosOffset(x_offs, y_offs);
 end;
+*/
 
+void CPCBPolygon::SetPosOffset(int x_offs, int y_offs) {
+    CPCBComponent::SetPosOffset(x_offs, y_offs);
+}
+
+/*
 constructor THPCBCutout.Create();
 begin
    inherited;
    ObjType:='C';
    outline:=TList.Create();
 end;
+*/
 
+CPCBCutout::CPCBCutout() {
+    CPCBComponent::CPCBComponent();
+    m_objType = 'C';
+}
+
+CPCBCutout::~CPCBCutout() {
+}
+
+/*
 procedure THPCBCutout.WriteToFile(var f:text;ftype:char);
 begin
   //no operation
 end;
 //Alexander Lunev added (end)
+*/
 
+void CPCBCutout::WriteToFile(wxFile *f, char ftype) {
+}
 
-
-
+/*
 constructor THPCBPad.Create(iname:string);
 begin
    ObjType:='P';
    Name.Text:=iName; Hole:=0;
    Shapes:=TList.Create();
 end;
+*/
 
+CPCBPad::CPCBPad(wxString iName) {
+    CPCBComponent::CPCBComponent();
+    m_objType = 'P';
+    m_number = 0;
+    m_hole = 0;
+    m_name.text = iName;
+}
+
+/*
 procedure THPCBPad.WriteToFile(var f:text;ftype:char;r:integer);
 var     i:integer;
         s,l,LayerMask,PadType:string;
@@ -504,24 +475,52 @@ begin
        end;
  end;
 end;
+*/
 
+void CPCBPad::WriteToFile(wxFile *f, char ftype, int r) {
+}
+
+/*
 destructor THPCBPad.Free;
 begin
   Shapes.Free;
 end;
+*/
 
+CPCBPad::~CPCBPad() {
+}
+
+/*
 constructor THPCBVia.Create();
 begin
    inherited Create('');
    ObjType:='V';
 end;
+*/
 
+CPCBVia::CPCBVia() : CPCBPad(wxEmptyString) {
+    m_objType = 'V';
+}
 
+CPCBVia::~CPCBVia() {
+}
+
+/*
 constructor THPCBText.Create();
 begin
    ObjType:='T';
 end;
+*/
 
+CPCBText::CPCBText() {
+    CPCBComponent::CPCBComponent();
+    m_objType = 'T';
+}
+
+CPCBText::~CPCBText() {
+}
+
+/*
 procedure THPCBText.WriteToFile(var f:text;ftype:char);
 var     i:integer;
         CorrectedPositionX,CorrectedPositionY:Integer;
@@ -557,19 +556,46 @@ var     i:integer;
      Writeln(f,'De '+IntToStr(KiCadlayer)+' '+mirrored+' 0 0');
    end;
 end;
+*/
 
+void CPCBText::WriteToFile(wxFile *f, char ftype) {
+}
+
+/*
 procedure THPCBText.SetPosOffset(x_offs:integer;y_offs:integer);
 begin
   inherited;
   Name.TextPositionX:=Name.TextPositionX + x_offs;
   Name.TextPositionY:=Name.TextPositionY + y_offs;
 end;
+*/
 
+void CPCBText::SetPosOffset(int x_offs, int y_offs) {
+    CPCBComponent::SetPosOffset(x_offs, y_offs);
+    m_name.textPositionX += x_offs;
+    m_name.textPositionY += y_offs;
+}
+
+/*
 constructor THPCBArc.Create();
 begin
    ObjType:='A';
 end;
+*/
 
+CPCBArc::CPCBArc() {
+    CPCBComponent::CPCBComponent();
+    m_objType = 'A';
+    m_startX = 0;
+    m_startY = 0;
+    m_angle = 0;
+    m_width = 0;
+}
+
+CPCBArc::~CPCBArc() {
+}
+
+/*
 procedure THPCBArc.WriteToFile(var f:text;ftype:char);
 var     i:integer;
  begin
@@ -589,15 +615,27 @@ var     i:integer;
         Writeln(f,'De '+IntToStr(KiCadLayer)+' 0 '+IntToStr(-Angle)+' 0 0');
    end;
 end;
+*/
 
+void CPCBArc::WriteToFile(wxFile *f, char ftype) {
+}
+
+/*
 procedure THPCBArc.SetPosOffset(x_offs:integer;y_offs:integer);
 begin
   inherited;
   StartX:=StartX + x_offs;
   StartY:=StartY + y_offs;
 end;
+*/
 
+void CPCBArc::SetPosOffset(int x_offs, int y_offs) {
+    CPCBComponent::SetPosOffset(x_offs, y_offs);
+    m_startX += x_offs;
+    m_startY += y_offs;
+}
 
+/*
 constructor THPCBModule.Create(iname:string);
 begin
    ObjType:='M';  // MODULE
@@ -605,7 +643,18 @@ begin
    KiCadLayer:=21; // default
    ModuleObjects:=TList.Create;
 end;
+*/
 
+CPCBModule::CPCBModule(wxString iName) {
+    CPCBComponent::CPCBComponent();
+    InitTTextValue(&m_value);
+    m_mirror = 0;
+    m_objType = 'M';  // MODULE
+    m_name.text = iName;
+    m_KiCadLayer = 21; // default
+}
+
+/*
 procedure THPCBModule.WriteToFile(var f:text;ftype:char);
 var     i:integer;
         visibility,mirrored:Char;
@@ -682,8 +731,12 @@ var     i:integer;
      // END
      Writeln(f,'$EndMODULE '+Name.Text);
  end;
+*/
 
+void CPCBModule::WriteToFile(wxFile *f, char ftype) {
+}
 
+/*
 procedure THPCBModule.Flip;
 var i:integer;
     j:integer;
@@ -730,12 +783,22 @@ begin
        end;
   end;
 end;
+*/
 
+void CPCBModule::Flip() {
+}
 
+/*
 destructor THPCBModule.Free;
 begin
    ModuleObjects.free;
 end;
+*/
+
+CPCBModule::~CPCBModule() {
+}
+
+/*
 constructor THPCB.Create();
 var i:integer;
 begin
@@ -750,13 +813,38 @@ begin
    LayersMap[7]:=20;
    timestamp_cnt:=$10000000;
 end;
+*/
 
+CPCB::CPCB() {
+    int i;
+
+    m_defaultMeasurementUnit = wxT("mil");
+    for (i = 0; i < 28; i++)
+        m_layersMap[i] = 23; // default
+
+    m_sizeX = 0;
+    m_sizeY = 0;
+
+    m_layersMap[1] = 15;
+    m_layersMap[2] = 0;
+    m_layersMap[3] = 27;
+    m_layersMap[6] = 21;
+    m_layersMap[7] = 20;
+    m_timestamp_cnt = 0x10000000;
+}
+
+/*
 destructor THPCB.Free;
 begin
   PCBComponents.Free;
   PCBNetlist.Free;
 end;
+*/
 
+CPCB::~CPCB() {
+}
+
+/*
 procedure THPCB.WriteToFile(FileName:string;ftype:char);
 var f:text;
     i:integer;
@@ -858,13 +946,21 @@ var f:text;
   end;
   CloseFile(f);
  end;
+*/
 
+void CPCB::WriteToFile(wxFile *f, char ftype) {
+}
+
+/*
 function THPCB.GetNewTimestamp():integer;
 begin
   result:=timestamp_cnt;
   inc(timestamp_cnt);
 end;
 
-
 end.
 */
+
+int CPCB::GetNewTimestamp() {
+    return m_timestamp_cnt++;
+}

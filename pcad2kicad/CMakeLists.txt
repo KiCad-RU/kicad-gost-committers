@@ -12,6 +12,7 @@ set(PCAD2KICAD_SRCS
     LoadInputFile.cpp
     pcad2kicad.cpp
     pcad2kicad_frame.cpp
+    PCBComponents.cpp
     ProcessXMLtoSchUnit.cpp
     SchComponents.cpp
     TextToXMLUnit.cpp
