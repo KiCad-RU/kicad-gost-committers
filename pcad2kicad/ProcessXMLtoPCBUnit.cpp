@@ -888,6 +888,38 @@ end;
 */
 
 void DoPCBNet(wxXmlNode *iNode, CPCB *pcb) {
+    wxString propValue, s1, s2;
+    CNet *net;
+    CNetNode *netNode;
+    wxXmlNode *lNode;
+
+    iNode->GetPropVal(wxT("Name"), &propValue);
+    propValue.Trim(false);
+    propValue.Trim(true);
+    net = new CNet(propValue);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("node"));
+    while (lNode) {
+        lNode->GetPropVal(wxT("Name"), &s2);
+        s2.Trim(false);
+        s1 = wxEmptyString;
+        while (s2.Len() > 0 && s2[0] != ' ') {
+            s1 = s1 + s2[0];
+            s2.Mid(1);
+        }
+
+        netNode = new CNetNode;
+        s1.Trim(false);
+        s1.Trim(true);
+        netNode->m_compRef = s1;
+
+        s2.Trim(false);
+        s2.Trim(true);
+        netNode->m_pinRef = s2;
+        net->m_netNodes.Add(netNode);
+        lNode = lNode->GetNext();
+    }
+    pcb->m_pcbNetlist.Add(net);
 }
 
 /*
@@ -917,7 +949,23 @@ begin
 end;
 */
 
-void ConnectPinToNet(wxString cr, wxString pr, wxString netname) {
+void ConnectPinToNet(CPCB *pcb, wxString cr, wxString pr, wxString netname) {
+    CPCBModule *module;
+    CPCBPad *cp;
+    int i, j;
+
+    for (i = 0; i < (int)pcb->m_pcbComponents.GetCount(); i++) {
+        module = (CPCBModule *)pcb->m_pcbComponents[i];
+        if (module->m_objType == 'M' && module->m_name.text == cr) {
+            for (j = 0; j < (int)module->m_moduleObjects.GetCount(); j++) {
+                if (module->m_moduleObjects[j]->m_objType == 'P') {
+                    cp = (CPCBPad *)module->m_moduleObjects[j];
+                    if (cp->m_name.text == pr)
+                        cp->m_net = netname;
+                }
+            }
+        }
+    }
 }
 
 /*
@@ -962,7 +1010,45 @@ begin
 end;
 */
 
+/* KiCad layers
+0 Copper layer
+1 to 14   Inner layers
+15 Component layer
+16 Copper side adhesive layer    Technical layers
+17 Component side adhesive layer
+18 Copper side Solder paste layer
+19 Component Solder paste layer
+20 Copper side Silk screen layer
+21 Component Silk screen layer
+22 Copper side Solder mask layer
+23 Component Solder mask layer
+24 Draw layer (Used for general drawings)
+25 Comment layer (Other layer used for general drawings)
+26 ECO1 layer (Other layer used for general drawings)       // BUG
+26 ECO2 layer (Other layer used for general drawings)       // BUG      27
+27 Edge layer. Items on Edge layer are seen on all layers   // BUG     28
+*/
 void MapLayer(wxXmlNode *iNode, CPCB *pcb) {
+    wxString lName;
+    int KiCadLayer;
+    long num;
+
+    iNode->GetPropVal(wxT("Name"), &lName);
+    lName = lName.MakeLower();
+    KiCadLayer = 24; // defaullt
+    if (lName == wxT("TOP ASSY"))  {} //?
+    if (lName == wxT("TOP SILK"))  KiCadLayer = 21;
+    if (lName == wxT("TOP PASTE")) KiCadLayer = 19;
+    if (lName == wxT("TOP MASK"))  KiCadLayer = 23;
+    if (lName == wxT("TOP"))       KiCadLayer = 15;
+    if (lName == wxT("BOTTOM"))    KiCadLayer = 0;
+    if (lName == wxT("BOT MASK"))  KiCadLayer = 22;
+    if (lName == wxT("BOT PASTE")) KiCadLayer = 18;
+    if (lName == wxT("BOT SILK"))  KiCadLayer = 20;
+    if (lName == wxT("BOT ASSY"))  {} //?
+    if (lName == wxT("BOARD"))     KiCadLayer = 28;
+    FindNode(iNode->GetChildren(), wxT("layerNum"))->GetNodeContent().ToLong(&num);
+    pcb->m_layersMap[(int)num] = KiCadLayer;
 }
 
 /*
@@ -1173,7 +1259,7 @@ CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString *
                 pr = net->m_netNodes[j]->m_pinRef;
                 pr.Trim(false);
                 pr.Trim(true);
-                ConnectPinToNet(cr, pr, net->m_name);
+                ConnectPinToNet(&pcb, cr, pr, net->m_name);
             }
         }
 

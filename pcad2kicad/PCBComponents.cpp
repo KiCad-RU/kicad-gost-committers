@@ -144,6 +144,15 @@ begin;
 end;
 */
 
+
+CNetNode::CNetNode() {
+    m_compRef = wxEmptyString;
+    m_pinRef = wxEmptyString;
+}
+
+CNetNode::~CNetNode() {
+}
+
 CNet::CNet(wxString iName) {
     m_name = iName;
 }
