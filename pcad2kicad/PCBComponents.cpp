@@ -948,7 +948,7 @@ var f:text;
  end;
 */
 
-void CPCB::WriteToFile(wxFile *f, char ftype) {
+void CPCB::WriteToFile(wxString fileName, char ftype) {
 }
 
 /*

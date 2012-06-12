@@ -36,6 +36,7 @@
 #include <bitmaps.h>
 
 #include <LoadInputFile.h>
+#include <ProcessXMLtoPCBUnit.h>
 #include <ProcessXMLtoSchUnit.h>
 #include <SchComponents.h>
 #include <TextToXMLUnit.h>
@@ -103,7 +104,46 @@ begin
     ActualConversion:='';
   end;
 end;
+*/
 
+void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event ) {
+    CPCB pcb;
+    wxArrayString lines;
+
+    wxFileDialog fileDlg( this, wxT("Open PCB file"), wxEmptyString, wxEmptyString, wxT("PCad PCB Board ASCII |*.pcb|PCad PCB Library ASCII |*.lia") );
+    int diag = fileDlg.ShowModal();
+
+    if( diag != wxID_OK )
+        return;
+
+    m_actualConversion = wxT("PCB");
+    wxString fileName = fileDlg.GetPath();
+    m_inputFileName->SetLabel(fileName);
+
+    LoadInputFile(fileName, m_statusBar, &lines);
+    wxFileName xmlFile(fileName);
+    xmlFile.SetExt(wxT("xml"));
+    TextToXML(m_statusBar, xmlFile.GetFullPath(), &lines);
+    pcb = ProcessXMLtoPCBLib(m_statusBar, xmlFile.GetFullPath(), &m_actualConversion);
+
+    m_statusBar->SetStatusText(wxT("Generating output file.... "));
+    wxFileName outFile(fileName);
+    if (fileDlg.GetFilterIndex() == 1) {
+        outFile.SetExt(wxT("mod"));
+        pcb.WriteToFile(outFile.GetFullPath(), 'L');
+    }
+    else {
+        outFile.SetExt(wxT("brd"));
+        pcb.WriteToFile(outFile.GetFullPath(), 'P');
+    }
+
+    m_statusBar->SetStatusText(wxT("Done."));
+    //Lines.free;
+    //pcb.Free;
+    m_actualConversion = wxEmptyString;
+}
+
+/*
 procedure TPCadToKiCadPCBForm.ButtonSCHClick(Sender: TObject);
 var f:Tfilename;
     Lines:tMemo;

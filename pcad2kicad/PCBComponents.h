@@ -391,11 +391,13 @@ public:
    end;
 */
 
+WX_DEFINE_ARRAY(CNet *, CNetsArray);
+
 class CPCB : public wxObject
 {
 public:
     CPCBComponentsArray m_pcbComponents;  // CPCB Modules,Lines,Routes,Texts, .... and so on
-    CPCBComponentsArray m_pcbNetlist;  // net objects collection
+    CNetsArray m_pcbNetlist;  // net objects collection
     wxString m_defaultMeasurementUnit;
     int m_layersMap[28]; // flexible layers mapping
     int m_sizeX;
@@ -404,7 +406,7 @@ public:
     CPCB();
     ~CPCB();
 
-    virtual void WriteToFile(wxFile *f, char ftype);
+    virtual void WriteToFile(wxString fileName, char ftype);
     virtual int GetNewTimestamp();
 
 private:

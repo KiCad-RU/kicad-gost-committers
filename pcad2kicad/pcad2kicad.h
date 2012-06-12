@@ -50,6 +50,7 @@ public:
 private:
 
     // Event handlers
+    void OnPcb( wxCommandEvent& event );
     void OnSch( wxCommandEvent& event );
 };
 
