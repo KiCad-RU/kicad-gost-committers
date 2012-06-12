@@ -778,7 +778,7 @@ void CSch::WriteToFile(wxString fileName, char ftype) {
         f.Close();    // also modules descriptions
 
         wxFileName dcmFile(fileName);
-        dcmFile.SetExt(wxT("DCM"));
+        dcmFile.SetExt(wxT("dcm"));
         f.Open(dcmFile.GetFullPath(), wxFile::write);
         f.Write(wxT("EESchema-DOCLIB  Version 2.0  Date: 01/01/2000-01:01:01\n"));
         for (i = 0; i < (int)m_schComponents.GetCount(); i++) {

@@ -152,21 +152,21 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
 
     LoadInputFile(fileName, m_statusBar, &lines);
     wxFileName xmlFile(fileName);
-    xmlFile.SetExt(wxT("XML"));
+    xmlFile.SetExt(wxT("xml"));
     TextToXML(m_statusBar, xmlFile.GetFullPath(), &lines);
     sch = ProcessXMLtoSch(m_statusBar, xmlFile.GetFullPath(), &m_actualConversion);
 
     m_statusBar->SetStatusText(wxT("Generating output file.... "));
     wxFileName outFile(fileName);
     if (fileDlg.GetFilterIndex() == 1) {
-        outFile.SetExt(wxT("LIB"));
+        outFile.SetExt(wxT("lib"));
         sch.WriteToFile(outFile.GetFullPath(), 'L');
     }
     else {
         // we convert also library for schematics file
-        outFile.SetExt(wxT("KiCad.LIB"));
+        outFile.SetExt(wxT("KiCad.lib"));
         sch.WriteToFile(outFile.GetFullPath(), 'L');
-        outFile.SetExt(wxT("KiCad.SCH"));
+        outFile.SetExt(wxT("KiCad.sch"));
         sch.WriteToFile(outFile.GetFullPath(), 'S');
     }
 
