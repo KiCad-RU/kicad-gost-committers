@@ -333,7 +333,7 @@ void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLi
     while (s != wxT("END OF INPUT FILE")) {
         fileLine++;
         statusBar->SetStatusText(wxT("Processing input file - actual line : ") + wxString::Format("%d", fileLine) + wxT("/")
-            + wxString::Format("%d", lines.GetCount()) + s);
+            + wxString::Format("%d", (int)lines.GetCount()) + s);
 
         s.Trim(false);
 
@@ -357,7 +357,7 @@ void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLi
 
     statusBar->SetStatusText(wxT("Input file processed  : ") + wxString::Format("%d", fileLine) + wxT(" lines."));
     while (lines.GetCount() > 0) {
-        statusBar->SetStatusText(wxT("Optimizing  : ") + wxString::Format("%d", lines.GetCount()));
+        statusBar->SetStatusText(wxT("Optimizing  : ") + wxString::Format("%d", (int)lines.GetCount()));
         tLines->Add(lines[lines.GetCount()-1]);
         lines.RemoveAt(lines.GetCount()-1);
     }

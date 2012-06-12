@@ -806,7 +806,7 @@ CSchModule *CreateSchModule(wxXmlNode *iNode, wxStatusBar* statusBar, CSch *sch,
     }
 
     for (i = 0; i < schModule->m_numParts; i++)
-        FindAndProcessSymbolDef(iNode, schModule, i, sch, actualConversion);
+        FindAndProcessSymbolDef(iNode, schModule, i + 1, sch, actualConversion);
 
     return schModule;
 }

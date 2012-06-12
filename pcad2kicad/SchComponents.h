@@ -160,6 +160,7 @@ public:
    end;
 */
 
+// This class is not yet used
 class CSchText : public CSchComponent
 {
 public:

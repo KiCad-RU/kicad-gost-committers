@@ -63,5 +63,6 @@ extern void SetFontProperty(wxXmlNode *iNode, TTextValue *tv, wxString defaultMe
 extern void CorrectTextPosition(TTextValue *value, int rotation);
 
 extern wxXmlNode *FindNode(wxXmlNode *child, wxString tag);
+extern void InitTTextValue(TTextValue *textValue);
 
 #endif // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_

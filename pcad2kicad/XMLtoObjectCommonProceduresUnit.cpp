@@ -205,7 +205,7 @@ double StrToDoublePrecisionUnits(wxString s, char axe, wxString actualConversion
                ls[0] == '+' ||
                ls[0] == '.' ||
                ls[0] == ',' ||
-               (ls[0] >= '0' && ls[ls.Len() - 1] <= '9')))
+               (ls[0] >= '0' && ls[0] <= '9')))
         {
             ls = ls.Mid(1);
         }
@@ -271,7 +271,7 @@ wxString GetAndCutWordWithMeasureUnits(wxString *i, wxString defaultMeasurementU
     result = wxEmptyString;
     // value
     while (i->Len() > 0 && (*i)[0] != ' ') {
-        result += i[0];
+        result += (*i)[0];
         *i = i->Mid(1);
     }
     i->Trim(false);
@@ -562,4 +562,18 @@ wxXmlNode *FindNode(wxXmlNode *child, wxString tag) {
     }
 
     return NULL;
+}
+
+void InitTTextValue(TTextValue *textValue) {
+    textValue->text = wxEmptyString;
+    textValue->textPositionX = 0;
+    textValue->textPositionY = 0;
+    textValue->textRotation = 0;
+    textValue->textHeight = 0;
+    textValue->textstrokeWidth = 0;
+    textValue->textIsVisible = 0;
+    textValue->mirror = 0;
+    textValue->textUnit = 0;
+    textValue->correctedPositionX = 0;
+    textValue->correctedPositionY = 0;
 }

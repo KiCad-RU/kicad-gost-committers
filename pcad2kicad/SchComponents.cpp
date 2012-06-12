@@ -36,6 +36,14 @@
 #include <SchComponents.h>
 
 CSchComponent::CSchComponent() {
+    m_objType = '?';
+    m_positionX = 0;
+    m_positionY = 0;
+    m_rotation = 0;
+    m_mirror = 0;
+    m_partNum = 0;
+    m_width = 0;
+    m_isVisible = 0;
 }
 
 CSchComponent::~CSchComponent() {
@@ -66,7 +74,9 @@ end;
 */
 
 CSch::CSch() {
-
+    m_defaultMeasurementUnit = wxEmptyString;
+    m_sizeX = 0;
+    m_sizeY = 0;
 }
 
 /*
@@ -88,6 +98,16 @@ end;
 */
 
 CSchModule::CSchModule() {
+    int i;
+    InitTTextValue(&m_name);
+    InitTTextValue(&m_reference);
+    m_numParts = 0;
+    m_attachedPattern = wxEmptyString;
+    m_moduleDescription = wxEmptyString;
+    m_alias = wxEmptyString;
+
+    for (i = 0; i < 10; i++)
+        m_attachedSymbols[i] = wxEmptyString;
 }
 
 /*/
@@ -112,6 +132,13 @@ end;
 */
 
 CSchArc::CSchArc() {
+    m_startX = 0;
+    m_startY = 0;
+    m_toX = 0;
+    m_toY = 0;
+    m_startAngle = 0;
+    m_sweepAngle = 0;
+    m_radius = 0;
 }
 
 CSchArc::~CSchArc() {
@@ -130,6 +157,7 @@ end;
 */
 
 CSchJunction::CSchJunction() {
+    m_net = wxEmptyString;
 }
 
 CSchJunction::~CSchJunction() {
@@ -158,6 +186,11 @@ end;
 */
 
 CSchLine::CSchLine() {
+    m_toX = 0;
+    m_toY = 0;
+    m_net = wxEmptyString;
+    m_lineType = '?';
+    InitTTextValue(&m_labelText);
 }
 
 CSchLine::~CSchLine() {
@@ -264,6 +297,12 @@ end;
 */
 
 CSchPin::CSchPin() {
+    InitTTextValue(&m_pinNum);
+    InitTTextValue(&m_pinName);
+    InitTTextValue(&m_number);
+    m_pinType = wxEmptyString;
+    m_edgeStyle = wxEmptyString;
+    m_pinLength = 0;
 }
 
 CSchPin::~CSchPin() {
@@ -425,7 +464,7 @@ void CSchModule::WriteToFile(wxFile *f, char ftype) {
     }
 
     f->Write(wxT("DRAW\n"));
-    for (symbolIndex = 0; i < m_numParts; i++) {
+    for (symbolIndex = 1; symbolIndex <= m_numParts; symbolIndex++) {
         // LINES=POLYGONS
         for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
             if (m_moduleObjects[i]->m_objType == 'L')
@@ -540,6 +579,12 @@ end;
 */
 
 CSchSymbol::CSchSymbol() {
+    InitTTextValue(&m_module);
+    InitTTextValue(&m_reference);
+    InitTTextValue(&m_typ);
+    m_patrtNum = 0;
+    m_attachedSymbol = wxEmptyString;
+    m_attachedPattern = wxEmptyString;
 }
 
 CSchSymbol::~CSchSymbol() {

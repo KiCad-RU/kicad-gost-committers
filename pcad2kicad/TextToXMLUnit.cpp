@@ -126,7 +126,7 @@ void ProcessLine(wxStatusBar* statusBar, wxXmlNode *iNode, wxArrayString *tLines
 
     if (tLines->GetCount() == 0) return;
 
-    statusBar->SetStatusText(wxT("Creating XML file : ") + wxString::Format("%d", tLines->GetCount()));
+    statusBar->SetStatusText(wxT("Creating XML file : ") + wxString::Format("%d", (int)tLines->GetCount()));
     ls = (*tLines)[tLines->GetCount() - 1];
     tLines->RemoveAt(tLines->GetCount() - 1);
     if (ls == wxT("GoUP")) ProcessLine(statusBar, iNode->GetParent(), tLines);
