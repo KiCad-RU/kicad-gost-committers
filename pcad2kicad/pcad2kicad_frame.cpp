@@ -42,6 +42,11 @@
 #include <TextToXMLUnit.h>
 
 /*
+PCad ASCII file description:
+www.eltm.ru/store/Altium/PCAD_2006_ASCII.pdf
+*/
+
+/*
 unit PCadToKiCadUnit;
 
 {

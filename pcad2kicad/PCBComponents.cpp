@@ -48,25 +48,6 @@ type
 
 implementation
 
-{
-0 Copper layer
-1 to 14   Inner layers
-15 Component layer
-16 Copper side adhesive layer    Technical layers
-17 Component side adhesive layer
-18 Copper side Solder paste layer
-19 Component Solder paste layer
-20 Copper side Silk screen layer
-21 Component Silk screen layer
-22 Copper side Solder mask layer
-23 Component Solder mask layer
-24 Draw layer (Used for general drawings)
-25 Comment layer (Other layer used for general drawings)
-26 ECO1 layer (Other layer used for general drawings)
-26 ECO2 layer (Other layer used for general drawings)
-27 Edge layer. Items on Edge layer are seen on all layers
-}
-
 function KiCadLayerMask(mask:string;l:integer):string;
 {
 Sometimes, a mask layer parameter is used.
@@ -79,12 +60,20 @@ function OrMask(m1,m2:char):char;
 {I know, stupid implementation, but there is no time to improve it.....}
 var i:integer;
     s:string;
+
 function ToInt(c:char):integer;
 begin
   if c in ['0'..'9'] then Result:=Byte(c)-Byte('0')
   else  Result:=(Byte(c)-Byte('A')+10);
 end;
+*/
 
+int ToInt(char c) {
+    if (c <= '0' && c >= '9') return (c - '0');
+    else return (c - 'A' + 10);
+}
+
+/*
 begin
    if m1=m2 then Result:=m1
    else
@@ -95,7 +84,22 @@ begin
      result:=s[1];
    end;
 end;
+*/
 
+// The former mentioned here that the following implementation needs to be revised
+char OrMask(char m1, char m2) {
+    wxString s;
+    int i;
+
+    if (m1 == m2) return m1;
+
+    i = ToInt(m1);
+    i += ToInt(m2);
+    s = wxString::Format("%X", i);
+    return s[0];
+}
+
+/*
 var newmask:string;
     i:integer;
 begin
@@ -123,8 +127,53 @@ begin
 end;
 */
 
+/*
+0 Copper layer
+1 to 14   Inner layers
+15 Component layer
+16 Copper side adhesive layer    Technical layers
+17 Component side adhesive layer
+18 Copper side Solder paste layer
+19 Component Solder paste layer
+20 Copper side Silk screen layer
+21 Component Silk screen layer
+22 Copper side Solder mask layer
+23 Component Solder mask layer
+24 Draw layer (Used for general drawings)
+25 Comment layer (Other layer used for general drawings)
+26 ECO1 layer (Other layer used for general drawings)
+26 ECO2 layer (Other layer used for general drawings)
+27 Edge layer. Items on Edge layer are seen on all layers
+*/
+
 wxString KiCadLayerMask(wxString mask, int l) {
     wxString newmask;
+    int i;
+    /* Sometimes, a mask layer parameter is used.
+       It is a 32 bits mask used to indicate a layer group usage (0 up to 32 layers).
+       A mask layer parameter is given in hexadecimal form.
+       Bit 0 is the copper layer, bit 1 is the inner 1 layer, and so on...(Bit 27 is the Edge layer).
+       Mask layer is the ORed mask of the used layers */
+
+    newmask = wxT("00000000");        // default
+    if (l == 0) newmask = wxT("00000001");
+    if (l == 15) newmask= wxT("00008000");
+    if (l == 16) newmask= wxT("00010000");
+    if (l == 17) newmask= wxT("00020000");
+    if (l == 18) newmask= wxT("00040000");
+    if (l == 19) newmask= wxT("00080000");
+    if (l == 20) newmask= wxT("00100000");
+    if (l == 21) newmask= wxT("00200000");
+    if (l == 22) newmask= wxT("00400000");
+    if (l == 23) newmask= wxT("00800000");
+    if (l == 24) newmask= wxT("01000000");
+    if (l == 25) newmask= wxT("02000000");
+    if (l == 26) newmask= wxT("04000000");
+    if (l == 27) newmask= wxT("08000000");
+    if (l == 28) newmask= wxT("10000000");
+
+    for (i = 0; i < 8; i++)
+        newmask[i] = OrMask(mask[i], newmask[i]);
 
     return newmask;
 }
@@ -307,6 +356,18 @@ var     i:integer;
 */
 
 void CPCBLine::WriteToFile(wxFile *f, char ftype) {
+    if (ftype == 'L') { // Library
+        f->Write(wxString::Format("DS %d %d %d %d %d %d\n", m_positionX, m_positionY,
+                 m_toX, m_toY, m_width, m_KiCadLayer)); // Position
+    }
+
+    if (ftype == 'P') { // PCB
+        f->Write(wxString::Format("Po 0 %d %d %d %d %d\n", m_positionX, m_positionY,
+                 m_toX, m_toY, m_width));
+        if (m_timestamp == 0)
+            f->Write(wxString::Format("De %d 0 0 0 0\n", m_KiCadLayer));
+        else f->Write(wxString::Format("De %d 0 0 %8X 0\n", m_KiCadLayer, m_timestamp));
+    }
 }
 
 /*
