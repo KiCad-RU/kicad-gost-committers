@@ -57,6 +57,7 @@ extern int StrToIntUnits(wxString s, char axe, wxString actualConversion);
 extern wxString GetAndCutWordWithMeasureUnits(wxString *i, wxString defaultMeasurementUnit);
 extern int StrToInt1Units(wxString s);
 extern wxString ValidateName(wxString n);
+extern void SetWidth(wxString t, wxString defaultMeasurementUnit, int *width, wxString actualConversion);
 extern void SetPosition(wxString t, wxString defaultMeasurementUnit, int *x, int *y, wxString actualConversion);
 extern void SetTextParameters(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion);
 extern void SetFontProperty(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion);

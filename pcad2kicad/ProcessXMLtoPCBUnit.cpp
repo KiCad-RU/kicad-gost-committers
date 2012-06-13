@@ -30,6 +30,7 @@
 #include <wx/wx.h>
 #include <wx/config.h>
 
+#include <common.h>
 #include <ProcessXMLtoPCBUnit.h>
 
 /*
@@ -109,7 +110,64 @@ begin
       end;
    result:=PCBPadShape;
 end;
+*/
 
+CPCBPadViaShape *CreatePCBPadShape(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
+    wxString str, s;
+    long num;
+    int minX, maxX, minY, maxY, x, y;
+    wxXmlNode *lNode;
+
+    CPCBPadViaShape *pcbPadShape = new CPCBPadViaShape;
+
+    lNode = FindNode(iNode->GetChildren(), wxT("padShapeType"));
+    if (lNode) {
+        str = lNode->GetNodeContent();
+        str.Trim(false);
+        pcbPadShape->m_shape = str;
+    }
+
+    lNode = FindNode(iNode->GetChildren(), wxT("layerNumRef"));
+    if (lNode) {
+        lNode->GetNodeContent().ToLong(&num);
+        pcbPadShape->m_PCadLayer = (int)num;
+    }
+
+    pcbPadShape->m_KiCadLayer = pcb->m_layersMap[pcbPadShape->m_PCadLayer];
+    if (pcbPadShape->m_shape == wxT("Oval") ||
+        pcbPadShape->m_shape == wxT("Rect") ||
+        pcbPadShape->m_shape == wxT("Ellipse") ||
+        pcbPadShape->m_shape == wxT("RndRect"))
+    {
+        lNode = FindNode(iNode->GetChildren(), wxT("shapeWidth"));
+        if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbPadShape->m_width, actualConversion);
+        lNode = FindNode(iNode->GetChildren(), wxT("shapeHeight"));
+        if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbPadShape->m_height, actualConversion);
+    }
+
+    if (pcbPadShape->m_shape == wxT("Polygon")) {
+        // aproximation to simplier pad shape .....
+        lNode = FindNode(iNode->GetChildren(), wxT("shapeOutline"));
+        if (lNode) lNode = FindNode(lNode->GetChildren(), wxT("pt"));
+        minX = 0; maxX = 0; minY = 0; maxY = 0;
+        while (lNode) {
+            s = lNode->GetNodeContent();
+            SetPosition(s, pcb->m_defaultMeasurementUnit, &x, &y, actualConversion);
+            if (minX > x) minX = x;
+            if (maxX < x) maxX = x;
+            if (minY > y) minY = y;
+            if (maxY < y) maxY = y;
+            lNode = lNode->GetNext();
+        }
+
+        pcbPadShape->m_width = maxX - minX;
+        pcbPadShape->m_height = maxY - minY;
+    }
+
+    return pcbPadShape;
+}
+
+/*
 function CreatePCBViaShape(inode:IXMLNode):THPCBViaShape;
 var lNode:iXMLNode;
     s:string;
@@ -126,7 +184,38 @@ begin
     if Assigned(lNode) then SetWidth(lNode.Text,PCB.DefaultMeasurementUnit,PCBViaShape.Height);
     result:=PCBViaShape;
 end;
+*/
 
+CPCBPadViaShape *CreatePCBViaShape(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
+    wxXmlNode *lNode;
+    wxString str;
+    long num;
+    CPCBPadViaShape *pcbViaShape = new CPCBPadViaShape;
+
+    lNode = FindNode(iNode->GetChildren(), wxT("viaShapeType"));
+    if (lNode) {
+        str = lNode->GetNodeContent();
+        str.Trim(false);
+        pcbViaShape->m_shape = str;
+    }
+
+    lNode = FindNode(iNode->GetChildren(), wxT("layerNumRef"));
+    if (lNode) {
+        lNode->GetNodeContent().ToLong(&num);
+        pcbViaShape->m_PCadLayer = (int)num;
+    }
+
+    pcbViaShape->m_KiCadLayer = pcb->m_layersMap[pcbViaShape->m_PCadLayer];
+    lNode = FindNode(iNode->GetChildren(), wxT("shapeWidth"));
+    if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbViaShape->m_width, actualConversion);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("shapeHeight"));
+    if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbViaShape->m_height, actualConversion);
+
+    return pcbViaShape;
+}
+
+/*
 function CreatePCBPad(inode:IXMLNode):THPCBPad;
 var lNode:iXMLNode;
     si,so:string;
@@ -166,8 +255,66 @@ begin
 end;
 */
 
-CPCBPad *CreatePCBPad(wxXmlNode *iNode) {
-    CPCBPad *pcbPad;
+CPCBPad *CreatePCBPad(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
+    wxXmlNode *lNode;
+    long num;
+    wxString propValue, str;
+    CPCBPad *pcbPad = new CPCBPad(wxEmptyString);
+
+    pcbPad->m_rotation = 0;
+    lNode = FindNode(iNode->GetChildren(), wxT("padNum"));
+    if (lNode) {
+        lNode->GetNodeContent().ToLong(&num);
+        pcbPad->m_number = (int)num;
+    }
+
+    lNode = FindNode(iNode->GetChildren(), wxT("padStyleRef"));
+    if (lNode) {
+        lNode->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        pcbPad->m_name.text = propValue;
+    }
+
+    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+    if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
+                           &pcbPad->m_positionX, &pcbPad->m_positionY, actualConversion);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("rotation"));
+    if (lNode) {
+        str = lNode->GetNodeContent();
+        str.Trim(false);
+        pcbPad->m_rotation = StrToInt1Units(str);
+    }
+
+    lNode = iNode;
+    while (lNode->GetName() != wxT("www.lura.sk"))
+        lNode = lNode->GetParent();
+
+    lNode = FindNode(lNode->GetChildren(), wxT("library"));
+    lNode = FindNode(lNode->GetChildren(), wxT("padStyleDef"));
+
+    while (true) {
+        lNode->GetPropVal(wxT("Name"), &propValue);
+        if (propValue == pcbPad->m_name.text) break;
+        lNode = lNode->GetNext();
+    }
+
+    lNode = FindNode(lNode->GetChildren(), wxT("holeDiam"));
+    if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbPad->m_hole, actualConversion);
+
+    lNode = lNode->GetParent();
+    lNode = FindNode(lNode->GetChildren(), wxT("padShape"));
+
+    while (lNode) {
+        if  (lNode->GetName() == wxT("padShape")) {
+            // we support only Pads on specific layers......
+            // we do not support pads on "Plane", "NonSignal" , "Signal" ... layerr
+            if (FindNode(lNode->GetChildren(), wxT("layerNumRef")))
+                pcbPad->m_shapes.Add(CreatePCBPadShape(lNode, pcb, actualConversion));
+        }
+
+        lNode = lNode->GetNext();
+    }
 
     return pcbPad;
 }
@@ -215,8 +362,63 @@ begin
 end;
 */
 
-CPCBVia *CreateVia(wxXmlNode *iNode) {
-    CPCBVia *pcbVia;
+CPCBVia *CreateVia(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
+    wxXmlNode *lNode, *tNode;
+    wxString propValue;
+    CPCBVia *pcbVia = new CPCBVia;
+
+    pcbVia->m_rotation = 0;
+    lNode = FindNode(iNode->GetChildren(), wxT("viaStyleRef"));
+    if (lNode) {
+        lNode->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        pcbVia->m_name.text = propValue;
+    }
+
+    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+    if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
+                           &pcbVia->m_positionX, &pcbVia->m_positionY, actualConversion);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("netNameRef"));
+    if (lNode) {
+        lNode->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        pcbVia->m_net = propValue;
+    }
+
+    lNode = iNode;
+    while (lNode->GetName() != wxT("www.lura.sk"))
+        lNode = lNode->GetParent();
+
+    lNode = FindNode(lNode->GetChildren(), wxT("library"));
+    lNode = FindNode(lNode->GetChildren(), wxT("viaStyleDef"));
+    if (lNode) {
+        while (lNode) {
+            lNode->GetPropVal(wxT("Name"), &propValue);
+            if (propValue == pcbVia->m_name.text) break;
+            lNode = lNode->GetNext();
+        }
+    }
+
+    if (lNode) {
+        tNode = lNode;
+        lNode = FindNode(tNode->GetChildren(), wxT("holeDiam"));
+        if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbVia->m_hole, actualConversion);
+
+        lNode = FindNode(tNode->GetChildren(), wxT("viaShape"));
+        while (lNode) {
+            if  (lNode->GetName() == wxT("viaShape")) {
+                // we support only Vias on specific layers......
+                // we do not support vias on "Plane", "NonSignal" , "Signal" ... layerr
+                if (FindNode(lNode->GetChildren(), wxT("layerNumRef")))
+                    pcbVia->m_shapes.Add(CreatePCBViaShape(lNode, pcb, actualConversion));
+            }
+
+            lNode = lNode->GetNext();
+        }
+    }
 
     return pcbVia;
 }
@@ -244,7 +446,45 @@ begin
     if Assigned(lNode) then ComponentLine.Net:=Trim(lNode.Attributes['Name']);
    result:=ComponentLine;
 end;
+*/
 
+CPCBLine *CreateComponentLine(wxXmlNode *iNode, int l, CPCB *pcb, wxString actualConversion) {
+    wxXmlNode *lNode;
+    wxString propValue;
+    CPCBLine *componentLine = new CPCBLine;
+
+    componentLine->m_PCadLayer = l;
+    componentLine->m_KiCadLayer = pcb->m_layersMap[componentLine->m_PCadLayer];
+    componentLine->m_positionX = 0;
+    componentLine->m_positionY = 0;
+    componentLine->m_toX = 0;
+    componentLine->m_toY = 0;
+    componentLine->m_width = 0;
+    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+    if (lNode)
+        SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
+                    &componentLine->m_positionX, &componentLine->m_positionY, actualConversion);
+
+    lNode = lNode->GetNext();
+    if (lNode)
+        SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
+                    &componentLine->m_toX, &componentLine->m_toY, actualConversion);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("width"));
+    if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &componentLine->m_width, actualConversion);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("netNameRef"));
+    if (lNode) {
+        lNode->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        componentLine->m_net = propValue;
+    }
+
+    return componentLine;
+}
+
+/*
 function CreateComponentText(inode:IXMLNode;l:integer):THPCBText;
 var lNode,tNode:iXMLNode;
     si,so:string;
@@ -270,7 +510,47 @@ begin
     if Assigned(lNode) then  SetFontProperty(lNode,ComponentText.Name,PCB.DefaultMeasurementUnit);
    result:=ComponentText;
 end;
+*/
 
+CPCBText *CreateComponentText(wxXmlNode *iNode, int l, CPCB *pcb, wxString actualConversion) {
+    wxXmlNode *lNode;
+    wxString str;
+    CPCBText *componentText = new CPCBText;
+
+    componentText->m_PCadLayer = l;
+    componentText->m_KiCadLayer = pcb->m_layersMap[componentText->m_PCadLayer];
+    componentText->m_positionX = 0;
+    componentText->m_positionY = 0;
+    componentText->m_name.mirror = 0;      //Normal, not mirrored
+    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+    if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
+                           &componentText->m_positionX, &componentText->m_positionY, actualConversion);
+    lNode = FindNode(iNode->GetChildren(), wxT("rotation"));
+    if (lNode) {
+        str = lNode->GetNodeContent();
+        str.Trim(false);
+        componentText->m_rotation = StrToInt1Units(str);
+    }
+
+    lNode = FindNode(iNode->GetChildren(), wxT("value"));
+    if (lNode)
+        componentText->m_name.text = lNode->GetNodeContent();
+
+    lNode = FindNode(iNode->GetChildren(), wxT("isFlipped"));
+    if (lNode) {
+        str = lNode->GetNodeContent();
+        str.Trim(false);
+        str.Trim(true);
+        if (str == wxT("True")) componentText->m_name.mirror = 1;
+    }
+
+    lNode = FindNode(iNode->GetChildren(), wxT("textStyleRef"));
+    if (lNode) SetFontProperty(lNode, &componentText->m_name, pcb->m_defaultMeasurementUnit, actualConversion);
+
+    return componentText;
+}
+
+/*
 //Alexander Lunev added (begin)
 procedure FormPolygonLines(inode:IXMLNode; var lines:TList; PCADlayer:integer;
                             width:integer);
@@ -378,7 +658,15 @@ begin
     componentPolygon.PositionY:=THPCBLine(componentPolygon.outline[0]).PositionY;
     result:=ComponentPolygon;
 end;
+*/
 
+CPCBPolygon *CreateComponentPolygon(wxXmlNode *iNode, int PCadLayer) {
+    CPCBPolygon *componentPolygon = new CPCBPolygon;
+
+    return componentPolygon;
+}
+
+/*
 function CreateComponentCopperPour(inode:IXMLNode;PCADlayer:integer):THPCBCopperPour;
 var lNode,tNode,cNode:iXMLNode;
     x,y,i:integer;
@@ -458,7 +746,15 @@ begin
     end
     else result:=nil;
 end;
+*/
 
+CPCBCopperPour *CreateComponentCopperPour(wxXmlNode *iNode, int PCadLayer) {
+    CPCBCopperPour *componentCopperPour = new CPCBCopperPour;
+
+    return componentCopperPour;
+}
+
+/*
 function CreateComponentCutout(inode:IXMLNode;PCADlayer:integer):THPCBCutout;
 var lNode,tNode:iXMLNode;
     ComponentCutout:THPCBCutout;
@@ -472,9 +768,15 @@ begin
     result:=ComponentCutout;
 end;
 //Alexander Lunev added (end)
+*/
 
+CPCBCutout *CreateComponentCutout(wxXmlNode *iNode, int PCadLayer) {
+    CPCBCutout *componentCutout = new CPCBCutout;
 
+    return componentCutout;
+}
 
+/*
 function CreateComponentArc(inode:IXMLNode;l:integer):THPCBArc;
 var lNode,tNode:iXMLNode;
     si,so:string;
@@ -509,7 +811,47 @@ begin
     end;
    result:=ComponentArc;
 end;
+*/
 
+CPCBArc *CreateComponentArc(wxXmlNode *iNode, int l, CPCB *pcb, wxString actualConversion) {
+    wxXmlNode *lNode;
+    double r, a;
+    CPCBArc *componentArc = new CPCBArc;
+
+    componentArc->m_PCadLayer = l;
+    componentArc->m_KiCadLayer = pcb->m_layersMap[componentArc->m_PCadLayer];
+    SetWidth(FindNode(iNode->GetChildren(), wxT("width"))->GetNodeContent(),
+             pcb->m_defaultMeasurementUnit, &componentArc->m_width, actualConversion);
+
+    if (iNode->GetName() == wxT("triplePointArc")) {
+        // origin
+        lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+        if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
+                               &componentArc->m_positionX, &componentArc->m_positionY, actualConversion);
+        lNode = lNode->GetNext();
+        if (lNode)
+            SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
+                        &componentArc->m_startX, &componentArc->m_startY, actualConversion);
+        // now temporary, it can be fixed later.....
+        componentArc->m_angle = 3600;
+    }
+
+    if (iNode->GetName() == wxT("arc")) {
+        lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+        if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
+                               &componentArc->m_positionX, &componentArc->m_positionY, actualConversion);
+        lNode = FindNode(iNode->GetChildren(), wxT("radius"));
+        r = StrToIntUnits(lNode->GetNodeContent(), ' ', actualConversion);
+        a = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("startAngle"))->GetNodeContent());
+        componentArc->m_startX = KiROUND(componentArc->m_positionX + r * sin((a - 900.0) * M_PI / 1800.0));
+        componentArc->m_startY = KiROUND(componentArc->m_positionY - r * cos((a - 900.0) * M_PI / 1800.0));
+        componentArc->m_angle = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("sweepAngle"))->GetNodeContent());
+    }
+
+    return componentArc;
+}
+
+/*
 //Alexander Lunev modified (begin)
 procedure DoLayerContentsObjects(iNode:IXMLNode;List:TList);
 var lNode,tNode:IXMLNode;
@@ -560,7 +902,60 @@ end;
 //Alexander Lunev modified (end)
 */
 
-void DoLayerContentsObjects(wxXmlNode *iNode, CPCBComponentsArray *list, wxStatusBar* statusBar) {
+void DoLayerContentsObjects(wxXmlNode *iNode, CPCBComponentsArray *list, wxStatusBar* statusBar, CPCB *pcb, wxString actualConversion) {
+    CPCBPolygon *poly;
+    wxXmlNode *lNode, *tNode;
+    wxString propValue;
+    long long i;
+    int PCadLayer;
+    long num;
+
+    i = 0;
+    statusBar->SetStatusText(wxT("Processing LAYER CONTENT OBJECTS "));
+    FindNode(iNode->GetChildren(), wxT("layerNumRef"))->GetNodeContent().ToLong(&num);
+    PCadLayer = (int)num;
+    lNode = iNode->GetChildren();
+    while (lNode) {
+        i++;
+        statusBar->SetStatusText(wxString::Format("Processing LAYER CONTENT OBJECTS :%lld", i));
+        if (lNode->GetName() == wxT("line")) list->Add(CreateComponentLine(lNode, PCadLayer, pcb, actualConversion));
+        if (lNode->GetName() == wxT("text")) list->Add(CreateComponentText(lNode, PCadLayer, pcb, actualConversion));
+        // added  as Sergeys request 02/2008
+        if (lNode->GetName() == wxT("attr")) {
+            // assign fonts to Module Name,Value,Type,....s
+            lNode->GetPropVal(wxT("Name"), &propValue);
+            propValue.Trim(false);
+            propValue.Trim(true);
+            if (propValue == wxT("Type")) {
+                tNode = FindNode(lNode->GetChildren(), wxT("textStyleRef"));
+                if (tNode) {
+                    //TODO: to understand and repair
+                    // Alexander Lunev: The string below is commented because there is a strange access
+                    //  to pcbModule->m_name (it was global variable in Delphi version of the project).
+                    //SetFontProperty(tNode, pcbModule->m_name, pcb->m_defaultMeasurementUnit);
+                }
+            }
+        }
+
+        // added  as Sergeys request 02/2008
+        if (lNode->GetName() == wxT("arc")) list->Add(CreateComponentArc(lNode, PCadLayer, pcb, actualConversion));
+        if (lNode->GetName() == wxT("triplePointArc")) list->Add(CreateComponentArc(lNode, PCadLayer, pcb, actualConversion));
+        if (lNode->GetName() == wxT("pcbPoly")) list->Add(CreateComponentPolygon(lNode, PCadLayer));
+        if (lNode->GetName() == wxT("copperPour95")) {
+            poly = CreateComponentCopperPour(lNode, PCadLayer);
+            if (poly != NULL) list->Add(poly);
+        }
+
+        if (lNode->GetName() == wxT("polyCutOut")) {
+            // list of polygons....
+            tNode = lNode;
+            tNode = FindNode(tNode->GetChildren(), wxT("pcbPoly"));
+            if (tNode)
+                list->Add(CreateComponentCutout(tNode, PCadLayer));
+        }
+
+        lNode = lNode->GetNext();
+    }
 }
 
 /*
@@ -601,7 +996,39 @@ end;
 */
 
 wxXmlNode *FindModulePatternDefName(wxXmlNode *iNode, wxString iName) {
-    wxXmlNode *result;
+    wxXmlNode *result, *lNode;
+    wxString propValue1, propValue2;
+
+    result = NULL;
+    lNode = FindNode(iNode->GetChildren(), wxT("patternDef"));
+    while (lNode) {
+        if (lNode->GetName() == wxT("patternDef")) {
+            lNode->GetPropVal(wxT("Name"), &propValue1);
+            FindNode(lNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue2);
+            if (ValidateName(propValue1) == iName ||
+                ValidateName(propValue2) == iName) {
+                result = lNode;
+                lNode = NULL;
+            }
+        }
+
+        if (lNode) lNode = lNode->GetNext();
+    }
+
+    if (result == NULL) {
+        lNode = FindNode(iNode->GetChildren(), wxT("patternDefExtended")); // New file format
+        while (lNode) {
+            if (lNode->GetName() == wxT("patternDefExtended")) {
+                lNode->GetPropVal(wxT("Name"), &propValue1);
+                if (ValidateName(propValue1) == iName) {
+                    result = lNode;
+                    lNode = NULL;
+                }
+            }
+
+            if (lNode) lNode = lNode->GetNext();
+        }
+    }
 
     return result;
 }
@@ -738,7 +1165,7 @@ wxXmlNode *FindPatternMultilayerSection(wxXmlNode *iNode, wxString *iPatGraphRef
         }
 ///////////////////////////////////////////////////////////////////////
 //        lNode:=iNode.ChildNodes.FindNode('patternGraphicsDef');  before
-//        Fixed 02/08, Sergeys imput file format
+//        Fixed 02/08, Sergeys input file format
 //        Did it work before  ????
 //        lNode:=pNode.ChildNodes.FindNode('patternGraphicsDef');  Nw for some files
 //////////////////////////////////////////////////////////////////////
@@ -809,7 +1236,7 @@ begin
 end;
 */
 
-CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar) {
+CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar, CPCB *pcb, wxString actualConversion) {
     CPCBModule *pcbModule;
     wxXmlNode *lNode, *tNode, *mNode;
     wxString propValue, str;
@@ -826,8 +1253,8 @@ CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar) {
         tNode = lNode;
         tNode = tNode->GetChildren();
         while (tNode) {
-            if (tNode->GetName() == wxT("pad")) pcbModule->m_moduleObjects.Add(CreatePCBPad(tNode));
-            if (tNode->GetName() == wxT("via")) pcbModule->m_moduleObjects.Add(CreateVia(tNode));
+            if (tNode->GetName() == wxT("pad")) pcbModule->m_moduleObjects.Add(CreatePCBPad(tNode, pcb, actualConversion));
+            if (tNode->GetName() == wxT("via")) pcbModule->m_moduleObjects.Add(CreateVia(tNode, pcb, actualConversion));
             tNode = tNode->GetNext();
         }
     }
@@ -836,7 +1263,7 @@ CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar) {
     lNode = FindNode(lNode->GetChildren(), wxT("layerContents"));
     while (lNode) {
         if (lNode->GetName() == wxT("layerContents"))
-            DoLayerContentsObjects(lNode, &pcbModule->m_moduleObjects, statusBar);
+            DoLayerContentsObjects(lNode, &pcbModule->m_moduleObjects, statusBar, pcb, actualConversion);
         lNode = lNode->GetNext();
     }
 
@@ -1090,7 +1517,7 @@ void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxStrin
             tNode = FindNode(xmlDoc->GetRoot()->GetChildren(), wxT("library"));
             if (tNode && cn.Len() > 0) {
                 tNode = FindModulePatternDefName(tNode, cn);
-                if (tNode) mc = CreatePCBModule(tNode, statusBar);
+                if (tNode) mc = CreatePCBModule(tNode, statusBar, pcb, actualConversion);
             }
 
             if (mc) {
@@ -1170,7 +1597,7 @@ void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxStrin
                 pcb->m_pcbComponents.Add(mc);
             }
         }
-        else if (lNode->GetName() == wxT("via")) pcb->m_pcbComponents.Add(CreateVia(lNode));
+        else if (lNode->GetName() == wxT("via")) pcb->m_pcbComponents.Add(CreateVia(lNode, pcb, actualConversion));
 
         lNode = lNode->GetNext();
     }
@@ -1560,7 +1987,7 @@ CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString a
                 DoPCBComponents(aNode, &pcb, &xmlDoc, actualConversion, statusBar);
             // objects
             if (aNode->GetName() == wxT("layerContents"))
-                DoLayerContentsObjects(aNode, &pcb.m_pcbComponents, statusBar);
+                DoLayerContentsObjects(aNode, &pcb.m_pcbComponents, statusBar, &pcb, actualConversion);
             aNode = aNode->GetNext();
         }
 
@@ -1623,7 +2050,7 @@ CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString a
             while (aNode) {
                 statusBar->SetStatusText(wxT("Processing COMPONENTS "));
                 if (aNode->GetName() == wxT("compDef"))
-                    pcb.m_pcbComponents.Add(CreatePCBModule(aNode, statusBar));
+                    pcb.m_pcbComponents.Add(CreatePCBModule(aNode, statusBar, &pcb, actualConversion));
 
                 aNode = aNode->GetNext();
             }

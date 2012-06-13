@@ -208,6 +208,16 @@ void CPCBComponent::SetPosOffset(int x_offs, int y_offs) {
     m_positionY += y_offs;
 }
 
+CPCBPadViaShape::CPCBPadViaShape() {
+    CPCBComponent::CPCBComponent();
+    m_shape = wxEmptyString;
+    m_width = 0;
+    m_height = 0;
+}
+
+CPCBPadViaShape::~CPCBPadViaShape() {
+}
+
 /*
 constructor THPCBLine.Create();
 begin
@@ -348,6 +358,14 @@ end;
 void CPCBPolygon::SetPosOffset(int x_offs, int y_offs) {
     CPCBComponent::SetPosOffset(x_offs, y_offs);
 }
+
+CPCBCopperPour::CPCBCopperPour() : CPCBPolygon() {
+    CPCBPolygon::CPCBPolygon();
+}
+
+CPCBCopperPour::~CPCBCopperPour() {
+}
+
 
 /*
 constructor THPCBCutout.Create();
