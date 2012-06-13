@@ -612,6 +612,37 @@ end;
 */
 
 void CPCBText::WriteToFile(wxFile *f, char ftype) {
+    char visibility, mirrored;
+
+    if (m_name.textIsVisible == 1) visibility = 'V';
+    else visibility = 'I';
+
+    if (m_name.mirror == 1) mirrored = 'M';
+    else mirrored = 'N';
+
+    // Simple, not the best, but acceptable text positioning.....
+    CorrectTextPosition(&m_name, m_rotation);
+
+    // Go out
+    if (ftype == 'L') { // Library component
+        f->Write(wxString::Format("T%d %d %d %d %d %d %d ", m_tag, m_name.correctedPositionX, m_name.correctedPositionY,
+                 KiROUND(m_name.textHeight / 2), KiROUND(m_name.textHeight / 1.1),
+                 m_rotation, m_name.textstrokeWidth) + mirrored + ' ' + visibility +
+                 wxString::Format(" %d \"", m_KiCadLayer) + m_name.text + wxT("\"\n")); // ValueString
+    }
+
+    if (ftype == 'P') { // Library component
+        if (m_name.mirror == 1) mirrored = '0';
+        else mirrored = '1';
+
+        f->Write(wxT("Te \"") + m_name.text + wxT("\"\n"));
+
+        f->Write(wxString::Format("Po %d %d %d %d %d %d\n", m_name.correctedPositionX, m_name.correctedPositionY,
+                 KiROUND(m_name.textHeight / 2), KiROUND(m_name.textHeight / 1.1),
+                 m_name.textstrokeWidth, m_rotation));
+
+        f->Write(wxString::Format("De %d ", m_KiCadLayer) + mirrored + wxT(" 0 0\n"));
+    }
 }
 
 /*
@@ -671,6 +702,20 @@ end;
 */
 
 void CPCBArc::WriteToFile(wxFile *f, char ftype) {
+/*
+ DC ox oy fx fy w  DC is a Draw Circle  DC Xcentre Ycentre Xpoint Ypoint Width Layer
+ DA x0 y0 x1 y1 angle width layer  DA is a Draw ArcX0,y0 = Start point x1,y1 = end point
+*/
+    if (ftype == 'L') { // Library component
+        f->Write(wxString::Format("DA %d %d %d %d %d %d %d\n", m_positionX, m_positionY, m_startX,
+                 m_startY, m_angle, m_width, m_KiCadLayer)); // ValueString
+    }
+
+    if (ftype == 'P') { // PCB
+        f->Write(wxString::Format("Po 2 %d %d %d %d %d", m_positionX, m_positionY,
+                 m_startX, m_startY, m_width));
+        f->Write(wxString::Format("De %d 0 %d 0 0\n", m_KiCadLayer, -m_angle));
+    }
 }
 
 /*
