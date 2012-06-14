@@ -1348,7 +1348,7 @@ void CPCB::WriteToFile(wxString fileName, char ftype) {
         f.Write(wxT("PCBNEW-BOARD Version 1 date 01/1/2000-01:01:01\n"));
         f.Write(wxT("$SHEETDESCR\n"));
         f.Write(wxString::Format("$Sheet User %d %d\n", m_sizeX, m_sizeY));
-        f.Write(wxT("'$EndSHEETDESCR\n"));
+        f.Write(wxT("$EndSHEETDESCR\n"));
 
         // MODULES
         for (i = 0; i < (int)m_pcbComponents.GetCount(); i++) {

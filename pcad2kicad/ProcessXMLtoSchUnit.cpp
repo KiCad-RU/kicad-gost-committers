@@ -977,7 +977,7 @@ CSchSymbol *CreateSCHSymbol(wxXmlNode *iNode, CSch *sch, wxString actualConversi
     schSymbol->m_objType = 'S';
 
     if (FindNode(iNode->GetChildren(), wxT("partNum"))) {
-        FindNode(iNode->GetChildren(), wxT("partNum'"))->GetNodeContent().ToLong(&num);
+        FindNode(iNode->GetChildren(), wxT("partNum"))->GetNodeContent().ToLong(&num);
         schSymbol->m_partNum = (int)num;
     }
 
@@ -1563,8 +1563,8 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actu
                 sch.m_schComponents.Add(CreateSCHSymbol(aNode, &sch, actualConversion));
 
             if (aNode->GetName() == wxT("wire"))
-                if (FindNode(aNode->GetChildren(), wxT("Line")))
-                    sch.m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("Line")), 0, &sch, actualConversion));
+                if (FindNode(aNode->GetChildren(), wxT("line")))
+                    sch.m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("line")), 0, &sch, actualConversion));
 
             if (aNode->GetName() == wxT("bus"))
                 sch.m_schComponents.Add(CreateBus(aNode, &sch, actualConversion));
