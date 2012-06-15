@@ -183,6 +183,7 @@ void TextToXML(wxStatusBar* statusBar, wxString XMLFileName, wxArrayString *tLin
     wxXmlDocument xmlDoc;
     wxString ls;
 
+    xmlDoc.SetFileEncoding(wxT("WINDOWS-1251"));
     wxXmlNode *root = new wxXmlNode(wxXML_ELEMENT_NODE, wxT("www.lura.sk"));
     xmlDoc.SetRoot(root);
 

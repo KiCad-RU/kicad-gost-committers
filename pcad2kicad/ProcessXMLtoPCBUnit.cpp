@@ -902,7 +902,7 @@ end;
 //Alexander Lunev modified (end)
 */
 
-void DoLayerContentsObjects(wxXmlNode *iNode, CPCBComponentsArray *list, wxStatusBar* statusBar, CPCB *pcb, wxString actualConversion) {
+void DoLayerContentsObjects(wxXmlNode *iNode, CPCBModule *pcbModule, CPCBComponentsArray *list, wxStatusBar* statusBar, CPCB *pcb, wxString actualConversion) {
     CPCBPolygon *poly;
     wxXmlNode *lNode, *tNode;
     wxString propValue;
@@ -928,11 +928,14 @@ void DoLayerContentsObjects(wxXmlNode *iNode, CPCBComponentsArray *list, wxStatu
             propValue.Trim(true);
             if (propValue == wxT("Type")) {
                 tNode = FindNode(lNode->GetChildren(), wxT("textStyleRef"));
-                if (tNode) {
-                    //TODO: to understand and repair
-                    // Alexander Lunev: The string below is commented because there is a strange access
-                    //  to pcbModule->m_name (it was global variable in Delphi version of the project).
-                    //SetFontProperty(tNode, pcbModule->m_name, pcb->m_defaultMeasurementUnit);
+                if (tNode && pcbModule) {
+                    //TODO: to understand and may be repair
+                    // Alexander Lunev: originally in Delphi version of the project there was a strange access
+                    //  to pcbModule->m_name (it was global variable). This access is necessary
+                    //  when the function DoLayerContentsObjects() is called from function CreatePCBModule().
+                    //  However it is not clear whether the access is required when the function DoLayerContentsObjects()
+                    //  is called from function ProcessXMLtoPCBLib().
+                    SetFontProperty(tNode, &pcbModule->m_name, pcb->m_defaultMeasurementUnit, actualConversion);
                 }
             }
         }
@@ -1240,7 +1243,6 @@ CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar, CPCB *pcb,
     CPCBModule *pcbModule;
     wxXmlNode *lNode, *tNode, *mNode;
     wxString propValue, str;
-    int i;
 
     FindNode(iNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
     propValue.Trim(false);
@@ -1263,21 +1265,27 @@ CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar, CPCB *pcb,
     lNode = FindNode(lNode->GetChildren(), wxT("layerContents"));
     while (lNode) {
         if (lNode->GetName() == wxT("layerContents"))
-            DoLayerContentsObjects(lNode, &pcbModule->m_moduleObjects, statusBar, pcb, actualConversion);
+            DoLayerContentsObjects(lNode, pcbModule, &pcbModule->m_moduleObjects, statusBar, pcb, actualConversion);
         lNode = lNode->GetNext();
     }
 
     // map pins
     lNode = FindPinMap(iNode);
 
-    if (lNode && lNode->GetDepth() > 0) {
+    if (lNode) {
         mNode = lNode->GetChildren();
-        for (i = 0; i <= ((tNode->GetDepth() - 1) / 2); i++) {
+        while (mNode) {
             if (mNode->GetName() == wxT("padNum")) {
                 str = mNode->GetNodeContent();
                 mNode = mNode->GetNext();
+                if (!mNode) break;
                 mNode->GetPropVal(wxT("Name"), &propValue);
                 SetPadName(str, propValue, pcbModule);
+                mNode = mNode->GetNext();
+            }
+            else {
+                mNode = mNode->GetNext();
+                if (!mNode) break;
                 mNode = mNode->GetNext();
             }
         }
@@ -1506,7 +1514,6 @@ void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxStrin
     wxXmlNode *lNode, *tNode, *mNode;
     CPCBModule *mc;
     wxString cn, str, propValue;
-    int i;
 
     lNode = iNode->GetChildren();
     while (lNode) {
@@ -1580,14 +1587,20 @@ void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxStrin
                 tNode = FindCompDefName(tNode, mc->m_compRef);
                 if (tNode) {
                     tNode = FindPinMap(tNode);
-                    if (tNode && tNode->GetDepth() > 0) {
+                    if (tNode) {
                         mNode = tNode->GetChildren();
-                        for (i = 0; i <= ((tNode->GetDepth() - 1) / 2); i++) {
+                        while (mNode) {
                             if (mNode->GetName() == wxT("padNum")) {
                                 str = mNode->GetNodeContent();
                                 mNode = mNode->GetNext();
+                                if (!mNode) break;
                                 mNode->GetPropVal(wxT("Name"), &propValue);
                                 SetPadName(str, propValue, mc);
+                                mNode = mNode->GetNext();
+                            }
+                            else {
+                                mNode = mNode->GetNext();
+                                if (!mNode) break;
                                 mNode = mNode->GetNext();
                             }
                         }
@@ -1777,7 +1790,7 @@ void MapLayer(wxXmlNode *iNode, CPCB *pcb) {
     long num;
 
     iNode->GetPropVal(wxT("Name"), &lName);
-    lName = lName.MakeLower();
+    lName = lName.MakeUpper();
     KiCadLayer = 24; // defaullt
     if (lName == wxT("TOP ASSY"))  {} //?
     if (lName == wxT("TOP SILK"))  KiCadLayer = 21;
@@ -1987,7 +2000,7 @@ CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString a
                 DoPCBComponents(aNode, &pcb, &xmlDoc, actualConversion, statusBar);
             // objects
             if (aNode->GetName() == wxT("layerContents"))
-                DoLayerContentsObjects(aNode, &pcb.m_pcbComponents, statusBar, &pcb, actualConversion);
+                DoLayerContentsObjects(aNode, NULL, &pcb.m_pcbComponents, statusBar, &pcb, actualConversion);
             aNode = aNode->GetNext();
         }
 
@@ -2030,7 +2043,7 @@ CPCB ProcessXMLtoPCBLib(wxStatusBar* statusBar, wxString XMLFileName, wxString a
         for (i = 0; i < (int)pcb.m_pcbComponents.GetCount(); i++) {
             comp = pcb.m_pcbComponents[i];
             if (comp->m_positionY < pcb.m_sizeY) pcb.m_sizeY = comp->m_positionY; // max Y
-            if (comp->m_positionX < pcb.m_sizeX) pcb.m_sizeX = comp->m_positionX; // Min X
+            if (comp->m_positionX > pcb.m_sizeX) pcb.m_sizeX = comp->m_positionX; // Min X
         }
 
         // SHEET SIZE CALCULATION

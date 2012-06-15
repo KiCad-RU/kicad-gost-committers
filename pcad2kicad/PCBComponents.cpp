@@ -69,7 +69,7 @@ end;
 */
 
 int ToInt(char c) {
-    if (c <= '0' && c >= '9') return (c - '0');
+    if (c >= '0' && c <= '9') return (c - '0');
     else return (c - 'A' + 10);
 }
 
@@ -612,7 +612,7 @@ void CPCBPad::WriteToFile(wxFile *f, char ftype, int r) {
                 s = wxT("3") ; // default
                 f->Write(wxT("Po ") + s + wxString::Format(" %d %d %d %d %d %d\n", m_positionX, m_positionY,
                          m_positionX, m_positionY, padShape->m_height, m_hole));
-                f->Write(wxString::Format("De %d 1 0 0 0\n", m_KiCadLayer));
+                f->Write(wxString::Format("De %d 1 0 0 0\n", padShape->m_KiCadLayer));
             }
         }
     }
@@ -623,8 +623,8 @@ void CPCBPad::WriteToFile(wxFile *f, char ftype, int r) {
         for (i = 0; i < (int)m_shapes.GetCount(); i++) {
             padShape = m_shapes[i];
             if (padShape->m_width > 0 && padShape->m_height > 0) {
-                if (m_KiCadLayer == 15) lc++; // Component
-                if (m_KiCadLayer == 0) ls++;  // Cooper
+                if (padShape->m_KiCadLayer == 15) lc++; // Component
+                if (padShape->m_KiCadLayer == 0) ls++;  // Cooper
             }
         }
 

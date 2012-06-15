@@ -224,7 +224,7 @@ static bool LineIsOk(wxString l) {
 
 static wxString GetLine(wxTextFile *f, bool firstLine) {
     wxString result;
-    int idx;
+    //int idx;
 
     result = wxT("END OF INPUT FILE");
 
@@ -237,10 +237,10 @@ static wxString GetLine(wxTextFile *f, bool firstLine) {
 
         if (LineIsOk(result)) {
             // fix copyright symbol
-            idx = result.Find('©');
+            /*idx = result.Find(wxT("\251"));
             if (idx != wxNOT_FOUND) {
-                result = result.Left(idx) + 'Â' + result.Mid(idx);
-            }
+                result = result.Left(idx) + wxT("\302") + result.Mid(idx);
+            }*/
             return result;
         }
     }
