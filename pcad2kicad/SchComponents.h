@@ -76,7 +76,6 @@ class CSchSymbol : public CSchComponent
 {
 public:
     TTextValue m_module, m_reference, m_typ;
-    int m_patrtNum;
     wxString m_attachedSymbol, m_attachedPattern;
 
     CSchSymbol();

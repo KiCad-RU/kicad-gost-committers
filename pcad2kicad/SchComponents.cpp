@@ -582,7 +582,6 @@ CSchSymbol::CSchSymbol() {
     InitTTextValue(&m_module);
     InitTTextValue(&m_reference);
     InitTTextValue(&m_typ);
-    m_patrtNum = 0;
     m_attachedSymbol = wxEmptyString;
     m_attachedPattern = wxEmptyString;
 }

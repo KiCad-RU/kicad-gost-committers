@@ -665,7 +665,7 @@ void CPCBPad::WriteToFile(wxFile *f, char ftype, int r) {
                 layerMask = KiCadLayerMask(layerMask, padShape->m_KiCadLayer);
                 f->Write(wxT("At ") + padType + wxT(" N ") + layerMask + wxT("\n")); // <Pad type> N <layer mask>
                 f->Write(wxT("Ne 0 \"") + m_net + "\"\n"); // Reference
-                f->Write(wxString::Format("Po %d %d", m_positionX, m_positionY)); // Position
+                f->Write(wxString::Format("Po %d %d\n", m_positionX, m_positionY)); // Position
                 f->Write(wxT("$EndPAD\n"));
             }
         }
@@ -994,7 +994,7 @@ void CPCBModule::WriteToFile(wxFile *f, char ftype) {
     CorrectTextPosition(&m_value, m_rotation);
     // Go out
     f->Write(wxT("\n"));
-    f->Write(wxT("$MODULE \n") + m_name.text);
+    f->Write(wxT("$MODULE ") + m_name.text + wxT("\n"));
     f->Write(wxString::Format("Po %d %d %d ", m_positionX, m_positionY, m_rotation) +
             ModuleLayer(m_mirror) + wxT(" 00000000 00000000 ~~\n")); // Position
     f->Write(wxT("Li ") + m_name.text + wxT("\n"));   // Modulename

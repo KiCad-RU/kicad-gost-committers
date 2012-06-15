@@ -1025,7 +1025,7 @@ CSchSymbol *CreateSCHSymbol(wxXmlNode *iNode, CSch *sch, wxString actualConversi
             }
 
             if (propValue == wxT("RefDes")) { // WHY ???? IS IT SWITCHED IN PCAD ?
-                r = true;
+                t = true;
                 SetTextParameters(lNode, &schSymbol->m_typ, sch->m_defaultMeasurementUnit, actualConversion);
             }
         }

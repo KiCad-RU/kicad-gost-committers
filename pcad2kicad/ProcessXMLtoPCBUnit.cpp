@@ -1648,7 +1648,7 @@ void DoPCBNet(wxXmlNode *iNode, CPCB *pcb) {
         s1 = wxEmptyString;
         while (s2.Len() > 0 && s2[0] != ' ') {
             s1 = s1 + s2[0];
-            s2.Mid(1);
+            s2 = s2.Mid(1);
         }
 
         netNode = new CNetNode;
