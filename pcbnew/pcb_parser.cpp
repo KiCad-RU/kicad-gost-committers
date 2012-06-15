@@ -335,10 +335,7 @@ BOARD* PCB_PARSER::parseBOARD() throw( IO_ERROR, PARSE_ERROR )
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
         if( token != T_LEFT )
-        {
-            wxLogDebug( "Expect ( in parseBoard() after %s.", PrevTok() );
             Expecting( T_LEFT );
-        }
 
         token = NextTok();
 
@@ -732,7 +729,7 @@ int PCB_PARSER::lookUpLayer() throw( PARSE_ERROR, IO_ERROR )
     if( it == m_layerMap.end() )
     {
         wxString error;
-        error.Printf( _( "Layer %s in file <%s> at line %d, position %d was not defined in the layers section" ),
+        error.Printf( _( "Layer '%s' in file <%s> at line %d, position %d was not defined in the layers section" ),
                       GetChars( name ), GetChars( CurSource() ), CurLineNumber(), CurOffset() );
         THROW_IO_ERROR( error );
     }
@@ -747,7 +744,7 @@ int PCB_PARSER::lookUpLayer() throw( PARSE_ERROR, IO_ERROR )
     if( !m_board->IsLayerEnabled( layerIndex ) )
     {
         wxString error;
-        error.Printf( _( "Layer index %d in file <%s> at line, offset %d was not defined in the layers section" ),
+        error.Printf( _( "Layer index %d in file <%s> at line %d, offset %d was not defined in the layers section" ),
                       layerIndex, GetChars( CurSource() ), CurLineNumber(), CurOffset() );
         THROW_IO_ERROR( error );
     }
@@ -806,10 +803,7 @@ void PCB_PARSER::parseSetup() throw( IO_ERROR, PARSE_ERROR )
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
         if( token != T_LEFT )
-        {
-            wxLogDebug( "Expected ( in parseSetup()." );
             Expecting( T_LEFT );
-        }
 
         token = NextTok();
 
@@ -984,18 +978,20 @@ void PCB_PARSER::parseSetup() throw( IO_ERROR, PARSE_ERROR )
             NeedRIGHT();
             break;
 
-        // case T_pcbplotparams:
-        // {
-        //     PCB_PLOT_PARAMS plotParams;
-        //     PCB_PLOT_PARAMS_PARSER parser( reader );
+#if SAVE_PCB_PLOT_PARAMS
+        case T_pcbplotparams:
+        {
+            PCB_PLOT_PARAMS plotParams;
+            PCB_PLOT_PARAMS_PARSER parser( reader );
 
-        //     plotParams.Parse( &parser );
-        //     m_board->SetPlotOptions( plotParams );
-        //     break;
-        // }
+            plotParams.Parse( &parser );
+            m_board->SetPlotOptions( plotParams );
+            break;
+        }
+#endif
 
         default:
-            Expecting( "valid setup token" );
+            Unexpected( CurText() );
         }
     }
 
@@ -1999,52 +1995,62 @@ D_PAD* PCB_PARSER::parseD_PAD() throw( IO_ERROR, PARSE_ERROR )
 
             break;
 
+        case T_rect_delta:
+        {
+            wxSize delta;
+            delta.SetWidth( parseBoardUnits( "rectangle delta width" ) );
+            delta.SetHeight( parseBoardUnits( "rectangle delta height" ) );
+            pad->SetDelta( delta );
+            NeedRIGHT();
+            break;
+        }
+
         case T_drill:
-            sz.SetWidth( parseBoardUnits(  "drill size"  ) );
-            sz.SetHeight( 0 );
-            token = NextTok();
-
-            if( token == T_NUMBER )
+        {
+            for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
             {
-                sz.SetHeight( parseBoardUnits() );
-                token = NextTok();
-
                 if( token == T_LEFT )
-                {
                     token = NextTok();
 
-                    if( token != T_offset )
-                        Expecting( T_offset );
+                switch( token )
+                {
+                case T_oval:
+                    pad->SetDrillShape( PAD_OVAL );
+                    break;
 
-                    pt.x = parseDouble( "drill offset X" );
-                    pt.y = 0;
+                case T_size:
+                {
+                    int width = parseBoardUnits( "drill width" );
+                    int height = width;
                     token = NextTok();
 
                     if( token == T_NUMBER )
                     {
-                        pt.y = parseDouble();
+                        height = parseBoardUnits();
                         NeedRIGHT();
                     }
                     else if( token != T_RIGHT )
                     {
-                        Expecting( T_RIGHT );
+                        Expecting( ") or number" );
                     }
 
-                    pad->SetOffset( pt );
-                }
-                else if( token != T_RIGHT )
-                {
-                    Expecting( T_RIGHT );
+                    pad->SetDrillSize( wxSize( width, height ) );
+                    break;
                 }
 
-                pad->SetDrillSize( sz );
-            }
-            else if( token != T_RIGHT )
-            {
-                Expecting( T_RIGHT );
+                case T_offset:
+                    pad->SetOffset( wxPoint( parseBoardUnits( "drill offset x" ),
+                                             parseBoardUnits( "drill offset y" ) ) );
+                    NeedRIGHT();
+                    break;
+
+                default:
+                    Expecting( "oval, size, or offset" );
+                }
             }
 
             break;
+        }
 
         case T_layers:
         {
@@ -2213,6 +2219,7 @@ SEGVIA* PCB_PARSER::parseSEGVIA() throw( IO_ERROR, PARSE_ERROR )
             pt.x = parseBoardUnits( "start x" );
             pt.y = parseBoardUnits( "start y" );
             via->SetStart( pt );
+            via->SetEnd( pt );
             NeedRIGHT();
             break;
 
@@ -2565,16 +2572,20 @@ PCB_TARGET* PCB_PARSER::parsePCB_TARGET() throw( IO_ERROR, PARSE_ERROR )
             NeedRIGHT();
             break;
 
+        case T_layer:
+            target->SetLayer( parseBoardItemLayer() );
+            NeedRIGHT();
+            break;
+
         case T_tstamp:
             target->SetTimeStamp( parseHex() );
             NeedRIGHT();
             break;
 
         default:
-            Expecting( "x, plus, at, size, width, or tstamp" );
+            Expecting( "x, plus, at, size, width, layer or tstamp" );
         }
     }
 
     return target.release();
 }
-
