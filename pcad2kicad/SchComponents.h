@@ -37,17 +37,6 @@
 
 #define DEFAULT_SYMBOL_PIN_LENGTH 300
 
-/*
-THSCHComponent = class (TObject)
-     ObjType:char;
-     PositionX,PositionY,Rotation,Mirror:integer;
-     PartNum:Integer;
-     Width:Integer;
-     IsVisible:integer;
-     procedure WriteToFile(var f:text;ftype:char); overload; virtual; abstract;
-   end;
-*/
-
 class CSchComponent : public wxObject
 {
 public:
@@ -63,15 +52,6 @@ public:
     virtual void WriteToFile(wxFile *f, char ftype);
 };
 
-/*
-THSCHSymbol = class (THSCHComponent)
-     Module,Reference,Typ:HTextValue;
-     PatrtNum:integer;
-     AttachedSymbol,AttachedPattern:string;
-     procedure WriteToFile(var f:text;ftype:char); override;
-   end;
-*/
-
 class CSchSymbol : public CSchComponent
 {
 public:
@@ -83,17 +63,6 @@ public:
 
     virtual void WriteToFile(wxFile *f, char ftype);
 };
-
-/*
-THSCHPin = class (THSCHComponent)
-      PinNum:HTextVAlue;
-      PinName:HTextVAlue;
-      Number:HTextVAlue;
-      PinType,EdgeStyle:string;
-      PinLength:integer;
-      procedure WriteToFile(var f:text;ftype:char); override;
-    end;
-*/
 
 class CSchPin : public CSchComponent
 {
@@ -108,17 +77,6 @@ public:
     virtual void WriteToFile(wxFile *f, char ftype);
 };
 
-/*
-THSCHArc = class(THSCHComponent)
-      StartX:integer;
-      StartY:integer;
-      ToX,ToY:Integer;
-      StartAngle,SweepAngle:integer;
-      Radius:integer;
-      procedure WriteToFile(var f:text;ftype:char); override;
-   end;
-*/
-
 class CSchArc : public CSchComponent
 {
 public:
@@ -129,13 +87,6 @@ public:
 
     virtual void WriteToFile(wxFile *f, char ftype);
 };
-
-/*
-THSCHJunction = class (THSCHComponent)
-     Net:string;
-     procedure WriteToFile(var f:text;ftype:char); override;
-   end;
-*/
 
 class CSchJunction : public CSchComponent
 {
@@ -149,16 +100,6 @@ public:
 };
 
 
-//THSCHNoConnect = class (THSCHComponent)
-   //end;
-
-/*
-   THSCHText = class (THSCHComponent)
-     Orientation:integer;
-     Hight:integer;
-   end;
-*/
-
 // This class is not yet used
 class CSchText : public CSchComponent
 {
@@ -168,27 +109,6 @@ public:
     CSchText();
     ~CSchText();
 };
-
-
-//THSCHLabel = class (THSCHText)
-   //end;
-
-   //THSCHGLabel = class (THSCHText)
-   //  shape:string;
-   //end;
-
-/*
-   THSCHLine = class (THSCHComponent)
-     ToX,ToY:integer;
-     Net:string;
-     LineType:Char; // Wire, Bus,....
-     LabelText:HTextValue;
-     procedure WriteToFile(var f:text;ftype:char); override;
-     procedure WriteLabelToFile(var f:text;ftype:char);
-   end;
-*/
-
-//   THSCHLine = class (THSCHWire);
 
 class CSchLine : public CSchComponent
 {
@@ -204,31 +124,6 @@ public:
     virtual void WriteToFile(wxFile *f, char ftype);
     virtual void WriteLabelToFile(wxFile *f, char ftype);
 };
-
-//THSCHDottedWire = class (THSCHComponent)
-   //  ToX,ToY:integer;
-   //end;
-
-   //THSCHBus = class (THSCHComponent)
-   //  ToX,ToY:integer;
-   //end;
-
-   //THSCHEntryBus = class (THSCHComponent)
-   //  ToX,ToY:integer;
-   //end;
-
-/*
-   THSCHModule = class (THSCHComponent)
-      ModuleObjects:TList;
-      Name,Reference:HTextValue;
-      NumParts:integer;
-      AttachedPattern,ModuleDescription,Alias:string;
-      AttachedSymbols:Array [1..10] of String;
-      procedure WriteToFile(var f:text;ftype:char); override;
-      constructor Create();
-      destructor Free;
-   end;
-*/
 
 WX_DEFINE_ARRAY(CSchComponent *, CSchComponentsArray);
 
@@ -246,17 +141,6 @@ public:
 
     virtual void WriteToFile(wxFile *f, char ftype);
 };
-
-/*
-THSCH = class(TObject)
-     SCHComponents:TList;
-     DefaultMeasurementUnit:string;
-     SizeX,SizeY:integer;
-     constructor Create();
-     procedure WriteToFile(FileName:string;ftype:char);
-     destructor Free;
-   end;
-*/
 
 class CSch : public wxObject
 {

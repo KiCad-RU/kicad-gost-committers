@@ -33,16 +33,6 @@
 #include <wx/wx.h>
 #include <wx/xml/xml.h>
 
-/*
-HTextValue = record
-       Text:string;
-       TextPositionX,TextPositionY,
-       TextRotation,TextHeight,TextstrokeWidth:integer;
-       TextIsVisible,Mirror,TextUnit:integer;
-       CorrectedPositionX,CorrectedPositionY:Integer;
-     end;
-*/
-
 typedef struct _TTextValue {
     wxString text;
     int textPositionX, textPositionY,

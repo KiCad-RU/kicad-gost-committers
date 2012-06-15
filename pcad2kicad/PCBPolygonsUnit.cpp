@@ -63,7 +63,7 @@ type
    TTriangleArray = array of TTriangle;
    TDoubleArray = array of double;
 
- 
+
 procedure FillZone(island: TList; cutouts: TList; var result_zone:TList; step: double; width:integer;
                     pourType:string;
                     PCADlayer:integer; KiCADlayer:integer; timestamp:integer);

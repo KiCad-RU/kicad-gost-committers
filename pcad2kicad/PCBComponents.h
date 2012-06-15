@@ -34,23 +34,6 @@
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 
-/*
-// simple text with its position, rotation and so on....
-//   HSCHTextVAlue = record
-//     Text:string;
-//     TextPositionX,TextPositionY,
-//     TextOrientation,TextHeight,
-//     TextUnit,
-//     TextConvert:integer;
-//   end;
-
-
-   // Netlist structures
-   THNetNode = class (TObject)
-      CompRef:string;
-      PinRef:string;
-   end;
-*/
 
 class CNetNode : public wxObject
 {
@@ -61,15 +44,6 @@ public:
     CNetNode();
     ~CNetNode();
 };
-
-/*
-   THNet = class (TObject)
-      Name:string;
-      NetNodes:TList;
-      constructor Create(iname:string);
-      destructor  Free;
-   end;
-*/
 
 WX_DEFINE_ARRAY(CNetNode *, CNetNodesArray);
 
@@ -83,25 +57,7 @@ public:
     ~CNet();
 };
 
-/*
-   // basic parent class for PCB objects
-   THPCBComponent  = class(TObject)
-       Tag:integer;
-       ObjType:char;
-       PCadLayer:integer;
-       KiCadLayer:integer;
-       timestamp:integer;
-       PositionX,PositionY:integer;
-       Rotation:integer;
-       Name:HTextValue;   // name has also privete positions, rotations nand so on....
-       Net:string;
-       CompRef,PatGraphRefName:string;    // internal ussage for XL parsing
-       constructor Create(); virtual;
-       procedure WriteToFile(var f:text;ftype:char); overload; virtual; abstract;
-       procedure SetPosOffset(x_offs:integer;y_offs:integer); virtual;
-   end;
-*/
-
+// basic parent class for PCB objects
 class CPCBComponent : public wxObject
 {
 public:
@@ -125,15 +81,6 @@ public:
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
 
-/*
-   THPCBPadShape = class(THPCBComponent)
-      Shape:string;
-      Width:integer;
-      Height:integer;
-   end;
-   THPCBViaShape = THPCBPadShape; // same as pad shape
-*/
-
 class CPCBPadViaShape : public CPCBComponent
 {
 public:
@@ -144,18 +91,6 @@ public:
     CPCBPadViaShape();
     ~CPCBPadViaShape();
 };
-
-/*
-   THPCBPad = class(THPCBComponent)
-     Number:integer;
-     Hole:integer;
-     Shapes:TList;
-     constructor Create(iName:string); overload;
-     procedure WriteToFile(var f:text;ftype:char;r:integer); reintroduce;  overload; //override;
-     destructor Free;
-   end;
-
-*/
 
 WX_DEFINE_ARRAY(CPCBPadViaShape *, CPCBPadViaShapesArray);
 
@@ -172,12 +107,6 @@ public:
     virtual void WriteToFile(wxFile *f, char ftype, int r);
 };
 
-/*
-   THPCBVia = class(THPCBPad)  // will be replaced by pad in next version ????
-     constructor Create();
-   end;
-*/
-
 // will be replaced by pad in next version ????
 class CPCBVia : public CPCBPad
 {
@@ -186,17 +115,6 @@ public:
     CPCBVia();
     ~CPCBVia();
 };
-
-/*
-   THPCBLine = class(THPCBComponent)  // Line , routes and drawings
-      Width:integer;
-      ToX:integer;
-      ToY:integer;
-      constructor Create(); override;
-      procedure WriteToFile(var f:text;ftype:char); override;
-      procedure SetPosOffset(x_offs:integer;y_offs:integer); override;
-   end;
-*/
 
 // Line , routes and drawings
 class CPCBLine : public CPCBComponent
@@ -212,20 +130,6 @@ public:
     virtual void WriteToFile(wxFile *f, char ftype);
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
-
-/*
-//Alexander Lunev modified (begin)
-   THPCBPolygon = class(THPCBComponent)
-      Width:integer;
-      outline:TList;    // collection of boundary/outline lines - objects  THPCBLine
-      fill_lines:TList;
-      constructor Create(); override;
-      procedure WriteToFile(var f:text;ftype:char); override;
-      procedure WriteOutlineToFile(var f:text;ftype:char);
-      procedure SetPosOffset(x_offs:integer;y_offs:integer); override;
-   end;
-//Alexander Lunev modified (end)
-*/
 
 WX_DEFINE_ARRAY(CPCBLine *, CPCBLinesArray);
 
@@ -244,14 +148,6 @@ public:
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
 
-/*
-//Alexander Lunev added (begin)
-   TVertex = class (TObject)
-      x: double;
-      y: double;
-   end;
-*/
-
 class CVertex : public wxObject
 {
 public:
@@ -261,12 +157,6 @@ public:
     CVertex();
     ~CVertex();
 };
-
-/*
-   THPCBCopperPour = class(THPCBPolygon)
-      islands:TList;
-   end;
-*/
 
 WX_DEFINE_ARRAY(CVertex *, CVerticesArray);
 
@@ -279,15 +169,6 @@ public:
     ~CPCBCopperPour();
 };
 
-/*
-   THPCBCutout = class(THPCBComponent)
-      outline:TList;    // collection of boundary/outline lines - objects  THPCBLine
-      constructor Create();
-      procedure WriteToFile(var f:text;ftype:char); override;
-   end;
-//Alexander Lunev added (end)
-*/
-
 class CPCBCutout : public CPCBComponent
 {
 public:
@@ -298,18 +179,6 @@ public:
 
     virtual void WriteToFile(wxFile *f, char ftype);
 };
-
-/*
-   THPCBArc = class(THPCBComponent)
-      StartX:integer;
-      StartY:integer;
-      Angle:integer;
-      Width:integer;
-      constructor Create();
-      procedure WriteToFile(var f:text;ftype:char); override;
-      procedure SetPosOffset(x_offs:integer;y_offs:integer); override;
-   end;
-*/
 
 class CPCBArc : public CPCBComponent
 {
@@ -326,14 +195,6 @@ public:
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
 
-/*
-   THPCBText = class(THPCBComponent)   // for text value is using Name property of parent
-      constructor Create();
-      procedure WriteToFile(var f:text;ftype:char); override;
-      procedure SetPosOffset(x_offs:integer;y_offs:integer); override;
-   end;
-*/
-
 // Name property of parent is used for text value
 class CPCBText : public CPCBComponent
 {
@@ -345,19 +206,6 @@ public:
     virtual void WriteToFile(wxFile *f, char ftype);
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
-
-/*
-  // Full Module/Component class
-   THPCBModule = class(THPCBComponent)
-     Value:HTextValue;       // has reference (Name from parent) and value
-     ModuleObjects:TList;    // set of cobjects lile THPCBLines,THPCBPads,THPCBVias,....
-     Mirror:integer;
-     constructor Create(iName:string); overload;
-     procedure WriteToFile(var f:text;ftype:char); override;
-     procedure Flip;
-     destructor Free;
-   end;
-*/
 
 WX_DEFINE_ARRAY(CPCBComponent *, CPCBComponentsArray);
 
@@ -374,22 +222,6 @@ public:
     virtual void WriteToFile(wxFile *f, char ftype);
     virtual void Flip();
 };
-
-/*
-// B O A R D
-   THPCB = class(TObject)
-     PCBComponents:TList;      // THPCB Modules,Lines,Routes,Texts, .... and so on
-     PCBNetlist:TList;         // THPCBNet objects collection
-     DefaultMeasurementUnit:string;
-     LayersMap: Array [0..27] of integer; // flexible layers mapping
-     SizeX,SizeY:integer;
-     constructor Create();
-     procedure WriteToFile(FileName:string;ftype:char);
-     function GetNewTimestamp():integer;
-     destructor Free;
-     private timestamp_cnt:integer;
-   end;
-*/
 
 WX_DEFINE_ARRAY(CNet *, CNetsArray);
 
