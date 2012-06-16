@@ -317,100 +317,6 @@ CPCBText *CreateComponentText(wxXmlNode *iNode, int l, CPCB *pcb, wxString actua
     return componentText;
 }
 
-/*
-//Alexander Lunev added (begin)
-procedure FormPolygonLines(inode:IXMLNode; var lines:TList; PCADlayer:integer;
-                            width:integer);
-var lNode:iXMLNode;
-    i:integer;
-    line:THPCBLine;
-begin
-    lNode:=iNode.ChildNodes.FindNode('pt');
-    while Assigned(lNode) do
-    begin
-      // Start points of lines and num of lines=num of polygon points
-      if lNode.NodeName='pt' then
-      begin
-          line:=THPCBLine.Create;
-          line.PCadLayer:=PCADlayer;
-          line.Width:=width;
-          line.KiCadLayer:=PCB.LayersMap[PCADlayer];
-          lines.Add(line);
-          SetPosition(lNode.Text,PCB.DefaultMeasurementUnit,line.PositionX,line.PositionY);
-      end;
-      lNode:=lNode.NextSibling;
-    end;
-
-   // next is to complete polygon or island outline ....
-   if lines.Count>1 then
-   begin
-     for i:=0 to lines.Count-2 do
-     begin
-       THPCBLine(lines[i]).ToX:=THPCBLine(lines[i+1]).PositionX;
-       THPCBLine(lines[i]).ToY:=THPCBLine(lines[i+1]).PositionY;
-      end;
-    //last line
-    THPCBLine(lines[lines.Count-1]).ToX:=THPCBLine(lines[0]).PositionX;
-    THPCBLine(lines[lines.Count-1]).ToY:=THPCBLine(lines[0]).PositionY;
-   end;
-end;
-
-procedure DrawThermal(inode:IXMLNode; var lines:TList; PCADlayer:integer; width:integer;
-                        timestamp:integer);
-var lNode:iXMLNode;
-    start:boolean;
-    line:THPCBLine;
-    x_end,y_end:integer;
-begin
-    start:=true;
-    lNode:=iNode.ChildNodes.FindNode('pt');
-    line:=THPCBLine.Create;
-    line.PCadLayer:=PCADlayer;
-    line.Width:=width;
-    line.KiCadLayer:=PCB.LayersMap[PCADlayer];
-    line.timestamp:=timestamp;
-
-    while Assigned(lNode) do
-    begin
-      if lNode.NodeName='pt' then
-      begin
-          if (start) then
-          begin
-            SetPosition(lNode.Text,PCB.DefaultMeasurementUnit,line.PositionX,line.PositionY);
-            start:=false;
-          end
-          else SetPosition(lNode.Text, PCB.DefaultMeasurementUnit, x_end, y_end);
-      end;
-      lNode:=lNode.NextSibling;
-    end;
-
-    line.ToX:=x_end;
-    line.ToY:=y_end;
-    lines.Add(line);
-end;
-*/
-
-/*
-procedure FormPolygonIsland(inode:IXMLNode; var island:TList);
-var lNode:iXMLNode;
-    i:integer;
-    vertex:TVertex;
-begin
-    //StatusBar.SimpleText:=StatusBar.SimpleText+' Island...';
-    lNode:=iNode.ChildNodes.FindNode('pt');
-    while Assigned(lNode) do
-    begin
-      if lNode.NodeName='pt' then
-      begin
-          vertex:=TVertex.Create;
-          island.Add(vertex);
-          SetDoublePrecisionPosition(lNode.Text,PCB.DefaultMeasurementUnit,vertex.x,vertex.y);
-      end;
-      lNode:=lNode.NextSibling;
-    end;
-end;
-*/
-
 static void FormPolygon(wxXmlNode *iNode, CVerticesArray *polygon, CPCB *pcb, wxString actualConversion) {
     wxXmlNode *lNode;
     double x, y;
@@ -425,26 +331,6 @@ static void FormPolygon(wxXmlNode *iNode, CVerticesArray *polygon, CPCB *pcb, wx
         lNode = lNode->GetNext();
     }
 }
-
-/*
-function CreateComponentPolygon(inode:IXMLNode;PCADlayer:integer):THPCBPolygon;
-var lNode,tNode:iXMLNode;
-    s:string;
-begin
-    s:=StatusBar.SimpleText;
-    StatusBar.SimpleText:=s+' Polygon...';
-    ComponentPolygon:=THPCBPolygon.Create();
-    ComponentPolygon.PCadLayer:=PCADlayer;
-    ComponentPolygon.KiCadLayer:=PCB.LayersMap[ComponentPolygon.PCadLayer];
-
-    lNode:=iNode.ChildNodes.FindNode('netNameRef');
-    if Assigned(lNode) then ComponentPolygon.Net:=Trim(lNode.Attributes['Name']);
-    FormPolygonLines(inode, componentPolygon.outline, PCADlayer, 50);
-    componentPolygon.PositionX:=THPCBLine(componentPolygon.outline[0]).PositionX;
-    componentPolygon.PositionY:=THPCBLine(componentPolygon.outline[0]).PositionY;
-    result:=ComponentPolygon;
-end;
-*/
 
 CPCBPolygon *CreateComponentPolygon(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wxString actualConversion, wxStatusBar* statusBar) {
     wxXmlNode *lNode;
@@ -476,88 +362,6 @@ CPCBPolygon *CreateComponentPolygon(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, 
 
     return componentPolygon;
 }
-
-/*
-function CreateComponentCopperPour(inode:IXMLNode;PCADlayer:integer):THPCBCopperPour;
-var lNode,tNode,cNode:iXMLNode;
-    x,y,i:integer;
-    componentCopperPour:THPCBCopperPour;
-    island, cutouts, cutout:TList;
-    width, pourSpacing, thermalWidth:integer;
-    pourType:string;
-
-begin
-    StatusBar.SimpleText:=StatusBar.SimpleText+' CooperPour...';
-    componentCopperPour:=THPCBCopperPour.Create();
-    componentCopperPour.PCadLayer:=PCADlayer;
-    componentCopperPour.KiCadLayer:=PCB.LayersMap[PCADlayer];
-    componentCopperPour.timestamp:=PCB.GetNewTimestamp();
-
-    pourType:=UpperCase(TrimLeft(iNode.ChildNodes.FindNode('pourType').Text));
-
-    lNode:=iNode.ChildNodes.FindNode('netNameRef');
-    if Assigned(lNode) then componentCopperPour.Net:=Trim(lNode.Attributes['Name']);
-
-    SetWidth(iNode.ChildNodes.FindNode('width').Text,PCB.DefaultMeasurementUnit,width);
-    if Assigned(iNode.ChildNodes.FindNode('pourSpacing')) then
-        SetWidth(iNode.ChildNodes.FindNode('pourSpacing').Text,PCB.DefaultMeasurementUnit,pourSpacing);
-    if Assigned(iNode.ChildNodes.FindNode('thermalWidth')) then
-        SetWidth(iNode.ChildNodes.FindNode('thermalWidth').Text,PCB.DefaultMeasurementUnit,thermalWidth);
-
-    lNode:=iNode.ChildNodes.FindNode('pcbPoly');
-    if Assigned(lNode) then
-    begin
-      FormPolygonLines(lNode, componentCopperPour.outline, PCADlayer, width);
-      componentCopperPour.PositionX:=THPCBLine(componentCopperPour.outline[0]).PositionX;
-      componentCopperPour.PositionY:=THPCBLine(componentCopperPour.outline[0]).PositionY;
-
-      lNode:=iNode.ChildNodes.FindNode('island');
-      while  Assigned(lNode) do
-      begin
-        componentCopperPour.islands:=TList.Create();
-        tNode:=lNode.ChildNodes.FindNode('islandOutline');
-        if Assigned(tNode) then
-        begin
-          island:=TList.Create();
-          cutouts:=TList.Create();
-          FormPolygonIsland(tNode, island);
-          componentCopperPour.islands.Add(island);
-          tNode:=lNode.ChildNodes.FindNode('cutout');
-          while  Assigned(tNode) do
-          begin
-            componentCopperPour.islands:=TList.Create();
-            cNode:=tNode.ChildNodes.FindNode('cutoutOutline');
-            if Assigned(cNode) then
-            begin
-              cutout:=TList.Create();
-              FormPolygonIsland(cNode, cutout);
-              cutouts.Add(cutout);
-            end;
-
-            tNode := tNode.NextSibling;
-          end;
-
-          FillZone(island, cutouts, componentCopperPour.fill_lines, pourSpacing, width,
-                    pourType, PCADlayer, componentCopperPour.KiCadLayer,
-                    componentCopperPour.timestamp);
-        end;
-
-        tNode:=lNode.ChildNodes.FindNode('thermal');
-        while  Assigned(tNode) do
-        begin
-          DrawThermal(tNode, componentCopperPour.fill_lines, PCADlayer, thermalWidth,
-                      componentCopperPour.timestamp);
-          tNode := tNode.NextSibling;
-        end;
-
-        lNode := lNode.NextSibling;
-      end;
-
-      result:=componentCopperPour;
-    end
-    else result:=nil;
-end;
-*/
 
 CPCBCopperPour *CreateComponentCopperPour(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wxString actualConversion, wxStatusBar* statusBar) {
     wxXmlNode *lNode, *tNode, *cNode;
@@ -632,22 +436,6 @@ CPCBCopperPour *CreateComponentCopperPour(wxXmlNode *iNode, int PCadLayer, CPCB 
 
     return componentCopperPour;
 }
-
-/*
-function CreateComponentCutout(inode:IXMLNode;PCADlayer:integer):THPCBCutout;
-var lNode,tNode:iXMLNode;
-    ComponentCutout:THPCBCutout;
-begin
-    ComponentCutout:=THPCBCutout.Create();
-    ComponentCutout.PCadLayer:=PCADlayer;
-    ComponentCutout.KiCadLayer:=PCB.LayersMap[PCADlayer];
-    FormPolygonLines(inode, componentCutout.outline, PCADlayer, 0);
-    componentCutout.PositionX:=THPCBLine(componentCutout.outline[0]).PositionX;
-    componentCutout.PositionY:=THPCBLine(componentCutout.outline[0]).PositionY;
-    result:=ComponentCutout;
-end;
-//Alexander Lunev added (end)
-*/
 
 // It seems that the same cutouts (with the same vertices) are inside of copper pour objects
 CPCBCutout *CreateComponentCutout(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wxString actualConversion) {

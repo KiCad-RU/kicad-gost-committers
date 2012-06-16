@@ -219,48 +219,8 @@ CPCBPolygon::CPCBPolygon() {
 CPCBPolygon::~CPCBPolygon() {
 }
 
-/*
-procedure THPCBPolygon.WriteToFile(var f:text;ftype:char);
-var     i:integer;
- begin
-  if fill_lines.Count>0 then
-  begin
-   for i:=0 to fill_lines.Count-1 do
-    begin
-       THPCBLine(fill_lines[i]).WriteToFile(f,ftype);
-    end;
-  end;
-
- end;
-  //Alexander Lunev modified (end)
-*/
-
 void CPCBPolygon::WriteToFile(wxFile *f, char ftype) {
 }
-
-/*
-//Alexander Lunev added (begin)
-procedure THPCBPolygon.WriteOutlineToFile(var f:text;ftype:char);
-var     i:integer;
-        c:char;
-begin
-  if outline.Count>0 then
-  begin
-   Writeln(f,'$CZONE_OUTLINE');
-   Writeln(f,'ZInfo ' + IntToHex(timestamp, 8) + ' 0 "' + Net + '"');
-   Writeln(f,'ZLayer ' + IntToStr(KiCadLayer));
-   Writeln(f,'ZAux ' + IntToStr(outline.Count) + ' E');
-   c:='0';
-   for i:=0 to outline.Count-1 do
-   begin
-      if (i=outline.Count-1) then c:='1';
-      Writeln(f,'ZCorner ' + IntToStr(THPCBLine(outline[i]).PositionX) + ' ' +
-                IntToStr(THPCBLine(outline[i]).PositionY) + ' ' + c);
-   end;
-   Writeln(f,'$endCZONE_OUTLINE');
-  end;
-end;
-*/
 
 void CPCBPolygon::WriteOutlineToFile(wxFile *f, char ftype) {
     int i, island;
@@ -303,20 +263,6 @@ void CPCBPolygon::WriteOutlineToFile(wxFile *f, char ftype) {
         f->Write(wxT("$endCZONE_OUTLINE\n"));
     }
 }
-
-/*
-procedure THPCBPolygon.SetPosOffset(x_offs:integer;y_offs:integer);
-var i:integer;
-begin
-  inherited;
-
-  for i:=0 to fill_lines.Count-1 do
-     THPCBLine(fill_lines[i]).SetPosOffset(x_offs, y_offs);
-
-  for i:=0 to outline.Count-1 do
-     THPCBLine(outline[i]).SetPosOffset(x_offs, y_offs);
-end;
-*/
 
 void CPCBPolygon::SetPosOffset(int x_offs, int y_offs) {
     int i, island;
