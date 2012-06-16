@@ -746,8 +746,7 @@ CSchJunction *CheckJunction(CSchLine *iSchLine, int index, CSch *sch) {
     return result;
 }
 
-CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion) {
-    CSch sch;
+void ProcessXMLtoSch(CSch *sch, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion) {
     wxXmlDocument xmlDoc;
     wxXmlNode *aNode;
     CSchComponent *schComp;
@@ -755,16 +754,16 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actu
     bool isJunction;
     int i;
 
-    if (!xmlDoc.Load(XMLFileName)) return sch;
+    if (!xmlDoc.Load(XMLFileName)) return;
 
     // Defaut measurement units
     aNode = FindNode(xmlDoc.GetRoot()->GetChildren(), wxT("asciiHeader"));
     if (aNode) {
         aNode = FindNode(aNode->GetChildren(), wxT("fileUnits"));
         if (aNode) {
-            sch.m_defaultMeasurementUnit = aNode->GetNodeContent();
-            sch.m_defaultMeasurementUnit.Trim(true);
-            sch.m_defaultMeasurementUnit.Trim(false);
+            sch->m_defaultMeasurementUnit = aNode->GetNodeContent();
+            sch->m_defaultMeasurementUnit.Trim(true);
+            sch->m_defaultMeasurementUnit.Trim(false);
         }
     }
 
@@ -772,7 +771,7 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actu
     isJunction = false;
     actualConversion = wxT("SCHLIB");
 
-    DoLibrary(&xmlDoc, &sch, statusBar, actualConversion);
+    DoLibrary(&xmlDoc, sch, statusBar, actualConversion);
 
     aNode = FindNode(xmlDoc.GetRoot()->GetChildren(), wxT("schematicDesign"));
     if (aNode) {
@@ -782,59 +781,59 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actu
         aNode = FindNode(aNode->GetChildren(), wxT("sheet"))->GetChildren();
         while (aNode) {
             if (aNode->GetName() == wxT("symbol"))
-                sch.m_schComponents.Add(CreateSCHSymbol(aNode, &sch, actualConversion));
+                sch->m_schComponents.Add(CreateSCHSymbol(aNode, sch, actualConversion));
 
             if (aNode->GetName() == wxT("wire"))
                 if (FindNode(aNode->GetChildren(), wxT("line")))
-                    sch.m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("line")), 0, &sch, actualConversion));
+                    sch->m_schComponents.Add(CreateLine(FindNode(aNode->GetChildren(), wxT("line")), 0, sch, actualConversion));
 
             if (aNode->GetName() == wxT("bus"))
-                sch.m_schComponents.Add(CreateBus(aNode, &sch, actualConversion));
+                sch->m_schComponents.Add(CreateBus(aNode, sch, actualConversion));
 
             if (aNode->GetName() == wxT("junction"))
-                sch.m_schComponents.Add(CreateJunction(aNode, &sch, &isJunction, actualConversion));
+                sch->m_schComponents.Add(CreateJunction(aNode, sch, &isJunction, actualConversion));
 
             aNode = aNode->GetNext();
         }
 
         // POSTPROCESS -- SET/OPTIMIZE NEW SCH POSITION
 
-        sch.m_sizeX = 1000000; sch.m_sizeY = 0;
-        for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
-            schComp = sch.m_schComponents[i];
-            if (schComp->m_positionY < sch.m_sizeY)
-                sch.m_sizeY = schComp->m_positionY;
-            if (schComp->m_positionX < sch.m_sizeX && schComp->m_positionX > 0)
-                sch.m_sizeX = schComp->m_positionX;
+        sch->m_sizeX = 1000000; sch->m_sizeY = 0;
+        for (i = 0; i < (int)sch->m_schComponents.GetCount(); i++) {
+            schComp = sch->m_schComponents[i];
+            if (schComp->m_positionY < sch->m_sizeY)
+                sch->m_sizeY = schComp->m_positionY;
+            if (schComp->m_positionX < sch->m_sizeX && schComp->m_positionX > 0)
+                sch->m_sizeX = schComp->m_positionX;
         }
         // correction
-        sch.m_sizeY = sch.m_sizeY - 1000;
-        sch.m_sizeX = sch.m_sizeX - 1000;
-        for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
-            schComp = sch.m_schComponents[i];
-            schComp->m_positionY -= sch.m_sizeY;
-            schComp->m_positionX -= sch.m_sizeX;
+        sch->m_sizeY = sch->m_sizeY - 1000;
+        sch->m_sizeX = sch->m_sizeX - 1000;
+        for (i = 0; i < (int)sch->m_schComponents.GetCount(); i++) {
+            schComp = sch->m_schComponents[i];
+            schComp->m_positionY -= sch->m_sizeY;
+            schComp->m_positionX -= sch->m_sizeX;
             if (schComp->m_objType == 'L') {
-                ((CSchLine *)schComp)->m_toY -= sch.m_sizeY;
-                ((CSchLine *)schComp)->m_labelText.textPositionY -= sch.m_sizeY;
-                ((CSchLine *)schComp)->m_toX -= sch.m_sizeX;
-                ((CSchLine *)schComp)->m_labelText.textPositionX -= sch.m_sizeX;
+                ((CSchLine *)schComp)->m_toY -= sch->m_sizeY;
+                ((CSchLine *)schComp)->m_labelText.textPositionY -= sch->m_sizeY;
+                ((CSchLine *)schComp)->m_toX -= sch->m_sizeX;
+                ((CSchLine *)schComp)->m_labelText.textPositionX -= sch->m_sizeX;
             }
         }
         // final sheet settings
-        for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
-            schComp = sch.m_schComponents[i];
-            if (schComp->m_positionY < sch.m_sizeY)
-                sch.m_sizeY = schComp->m_positionY;
-            if (schComp->m_positionX > sch.m_sizeX)
-                sch.m_sizeX = schComp->m_positionX;
+        for (i = 0; i < (int)sch->m_schComponents.GetCount(); i++) {
+            schComp = sch->m_schComponents[i];
+            if (schComp->m_positionY < sch->m_sizeY)
+                sch->m_sizeY = schComp->m_positionY;
+            if (schComp->m_positionX > sch->m_sizeX)
+                sch->m_sizeX = schComp->m_positionX;
         }
-        sch.m_sizeY = -sch.m_sizeY; // is in absolute units
-        sch.m_sizeX = sch.m_sizeX + 1000;
-        sch.m_sizeY = sch.m_sizeY + 1000;
+        sch->m_sizeY = -sch->m_sizeY; // is in absolute units
+        sch->m_sizeX = sch->m_sizeX + 1000;
+        sch->m_sizeY = sch->m_sizeY + 1000;
         // A4 is minimum $Descr A4 11700 8267
-        if (sch.m_sizeX < 11700) sch.m_sizeX = 11700;
-        if (sch.m_sizeY < 8267) sch.m_sizeY = 8267;
+        if (sch->m_sizeX < 11700) sch->m_sizeX = 11700;
+        if (sch->m_sizeY < 8267) sch->m_sizeY = 8267;
 
         // POSTPROCESS -- CREATE JUNCTIONS FROM NEWTLIST
         if (!isJunction) {
@@ -845,12 +844,12 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actu
                                  "    YOU HAVE TO CHECK/CORRECT Juntions in converted design, placement is only approximation !"),
                              wxEmptyString, wxYES_NO) == wxYES)
             {
-                for (i = 0; i < (int)sch.m_schComponents.GetCount(); i++) {
-                    schComp = sch.m_schComponents[i];
+                for (i = 0; i < (int)sch->m_schComponents.GetCount(); i++) {
+                    schComp = sch->m_schComponents[i];
                     if (schComp->m_objType == 'L') {
-                        schJunction = CheckJunction((CSchLine *)schComp, i, &sch);
+                        schJunction = CheckJunction((CSchLine *)schComp, i, sch);
                         if (schJunction)
-                            sch.m_schComponents.Add(schJunction);
+                            sch->m_schComponents.Add(schJunction);
                     }
                 }
             }
@@ -858,5 +857,5 @@ CSch ProcessXMLtoSch(wxStatusBar* statusBar, wxString XMLFileName, wxString actu
 
     } //  SCHEMATIC FILE
 
-    return sch;
+    return;
 }

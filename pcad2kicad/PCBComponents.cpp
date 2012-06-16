@@ -139,7 +139,11 @@ CNet::CNet(wxString iName) {
 }
 
 CNet::~CNet() {
-//    NetNodes.Free;
+    int i;
+
+    for (i = 0; i < (int)m_netNodes.GetCount(); i++) {
+        delete m_netNodes[i];
+    }
 }
 
 CPCBComponent::CPCBComponent() {
@@ -217,6 +221,27 @@ CPCBPolygon::CPCBPolygon() {
 }
 
 CPCBPolygon::~CPCBPolygon() {
+    int i, island;
+
+    for (i = 0; i < (int)m_outline.GetCount(); i++) {
+        delete m_outline[i];
+    }
+
+    for (island = 0; island < (int)m_cutouts.GetCount(); island++) {
+        for (i = 0; i < (int)m_cutouts[island]->GetCount(); i++) {
+            delete (*m_cutouts[island])[i];
+        }
+
+        delete m_cutouts[island];
+    }
+
+    for (island = 0; island < (int)m_islands.GetCount(); island++) {
+        for (i = 0; i < (int)m_islands[island]->GetCount(); i++) {
+            delete (*m_islands[island])[i];
+        }
+
+        delete m_islands[island];
+    }
 }
 
 void CPCBPolygon::WriteToFile(wxFile *f, char ftype) {
@@ -391,7 +416,11 @@ void CPCBPad::WriteToFile(wxFile *f, char ftype, int r) {
 }
 
 CPCBPad::~CPCBPad() {
-//    Shapes.Free;
+    int i;
+
+    for (i = 0; i < (int)m_shapes.GetCount(); i++) {
+        delete m_shapes[i];
+    }
 }
 
 CPCBVia::CPCBVia() : CPCBPad(wxEmptyString) {
@@ -632,7 +661,11 @@ void CPCBModule::Flip() {
 }
 
 CPCBModule::~CPCBModule() {
-//    ModuleObjects.free;
+    int i;
+
+    for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
+        delete m_moduleObjects[i];
+    }
 }
 
 CPCB::CPCB() {
@@ -654,8 +687,15 @@ CPCB::CPCB() {
 }
 
 CPCB::~CPCB() {
-//    PCBComponents.Free;
-//    PCBNetlist.Free;
+    int i;
+
+    for (i = 0; i < (int)m_pcbComponents.GetCount(); i++) {
+        delete m_pcbComponents[i];
+    }
+
+    for (i = 0; i < (int)m_pcbNetlist.GetCount(); i++) {
+        delete m_pcbNetlist[i];
+    }
 }
 
 void CPCB::WriteToFile(wxString fileName, char ftype) {

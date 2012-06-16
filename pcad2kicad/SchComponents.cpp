@@ -59,7 +59,10 @@ CSch::CSch() {
 }
 
 CSch::~CSch() {
-//    SCHComponents.Free;
+    int i;
+
+    for (i = 0; i < (int)m_schComponents.GetCount(); i++)
+        delete m_schComponents[i];
 }
 
 CSchModule::CSchModule() {
@@ -76,7 +79,10 @@ CSchModule::CSchModule() {
 }
 
 CSchModule::~CSchModule() {
-//    ModuleObjects.Free;
+    int i;
+
+    for (i = 0; i < (int)m_moduleObjects.GetCount(); i++)
+        delete m_moduleObjects[i];
 }
 
 CSchArc::CSchArc() {
