@@ -263,6 +263,45 @@ end;
 */
 
 void CPCBPolygon::WriteOutlineToFile(wxFile *f, char ftype) {
+    int i, island;
+    char c;
+
+    if (m_outline.GetCount() > 0) {
+        f->Write(wxT("$CZONE_OUTLINE\n"));
+        f->Write(wxString::Format("ZInfo %8X 0 \"", m_timestamp) + m_net + wxT("\"\n"));
+        f->Write(wxString::Format("ZLayer %d\n", m_KiCadLayer));
+        f->Write(wxString::Format("ZAux %d E\n", (int)m_outline.GetCount()));
+        // print outline
+        c = '0';
+        for (i = 0; i < (int)m_outline.GetCount(); i++) {
+            if (i == (int)m_outline.GetCount() - 1) c = '1';
+            f->Write(wxString::Format("ZCorner %d %d %c\n", m_outline[i]->x, m_outline[i]->y, c));
+        }
+
+        // print cutouts
+        for (island = 0; island < (int)m_cutouts.GetCount(); island++) {
+            c = '0';
+            for (i = 0; i < (int)m_cutouts[island]->GetCount(); i++) {
+                if (i == (int)m_cutouts[island]->GetCount() - 1) c = '1';
+                f->Write(wxString::Format("ZCorner %d %d %c\n",
+                         KiROUND((*m_cutouts[island])[i]->x), KiROUND((*m_cutouts[island])[i]->y), c));
+            }
+        }
+
+        // print filled islands
+        for (island = 0; island < (int)m_islands.GetCount(); island++) {
+            f->Write(wxT("$POLYSCORNERS\n"));
+            c = '0';
+            for (i = 0; i < (int)m_islands[island]->GetCount(); i++) {
+                if (i == (int)m_islands[island]->GetCount() - 1) c = '1';
+                f->Write(wxString::Format("%d %d %c 0\n",
+                         KiROUND((*m_islands[island])[i]->x), KiROUND((*m_islands[island])[i]->y), c));
+            }
+            f->Write(wxT("$endPOLYSCORNERS\n"));
+        }
+
+        f->Write(wxT("$endCZONE_OUTLINE\n"));
+    }
 }
 
 /*
@@ -280,7 +319,28 @@ end;
 */
 
 void CPCBPolygon::SetPosOffset(int x_offs, int y_offs) {
+    int i, island;
+
     CPCBComponent::SetPosOffset(x_offs, y_offs);
+
+    for (i = 0; i < (int)m_outline.GetCount(); i++) {
+        m_outline[i]->x += x_offs;
+        m_outline[i]->y += y_offs;
+    }
+
+    for (island = 0; island < (int)m_islands.GetCount(); island++) {
+        for (i = 0; i < (int)m_islands[island]->GetCount(); i++) {
+            (*m_islands[island])[i]->x += x_offs;
+            (*m_islands[island])[i]->y += y_offs;
+        }
+    }
+
+    for (island = 0; island < (int)m_cutouts.GetCount(); island++) {
+        for (i = 0; i < (int)m_cutouts[island]->GetCount(); i++) {
+            (*m_cutouts[island])[i]->x += x_offs;
+            (*m_cutouts[island])[i]->y += y_offs;
+        }
+    }
 }
 
 CPCBCopperPour::CPCBCopperPour() : CPCBPolygon() {

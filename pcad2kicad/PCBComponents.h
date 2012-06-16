@@ -131,14 +131,19 @@ public:
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
 
+WX_DEFINE_ARRAY(wxPoint *, CPointsArray);
 WX_DEFINE_ARRAY(CPCBLine *, CPCBLinesArray);
+WX_DEFINE_ARRAY(wxRealPoint *, CVerticesArray);
+WX_DEFINE_ARRAY(CVerticesArray *, CIslandsArray);
 
 class CPCBPolygon : public CPCBComponent
 {
 public:
     int m_width;
-    CPCBLinesArray m_outline;  // collection of boundary/outline lines - objects
+    CPointsArray m_outline;  // collection of boundary/outline lines - objects
     CPCBLinesArray m_fill_lines;
+    CIslandsArray m_islands;
+    CIslandsArray m_cutouts;
 
     CPCBPolygon();
     ~CPCBPolygon();
@@ -148,22 +153,9 @@ public:
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
 
-class CVertex : public wxObject
-{
-public:
-    double m_x;
-    double m_y;
-
-    CVertex();
-    ~CVertex();
-};
-
-WX_DEFINE_ARRAY(CVertex *, CVerticesArray);
-
 class CPCBCopperPour : public CPCBPolygon
 {
 public:
-    CVerticesArray m_islands;
 
     CPCBCopperPour();
     ~CPCBCopperPour();

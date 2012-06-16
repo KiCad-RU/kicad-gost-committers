@@ -388,7 +388,9 @@ begin
     line.ToY:=y_end;
     lines.Add(line);
 end;
+*/
 
+/*
 procedure FormPolygonIsland(inode:IXMLNode; var island:TList);
 var lNode:iXMLNode;
     i:integer;
@@ -407,7 +409,24 @@ begin
       lNode:=lNode.NextSibling;
     end;
 end;
+*/
 
+void FormPolygonIsland(wxXmlNode *iNode, CVerticesArray *island, CPCB *pcb, wxString actualConversion) {
+    wxXmlNode *lNode;
+    double x, y;
+
+    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
+    while (lNode) {
+        if (lNode->GetName() == wxT("pt")) {
+            SetDoublePrecisionPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &x, &y, actualConversion);
+            island->Add(new wxRealPoint(x, y));
+        }
+
+        lNode = lNode->GetNext();
+    }
+}
+
+/*
 function CreateComponentPolygon(inode:IXMLNode;PCADlayer:integer):THPCBPolygon;
 var lNode,tNode:iXMLNode;
     s:string;
@@ -515,8 +534,85 @@ begin
 end;
 */
 
-CPCBCopperPour *CreateComponentCopperPour(wxXmlNode *iNode, int PCadLayer) {
+CPCBCopperPour *CreateComponentCopperPour(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wxString actualConversion, wxStatusBar* statusBar) {
+    wxXmlNode *lNode, *tNode, *cNode;
+    wxString pourType, str, propValue;
+    int pourSpacing, thermalWidth, x, y;
+    CVerticesArray *island, *cutout;
     CPCBCopperPour *componentCopperPour = new CPCBCopperPour;
+
+    statusBar->SetStatusText(statusBar->GetStatusText() + wxT(" CooperPour..."));
+    componentCopperPour->m_PCadLayer = PCadLayer;
+    componentCopperPour->m_KiCadLayer = pcb->m_layersMap[PCadLayer];
+    componentCopperPour->m_timestamp = pcb->GetNewTimestamp();
+
+    str = FindNode(iNode->GetChildren(), wxT("pourType"))->GetNodeContent();
+    str.Trim(false);
+    pourType = str.MakeUpper();
+
+    lNode = FindNode(iNode->GetChildren(), wxT("netNameRef"));
+    if (lNode) {
+        lNode->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(false);
+        propValue.Trim(true);
+        componentCopperPour->m_net = propValue;
+    }
+
+    SetWidth(FindNode(iNode->GetChildren(), wxT("width"))->GetNodeContent(), pcb->m_defaultMeasurementUnit, &componentCopperPour->m_width, actualConversion);
+    if (FindNode(iNode->GetChildren(), wxT("pourSpacing")))
+        SetWidth(FindNode(iNode->GetChildren(), wxT("pourSpacing"))->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pourSpacing, actualConversion);
+    if (FindNode(iNode->GetChildren(), wxT("thermalWidth")))
+        SetWidth(FindNode(iNode->GetChildren(), wxT("thermalWidth"))->GetNodeContent(), pcb->m_defaultMeasurementUnit, &thermalWidth, actualConversion);
+
+    lNode = FindNode(iNode->GetChildren(), wxT("pcbPoly"));
+    if (lNode) {
+        // retrieve copper pour outline
+        tNode = FindNode(lNode->GetChildren(), wxT("pt"));
+        while (tNode) {
+            if (tNode->GetName() == wxT("pt")) {
+                SetPosition(tNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &x, &y, actualConversion);
+                componentCopperPour->m_outline.Add(new wxPoint(x, y));
+            }
+
+            tNode = tNode->GetNext();
+        }
+
+        componentCopperPour->m_positionX = componentCopperPour->m_outline[0]->x;
+        componentCopperPour->m_positionY = componentCopperPour->m_outline[0]->y;
+
+        lNode = FindNode(iNode->GetChildren(), wxT("island"));
+        while (lNode) {
+            tNode = FindNode(lNode->GetChildren(), wxT("islandOutline"));
+            if (tNode) {
+                island = new CVerticesArray;
+                FormPolygonIsland(tNode, island, pcb, actualConversion);
+                componentCopperPour->m_islands.Add(island);
+                tNode = FindNode(lNode->GetChildren(), wxT("cutout"));
+                while (tNode) {
+                    //componentCopperPour.islands:=TList.Create();
+                    cNode = FindNode(tNode->GetChildren(), wxT("cutoutOutline"));
+                    if (cNode) {
+                        cutout = new CVerticesArray;
+                        FormPolygonIsland(cNode, cutout, pcb, actualConversion);
+                        componentCopperPour->m_cutouts.Add(cutout);
+                    }
+
+                    tNode  = tNode->GetNext();
+                }
+            }
+
+            /*tNode:=lNode.ChildNodes.FindNode('thermal');
+            while  Assigned(tNode) do
+            begin
+                DrawThermal(tNode, componentCopperPour.fill_lines, PCADlayer, thermalWidth,
+                            componentCopperPour.timestamp);
+                tNode := tNode.NextSibling;
+            end;*/
+
+            lNode = lNode->GetNext();
+        }
+    }
+    else componentCopperPour = NULL;
 
     return componentCopperPour;
 }
@@ -624,7 +720,7 @@ void DoLayerContentsObjects(wxXmlNode *iNode, CPCBModule *pcbModule, CPCBCompone
         if (lNode->GetName() == wxT("triplePointArc")) list->Add(CreateComponentArc(lNode, PCadLayer, pcb, actualConversion));
         if (lNode->GetName() == wxT("pcbPoly")) list->Add(CreateComponentPolygon(lNode, PCadLayer));
         if (lNode->GetName() == wxT("copperPour95")) {
-            poly = CreateComponentCopperPour(lNode, PCadLayer);
+            poly = CreateComponentCopperPour(lNode, PCadLayer, pcb, actualConversion, statusBar);
             if (poly != NULL) list->Add(poly);
         }
 

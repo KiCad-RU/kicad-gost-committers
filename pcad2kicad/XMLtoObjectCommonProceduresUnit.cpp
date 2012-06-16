@@ -202,6 +202,11 @@ begin
 end;
 */
 
+void SetDoublePrecisionPosition(wxString t, wxString defaultMeasurementUnit, double *x, double *y, wxString actualConversion) {
+    *x = StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'X', actualConversion);
+    *y = StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'Y', actualConversion);
+}
+
 void SetTextParameters(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
     wxXmlNode *tNode;
     wxString str;
