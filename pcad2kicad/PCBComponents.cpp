@@ -275,7 +275,7 @@ void CPCBPolygon::WriteOutlineToFile(wxFile *f, char ftype) {
         c = '0';
         for (i = 0; i < (int)m_outline.GetCount(); i++) {
             if (i == (int)m_outline.GetCount() - 1) c = '1';
-            f->Write(wxString::Format("ZCorner %d %d %c\n", m_outline[i]->x, m_outline[i]->y, c));
+            f->Write(wxString::Format("ZCorner %d %d %c\n", KiROUND(m_outline[i]->x), KiROUND(m_outline[i]->y), c));
         }
 
         // print cutouts
@@ -360,6 +360,7 @@ CPCBCutout::~CPCBCutout() {
 
 void CPCBCutout::WriteToFile(wxFile *f, char ftype) {
     //no operation
+    //(It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
 }
 
 CPCBPad::CPCBPad(wxString iName) {
