@@ -33,25 +33,30 @@
 #include <wx/xml/xml.h>
 
 
-void ProcessLine(wxStatusBar* statusBar, wxXmlNode *iNode, wxArrayString *tLines) {
+void TextToXML(wxStatusBar* statusBar, wxString XMLFileName, wxArrayString *tLines) {
+    wxXmlNode *cNode, *iNode;
+    wxXmlDocument xmlDoc;
     wxString ls, propValue, content;
-    wxXmlNode *cNode;
+    int i;
 
-    while (tLines->GetCount() > 0) {
+    xmlDoc.SetFileEncoding(wxT("WINDOWS-1251"));
+    iNode = new wxXmlNode(wxXML_ELEMENT_NODE, wxT("www.lura.sk"));
+    xmlDoc.SetRoot(iNode);
 
-        statusBar->SetStatusText(wxT("Creating XML file : ") + wxString::Format("%d", (int)tLines->GetCount()));
-        ls = (*tLines)[tLines->GetCount() - 1];
-        tLines->RemoveAt(tLines->GetCount() - 1);
+    i = tLines->GetCount() - 1;
+    while (i >= 0) {
+        statusBar->SetStatusText(wxT("Creating XML file : ") + wxString::Format("%d", i));
+        ls = (*tLines)[i--];
+
         if (ls == wxT("GoUP")) {
             iNode = iNode->GetParent();
         }
         else if (ls == wxT("GoDOWN")) {
-            ls = (*tLines)[tLines->GetCount() - 1];
-            tLines->RemoveAt(tLines->GetCount() - 1);
+            ls = (*tLines)[i--];
             cNode = new wxXmlNode(wxXML_ELEMENT_NODE, ls);
             iNode->AddChild(cNode);
-            while (tLines->GetCount() > 0) {
-                ls = (*tLines)[tLines->GetCount() - 1];
+            while (i >= 0) {
+                ls = (*tLines)[i];
                 if (ls == wxT("GoUP") || ls == wxT("GoDOWN")) {
                     iNode = cNode;
                     break;
@@ -63,19 +68,16 @@ void ProcessLine(wxStatusBar* statusBar, wxXmlNode *iNode, wxArrayString *tLines
                             cNode->DeleteProperty(wxT("Name"));
                             cNode->AddProperty(wxT("Name"), propValue + ' ' + ls);
                         }
-                        else {
-                            cNode->DeleteProperty(wxT("Name"));
-                            cNode->AddProperty(wxT("Name"), ls);
-                        }
+                        else cNode->AddProperty(wxT("Name"), ls);
                     }
                     else {
                         // update node content
                         content = cNode->GetNodeContent() + ' ' + ls;
-                        cNode->RemoveChild(cNode->GetChildren());
-                        cNode->AddChild(new wxXmlNode(wxXML_TEXT_NODE, wxEmptyString, content));
+                        if (cNode->GetChildren()) cNode->GetChildren()->SetContent(content);
+                        else cNode->AddChild(new wxXmlNode(wxXML_TEXT_NODE, wxEmptyString, content));
                     }
 
-                    tLines->RemoveAt(tLines->GetCount() - 1);
+                    i--;
                 }
             }
         }
@@ -94,17 +96,6 @@ void ProcessLine(wxStatusBar* statusBar, wxXmlNode *iNode, wxArrayString *tLines
             cNode->AddChild(new wxXmlNode(wxXML_TEXT_NODE, wxEmptyString, ls));
         }
     }
-}
-
-void TextToXML(wxStatusBar* statusBar, wxString XMLFileName, wxArrayString *tLines) {
-    wxXmlDocument xmlDoc;
-    wxString ls;
-
-    xmlDoc.SetFileEncoding(wxT("WINDOWS-1251"));
-    wxXmlNode *root = new wxXmlNode(wxXML_ELEMENT_NODE, wxT("www.lura.sk"));
-    xmlDoc.SetRoot(root);
-
-    ProcessLine(statusBar, root, tLines);
 
     statusBar->SetStatusText(wxT("Saving XML file : ") + XMLFileName);
     xmlDoc.Save(XMLFileName);

@@ -151,6 +151,9 @@ void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLi
     statusBar->SetStatusText(wxT("Opening file : ") + fileName);
 
     f.Open(fileName);
+    // preallocate memory for array to increase performance
+    size_t lines_qty = f.GetLineCount();
+    lines.Alloc(lines_qty * 10);
 
     s = GetLine(&f, true);
     while (s != wxT("END OF INPUT FILE")) {
@@ -179,10 +182,12 @@ void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLi
     }
 
     statusBar->SetStatusText(wxT("Input file processed  : ") + wxString::Format("%d", fileLine) + wxT(" lines."));
-    while (lines.GetCount() > 0) {
+    // preallocate memory for array to increase performance
+    tLines->Alloc(lines.GetCount());
+    // reverse order of lines
+    for (i = lines.GetCount() - 1; i>=0; i--) {
         statusBar->SetStatusText(wxT("Optimizing  : ") + wxString::Format("%d", (int)lines.GetCount()));
-        tLines->Add(lines[lines.GetCount()-1]);
-        lines.RemoveAt(lines.GetCount()-1);
+        tLines->Add(lines[i]);
     }
 
     f.Close();
