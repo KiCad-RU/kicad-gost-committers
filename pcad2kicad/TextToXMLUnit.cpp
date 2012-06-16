@@ -37,58 +37,62 @@ void ProcessLine(wxStatusBar* statusBar, wxXmlNode *iNode, wxArrayString *tLines
     wxString ls, propValue, content;
     wxXmlNode *cNode;
 
-    if (tLines->GetCount() == 0) return;
+    while (tLines->GetCount() > 0) {
 
-    statusBar->SetStatusText(wxT("Creating XML file : ") + wxString::Format("%d", (int)tLines->GetCount()));
-    ls = (*tLines)[tLines->GetCount() - 1];
-    tLines->RemoveAt(tLines->GetCount() - 1);
-    if (ls == wxT("GoUP")) ProcessLine(statusBar, iNode->GetParent(), tLines);
-    else if (ls == wxT("GoDOWN")) {
+        statusBar->SetStatusText(wxT("Creating XML file : ") + wxString::Format("%d", (int)tLines->GetCount()));
         ls = (*tLines)[tLines->GetCount() - 1];
         tLines->RemoveAt(tLines->GetCount() - 1);
-        cNode = new wxXmlNode(wxXML_ELEMENT_NODE, ls);
-        iNode->AddChild(cNode);
-        while (tLines->GetCount() > 0) {
+        if (ls == wxT("GoUP")) {
+            iNode = iNode->GetParent();
+        }
+        else if (ls == wxT("GoDOWN")) {
             ls = (*tLines)[tLines->GetCount() - 1];
-            if (ls == wxT("GoUP") || ls == wxT("GoDOWN")) ProcessLine(statusBar, cNode, tLines);
-            else {
-                if ((ls.Len() > 0) && (ls[0] == '"')) {
-                    ls = ls.Mid(1, ls.Len() - 2);
-                    if (cNode->GetPropVal(wxT("Name"), &propValue)) {
-                        cNode->DeleteProperty(wxT("Name"));
-                        cNode->AddProperty(wxT("Name"), propValue + ' ' + ls);
-                    }
-                    else {
-                        cNode->DeleteProperty(wxT("Name"));
-                        cNode->AddProperty(wxT("Name"), ls);
-                    }
+            tLines->RemoveAt(tLines->GetCount() - 1);
+            cNode = new wxXmlNode(wxXML_ELEMENT_NODE, ls);
+            iNode->AddChild(cNode);
+            while (tLines->GetCount() > 0) {
+                ls = (*tLines)[tLines->GetCount() - 1];
+                if (ls == wxT("GoUP") || ls == wxT("GoDOWN")) {
+                    iNode = cNode;
+                    break;
                 }
                 else {
-                    // update node content
-                    content = cNode->GetNodeContent() + ' ' + ls;
-                    cNode->RemoveChild(cNode->GetChildren());
-                    cNode->AddChild(new wxXmlNode(wxXML_TEXT_NODE, wxEmptyString, content));
-                }
+                    if ((ls.Len() > 0) && (ls[0] == '"')) {
+                        ls = ls.Mid(1, ls.Len() - 2);
+                        if (cNode->GetPropVal(wxT("Name"), &propValue)) {
+                            cNode->DeleteProperty(wxT("Name"));
+                            cNode->AddProperty(wxT("Name"), propValue + ' ' + ls);
+                        }
+                        else {
+                            cNode->DeleteProperty(wxT("Name"));
+                            cNode->AddProperty(wxT("Name"), ls);
+                        }
+                    }
+                    else {
+                        // update node content
+                        content = cNode->GetNodeContent() + ' ' + ls;
+                        cNode->RemoveChild(cNode->GetChildren());
+                        cNode->AddChild(new wxXmlNode(wxXML_TEXT_NODE, wxEmptyString, content));
+                    }
 
-                tLines->RemoveAt(tLines->GetCount() - 1);
+                    tLines->RemoveAt(tLines->GetCount() - 1);
+                }
             }
         }
-    }
-    else {
-        if (ls.Len() > 0 && ls[0] == '"') {
-            ls = ls.Mid(1, ls.Len() - 2);
+        else {
+            if (ls.Len() > 0 && ls[0] == '"') {
+                ls = ls.Mid(1, ls.Len() - 2);
+            }
+
+            cNode = new wxXmlNode(wxXML_ELEMENT_NODE, wxT("value"));
+            iNode->AddChild(cNode);
+
+            if (ls.Len() > 0 && ls[0] == '"') {
+                ls = ls.Mid(1, ls.Len() - 2);
+            }
+
+            cNode->AddChild(new wxXmlNode(wxXML_TEXT_NODE, wxEmptyString, ls));
         }
-
-        cNode = new wxXmlNode(wxXML_ELEMENT_NODE, wxT("value"));
-        iNode->AddChild(cNode);
-
-        if (ls.Len() > 0 && ls[0] == '"') {
-            ls = ls.Mid(1, ls.Len() - 2);
-        }
-
-        cNode->AddChild(new wxXmlNode(wxXML_TEXT_NODE, wxEmptyString, ls));
-
-        ProcessLine(statusBar, iNode, tLines);
     }
 }
 
@@ -100,9 +104,7 @@ void TextToXML(wxStatusBar* statusBar, wxString XMLFileName, wxArrayString *tLin
     wxXmlNode *root = new wxXmlNode(wxXML_ELEMENT_NODE, wxT("www.lura.sk"));
     xmlDoc.SetRoot(root);
 
-    while (tLines->GetCount() > 0) {
-        ProcessLine(statusBar, root, tLines); // here is the recursion that should be eliminated!
-    }
+    ProcessLine(statusBar, root, tLines);
 
     statusBar->SetStatusText(wxT("Saving XML file : ") + XMLFileName);
     xmlDoc.Save(XMLFileName);
