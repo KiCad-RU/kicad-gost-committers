@@ -77,17 +77,6 @@ public:
     virtual void WriteToFile(wxFile *f, char ftype);
 };
 
-class CSchArc : public CSchComponent
-{
-public:
-    int m_startX, m_startY, m_toX, m_toY, m_startAngle, m_sweepAngle, m_radius;
-
-    CSchArc();
-    ~CSchArc();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-};
-
 class CSchJunction : public CSchComponent
 {
 public:

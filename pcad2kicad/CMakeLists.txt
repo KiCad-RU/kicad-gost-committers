@@ -15,6 +15,7 @@ set(PCAD2KICAD_SRCS
     PCBComponents.cpp
     ProcessXMLtoPCBUnit.cpp
     ProcessXMLtoSchUnit.cpp
+    SchArc.cpp
     SchComponents.cpp
     TextToXMLUnit.cpp
     XMLtoObjectCommonProceduresUnit.cpp

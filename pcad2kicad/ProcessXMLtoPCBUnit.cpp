@@ -1119,6 +1119,4 @@ void ProcessXMLtoPCBLib(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName,
             }
         }
     }
-
-    return;
 }

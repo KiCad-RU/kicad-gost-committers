@@ -19,7 +19,7 @@ Limitations
 Tips
 ====
 
-While loading converted schematic files to KiCad be sure that you have firstly attached the converted libraries
+While loading converted schematic files to KiCad make sure that you have firstly attached the converted libraries
  (*.KiCad.lib and *.KiCad.dcm files) to KiCad.
 
 

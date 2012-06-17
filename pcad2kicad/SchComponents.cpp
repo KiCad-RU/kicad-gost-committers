@@ -34,6 +34,7 @@
 #include <common.h>
 
 #include <SchComponents.h>
+#include <SchArc.h>
 
 CSchComponent::CSchComponent() {
     m_objType = '?';
@@ -83,24 +84,6 @@ CSchModule::~CSchModule() {
 
     for (i = 0; i < (int)m_moduleObjects.GetCount(); i++)
         delete m_moduleObjects[i];
-}
-
-CSchArc::CSchArc() {
-    m_startX = 0;
-    m_startY = 0;
-    m_toX = 0;
-    m_toY = 0;
-    m_startAngle = 0;
-    m_sweepAngle = 0;
-    m_radius = 0;
-}
-
-CSchArc::~CSchArc() {
-}
-
-void CSchArc::WriteToFile(wxFile *f, char ftype) {
-    f->Write(wxString::Format("A %d %d %d %d %d %d 0 %d N %d %d %d %d\n", m_positionX, m_positionY,
-             m_radius, m_startAngle, m_sweepAngle, m_partNum, m_width, m_startX, m_startY, m_toX, m_toY));
 }
 
 CSchJunction::CSchJunction() {

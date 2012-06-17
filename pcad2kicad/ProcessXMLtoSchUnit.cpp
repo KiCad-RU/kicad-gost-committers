@@ -34,6 +34,7 @@
 #include <XMLtoObjectCommonProceduresUnit.h>
 #include <common.h>
 
+#include <SchArc.h>
 
 CSchPin *CreatePin(wxXmlNode *iNode) {
     wxString str, propValue;
@@ -199,60 +200,6 @@ CSchJunction *CreateJunction(wxXmlNode *iNode, CSch *sch, bool *isJunction, wxSt
     return schJunction;
 }
 
-CSchArc *CreateArc(wxXmlNode *iNode, int symbolIndex, CSch *sch, wxString actualConversion) {
-    wxXmlNode *lNode;
-    wxString propValue;
-    double r;
-    CSchArc *schArc = new CSchArc();
-
-    schArc->m_objType = 'A';
-    schArc->m_partNum = symbolIndex;
-    if (FindNode(iNode->GetChildren(), wxT("width")))
-         schArc->m_width = StrToIntUnits(FindNode(iNode->GetChildren(), wxT("width"))->GetNodeContent(), ' ', actualConversion);
-    else schArc->m_width = 1; //default
-
-    if (iNode->GetName() == wxT("triplePointArc")) {
-        // origin
-        lNode = FindNode(iNode->GetChildren(), wxT("pt"));
-        if (lNode)
-            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
-                    &schArc->m_positionX, &schArc->m_positionY, actualConversion);
-        // First - starting point in PCAS is ENDING point in KiCAd
-        lNode = lNode->GetNext();
-        if (lNode)
-            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
-                    &schArc->m_toX, &schArc->m_toY, actualConversion);
-        // Second - ending point in PCAS is STARTING point in KiCAd
-        lNode = lNode->GetNext();
-        if (lNode)
-            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
-                    &schArc->m_startX, &schArc->m_startY, actualConversion);
-        // now temporary, it can be fixed later.....
-        //SCHArc.StartAngle:=0;
-        //SCHArc.SweepAngle:=3600;
-    }
-
-    if (iNode->GetName() == wxT("arc")) {
-        lNode = FindNode(iNode->GetChildren(), wxT("pt"));
-        if (lNode)
-            SetPosition(lNode->GetNodeContent(), sch->m_defaultMeasurementUnit,
-                    &schArc->m_positionX, &schArc->m_positionY, actualConversion);
-
-        lNode = FindNode(iNode->GetChildren(), wxT("radius"));
-        if (lNode)
-            schArc->m_radius = StrToIntUnits(lNode->GetNodeContent(), ' ', actualConversion);
-        r = StrToIntUnits(lNode->GetNodeContent(), ' ', actualConversion);
-        schArc->m_startAngle = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("startAngle"))->GetNodeContent());
-        schArc->m_startX = KiROUND(schArc->m_positionX + r * sin((schArc->m_startAngle - 900.0) * M_PI / 1800.0));
-        schArc->m_startY = KiROUND(schArc->m_positionY - r * cos((schArc->m_startAngle - 900) * M_PI / 1800.0));
-        schArc->m_sweepAngle = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("sweepAngle"))->GetNodeContent());
-        schArc->m_toX = KiROUND(schArc->m_positionX + r * sin((schArc->m_startAngle + schArc->m_sweepAngle - 900.0) * M_PI / 1800.0));
-        schArc->m_toY = KiROUND(schArc->m_positionY - r * cos((schArc->m_startAngle + schArc->m_sweepAngle - 900.0) * M_PI / 1800.0));
-    }
-
-    return schArc;
-}
-
 static void SetPinProperties(wxXmlNode *iNode, CSchModule *iSchModule, int symbolIndex, CSch *sch, wxString actualConversion) {
     CSchPin *schPin;
     wxString pn, t, str;
@@ -356,13 +303,13 @@ static void FindAndProcessSymbolDef(wxXmlNode *iNode, CSchModule *iSchModule, in
                 tNode = FindNode(ttNode->GetChildren(), wxT("arc"));
                 while (tNode) {
                     if (tNode->GetName() == wxT("arc"))
-                        iSchModule->m_moduleObjects.Add(CreateArc(tNode, symbolIndex, sch, actualConversion));
+                        iSchModule->m_moduleObjects.Add(new CSchArc(tNode, symbolIndex, sch->m_defaultMeasurementUnit, actualConversion));
                     tNode = tNode->GetNext();
                 }
                 tNode = FindNode(ttNode->GetChildren(), wxT("triplePointArc"));
                 while (tNode) {
                     if (tNode->GetName() == wxT("triplePointArc"))
-                        iSchModule->m_moduleObjects.Add(CreateArc(tNode, symbolIndex, sch, actualConversion));
+                        iSchModule->m_moduleObjects.Add(new CSchArc(tNode, symbolIndex, sch->m_defaultMeasurementUnit, actualConversion));
                     tNode = tNode->GetNext();
                 }
 
@@ -856,6 +803,4 @@ void ProcessXMLtoSch(CSch *sch, wxStatusBar* statusBar, wxString XMLFileName, wx
         }
 
     } //  SCHEMATIC FILE
-
-    return;
 }
