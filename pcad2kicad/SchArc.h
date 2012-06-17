@@ -39,10 +39,11 @@ class CSchArc : public CSchComponent
 public:
     int m_startX, m_startY, m_toX, m_toY, m_startAngle, m_sweepAngle, m_radius;
 
-    CSchArc(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
-
+    CSchArc();
     ~CSchArc();
+
+    virtual void Parse(wxXmlNode *aNode, int aSymbolIndex,
+        wxString aDefaultMeasurementUnit, wxString aActualConversion);
 
     virtual void WriteToFile(wxFile *aFile, char aFileType);
 };

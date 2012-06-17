@@ -16,8 +16,10 @@ set(PCAD2KICAD_SRCS
     ProcessXMLtoPCBUnit.cpp
     ProcessXMLtoSchUnit.cpp
     SchArc.cpp
+    SchBus.cpp
     SchComponents.cpp
     SchJunction.cpp
+    SchLine.cpp
     SchPin.cpp
     TextToXMLUnit.cpp
     XMLtoObjectCommonProceduresUnit.cpp

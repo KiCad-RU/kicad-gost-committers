@@ -34,13 +34,8 @@
 
 #include <SchArc.h>
 
-CSchArc::CSchArc(wxXmlNode *aNode, int aSymbolIndex,
-    wxString aDefaultMeasurementUnit, wxString aActualConversion)
-{
-    wxXmlNode *lNode;
-    wxString propValue;
-    double r;
 
+CSchArc::CSchArc() {
     m_startX = 0;
     m_startY = 0;
     m_toX = 0;
@@ -48,6 +43,17 @@ CSchArc::CSchArc(wxXmlNode *aNode, int aSymbolIndex,
     m_startAngle = 0;
     m_sweepAngle = 0;
     m_radius = 0;
+}
+
+CSchArc::~CSchArc() {
+}
+
+void CSchArc::Parse(wxXmlNode *aNode, int aSymbolIndex,
+    wxString aDefaultMeasurementUnit, wxString aActualConversion)
+{
+    wxXmlNode *lNode;
+    wxString propValue;
+    double r;
 
     m_objType = 'A';
     m_partNum = aSymbolIndex;
@@ -99,9 +105,6 @@ CSchArc::CSchArc(wxXmlNode *aNode, int aSymbolIndex,
         m_toY = KiROUND(m_positionY -
             r * cos((m_startAngle + m_sweepAngle - 900.0) * M_PI / 1800.0));
     }
-}
-
-CSchArc::~CSchArc() {
 }
 
 void CSchArc::WriteToFile(wxFile *aFile, char aFileType) {

@@ -34,19 +34,21 @@
 
 #include <SchJunction.h>
 
-CSchJunction::CSchJunction(int aX, int aY, wxString aNet) {
-    m_objType = 'J';
+CSchJunction::CSchJunction(int aX, int aY, wxString aNet) : m_net(aNet)
+{
     m_positionX = aX;
     m_positionY = aY;
-    m_net = aNet;
+    m_objType = 'J';
 }
 
-CSchJunction::CSchJunction(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
+CSchJunction::~CSchJunction() {
+}
+
+void CSchJunction::Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
     wxString propValue;
 
     m_net = wxEmptyString;
 
-    m_objType = 'J';
     if (FindNode(aNode->GetChildren(), wxT("pt"))) {
         SetPosition(FindNode(aNode->GetChildren(), wxT("pt"))->GetNodeContent(),
             aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion);
@@ -57,10 +59,6 @@ CSchJunction::CSchJunction(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, w
         propValue.Trim(false);
         m_net = propValue;
     }
-}
-
-
-CSchJunction::~CSchJunction() {
 }
 
 void CSchJunction::WriteToFile(wxFile *aFile, char aFileType) {

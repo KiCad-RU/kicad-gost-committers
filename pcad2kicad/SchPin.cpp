@@ -35,16 +35,21 @@
 #include <SchPin.h>
 
 
-CSchPin::CSchPin(wxXmlNode *aNode) {
-    wxString str, propValue;
-    long num;
-
+CSchPin::CSchPin() {
     InitTTextValue(&m_pinNum);
     InitTTextValue(&m_pinName);
     InitTTextValue(&m_number);
     m_pinType = wxEmptyString;
     m_edgeStyle = wxEmptyString;
     m_pinLength = 0;
+}
+
+CSchPin::~CSchPin() {
+}
+
+void CSchPin::Parse(wxXmlNode *aNode) {
+    wxString str, propValue;
+    long num;
 
     m_objType = 'P';
 //    SCHLine.PartNum:=SymbolIndex;
@@ -77,9 +82,6 @@ CSchPin::CSchPin(wxXmlNode *aNode) {
     }
 
     if (m_pinName.text.Len() == 0) m_pinName.text = '~'; // Default
-}
-
-CSchPin::~CSchPin() {
 }
 
 void CSchPin::WriteToFile(wxFile *aFile, char aFileType) {

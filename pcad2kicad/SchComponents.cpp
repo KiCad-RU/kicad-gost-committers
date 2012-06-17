@@ -36,6 +36,7 @@
 #include <SchComponents.h>
 #include <SchArc.h>
 #include <SchJunction.h>
+#include <SchLine.h>
 #include <SchPin.h>
 
 CSchComponent::CSchComponent() {
@@ -86,46 +87,6 @@ CSchModule::~CSchModule() {
 
     for (i = 0; i < (int)m_moduleObjects.GetCount(); i++)
         delete m_moduleObjects[i];
-}
-
-CSchLine::CSchLine() {
-    m_toX = 0;
-    m_toY = 0;
-    m_net = wxEmptyString;
-    m_lineType = '?';
-    InitTTextValue(&m_labelText);
-}
-
-CSchLine::~CSchLine() {
-}
-
-void CSchLine::WriteToFile(wxFile *f, char ftype) {
-    wxString lt;
-
-    if (ftype == 'L')
-        f->Write(wxString::Format("P 2 %d 0 %d %d %d %d %d N\n",
-                 m_partNum, m_width, m_positionX, m_positionY, m_toX, m_toY));
-
-    if (ftype == 'S') {
-        if (m_lineType == 'W') lt = wxString("Wire");
-        if (m_lineType == 'B') lt = wxString("Bus");
-        f->Write(wxT("Wire ") + lt + wxT(" Line\n"));
-        f->Write(wxString::Format("               %d %d %d %d\n",
-                 m_positionX, m_positionY, m_toX, m_toY));
-    }
-}
-
-void CSchLine::WriteLabelToFile(wxFile *f, char ftype) {
-    char lr;
-
-    if (m_labelText.textIsVisible == 1) {
-        if (m_labelText.textRotation == 0) lr = '0';
-        else lr = '1';
-
-        f->Write(wxString::Format("Text Label %d %d", m_labelText.textPositionX, m_labelText.textPositionY) +
-             ' ' + lr + ' ' + wxT(" 60 ~\n"));
-        f->Write(m_labelText.text + wxT("\n"));
-    }
 }
 
 void CSchModule::WriteToFile(wxFile *f, char ftype) {

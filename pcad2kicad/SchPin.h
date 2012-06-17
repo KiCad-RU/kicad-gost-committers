@@ -44,9 +44,10 @@ public:
     wxString m_pinType, m_edgeStyle;
     int m_pinLength;
 
-    CSchPin(wxXmlNode *aNode);
+    CSchPin();
     ~CSchPin();
 
+    virtual void Parse(wxXmlNode *aNode);
     virtual void WriteToFile(wxFile *aFile, char aFileType);
 };
 

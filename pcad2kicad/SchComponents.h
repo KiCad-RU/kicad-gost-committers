@@ -72,21 +72,6 @@ public:
     ~CSchText();
 };
 
-class CSchLine : public CSchComponent
-{
-public:
-    int m_toX, m_toY;
-    wxString m_net;
-    char m_lineType; // Wire, Bus, ...
-    TTextValue m_labelText;
-
-    CSchLine();
-    ~CSchLine();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void WriteLabelToFile(wxFile *f, char ftype);
-};
-
 WX_DEFINE_ARRAY(CSchComponent *, CSchComponentsArray);
 
 class CSchModule : public CSchComponent

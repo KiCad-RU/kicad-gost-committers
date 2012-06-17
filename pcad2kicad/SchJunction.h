@@ -39,11 +39,10 @@ class CSchJunction : public CSchComponent
 public:
     wxString m_net;
 
-    CSchJunction(int aX, int aY, wxString aNet);
-    CSchJunction(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
-
+    CSchJunction(int aX = 0, int aY = 0, wxString aNet = wxEmptyString);
     ~CSchJunction();
 
+    virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
     virtual void WriteToFile(wxFile *aFile, char aFileType);
 };
 
