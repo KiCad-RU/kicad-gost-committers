@@ -84,6 +84,77 @@ void CSchPin::Parse(wxXmlNode *aNode) {
     if (m_pinName.text.Len() == 0) m_pinName.text = '~'; // Default
 }
 
+void CSchPin::ParsePinProperties(wxXmlNode *aNode, int aSymbolIndex,
+    wxString aDefaultMeasurementUnit, wxString aActualConversion)
+{
+    wxString pn, t, str;
+    TTextValue lpn;
+
+    pn = FindNode(aNode->GetChildren(), wxT("pinNum"))->GetNodeContent();
+    pn.Trim(false);
+    pn.Trim(true);
+
+    if (m_pinNum.text == pn &&
+        m_partNum == aSymbolIndex)
+    {
+        m_isVisible = 1; // This pin is described, it means is visible
+        m_pinLength = DEFAULT_SYMBOL_PIN_LENGTH; // Default value
+        if (FindNode(aNode->GetChildren(), wxT("pinLength"))) {
+            t = FindNode(aNode->GetChildren(), wxT("pinLength"))->GetNodeContent();
+            m_pinLength = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, aDefaultMeasurementUnit),
+                ' ', aActualConversion);
+        }
+
+        if (FindNode(aNode->GetChildren(), wxT("outsideEdgeStyle"))) {
+            str = FindNode(aNode->GetChildren(), wxT("outsideEdgeStyle"))->GetNodeContent();
+            str.Trim(false);
+            str.Trim(true);
+            m_edgeStyle = str;
+        }
+
+        if (FindNode(aNode->GetChildren(), wxT("rotation")))
+            m_rotation = StrToInt1Units(
+                FindNode(aNode->GetChildren(), wxT("rotation"))->GetNodeContent());
+
+        if (FindNode(aNode->GetChildren(), wxT("pt"))) {
+            SetPosition(FindNode(aNode->GetChildren(), wxT("pt"))->GetNodeContent(),
+                aDefaultMeasurementUnit,
+                &m_positionX,
+                &m_positionY,
+                aActualConversion);
+        }
+
+        if (FindNode(aNode->GetChildren(), wxT("isFlipped"))) {
+            str = FindNode(aNode->GetChildren(), wxT("isFlipped"))->GetNodeContent();
+            str.Trim(false);
+            str.Trim(true);
+            if (str == wxT("True")) m_mirror = 1;
+        }
+
+        if (FindNode(aNode->GetChildren(), wxT("pinName"))) {
+            lpn = m_number;
+            if (FindNode(FindNode(
+                aNode->GetChildren(), wxT("pinName"))->GetChildren(), wxT("text")))
+            {
+                SetTextParameters(FindNode(FindNode(
+                    aNode->GetChildren(), wxT("pinName"))->GetChildren(), wxT("text")),
+                    &lpn, aDefaultMeasurementUnit, aActualConversion);
+            }
+        }
+
+        if (FindNode(aNode->GetChildren(), wxT("pinDes"))) {
+            lpn = m_pinName;
+            if (FindNode(FindNode(
+                aNode->GetChildren(), wxT("pinDes"))->GetChildren(), wxT("text")))
+            {
+                SetTextParameters(FindNode(FindNode(
+                    aNode->GetChildren(), wxT("pinDes"))->GetChildren(), wxT("text")),
+                    &lpn, aDefaultMeasurementUnit, aActualConversion);
+            }
+        }
+    }
+}
+
 void CSchPin::WriteToFile(wxFile *aFile, char aFileType) {
     char orientation, pinType;
     wxString shape;

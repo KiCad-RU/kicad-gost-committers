@@ -24,35 +24,20 @@
  */
 
 /**
- * @file SchPin.h
+ * @file SchBus.h
  */
 
-#ifndef SCHPIN_H_
-#define SCHPIN_H_
+#ifndef SCHBUS_H_
+#define SCHBUS_H_
 
 #include <wx/wx.h>
 
-#include <SchComponents.h>
-#include <XMLtoObjectCommonProceduresUnit.h>
+#include <SchLine.h>
 
-#define DEFAULT_SYMBOL_PIN_LENGTH 300
-
-class CSchPin : public CSchComponent
+class CSchBus : public CSchLine
 {
 public:
-    TTextValue m_pinNum, m_pinName, m_number;
-    wxString m_pinType, m_edgeStyle;
-    int m_pinLength;
-
-    CSchPin();
-    ~CSchPin();
-
-    virtual void Parse(wxXmlNode *aNode);
-
-    void ParsePinProperties(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
-
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
 };
 
-#endif // SCHPIN_H_
+#endif // SCHBUS_H_

@@ -41,68 +41,17 @@
 #include <SchPin.h>
 
 
-static void SetPinProperties(wxXmlNode *iNode, CSchModule *iSchModule, int symbolIndex, CSch *sch, wxString actualConversion) {
+static void SetPinProperties(wxXmlNode *aNode, CSchModule *aSchModule, int aSymbolIndex,
+    wxString aDefaultMeasurementUnit, wxString aActualConversion)
+{
     CSchPin *schPin;
-    wxString pn, t, str;
-    TTextValue lpn;
     int i;
 
-    pn = FindNode(iNode->GetChildren(), wxT("pinNum"))->GetNodeContent();
-    pn.Trim(false);
-    pn.Trim(true);
-
-    for (i = 0; i < (int)iSchModule->m_moduleObjects.GetCount(); i++) {
-        if ((iSchModule->m_moduleObjects[i])->m_objType == 'P') {
-            schPin = (CSchPin *)iSchModule->m_moduleObjects[i];
-            if (schPin->m_pinNum.text == pn &&
-                schPin->m_partNum == symbolIndex) {
-                schPin->m_isVisible = 1; // This pin is described, it means is visible
-                schPin->m_pinLength = DEFAULT_SYMBOL_PIN_LENGTH; // Default value
-                if (FindNode(iNode->GetChildren(), wxT("pinLength"))) {
-                    t = FindNode(iNode->GetChildren(), wxT("pinLength"))->GetNodeContent();
-                    schPin->m_pinLength =
-                        StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, sch->m_defaultMeasurementUnit), ' ', actualConversion);
-                }
-                if (FindNode(iNode->GetChildren(), wxT("outsideEdgeStyle"))) {
-                    str = FindNode(iNode->GetChildren(), wxT("outsideEdgeStyle"))->GetNodeContent();
-                    str.Trim(false);
-                    str.Trim(true);
-                    schPin->m_edgeStyle = str;
-                }
-                if (FindNode(iNode->GetChildren(), wxT("rotation")))
-                    schPin->m_rotation = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("rotation"))->GetNodeContent());
-                if (FindNode(iNode->GetChildren(), wxT("pt"))) {
-                    SetPosition(FindNode(iNode->GetChildren(), wxT("pt"))->GetNodeContent(),
-                               sch->m_defaultMeasurementUnit,
-                               &schPin->m_positionX,
-                               &schPin->m_positionY,
-                               actualConversion);
-                }
-                if (FindNode(iNode->GetChildren(), wxT("isFlipped"))) {
-                    str = FindNode(iNode->GetChildren(), wxT("isFlipped"))->GetNodeContent();
-                    str.Trim(false);
-                    str.Trim(true);
-                    if (str == wxT("True")) schPin->m_mirror = 1;
-                }
-                if (FindNode(iNode->GetChildren(), wxT("pinName"))) {
-                    lpn = schPin->m_number;
-                    if (FindNode(FindNode(iNode->GetChildren(), wxT("pinName"))->GetChildren(), wxT("text"))) {
-                        SetTextParameters(FindNode(FindNode(iNode->GetChildren(), wxT("pinName"))->GetChildren(), wxT("text")),
-                                          &lpn,
-                                          sch->m_defaultMeasurementUnit,
-                                          actualConversion);
-                    }
-                }
-                if (FindNode(iNode->GetChildren(), wxT("pinDes"))) {
-                    lpn = schPin->m_pinName;
-                    if (FindNode(FindNode(iNode->GetChildren(), wxT("pinDes"))->GetChildren(), wxT("text"))) {
-                        SetTextParameters(FindNode(FindNode(iNode->GetChildren(), wxT("pinDes"))->GetChildren(), wxT("text")),
-                                          &lpn,
-                                          sch->m_defaultMeasurementUnit,
-                                          actualConversion);
-                    }
-                }
-            }
+    for (i = 0; i < (int)aSchModule->m_moduleObjects.GetCount(); i++) {
+        if ((aSchModule->m_moduleObjects[i])->m_objType == 'P') {
+            schPin = (CSchPin *)aSchModule->m_moduleObjects[i];
+            schPin->ParsePinProperties(aNode, aSymbolIndex,
+                aDefaultMeasurementUnit, aActualConversion);
         }
     }
 }
@@ -134,7 +83,9 @@ static void FindAndProcessSymbolDef(wxXmlNode *iNode, CSchModule *iSchModule, in
                 tNode = FindNode(ttNode->GetChildren(), wxT("pin"));
                 while (tNode) {
                     if (tNode->GetName() == wxT("pin") && FindNode(tNode->GetChildren(), wxT("pinNum")))
-                        SetPinProperties(tNode, iSchModule, symbolIndex, sch, actualConversion);
+                        SetPinProperties(tNode, iSchModule, symbolIndex,
+                            sch->m_defaultMeasurementUnit, actualConversion);
+
                     tNode = tNode->GetNext();
                 }
                 tNode = FindNode(ttNode->GetChildren(), wxT("line"));

@@ -24,35 +24,33 @@
  */
 
 /**
- * @file SchPin.h
+ * @file SchLine.h
  */
 
-#ifndef SCHPIN_H_
-#define SCHPIN_H_
+#ifndef SCHLINE_H_
+#define SCHLINE_H_
 
 #include <wx/wx.h>
 
 #include <SchComponents.h>
 #include <XMLtoObjectCommonProceduresUnit.h>
 
-#define DEFAULT_SYMBOL_PIN_LENGTH 300
-
-class CSchPin : public CSchComponent
+class CSchLine : public CSchComponent
 {
 public:
-    TTextValue m_pinNum, m_pinName, m_number;
-    wxString m_pinType, m_edgeStyle;
-    int m_pinLength;
+    int m_toX, m_toY;
+    wxString m_net;
+    char m_lineType; // Wire, Bus, ...
+    TTextValue m_labelText;
 
-    CSchPin();
-    ~CSchPin();
+    CSchLine();
+    ~CSchLine();
 
-    virtual void Parse(wxXmlNode *aNode);
-
-    void ParsePinProperties(wxXmlNode *aNode, int aSymbolIndex,
+    virtual void Parse(wxXmlNode *aNode, int aSymbolIndex,
         wxString aDefaultMeasurementUnit, wxString aActualConversion);
 
     virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void WriteLabelToFile(wxFile *aFile, char aFileType);
 };
 
-#endif // SCHPIN_H_
+#endif // SCHLINE_H_
