@@ -24,27 +24,45 @@
  */
 
 /**
- * @file SchArc.h
+ * @file SchJunction.cpp
  */
 
-#ifndef SCHARC_H_
-#define SCHARC_H_
-
 #include <wx/wx.h>
+#include <wx/config.h>
 
-#include <SchComponents.h>
+#include <common.h>
 
-class CSchArc : public CSchComponent
-{
-public:
-    int m_startX, m_startY, m_toX, m_toY, m_startAngle, m_sweepAngle, m_radius;
+#include <SchJunction.h>
 
-    CSchArc(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+CSchJunction::CSchJunction(int aX, int aY, wxString aNet) {
+    m_objType = 'J';
+    m_positionX = aX;
+    m_positionY = aY;
+    m_net = aNet;
+}
 
-    ~CSchArc();
+CSchJunction::CSchJunction(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
+    wxString propValue;
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-};
+    m_net = wxEmptyString;
 
-#endif // SCHARC_H_
+    m_objType = 'J';
+    if (FindNode(aNode->GetChildren(), wxT("pt"))) {
+        SetPosition(FindNode(aNode->GetChildren(), wxT("pt"))->GetNodeContent(),
+            aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion);
+    }
+    if (FindNode(aNode->GetChildren(), wxT("netNameRef"))) {
+        FindNode(aNode->GetChildren(), wxT("netNameRef"))->GetPropVal(wxT("Name"), &propValue);
+        propValue.Trim(true);
+        propValue.Trim(false);
+        m_net = propValue;
+    }
+}
+
+
+CSchJunction::~CSchJunction() {
+}
+
+void CSchJunction::WriteToFile(wxFile *aFile, char aFileType) {
+    aFile->Write(wxString::Format("Connection ~ %d %d\n", m_positionX, m_positionY));
+}

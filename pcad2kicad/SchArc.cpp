@@ -29,7 +29,6 @@
 
 #include <wx/wx.h>
 #include <wx/config.h>
-#include <wx/filename.h>
 
 #include <common.h>
 

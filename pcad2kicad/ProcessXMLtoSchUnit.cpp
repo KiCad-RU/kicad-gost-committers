@@ -35,46 +35,9 @@
 #include <common.h>
 
 #include <SchArc.h>
+#include <SchJunction.h>
+#include <SchPin.h>
 
-CSchPin *CreatePin(wxXmlNode *iNode) {
-    wxString str, propValue;
-    long num;
-    CSchPin *schPin = new CSchPin();
-
-    schPin->m_objType = 'P';
-//    SCHLine.PartNum:=SymbolIndex;
-    iNode->GetPropVal(wxT("Name"), &schPin->m_number.text);
-    schPin->m_pinNum.text = '0'; // Default
-    schPin->m_isVisible = 0; // Default is not visible
-//    SCHPin.pinName.Text:='~'; // Default
-    if (FindNode(iNode->GetChildren(), wxT("symPinNum"))) {
-        str = FindNode(iNode->GetChildren(), wxT("symPinNum"))->GetNodeContent();
-        str.Trim(false);
-        str.Trim(true);
-        schPin->m_pinNum.text = str;
-    }
-//    SCHPin.pinName.Text:=SCHPin.pinNum.Text; // Default
-    if (FindNode(iNode->GetChildren(), wxT("pinName"))) {
-        FindNode(iNode->GetChildren(), wxT("pinName"))->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
-        schPin->m_pinName.text = propValue;
-    }
-    if (FindNode(iNode->GetChildren(), wxT("pinType"))) {
-        str = FindNode(iNode->GetChildren(), wxT("pinType"))->GetNodeContent();
-        str.Trim(false);
-        str.Trim(true);
-        schPin->m_pinType = str;
-    }
-    if (FindNode(iNode->GetChildren(), wxT("partNum"))) {
-        FindNode(iNode->GetChildren(), wxT("partNum"))->GetNodeContent().ToLong(&num);
-        schPin->m_partNum = (int)num;
-    }
-
-    if (schPin->m_pinName.text.Len() == 0) schPin->m_pinName.text = '~'; // Default
-
-    return schPin;
-}
 
 CSchLine *CreateLine(wxXmlNode *iNode, int symbolIndex, CSch *sch, wxString actualConversion) {
     wxXmlNode *lNode;
@@ -178,26 +141,6 @@ CSchLine *CreateBus(wxXmlNode *iNode, CSch *sch, wxString actualConversion) {
     }
 
     return schLine;
-}
-
-CSchJunction *CreateJunction(wxXmlNode *iNode, CSch *sch, bool *isJunction, wxString actualConversion) {
-    wxString propValue;
-    CSchJunction *schJunction = new CSchJunction();
-
-    *isJunction = true;
-    schJunction->m_objType = 'J';
-    if (FindNode(iNode->GetChildren(), wxT("pt"))) {
-        SetPosition(FindNode(iNode->GetChildren(), wxT("pt"))->GetNodeContent(),
-                    sch->m_defaultMeasurementUnit, &schJunction->m_positionX, &schJunction->m_positionY, actualConversion);
-    }
-    if (FindNode(iNode->GetChildren(), wxT("netNameRef"))) {
-        FindNode(iNode->GetChildren(), wxT("netNameRef"))->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(true);
-        propValue.Trim(false);
-        schJunction->m_net = propValue;
-    }
-
-    return schJunction;
 }
 
 static void SetPinProperties(wxXmlNode *iNode, CSchModule *iSchModule, int symbolIndex, CSch *sch, wxString actualConversion) {
@@ -364,7 +307,7 @@ CSchModule *CreateSchModule(wxXmlNode *iNode, wxStatusBar* statusBar, CSch *sch,
     tNode = iNode->GetChildren();
     while (tNode) {
         if (tNode->GetName() == wxT("compPin"))
-            schModule->m_moduleObjects.Add(CreatePin(tNode));
+            schModule->m_moduleObjects.Add(new CSchPin(tNode));
         if (tNode->GetName() == wxT("attachedSymbol")) {
             if (FindNode(tNode->GetChildren(), wxT("altType"))) {
                 str = FindNode(tNode->GetChildren(), wxT("altType"))->GetNodeContent();
@@ -643,16 +586,6 @@ bool IsPointOnLine(int x, int y, CSchLine *l) {
     return result;
 }
 
-CSchJunction *CJunction(int x, int y, wxString net) {
-    CSchJunction *result = new CSchJunction(); // middle of line intersection
-    result->m_objType = 'J';
-    result->m_positionX = x;
-    result->m_positionY = y;
-    result->m_net = net;
-
-    return result;
-}
-
 CSchJunction *CheckJunction(CSchLine *iSchLine, int index, CSch *sch) {
     CSchJunction *result = NULL;
     int i, j, code, x, y;
@@ -683,7 +616,7 @@ CSchJunction *CheckJunction(CSchLine *iSchLine, int index, CSch *sch) {
                                            p = false; // NOT POINT - net cross
                             }
                         }
-                        if (p) result = CJunction(x, y, iSchLine->m_net);
+                        if (p) result = new CSchJunction(x, y, iSchLine->m_net); //CJunction(x, y, iSchLine->m_net);
                     }
                 }
             }
@@ -737,8 +670,10 @@ void ProcessXMLtoSch(CSch *sch, wxStatusBar* statusBar, wxString XMLFileName, wx
             if (aNode->GetName() == wxT("bus"))
                 sch->m_schComponents.Add(CreateBus(aNode, sch, actualConversion));
 
-            if (aNode->GetName() == wxT("junction"))
-                sch->m_schComponents.Add(CreateJunction(aNode, sch, &isJunction, actualConversion));
+            if (aNode->GetName() == wxT("junction")) {
+                isJunction = true;
+                sch->m_schComponents.Add(new CSchJunction(aNode, sch->m_defaultMeasurementUnit, actualConversion));
+            }
 
             aNode = aNode->GetNext();
         }

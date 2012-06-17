@@ -35,8 +35,6 @@
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 
-#define DEFAULT_SYMBOL_PIN_LENGTH 300
-
 class CSchComponent : public wxObject
 {
 public:
@@ -63,31 +61,6 @@ public:
 
     virtual void WriteToFile(wxFile *f, char ftype);
 };
-
-class CSchPin : public CSchComponent
-{
-public:
-    TTextValue m_pinNum, m_pinName, m_number;
-    wxString m_pinType, m_edgeStyle;
-    int m_pinLength;
-
-    CSchPin();
-    ~CSchPin();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-};
-
-class CSchJunction : public CSchComponent
-{
-public:
-    wxString m_net;
-
-    CSchJunction();
-    ~CSchJunction();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-};
-
 
 // This class is not yet used
 class CSchText : public CSchComponent

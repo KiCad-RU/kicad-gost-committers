@@ -17,6 +17,8 @@ set(PCAD2KICAD_SRCS
     ProcessXMLtoSchUnit.cpp
     SchArc.cpp
     SchComponents.cpp
+    SchJunction.cpp
+    SchPin.cpp
     TextToXMLUnit.cpp
     XMLtoObjectCommonProceduresUnit.cpp
     dialogs/pcad2kicad_frame_base.cpp

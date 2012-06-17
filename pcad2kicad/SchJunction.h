@@ -24,27 +24,27 @@
  */
 
 /**
- * @file SchArc.h
+ * @file SchJunction.h
  */
 
-#ifndef SCHARC_H_
-#define SCHARC_H_
+#ifndef SCHJUNCTION_H_
+#define SCHJUNCTION_H_
 
 #include <wx/wx.h>
 
 #include <SchComponents.h>
 
-class CSchArc : public CSchComponent
+class CSchJunction : public CSchComponent
 {
 public:
-    int m_startX, m_startY, m_toX, m_toY, m_startAngle, m_sweepAngle, m_radius;
+    wxString m_net;
 
-    CSchArc(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    CSchJunction(int aX, int aY, wxString aNet);
+    CSchJunction(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
 
-    ~CSchArc();
+    ~CSchJunction();
 
     virtual void WriteToFile(wxFile *aFile, char aFileType);
 };
 
-#endif // SCHARC_H_
+#endif // SCHJUNCTION_H_

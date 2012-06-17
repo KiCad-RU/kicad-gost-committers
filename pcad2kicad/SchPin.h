@@ -24,27 +24,30 @@
  */
 
 /**
- * @file SchArc.h
+ * @file SchPin.h
  */
 
-#ifndef SCHARC_H_
-#define SCHARC_H_
+#ifndef SCHPIN_H_
+#define SCHPIN_H_
 
 #include <wx/wx.h>
 
 #include <SchComponents.h>
+#include <XMLtoObjectCommonProceduresUnit.h>
 
-class CSchArc : public CSchComponent
+#define DEFAULT_SYMBOL_PIN_LENGTH 300
+
+class CSchPin : public CSchComponent
 {
 public:
-    int m_startX, m_startY, m_toX, m_toY, m_startAngle, m_sweepAngle, m_radius;
+    TTextValue m_pinNum, m_pinName, m_number;
+    wxString m_pinType, m_edgeStyle;
+    int m_pinLength;
 
-    CSchArc(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
-
-    ~CSchArc();
+    CSchPin(wxXmlNode *aNode);
+    ~CSchPin();
 
     virtual void WriteToFile(wxFile *aFile, char aFileType);
 };
 
-#endif // SCHARC_H_
+#endif // SCHPIN_H_

@@ -35,6 +35,8 @@
 
 #include <SchComponents.h>
 #include <SchArc.h>
+#include <SchJunction.h>
+#include <SchPin.h>
 
 CSchComponent::CSchComponent() {
     m_objType = '?';
@@ -86,17 +88,6 @@ CSchModule::~CSchModule() {
         delete m_moduleObjects[i];
 }
 
-CSchJunction::CSchJunction() {
-    m_net = wxEmptyString;
-}
-
-CSchJunction::~CSchJunction() {
-}
-
-void CSchJunction::WriteToFile(wxFile *f, char ftype) {
-    f->Write(wxString::Format("Connection ~ %d %d\n", m_positionX, m_positionY));
-}
-
 CSchLine::CSchLine() {
     m_toX = 0;
     m_toY = 0;
@@ -135,69 +126,6 @@ void CSchLine::WriteLabelToFile(wxFile *f, char ftype) {
              ' ' + lr + ' ' + wxT(" 60 ~\n"));
         f->Write(m_labelText.text + wxT("\n"));
     }
-}
-
-CSchPin::CSchPin() {
-    InitTTextValue(&m_pinNum);
-    InitTTextValue(&m_pinName);
-    InitTTextValue(&m_number);
-    m_pinType = wxEmptyString;
-    m_edgeStyle = wxEmptyString;
-    m_pinLength = 0;
-}
-
-CSchPin::~CSchPin() {
-}
-
-void CSchPin::WriteToFile(wxFile *f, char ftype) {
-    char orientation, PType;
-    wxString shape;
-
-    orientation = 'L';
-    if (m_rotation == 0) {
-        orientation = 'L';
-        m_positionX += m_pinLength; // Set corrected to KiCad position
-    }
-    if (m_rotation == 900) {
-        orientation = 'D';
-        m_positionY += m_pinLength; // Set corrected to KiCad position
-    }
-    if (m_rotation == 1800) {
-        orientation = 'R';
-        m_positionX -= m_pinLength; // Set corrected to KiCad position
-    }
-    if (m_rotation == 2700) {
-        orientation = 'U';
-        m_positionY -= m_pinLength; // Set corrected to KiCad position
-    }
-
-    PType = 'U';// Default
-/*  E  Open E
-    C Open C
-    w Power Out
-    W Power In
-    U Unspec
-    P Pasive
-    T 3 State
-    B BiDi
-    O Output
-    I Input */
-    if (m_pinType == wxT("Pasive")) PType = 'P';
-    if (m_pinType == wxT("Input")) PType = 'I';
-    if (m_pinType == wxT("Output")) PType = 'O';
-    if (m_pinType == wxT("Power")) PType = 'W';
-    if (m_pinType == wxT("Bidirectional")) PType = 'B';
-    shape = wxEmptyString; // Default , standard line without shape
-    if (m_edgeStyle == wxT("Dot")) shape = 'I'; //Invert
-    if (m_edgeStyle == wxT("Clock")) shape = 'C'; //Clock
-    if (m_edgeStyle == wxT("???")) shape = wxT("IC"); //Clock Invert
-    if (m_isVisible == 0) shape += 'N'; //Invisible
-    //unit = 0 if common to the parts; if not, number of part (1. .n).
-    //convert = 0 so common to the representations, if not 1 or 2.
-    // Go out
-    f->Write(wxT("X ") + m_pinName.text + ' ' + m_number.text + ' ' +
-        wxString::Format("%d %d %d", m_positionX, m_positionY, m_pinLength) + ' ' + orientation +
-        wxString::Format(" 30 30 %d 0 ", m_partNum) + PType + ' ' + shape + wxT("\n"));
 }
 
 void CSchModule::WriteToFile(wxFile *f, char ftype) {
