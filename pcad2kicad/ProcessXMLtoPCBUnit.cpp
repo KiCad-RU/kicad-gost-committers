@@ -32,97 +32,16 @@
 
 #include <common.h>
 #include <ProcessXMLtoPCBUnit.h>
+#include <PCBPadShape.h>
+#include <PCBViaShape.h>
 
-
-CPCBPadViaShape *CreatePCBPadShape(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
-    wxString str, s;
-    long num;
-    int minX, maxX, minY, maxY, x, y;
-    wxXmlNode *lNode;
-
-    CPCBPadViaShape *pcbPadShape = new CPCBPadViaShape;
-
-    lNode = FindNode(iNode->GetChildren(), wxT("padShapeType"));
-    if (lNode) {
-        str = lNode->GetNodeContent();
-        str.Trim(false);
-        pcbPadShape->m_shape = str;
-    }
-
-    lNode = FindNode(iNode->GetChildren(), wxT("layerNumRef"));
-    if (lNode) {
-        lNode->GetNodeContent().ToLong(&num);
-        pcbPadShape->m_PCadLayer = (int)num;
-    }
-
-    pcbPadShape->m_KiCadLayer = pcb->m_layersMap[pcbPadShape->m_PCadLayer];
-    if (pcbPadShape->m_shape == wxT("Oval") ||
-        pcbPadShape->m_shape == wxT("Rect") ||
-        pcbPadShape->m_shape == wxT("Ellipse") ||
-        pcbPadShape->m_shape == wxT("RndRect"))
-    {
-        lNode = FindNode(iNode->GetChildren(), wxT("shapeWidth"));
-        if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbPadShape->m_width, actualConversion);
-        lNode = FindNode(iNode->GetChildren(), wxT("shapeHeight"));
-        if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbPadShape->m_height, actualConversion);
-    }
-
-    if (pcbPadShape->m_shape == wxT("Polygon")) {
-        // aproximation to simplier pad shape .....
-        lNode = FindNode(iNode->GetChildren(), wxT("shapeOutline"));
-        if (lNode) lNode = FindNode(lNode->GetChildren(), wxT("pt"));
-        minX = 0; maxX = 0; minY = 0; maxY = 0;
-        while (lNode) {
-            s = lNode->GetNodeContent();
-            SetPosition(s, pcb->m_defaultMeasurementUnit, &x, &y, actualConversion);
-            if (minX > x) minX = x;
-            if (maxX < x) maxX = x;
-            if (minY > y) minY = y;
-            if (maxY < y) maxY = y;
-            lNode = lNode->GetNext();
-        }
-
-        pcbPadShape->m_width = maxX - minX;
-        pcbPadShape->m_height = maxY - minY;
-    }
-
-    return pcbPadShape;
-}
-
-CPCBPadViaShape *CreatePCBViaShape(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
-    wxXmlNode *lNode;
-    wxString str;
-    long num;
-    CPCBPadViaShape *pcbViaShape = new CPCBPadViaShape;
-
-    lNode = FindNode(iNode->GetChildren(), wxT("viaShapeType"));
-    if (lNode) {
-        str = lNode->GetNodeContent();
-        str.Trim(false);
-        pcbViaShape->m_shape = str;
-    }
-
-    lNode = FindNode(iNode->GetChildren(), wxT("layerNumRef"));
-    if (lNode) {
-        lNode->GetNodeContent().ToLong(&num);
-        pcbViaShape->m_PCadLayer = (int)num;
-    }
-
-    pcbViaShape->m_KiCadLayer = pcb->m_layersMap[pcbViaShape->m_PCadLayer];
-    lNode = FindNode(iNode->GetChildren(), wxT("shapeWidth"));
-    if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbViaShape->m_width, actualConversion);
-
-    lNode = FindNode(iNode->GetChildren(), wxT("shapeHeight"));
-    if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbViaShape->m_height, actualConversion);
-
-    return pcbViaShape;
-}
 
 CPCBPad *CreatePCBPad(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
     wxXmlNode *lNode;
     long num;
     wxString propValue, str;
-    CPCBPad *pcbPad = new CPCBPad(wxEmptyString);
+    CPCBPadShape *padShape;
+    CPCBPad *pcbPad = new CPCBPad(pcb, wxEmptyString);
 
     pcbPad->m_rotation = 0;
     lNode = FindNode(iNode->GetChildren(), wxT("padNum"));
@@ -172,8 +91,11 @@ CPCBPad *CreatePCBPad(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
         if  (lNode->GetName() == wxT("padShape")) {
             // we support only Pads on specific layers......
             // we do not support pads on "Plane", "NonSignal" , "Signal" ... layerr
-            if (FindNode(lNode->GetChildren(), wxT("layerNumRef")))
-                pcbPad->m_shapes.Add(CreatePCBPadShape(lNode, pcb, actualConversion));
+            if (FindNode(lNode->GetChildren(), wxT("layerNumRef"))) {
+                padShape = new CPCBPadShape(pcb);
+                padShape->Parse(lNode, pcb->m_defaultMeasurementUnit, actualConversion);
+                pcbPad->m_shapes.Add(padShape);
+            }
         }
 
         lNode = lNode->GetNext();
@@ -185,7 +107,8 @@ CPCBPad *CreatePCBPad(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
 CPCBVia *CreateVia(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
     wxXmlNode *lNode, *tNode;
     wxString propValue;
-    CPCBVia *pcbVia = new CPCBVia;
+    CPCBViaShape *viaShape;
+    CPCBVia *pcbVia = new CPCBVia(pcb);
 
     pcbVia->m_rotation = 0;
     lNode = FindNode(iNode->GetChildren(), wxT("viaStyleRef"));
@@ -232,8 +155,11 @@ CPCBVia *CreateVia(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
             if  (lNode->GetName() == wxT("viaShape")) {
                 // we support only Vias on specific layers......
                 // we do not support vias on "Plane", "NonSignal" , "Signal" ... layerr
-                if (FindNode(lNode->GetChildren(), wxT("layerNumRef")))
-                    pcbVia->m_shapes.Add(CreatePCBViaShape(lNode, pcb, actualConversion));
+                if (FindNode(lNode->GetChildren(), wxT("layerNumRef"))) {
+                    viaShape = new CPCBViaShape(pcb);
+                    viaShape->Parse(lNode, pcb->m_defaultMeasurementUnit, actualConversion);
+                    pcbVia->m_shapes.Add(viaShape);
+                }
             }
 
             lNode = lNode->GetNext();
@@ -246,7 +172,7 @@ CPCBVia *CreateVia(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
 CPCBLine *CreateComponentLine(wxXmlNode *iNode, int l, CPCB *pcb, wxString actualConversion) {
     wxXmlNode *lNode;
     wxString propValue;
-    CPCBLine *componentLine = new CPCBLine;
+    CPCBLine *componentLine = new CPCBLine(pcb);
 
     componentLine->m_PCadLayer = l;
     componentLine->m_KiCadLayer = pcb->m_layersMap[componentLine->m_PCadLayer];
@@ -282,7 +208,7 @@ CPCBLine *CreateComponentLine(wxXmlNode *iNode, int l, CPCB *pcb, wxString actua
 CPCBText *CreateComponentText(wxXmlNode *iNode, int l, CPCB *pcb, wxString actualConversion) {
     wxXmlNode *lNode;
     wxString str;
-    CPCBText *componentText = new CPCBText;
+    CPCBText *componentText = new CPCBText(pcb);
 
     componentText->m_PCadLayer = l;
     componentText->m_KiCadLayer = pcb->m_layersMap[componentText->m_PCadLayer];
@@ -335,7 +261,7 @@ static void FormPolygon(wxXmlNode *iNode, CVerticesArray *polygon, CPCB *pcb, wx
 CPCBPolygon *CreateComponentPolygon(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wxString actualConversion, wxStatusBar* statusBar) {
     wxXmlNode *lNode;
     wxString propValue;
-    CPCBPolygon *componentPolygon = new CPCBPolygon;
+    CPCBPolygon *componentPolygon = new CPCBPolygon(pcb);
 
     statusBar->SetStatusText(statusBar->GetStatusText() + wxT(" Polygon..."));
     componentPolygon->m_PCadLayer = PCadLayer;
@@ -368,7 +294,7 @@ CPCBCopperPour *CreateComponentCopperPour(wxXmlNode *iNode, int PCadLayer, CPCB 
     wxString pourType, str, propValue;
     int pourSpacing, thermalWidth;
     CVerticesArray *island, *cutout;
-    CPCBCopperPour *componentCopperPour = new CPCBCopperPour;
+    CPCBCopperPour *componentCopperPour = new CPCBCopperPour(pcb);
 
     statusBar->SetStatusText(statusBar->GetStatusText() + wxT(" CooperPour..."));
     componentCopperPour->m_PCadLayer = PCadLayer;
@@ -439,7 +365,7 @@ CPCBCopperPour *CreateComponentCopperPour(wxXmlNode *iNode, int PCadLayer, CPCB 
 
 // It seems that the same cutouts (with the same vertices) are inside of copper pour objects
 CPCBCutout *CreateComponentCutout(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wxString actualConversion) {
-    CPCBCutout *componentCutout = new CPCBCutout;
+    CPCBCutout *componentCutout = new CPCBCutout(pcb);
 
     componentCutout->m_PCadLayer = PCadLayer;
     componentCutout->m_KiCadLayer = pcb->m_layersMap[PCadLayer];
@@ -456,7 +382,7 @@ CPCBCutout *CreateComponentCutout(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wx
 CPCBArc *CreateComponentArc(wxXmlNode *iNode, int l, CPCB *pcb, wxString actualConversion) {
     wxXmlNode *lNode;
     double r, a;
-    CPCBArc *componentArc = new CPCBArc;
+    CPCBArc *componentArc = new CPCBArc(pcb);
 
     componentArc->m_PCadLayer = l;
     componentArc->m_KiCadLayer = pcb->m_layersMap[componentArc->m_PCadLayer];
@@ -679,7 +605,7 @@ CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar, CPCB *pcb,
 
     FindNode(iNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
     propValue.Trim(false);
-    pcbModule = new CPCBModule(propValue);
+    pcbModule = new CPCBModule(pcb, propValue);
 
     statusBar->SetStatusText(wxT("Creating Component : ") + pcbModule->m_name.text);
     lNode = iNode;

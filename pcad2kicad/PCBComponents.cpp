@@ -146,44 +146,7 @@ CNet::~CNet() {
     }
 }
 
-CPCBComponent::CPCBComponent() {
-    m_tag = 0;
-    m_objType = '?';
-    m_PCadLayer = 0;
-    m_KiCadLayer = 0;
-    m_timestamp = 0;
-    m_positionX = 0;
-    m_positionY = 0;
-    m_rotation = 0;
-    InitTTextValue(&m_name);
-    m_net = wxEmptyString;
-    m_compRef = wxEmptyString;
-    m_patGraphRefName = wxEmptyString;
-}
-
-CPCBComponent::~CPCBComponent() {
-}
-
-void CPCBComponent::WriteToFile(wxFile *f, char ftype) {
-}
-
-void CPCBComponent::SetPosOffset(int x_offs, int y_offs) {
-    m_positionX += x_offs;
-    m_positionY += y_offs;
-}
-
-CPCBPadViaShape::CPCBPadViaShape() {
-    CPCBComponent::CPCBComponent();
-    m_shape = wxEmptyString;
-    m_width = 0;
-    m_height = 0;
-}
-
-CPCBPadViaShape::~CPCBPadViaShape() {
-}
-
-CPCBLine::CPCBLine() {
-    CPCBComponent::CPCBComponent();
+CPCBLine::CPCBLine(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
     m_width = 0;
     m_toX = 0;
     m_toY = 0;
@@ -214,8 +177,7 @@ void CPCBLine::WriteToFile(wxFile *f, char ftype) {
     }
 }
 
-CPCBPolygon::CPCBPolygon() {
-    CPCBComponent::CPCBComponent();
+CPCBPolygon::CPCBPolygon(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
     m_width = 0;
     m_objType = 'Z';
 }
@@ -314,15 +276,13 @@ void CPCBPolygon::SetPosOffset(int x_offs, int y_offs) {
     }
 }
 
-CPCBCopperPour::CPCBCopperPour() : CPCBPolygon() {
-    CPCBPolygon::CPCBPolygon();
+CPCBCopperPour::CPCBCopperPour(CPCBLayersMap *aLayersMap) : CPCBPolygon(aLayersMap) {
 }
 
 CPCBCopperPour::~CPCBCopperPour() {
 }
 
-CPCBCutout::CPCBCutout() {
-    CPCBComponent::CPCBComponent();
+CPCBCutout::CPCBCutout(CPCBLayersMap *aLayersMap) : CPCBPolygon(aLayersMap) {
     m_objType = 'C';
 }
 
@@ -334,8 +294,7 @@ void CPCBCutout::WriteToFile(wxFile *f, char ftype) {
     //(It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
 }
 
-CPCBPad::CPCBPad(wxString iName) {
-    CPCBComponent::CPCBComponent();
+CPCBPad::CPCBPad(CPCBLayersMap *aLayersMap, wxString iName) : CPCBComponent(aLayersMap) {
     m_objType = 'P';
     m_number = 0;
     m_hole = 0;
@@ -343,7 +302,7 @@ CPCBPad::CPCBPad(wxString iName) {
 }
 
 void CPCBPad::WriteToFile(wxFile *f, char ftype, int r) {
-    CPCBPadViaShape *padShape;
+    CPCBPadShape *padShape;
     wxString s, layerMask, padType;
     int i, lc, ls;
 
@@ -423,15 +382,14 @@ CPCBPad::~CPCBPad() {
     }
 }
 
-CPCBVia::CPCBVia() : CPCBPad(wxEmptyString) {
+CPCBVia::CPCBVia(CPCBLayersMap *aLayersMap) : CPCBPad(aLayersMap, wxEmptyString) {
     m_objType = 'V';
 }
 
 CPCBVia::~CPCBVia() {
 }
 
-CPCBText::CPCBText() {
-    CPCBComponent::CPCBComponent();
+CPCBText::CPCBText(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
     m_objType = 'T';
 }
 
@@ -478,8 +436,7 @@ void CPCBText::SetPosOffset(int x_offs, int y_offs) {
     m_name.textPositionY += y_offs;
 }
 
-CPCBArc::CPCBArc() {
-    CPCBComponent::CPCBComponent();
+CPCBArc::CPCBArc(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
     m_objType = 'A';
     m_startX = 0;
     m_startY = 0;
@@ -513,8 +470,7 @@ void CPCBArc::SetPosOffset(int x_offs, int y_offs) {
     m_startY += y_offs;
 }
 
-CPCBModule::CPCBModule(wxString iName) {
-    CPCBComponent::CPCBComponent();
+CPCBModule::CPCBModule(CPCBLayersMap *aLayersMap, wxString iName) : CPCBComponent(aLayersMap) {
     InitTTextValue(&m_value);
     m_mirror = 0;
     m_objType = 'M';  // MODULE
@@ -666,6 +622,11 @@ CPCBModule::~CPCBModule() {
     for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
         delete m_moduleObjects[i];
     }
+}
+
+int CPCB::GetKiCadLayer(int aPCadLayer) {
+    assert (aPCadLayer >= 0 && aPCadLayer <= 28);
+    return m_layersMap[aPCadLayer];
 }
 
 CPCB::CPCB() {

@@ -12,7 +12,10 @@ set(PCAD2KICAD_SRCS
     LoadInputFile.cpp
     pcad2kicad.cpp
     pcad2kicad_frame.cpp
+    PCBComponent.cpp
     PCBComponents.cpp
+    PCBPadShape.cpp
+    PCBViaShape.cpp
     ProcessXMLtoPCBUnit.cpp
     Sch.cpp
     SchArc.cpp

@@ -33,6 +33,8 @@
 #include <wx/wx.h>
 
 #include <XMLtoObjectCommonProceduresUnit.h>
+#include <PCBPadShape.h>
+#include <PCBLayersMap.h>
 
 
 class CNetNode : public wxObject
@@ -57,51 +59,14 @@ public:
     ~CNet();
 };
 
-// basic parent class for PCB objects
-class CPCBComponent : public wxObject
-{
-public:
-    int m_tag;
-    char m_objType;
-    int m_PCadLayer;
-    int m_KiCadLayer;
-    int m_timestamp;
-    int m_positionX;
-    int m_positionY;
-    int m_rotation;
-    TTextValue m_name;   // name has also privete positions, rotations nand so on....
-    wxString m_net;
-    wxString m_compRef;  // internal ussage for XL parsing
-    wxString m_patGraphRefName;  // internal ussage for XL parsing
-
-    CPCBComponent();
-    ~CPCBComponent();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void SetPosOffset(int x_offs, int y_offs);
-};
-
-class CPCBPadViaShape : public CPCBComponent
-{
-public:
-    wxString m_shape;
-    int m_width;
-    int m_height;
-
-    CPCBPadViaShape();
-    ~CPCBPadViaShape();
-};
-
-WX_DEFINE_ARRAY(CPCBPadViaShape *, CPCBPadViaShapesArray);
-
 class CPCBPad : public CPCBComponent
 {
 public:
     int m_number;
     int m_hole;
-    CPCBPadViaShapesArray m_shapes;
+    CPCBPadShapesArray m_shapes;
 
-    CPCBPad(wxString iName);
+    CPCBPad(CPCBLayersMap *aLayersMap, wxString iName);
     ~CPCBPad();
 
     virtual void WriteToFile(wxFile *f, char ftype, int r);
@@ -112,7 +77,7 @@ class CPCBVia : public CPCBPad
 {
 public:
 
-    CPCBVia();
+    CPCBVia(CPCBLayersMap *aLayersMap);
     ~CPCBVia();
 };
 
@@ -124,7 +89,7 @@ public:
     int m_toX;
     int m_toY;
 
-    CPCBLine();
+    CPCBLine(CPCBLayersMap *aLayersMap);
     ~CPCBLine();
 
     virtual void WriteToFile(wxFile *f, char ftype);
@@ -144,7 +109,7 @@ public:
     CIslandsArray m_islands;
     CIslandsArray m_cutouts;
 
-    CPCBPolygon();
+    CPCBPolygon(CPCBLayersMap *aLayersMap);
     ~CPCBPolygon();
 
     virtual void WriteToFile(wxFile *f, char ftype);
@@ -156,7 +121,7 @@ class CPCBCopperPour : public CPCBPolygon
 {
 public:
 
-    CPCBCopperPour();
+    CPCBCopperPour(CPCBLayersMap *aLayersMap);
     ~CPCBCopperPour();
 };
 
@@ -164,7 +129,7 @@ class CPCBCutout : public CPCBPolygon
 {
 public:
 
-    CPCBCutout();
+    CPCBCutout(CPCBLayersMap *aLayersMap);
     ~CPCBCutout();
 
     virtual void WriteToFile(wxFile *f, char ftype);
@@ -178,7 +143,7 @@ public:
     int m_angle;
     int m_width;
 
-    CPCBArc();
+    CPCBArc(CPCBLayersMap *aLayersMap);
     ~CPCBArc();
 
     virtual void WriteToFile(wxFile *f, char ftype);
@@ -190,14 +155,12 @@ class CPCBText : public CPCBComponent
 {
 public:
 
-    CPCBText();
+    CPCBText(CPCBLayersMap *aLayersMap);
     ~CPCBText();
 
     virtual void WriteToFile(wxFile *f, char ftype);
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
-
-WX_DEFINE_ARRAY(CPCBComponent *, CPCBComponentsArray);
 
 class CPCBModule : public CPCBComponent
 {
@@ -206,7 +169,7 @@ public:
     CPCBComponentsArray m_moduleObjects;  // set of objects like CPCBLines,CPCBPads,CPCBVias,....
     int m_mirror;
 
-    CPCBModule(wxString iName);
+    CPCBModule(CPCBLayersMap *aLayersMap, wxString iName);
     ~CPCBModule();
 
     virtual void WriteToFile(wxFile *f, char ftype);
@@ -215,7 +178,7 @@ public:
 
 WX_DEFINE_ARRAY(CNet *, CNetsArray);
 
-class CPCB : public wxObject
+class CPCB : public wxObject, public CPCBLayersMap
 {
 public:
     CPCBComponentsArray m_pcbComponents;  // CPCB Modules,Lines,Routes,Texts, .... and so on
@@ -227,6 +190,8 @@ public:
 
     CPCB();
     ~CPCB();
+
+    int GetKiCadLayer(int aPCadLayer);
 
     virtual void WriteToFile(wxString fileName, char ftype);
     virtual int GetNewTimestamp();
