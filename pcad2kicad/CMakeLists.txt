@@ -14,13 +14,15 @@ set(PCAD2KICAD_SRCS
     pcad2kicad_frame.cpp
     PCBComponents.cpp
     ProcessXMLtoPCBUnit.cpp
-    ProcessXMLtoSchUnit.cpp
+    Sch.cpp
     SchArc.cpp
     SchBus.cpp
     SchComponents.cpp
     SchJunction.cpp
     SchLine.cpp
+    SchModule.cpp
     SchPin.cpp
+    SchSymbol.cpp
     TextToXMLUnit.cpp
     XMLtoObjectCommonProceduresUnit.cpp
     dialogs/pcad2kicad_frame_base.cpp

@@ -37,7 +37,7 @@
 
 #include <LoadInputFile.h>
 #include <ProcessXMLtoPCBUnit.h>
-#include <ProcessXMLtoSchUnit.h>
+#include <Sch.h>
 #include <SchComponents.h>
 #include <TextToXMLUnit.h>
 

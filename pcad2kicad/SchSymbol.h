@@ -24,55 +24,30 @@
  */
 
 /**
- * @file SchComponents.h
+ * @file SchSymbol.h
  */
 
-#ifndef SCHCOMPONENTS_H_
-#define SCHCOMPONENTS_H_
+#ifndef SCHSYMBOL_H_
+#define SCHSYMBOL_H_
 
 #include <wx/wx.h>
-#include <wx/dynarray.h>
 
 #include <XMLtoObjectCommonProceduresUnit.h>
+#include <SchComponents.h>
 
-class CSchComponent : public wxObject
+class CSchSymbol : public CSchComponent
 {
 public:
-    char m_objType;
-    int m_positionX, m_positionY, m_rotation, m_mirror;
-    int m_partNum;
-    int m_width;
-    int m_isVisible;
+    TTextValue m_module, m_reference, m_typ;
+    wxString m_attachedSymbol, m_attachedPattern;
 
-    CSchComponent();
-    ~CSchComponent();
+    CSchSymbol();
+    ~CSchSymbol();
 
-    virtual void WriteToFile(wxFile *f, char ftype);
+    virtual void Parse(wxXmlNode *aNode,
+        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+
+    virtual void WriteToFile(wxFile *aFile, char aFileType);
 };
 
-WX_DEFINE_ARRAY(CSchComponent *, CSchComponentsArray);
-
-// This class is not yet used
-class CSchText : public CSchComponent
-{
-public:
-    int m_orientation, m_hight;
-
-    CSchText();
-    ~CSchText();
-};
-
-class CSch : public wxObject
-{
-public:
-    CSchComponentsArray m_schComponents;
-    wxString m_defaultMeasurementUnit;
-    int m_sizeX, m_sizeY;
-
-    CSch();
-    ~CSch();
-
-    virtual void WriteToFile(wxString fileName, char ftype);
-};
-
-#endif // SCHCOMPONENTS_H_
+#endif // SCHSYMBOL_H_

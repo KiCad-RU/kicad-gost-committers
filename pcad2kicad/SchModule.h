@@ -24,15 +24,38 @@
  */
 
 /**
- * @file ProcessXMLtoSchUnit.h
+ * @file SchModule.h
  */
 
-#ifndef PROCESSXMLTOSCHUNIT_H_
-#define PROCESSXMLTOSCHUNIT_H_
+#ifndef SCHMODULE_H_
+#define SCHMODULE_H_
 
 #include <wx/wx.h>
+
+#include <XMLtoObjectCommonProceduresUnit.h>
 #include <SchComponents.h>
 
-void ProcessXMLtoSch(CSch *sch, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion);
+class CSchModule : public CSchComponent
+{
+public:
+    CSchComponentsArray m_moduleObjects;
+    TTextValue m_name, m_reference;
+    int m_numParts;
+    wxString m_attachedPattern, m_moduleDescription, m_alias;
+    wxString m_attachedSymbols[10];
 
-#endif // PROCESSXMLTOSCHUNIT_H_
+    CSchModule();
+    ~CSchModule();
+
+    virtual void Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar, wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void WriteToFile(wxFile *aFile, char aFileType);
+
+private:
+    void SetPinProperties(wxXmlNode *aNode, int aSymbolIndex,
+        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+
+    void FindAndProcessSymbolDef(wxXmlNode *aNode, int aSymbolIndex,
+        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+};
+
+#endif // SCHMODULE_H_
