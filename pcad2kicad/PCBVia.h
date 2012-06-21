@@ -24,47 +24,26 @@
  */
 
 /**
- * @file PCBComponent.h
+ * @file PCBVia.h
  */
 
-#ifndef PCBCOMPONENT_H_
-#define PCBCOMPONENT_H_
+#ifndef PCBVIA_H_
+#define PCBVIA_H_
 
 #include <wx/wx.h>
 
-#include <XMLtoObjectCommonProceduresUnit.h>
-#include <PCBLayersMap.h>
+#include <PCBPad.h>
 
 
-// basic parent class for PCB objects
-class CPCBComponent : public wxObject
+// will be replaced by pad in next version ????
+class CPCBVia : public CPCBPad
 {
 public:
-    int m_tag;
-    char m_objType;
-    int m_PCadLayer;
-    int m_KiCadLayer;
-    int m_timestamp;
-    int m_positionX;
-    int m_positionY;
-    int m_rotation;
-    TTextValue m_name;   // name has also privete positions, rotations nand so on....
-    wxString m_net;
-    wxString m_compRef;  // internal ussage for XL parsing
-    wxString m_patGraphRefName;  // internal ussage for XL parsing
 
-    CPCBComponent(CPCBLayersMap *aLayersMap);
-    ~CPCBComponent();
+    CPCBVia(CPCBLayersMap *aLayersMap);
+    ~CPCBVia();
 
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void SetPosOffset(int x_offs, int y_offs);
-
-    int GetKiCadLayer() { return m_layersMap->GetKiCadLayer(m_PCadLayer); }
-
-protected:
-    CPCBLayersMap *m_layersMap;
+    virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
 };
 
-WX_DEFINE_ARRAY(CPCBComponent *, CPCBComponentsArray);
-
-#endif // PCBCOMPONENT_H_
+#endif // PCBVIA_H_

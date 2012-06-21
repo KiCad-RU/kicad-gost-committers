@@ -34,140 +34,9 @@
 #include <ProcessXMLtoPCBUnit.h>
 #include <PCBPadShape.h>
 #include <PCBViaShape.h>
+#include <PCBPad.h>
+#include <PCBVia.h>
 
-
-CPCBPad *CreatePCBPad(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
-    wxXmlNode *lNode;
-    long num;
-    wxString propValue, str;
-    CPCBPadShape *padShape;
-    CPCBPad *pcbPad = new CPCBPad(pcb, wxEmptyString);
-
-    pcbPad->m_rotation = 0;
-    lNode = FindNode(iNode->GetChildren(), wxT("padNum"));
-    if (lNode) {
-        lNode->GetNodeContent().ToLong(&num);
-        pcbPad->m_number = (int)num;
-    }
-
-    lNode = FindNode(iNode->GetChildren(), wxT("padStyleRef"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        pcbPad->m_name.text = propValue;
-    }
-
-    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
-    if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
-                           &pcbPad->m_positionX, &pcbPad->m_positionY, actualConversion);
-
-    lNode = FindNode(iNode->GetChildren(), wxT("rotation"));
-    if (lNode) {
-        str = lNode->GetNodeContent();
-        str.Trim(false);
-        pcbPad->m_rotation = StrToInt1Units(str);
-    }
-
-    lNode = iNode;
-    while (lNode->GetName() != wxT("www.lura.sk"))
-        lNode = lNode->GetParent();
-
-    lNode = FindNode(lNode->GetChildren(), wxT("library"));
-    lNode = FindNode(lNode->GetChildren(), wxT("padStyleDef"));
-
-    while (true) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        if (propValue == pcbPad->m_name.text) break;
-        lNode = lNode->GetNext();
-    }
-
-    lNode = FindNode(lNode->GetChildren(), wxT("holeDiam"));
-    if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbPad->m_hole, actualConversion);
-
-    lNode = lNode->GetParent();
-    lNode = FindNode(lNode->GetChildren(), wxT("padShape"));
-
-    while (lNode) {
-        if  (lNode->GetName() == wxT("padShape")) {
-            // we support only Pads on specific layers......
-            // we do not support pads on "Plane", "NonSignal" , "Signal" ... layerr
-            if (FindNode(lNode->GetChildren(), wxT("layerNumRef"))) {
-                padShape = new CPCBPadShape(pcb);
-                padShape->Parse(lNode, pcb->m_defaultMeasurementUnit, actualConversion);
-                pcbPad->m_shapes.Add(padShape);
-            }
-        }
-
-        lNode = lNode->GetNext();
-    }
-
-    return pcbPad;
-}
-
-CPCBVia *CreateVia(wxXmlNode *iNode, CPCB *pcb, wxString actualConversion) {
-    wxXmlNode *lNode, *tNode;
-    wxString propValue;
-    CPCBViaShape *viaShape;
-    CPCBVia *pcbVia = new CPCBVia(pcb);
-
-    pcbVia->m_rotation = 0;
-    lNode = FindNode(iNode->GetChildren(), wxT("viaStyleRef"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
-        pcbVia->m_name.text = propValue;
-    }
-
-    lNode = FindNode(iNode->GetChildren(), wxT("pt"));
-    if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
-                           &pcbVia->m_positionX, &pcbVia->m_positionY, actualConversion);
-
-    lNode = FindNode(iNode->GetChildren(), wxT("netNameRef"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
-        pcbVia->m_net = propValue;
-    }
-
-    lNode = iNode;
-    while (lNode->GetName() != wxT("www.lura.sk"))
-        lNode = lNode->GetParent();
-
-    lNode = FindNode(lNode->GetChildren(), wxT("library"));
-    lNode = FindNode(lNode->GetChildren(), wxT("viaStyleDef"));
-    if (lNode) {
-        while (lNode) {
-            lNode->GetPropVal(wxT("Name"), &propValue);
-            if (propValue == pcbVia->m_name.text) break;
-            lNode = lNode->GetNext();
-        }
-    }
-
-    if (lNode) {
-        tNode = lNode;
-        lNode = FindNode(tNode->GetChildren(), wxT("holeDiam"));
-        if (lNode) SetWidth(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit, &pcbVia->m_hole, actualConversion);
-
-        lNode = FindNode(tNode->GetChildren(), wxT("viaShape"));
-        while (lNode) {
-            if  (lNode->GetName() == wxT("viaShape")) {
-                // we support only Vias on specific layers......
-                // we do not support vias on "Plane", "NonSignal" , "Signal" ... layerr
-                if (FindNode(lNode->GetChildren(), wxT("layerNumRef"))) {
-                    viaShape = new CPCBViaShape(pcb);
-                    viaShape->Parse(lNode, pcb->m_defaultMeasurementUnit, actualConversion);
-                    pcbVia->m_shapes.Add(viaShape);
-                }
-            }
-
-            lNode = lNode->GetNext();
-        }
-    }
-
-    return pcbVia;
-}
 
 CPCBLine *CreateComponentLine(wxXmlNode *iNode, int l, CPCB *pcb, wxString actualConversion) {
     wxXmlNode *lNode;
@@ -601,6 +470,8 @@ wxXmlNode *FindPatternMultilayerSection(wxXmlNode *iNode, wxString *iPatGraphRef
 CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar, CPCB *pcb, wxString actualConversion) {
     CPCBModule *pcbModule;
     wxXmlNode *lNode, *tNode, *mNode;
+    CPCBPad *pad;
+    CPCBVia *via;
     wxString propValue, str;
 
     FindNode(iNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
@@ -614,8 +485,18 @@ CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar, CPCB *pcb,
         tNode = lNode;
         tNode = tNode->GetChildren();
         while (tNode) {
-            if (tNode->GetName() == wxT("pad")) pcbModule->m_moduleObjects.Add(CreatePCBPad(tNode, pcb, actualConversion));
-            if (tNode->GetName() == wxT("via")) pcbModule->m_moduleObjects.Add(CreateVia(tNode, pcb, actualConversion));
+            if (tNode->GetName() == wxT("pad")) {
+                pad = new CPCBPad(pcb, wxEmptyString);
+                pad->Parse(tNode, pcb->m_defaultMeasurementUnit, actualConversion);
+                pcbModule->m_moduleObjects.Add(pad);
+            }
+
+            if (tNode->GetName() == wxT("via")) {
+                via = new CPCBVia(pcb);
+                via->Parse(tNode, pcb->m_defaultMeasurementUnit, actualConversion);
+                pcbModule->m_moduleObjects.Add(via);
+            }
+
             tNode = tNode->GetNext();
         }
     }
@@ -723,6 +604,7 @@ void SetTextProperty(wxXmlNode *iNode, TTextValue *tv, wxString iPatGraphRefName
 void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxString actualConversion, wxStatusBar* statusBar) {
     wxXmlNode *lNode, *tNode, *mNode;
     CPCBModule *mc;
+    CPCBVia *via;
     wxString cn, str, propValue;
 
     lNode = iNode->GetChildren();
@@ -820,7 +702,11 @@ void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxStrin
                 pcb->m_pcbComponents.Add(mc);
             }
         }
-        else if (lNode->GetName() == wxT("via")) pcb->m_pcbComponents.Add(CreateVia(lNode, pcb, actualConversion));
+        else if (lNode->GetName() == wxT("via")) {
+            via = new CPCBVia(pcb);
+            via->Parse(lNode, pcb->m_defaultMeasurementUnit, actualConversion);
+            pcb->m_pcbComponents.Add(via);
+        }
 
         lNode = lNode->GetNext();
     }

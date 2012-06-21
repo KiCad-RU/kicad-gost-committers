@@ -34,6 +34,7 @@
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 #include <PCBPadShape.h>
+#include <PCBPad.h>
 #include <PCBLayersMap.h>
 
 
@@ -57,28 +58,6 @@ public:
 
     CNet(wxString iName);
     ~CNet();
-};
-
-class CPCBPad : public CPCBComponent
-{
-public:
-    int m_number;
-    int m_hole;
-    CPCBPadShapesArray m_shapes;
-
-    CPCBPad(CPCBLayersMap *aLayersMap, wxString iName);
-    ~CPCBPad();
-
-    virtual void WriteToFile(wxFile *f, char ftype, int r);
-};
-
-// will be replaced by pad in next version ????
-class CPCBVia : public CPCBPad
-{
-public:
-
-    CPCBVia(CPCBLayersMap *aLayersMap);
-    ~CPCBVia();
 };
 
 // Line , routes and drawings

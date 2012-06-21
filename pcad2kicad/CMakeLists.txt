@@ -14,7 +14,9 @@ set(PCAD2KICAD_SRCS
     pcad2kicad_frame.cpp
     PCBComponent.cpp
     PCBComponents.cpp
+    PCBPad.cpp
     PCBPadShape.cpp
+    PCBVia.cpp
     PCBViaShape.cpp
     ProcessXMLtoPCBUnit.cpp
     Sch.cpp
