@@ -35,6 +35,7 @@
 #include <XMLtoObjectCommonProceduresUnit.h>
 #include <PCBPadShape.h>
 #include <PCBPad.h>
+#include <PCBPolygon.h>
 #include <PCBLayersMap.h>
 
 
@@ -58,42 +59,6 @@ public:
 
     CNet(wxString iName);
     ~CNet();
-};
-
-// Line , routes and drawings
-class CPCBLine : public CPCBComponent
-{
-public:
-    int m_width;
-    int m_toX;
-    int m_toY;
-
-    CPCBLine(CPCBLayersMap *aLayersMap);
-    ~CPCBLine();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void SetPosOffset(int x_offs, int y_offs);
-};
-
-WX_DEFINE_ARRAY(CPCBLine *, CPCBLinesArray);
-WX_DEFINE_ARRAY(wxRealPoint *, CVerticesArray);
-WX_DEFINE_ARRAY(CVerticesArray *, CIslandsArray);
-
-class CPCBPolygon : public CPCBComponent
-{
-public:
-    int m_width;
-    CVerticesArray m_outline;  // collection of boundary/outline lines - objects
-    CPCBLinesArray m_fill_lines;
-    CIslandsArray m_islands;
-    CIslandsArray m_cutouts;
-
-    CPCBPolygon(CPCBLayersMap *aLayersMap);
-    ~CPCBPolygon();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void WriteOutlineToFile(wxFile *f, char ftype);
-    virtual void SetPosOffset(int x_offs, int y_offs);
 };
 
 class CPCBCopperPour : public CPCBPolygon
@@ -129,18 +94,6 @@ public:
     virtual void SetPosOffset(int x_offs, int y_offs);
 };
 
-// Name property of parent is used for text value
-class CPCBText : public CPCBComponent
-{
-public:
-
-    CPCBText(CPCBLayersMap *aLayersMap);
-    ~CPCBText();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void SetPosOffset(int x_offs, int y_offs);
-};
-
 class CPCBModule : public CPCBComponent
 {
 public:
@@ -171,9 +124,9 @@ public:
     ~CPCB();
 
     int GetKiCadLayer(int aPCadLayer);
+    int GetNewTimestamp();
 
     virtual void WriteToFile(wxString fileName, char ftype);
-    virtual int GetNewTimestamp();
 
 private:
     int m_timestamp_cnt;

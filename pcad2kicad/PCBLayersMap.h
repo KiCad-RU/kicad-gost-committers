@@ -36,6 +36,7 @@ class CPCBLayersMap
 {
 public:
     virtual int GetKiCadLayer(int aPCadLayer) = 0;
+    virtual int GetNewTimestamp() = 0;
 };
 
 #endif // PCBLAYERSMAP_H_

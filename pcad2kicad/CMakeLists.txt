@@ -14,8 +14,11 @@ set(PCAD2KICAD_SRCS
     pcad2kicad_frame.cpp
     PCBComponent.cpp
     PCBComponents.cpp
+    PCBLine.cpp
     PCBPad.cpp
     PCBPadShape.cpp
+    PCBPolygon.cpp
+    PCBText.cpp
     PCBVia.cpp
     PCBViaShape.cpp
     ProcessXMLtoPCBUnit.cpp

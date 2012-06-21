@@ -24,48 +24,33 @@
  */
 
 /**
- * @file PCBComponent.h
+ * @file PCBLine.h
  */
 
-#ifndef PCBCOMPONENT_H_
-#define PCBCOMPONENT_H_
+#ifndef PCBLINE_H_
+#define PCBLINE_H_
 
 #include <wx/wx.h>
 
-#include <XMLtoObjectCommonProceduresUnit.h>
-#include <PCBLayersMap.h>
+#include <PCBComponent.h>
 
 
-// basic parent class for PCB objects
-class CPCBComponent : public wxObject
+// Line , routes and drawings
+class CPCBLine : public CPCBComponent
 {
 public:
-    int m_tag;
-    char m_objType;
-    int m_PCadLayer;
-    int m_KiCadLayer;
-    int m_timestamp;
-    int m_positionX;
-    int m_positionY;
-    int m_rotation;
-    TTextValue m_name;   // name has also privete positions, rotations nand so on....
-    wxString m_net;
-    wxString m_compRef;  // internal ussage for XL parsing
-    wxString m_patGraphRefName;  // internal ussage for XL parsing
+    int m_width;
+    int m_toX;
+    int m_toY;
 
-    CPCBComponent(CPCBLayersMap *aLayersMap);
-    ~CPCBComponent();
+    CPCBLine(CPCBLayersMap *aLayersMap);
+    ~CPCBLine();
 
-    virtual void WriteToFile(wxFile *f, char ftype);
+    virtual void Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void WriteToFile(wxFile *aFile, char aFileType);
     virtual void SetPosOffset(int x_offs, int y_offs);
-
-    int GetKiCadLayer() { return m_layersMap->GetKiCadLayer(m_PCadLayer); }
-    int GetNewTimestamp() { return m_layersMap->GetNewTimestamp(); }
-
-private:
-    CPCBLayersMap *m_layersMap;
 };
 
-WX_DEFINE_ARRAY(CPCBComponent *, CPCBComponentsArray);
+WX_DEFINE_ARRAY(CPCBLine *, CPCBLinesArray);
 
-#endif // PCBCOMPONENT_H_
+#endif // PCBLINE_H_

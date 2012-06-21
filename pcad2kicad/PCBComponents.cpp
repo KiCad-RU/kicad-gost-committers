@@ -33,6 +33,8 @@
 #include <common.h>
 
 #include <PCBComponents.h>
+#include <PCBLine.h>
+#include <PCBText.h>
 #include <PCBVia.h>
 
 
@@ -78,136 +80,6 @@ CNet::~CNet() {
     }
 }
 
-CPCBLine::CPCBLine(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
-    m_width = 0;
-    m_toX = 0;
-    m_toY = 0;
-    m_objType = 'L';
-}
-
-CPCBLine::~CPCBLine() {
-}
-
-void CPCBLine::SetPosOffset(int x_offs, int y_offs) {
-    CPCBComponent::SetPosOffset(x_offs, y_offs);
-    m_toX += x_offs;
-    m_toY += y_offs;
-}
-
-void CPCBLine::WriteToFile(wxFile *f, char ftype) {
-    if (ftype == 'L') { // Library
-        f->Write(wxString::Format("DS %d %d %d %d %d %d\n", m_positionX, m_positionY,
-                 m_toX, m_toY, m_width, m_KiCadLayer)); // Position
-    }
-
-    if (ftype == 'P') { // PCB
-        f->Write(wxString::Format("Po 0 %d %d %d %d %d\n", m_positionX, m_positionY,
-                 m_toX, m_toY, m_width));
-        if (m_timestamp == 0)
-            f->Write(wxString::Format("De %d 0 0 0 0\n", m_KiCadLayer));
-        else f->Write(wxString::Format("De %d 0 0 %8X 0\n", m_KiCadLayer, m_timestamp));
-    }
-}
-
-CPCBPolygon::CPCBPolygon(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
-    m_width = 0;
-    m_objType = 'Z';
-}
-
-CPCBPolygon::~CPCBPolygon() {
-    int i, island;
-
-    for (i = 0; i < (int)m_outline.GetCount(); i++) {
-        delete m_outline[i];
-    }
-
-    for (island = 0; island < (int)m_cutouts.GetCount(); island++) {
-        for (i = 0; i < (int)m_cutouts[island]->GetCount(); i++) {
-            delete (*m_cutouts[island])[i];
-        }
-
-        delete m_cutouts[island];
-    }
-
-    for (island = 0; island < (int)m_islands.GetCount(); island++) {
-        for (i = 0; i < (int)m_islands[island]->GetCount(); i++) {
-            delete (*m_islands[island])[i];
-        }
-
-        delete m_islands[island];
-    }
-}
-
-void CPCBPolygon::WriteToFile(wxFile *f, char ftype) {
-}
-
-void CPCBPolygon::WriteOutlineToFile(wxFile *f, char ftype) {
-    int i, island;
-    char c;
-
-    if (m_outline.GetCount() > 0) {
-        f->Write(wxT("$CZONE_OUTLINE\n"));
-        f->Write(wxString::Format("ZInfo %8X 0 \"", m_timestamp) + m_net + wxT("\"\n"));
-        f->Write(wxString::Format("ZLayer %d\n", m_KiCadLayer));
-        f->Write(wxString::Format("ZAux %d E\n", (int)m_outline.GetCount()));
-        // print outline
-        c = '0';
-        for (i = 0; i < (int)m_outline.GetCount(); i++) {
-            if (i == (int)m_outline.GetCount() - 1) c = '1';
-            f->Write(wxString::Format("ZCorner %d %d %c\n", KiROUND(m_outline[i]->x), KiROUND(m_outline[i]->y), c));
-        }
-
-        // print cutouts
-        for (island = 0; island < (int)m_cutouts.GetCount(); island++) {
-            c = '0';
-            for (i = 0; i < (int)m_cutouts[island]->GetCount(); i++) {
-                if (i == (int)m_cutouts[island]->GetCount() - 1) c = '1';
-                f->Write(wxString::Format("ZCorner %d %d %c\n",
-                         KiROUND((*m_cutouts[island])[i]->x), KiROUND((*m_cutouts[island])[i]->y), c));
-            }
-        }
-
-        // print filled islands
-        for (island = 0; island < (int)m_islands.GetCount(); island++) {
-            f->Write(wxT("$POLYSCORNERS\n"));
-            c = '0';
-            for (i = 0; i < (int)m_islands[island]->GetCount(); i++) {
-                if (i == (int)m_islands[island]->GetCount() - 1) c = '1';
-                f->Write(wxString::Format("%d %d %c 0\n",
-                         KiROUND((*m_islands[island])[i]->x), KiROUND((*m_islands[island])[i]->y), c));
-            }
-            f->Write(wxT("$endPOLYSCORNERS\n"));
-        }
-
-        f->Write(wxT("$endCZONE_OUTLINE\n"));
-    }
-}
-
-void CPCBPolygon::SetPosOffset(int x_offs, int y_offs) {
-    int i, island;
-
-    CPCBComponent::SetPosOffset(x_offs, y_offs);
-
-    for (i = 0; i < (int)m_outline.GetCount(); i++) {
-        m_outline[i]->x += x_offs;
-        m_outline[i]->y += y_offs;
-    }
-
-    for (island = 0; island < (int)m_islands.GetCount(); island++) {
-        for (i = 0; i < (int)m_islands[island]->GetCount(); i++) {
-            (*m_islands[island])[i]->x += x_offs;
-            (*m_islands[island])[i]->y += y_offs;
-        }
-    }
-
-    for (island = 0; island < (int)m_cutouts.GetCount(); island++) {
-        for (i = 0; i < (int)m_cutouts[island]->GetCount(); i++) {
-            (*m_cutouts[island])[i]->x += x_offs;
-            (*m_cutouts[island])[i]->y += y_offs;
-        }
-    }
-}
-
 CPCBCopperPour::CPCBCopperPour(CPCBLayersMap *aLayersMap) : CPCBPolygon(aLayersMap) {
 }
 
@@ -224,53 +96,6 @@ CPCBCutout::~CPCBCutout() {
 void CPCBCutout::WriteToFile(wxFile *f, char ftype) {
     //no operation
     //(It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
-}
-
-CPCBText::CPCBText(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
-    m_objType = 'T';
-}
-
-CPCBText::~CPCBText() {
-}
-
-void CPCBText::WriteToFile(wxFile *f, char ftype) {
-    char visibility, mirrored;
-
-    if (m_name.textIsVisible == 1) visibility = 'V';
-    else visibility = 'I';
-
-    if (m_name.mirror == 1) mirrored = 'M';
-    else mirrored = 'N';
-
-    // Simple, not the best, but acceptable text positioning.....
-    CorrectTextPosition(&m_name, m_rotation);
-
-    // Go out
-    if (ftype == 'L') { // Library component
-        f->Write(wxString::Format("T%d %d %d %d %d %d %d ", m_tag, m_name.correctedPositionX, m_name.correctedPositionY,
-                 KiROUND(m_name.textHeight / 2), KiROUND(m_name.textHeight / 1.1),
-                 m_rotation, m_name.textstrokeWidth) + mirrored + ' ' + visibility +
-                 wxString::Format(" %d \"", m_KiCadLayer) + m_name.text + wxT("\"\n")); // ValueString
-    }
-
-    if (ftype == 'P') { // Library component
-        if (m_name.mirror == 1) mirrored = '0';
-        else mirrored = '1';
-
-        f->Write(wxT("Te \"") + m_name.text + wxT("\"\n"));
-
-        f->Write(wxString::Format("Po %d %d %d %d %d %d\n", m_name.correctedPositionX, m_name.correctedPositionY,
-                 KiROUND(m_name.textHeight / 2), KiROUND(m_name.textHeight / 1.1),
-                 m_name.textstrokeWidth, m_rotation));
-
-        f->Write(wxString::Format("De %d ", m_KiCadLayer) + mirrored + wxT(" 0 0\n"));
-    }
-}
-
-void CPCBText::SetPosOffset(int x_offs, int y_offs) {
-    CPCBComponent::SetPosOffset(x_offs, y_offs);
-    m_name.textPositionX += x_offs;
-    m_name.textPositionY += y_offs;
 }
 
 CPCBArc::CPCBArc(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
