@@ -24,42 +24,25 @@
  */
 
 /**
- * @file PCBPolygon.h
+ * @file PCBCopperPour.h
  */
 
-#ifndef PCBPOLYGON_H_
-#define PCBPOLYGON_H_
+#ifndef PCBCOPPERPOUR_H_
+#define PCBCOPPERPOUR_H_
 
 #include <wx/wx.h>
 
-#include <PCBComponent.h>
+#include <PCBPolygon.h>
 
-WX_DEFINE_ARRAY(wxRealPoint *, CVerticesArray);
-WX_DEFINE_ARRAY(CVerticesArray *, CIslandsArray);
-
-class CPCBPolygon : public CPCBComponent
+class CPCBCopperPour : public CPCBPolygon
 {
 public:
-    int m_width;
-    CVerticesArray m_outline;  // collection of boundary/outline lines - objects
-    //CPCBLinesArray m_fill_lines;
-    CIslandsArray m_islands;
-    CIslandsArray m_cutouts;
 
-    CPCBPolygon(CPCBLayersMap *aLayersMap);
-    ~CPCBPolygon();
+    CPCBCopperPour(CPCBLayersMap *aLayersMap);
+    ~CPCBCopperPour();
 
     virtual bool Parse(wxXmlNode *aNode, int aPCadLayer,
         wxString aDefaultMeasurementUnit, wxString aActualConversion, wxStatusBar* aStatusBar);
-
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void WriteOutlineToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int aX_offs, int aY_offs);
-
-//protected:
-    void FormPolygon(wxXmlNode *aNode, CVerticesArray *aPolygon,
-        wxString aDefaultMeasurementUnit, wxString actualConversion);
-
 };
 
-#endif // PCBPOLYGON_H_
+#endif // PCBCOPPERPOUR_H_

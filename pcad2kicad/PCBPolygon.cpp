@@ -81,7 +81,7 @@ void CPCBPolygon::FormPolygon(wxXmlNode *aNode, CVerticesArray *aPolygon,
     }
 }
 
-void CPCBPolygon::Parse(wxXmlNode *aNode, int aPCadLayer,
+bool CPCBPolygon::Parse(wxXmlNode *aNode, int aPCadLayer,
     wxString aDefaultMeasurementUnit, wxString aActualConversion, wxStatusBar* aStatusBar)
 {
     wxXmlNode *lNode;
@@ -109,6 +109,8 @@ void CPCBPolygon::Parse(wxXmlNode *aNode, int aPCadLayer,
     // fill the polygon with the same contour as its outline is
     m_islands.Add(new CVerticesArray);
     FormPolygon(aNode, m_islands[0], aDefaultMeasurementUnit, aActualConversion);
+
+    return true;
 }
 
 void CPCBPolygon::WriteToFile(wxFile *aFile, char aFileType) {

@@ -32,6 +32,7 @@
 
 #include <common.h>
 
+#include <PCBArc.h>
 #include <PCBComponents.h>
 #include <PCBLine.h>
 #include <PCBText.h>
@@ -78,58 +79,6 @@ CNet::~CNet() {
     for (i = 0; i < (int)m_netNodes.GetCount(); i++) {
         delete m_netNodes[i];
     }
-}
-
-CPCBCopperPour::CPCBCopperPour(CPCBLayersMap *aLayersMap) : CPCBPolygon(aLayersMap) {
-}
-
-CPCBCopperPour::~CPCBCopperPour() {
-}
-
-CPCBCutout::CPCBCutout(CPCBLayersMap *aLayersMap) : CPCBPolygon(aLayersMap) {
-    m_objType = 'C';
-}
-
-CPCBCutout::~CPCBCutout() {
-}
-
-void CPCBCutout::WriteToFile(wxFile *f, char ftype) {
-    //no operation
-    //(It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
-}
-
-CPCBArc::CPCBArc(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
-    m_objType = 'A';
-    m_startX = 0;
-    m_startY = 0;
-    m_angle = 0;
-    m_width = 0;
-}
-
-CPCBArc::~CPCBArc() {
-}
-
-void CPCBArc::WriteToFile(wxFile *f, char ftype) {
-/*
- DC ox oy fx fy w  DC is a Draw Circle  DC Xcentre Ycentre Xpoint Ypoint Width Layer
- DA x0 y0 x1 y1 angle width layer  DA is a Draw ArcX0,y0 = Start point x1,y1 = end point
-*/
-    if (ftype == 'L') { // Library component
-        f->Write(wxString::Format("DA %d %d %d %d %d %d %d\n", m_positionX, m_positionY, m_startX,
-                 m_startY, m_angle, m_width, m_KiCadLayer)); // ValueString
-    }
-
-    if (ftype == 'P') { // PCB
-        f->Write(wxString::Format("Po 2 %d %d %d %d %d", m_positionX, m_positionY,
-                 m_startX, m_startY, m_width));
-        f->Write(wxString::Format("De %d 0 %d 0 0\n", m_KiCadLayer, -m_angle));
-    }
-}
-
-void CPCBArc::SetPosOffset(int x_offs, int y_offs) {
-    CPCBComponent::SetPosOffset(x_offs, y_offs);
-    m_startX += x_offs;
-    m_startY += y_offs;
 }
 
 CPCBModule::CPCBModule(CPCBLayersMap *aLayersMap, wxString iName) : CPCBComponent(aLayersMap) {

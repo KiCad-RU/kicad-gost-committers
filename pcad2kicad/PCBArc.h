@@ -24,42 +24,33 @@
  */
 
 /**
- * @file PCBPolygon.h
+ * @file PCBArc.h
  */
 
-#ifndef PCBPOLYGON_H_
-#define PCBPOLYGON_H_
+#ifndef PCBARC_H_
+#define PCBARC_H_
 
 #include <wx/wx.h>
 
 #include <PCBComponent.h>
 
-WX_DEFINE_ARRAY(wxRealPoint *, CVerticesArray);
-WX_DEFINE_ARRAY(CVerticesArray *, CIslandsArray);
 
-class CPCBPolygon : public CPCBComponent
+class CPCBArc : public CPCBComponent
 {
 public:
+    int m_startX;
+    int m_startY;
+    int m_angle;
     int m_width;
-    CVerticesArray m_outline;  // collection of boundary/outline lines - objects
-    //CPCBLinesArray m_fill_lines;
-    CIslandsArray m_islands;
-    CIslandsArray m_cutouts;
 
-    CPCBPolygon(CPCBLayersMap *aLayersMap);
-    ~CPCBPolygon();
+    CPCBArc(CPCBLayersMap *aLayersMap);
+    ~CPCBArc();
 
-    virtual bool Parse(wxXmlNode *aNode, int aPCadLayer,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion, wxStatusBar* aStatusBar);
+    virtual void Parse(wxXmlNode *aNode, int aLayer,
+        wxString aDefaultMeasurementUnit, wxString aActualConversion);
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void WriteOutlineToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int aX_offs, int aY_offs);
-
-//protected:
-    void FormPolygon(wxXmlNode *aNode, CVerticesArray *aPolygon,
-        wxString aDefaultMeasurementUnit, wxString actualConversion);
-
+    virtual void WriteToFile(wxFile *f, char ftype);
+    virtual void SetPosOffset(int x_offs, int y_offs);
 };
 
-#endif // PCBPOLYGON_H_
+#endif // PCBARC_H_

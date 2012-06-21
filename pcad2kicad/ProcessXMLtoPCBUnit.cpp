@@ -32,6 +32,10 @@
 
 #include <common.h>
 #include <ProcessXMLtoPCBUnit.h>
+
+#include <PCBArc.h>
+#include <PCBCopperPour.h>
+#include <PCBCutout.h>
 #include <PCBLine.h>
 #include <PCBPadShape.h>
 #include <PCBViaShape.h>
@@ -40,140 +44,11 @@
 #include <PCBVia.h>
 
 
-CPCBCopperPour *CreateComponentCopperPour(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wxString actualConversion, wxStatusBar* statusBar) {
-    wxXmlNode *lNode, *tNode, *cNode;
-    wxString pourType, str, propValue;
-    int pourSpacing, thermalWidth;
-    CVerticesArray *island, *cutout;
-    CPCBCopperPour *componentCopperPour = new CPCBCopperPour(pcb);
-
-    statusBar->SetStatusText(statusBar->GetStatusText() + wxT(" CooperPour..."));
-    componentCopperPour->m_PCadLayer = PCadLayer;
-    componentCopperPour->m_KiCadLayer = pcb->m_layersMap[PCadLayer];
-    componentCopperPour->m_timestamp = pcb->GetNewTimestamp();
-
-    str = FindNode(iNode->GetChildren(), wxT("pourType"))->GetNodeContent();
-    str.Trim(false);
-    pourType = str.MakeUpper();
-
-    lNode = FindNode(iNode->GetChildren(), wxT("netNameRef"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
-        componentCopperPour->m_net = propValue;
-    }
-
-    SetWidth(FindNode(iNode->GetChildren(), wxT("width"))->GetNodeContent(),
-        pcb->m_defaultMeasurementUnit, &componentCopperPour->m_width, actualConversion);
-    if (FindNode(iNode->GetChildren(), wxT("pourSpacing")))
-        SetWidth(FindNode(iNode->GetChildren(), wxT("pourSpacing"))->GetNodeContent(),
-            pcb->m_defaultMeasurementUnit, &pourSpacing, actualConversion);
-    if (FindNode(iNode->GetChildren(), wxT("thermalWidth")))
-        SetWidth(FindNode(iNode->GetChildren(), wxT("thermalWidth"))->GetNodeContent(),
-            pcb->m_defaultMeasurementUnit, &thermalWidth, actualConversion);
-
-    lNode = FindNode(iNode->GetChildren(), wxT("pcbPoly"));
-    if (lNode) {
-        // retrieve copper pour outline
-        componentCopperPour->FormPolygon(lNode, &componentCopperPour->m_outline, pcb->m_defaultMeasurementUnit, actualConversion);
-
-        componentCopperPour->m_positionX = componentCopperPour->m_outline[0]->x;
-        componentCopperPour->m_positionY = componentCopperPour->m_outline[0]->y;
-
-        lNode = FindNode(iNode->GetChildren(), wxT("island"));
-        while (lNode) {
-            tNode = FindNode(lNode->GetChildren(), wxT("islandOutline"));
-            if (tNode) {
-                island = new CVerticesArray;
-                componentCopperPour->FormPolygon(tNode, island, pcb->m_defaultMeasurementUnit, actualConversion);
-                componentCopperPour->m_islands.Add(island);
-                tNode = FindNode(lNode->GetChildren(), wxT("cutout"));
-                while (tNode) {
-                    cNode = FindNode(tNode->GetChildren(), wxT("cutoutOutline"));
-                    if (cNode) {
-                        cutout = new CVerticesArray;
-                        componentCopperPour->FormPolygon(cNode, cutout, pcb->m_defaultMeasurementUnit, actualConversion);
-                        componentCopperPour->m_cutouts.Add(cutout);
-                    }
-
-                    tNode  = tNode->GetNext();
-                }
-            }
-
-            /*tNode:=lNode.ChildNodes.FindNode('thermal');
-            while  Assigned(tNode) do
-            begin
-                DrawThermal(tNode, componentCopperPour.fill_lines, PCADlayer, thermalWidth,
-                            componentCopperPour.timestamp);
-                tNode := tNode.NextSibling;
-            end;*/
-
-            lNode = lNode->GetNext();
-        }
-    }
-    else componentCopperPour = NULL;
-
-    return componentCopperPour;
-}
-
-// It seems that the same cutouts (with the same vertices) are inside of copper pour objects
-CPCBCutout *CreateComponentCutout(wxXmlNode *iNode, int PCadLayer, CPCB *pcb, wxString actualConversion) {
-    CPCBCutout *componentCutout = new CPCBCutout(pcb);
-
-    componentCutout->m_PCadLayer = PCadLayer;
-    componentCutout->m_KiCadLayer = pcb->m_layersMap[PCadLayer];
-
-    // retrieve cutout outline
-    componentCutout->FormPolygon(iNode, &componentCutout->m_outline, pcb->m_defaultMeasurementUnit, actualConversion);
-
-    componentCutout->m_positionX = componentCutout->m_outline[0]->x;
-    componentCutout->m_positionY = componentCutout->m_outline[0]->y;
-
-    return componentCutout;
-}
-
-CPCBArc *CreateComponentArc(wxXmlNode *iNode, int l, CPCB *pcb, wxString actualConversion) {
-    wxXmlNode *lNode;
-    double r, a;
-    CPCBArc *componentArc = new CPCBArc(pcb);
-
-    componentArc->m_PCadLayer = l;
-    componentArc->m_KiCadLayer = pcb->m_layersMap[componentArc->m_PCadLayer];
-    SetWidth(FindNode(iNode->GetChildren(), wxT("width"))->GetNodeContent(),
-             pcb->m_defaultMeasurementUnit, &componentArc->m_width, actualConversion);
-
-    if (iNode->GetName() == wxT("triplePointArc")) {
-        // origin
-        lNode = FindNode(iNode->GetChildren(), wxT("pt"));
-        if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
-                               &componentArc->m_positionX, &componentArc->m_positionY, actualConversion);
-        lNode = lNode->GetNext();
-        if (lNode)
-            SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
-                        &componentArc->m_startX, &componentArc->m_startY, actualConversion);
-        // now temporary, it can be fixed later.....
-        componentArc->m_angle = 3600;
-    }
-
-    if (iNode->GetName() == wxT("arc")) {
-        lNode = FindNode(iNode->GetChildren(), wxT("pt"));
-        if (lNode) SetPosition(lNode->GetNodeContent(), pcb->m_defaultMeasurementUnit,
-                               &componentArc->m_positionX, &componentArc->m_positionY, actualConversion);
-        lNode = FindNode(iNode->GetChildren(), wxT("radius"));
-        r = StrToIntUnits(lNode->GetNodeContent(), ' ', actualConversion);
-        a = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("startAngle"))->GetNodeContent());
-        componentArc->m_startX = KiROUND(componentArc->m_positionX + r * sin((a - 900.0) * M_PI / 1800.0));
-        componentArc->m_startY = KiROUND(componentArc->m_positionY - r * cos((a - 900.0) * M_PI / 1800.0));
-        componentArc->m_angle = StrToInt1Units(FindNode(iNode->GetChildren(), wxT("sweepAngle"))->GetNodeContent());
-    }
-
-    return componentArc;
-}
-
 void DoLayerContentsObjects(wxXmlNode *iNode, CPCBModule *pcbModule, CPCBComponentsArray *list, wxStatusBar* statusBar, CPCB *pcb, wxString actualConversion) {
+    CPCBArc *arc;
     CPCBPolygon *polygon;
     CPCBCopperPour *copperPour;
+    CPCBCutout *cutout;
     CPCBLine *line;
     CPCBText *text;
     wxXmlNode *lNode, *tNode;
@@ -223,10 +98,11 @@ void DoLayerContentsObjects(wxXmlNode *iNode, CPCBModule *pcbModule, CPCBCompone
         }
 
         // added  as Sergeys request 02/2008
-        if (lNode->GetName() == wxT("arc"))
-            list->Add(CreateComponentArc(lNode, PCadLayer, pcb, actualConversion));
-        if (lNode->GetName() == wxT("triplePointArc"))
-            list->Add(CreateComponentArc(lNode, PCadLayer, pcb, actualConversion));
+        if (lNode->GetName() == wxT("arc") || lNode->GetName() == wxT("triplePointArc")) {
+            arc = new CPCBArc(pcb);
+            arc->Parse(lNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion);
+            list->Add(arc);
+        }
 
         if (lNode->GetName() == wxT("pcbPoly")) {
             polygon = new CPCBPolygon(pcb);
@@ -235,8 +111,10 @@ void DoLayerContentsObjects(wxXmlNode *iNode, CPCBModule *pcbModule, CPCBCompone
         }
 
         if (lNode->GetName() == wxT("copperPour95")) {
-            copperPour = CreateComponentCopperPour(lNode, PCadLayer, pcb, actualConversion, statusBar);
-            if (copperPour != NULL) list->Add(copperPour);
+            copperPour = new CPCBCopperPour(pcb);
+            if (copperPour->Parse(lNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion, statusBar))
+                list->Add(copperPour);
+            else delete copperPour;
         }
 
         if (lNode->GetName() == wxT("polyCutOut")) {
@@ -245,8 +123,11 @@ void DoLayerContentsObjects(wxXmlNode *iNode, CPCBModule *pcbModule, CPCBCompone
             // list of polygons....
             tNode = lNode;
             tNode = FindNode(tNode->GetChildren(), wxT("pcbPoly"));
-            if (tNode)
-                list->Add(CreateComponentCutout(tNode, PCadLayer, pcb, actualConversion));
+            if (tNode) {
+                cutout = new CPCBCutout(pcb);
+                cutout->Parse(tNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion);
+                list->Add(cutout);
+            }
         }
 
         lNode = lNode->GetNext();

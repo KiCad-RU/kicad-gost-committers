@@ -24,42 +24,35 @@
  */
 
 /**
- * @file PCBPolygon.h
+ * @file PCBCutout.cpp
  */
 
-#ifndef PCBPOLYGON_H_
-#define PCBPOLYGON_H_
-
 #include <wx/wx.h>
+#include <wx/config.h>
 
-#include <PCBComponent.h>
+#include <PCBCutout.h>
 
-WX_DEFINE_ARRAY(wxRealPoint *, CVerticesArray);
-WX_DEFINE_ARRAY(CVerticesArray *, CIslandsArray);
 
-class CPCBPolygon : public CPCBComponent
-{
-public:
-    int m_width;
-    CVerticesArray m_outline;  // collection of boundary/outline lines - objects
-    //CPCBLinesArray m_fill_lines;
-    CIslandsArray m_islands;
-    CIslandsArray m_cutouts;
+CPCBCutout::CPCBCutout(CPCBLayersMap *aLayersMap) : CPCBPolygon(aLayersMap) {
+    m_objType = 'C';
+}
 
-    CPCBPolygon(CPCBLayersMap *aLayersMap);
-    ~CPCBPolygon();
+CPCBCutout::~CPCBCutout() {
+}
 
-    virtual bool Parse(wxXmlNode *aNode, int aPCadLayer,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion, wxStatusBar* aStatusBar);
+// It seems that the same cutouts (with the same vertices) are inside of copper pour objects
+void CPCBCutout::Parse(wxXmlNode *aNode, int aPCadLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
+    m_PCadLayer = aPCadLayer;
+    m_KiCadLayer = GetKiCadLayer();
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void WriteOutlineToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int aX_offs, int aY_offs);
+    // retrieve cutout outline
+    FormPolygon(aNode, &m_outline, aDefaultMeasurementUnit, aActualConversion);
 
-//protected:
-    void FormPolygon(wxXmlNode *aNode, CVerticesArray *aPolygon,
-        wxString aDefaultMeasurementUnit, wxString actualConversion);
+    m_positionX = m_outline[0]->x;
+    m_positionY = m_outline[0]->y;
+}
 
-};
-
-#endif // PCBPOLYGON_H_
+void CPCBCutout::WriteToFile(wxFile *aFile, char aFileType) {
+    //no operation
+    //(It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
+}

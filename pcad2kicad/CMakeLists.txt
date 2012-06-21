@@ -12,8 +12,11 @@ set(PCAD2KICAD_SRCS
     LoadInputFile.cpp
     pcad2kicad.cpp
     pcad2kicad_frame.cpp
+    PCBArc.cpp
     PCBComponent.cpp
     PCBComponents.cpp
+    PCBCopperPour.cpp
+    PCBCutout.cpp
     PCBLine.cpp
     PCBPad.cpp
     PCBPadShape.cpp

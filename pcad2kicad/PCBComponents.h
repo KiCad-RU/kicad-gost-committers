@@ -61,39 +61,6 @@ public:
     ~CNet();
 };
 
-class CPCBCopperPour : public CPCBPolygon
-{
-public:
-
-    CPCBCopperPour(CPCBLayersMap *aLayersMap);
-    ~CPCBCopperPour();
-};
-
-class CPCBCutout : public CPCBPolygon
-{
-public:
-
-    CPCBCutout(CPCBLayersMap *aLayersMap);
-    ~CPCBCutout();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-};
-
-class CPCBArc : public CPCBComponent
-{
-public:
-    int m_startX;
-    int m_startY;
-    int m_angle;
-    int m_width;
-
-    CPCBArc(CPCBLayersMap *aLayersMap);
-    ~CPCBArc();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void SetPosOffset(int x_offs, int y_offs);
-};
-
 class CPCBModule : public CPCBComponent
 {
 public:
