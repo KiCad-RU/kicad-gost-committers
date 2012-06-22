@@ -37,286 +37,13 @@
 #include <PCBCopperPour.h>
 #include <PCBCutout.h>
 #include <PCBLine.h>
+#include <PCBModule.h>
 #include <PCBPadShape.h>
 #include <PCBViaShape.h>
 #include <PCBPad.h>
 #include <PCBText.h>
 #include <PCBVia.h>
 
-
-void DoLayerContentsObjects(wxXmlNode *iNode, CPCBModule *pcbModule, CPCBComponentsArray *list, wxStatusBar* statusBar, CPCB *pcb, wxString actualConversion) {
-    CPCBArc *arc;
-    CPCBPolygon *polygon;
-    CPCBCopperPour *copperPour;
-    CPCBCutout *cutout;
-    CPCBLine *line;
-    CPCBText *text;
-    wxXmlNode *lNode, *tNode;
-    wxString propValue;
-    long long i;
-    int PCadLayer;
-    long num;
-
-    i = 0;
-    statusBar->SetStatusText(wxT("Processing LAYER CONTENT OBJECTS "));
-    FindNode(iNode->GetChildren(), wxT("layerNumRef"))->GetNodeContent().ToLong(&num);
-    PCadLayer = (int)num;
-    lNode = iNode->GetChildren();
-    while (lNode) {
-        i++;
-        statusBar->SetStatusText(wxString::Format("Processing LAYER CONTENT OBJECTS :%lld", i));
-        if (lNode->GetName() == wxT("line")) {
-            line = new CPCBLine(pcb);
-            line->Parse(lNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion);
-            list->Add(line);
-        }
-
-        if (lNode->GetName() == wxT("text")) {
-            text = new CPCBText(pcb);
-            text->Parse(lNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion);
-            list->Add(text);
-        }
-
-        // added  as Sergeys request 02/2008
-        if (lNode->GetName() == wxT("attr")) {
-            // assign fonts to Module Name,Value,Type,....s
-            lNode->GetPropVal(wxT("Name"), &propValue);
-            propValue.Trim(false);
-            propValue.Trim(true);
-            if (propValue == wxT("Type")) {
-                tNode = FindNode(lNode->GetChildren(), wxT("textStyleRef"));
-                if (tNode && pcbModule) {
-                    //TODO: to understand and may be repair
-                    // Alexander Lunev: originally in Delphi version of the project there was a strange access
-                    //  to pcbModule->m_name (it was global variable). This access is necessary
-                    //  when the function DoLayerContentsObjects() is called from function CreatePCBModule().
-                    //  However it is not clear whether the access is required when the function DoLayerContentsObjects()
-                    //  is called from function ProcessXMLtoPCBLib().
-                    SetFontProperty(tNode, &pcbModule->m_name, pcb->m_defaultMeasurementUnit, actualConversion);
-                }
-            }
-        }
-
-        // added  as Sergeys request 02/2008
-        if (lNode->GetName() == wxT("arc") || lNode->GetName() == wxT("triplePointArc")) {
-            arc = new CPCBArc(pcb);
-            arc->Parse(lNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion);
-            list->Add(arc);
-        }
-
-        if (lNode->GetName() == wxT("pcbPoly")) {
-            polygon = new CPCBPolygon(pcb);
-            polygon->Parse(lNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion, statusBar);
-            list->Add(polygon);
-        }
-
-        if (lNode->GetName() == wxT("copperPour95")) {
-            copperPour = new CPCBCopperPour(pcb);
-            if (copperPour->Parse(lNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion, statusBar))
-                list->Add(copperPour);
-            else delete copperPour;
-        }
-
-        if (lNode->GetName() == wxT("polyCutOut")) {
-            // It seems that the same cutouts (with the same vertices) are inside of copper pour objects
-
-            // list of polygons....
-            tNode = lNode;
-            tNode = FindNode(tNode->GetChildren(), wxT("pcbPoly"));
-            if (tNode) {
-                cutout = new CPCBCutout(pcb);
-                cutout->Parse(tNode, PCadLayer, pcb->m_defaultMeasurementUnit, actualConversion);
-                list->Add(cutout);
-            }
-        }
-
-        lNode = lNode->GetNext();
-    }
-}
-
-wxXmlNode *FindModulePatternDefName(wxXmlNode *iNode, wxString iName) {
-    wxXmlNode *result, *lNode;
-    wxString propValue1, propValue2;
-
-    result = NULL;
-    lNode = FindNode(iNode->GetChildren(), wxT("patternDef"));
-    while (lNode) {
-        if (lNode->GetName() == wxT("patternDef")) {
-            lNode->GetPropVal(wxT("Name"), &propValue1);
-            FindNode(lNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue2);
-            if (ValidateName(propValue1) == iName ||
-                ValidateName(propValue2) == iName) {
-                result = lNode;
-                lNode = NULL;
-            }
-        }
-
-        if (lNode) lNode = lNode->GetNext();
-    }
-
-    if (result == NULL) {
-        lNode = FindNode(iNode->GetChildren(), wxT("patternDefExtended")); // New file format
-        while (lNode) {
-            if (lNode->GetName() == wxT("patternDefExtended")) {
-                lNode->GetPropVal(wxT("Name"), &propValue1);
-                if (ValidateName(propValue1) == iName) {
-                    result = lNode;
-                    lNode = NULL;
-                }
-            }
-
-            if (lNode) lNode = lNode->GetNext();
-        }
-    }
-
-    return result;
-}
-
-void SetPadName(wxString pin, wxString name, CPCBModule *mc) {
-    int i;
-    long num;
-
-    pin.ToLong(&num);
-    for (i = 0; i < (int)mc->m_moduleObjects.GetCount(); i++) {
-        if (mc->m_moduleObjects[i]->m_objType == 'P')
-            if (((CPCBPad *)mc->m_moduleObjects[i])->m_number == num)
-                ((CPCBPad *)mc->m_moduleObjects[i])->m_name.text = name;
-    }
-}
-
-wxXmlNode *FindPatternMultilayerSection(wxXmlNode *iNode, wxString *iPatGraphRefName) {
-    wxXmlNode *result, *pNode, *lNode;
-    wxString propValue, patName;
-
-    result = NULL;
-    pNode = iNode; //pattern;
-    lNode = iNode;
-    if (lNode->GetName() == wxT("compDef")) { // calling from library  conversion we need to find pattern
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        patName = ValidateName(propValue);
-        if (FindNode(lNode->GetChildren(), wxT("attachedPattern"))) {
-            FindNode(FindNode(lNode->GetChildren(), wxT("attachedPattern"))->GetChildren(), wxT("patternName"))->GetPropVal(wxT("Name"), &propValue);
-            propValue.Trim(false);
-            propValue.Trim(true);
-            patName = ValidateName(propValue);
-        }
-
-        lNode = FindModulePatternDefName(lNode->GetParent(), patName);
-        pNode = lNode; //pattern;
-    }
-
-    lNode = NULL;
-    if (pNode)
-       lNode = FindNode(pNode->GetChildren(), wxT("multiLayer"));  //Old file format
-
-    *iPatGraphRefName = wxEmptyString;  //default
-    if (lNode) result = lNode;
-    else {
-        // New file format
-        if (FindNode(iNode->GetChildren(), wxT("patternGraphicsNameRef"))) {
-            FindNode(iNode->GetChildren(), wxT("patternGraphicsNameRef"))->GetPropVal(wxT("Name"), iPatGraphRefName);
-        }
-///////////////////////////////////////////////////////////////////////
-//        lNode:=iNode.ChildNodes.FindNode('patternGraphicsDef');  before
-//        Fixed 02/08, Sergeys input file format
-//        Did it work before  ????
-//        lNode:=pNode.ChildNodes.FindNode('patternGraphicsDef');  Nw for some files
-//////////////////////////////////////////////////////////////////////
-        if (FindNode(iNode->GetChildren(), wxT("patternGraphicsDef")))
-            lNode = FindNode(iNode->GetChildren(), wxT("patternGraphicsDef"));
-        else
-            lNode = FindNode(pNode->GetChildren(), wxT("patternGraphicsDef"));
-
-        if (*iPatGraphRefName == wxEmptyString) {  // no patern delection, the first is actual...
-            if (lNode) {
-                result = FindNode(lNode->GetChildren(), wxT("multiLayer"));
-                lNode = NULL;
-            }
-        }
-
-        while (lNode) {   // selected by name
-            if (lNode->GetName() == wxT("patternGraphicsDef")) {
-                FindNode(lNode->GetChildren(), wxT("patternGraphicsNameDef"))->GetPropVal(wxT("Name"), &propValue);
-                if (propValue == *iPatGraphRefName) {
-                    result = FindNode(lNode->GetChildren(), wxT("multiLayer"));
-                    lNode = NULL;
-                }
-                else lNode = lNode->GetNext();
-            }
-            else lNode = lNode->GetNext();
-        }
-    }
-
-    return result;
-}
-
-CPCBModule *CreatePCBModule(wxXmlNode *iNode, wxStatusBar* statusBar, CPCB *pcb, wxString actualConversion) {
-    CPCBModule *pcbModule;
-    wxXmlNode *lNode, *tNode, *mNode;
-    CPCBPad *pad;
-    CPCBVia *via;
-    wxString propValue, str;
-
-    FindNode(iNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
-    propValue.Trim(false);
-    pcbModule = new CPCBModule(pcb, propValue);
-
-    statusBar->SetStatusText(wxT("Creating Component : ") + pcbModule->m_name.text);
-    lNode = iNode;
-    lNode = FindPatternMultilayerSection(lNode, &pcbModule->m_patGraphRefName);
-    if (lNode) {
-        tNode = lNode;
-        tNode = tNode->GetChildren();
-        while (tNode) {
-            if (tNode->GetName() == wxT("pad")) {
-                pad = new CPCBPad(pcb, wxEmptyString);
-                pad->Parse(tNode, pcb->m_defaultMeasurementUnit, actualConversion);
-                pcbModule->m_moduleObjects.Add(pad);
-            }
-
-            if (tNode->GetName() == wxT("via")) {
-                via = new CPCBVia(pcb);
-                via->Parse(tNode, pcb->m_defaultMeasurementUnit, actualConversion);
-                pcbModule->m_moduleObjects.Add(via);
-            }
-
-            tNode = tNode->GetNext();
-        }
-    }
-
-    lNode = lNode->GetParent();
-    lNode = FindNode(lNode->GetChildren(), wxT("layerContents"));
-    while (lNode) {
-        if (lNode->GetName() == wxT("layerContents"))
-            DoLayerContentsObjects(lNode, pcbModule, &pcbModule->m_moduleObjects, statusBar, pcb, actualConversion);
-        lNode = lNode->GetNext();
-    }
-
-    // map pins
-    lNode = FindPinMap(iNode);
-
-    if (lNode) {
-        mNode = lNode->GetChildren();
-        while (mNode) {
-            if (mNode->GetName() == wxT("padNum")) {
-                str = mNode->GetNodeContent();
-                mNode = mNode->GetNext();
-                if (!mNode) break;
-                mNode->GetPropVal(wxT("Name"), &propValue);
-                SetPadName(str, propValue, pcbModule);
-                mNode = mNode->GetNext();
-            }
-            else {
-                mNode = mNode->GetNext();
-                if (!mNode) break;
-                mNode = mNode->GetNext();
-            }
-        }
-    }
-
-    return pcbModule;
-}
 
 wxXmlNode *FindCompDefName(wxXmlNode *iNode, wxString iName) {
     wxXmlNode *result = NULL, *lNode;
@@ -385,7 +112,7 @@ void SetTextProperty(wxXmlNode *iNode, TTextValue *tv, wxString iPatGraphRefName
         SetTextParameters(tNode, tv, pcb->m_defaultMeasurementUnit, actualConversion);
 }
 
-void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxString actualConversion, wxStatusBar* statusBar) {
+void CPCB::DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxString actualConversion, wxStatusBar* statusBar) {
     wxXmlNode *lNode, *tNode, *mNode;
     CPCBModule *mc;
     CPCBVia *via;
@@ -400,7 +127,10 @@ void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxStrin
             tNode = FindNode(xmlDoc->GetRoot()->GetChildren(), wxT("library"));
             if (tNode && cn.Len() > 0) {
                 tNode = FindModulePatternDefName(tNode, cn);
-                if (tNode) mc = CreatePCBModule(tNode, statusBar, pcb, actualConversion);
+                if (tNode) {
+                    mc = new CPCBModule(this);
+                    mc->Parse(tNode, statusBar, pcb->m_defaultMeasurementUnit, actualConversion);
+                }
             }
 
             if (mc) {
@@ -471,7 +201,7 @@ void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxStrin
                                 mNode = mNode->GetNext();
                                 if (!mNode) break;
                                 mNode->GetPropVal(wxT("Name"), &propValue);
-                                SetPadName(str, propValue, mc);
+                                mc->SetPadName(str, propValue);
                                 mNode = mNode->GetNext();
                             }
                             else {
@@ -591,11 +321,12 @@ void MapLayer(wxXmlNode *iNode, CPCB *pcb) {
     pcb->m_layersMap[(int)num] = KiCadLayer;
 }
 
-void ProcessXMLtoPCBLib(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion) {
+void CPCB::Parse(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion) {
     wxXmlDocument xmlDoc;
     wxXmlNode *aNode;
     CNet *net;
     CPCBComponent *comp;
+    CPCBModule *module;
     wxString cr, pr;
     int i, j;
 
@@ -646,7 +377,7 @@ void ProcessXMLtoPCBLib(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName,
                 DoPCBComponents(aNode, pcb, &xmlDoc, actualConversion, statusBar);
             // objects
             if (aNode->GetName() == wxT("layerContents"))
-                DoLayerContentsObjects(aNode, NULL, &pcb->m_pcbComponents, statusBar, pcb, actualConversion);
+                DoLayerContentsObjects(aNode, NULL, &pcb->m_pcbComponents, statusBar, this, m_defaultMeasurementUnit, actualConversion);
             aNode = aNode->GetNext();
         }
 
@@ -708,8 +439,11 @@ void ProcessXMLtoPCBLib(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName,
             aNode = FindNode(aNode->GetChildren(), wxT("compDef"));
             while (aNode) {
                 statusBar->SetStatusText(wxT("Processing COMPONENTS "));
-                if (aNode->GetName() == wxT("compDef"))
-                    pcb->m_pcbComponents.Add(CreatePCBModule(aNode, statusBar, pcb, actualConversion));
+                if (aNode->GetName() == wxT("compDef")) {
+                    module = new CPCBModule(this);
+                    module->Parse(aNode, statusBar, m_defaultMeasurementUnit, actualConversion);
+                    pcb->m_pcbComponents.Add(module);
+                }
 
                 aNode = aNode->GetNext();
             }

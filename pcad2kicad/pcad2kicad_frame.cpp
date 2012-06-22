@@ -64,7 +64,7 @@ void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event ) {
     wxFileName xmlFile(fileName);
     xmlFile.SetExt(wxT("xml"));
     TextToXML(m_statusBar, xmlFile.GetFullPath(), &lines);
-    ProcessXMLtoPCBLib(&pcb, m_statusBar, xmlFile.GetFullPath(), m_actualConversion);
+    pcb.Parse(&pcb, m_statusBar, xmlFile.GetFullPath(), m_actualConversion);
 
     m_statusBar->SetStatusText(wxT("Generating output file.... "));
     wxFileName outFile(fileName);

@@ -18,6 +18,7 @@ set(PCAD2KICAD_SRCS
     PCBCopperPour.cpp
     PCBCutout.cpp
     PCBLine.cpp
+    PCBModule.cpp
     PCBPad.cpp
     PCBPadShape.cpp
     PCBPolygon.cpp

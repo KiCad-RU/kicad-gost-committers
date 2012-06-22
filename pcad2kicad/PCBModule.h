@@ -24,15 +24,46 @@
  */
 
 /**
- * @file ProcessXMLtoPCBUnit.h
+ * @file PCBModule.h
  */
 
-#ifndef PROCESSXMLTOPCBUNIT_H_
-#define PROCESSXMLTOPCBUNIT_H_
+#ifndef PCBMODULE_H_
+#define PCBMODULE_H_
 
 #include <wx/wx.h>
-#include <PCBComponents.h>
 
-//void ProcessXMLtoPCBLib(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion);
+#include <XMLtoObjectCommonProceduresUnit.h>
+#include <PCBComponent.h>
 
-#endif // PROCESSXMLTOPCBUNIT_H_
+
+class CPCBModule : public CPCBComponent
+{
+public:
+    TTextValue m_value; // has reference (Name from parent) and value
+    CPCBComponentsArray m_moduleObjects;  // set of objects like CPCBLines,CPCBPads,CPCBVias,....
+    int m_mirror;
+
+    CPCBModule(CPCBLayersMap *aLayersMap);
+    ~CPCBModule();
+
+    wxXmlNode *FindModulePatternDefName(wxXmlNode *aNode, wxString aName);
+
+    void DoLayerContentsObjects(wxXmlNode *aNode, CPCBModule *aPCBModule,
+        CPCBComponentsArray *aList, wxStatusBar* aStatusBar, CPCBLayersMap *aLayersMap,
+        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+
+    void SetPadName(wxString aPin, wxString aName);
+
+    virtual void Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar,
+        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+
+    virtual void WriteToFile(wxFile *f, char ftype);
+    virtual void Flip();
+
+private:
+    wxXmlNode *FindPatternMultilayerSection(wxXmlNode *aNode, wxString *aPatGraphRefName);
+    wxString ModuleLayer(int mirror);
+    int FlipLayers(int aLayer);
+};
+
+#endif // PCBMODULE_H_

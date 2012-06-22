@@ -37,6 +37,7 @@
 #include <PCBPad.h>
 #include <PCBPolygon.h>
 #include <PCBLayersMap.h>
+#include <PCBModule.h>
 
 
 class CNetNode : public wxObject
@@ -61,23 +62,9 @@ public:
     ~CNet();
 };
 
-class CPCBModule : public CPCBComponent
-{
-public:
-    TTextValue m_value; // has reference (Name from parent) and value
-    CPCBComponentsArray m_moduleObjects;  // set of objects like CPCBLines,CPCBPads,CPCBVias,....
-    int m_mirror;
-
-    CPCBModule(CPCBLayersMap *aLayersMap, wxString iName);
-    ~CPCBModule();
-
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void Flip();
-};
-
 WX_DEFINE_ARRAY(CNet *, CNetsArray);
 
-class CPCB : public wxObject, public CPCBLayersMap
+class CPCB : /*public wxObject*/ public CPCBModule, public CPCBLayersMap
 {
 public:
     CPCBComponentsArray m_pcbComponents;  // CPCB Modules,Lines,Routes,Texts, .... and so on
@@ -93,10 +80,13 @@ public:
     int GetKiCadLayer(int aPCadLayer);
     int GetNewTimestamp();
 
+    void Parse(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion);
+
     virtual void WriteToFile(wxString fileName, char ftype);
 
 private:
     int m_timestamp_cnt;
+    void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxString actualConversion, wxStatusBar* statusBar);
 };
 
 #endif // PCBCOMPONENTS_H_

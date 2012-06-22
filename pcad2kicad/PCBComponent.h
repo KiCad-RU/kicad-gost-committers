@@ -62,7 +62,7 @@ public:
     int GetKiCadLayer() { return m_layersMap->GetKiCadLayer(m_PCadLayer); }
     int GetNewTimestamp() { return m_layersMap->GetNewTimestamp(); }
 
-private:
+protected:
     CPCBLayersMap *m_layersMap;
 };
 
