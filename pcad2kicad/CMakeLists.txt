@@ -12,29 +12,29 @@ set(PCAD2KICAD_SRCS
     LoadInputFile.cpp
     pcad2kicad.cpp
     pcad2kicad_frame.cpp
-    PCB.cpp
-    PCBArc.cpp
-    PCBComponent.cpp
-    PCBCopperPour.cpp
-    PCBCutout.cpp
-    PCBLine.cpp
-    PCBModule.cpp
-    PCBNet.cpp
-    PCBPad.cpp
-    PCBPadShape.cpp
-    PCBPolygon.cpp
-    PCBText.cpp
-    PCBVia.cpp
-    PCBViaShape.cpp
-    Sch.cpp
-    SchArc.cpp
-    SchBus.cpp
-    SchComponent.cpp
-    SchJunction.cpp
-    SchLine.cpp
-    SchModule.cpp
-    SchPin.cpp
-    SchSymbol.cpp
+    pcb.cpp
+    pcb_arc.cpp
+    pcb_component.cpp
+    pcb_copper_pour.cpp
+    pcb_cutout.cpp
+    pcb_line.cpp
+    pcb_module.cpp
+    pcb_net.cpp
+    pcb_pad.cpp
+    pcb_pad_shape.cpp
+    pcb_polygon.cpp
+    pcb_text.cpp
+    pcb_via.cpp
+    pcb_via_shape.cpp
+    sch.cpp
+    sch_arc.cpp
+    sch_bus.cpp
+    sch_component.cpp
+    sch_junction.cpp
+    sch_line.cpp
+    sch_module.cpp
+    sch_pin.cpp
+    sch_symbol.cpp
     TextToXMLUnit.cpp
     XMLtoObjectCommonProceduresUnit.cpp
     dialogs/pcad2kicad_frame_base.cpp

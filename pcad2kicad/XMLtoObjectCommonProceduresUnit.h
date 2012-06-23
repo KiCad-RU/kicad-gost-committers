@@ -33,13 +33,13 @@
 #include <wx/wx.h>
 #include <wx/xml/xml.h>
 
-typedef struct _TTextValue {
+typedef struct _TTEXTVALUE {
     wxString text;
     int textPositionX, textPositionY,
         textRotation, textHeight, textstrokeWidth;
     int textIsVisible, mirror, textUnit;
     int correctedPositionX, correctedPositionY;
-} TTextValue, *pTTextValue;
+} TTEXTVALUE;
 
 extern wxString GetWord(wxString *s);
 extern wxXmlNode *FindPinMap(wxXmlNode *iNode);
@@ -50,11 +50,11 @@ extern wxString ValidateName(wxString n);
 extern void SetWidth(wxString t, wxString defaultMeasurementUnit, int *width, wxString actualConversion);
 extern void SetPosition(wxString t, wxString defaultMeasurementUnit, int *x, int *y, wxString actualConversion);
 extern void SetDoublePrecisionPosition(wxString t, wxString defaultMeasurementUnit, double *x, double *y, wxString actualConversion);
-extern void SetTextParameters(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion);
-extern void SetFontProperty(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion);
-extern void CorrectTextPosition(TTextValue *value, int rotation);
+extern void SetTextParameters(wxXmlNode *iNode, TTEXTVALUE *tv, wxString defaultMeasurementUnit, wxString actualConversion);
+extern void SetFontProperty(wxXmlNode *iNode, TTEXTVALUE *tv, wxString defaultMeasurementUnit, wxString actualConversion);
+extern void CorrectTextPosition(TTEXTVALUE *value, int rotation);
 
 extern wxXmlNode *FindNode(wxXmlNode *child, wxString tag);
-extern void InitTTextValue(TTextValue *textValue);
+extern void InitTTextValue(TTEXTVALUE *textValue);
 
 #endif // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_

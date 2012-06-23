@@ -207,7 +207,7 @@ void SetDoublePrecisionPosition(wxString t, wxString defaultMeasurementUnit, dou
     *y = StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'Y', actualConversion);
 }
 
-void SetTextParameters(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
+void SetTextParameters(wxXmlNode *iNode, TTEXTVALUE *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
     wxXmlNode *tNode;
     wxString str;
 
@@ -235,7 +235,7 @@ void SetTextParameters(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasure
     if (tNode) SetFontProperty(tNode, tv, defaultMeasurementUnit, actualConversion);
 }
 
-void SetFontProperty(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
+void SetFontProperty(wxXmlNode *iNode, TTEXTVALUE *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
     wxString n, propValue;
 
     iNode->GetPropVal(wxT("Name"), &n);
@@ -269,7 +269,7 @@ void SetFontProperty(wxXmlNode *iNode, TTextValue *tv, wxString defaultMeasureme
     }
 }
 
-void CorrectTextPosition(TTextValue *value, int rotation) {
+void CorrectTextPosition(TTEXTVALUE *value, int rotation) {
     value->correctedPositionX = value->textPositionX;
     value->correctedPositionY = value->textPositionY;
     value->correctedPositionY = value->correctedPositionY - KiROUND((double)value->textHeight / 3.0);
@@ -304,7 +304,7 @@ wxXmlNode *FindNode(wxXmlNode *child, wxString tag) {
     return NULL;
 }
 
-void InitTTextValue(TTextValue *textValue) {
+void InitTTextValue(TTEXTVALUE *textValue) {
     textValue->text = wxEmptyString;
     textValue->textPositionX = 0;
     textValue->textPositionY = 0;

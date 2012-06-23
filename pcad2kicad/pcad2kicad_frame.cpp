@@ -36,8 +36,8 @@
 #include <bitmaps.h>
 
 #include <LoadInputFile.h>
-#include <PCB.h>
-#include <Sch.h>
+#include <pcb.h>
+#include <sch.h>
 #include <TextToXMLUnit.h>
 
 /*
@@ -46,7 +46,7 @@ www.eltm.ru/store/Altium/PCAD_2006_ASCII.pdf
 */
 
 void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event ) {
-    CPCB pcb;
+    PCB pcb;
     wxArrayString lines;
 
     wxFileDialog fileDlg( this, wxT("Open PCB file"), wxEmptyString, wxEmptyString, wxT("PCad PCB Board ASCII |*.pcb|PCad PCB Library ASCII |*.lia") );
@@ -81,7 +81,7 @@ void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event ) {
 }
 
 void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
-    CSch sch;
+    SCH sch;
     wxArrayString lines;
 
     wxFileDialog fileDlg( this, wxT("Open sch file"), wxEmptyString, wxEmptyString, wxT("PCad SCH Schematics ASCII |*.sch|PCad SCH Library ASCII |*.lia") );
