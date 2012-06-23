@@ -32,7 +32,9 @@
 
 #include <wx/wx.h>
 
-#include <SchComponents.h>
+#include <XMLtoObjectCommonProceduresUnit.h>
+
+#include <SchComponent.h>
 
 class CSchJunction : public CSchComponent
 {

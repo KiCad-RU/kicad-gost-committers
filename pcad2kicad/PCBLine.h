@@ -43,7 +43,7 @@ public:
     int m_toX;
     int m_toY;
 
-    CPCBLine(CPCBLayersMap *aLayersMap);
+    CPCBLine(CPCBCallbacks *aCallbacks);
     ~CPCBLine();
 
     virtual void Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion);

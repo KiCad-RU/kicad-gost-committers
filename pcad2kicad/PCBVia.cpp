@@ -34,7 +34,7 @@
 #include <PCBViaShape.h>
 
 
-CPCBVia::CPCBVia(CPCBLayersMap *aLayersMap) : CPCBPad(aLayersMap, wxEmptyString) {
+CPCBVia::CPCBVia(CPCBCallbacks *aCallbacks) : CPCBPad(aCallbacks, wxEmptyString) {
     m_objType = 'V';
 }
 
@@ -92,7 +92,7 @@ void CPCBVia::Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString
                 // we support only Vias on specific layers......
                 // we do not support vias on "Plane", "NonSignal" , "Signal" ... layerr
                 if (FindNode(lNode->GetChildren(), wxT("layerNumRef"))) {
-                    viaShape = new CPCBViaShape(m_layersMap);
+                    viaShape = new CPCBViaShape(m_callbacks);
                     viaShape->Parse(lNode, aDefaultMeasurementUnit, aActualConversion);
                     m_shapes.Add(viaShape);
                 }

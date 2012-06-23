@@ -35,7 +35,7 @@
 #include <PCBPolygon.h>
 
 
-CPCBPolygon::CPCBPolygon(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
+CPCBPolygon::CPCBPolygon(CPCBCallbacks *aCallbacks) : CPCBComponent(aCallbacks) {
     m_width = 0;
     m_objType = 'Z';
 }

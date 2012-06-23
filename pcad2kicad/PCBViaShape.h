@@ -37,7 +37,7 @@
 class CPCBViaShape : public CPCBPadShape
 {
 public:
-    CPCBViaShape(CPCBLayersMap *aLayersMap);
+    CPCBViaShape(CPCBCallbacks *aCallbacks);
     ~CPCBViaShape();
 
     virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);

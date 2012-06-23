@@ -33,7 +33,7 @@
 #include <PCBCutout.h>
 
 
-CPCBCutout::CPCBCutout(CPCBLayersMap *aLayersMap) : CPCBPolygon(aLayersMap) {
+CPCBCutout::CPCBCutout(CPCBCallbacks *aCallbacks) : CPCBPolygon(aCallbacks) {
     m_objType = 'C';
 }
 

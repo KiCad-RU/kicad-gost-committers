@@ -35,7 +35,7 @@
 #include <PCBArc.h>
 
 
-CPCBArc::CPCBArc(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
+CPCBArc::CPCBArc(CPCBCallbacks *aCallbacks) : CPCBComponent(aCallbacks) {
     m_objType = 'A';
     m_startX = 0;
     m_startY = 0;

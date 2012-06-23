@@ -38,7 +38,7 @@ class CPCBCopperPour : public CPCBPolygon
 {
 public:
 
-    CPCBCopperPour(CPCBLayersMap *aLayersMap);
+    CPCBCopperPour(CPCBCallbacks *aCallbacks);
     ~CPCBCopperPour();
 
     virtual bool Parse(wxXmlNode *aNode, int aPCadLayer,

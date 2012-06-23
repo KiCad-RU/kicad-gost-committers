@@ -43,7 +43,7 @@
 #include <PCBVia.h>
 
 
-CPCBModule::CPCBModule(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
+CPCBModule::CPCBModule(CPCBCallbacks *aCallbacks) : CPCBComponent(aCallbacks) {
     InitTTextValue(&m_value);
     m_mirror = 0;
     m_objType = 'M';  // MODULE
@@ -164,7 +164,7 @@ wxXmlNode * CPCBModule::FindPatternMultilayerSection(wxXmlNode *aNode, wxString 
 }
 
 void CPCBModule::DoLayerContentsObjects(wxXmlNode *aNode, CPCBModule *aPCBModule,
-    CPCBComponentsArray *aList, wxStatusBar* aStatusBar, CPCBLayersMap *aLayersMap,
+    CPCBComponentsArray *aList, wxStatusBar* aStatusBar,
     wxString aDefaultMeasurementUnit, wxString aActualConversion)
 {
     CPCBArc *arc;
@@ -188,13 +188,13 @@ void CPCBModule::DoLayerContentsObjects(wxXmlNode *aNode, CPCBModule *aPCBModule
         i++;
         aStatusBar->SetStatusText(wxString::Format("Processing LAYER CONTENT OBJECTS :%lld", i));
         if (lNode->GetName() == wxT("line")) {
-            line = new CPCBLine(aLayersMap);
+            line = new CPCBLine(m_callbacks);
             line->Parse(lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion);
             aList->Add(line);
         }
 
         if (lNode->GetName() == wxT("text")) {
-            text = new CPCBText(aLayersMap);
+            text = new CPCBText(m_callbacks);
             text->Parse(lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion);
             aList->Add(text);
         }
@@ -221,19 +221,19 @@ void CPCBModule::DoLayerContentsObjects(wxXmlNode *aNode, CPCBModule *aPCBModule
 
         // added  as Sergeys request 02/2008
         if (lNode->GetName() == wxT("arc") || lNode->GetName() == wxT("triplePointArc")) {
-            arc = new CPCBArc(aLayersMap);
+            arc = new CPCBArc(m_callbacks);
             arc->Parse(lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion);
             aList->Add(arc);
         }
 
         if (lNode->GetName() == wxT("pcbPoly")) {
-            polygon = new CPCBPolygon(aLayersMap);
+            polygon = new CPCBPolygon(m_callbacks);
             polygon->Parse(lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion, aStatusBar);
             aList->Add(polygon);
         }
 
         if (lNode->GetName() == wxT("copperPour95")) {
-            copperPour = new CPCBCopperPour(aLayersMap);
+            copperPour = new CPCBCopperPour(m_callbacks);
             if (copperPour->Parse(lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion, aStatusBar))
                 aList->Add(copperPour);
             else delete copperPour;
@@ -246,7 +246,7 @@ void CPCBModule::DoLayerContentsObjects(wxXmlNode *aNode, CPCBModule *aPCBModule
             tNode = lNode;
             tNode = FindNode(tNode->GetChildren(), wxT("pcbPoly"));
             if (tNode) {
-                cutout = new CPCBCutout(aLayersMap);
+                cutout = new CPCBCutout(m_callbacks);
                 cutout->Parse(tNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion);
                 aList->Add(cutout);
             }
@@ -288,13 +288,13 @@ void CPCBModule::Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar,
         tNode = tNode->GetChildren();
         while (tNode) {
             if (tNode->GetName() == wxT("pad")) {
-                pad = new CPCBPad(m_layersMap, wxEmptyString);
+                pad = new CPCBPad(m_callbacks, wxEmptyString);
                 pad->Parse(tNode, aDefaultMeasurementUnit, aActualConversion);
                 m_moduleObjects.Add(pad);
             }
 
             if (tNode->GetName() == wxT("via")) {
-                via = new CPCBVia(m_layersMap);
+                via = new CPCBVia(m_callbacks);
                 via->Parse(tNode, aDefaultMeasurementUnit, aActualConversion);
                 m_moduleObjects.Add(via);
             }
@@ -307,7 +307,7 @@ void CPCBModule::Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar,
     lNode = FindNode(lNode->GetChildren(), wxT("layerContents"));
     while (lNode) {
         if (lNode->GetName() == wxT("layerContents"))
-            DoLayerContentsObjects(lNode, this, &m_moduleObjects, aStatusBar, m_layersMap,
+            DoLayerContentsObjects(lNode, this, &m_moduleObjects, aStatusBar,
                 aDefaultMeasurementUnit, aActualConversion);
         lNode = lNode->GetNext();
     }
@@ -348,7 +348,7 @@ wxString CPCBModule::ModuleLayer(int mirror) {
     return result;
 }
 
-void CPCBModule::WriteToFile(wxFile *f, char ftype) {
+void CPCBModule::WriteToFile(wxFile *aFile, char aFileType) {
     char visibility, mirrored;
     int i;
 
@@ -356,14 +356,14 @@ void CPCBModule::WriteToFile(wxFile *f, char ftype) {
     CorrectTextPosition(&m_name, m_rotation);
     CorrectTextPosition(&m_value, m_rotation);
     // Go out
-    f->Write(wxT("\n"));
-    f->Write(wxT("$MODULE ") + m_name.text + wxT("\n"));
-    f->Write(wxString::Format("Po %d %d %d ", m_positionX, m_positionY, m_rotation) +
+    aFile->Write(wxT("\n"));
+    aFile->Write(wxT("$MODULE ") + m_name.text + wxT("\n"));
+    aFile->Write(wxString::Format("Po %d %d %d ", m_positionX, m_positionY, m_rotation) +
             ModuleLayer(m_mirror) + wxT(" 00000000 00000000 ~~\n")); // Position
-    f->Write(wxT("Li ") + m_name.text + wxT("\n"));   // Modulename
-    f->Write(wxT("Sc 00000000\n")); // Timestamp
-    f->Write(wxT("Op 0 0 0\n")); // Orientation
-    f->Write(wxT("At SMD\n"));   // ??
+    aFile->Write(wxT("Li ") + m_name.text + wxT("\n"));   // Modulename
+    aFile->Write(wxT("Sc 00000000\n")); // Timestamp
+    aFile->Write(wxT("Op 0 0 0\n")); // Orientation
+    aFile->Write(wxT("At SMD\n"));   // ??
 
     // MODULE STRINGS
     if (m_name.textIsVisible == 1) visibility = 'V';
@@ -372,7 +372,7 @@ void CPCBModule::WriteToFile(wxFile *f, char ftype) {
     if (m_name.mirror == 1) mirrored = 'M';
     else mirrored = 'N';
 
-    f->Write(wxString::Format("T0 %d %d %d %d %d %d", m_name.correctedPositionX, m_name.correctedPositionY,
+    aFile->Write(wxString::Format("T0 %d %d %d %d %d %d", m_name.correctedPositionX, m_name.correctedPositionY,
                KiROUND(m_name.textHeight / 2), KiROUND(m_name.textHeight / 1.5),
                m_name.textRotation, m_value.textstrokeWidth /* TODO: Is it correct to use m_value.textstrokeWidth here? */) +
                ' ' + mirrored + ' ' + visibility + wxString::Format(" %d \"", m_KiCadLayer) + m_name.text + wxT("\"\n")); // NameString
@@ -383,7 +383,7 @@ void CPCBModule::WriteToFile(wxFile *f, char ftype) {
     if (m_value.mirror == 1) mirrored = 'M';
     else mirrored = 'N';
 
-    f->Write(wxString::Format("T1 %d %d %d %d %d %d", m_value.correctedPositionX, m_value.correctedPositionY,
+    aFile->Write(wxString::Format("T1 %d %d %d %d %d %d", m_value.correctedPositionX, m_value.correctedPositionY,
                KiROUND(m_value.textHeight / 2), KiROUND(m_value.textHeight / 1.5),
                m_value.textRotation, m_value.textstrokeWidth) +
                ' ' + mirrored + ' ' + visibility + wxString::Format(" %d \"", m_KiCadLayer) + m_value.text + wxT("\"\n")); // ValueString
@@ -392,36 +392,36 @@ void CPCBModule::WriteToFile(wxFile *f, char ftype) {
     for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
         if (m_moduleObjects[i]->m_objType == 'T') {
             ((CPCBText *)m_moduleObjects[i])->m_tag = i + 2;
-            m_moduleObjects[i]->WriteToFile(f, ftype);
+            m_moduleObjects[i]->WriteToFile(aFile, aFileType);
         }
     }
 
     // MODULE LINES
     for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
         if (m_moduleObjects[i]->m_objType == 'L')
-            m_moduleObjects[i]->WriteToFile(f, ftype);
+            m_moduleObjects[i]->WriteToFile(aFile, aFileType);
     }
 
     // MODULE Arcs
     for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
         if (m_moduleObjects[i]->m_objType == 'A')
-            m_moduleObjects[i]->WriteToFile(f, ftype);
+            m_moduleObjects[i]->WriteToFile(aFile, aFileType);
     }
 
     // PADS
     for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
         if (m_moduleObjects[i]->m_objType == 'P')
-            ((CPCBPad *)m_moduleObjects[i])->WriteToFile(f, ftype, m_rotation);
+            ((CPCBPad *)m_moduleObjects[i])->WriteToFile(aFile, aFileType, m_rotation);
     }
 
     // VIAS
     for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
         if (m_moduleObjects[i]->m_objType == 'V')
-            ((CPCBVia *)m_moduleObjects[i])->WriteToFile(f, ftype, m_rotation);
+            ((CPCBVia *)m_moduleObjects[i])->WriteToFile(aFile, aFileType, m_rotation);
     }
 
     // END
-    f->Write(wxT("$EndMODULE ") + m_name.text + wxT("\n"));
+    aFile->Write(wxT("$EndMODULE ") + m_name.text + wxT("\n"));
 }
 
 int CPCBModule::FlipLayers(int aLayer) {

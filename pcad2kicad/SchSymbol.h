@@ -33,7 +33,7 @@
 #include <wx/wx.h>
 
 #include <XMLtoObjectCommonProceduresUnit.h>
-#include <SchComponents.h>
+#include <SchComponent.h>
 
 class CSchSymbol : public CSchComponent
 {

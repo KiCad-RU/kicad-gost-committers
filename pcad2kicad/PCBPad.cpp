@@ -33,7 +33,7 @@
 #include <PCBPad.h>
 
 
-CPCBPad::CPCBPad(CPCBLayersMap *aLayersMap, wxString aName) : CPCBComponent(aLayersMap) {
+CPCBPad::CPCBPad(CPCBCallbacks *aCallbacks, wxString aName) : CPCBComponent(aCallbacks) {
     m_objType = 'P';
     m_number = 0;
     m_hole = 0;
@@ -172,7 +172,7 @@ void CPCBPad::Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString
             // we support only Pads on specific layers......
             // we do not support pads on "Plane", "NonSignal" , "Signal" ... layerr
             if (FindNode(lNode->GetChildren(), wxT("layerNumRef"))) {
-                padShape = new CPCBPadShape(m_layersMap);
+                padShape = new CPCBPadShape(m_callbacks);
                 padShape->Parse(lNode, aDefaultMeasurementUnit, aActualConversion);
                 m_shapes.Add(padShape);
             }

@@ -34,7 +34,7 @@
 
 #include <PCBCopperPour.h>
 
-CPCBCopperPour::CPCBCopperPour(CPCBLayersMap *aLayersMap) : CPCBPolygon(aLayersMap) {
+CPCBCopperPour::CPCBCopperPour(CPCBCallbacks *aCallbacks) : CPCBPolygon(aCallbacks) {
 }
 
 CPCBCopperPour::~CPCBCopperPour() {

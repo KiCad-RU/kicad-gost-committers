@@ -35,7 +35,7 @@
 #include <PCBText.h>
 
 
-CPCBText::CPCBText(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
+CPCBText::CPCBText(CPCBCallbacks *aCallbacks) : CPCBComponent(aCallbacks) {
     m_objType = 'T';
 }
 

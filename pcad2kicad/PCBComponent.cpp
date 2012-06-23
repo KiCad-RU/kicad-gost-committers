@@ -35,7 +35,7 @@
 #include <PCBComponent.h>
 
 
-CPCBComponent::CPCBComponent(CPCBLayersMap *aLayersMap) : m_layersMap(aLayersMap) {
+CPCBComponent::CPCBComponent(CPCBCallbacks *aCallbacks) : m_callbacks(aCallbacks) {
     m_tag = 0;
     m_objType = '?';
     m_PCadLayer = 0;

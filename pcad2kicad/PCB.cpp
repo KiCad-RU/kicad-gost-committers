@@ -31,8 +31,8 @@
 #include <wx/config.h>
 
 #include <common.h>
-#include <ProcessXMLtoPCBUnit.h>
 
+#include <PCB.h>
 #include <PCBArc.h>
 #include <PCBCopperPour.h>
 #include <PCBCutout.h>
@@ -49,7 +49,7 @@ int CPCB::GetKiCadLayer(int aPCadLayer) {
     return m_layersMap[aPCadLayer];
 }
 
-CPCB::CPCB() : CPCBModule(NULL) {
+CPCB::CPCB() : CPCBModule(this) {
     int i;
 
     m_defaultMeasurementUnit = wxT("mil");
@@ -386,7 +386,7 @@ void CPCB::Parse(wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
             // objects
             if (aNode->GetName() == wxT("layerContents"))
                 DoLayerContentsObjects(aNode, NULL, &m_pcbComponents, aStatusBar,
-                    this, m_defaultMeasurementUnit, aActualConversion);
+                    m_defaultMeasurementUnit, aActualConversion);
 
             aNode = aNode->GetNext();
         }

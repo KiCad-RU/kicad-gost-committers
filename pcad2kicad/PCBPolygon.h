@@ -46,7 +46,7 @@ public:
     CIslandsArray m_islands;
     CIslandsArray m_cutouts;
 
-    CPCBPolygon(CPCBLayersMap *aLayersMap);
+    CPCBPolygon(CPCBCallbacks *aCallbacks);
     ~CPCBPolygon();
 
     virtual bool Parse(wxXmlNode *aNode, int aPCadLayer,

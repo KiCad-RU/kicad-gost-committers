@@ -30,7 +30,7 @@
 #include <wx/wx.h>
 #include <wx/config.h>
 
-#include <PCBComponents.h>
+#include <PCBNet.h>
 
 
 CPCBNetNode::CPCBNetNode() {

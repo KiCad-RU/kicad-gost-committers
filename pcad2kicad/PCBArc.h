@@ -43,7 +43,7 @@ public:
     int m_angle;
     int m_width;
 
-    CPCBArc(CPCBLayersMap *aLayersMap);
+    CPCBArc(CPCBCallbacks *aCallbacks);
     ~CPCBArc();
 
     virtual void Parse(wxXmlNode *aNode, int aLayer,

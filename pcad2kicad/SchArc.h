@@ -31,8 +31,9 @@
 #define SCHARC_H_
 
 #include <wx/wx.h>
+#include <XMLtoObjectCommonProceduresUnit.h>
 
-#include <SchComponents.h>
+#include <SchComponent.h>
 
 class CSchArc : public CSchComponent
 {

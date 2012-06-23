@@ -40,7 +40,7 @@ class CPCBVia : public CPCBPad
 {
 public:
 
-    CPCBVia(CPCBLayersMap *aLayersMap);
+    CPCBVia(CPCBCallbacks *aCallbacks);
     ~CPCBVia();
 
     virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);

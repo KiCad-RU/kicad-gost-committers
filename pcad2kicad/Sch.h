@@ -31,8 +31,34 @@
 #define SCH_H_
 
 #include <wx/wx.h>
-#include <SchComponents.h>
+#include <SchComponent.h>
+#include <SchJunction.h>
+#include <SchLine.h>
 
-void ProcessXMLtoSch(CSch *sch, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion);
+class CSch : public wxObject
+{
+public:
+    CSchComponentsArray m_schComponents;
+    wxString m_defaultMeasurementUnit;
+    int m_sizeX, m_sizeY;
+
+    CSch();
+    ~CSch();
+
+    void Parse(wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActualConversion);
+
+    virtual void WriteToFile(wxString aFileName, char aFileType);
+
+private:
+    void DoAlias(wxString aAlias);
+    void DoLibrary(wxXmlDocument *aXmlDoc, wxStatusBar* aStatusBar, wxString aActualConversion);
+
+    void LinesIntersect(const int aX1, const int aY1, const int aX2, const int aY2,
+                    const int aX3, const int aY3, const int aX4, const int aY4,
+                    int *aCode, int *aX, int *aY);
+
+    bool IsPointOnLine(int aX, int aY, CSchLine *aLine);
+    CSchJunction *CheckJunction(CSchLine *aSchLine, int aIndex);
+};
 
 #endif // SCH_H_

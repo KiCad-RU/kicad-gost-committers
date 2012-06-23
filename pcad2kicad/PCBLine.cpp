@@ -35,7 +35,7 @@
 #include <PCBLine.h>
 
 
-CPCBLine::CPCBLine(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
+CPCBLine::CPCBLine(CPCBCallbacks *aCallbacks) : CPCBComponent(aCallbacks) {
     m_width = 0;
     m_toX = 0;
     m_toY = 0;

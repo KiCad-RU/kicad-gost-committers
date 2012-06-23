@@ -40,7 +40,7 @@ class CPCBText : public CPCBComponent
 {
 public:
 
-    CPCBText(CPCBLayersMap *aLayersMap);
+    CPCBText(CPCBCallbacks *aCallbacks);
     ~CPCBText();
 
     virtual void Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion);

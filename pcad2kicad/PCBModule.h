@@ -43,13 +43,13 @@ public:
     CPCBComponentsArray m_moduleObjects;  // set of objects like CPCBLines,CPCBPads,CPCBVias,....
     int m_mirror;
 
-    CPCBModule(CPCBLayersMap *aLayersMap);
+    CPCBModule(CPCBCallbacks *aCallbacks);
     ~CPCBModule();
 
     wxXmlNode *FindModulePatternDefName(wxXmlNode *aNode, wxString aName);
 
     void DoLayerContentsObjects(wxXmlNode *aNode, CPCBModule *aPCBModule,
-        CPCBComponentsArray *aList, wxStatusBar* aStatusBar, CPCBLayersMap *aLayersMap,
+        CPCBComponentsArray *aList, wxStatusBar* aStatusBar,
         wxString aDefaultMeasurementUnit, wxString aActualConversion);
 
     void SetPadName(wxString aPin, wxString aName);

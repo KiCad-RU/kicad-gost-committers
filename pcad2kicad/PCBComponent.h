@@ -33,7 +33,7 @@
 #include <wx/wx.h>
 
 #include <XMLtoObjectCommonProceduresUnit.h>
-#include <PCBLayersMap.h>
+#include <PCBCallbacks.h>
 
 
 // basic parent class for PCB objects
@@ -53,17 +53,17 @@ public:
     wxString m_compRef;  // internal ussage for XL parsing
     wxString m_patGraphRefName;  // internal ussage for XL parsing
 
-    CPCBComponent(CPCBLayersMap *aLayersMap);
+    CPCBComponent(CPCBCallbacks *aCallbacks);
     ~CPCBComponent();
 
     virtual void WriteToFile(wxFile *f, char ftype);
     virtual void SetPosOffset(int x_offs, int y_offs);
 
-    int GetKiCadLayer() { return m_layersMap->GetKiCadLayer(m_PCadLayer); }
-    int GetNewTimestamp() { return m_layersMap->GetNewTimestamp(); }
+    int GetKiCadLayer() { return m_callbacks->GetKiCadLayer(m_PCadLayer); }
+    int GetNewTimestamp() { return m_callbacks->GetNewTimestamp(); }
 
 protected:
-    CPCBLayersMap *m_layersMap;
+    CPCBCallbacks *m_callbacks;
 };
 
 WX_DEFINE_ARRAY(CPCBComponent *, CPCBComponentsArray);

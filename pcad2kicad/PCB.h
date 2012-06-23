@@ -31,10 +31,11 @@
 #define PCB_H_
 
 #include <wx/wx.h>
-#include <PCBComponents.h>
-#include <PCBModule.h>
 
-class CPCB : public CPCBModule, public CPCBLayersMap
+#include <PCBModule.h>
+#include <PCBNet.h>
+
+class CPCB : public CPCBModule, public CPCBCallbacks
 {
 public:
     CPCBComponentsArray m_pcbComponents;  // CPCB Modules,Lines,Routes,Texts, .... and so on

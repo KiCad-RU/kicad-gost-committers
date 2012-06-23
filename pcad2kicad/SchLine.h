@@ -32,7 +32,7 @@
 
 #include <wx/wx.h>
 
-#include <SchComponents.h>
+#include <SchComponent.h>
 #include <XMLtoObjectCommonProceduresUnit.h>
 
 class CSchLine : public CSchComponent

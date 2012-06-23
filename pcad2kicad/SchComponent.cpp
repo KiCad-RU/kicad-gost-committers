@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
- * Copyright (C) 2007, 2008, 2012 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -24,19 +24,27 @@
  */
 
 /**
- * @file PCBLayersMap.h
+ * @file SchComponent.cpp
  */
 
-#ifndef PCBLAYERSMAP_H_
-#define PCBLAYERSMAP_H_
-
 #include <wx/wx.h>
+#include <wx/config.h>
 
-class CPCBLayersMap
-{
-public:
-    virtual int GetKiCadLayer(int aPCadLayer) = 0;
-    virtual int GetNewTimestamp() = 0;
-};
+#include <SchComponent.h>
 
-#endif // PCBLAYERSMAP_H_
+CSchComponent::CSchComponent() {
+    m_objType = '?';
+    m_positionX = 0;
+    m_positionY = 0;
+    m_rotation = 0;
+    m_mirror = 0;
+    m_partNum = 0;
+    m_width = 0;
+    m_isVisible = 0;
+}
+
+CSchComponent::~CSchComponent() {
+}
+
+void CSchComponent::WriteToFile(wxFile *f, char ftype) {
+}

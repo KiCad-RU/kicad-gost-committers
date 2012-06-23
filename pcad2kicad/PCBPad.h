@@ -43,7 +43,7 @@ public:
     int m_hole;
     CPCBPadShapesArray m_shapes;
 
-    CPCBPad(CPCBLayersMap *aLayersMap, wxString aName);
+    CPCBPad(CPCBCallbacks *aCallbacks, wxString aName);
     ~CPCBPad();
 
     virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);

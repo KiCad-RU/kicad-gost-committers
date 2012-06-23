@@ -36,9 +36,8 @@
 #include <bitmaps.h>
 
 #include <LoadInputFile.h>
-#include <ProcessXMLtoPCBUnit.h>
+#include <PCB.h>
 #include <Sch.h>
-#include <SchComponents.h>
 #include <TextToXMLUnit.h>
 
 /*
@@ -100,7 +99,7 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event ) {
     wxFileName xmlFile(fileName);
     xmlFile.SetExt(wxT("xml"));
     TextToXML(m_statusBar, xmlFile.GetFullPath(), &lines);
-    ProcessXMLtoSch(&sch, m_statusBar, xmlFile.GetFullPath(), m_actualConversion);
+    sch.Parse(m_statusBar, xmlFile.GetFullPath(), m_actualConversion);
 
     m_statusBar->SetStatusText(wxT("Generating output file.... "));
     wxFileName outFile(fileName);

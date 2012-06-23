@@ -12,24 +12,24 @@ set(PCAD2KICAD_SRCS
     LoadInputFile.cpp
     pcad2kicad.cpp
     pcad2kicad_frame.cpp
+    PCB.cpp
     PCBArc.cpp
     PCBComponent.cpp
-    PCBComponents.cpp
     PCBCopperPour.cpp
     PCBCutout.cpp
     PCBLine.cpp
     PCBModule.cpp
+    PCBNet.cpp
     PCBPad.cpp
     PCBPadShape.cpp
     PCBPolygon.cpp
     PCBText.cpp
     PCBVia.cpp
     PCBViaShape.cpp
-    ProcessXMLtoPCBUnit.cpp
     Sch.cpp
     SchArc.cpp
     SchBus.cpp
-    SchComponents.cpp
+    SchComponent.cpp
     SchJunction.cpp
     SchLine.cpp
     SchModule.cpp

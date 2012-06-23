@@ -42,7 +42,7 @@ public:
     int m_width;
     int m_height;
 
-    CPCBPadShape(CPCBLayersMap *aLayersMap);
+    CPCBPadShape(CPCBCallbacks *aCallbacks);
     ~CPCBPadShape();
 
     virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);

@@ -38,7 +38,7 @@ class CPCBCutout : public CPCBPolygon
 {
 public:
 
-    CPCBCutout(CPCBLayersMap *aLayersMap);
+    CPCBCutout(CPCBCallbacks *aCallbacks);
     ~CPCBCutout();
 
     virtual void Parse(wxXmlNode *aNode, int aPCadLayer, wxString aDefaultMeasurementUnit, wxString actualConversion);

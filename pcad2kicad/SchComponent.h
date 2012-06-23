@@ -24,16 +24,14 @@
  */
 
 /**
- * @file SchComponents.h
+ * @file SchComponent.h
  */
 
-#ifndef SCHCOMPONENTS_H_
-#define SCHCOMPONENTS_H_
+#ifndef SCHCOMPONENT_H_
+#define SCHCOMPONENT_H_
 
 #include <wx/wx.h>
 #include <wx/dynarray.h>
-
-#include <XMLtoObjectCommonProceduresUnit.h>
 
 class CSchComponent : public wxObject
 {
@@ -52,27 +50,4 @@ public:
 
 WX_DEFINE_ARRAY(CSchComponent *, CSchComponentsArray);
 
-// This class is not yet used
-class CSchText : public CSchComponent
-{
-public:
-    int m_orientation, m_hight;
-
-    CSchText();
-    ~CSchText();
-};
-
-class CSch : public wxObject
-{
-public:
-    CSchComponentsArray m_schComponents;
-    wxString m_defaultMeasurementUnit;
-    int m_sizeX, m_sizeY;
-
-    CSch();
-    ~CSch();
-
-    virtual void WriteToFile(wxString fileName, char ftype);
-};
-
-#endif // SCHCOMPONENTS_H_
+#endif // SCHCOMPONENT_H_

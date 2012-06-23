@@ -24,46 +24,19 @@
  */
 
 /**
- * @file PCBViaShape.cpp
+ * @file PCBCallbacks.h
  */
 
+#ifndef PCBCALLBACKS_H_
+#define PCBCALLBACKS_H_
+
 #include <wx/wx.h>
-#include <wx/config.h>
 
-#include <common.h>
+class CPCBCallbacks
+{
+public:
+    virtual int GetKiCadLayer(int aPCadLayer) = 0;
+    virtual int GetNewTimestamp() = 0;
+};
 
-#include <PCBViaShape.h>
-
-
-CPCBViaShape::CPCBViaShape(CPCBCallbacks *aCallbacks) : CPCBPadShape(aCallbacks) {
-}
-
-CPCBViaShape::~CPCBViaShape() {
-}
-
-void CPCBViaShape::Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
-    wxXmlNode *lNode;
-    wxString str;
-    long num;
-
-    lNode = FindNode(aNode->GetChildren(), wxT("viaShapeType"));
-    if (lNode) {
-        str = lNode->GetNodeContent();
-        str.Trim(false);
-        m_shape = str;
-    }
-
-    lNode = FindNode(aNode->GetChildren(), wxT("layerNumRef"));
-    if (lNode) {
-        lNode->GetNodeContent().ToLong(&num);
-        m_PCadLayer = (int)num;
-    }
-
-    m_KiCadLayer = GetKiCadLayer();
-    lNode = FindNode(aNode->GetChildren(), wxT("shapeWidth"));
-    if (lNode) SetWidth(lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion);
-
-    lNode = FindNode(aNode->GetChildren(), wxT("shapeHeight"));
-    if (lNode) SetWidth(lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_height, aActualConversion);
-}
-
+#endif // PCBCALLBACKS_H_

@@ -35,7 +35,7 @@
 #include <PCBPadShape.h>
 
 
-CPCBPadShape::CPCBPadShape(CPCBLayersMap *aLayersMap) : CPCBComponent(aLayersMap) {
+CPCBPadShape::CPCBPadShape(CPCBCallbacks *aCallbacks) : CPCBComponent(aCallbacks) {
     m_shape = wxEmptyString;
     m_width = 0;
     m_height = 0;
