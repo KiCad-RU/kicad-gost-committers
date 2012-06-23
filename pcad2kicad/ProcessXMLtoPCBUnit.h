@@ -24,15 +24,45 @@
  */
 
 /**
- * @file ProcessXMLtoPCBUnit.h
+ * @file PCB.h
  */
 
-#ifndef PROCESSXMLTOPCBUNIT_H_
-#define PROCESSXMLTOPCBUNIT_H_
+#ifndef PCB_H_
+#define PCB_H_
 
 #include <wx/wx.h>
 #include <PCBComponents.h>
+#include <PCBModule.h>
 
-//void ProcessXMLtoPCBLib(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion);
+class CPCB : public CPCBModule, public CPCBLayersMap
+{
+public:
+    CPCBComponentsArray m_pcbComponents;  // CPCB Modules,Lines,Routes,Texts, .... and so on
+    CPCBNetsArray m_pcbNetlist;  // net objects collection
+    wxString m_defaultMeasurementUnit;
+    int m_layersMap[28]; // flexible layers mapping
+    int m_sizeX;
+    int m_sizeY;
 
-#endif // PROCESSXMLTOPCBUNIT_H_
+    CPCB();
+    ~CPCB();
+
+    int GetKiCadLayer(int aPCadLayer);
+    int GetNewTimestamp();
+
+    void Parse(wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActualConversion);
+
+    virtual void WriteToFile(wxString aFileName, char aFileType);
+
+private:
+    int m_timestamp_cnt;
+
+    wxXmlNode *FindCompDefName(wxXmlNode *aNode, wxString aName);
+    void SetTextProperty(wxXmlNode *aNode, TTextValue *aTextValue,
+        wxString aPatGraphRefName, wxString aXmlName, wxString aActualConversion);
+    void DoPCBComponents(wxXmlNode *aNode, wxXmlDocument *aXmlDoc, wxString aActualConversion, wxStatusBar* aStatusBar);
+    void ConnectPinToNet(wxString aCr, wxString aPr, wxString aNetName);
+    void MapLayer(wxXmlNode *aNode);
+};
+
+#endif // PCB_H_

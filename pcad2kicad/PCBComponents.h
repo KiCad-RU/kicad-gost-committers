@@ -24,69 +24,41 @@
  */
 
 /**
- * @file PCBComponents.h
+ * @file PCBNet.h
  */
 
-#ifndef PCBCOMPONENTS_H_
-#define PCBCOMPONENTS_H_
+#ifndef PCBNET_H_
+#define PCBNET_H_
 
 #include <wx/wx.h>
 
 #include <XMLtoObjectCommonProceduresUnit.h>
-#include <PCBPadShape.h>
-#include <PCBPad.h>
-#include <PCBPolygon.h>
-#include <PCBLayersMap.h>
-#include <PCBModule.h>
 
 
-class CNetNode : public wxObject
+class CPCBNetNode : public wxObject
 {
 public:
     wxString m_compRef;
     wxString m_pinRef;
 
-    CNetNode();
-    ~CNetNode();
+    CPCBNetNode();
+    ~CPCBNetNode();
 };
 
-WX_DEFINE_ARRAY(CNetNode *, CNetNodesArray);
+WX_DEFINE_ARRAY(CPCBNetNode *, CPCBNetNodesArray);
 
-class CNet : public wxObject
+class CPCBNet : public wxObject
 {
 public:
     wxString m_name;
-    CNetNodesArray m_netNodes;
+    CPCBNetNodesArray m_netNodes;
 
-    CNet(wxString iName);
-    ~CNet();
+    CPCBNet();
+    ~CPCBNet();
+
+    void Parse(wxXmlNode *aNode);
 };
 
-WX_DEFINE_ARRAY(CNet *, CNetsArray);
+WX_DEFINE_ARRAY(CPCBNet *, CPCBNetsArray);
 
-class CPCB : /*public wxObject*/ public CPCBModule, public CPCBLayersMap
-{
-public:
-    CPCBComponentsArray m_pcbComponents;  // CPCB Modules,Lines,Routes,Texts, .... and so on
-    CNetsArray m_pcbNetlist;  // net objects collection
-    wxString m_defaultMeasurementUnit;
-    int m_layersMap[28]; // flexible layers mapping
-    int m_sizeX;
-    int m_sizeY;
-
-    CPCB();
-    ~CPCB();
-
-    int GetKiCadLayer(int aPCadLayer);
-    int GetNewTimestamp();
-
-    void Parse(CPCB *pcb, wxStatusBar* statusBar, wxString XMLFileName, wxString actualConversion);
-
-    virtual void WriteToFile(wxString fileName, char ftype);
-
-private:
-    int m_timestamp_cnt;
-    void DoPCBComponents(wxXmlNode *iNode, CPCB *pcb, wxXmlDocument *xmlDoc, wxString actualConversion, wxStatusBar* statusBar);
-};
-
-#endif // PCBCOMPONENTS_H_
+#endif // PCBNET_H_

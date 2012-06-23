@@ -32,7 +32,7 @@
 
 #include <common.h>
 
-#include <PCBComponents.h>
+#include <PCBComponent.h>
 
 
 CPCBComponent::CPCBComponent(CPCBLayersMap *aLayersMap) : m_layersMap(aLayersMap) {
