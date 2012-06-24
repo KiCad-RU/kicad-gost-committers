@@ -43,10 +43,10 @@ public:
     SCH_ARC();
     ~SCH_ARC();
 
-    virtual void Parse(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void    Parse( wxXmlNode* aNode, int aSymbolIndex,
+                           wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
 
-#endif // SCH_ARC_H_
+#endif    // SCH_ARC_H_

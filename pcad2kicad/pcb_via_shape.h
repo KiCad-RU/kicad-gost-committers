@@ -37,10 +37,12 @@
 class PCB_VIA_SHAPE : public PCB_PAD_SHAPE
 {
 public:
-    PCB_VIA_SHAPE(PCB_CALLBACKS *aCallbacks);
+    PCB_VIA_SHAPE( PCB_CALLBACKS* aCallbacks );
     ~PCB_VIA_SHAPE();
 
-    virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void Parse( wxXmlNode*  aNode,
+                        wxString    aDefaultMeasurementUnit,
+                        wxString    aActualConversion );
 };
 
-#endif // PCB_VIA_SHAPE_H_
+#endif    // PCB_VIA_SHAPE_H_

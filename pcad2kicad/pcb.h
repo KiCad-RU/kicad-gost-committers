@@ -38,32 +38,40 @@
 class PCB : public PCB_MODULE, public PCB_CALLBACKS
 {
 public:
-    PCB_COMPONENTS_ARRAY m_pcbComponents;  // PCB Modules,Lines,Routes,Texts, .... and so on
-    PCB_NETS_ARRAY m_pcbNetlist;  // net objects collection
-    wxString m_defaultMeasurementUnit;
-    int m_layersMap[28]; // flexible layers mapping
+    PCB_COMPONENTS_ARRAY    m_pcbComponents;    // PCB Modules,Lines,Routes,Texts, .... and so on
+    PCB_NETS_ARRAY          m_pcbNetlist;       // net objects collection
+    wxString                m_defaultMeasurementUnit;
+    int m_layersMap[28];                        // flexible layers mapping
     int m_sizeX;
     int m_sizeY;
 
     PCB();
     ~PCB();
 
-    int GetKiCadLayer(int aPCadLayer);
-    int GetNewTimestamp();
+    int             GetKiCadLayer( int aPCadLayer );
+    int             GetNewTimestamp();
 
-    void Parse(wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActualConversion);
+    void            Parse( wxStatusBar* aStatusBar,
+                           wxString     aXMLFileName,
+                           wxString     aActualConversion );
 
-    virtual void WriteToFile(wxString aFileName, char aFileType);
+    virtual void    WriteToFile( wxString aFileName, char aFileType );
 
 private:
     int m_timestamp_cnt;
 
-    wxXmlNode *FindCompDefName(wxXmlNode *aNode, wxString aName);
-    void SetTextProperty(wxXmlNode *aNode, TTEXTVALUE *aTextValue,
-        wxString aPatGraphRefName, wxString aXmlName, wxString aActualConversion);
-    void DoPCBComponents(wxXmlNode *aNode, wxXmlDocument *aXmlDoc, wxString aActualConversion, wxStatusBar* aStatusBar);
-    void ConnectPinToNet(wxString aCr, wxString aPr, wxString aNetName);
-    void MapLayer(wxXmlNode *aNode);
+    wxXmlNode*      FindCompDefName( wxXmlNode* aNode, wxString aName );
+    void            SetTextProperty( wxXmlNode*     aNode,
+                                     TTEXTVALUE*    aTextValue,
+                                     wxString       aPatGraphRefName,
+                                     wxString       aXmlName,
+                                     wxString       aActualConversion );
+    void            DoPCBComponents( wxXmlNode*     aNode,
+                                     wxXmlDocument* aXmlDoc,
+                                     wxString       aActualConversion,
+                                     wxStatusBar*   aStatusBar );
+    void            ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName );
+    void            MapLayer( wxXmlNode* aNode );
 };
 
-#endif // pcb_H_
+#endif    // pcb_H_

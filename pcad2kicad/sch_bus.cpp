@@ -35,48 +35,55 @@
 #include <sch_bus.h>
 
 
-void SCH_BUS::Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion)
+void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
+                     wxString aActualConversion )
 {
-    wxXmlNode *lNode;
-    wxString propValue;
+    wxXmlNode*  lNode;
+    wxString    propValue;
 
-    m_objType = 'L';
-    m_lineType = 'B'; // Bus
+    m_objType   = 'L';
+    m_lineType  = 'B'; // Bus
     m_labelText.textIsVisible = 0;
-    aNode->GetPropVal(wxT("Name"), &m_labelText.text);
-    m_labelText.text.Trim(false);
-    m_labelText.text.Trim(true);
+    aNode->GetPropVal( wxT( "Name" ), &m_labelText.text );
+    m_labelText.text.Trim( false );
+    m_labelText.text.Trim( true );
 
-    lNode = FindNode(aNode->GetChildren(), wxT("pt"));
+    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
 
-    if (lNode)
-        SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                    &m_positionX, &m_positionY, aActualConversion);
+    if( lNode )
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_positionX, &m_positionY, aActualConversion );
 
-    if (lNode) lNode = lNode->GetNext();
+    if( lNode )
+        lNode = lNode->GetNext();
 
-    if (lNode)
-        SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                    &m_toX, &m_toY, aActualConversion);
+    if( lNode )
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_toX, &m_toY, aActualConversion );
 
-    lNode = FindNode(aNode->GetChildren(), wxT("dispName"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
-        if (propValue == wxT("True"))
+    lNode = FindNode( aNode->GetChildren(), wxT( "dispName" ) );
+
+    if( lNode )
+    {
+        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
+
+        if( propValue == wxT( "True" ) )
             m_labelText.textIsVisible = 1;
     }
 
-    lNode = FindNode(aNode->GetChildren(), wxT("text"));
-    if (lNode) {
-        if (FindNode(lNode->GetChildren(), wxT("pt")))
-            SetPosition(FindNode(lNode->GetChildren(), wxT("pt"))->GetNodeContent(),
-                aDefaultMeasurementUnit, &m_labelText.textPositionX,
-                &m_labelText.textPositionY, aActualConversion);
+    lNode = FindNode( aNode->GetChildren(), wxT( "text" ) );
 
-        if (FindNode(lNode->GetChildren(), wxT("rotation")))
+    if( lNode )
+    {
+        if( FindNode( lNode->GetChildren(), wxT( "pt" ) ) )
+            SetPosition( FindNode( lNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+                         aDefaultMeasurementUnit, &m_labelText.textPositionX,
+                         &m_labelText.textPositionY, aActualConversion );
+
+        if( FindNode( lNode->GetChildren(), wxT( "rotation" ) ) )
             m_labelText.textRotation = StrToInt1Units(
-                FindNode(lNode->GetChildren(), wxT("rotation"))->GetNodeContent());
+                FindNode( lNode->GetChildren(), wxT( "rotation" ) )->GetNodeContent() );
     }
 }

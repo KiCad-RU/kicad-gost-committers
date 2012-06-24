@@ -32,19 +32,24 @@
 
 #include <sch_component.h>
 
-SCH_COMPONENT::SCH_COMPONENT() {
-    m_objType = '?';
+SCH_COMPONENT::SCH_COMPONENT()
+{
+    m_objType   = '?';
     m_positionX = 0;
     m_positionY = 0;
-    m_rotation = 0;
-    m_mirror = 0;
-    m_partNum = 0;
-    m_width = 0;
+    m_rotation  = 0;
+    m_mirror    = 0;
+    m_partNum   = 0;
+    m_width     = 0;
     m_isVisible = 0;
 }
 
-SCH_COMPONENT::~SCH_COMPONENT() {
+
+SCH_COMPONENT::~SCH_COMPONENT()
+{
 }
 
-void SCH_COMPONENT::WriteToFile(wxFile *aFile, char aFileType) {
+
+void SCH_COMPONENT::WriteToFile( wxFile* aFile, char aFileType )
+{
 }

@@ -35,8 +35,8 @@
 class PCB_CALLBACKS
 {
 public:
-    virtual int GetKiCadLayer(int aPCadLayer) = 0;
+    virtual int GetKiCadLayer( int aPCadLayer ) = 0;
     virtual int GetNewTimestamp() = 0;
 };
 
-#endif // PCB_CALLBACKS_H_
+#endif    // PCB_CALLBACKS_H_

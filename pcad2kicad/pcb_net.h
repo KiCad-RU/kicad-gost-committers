@@ -38,27 +38,27 @@
 class PCB_NET_NODE : public wxObject
 {
 public:
-    wxString m_compRef;
-    wxString m_pinRef;
+    wxString    m_compRef;
+    wxString    m_pinRef;
 
     PCB_NET_NODE();
     ~PCB_NET_NODE();
 };
 
-WX_DEFINE_ARRAY(PCB_NET_NODE *, PCB_NET_NODES_ARRAY);
+WX_DEFINE_ARRAY( PCB_NET_NODE*, PCB_NET_NODES_ARRAY );
 
 class PCB_NET : public wxObject
 {
 public:
-    wxString m_name;
+    wxString            m_name;
     PCB_NET_NODES_ARRAY m_netNodes;
 
     PCB_NET();
     ~PCB_NET();
 
-    void Parse(wxXmlNode *aNode);
+    void Parse( wxXmlNode* aNode );
 };
 
-WX_DEFINE_ARRAY(PCB_NET *, PCB_NETS_ARRAY);
+WX_DEFINE_ARRAY( PCB_NET*, PCB_NETS_ARRAY );
 
-#endif // PCB_NET_H_
+#endif    // PCB_NET_H_

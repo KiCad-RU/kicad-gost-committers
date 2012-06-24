@@ -43,12 +43,15 @@ public:
     int m_toX;
     int m_toY;
 
-    PCB_LINE(PCB_CALLBACKS *aCallbacks);
+    PCB_LINE( PCB_CALLBACKS* aCallbacks );
     ~PCB_LINE();
 
-    virtual void Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion);
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int aX_offs, int aY_offs);
+    virtual void    Parse( wxXmlNode*   aNode,
+                           int          aLayer,
+                           wxString     aDefaultMeasurementUnit,
+                           wxString     aActualConversion );
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    virtual void    SetPosOffset( int aX_offs, int aY_offs );
 };
 
-#endif // PCB_LINE_H_
+#endif    // PCB_LINE_H_

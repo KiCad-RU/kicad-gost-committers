@@ -34,67 +34,94 @@
 #include <pcb_via_shape.h>
 
 
-PCB_VIA::PCB_VIA(PCB_CALLBACKS *aCallbacks) : PCB_PAD(aCallbacks, wxEmptyString) {
+PCB_VIA::PCB_VIA( PCB_CALLBACKS* aCallbacks ) : PCB_PAD( aCallbacks, wxEmptyString )
+{
     m_objType = 'V';
 }
 
-PCB_VIA::~PCB_VIA() {
+
+PCB_VIA::~PCB_VIA()
+{
 }
 
-void PCB_VIA::Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
-    wxXmlNode *lNode, *tNode;
-    wxString propValue;
-    PCB_VIA_SHAPE *viaShape;
+
+void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
+                     wxString aActualConversion )
+{
+    wxXmlNode*      lNode, * tNode;
+    wxString        propValue;
+    PCB_VIA_SHAPE*  viaShape;
 
     m_rotation = 0;
-    lNode = FindNode(aNode->GetChildren(), wxT("viaStyleRef"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
+    lNode = FindNode( aNode->GetChildren(), wxT( "viaStyleRef" ) );
+
+    if( lNode )
+    {
+        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
         m_name.text = propValue;
     }
 
-    lNode = FindNode(aNode->GetChildren(), wxT("pt"));
-    if (lNode) SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                           &m_positionX, &m_positionY, aActualConversion);
+    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
 
-    lNode = FindNode(aNode->GetChildren(), wxT("netNameRef"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
+    if( lNode )
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_positionX, &m_positionY, aActualConversion );
+
+    lNode = FindNode( aNode->GetChildren(), wxT( "netNameRef" ) );
+
+    if( lNode )
+    {
+        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
         m_net = propValue;
     }
 
     lNode = aNode;
-    while (lNode->GetName() != wxT("www.lura.sk"))
+
+    while( lNode->GetName() != wxT( "www.lura.sk" ) )
         lNode = lNode->GetParent();
 
-    lNode = FindNode(lNode->GetChildren(), wxT("library"));
-    lNode = FindNode(lNode->GetChildren(), wxT("viaStyleDef"));
-    if (lNode) {
-        while (lNode) {
-            lNode->GetPropVal(wxT("Name"), &propValue);
-            if (propValue == m_name.text) break;
+    lNode   = FindNode( lNode->GetChildren(), wxT( "library" ) );
+    lNode   = FindNode( lNode->GetChildren(), wxT( "viaStyleDef" ) );
+
+    if( lNode )
+    {
+        while( lNode )
+        {
+            lNode->GetPropVal( wxT( "Name" ), &propValue );
+
+            if( propValue == m_name.text )
+                break;
+
             lNode = lNode->GetNext();
         }
     }
 
-    if (lNode) {
-        tNode = lNode;
-        lNode = FindNode(tNode->GetChildren(), wxT("holeDiam"));
-        if (lNode) SetWidth(lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_hole, aActualConversion);
+    if( lNode )
+    {
+        tNode   = lNode;
+        lNode   = FindNode( tNode->GetChildren(), wxT( "holeDiam" ) );
 
-        lNode = FindNode(tNode->GetChildren(), wxT("viaShape"));
-        while (lNode) {
-            if  (lNode->GetName() == wxT("viaShape")) {
+        if( lNode )
+            SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_hole,
+                      aActualConversion );
+
+        lNode = FindNode( tNode->GetChildren(), wxT( "viaShape" ) );
+
+        while( lNode )
+        {
+            if( lNode->GetName() == wxT( "viaShape" ) )
+            {
                 // we support only Vias on specific layers......
                 // we do not support vias on "Plane", "NonSignal" , "Signal" ... layerr
-                if (FindNode(lNode->GetChildren(), wxT("layerNumRef"))) {
-                    viaShape = new PCB_VIA_SHAPE(m_callbacks);
-                    viaShape->Parse(lNode, aDefaultMeasurementUnit, aActualConversion);
-                    m_shapes.Add(viaShape);
+                if( FindNode( lNode->GetChildren(), wxT( "layerNumRef" ) ) )
+                {
+                    viaShape = new PCB_VIA_SHAPE( m_callbacks );
+                    viaShape->Parse( lNode, aDefaultMeasurementUnit, aActualConversion );
+                    m_shapes.Add( viaShape );
                 }
             }
 

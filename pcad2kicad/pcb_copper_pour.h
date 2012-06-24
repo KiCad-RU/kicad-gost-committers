@@ -38,11 +38,14 @@ class PCB_COPPER_POUR : public PCB_POLYGON
 {
 public:
 
-    PCB_COPPER_POUR(PCB_CALLBACKS *aCallbacks);
+    PCB_COPPER_POUR( PCB_CALLBACKS* aCallbacks );
     ~PCB_COPPER_POUR();
 
-    virtual bool Parse(wxXmlNode *aNode, int aPCadLayer,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion, wxStatusBar* aStatusBar);
+    virtual bool Parse( wxXmlNode*      aNode,
+                        int             aPCadLayer,
+                        wxString        aDefaultMeasurementUnit,
+                        wxString        aActualConversion,
+                        wxStatusBar*    aStatusBar );
 };
 
-#endif // PCB_COPPER_POUR_H_
+#endif    // PCB_COPPER_POUR_H_

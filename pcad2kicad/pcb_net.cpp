@@ -33,55 +33,69 @@
 #include <pcb_net.h>
 
 
-PCB_NET_NODE::PCB_NET_NODE() {
-    m_compRef = wxEmptyString;
-    m_pinRef = wxEmptyString;
+PCB_NET_NODE::PCB_NET_NODE()
+{
+    m_compRef   = wxEmptyString;
+    m_pinRef    = wxEmptyString;
 }
 
-PCB_NET_NODE::~PCB_NET_NODE() {
+
+PCB_NET_NODE::~PCB_NET_NODE()
+{
 }
 
-PCB_NET::PCB_NET() {
+
+PCB_NET::PCB_NET()
+{
     m_name = wxEmptyString;
 }
 
-PCB_NET::~PCB_NET() {
+
+PCB_NET::~PCB_NET()
+{
     int i;
 
-    for (i = 0; i < (int)m_netNodes.GetCount(); i++) {
+    for( i = 0; i < (int) m_netNodes.GetCount(); i++ )
+    {
         delete m_netNodes[i];
     }
 }
 
-void PCB_NET::Parse(wxXmlNode *aNode) {
-    wxString propValue, s1, s2;
-    PCB_NET_NODE *netNode;
-    wxXmlNode *lNode;
 
-    aNode->GetPropVal(wxT("Name"), &propValue);
-    propValue.Trim(false);
-    propValue.Trim(true);
+void PCB_NET::Parse( wxXmlNode* aNode )
+{
+    wxString        propValue, s1, s2;
+    PCB_NET_NODE*   netNode;
+    wxXmlNode*      lNode;
+
+    aNode->GetPropVal( wxT( "Name" ), &propValue );
+    propValue.Trim( false );
+    propValue.Trim( true );
     m_name = propValue;
 
-    lNode = FindNode(aNode->GetChildren(), wxT("node"));
-    while (lNode) {
-        lNode->GetPropVal(wxT("Name"), &s2);
-        s2.Trim(false);
+    lNode = FindNode( aNode->GetChildren(), wxT( "node" ) );
+
+    while( lNode )
+    {
+        lNode->GetPropVal( wxT( "Name" ), &s2 );
+        s2.Trim( false );
         s1 = wxEmptyString;
-        while (s2.Len() > 0 && s2[0] != ' ') {
-            s1 = s1 + s2[0];
-            s2 = s2.Mid(1);
+
+        while( s2.Len() > 0 && s2[0] != ' ' )
+        {
+            s1  = s1 + s2[0];
+            s2  = s2.Mid( 1 );
         }
 
         netNode = new PCB_NET_NODE;
-        s1.Trim(false);
-        s1.Trim(true);
+        s1.Trim( false );
+        s1.Trim( true );
         netNode->m_compRef = s1;
 
-        s2.Trim(false);
-        s2.Trim(true);
+        s2.Trim( false );
+        s2.Trim( true );
         netNode->m_pinRef = s2;
-        m_netNodes.Add(netNode);
+        m_netNodes.Add( netNode );
         lNode = lNode->GetNext();
     }
 }

@@ -38,19 +38,19 @@
 class SCH_LINE : public SCH_COMPONENT
 {
 public:
-    int m_toX, m_toY;
-    wxString m_net;
-    char m_lineType; // Wire, Bus, ...
-    TTEXTVALUE m_labelText;
+    int         m_toX, m_toY;
+    wxString    m_net;
+    char        m_lineType; // Wire, Bus, ...
+    TTEXTVALUE  m_labelText;
 
     SCH_LINE();
     ~SCH_LINE();
 
-    virtual void Parse(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void    Parse( wxXmlNode* aNode, int aSymbolIndex,
+                           wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void WriteLabelToFile(wxFile *aFile, char aFileType);
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    virtual void    WriteLabelToFile( wxFile* aFile, char aFileType );
 };
 
-#endif // SCH_LINE_H_
+#endif    // SCH_LINE_H_

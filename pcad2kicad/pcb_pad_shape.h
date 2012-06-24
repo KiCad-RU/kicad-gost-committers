@@ -38,16 +38,18 @@
 class PCB_PAD_SHAPE : public PCB_COMPONENT
 {
 public:
-    wxString m_shape;
-    int m_width;
-    int m_height;
+    wxString    m_shape;
+    int         m_width;
+    int         m_height;
 
-    PCB_PAD_SHAPE(PCB_CALLBACKS *aCallbacks);
+    PCB_PAD_SHAPE( PCB_CALLBACKS* aCallbacks );
     ~PCB_PAD_SHAPE();
 
-    virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void Parse( wxXmlNode*  aNode,
+                        wxString    aDefaultMeasurementUnit,
+                        wxString    aActualConversion );
 };
 
-WX_DEFINE_ARRAY(PCB_PAD_SHAPE *, PCB_PAD_SHAPES_ARRAY);
+WX_DEFINE_ARRAY( PCB_PAD_SHAPE*, PCB_PAD_SHAPES_ARRAY );
 
-#endif // PCB_PAD_SHAPE_H_
+#endif    // PCB_PAD_SHAPE_H_

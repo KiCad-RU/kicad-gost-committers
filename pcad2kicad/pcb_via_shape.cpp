@@ -35,35 +35,50 @@
 #include <pcb_via_shape.h>
 
 
-PCB_VIA_SHAPE::PCB_VIA_SHAPE(PCB_CALLBACKS *aCallbacks) : PCB_PAD_SHAPE(aCallbacks) {
+PCB_VIA_SHAPE::PCB_VIA_SHAPE( PCB_CALLBACKS* aCallbacks ) : PCB_PAD_SHAPE( aCallbacks )
+{
 }
 
-PCB_VIA_SHAPE::~PCB_VIA_SHAPE() {
+
+PCB_VIA_SHAPE::~PCB_VIA_SHAPE()
+{
 }
 
-void PCB_VIA_SHAPE::Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
-    wxXmlNode *lNode;
-    wxString str;
-    long num;
 
-    lNode = FindNode(aNode->GetChildren(), wxT("viaShapeType"));
-    if (lNode) {
+void PCB_VIA_SHAPE::Parse( wxXmlNode*   aNode,
+                           wxString     aDefaultMeasurementUnit,
+                           wxString     aActualConversion )
+{
+    wxXmlNode*  lNode;
+    wxString    str;
+    long        num;
+
+    lNode = FindNode( aNode->GetChildren(), wxT( "viaShapeType" ) );
+
+    if( lNode )
+    {
         str = lNode->GetNodeContent();
-        str.Trim(false);
+        str.Trim( false );
         m_shape = str;
     }
 
-    lNode = FindNode(aNode->GetChildren(), wxT("layerNumRef"));
-    if (lNode) {
-        lNode->GetNodeContent().ToLong(&num);
-        m_PCadLayer = (int)num;
+    lNode = FindNode( aNode->GetChildren(), wxT( "layerNumRef" ) );
+
+    if( lNode )
+    {
+        lNode->GetNodeContent().ToLong( &num );
+        m_PCadLayer = (int) num;
     }
 
     m_KiCadLayer = GetKiCadLayer();
-    lNode = FindNode(aNode->GetChildren(), wxT("shapeWidth"));
-    if (lNode) SetWidth(lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion);
+    lNode = FindNode( aNode->GetChildren(), wxT( "shapeWidth" ) );
 
-    lNode = FindNode(aNode->GetChildren(), wxT("shapeHeight"));
-    if (lNode) SetWidth(lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_height, aActualConversion);
+    if( lNode )
+        SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion );
+
+    lNode = FindNode( aNode->GetChildren(), wxT( "shapeHeight" ) );
+
+    if( lNode )
+        SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_height, aActualConversion );
+
 }
-

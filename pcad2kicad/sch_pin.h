@@ -40,19 +40,21 @@
 class SCH_PIN : public SCH_COMPONENT
 {
 public:
-    TTEXTVALUE m_pinNum, m_pinName, m_number;
-    wxString m_pinType, m_edgeStyle;
-    int m_pinLength;
+    TTEXTVALUE  m_pinNum, m_pinName, m_number;
+    wxString    m_pinType, m_edgeStyle;
+    int         m_pinLength;
 
     SCH_PIN();
     ~SCH_PIN();
 
-    virtual void Parse(wxXmlNode *aNode);
+    virtual void    Parse( wxXmlNode* aNode );
 
-    void ParsePinProperties(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    void            ParsePinProperties( wxXmlNode*  aNode,
+                                        int         aSymbolIndex,
+                                        wxString    aDefaultMeasurementUnit,
+                                        wxString    aActualConversion );
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
 
-#endif // SCH_PIN_H_
+#endif    // SCH_PIN_H_

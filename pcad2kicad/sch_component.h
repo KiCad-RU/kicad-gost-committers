@@ -36,18 +36,18 @@
 class SCH_COMPONENT : public wxObject
 {
 public:
-    char m_objType;
-    int m_positionX, m_positionY, m_rotation, m_mirror;
-    int m_partNum;
-    int m_width;
-    int m_isVisible;
+    char    m_objType;
+    int     m_positionX, m_positionY, m_rotation, m_mirror;
+    int     m_partNum;
+    int     m_width;
+    int     m_isVisible;
 
     SCH_COMPONENT();
     ~SCH_COMPONENT();
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void WriteToFile( wxFile* aFile, char aFileType );
 };
 
-WX_DEFINE_ARRAY(SCH_COMPONENT *, SCH_COMPONENTS_ARRAY);
+WX_DEFINE_ARRAY( SCH_COMPONENT*, SCH_COMPONENTS_ARRAY );
 
-#endif // SCH_COMPONENT_H_
+#endif    // SCH_COMPONENT_H_

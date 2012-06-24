@@ -38,24 +38,30 @@
 class SCH_MODULE : public SCH_COMPONENT
 {
 public:
-    SCH_COMPONENTS_ARRAY m_moduleObjects;
-    TTEXTVALUE m_name, m_reference;
+    SCH_COMPONENTS_ARRAY    m_moduleObjects;
+    TTEXTVALUE              m_name, m_reference;
     int m_numParts;
-    wxString m_attachedPattern, m_moduleDescription, m_alias;
-    wxString m_attachedSymbols[10];
+    wxString                m_attachedPattern, m_moduleDescription, m_alias;
+    wxString                m_attachedSymbols[10];
 
     SCH_MODULE();
     ~SCH_MODULE();
 
-    virtual void Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar, wxString aDefaultMeasurementUnit, wxString aActualConversion);
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void    Parse( wxXmlNode*   aNode,
+                           wxStatusBar* aStatusBar,
+                           wxString     aDefaultMeasurementUnit,
+                           wxString     aActualConversion );
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
 
 private:
-    void SetPinProperties(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    void            SetPinProperties( wxXmlNode* aNode, int aSymbolIndex,
+                                      wxString aDefaultMeasurementUnit,
+                                      wxString aActualConversion );
 
-    void FindAndProcessSymbolDef(wxXmlNode *aNode, int aSymbolIndex,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    void            FindAndProcessSymbolDef( wxXmlNode* aNode,
+                                             int        aSymbolIndex,
+                                             wxString   aDefaultMeasurementUnit,
+                                             wxString   aActualConversion );
 };
 
-#endif // SCH_MODULE_H_
+#endif    // SCH_MODULE_H_

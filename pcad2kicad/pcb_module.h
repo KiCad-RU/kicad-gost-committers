@@ -39,31 +39,34 @@
 class PCB_MODULE : public PCB_COMPONENT
 {
 public:
-    TTEXTVALUE m_value; // has reference (Name from parent) and value
-    PCB_COMPONENTS_ARRAY m_moduleObjects;  // set of objects like PCB_LINE, PCB_PAD, PCB_VIA,....
-    int m_mirror;
+    TTEXTVALUE  m_value;                        // has reference (Name from parent) and value
+    PCB_COMPONENTS_ARRAY    m_moduleObjects;    // set of objects like PCB_LINE, PCB_PAD, PCB_VIA,....
+    int         m_mirror;
 
-    PCB_MODULE(PCB_CALLBACKS *aCallbacks);
+    PCB_MODULE( PCB_CALLBACKS* aCallbacks );
     ~PCB_MODULE();
 
-    wxXmlNode *FindModulePatternDefName(wxXmlNode *aNode, wxString aName);
+    wxXmlNode*  FindModulePatternDefName( wxXmlNode* aNode, wxString aName );
 
-    void DoLayerContentsObjects(wxXmlNode *aNode, PCB_MODULE *aPCBModule,
-        PCB_COMPONENTS_ARRAY *aList, wxStatusBar* aStatusBar,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    void        DoLayerContentsObjects( wxXmlNode*              aNode,
+                                        PCB_MODULE*             aPCBModule,
+                                        PCB_COMPONENTS_ARRAY*   aList,
+                                        wxStatusBar*            aStatusBar,
+                                        wxString                aDefaultMeasurementUnit,
+                                        wxString                aActualConversion );
 
-    void SetPadName(wxString aPin, wxString aName);
+    void            SetPadName( wxString aPin, wxString aName );
 
-    virtual void Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void    Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
+                           wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void Flip();
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    virtual void    Flip();
 
 private:
-    wxXmlNode *FindPatternMultilayerSection(wxXmlNode *aNode, wxString *aPatGraphRefName);
-    wxString ModuleLayer(int aMirror);
-    int FlipLayers(int aLayer);
+    wxXmlNode*      FindPatternMultilayerSection( wxXmlNode* aNode, wxString* aPatGraphRefName );
+    wxString        ModuleLayer( int aMirror );
+    int             FlipLayers( int aLayer );
 };
 
-#endif // PCB_MODULE_H_
+#endif    // PCB_MODULE_H_

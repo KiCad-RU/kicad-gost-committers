@@ -38,12 +38,15 @@ class PCB_CUTOUT : public PCB_POLYGON
 {
 public:
 
-    PCB_CUTOUT(PCB_CALLBACKS *aCallbacks);
+    PCB_CUTOUT( PCB_CALLBACKS* aCallbacks );
     ~PCB_CUTOUT();
 
-    virtual void Parse(wxXmlNode *aNode, int aPCadLayer, wxString aDefaultMeasurementUnit, wxString actualConversion);
+    virtual void    Parse( wxXmlNode*   aNode,
+                           int          aPCadLayer,
+                           wxString     aDefaultMeasurementUnit,
+                           wxString     actualConversion );
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
 
-#endif // PCB_CUTOUT_H_
+#endif    // PCB_CUTOUT_H_

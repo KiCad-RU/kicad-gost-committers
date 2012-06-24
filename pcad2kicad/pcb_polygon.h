@@ -34,31 +34,33 @@
 
 #include <pcb_component.h>
 
-WX_DEFINE_ARRAY(wxRealPoint *, VERTICES_ARRAY);
-WX_DEFINE_ARRAY(VERTICES_ARRAY *, ISLANDS_ARRAY);
+WX_DEFINE_ARRAY( wxRealPoint*, VERTICES_ARRAY );
+WX_DEFINE_ARRAY( VERTICES_ARRAY*, ISLANDS_ARRAY );
 
 class PCB_POLYGON : public PCB_COMPONENT
 {
 public:
-    int m_width;
-    VERTICES_ARRAY m_outline;  // collection of boundary/outline lines - objects
-    ISLANDS_ARRAY m_islands;
-    ISLANDS_ARRAY m_cutouts;
+    int             m_width;
+    VERTICES_ARRAY  m_outline; // collection of boundary/outline lines - objects
+    ISLANDS_ARRAY   m_islands;
+    ISLANDS_ARRAY   m_cutouts;
 
-    PCB_POLYGON(PCB_CALLBACKS *aCallbacks);
+    PCB_POLYGON( PCB_CALLBACKS* aCallbacks );
     ~PCB_POLYGON();
 
-    virtual bool Parse(wxXmlNode *aNode, int aPCadLayer,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion, wxStatusBar* aStatusBar);
+    virtual bool Parse( wxXmlNode*      aNode,
+                        int             aPCadLayer,
+                        wxString        aDefaultMeasurementUnit,
+                        wxString        aActualConversion,
+                        wxStatusBar*    aStatusBar );
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void WriteOutlineToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int aX_offs, int aY_offs);
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    virtual void    WriteOutlineToFile( wxFile* aFile, char aFileType );
+    virtual void    SetPosOffset( int aX_offs, int aY_offs );
 
-//protected:
-    void FormPolygon(wxXmlNode *aNode, VERTICES_ARRAY *aPolygon,
-        wxString aDefaultMeasurementUnit, wxString actualConversion);
-
+// protected:
+    void            FormPolygon( wxXmlNode* aNode, VERTICES_ARRAY* aPolygon,
+                                 wxString aDefaultMeasurementUnit, wxString actualConversion );
 };
 
-#endif // PCB_POLYGON_H_
+#endif    // PCB_POLYGON_H_

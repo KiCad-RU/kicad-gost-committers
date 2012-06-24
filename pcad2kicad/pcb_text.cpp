@@ -35,84 +35,123 @@
 #include <pcb_text.h>
 
 
-PCB_TEXT::PCB_TEXT(PCB_CALLBACKS *aCallbacks) : PCB_COMPONENT(aCallbacks) {
+PCB_TEXT::PCB_TEXT( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+{
     m_objType = 'T';
 }
 
-PCB_TEXT::~PCB_TEXT() {
+
+PCB_TEXT::~PCB_TEXT()
+{
 }
 
-void PCB_TEXT::Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
-    wxXmlNode *lNode;
-    wxString str;
 
-    m_PCadLayer = aLayer;
-    m_KiCadLayer = GetKiCadLayer();
-    m_positionX = 0;
-    m_positionY = 0;
-    m_name.mirror = 0;      //Normal, not mirrored
-    lNode = FindNode(aNode->GetChildren(), wxT("pt"));
-    if (lNode) SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-        &m_positionX, &m_positionY, aActualConversion);
-    lNode = FindNode(aNode->GetChildren(), wxT("rotation"));
-    if (lNode) {
+void PCB_TEXT::Parse( wxXmlNode*    aNode,
+                      int           aLayer,
+                      wxString      aDefaultMeasurementUnit,
+                      wxString      aActualConversion )
+{
+    wxXmlNode*  lNode;
+    wxString    str;
+
+    m_PCadLayer     = aLayer;
+    m_KiCadLayer    = GetKiCadLayer();
+    m_positionX     = 0;
+    m_positionY     = 0;
+    m_name.mirror   = 0;    // Normal, not mirrored
+    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+
+    if( lNode )
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_positionX, &m_positionY, aActualConversion );
+
+    lNode = FindNode( aNode->GetChildren(), wxT( "rotation" ) );
+
+    if( lNode )
+    {
         str = lNode->GetNodeContent();
-        str.Trim(false);
-        m_rotation = StrToInt1Units(str);
+        str.Trim( false );
+        m_rotation = StrToInt1Units( str );
     }
 
-    lNode = FindNode(aNode->GetChildren(), wxT("value"));
-    if (lNode)
+    lNode = FindNode( aNode->GetChildren(), wxT( "value" ) );
+
+    if( lNode )
         m_name.text = lNode->GetNodeContent();
 
-    lNode = FindNode(aNode->GetChildren(), wxT("isFlipped"));
-    if (lNode) {
+    lNode = FindNode( aNode->GetChildren(), wxT( "isFlipped" ) );
+
+    if( lNode )
+    {
         str = lNode->GetNodeContent();
-        str.Trim(false);
-        str.Trim(true);
-        if (str == wxT("True")) m_name.mirror = 1;
+        str.Trim( false );
+        str.Trim( true );
+
+        if( str == wxT( "True" ) )
+            m_name.mirror = 1;
     }
 
-    lNode = FindNode(aNode->GetChildren(), wxT("textStyleRef"));
-    if (lNode) SetFontProperty(lNode, &m_name, aDefaultMeasurementUnit, aActualConversion);
+    lNode = FindNode( aNode->GetChildren(), wxT( "textStyleRef" ) );
+
+    if( lNode )
+        SetFontProperty( lNode, &m_name, aDefaultMeasurementUnit, aActualConversion );
 }
 
-void PCB_TEXT::WriteToFile(wxFile *aFile, char aFileType) {
+
+void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
+{
     char visibility, mirrored;
 
-    if (m_name.textIsVisible == 1) visibility = 'V';
-    else visibility = 'I';
+    if( m_name.textIsVisible == 1 )
+        visibility = 'V';
+    else
+        visibility = 'I';
 
-    if (m_name.mirror == 1) mirrored = 'M';
-    else mirrored = 'N';
+    if( m_name.mirror == 1 )
+        mirrored = 'M';
+    else
+        mirrored = 'N';
 
     // Simple, not the best, but acceptable text positioning.....
-    CorrectTextPosition(&m_name, m_rotation);
+    CorrectTextPosition( &m_name, m_rotation );
 
     // Go out
-    if (aFileType == 'L') { // Library component
-        aFile->Write(wxString::Format("T%d %d %d %d %d %d %d ", m_tag, m_name.correctedPositionX, m_name.correctedPositionY,
-                 KiROUND(m_name.textHeight / 2), KiROUND(m_name.textHeight / 1.1),
-                 m_rotation, m_name.textstrokeWidth) + mirrored + ' ' + visibility +
-                 wxString::Format(" %d \"", m_KiCadLayer) + m_name.text + wxT("\"\n")); // ValueString
+    if( aFileType == 'L' )    // Library component
+    {
+        aFile->Write( wxString::Format( "T%d %d %d %d %d %d %d ", m_tag, m_name.correctedPositionX,
+                                        m_name.correctedPositionY,
+                                        KiROUND( m_name.textHeight / 2 ),
+                                        KiROUND( m_name.textHeight / 1.1 ),
+                                        m_rotation, m_name.textstrokeWidth ) +
+                      mirrored + ' ' + visibility +
+                      wxString::Format( " %d \"", m_KiCadLayer ) +
+                      m_name.text + wxT( "\"\n" ) ); // ValueString
     }
 
-    if (aFileType == 'P') { // Library component
-        if (m_name.mirror == 1) mirrored = '0';
-        else mirrored = '1';
+    if( aFileType == 'P' )    // Library component
+    {
+        if( m_name.mirror == 1 )
+            mirrored = '0';
+        else
+            mirrored = '1';
 
-        aFile->Write(wxT("Te \"") + m_name.text + wxT("\"\n"));
+        aFile->Write( wxT( "Te \"" ) + m_name.text + wxT( "\"\n" ) );
 
-        aFile->Write(wxString::Format("Po %d %d %d %d %d %d\n", m_name.correctedPositionX, m_name.correctedPositionY,
-                 KiROUND(m_name.textHeight / 2), KiROUND(m_name.textHeight / 1.1),
-                 m_name.textstrokeWidth, m_rotation));
+        aFile->Write( wxString::Format( "Po %d %d %d %d %d %d\n", m_name.correctedPositionX,
+                                        m_name.correctedPositionY,
+                                        KiROUND( m_name.textHeight / 2 ),
+                                        KiROUND( m_name.textHeight / 1.1 ),
+                                        m_name.textstrokeWidth, m_rotation ) );
 
-        aFile->Write(wxString::Format("De %d ", m_KiCadLayer) + mirrored + wxT(" 0 0\n"));
+        aFile->Write( wxString::Format( "De %d ", m_KiCadLayer ) + mirrored + wxT( " 0 0\n" ) );
     }
 }
 
-void PCB_TEXT::SetPosOffset(int aX_offs, int aY_offs) {
-    PCB_COMPONENT::SetPosOffset(aX_offs, aY_offs);
-    m_name.textPositionX += aX_offs;
-    m_name.textPositionY += aY_offs;
+
+void PCB_TEXT::SetPosOffset( int aX_offs, int aY_offs )
+{
+    PCB_COMPONENT::SetPosOffset( aX_offs, aY_offs );
+
+    m_name.textPositionX    += aX_offs;
+    m_name.textPositionY    += aY_offs;
 }

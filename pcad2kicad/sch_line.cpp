@@ -34,105 +34,145 @@
 
 #include <sch_line.h>
 
-SCH_LINE::SCH_LINE() {
-    m_toX = 0;
-    m_toY = 0;
-    m_net = wxEmptyString;
+SCH_LINE::SCH_LINE()
+{
+    m_toX   = 0;
+    m_toY   = 0;
+    m_net   = wxEmptyString;
     m_lineType = '?';
-    InitTTextValue(&m_labelText);
+    InitTTextValue( &m_labelText );
 }
 
-void SCH_LINE::Parse(wxXmlNode *aNode, int aSymbolIndex,
-    wxString aDefaultMeasurementUnit, wxString aActualConversion)
+
+void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
+                      wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxXmlNode *lNode;
-    wxString propValue, str;
+    wxXmlNode*  lNode;
+    wxString    propValue, str;
 
-    m_objType = 'L';
-    m_partNum = aSymbolIndex;
+    m_objType   = 'L';
+    m_partNum   = aSymbolIndex;
 
-    if (aNode->GetName() == wxT("line")) m_lineType = 'W'; // wire
-    if (FindNode(aNode->GetChildren(), wxT("width")))
-         m_width = StrToIntUnits(FindNode(aNode->GetChildren(), wxT("width"))->GetNodeContent(),
-             ' ', aActualConversion);
-    else m_width = 1; //default
-    lNode = FindNode(aNode->GetChildren(), wxT("pt"));
-    if (lNode) {
-        SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                    &m_positionX, &m_positionY, aActualConversion);
+    if( aNode->GetName() == wxT( "line" ) )
+        m_lineType = 'W';                                  // wire
+
+    if( FindNode( aNode->GetChildren(), wxT( "width" ) ) )
+        m_width = StrToIntUnits( FindNode( aNode->GetChildren(), wxT(
+                                               "width" ) )->GetNodeContent(),
+                                 ' ', aActualConversion );
+    else
+        m_width = 1;  // default
+
+    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+
+    if( lNode )
+    {
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_positionX, &m_positionY, aActualConversion );
 
         lNode = lNode->GetNext();
-        while (lNode && lNode->GetName() != wxT("pt"))
+
+        while( lNode && lNode->GetName() != wxT( "pt" ) )
             lNode = lNode->GetNext();
 
-        if (lNode)
-            SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                        &m_toX, &m_toY, aActualConversion);
+        if( lNode )
+            SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                         &m_toX, &m_toY, aActualConversion );
     }
 
-    if (FindNode(aNode->GetChildren(), wxT("netNameRef"))) {
-        FindNode(aNode->GetChildren(), wxT("netNameRef"))->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
+    if( FindNode( aNode->GetChildren(), wxT( "netNameRef" ) ) )
+    {
+        FindNode( aNode->GetChildren(),
+                  wxT( "netNameRef" ) )->GetPropVal( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
         m_net = propValue;
     }
 
-    m_labelText.textIsVisible = 0; // LABELS
-    m_labelText.text = m_net;  // can be better ?
+    m_labelText.textIsVisible = 0;  // LABELS
+    m_labelText.text = m_net;       // can be better ?
 
     lNode = aNode->GetParent();
-    if (lNode->GetName() == wxT("wire")) {
-        lNode = FindNode(lNode->GetChildren(), wxT("dispName"));
-        if (lNode) {
-            str = lNode->GetNodeContent();
-            str.Trim(false);
-            str.Trim(true);
-            if (str == wxT("True")) m_labelText.textIsVisible = 1;
-            lNode = lNode->GetParent();
-            lNode = FindNode(lNode->GetChildren(), wxT("text"));
-            if (lNode) {
-                if (FindNode(lNode->GetChildren(), wxT("pt")))
-                    SetPosition(FindNode(lNode->GetChildren(), wxT("pt"))->GetNodeContent(),
-                        aDefaultMeasurementUnit, &m_labelText.textPositionX,
-                        &m_labelText.textPositionY, aActualConversion);
 
-                if (FindNode(lNode->GetChildren(), wxT("rotation")))
+    if( lNode->GetName() == wxT( "wire" ) )
+    {
+        lNode = FindNode( lNode->GetChildren(), wxT( "dispName" ) );
+
+        if( lNode )
+        {
+            str = lNode->GetNodeContent();
+            str.Trim( false );
+            str.Trim( true );
+
+            if( str == wxT( "True" ) )
+                m_labelText.textIsVisible = 1;
+
+            lNode   = lNode->GetParent();
+            lNode   = FindNode( lNode->GetChildren(), wxT( "text" ) );
+
+            if( lNode )
+            {
+                if( FindNode( lNode->GetChildren(), wxT( "pt" ) ) )
+                    SetPosition( FindNode( lNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+                                 aDefaultMeasurementUnit, &m_labelText.textPositionX,
+                                 &m_labelText.textPositionY, aActualConversion );
+
+                if( FindNode( lNode->GetChildren(), wxT( "rotation" ) ) )
                     m_labelText.textRotation = StrToInt1Units(
-                        FindNode(lNode->GetChildren(), wxT("rotation"))->GetNodeContent());
+                        FindNode( lNode->GetChildren(), wxT( "rotation" ) )->GetNodeContent() );
             }
         }
     }
 }
 
-SCH_LINE::~SCH_LINE() {
+
+SCH_LINE::~SCH_LINE()
+{
 }
 
-void SCH_LINE::WriteToFile(wxFile *aFile, char aFileType) {
+
+void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
+{
     wxString lt;
 
-    if (aFileType == 'L')
-        aFile->Write(wxString::Format("P 2 %d 0 %d %d %d %d %d N\n",
-            m_partNum, m_width, m_positionX, m_positionY, m_toX, m_toY));
+    if( aFileType == 'L' )
+        aFile->Write( wxString::Format( "P 2 %d 0 %d %d %d %d %d N\n",
+                                        m_partNum,
+                                        m_width,
+                                        m_positionX,
+                                        m_positionY,
+                                        m_toX,
+                                        m_toY ) );
 
-    if (aFileType == 'S') {
-        if (m_lineType == 'W') lt = wxString("Wire");
-        if (m_lineType == 'B') lt = wxString("Bus");
-        aFile->Write(wxT("Wire ") + lt + wxT(" Line\n"));
-        aFile->Write(wxString::Format("               %d %d %d %d\n",
-            m_positionX, m_positionY, m_toX, m_toY));
+    if( aFileType == 'S' )
+    {
+        if( m_lineType == 'W' )
+            lt = wxString( "Wire" );
+
+        if( m_lineType == 'B' )
+            lt = wxString( "Bus" );
+
+        aFile->Write( wxT( "Wire " ) + lt + wxT( " Line\n" ) );
+        aFile->Write( wxString::Format( "               %d %d %d %d\n",
+                                        m_positionX, m_positionY, m_toX, m_toY ) );
     }
 }
 
-void SCH_LINE::WriteLabelToFile(wxFile *aFile, char aFileType) {
+
+void SCH_LINE::WriteLabelToFile( wxFile* aFile, char aFileType )
+{
     char lr;
 
-    if (m_labelText.textIsVisible == 1) {
-        if (m_labelText.textRotation == 0) lr = '0';
-        else lr = '1';
+    if( m_labelText.textIsVisible == 1 )
+    {
+        if( m_labelText.textRotation == 0 )
+            lr = '0';
+        else
+            lr = '1';
 
-        aFile->Write(wxString::Format("Text Label %d %d",
-            m_labelText.textPositionX, m_labelText.textPositionY) +
-            ' ' + lr + ' ' + wxT(" 60 ~\n"));
-        aFile->Write(m_labelText.text + wxT("\n"));
+        aFile->Write( wxString::Format( "Text Label %d %d",
+                                        m_labelText.textPositionX, m_labelText.textPositionY ) +
+                      ' ' + lr + ' ' + wxT( " 60 ~\n" ) );
+        aFile->Write( m_labelText.text + wxT( "\n" ) );
     }
 }

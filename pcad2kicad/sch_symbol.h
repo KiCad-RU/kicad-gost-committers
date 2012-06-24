@@ -38,16 +38,16 @@
 class SCH_SYMBOL : public SCH_COMPONENT
 {
 public:
-    TTEXTVALUE m_module, m_reference, m_typ;
-    wxString m_attachedSymbol, m_attachedPattern;
+    TTEXTVALUE  m_module, m_reference, m_typ;
+    wxString    m_attachedSymbol, m_attachedPattern;
 
     SCH_SYMBOL();
     ~SCH_SYMBOL();
 
-    virtual void Parse(wxXmlNode *aNode,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void    Parse( wxXmlNode* aNode,
+                           wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
 
-#endif // SCH_SYMBOL_H_
+#endif    // SCH_SYMBOL_H_

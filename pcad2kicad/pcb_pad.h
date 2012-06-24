@@ -43,16 +43,18 @@ public:
     int m_hole;
     PCB_PAD_SHAPES_ARRAY m_shapes;
 
-    PCB_PAD(PCB_CALLBACKS *aCallbacks, wxString aName);
+    PCB_PAD( PCB_CALLBACKS* aCallbacks, wxString aName );
     ~PCB_PAD();
 
-    virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
-    virtual void WriteToFile(wxFile *aFile, char aFileType, int aRotation);
+    virtual void    Parse( wxXmlNode*   aNode,
+                           wxString     aDefaultMeasurementUnit,
+                           wxString     aActualConversion );
+    virtual void    WriteToFile( wxFile* aFile, char aFileType, int aRotation );
 
 private:
-    int ToInt(char aChar);
-    char OrMask(char aM1, char aM2);
-    wxString KiCadLayerMask(wxString aMask, int aLayer);
+    int             ToInt( char aChar );
+    char            OrMask( char aM1, char aM2 );
+    wxString        KiCadLayerMask( wxString aMask, int aLayer );
 };
 
-#endif // PCB_PAD_H_
+#endif    // PCB_PAD_H_

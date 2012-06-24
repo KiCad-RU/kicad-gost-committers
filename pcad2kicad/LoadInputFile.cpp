@@ -33,161 +33,205 @@
 #include <XMLtoObjectCommonProceduresUnit.h>
 
 
-int DoDepth(wxString *aStr) {
+int DoDepth( wxString* aStr )
+{
     int result = 0;
-    aStr->Trim(false);
-    if (aStr->Len() > 0) {
-        if ((*aStr)[0] == '(') {
-            result = 1;
-            *aStr = aStr->Mid(1);
+
+    aStr->Trim( false );
+
+    if( aStr->Len() > 0 )
+    {
+        if( (*aStr)[0] == '(' )
+        {
+            result  = 1;
+            *aStr   = aStr->Mid( 1 );
         }
     }
 
-    if (aStr->Len() > 0) {
-        if ((*aStr)[0] == ')') {
-            result = -1;
-            *aStr = aStr->Mid(1);
+    if( aStr->Len() > 0 )
+    {
+        if( (*aStr)[0] == ')' )
+        {
+            result  = -1;
+            *aStr   = aStr->Mid( 1 );
         }
     }
 
     return result;
 }
 
-static wxString dummyLines[44] = {
-     //"(padShape (layerType Signal)",
-     //"(padShape (layerType Plane)",
-     //"(padShape (layerType NonSignal)",
-     "(textStyleDisplayTType ",
-     "(textStyleAllowTType ",
-     "(attr \"PadToPadClearance\"",
-     "(attr \"PadToLineClearance\"",
-     "(attr \"LineToLineClearance\"",
-     "(attr \"ViaToPadClearance\"",
-     "(attr \"ViaToLineClearance\"",
-     "(attr \"ViaToViaClearance\"",
-     "(fieldSetRef ",
-     "(attr \"SimType\"",
-     "(attr \"SimPins\"",
-     "(attr \"SimNetlist\"",
-     "(attr \"SimField1\"",
-     "(attr \"SimField2\"",
-     "(attr \"SimField3\"",
-     "(attr \"SimField4\"",
-     "(attr \"SimField5\"",
-     "(attr \"SimField6\"",
-     "(attr \"SimField7\"",
-     "(attr \"SimField8\"",
-     "(attr \"SimField9\"",
-     "(attr \"SimField10\"",
-     "(attr \"SimField11\"",
-     "(attr \"SimField12\"",
-     "(attr \"SimField13\"",
-     "(attr \"SimField14\"",
-     "(attr \"SimField15\"",
-     "(attr \"SimField16\"",
-     "(attr \"Part Field 1\"",
-     "(attr \"Part Field 2\"",
-     "(attr \"Part Field 3\"",
-     "(attr \"Part Field 4\"",
-     "(attr \"Part Field 5\"",
-     "(attr \"Part Field 6\"",
-     "(attr \"Part Field 7\"",
-     "(attr \"Part Field 8\"",
-     "(attr \"Part Field 9\"",
-     "(attr \"Part Field 10\"",
-     "(attr \"Part Field 11\"",
-     "(attr \"Part Field 12\"",
-     "(attr \"Part Field 13\"",
-     "(attr \"Part Field 14\"",
-     "(attr \"Part Field 15\"",
-     "(attr \"Part Field 16\""
+
+static wxString dummyLines[44] =
+{
+    // "(padShape (layerType Signal)",
+    // "(padShape (layerType Plane)",
+    // "(padShape (layerType NonSignal)",
+    "(textStyleDisplayTType ",
+    "(textStyleAllowTType ",
+    "(attr \"PadToPadClearance\"",
+    "(attr \"PadToLineClearance\"",
+    "(attr \"LineToLineClearance\"",
+    "(attr \"ViaToPadClearance\"",
+    "(attr \"ViaToLineClearance\"",
+    "(attr \"ViaToViaClearance\"",
+    "(fieldSetRef ",
+    "(attr \"SimType\"",
+    "(attr \"SimPins\"",
+    "(attr \"SimNetlist\"",
+    "(attr \"SimField1\"",
+    "(attr \"SimField2\"",
+    "(attr \"SimField3\"",
+    "(attr \"SimField4\"",
+    "(attr \"SimField5\"",
+    "(attr \"SimField6\"",
+    "(attr \"SimField7\"",
+    "(attr \"SimField8\"",
+    "(attr \"SimField9\"",
+    "(attr \"SimField10\"",
+    "(attr \"SimField11\"",
+    "(attr \"SimField12\"",
+    "(attr \"SimField13\"",
+    "(attr \"SimField14\"",
+    "(attr \"SimField15\"",
+    "(attr \"SimField16\"",
+    "(attr \"Part Field 1\"",
+    "(attr \"Part Field 2\"",
+    "(attr \"Part Field 3\"",
+    "(attr \"Part Field 4\"",
+    "(attr \"Part Field 5\"",
+    "(attr \"Part Field 6\"",
+    "(attr \"Part Field 7\"",
+    "(attr \"Part Field 8\"",
+    "(attr \"Part Field 9\"",
+    "(attr \"Part Field 10\"",
+    "(attr \"Part Field 11\"",
+    "(attr \"Part Field 12\"",
+    "(attr \"Part Field 13\"",
+    "(attr \"Part Field 14\"",
+    "(attr \"Part Field 15\"",
+    "(attr \"Part Field 16\""
 };
 
 // SKIP UNCONVERTED LINES
-static bool LineIsOk(wxString aLine) {
+static bool LineIsOk( wxString aLine )
+{
     bool result = true;
 
-    for (int i = 0; i < 44; i++) {
-        if (aLine.Find(dummyLines[i]) != wxNOT_FOUND) result = false;
+    for( int i = 0; i < 44; i++ )
+    {
+        if( aLine.Find( dummyLines[i] ) != wxNOT_FOUND )
+            result = false;
     }
 
     return result;
 }
 
-static wxString GetLine(wxTextFile *aFile, bool aFirstLine) {
+
+static wxString GetLine( wxTextFile* aFile, bool aFirstLine )
+{
     wxString result;
-    //int idx;
 
-    result = wxT("END OF INPUT FILE");
+    // int idx;
 
-    while (!aFile->Eof()) {
-        if (aFirstLine) {
-            result = aFile->GetFirstLine();
-            aFirstLine = false;
+    result = wxT( "END OF INPUT FILE" );
+
+    while( !aFile->Eof() )
+    {
+        if( aFirstLine )
+        {
+            result      = aFile->GetFirstLine();
+            aFirstLine  = false;
         }
-        else result = aFile->GetNextLine();
+        else
+            result = aFile->GetNextLine();
 
-        if (LineIsOk(result)) {
+        if( LineIsOk( result ) )
+        {
             // fix copyright symbol
             /*idx = result.Find(wxT("\251"));
-            if (idx != wxNOT_FOUND) {
-                result = result.Left(idx) + wxT("\302") + result.Mid(idx);
-            }*/
+             *  if (idx != wxNOT_FOUND) {
+             *   result = result.Left(idx) + wxT("\302") + result.Mid(idx);
+             *  }*/
             return result;
         }
     }
 
-    if (aFile->Eof()) result = wxT("END OF INPUT FILE");
+    if( aFile->Eof() )
+        result = wxT( "END OF INPUT FILE" );
 
     return result;
 }
 
-void LoadInputFile(wxString aFileName, wxStatusBar* aStatusBar, wxArrayString *aLines) {
-    wxArrayString lines;
-    wxTextFile f;
-    wxString s, w;
-    int fileLine = 0, depth = 0, i = 0;
 
-    aStatusBar->SetStatusText(wxT("Opening file : ") + aFileName);
+void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar, wxArrayString* aLines )
+{
+    wxArrayString   lines;
+    wxTextFile      f;
+    wxString        s, w;
+    int             fileLine = 0, depth = 0, i = 0;
 
-    f.Open(aFileName);
+    aStatusBar->SetStatusText( wxT( "Opening file : " ) + aFileName );
+
+    f.Open( aFileName );
     // preallocate memory for array to increase performance
     size_t lines_qty = f.GetLineCount();
-    lines.Alloc(lines_qty * 10);
+    lines.Alloc( lines_qty * 10 );
 
-    s = GetLine(&f, true);
-    while (s != wxT("END OF INPUT FILE")) {
+    s = GetLine( &f, true );
+
+    while( s != wxT( "END OF INPUT FILE" ) )
+    {
         fileLine++;
-        aStatusBar->SetStatusText(wxT("Processing input file - actual line : ") + wxString::Format("%d", fileLine) + wxT("/")
-            + wxString::Format("%d", (int)lines.GetCount()) + s);
+        aStatusBar->SetStatusText( wxT(
+                                       "Processing input file - actual line : " ) +
+                                   wxString::Format( "%d", fileLine ) + wxT( "/" )
+                                   + wxString::Format( "%d", (int) lines.GetCount() ) + s );
 
-        s.Trim(false);
+        s.Trim( false );
 
-        while (s.Len() > 0) {
-            i = DoDepth(&s);
-            depth = depth + i;
-            if (i == -1) lines.Add(wxT("GoUP"));
-            if (i == 1) lines.Add(wxT("GoDOWN"));
-            if (i == 0) {
-                w = GetWord(&s);
-                if (w.Len() > 0) {
-                    if (w[0] == '-') w = '_' + w;
-                    if (w[0] == '+') w = '_' + w;
-                    lines.Add(w);
+        while( s.Len() > 0 )
+        {
+            i       = DoDepth( &s );
+            depth   = depth + i;
+
+            if( i == -1 )
+                lines.Add( wxT( "GoUP" ) );
+
+            if( i == 1 )
+                lines.Add( wxT( "GoDOWN" ) );
+
+            if( i == 0 )
+            {
+                w = GetWord( &s );
+
+                if( w.Len() > 0 )
+                {
+                    if( w[0] == '-' )
+                        w = '_' + w;
+
+                    if( w[0] == '+' )
+                        w = '_' + w;
+
+                    lines.Add( w );
                 }
             }
         }
 
-        s = GetLine(&f, false);
+        s = GetLine( &f, false );
     }
 
-    aStatusBar->SetStatusText(wxT("Input file processed  : ") + wxString::Format("%d", fileLine) + wxT(" lines."));
+    aStatusBar->SetStatusText( wxT( "Input file processed  : " ) + wxString::Format( "%d",
+                                                                                     fileLine ) +
+                               wxT( " lines." ) );
     // preallocate memory for array to increase performance
-    aLines->Alloc(lines.GetCount());
+    aLines->Alloc( lines.GetCount() );
+
     // reverse order of lines
-    for (i = lines.GetCount() - 1; i>=0; i--) {
-        aStatusBar->SetStatusText(wxT("Optimizing  : ") + wxString::Format("%d", (int)lines.GetCount()));
-        aLines->Add(lines[i]);
+    for( i = lines.GetCount() - 1; i>=0; i-- )
+    {
+        aStatusBar->SetStatusText( wxT( "Optimizing  : " ) +
+                                   wxString::Format( "%d", (int) lines.GetCount() ) );
+        aLines->Add( lines[i] );
     }
 
     f.Close();

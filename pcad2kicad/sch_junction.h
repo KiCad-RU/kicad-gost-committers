@@ -41,11 +41,13 @@ class SCH_JUNCTION : public SCH_COMPONENT
 public:
     wxString m_net;
 
-    SCH_JUNCTION(int aX = 0, int aY = 0, wxString aNet = wxEmptyString);
+    SCH_JUNCTION( int aX = 0, int aY = 0, wxString aNet = wxEmptyString );
     ~SCH_JUNCTION();
 
-    virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void    Parse( wxXmlNode*   aNode,
+                           wxString     aDefaultMeasurementUnit,
+                           wxString     aActualConversion );
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
 
-#endif // SCH_JUNCTION_H_
+#endif    // SCH_JUNCTION_H_

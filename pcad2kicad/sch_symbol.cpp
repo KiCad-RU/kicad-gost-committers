@@ -34,252 +34,356 @@
 
 #include <sch_symbol.h>
 
-SCH_SYMBOL::SCH_SYMBOL() {
-    InitTTextValue(&m_module);
-    InitTTextValue(&m_reference);
-    InitTTextValue(&m_typ);
-    m_attachedSymbol = wxEmptyString;
-    m_attachedPattern = wxEmptyString;
-}
-
-SCH_SYMBOL::~SCH_SYMBOL() {
-}
-
-void SCH_SYMBOL::Parse(wxXmlNode *aNode,
-    wxString aDefaultMeasurementUnit, wxString aActualConversion)
+SCH_SYMBOL::SCH_SYMBOL()
 {
-    wxXmlNode *lNode;
-    wxString propValue, str;
-    long num;
-    bool t, r;
+    InitTTextValue( &m_module );
+    InitTTextValue( &m_reference );
+    InitTTextValue( &m_typ );
+    m_attachedSymbol    = wxEmptyString;
+    m_attachedPattern   = wxEmptyString;
+}
+
+
+SCH_SYMBOL::~SCH_SYMBOL()
+{
+}
+
+
+void SCH_SYMBOL::Parse( wxXmlNode* aNode,
+                        wxString aDefaultMeasurementUnit, wxString aActualConversion )
+{
+    wxXmlNode*  lNode;
+    wxString    propValue, str;
+    long        num;
+    bool        t, r;
 
     m_objType = 'S';
 
-    if (FindNode(aNode->GetChildren(), wxT("partNum"))) {
-        FindNode(aNode->GetChildren(), wxT("partNum"))->GetNodeContent().ToLong(&num);
-        m_partNum = (int)num;
+    if( FindNode( aNode->GetChildren(), wxT( "partNum" ) ) )
+    {
+        FindNode( aNode->GetChildren(), wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
+        m_partNum = (int) num;
     }
 
-    if (FindNode(aNode->GetChildren(), wxT("symbolRef"))) {
-        FindNode(aNode->GetChildren(), wxT("symbolRef"))->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
+    if( FindNode( aNode->GetChildren(), wxT( "symbolRef" ) ) )
+    {
+        FindNode( aNode->GetChildren(), wxT( "symbolRef" ) )->GetPropVal( wxT( "Name" ),
+                                                                          &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
         m_module.text = propValue;
     }
 
-    if (FindNode(aNode->GetChildren(), wxT("refDesRef"))) {
-        FindNode(aNode->GetChildren(), wxT("refDesRef"))->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
+    if( FindNode( aNode->GetChildren(), wxT( "refDesRef" ) ) )
+    {
+        FindNode( aNode->GetChildren(), wxT( "refDesRef" ) )->GetPropVal( wxT( "Name" ),
+                                                                          &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
         m_reference.text = propValue;
     }
 
-    if (FindNode(aNode->GetChildren(), wxT("pt"))) {
-        SetPosition(FindNode(aNode->GetChildren(), wxT("pt"))->GetNodeContent(),
-            aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion);
+    if( FindNode( aNode->GetChildren(), wxT( "pt" ) ) )
+    {
+        SetPosition( FindNode( aNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+                     aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion );
     }
 
-    if (FindNode(aNode->GetChildren(), wxT("isFlipped"))) {
-        str = FindNode(aNode->GetChildren(), wxT("isFlipped"))->GetNodeContent();
-        str.Trim(false);
-        str.Trim(true);
-        if (str == wxT("True")) m_mirror = 1;
+    if( FindNode( aNode->GetChildren(), wxT( "isFlipped" ) ) )
+    {
+        str = FindNode( aNode->GetChildren(), wxT( "isFlipped" ) )->GetNodeContent();
+        str.Trim( false );
+        str.Trim( true );
+
+        if( str == wxT( "True" ) )
+            m_mirror = 1;
     }
 
-    if (FindNode(aNode->GetChildren(), wxT("rotation")))
+    if( FindNode( aNode->GetChildren(), wxT( "rotation" ) ) )
         m_rotation = StrToInt1Units(
-            FindNode(aNode->GetChildren(), wxT("rotation"))->GetNodeContent());
+            FindNode( aNode->GetChildren(), wxT( "rotation" ) )->GetNodeContent() );
 
 
     lNode = aNode->GetChildren();
     // update physical symbol textts positions
     t = false; r = false;
-    while (lNode) {
-        if (lNode->GetName() == wxT("attr")) {
-            lNode->GetPropVal(wxT("Name"), &propValue);
-            propValue.Trim(false);
-            propValue.Trim(true);
-            if (propValue == wxT("Value")) { // WHY ???? IS IT SWITCHED IN PCAD ?
+
+    while( lNode )
+    {
+        if( lNode->GetName() == wxT( "attr" ) )
+        {
+            lNode->GetPropVal( wxT( "Name" ), &propValue );
+            propValue.Trim( false );
+            propValue.Trim( true );
+
+            if( propValue == wxT( "Value" ) )    // WHY ???? IS IT SWITCHED IN PCAD ?
+            {
                 r = true;
-                SetTextParameters(lNode, &m_reference, aDefaultMeasurementUnit, aActualConversion);
+                SetTextParameters( lNode, &m_reference, aDefaultMeasurementUnit,
+                                   aActualConversion );
             }
 
-            if (propValue == wxT("RefDes")) { // WHY ???? IS IT SWITCHED IN PCAD ?
+            if( propValue == wxT( "RefDes" ) )    // WHY ???? IS IT SWITCHED IN PCAD ?
+            {
                 t = true;
-                SetTextParameters(lNode, &m_typ, aDefaultMeasurementUnit, aActualConversion);
+                SetTextParameters( lNode, &m_typ, aDefaultMeasurementUnit, aActualConversion );
             }
         }
+
         lNode = lNode->GetNext();
     }
 
     lNode = aNode;
+
     // also symbol from library as name of component as is known in schematics library
-    while (lNode->GetName() != wxT("www.lura.sk"))
+    while( lNode->GetName() != wxT( "www.lura.sk" ) )
         lNode = lNode->GetParent();
 
-    lNode = FindNode(lNode->GetChildren(), wxT("netlist"));
-    if (lNode) {
-        lNode = FindNode(lNode->GetChildren(), wxT("compInst"));
-        while (lNode) {
-            lNode->GetPropVal(wxT("Name"), &propValue);
-            if (lNode->GetName() == wxT("compInst") && propValue == m_reference.text) {
+    lNode = FindNode( lNode->GetChildren(), wxT( "netlist" ) );
+
+    if( lNode )
+    {
+        lNode = FindNode( lNode->GetChildren(), wxT( "compInst" ) );
+
+        while( lNode )
+        {
+            lNode->GetPropVal( wxT( "Name" ), &propValue );
+
+            if( lNode->GetName() == wxT( "compInst" ) && propValue == m_reference.text )
+            {
                 // Type - or Value , depends on version
-                if (FindNode(lNode->GetChildren(), wxT("compValue"))) {
-                    FindNode(lNode->GetChildren(), wxT("compValue"))->GetPropVal(wxT("Name"),
-                        &propValue);
-                    propValue.Trim(false);
-                    propValue.Trim(true);
+                if( FindNode( lNode->GetChildren(), wxT( "compValue" ) ) )
+                {
+                    FindNode( lNode->GetChildren(),
+                              wxT( "compValue" ) )->GetPropVal( wxT( "Name" ), &propValue );
+                    propValue.Trim( false );
+                    propValue.Trim( true );
                     m_typ.text = propValue;
                 }
-                else if (FindNode(lNode->GetChildren(), wxT("originalName"))) {
-                    FindNode(lNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"),
-                        &propValue);
+                else if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
+                {
+                    FindNode( lNode->GetChildren(),
+                              wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
+                                                                   &propValue );
                     m_typ.text = propValue;
                 }
+
                 // Pattern
-                if (FindNode(lNode->GetChildren(), wxT("patternName"))) {
-                    FindNode(lNode->GetChildren(), wxT("patternName"))->GetPropVal(wxT("Name"),
-                        &propValue);
+                if( FindNode( lNode->GetChildren(), wxT( "patternName" ) ) )
+                {
+                    FindNode( lNode->GetChildren(),
+                              wxT( "patternName" ) )->GetPropVal( wxT( "Name" ), &propValue );
                     m_attachedPattern = propValue;
                 }
-                else if (FindNode(lNode->GetChildren(), wxT("originalName"))) {
-                    FindNode(lNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"),
-                        &propValue);
+                else if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
+                {
+                    FindNode( lNode->GetChildren(),
+                              wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
+                                                                   &propValue );
                     m_attachedPattern = propValue;
                 }
+
                 // Symbol
-                if (FindNode(lNode->GetChildren(), wxT("originalName"))) {
-                    FindNode(lNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"),
-                        &propValue);
+                if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
+                {
+                    FindNode( lNode->GetChildren(),
+                              wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
+                                                                   &propValue );
                     m_attachedSymbol = propValue;
                 }
-                else if (FindNode(lNode->GetChildren(), wxT("compRef"))) {
-                    FindNode(lNode->GetChildren(), wxT("compRef"))->GetPropVal(wxT("Name"),
-                        &propValue);
+                else if( FindNode( lNode->GetChildren(), wxT( "compRef" ) ) )
+                {
+                    FindNode( lNode->GetChildren(), wxT( "compRef" ) )->GetPropVal( wxT( "Name" ),
+                                                                                    &propValue );
                     m_attachedSymbol = propValue;
                 }
             }
+
             lNode = lNode->GetNext();
         }
     }
 
     // is reference position missing ?
     lNode = aNode;
-    if (r == false || t == false) {
-        while (lNode->GetName() != wxT("www.lura.sk"))
+
+    if( r == false || t == false )
+    {
+        while( lNode->GetName() != wxT( "www.lura.sk" ) )
             lNode = lNode->GetParent();
 
-        lNode = FindNode(lNode->GetChildren(), wxT("library"));
-        if (lNode) {
-            lNode = FindNode(lNode->GetChildren(), wxT("symbolDef"));
-            while (lNode) {
-                lNode->GetPropVal(wxT("Name"), &propValue);
-                if (lNode->GetName() == wxT("symbolDef") && propValue == m_module.text) {
+        lNode = FindNode( lNode->GetChildren(), wxT( "library" ) );
+
+        if( lNode )
+        {
+            lNode = FindNode( lNode->GetChildren(), wxT( "symbolDef" ) );
+
+            while( lNode )
+            {
+                lNode->GetPropVal( wxT( "Name" ), &propValue );
+
+                if( lNode->GetName() == wxT( "symbolDef" ) && propValue == m_module.text )
+                {
                     lNode = lNode->GetChildren();
-                    while (lNode) {
-                        if (lNode->GetName() == wxT("attr")) {
+
+                    while( lNode )
+                    {
+                        if( lNode->GetName() == wxT( "attr" ) )
+                        {
                             // Reference
-                            lNode->GetPropVal(wxT("Name"), &propValue);
-                            propValue.Trim(false);
-                            propValue.Trim(true);
-                            if (propValue == wxT("RefDes"))
-                                SetTextParameters(lNode, &m_reference,
-                                    aDefaultMeasurementUnit, aActualConversion);
+                            lNode->GetPropVal( wxT( "Name" ), &propValue );
+                            propValue.Trim( false );
+                            propValue.Trim( true );
+
+                            if( propValue == wxT( "RefDes" ) )
+                                SetTextParameters( lNode, &m_reference,
+                                                   aDefaultMeasurementUnit, aActualConversion );
+
                             // Type
-                            if (propValue == wxT("Type {Type}"))
-                                SetTextParameters(lNode, &m_typ,
-                                    aDefaultMeasurementUnit, aActualConversion);
+                            if( propValue == wxT( "Type {Type}" ) )
+                                SetTextParameters( lNode, &m_typ,
+                                                   aDefaultMeasurementUnit, aActualConversion );
+
                             // OR
-                            if (propValue == wxT("Type"))
-                                SetTextParameters(lNode, &m_typ,
-                                    aDefaultMeasurementUnit, aActualConversion);
+                            if( propValue == wxT( "Type" ) )
+                                SetTextParameters( lNode, &m_typ,
+                                                   aDefaultMeasurementUnit, aActualConversion );
                         }
+
                         lNode = lNode->GetNext();
                     }
                 }
 
-                if (lNode) lNode = lNode->GetNext();
+                if( lNode )
+                    lNode = lNode->GetNext();
             }
         }
     }
 }
 
-void SCH_SYMBOL::WriteToFile(wxFile *aFile, char aFileType) {
-    char orientation;
-    wxString visibility, str;
-    int a, b, c, d;
 
-    CorrectTextPosition(&m_typ, m_rotation);
-    CorrectTextPosition(&m_reference, m_rotation);
+void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
+{
+    char        orientation;
+    wxString    visibility, str;
+    int         a, b, c, d;
+
+    CorrectTextPosition( &m_typ, m_rotation );
+    CorrectTextPosition( &m_reference, m_rotation );
     // Go out
     str = m_attachedSymbol;
-    str.Replace(wxT(" "), wxT("~"), true);
-    aFile->Write(wxT("L ") + str + ' ' + m_reference.text + wxT("\n"));
-    aFile->Write(wxString::Format("U %d 1 00000000\n", m_partNum));
-    aFile->Write(wxString::Format("P %d %d\n", m_positionX, m_positionY));
+    str.Replace( wxT( " " ), wxT( "~" ), true );
+    aFile->Write( wxT( "L " ) + str + ' ' + m_reference.text + wxT( "\n" ) );
+    aFile->Write( wxString::Format( "U %d 1 00000000\n", m_partNum ) );
+    aFile->Write( wxString::Format( "P %d %d\n", m_positionX, m_positionY ) );
+
     // REFERENCE
-    if (m_reference.textRotation == 900) orientation = 'V';
-    else orientation = 'H';
-    if (m_reference.textIsVisible == 1) visibility = wxT("0000");
-    else visibility = wxT("0001");
-    aFile->Write(wxT("F 0 \"") + m_reference.text + wxT("\" ") + orientation + ' ' +
-        wxString::Format("%d %d %d",
-            m_reference.correctedPositionX + m_positionX,
-            m_reference.correctedPositionY + m_positionY,
-            KiROUND((double)m_reference.textHeight / 2.0)) + ' ' + visibility + wxT(" C C\n"));
+    if( m_reference.textRotation == 900 )
+        orientation = 'V';
+    else
+        orientation = 'H';
+
+    if( m_reference.textIsVisible == 1 )
+        visibility = wxT( "0000" );
+    else
+        visibility = wxT( "0001" );
+
+    aFile->Write( wxT( "F 0 \"" ) + m_reference.text + wxT( "\" " ) + orientation + ' ' +
+                  wxString::Format( "%d %d %d",
+                                    m_reference.correctedPositionX + m_positionX,
+                                    m_reference.correctedPositionY + m_positionY,
+                                    KiROUND( (double) m_reference.textHeight / 2.0 ) ) +
+                  ' ' + visibility + wxT( " C C\n" ) );
 
     // TYP
-    if (m_typ.textIsVisible == 1) visibility = wxT("0000");
-    else visibility = wxT("0001");
+    if( m_typ.textIsVisible == 1 )
+        visibility = wxT( "0000" );
+    else
+        visibility = wxT( "0001" );
 
-    if (m_typ.textRotation == 900 || m_typ.textRotation == 2700) orientation = 'V';
-    else orientation = 'H';
-    aFile->Write(wxT("F 1 \"") + m_typ.text + wxT("\" ") + orientation + ' ' +
-        wxString::Format("%d %d %d",
-            m_typ.correctedPositionX + m_positionX,
-            m_typ.correctedPositionY + m_positionY,
-            KiROUND((double)m_typ.textHeight / 2.0)) + ' ' + visibility + wxT(" C C\n"));
+    if( m_typ.textRotation == 900 || m_typ.textRotation == 2700 )
+        orientation = 'V';
+    else
+        orientation = 'H';
 
-//  SOME ROTATION MATRICS ?????????????
-//    1    2900 5200
+    aFile->Write( wxT( "F 1 \"" ) + m_typ.text + wxT( "\" " ) + orientation + ' ' +
+                  wxString::Format( "%d %d %d",
+                                    m_typ.correctedPositionX + m_positionX,
+                                    m_typ.correctedPositionY + m_positionY,
+                                    KiROUND( (double) m_typ.textHeight / 2.0 ) ) +
+                  ' ' + visibility + wxT( " C C\n" ) );
+
+// SOME ROTATION MATRICS ?????????????
+// 1    2900 5200
 /*  270 :
-No Mirror       0    -1   -1    0
-   MirrorX      0    -1    1    0
-   MirrorY      0    -1    1    0
-
-  180  :
-No Mirror      -1   0    0     1
-   MirrorX     -1   0    0    -1
-   MirrorY      1   0    0     1
-
-  R90  :
-No Mirror       0    1    1    0
-   MirrorX      0    1   -1    0
-   MirrorY      0    1    -1   0
-
-  0    :
-No Mirror       1   0    0   -1
-   MirrorX      1   0    0    1
-   MirrorY     -1   0    0   -1
-*/
-    aFile->Write(wxString::Format(" 	%d %d %d\n", m_partNum, m_positionX, m_positionY));
+ *  No Mirror       0    -1   -1    0
+ *  MirrorX      0    -1    1    0
+ *  MirrorY      0    -1    1    0
+ *
+ *  180  :
+ *  No Mirror      -1   0    0     1
+ *  MirrorX     -1   0    0    -1
+ *  MirrorY      1   0    0     1
+ *
+ *  R90  :
+ *  No Mirror       0    1    1    0
+ *  MirrorX      0    1   -1    0
+ *  MirrorY      0    1    -1   0
+ *
+ *  0    :
+ *  No Mirror       1   0    0   -1
+ *  MirrorX      1   0    0    1
+ *  MirrorY     -1   0    0   -1
+ */
+    aFile->Write( wxString::Format( " %d %d %d\n", m_partNum, m_positionX, m_positionY ) );
     // Miror is negative in compare with PCad represenation...
     a = 0; b = 0; c = 0; d = 0;
 
-    if (m_mirror == 0) {
-        if (m_rotation == 0) {a = 1; d = -1; }
-        if (m_rotation == 900) { b = -1; c = -1; }
-        if (m_rotation == 1800) { a = -1; d = 1; }
-        if (m_rotation == 2700) { b = 1; c = 1; }
+    if( m_mirror == 0 )
+    {
+        if( m_rotation == 0 )
+        {
+            a = 1; d = -1;
+        }
+
+        if( m_rotation == 900 )
+        {
+            b = -1; c = -1;
+        }
+
+        if( m_rotation == 1800 )
+        {
+            a = -1; d = 1;
+        }
+
+        if( m_rotation == 2700 )
+        {
+            b = 1; c = 1;
+        }
     }
 
-    if (m_mirror == 1) {
-        if (m_rotation == 0) { a = -1; d = -1; }
-        if (m_rotation == 900) { b = 1; c = -1; }
-        if (m_rotation == 1800) { a = 1; d = 1; }
-        if (m_rotation == 2700) { b = -1; c = 1; }
+    if( m_mirror == 1 )
+    {
+        if( m_rotation == 0 )
+        {
+            a = -1; d = -1;
+        }
+
+        if( m_rotation == 900 )
+        {
+            b = 1; c = -1;
+        }
+
+        if( m_rotation == 1800 )
+        {
+            a = 1; d = 1;
+        }
+
+        if( m_rotation == 2700 )
+        {
+            b = -1; c = 1;
+        }
     }
 
-    aFile->Write(wxString::Format(" %d %d %d %d \n", a, b, c, d));
+    aFile->Write( wxString::Format( " %d %d %d %d \n", a, b, c, d ) );
     // FOOTPRINT
 }

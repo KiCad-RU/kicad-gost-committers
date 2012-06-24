@@ -43,14 +43,14 @@ public:
     int m_angle;
     int m_width;
 
-    PCB_ARC(PCB_CALLBACKS *aCallbacks);
+    PCB_ARC( PCB_CALLBACKS* aCallbacks );
     ~PCB_ARC();
 
-    virtual void Parse(wxXmlNode *aNode, int aLayer,
-        wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void    Parse( wxXmlNode* aNode, int aLayer,
+                           wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int aX_offs, int aY_offs);
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    virtual void    SetPosOffset( int aX_offs, int aY_offs );
 };
 
-#endif // PCB_ARC_H_
+#endif    // PCB_ARC_H_

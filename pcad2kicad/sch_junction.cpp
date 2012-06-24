@@ -34,33 +34,46 @@
 
 #include <sch_junction.h>
 
-SCH_JUNCTION::SCH_JUNCTION(int aX, int aY, wxString aNet) : m_net(aNet)
+SCH_JUNCTION::SCH_JUNCTION( int aX, int aY, wxString aNet ) : m_net( aNet )
 {
     m_positionX = aX;
     m_positionY = aY;
-    m_objType = 'J';
+    m_objType   = 'J';
 }
 
-SCH_JUNCTION::~SCH_JUNCTION() {
+
+SCH_JUNCTION::~SCH_JUNCTION()
+{
 }
 
-void SCH_JUNCTION::Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
+
+void SCH_JUNCTION::Parse( wxXmlNode*    aNode,
+                          wxString      aDefaultMeasurementUnit,
+                          wxString      aActualConversion )
+{
     wxString propValue;
 
     m_net = wxEmptyString;
 
-    if (FindNode(aNode->GetChildren(), wxT("pt"))) {
-        SetPosition(FindNode(aNode->GetChildren(), wxT("pt"))->GetNodeContent(),
-            aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion);
+    if( FindNode( aNode->GetChildren(), wxT( "pt" ) ) )
+    {
+        SetPosition( FindNode( aNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+                     aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion );
     }
-    if (FindNode(aNode->GetChildren(), wxT("netNameRef"))) {
-        FindNode(aNode->GetChildren(), wxT("netNameRef"))->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(true);
-        propValue.Trim(false);
+
+    if( FindNode( aNode->GetChildren(), wxT( "netNameRef" ) ) )
+    {
+        FindNode( aNode->GetChildren(), wxT( "netNameRef" ) )->GetPropVal( wxT(
+                                                                               "Name" ),
+                                                                           &propValue );
+        propValue.Trim( true );
+        propValue.Trim( false );
         m_net = propValue;
     }
 }
 
-void SCH_JUNCTION::WriteToFile(wxFile *aFile, char aFileType) {
-    aFile->Write(wxString::Format("Connection ~ %d %d\n", m_positionX, m_positionY));
+
+void SCH_JUNCTION::WriteToFile( wxFile* aFile, char aFileType )
+{
+    aFile->Write( wxString::Format( "Connection ~ %d %d\n", m_positionX, m_positionY ) );
 }

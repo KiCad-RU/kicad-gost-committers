@@ -38,27 +38,31 @@
 class SCH : public wxObject
 {
 public:
-    SCH_COMPONENTS_ARRAY m_schComponents;
-    wxString m_defaultMeasurementUnit;
+    SCH_COMPONENTS_ARRAY    m_schComponents;
+    wxString                m_defaultMeasurementUnit;
     int m_sizeX, m_sizeY;
 
     SCH();
     ~SCH();
 
-    void Parse(wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActualConversion);
+    void            Parse( wxStatusBar* aStatusBar,
+                           wxString     aXMLFileName,
+                           wxString     aActualConversion );
 
-    virtual void WriteToFile(wxString aFileName, char aFileType);
+    virtual void    WriteToFile( wxString aFileName, char aFileType );
 
 private:
-    void DoAlias(wxString aAlias);
-    void DoLibrary(wxXmlDocument *aXmlDoc, wxStatusBar* aStatusBar, wxString aActualConversion);
+    void            DoAlias( wxString aAlias );
+    void            DoLibrary( wxXmlDocument*   aXmlDoc,
+                               wxStatusBar*     aStatusBar,
+                               wxString         aActualConversion );
 
-    void LinesIntersect(const int aX1, const int aY1, const int aX2, const int aY2,
-                    const int aX3, const int aY3, const int aX4, const int aY4,
-                    int *aCode, int *aX, int *aY);
+    void            LinesIntersect( const int aX1, const int aY1, const int aX2, const int aY2,
+                                    const int aX3, const int aY3, const int aX4, const int aY4,
+                                    int* aCode, int* aX, int* aY );
 
-    bool IsPointOnLine(int aX, int aY, SCH_LINE *aLine);
-    SCH_JUNCTION *CheckJunction(SCH_LINE *aSchLine, int aIndex);
+    bool            IsPointOnLine( int aX, int aY, SCH_LINE* aLine );
+    SCH_JUNCTION*   CheckJunction( SCH_LINE* aSchLine, int aIndex );
 };
 
-#endif // SCH_H_
+#endif    // SCH_H_

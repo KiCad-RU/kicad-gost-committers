@@ -35,66 +35,89 @@
 #include <pcb_line.h>
 
 
-PCB_LINE::PCB_LINE(PCB_CALLBACKS *aCallbacks) : PCB_COMPONENT(aCallbacks) {
-    m_width = 0;
-    m_toX = 0;
-    m_toY = 0;
-    m_objType = 'L';
+PCB_LINE::PCB_LINE( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+{
+    m_width     = 0;
+    m_toX       = 0;
+    m_toY       = 0;
+    m_objType   = 'L';
 }
 
-PCB_LINE::~PCB_LINE() {
+
+PCB_LINE::~PCB_LINE()
+{
 }
 
-void PCB_LINE::Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
-    wxXmlNode *lNode;
-    wxString propValue;
 
-    m_PCadLayer = aLayer;
-    m_KiCadLayer = GetKiCadLayer();
-    m_positionX = 0;
-    m_positionY = 0;
-    m_toX = 0;
-    m_toY = 0;
+void PCB_LINE::Parse( wxXmlNode*    aNode,
+                      int           aLayer,
+                      wxString      aDefaultMeasurementUnit,
+                      wxString      aActualConversion )
+{
+    wxXmlNode*  lNode;
+    wxString    propValue;
+
+    m_PCadLayer     = aLayer;
+    m_KiCadLayer    = GetKiCadLayer();
+    m_positionX     = 0;
+    m_positionY     = 0;
+    m_toX   = 0;
+    m_toY   = 0;
     m_width = 0;
-    lNode = FindNode(aNode->GetChildren(), wxT("pt"));
-    if (lNode)
-        SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                    &m_positionX, &m_positionY, aActualConversion);
+    lNode   = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+
+    if( lNode )
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_positionX, &m_positionY, aActualConversion );
 
     lNode = lNode->GetNext();
-    if (lNode)
-        SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                    &m_toX, &m_toY, aActualConversion);
 
-    lNode = FindNode(aNode->GetChildren(), wxT("width"));
-    if (lNode) SetWidth(lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion);
+    if( lNode )
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_toX, &m_toY, aActualConversion );
 
-    lNode = FindNode(aNode->GetChildren(), wxT("netNameRef"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
+    lNode = FindNode( aNode->GetChildren(), wxT( "width" ) );
+
+    if( lNode )
+        SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion );
+
+    lNode = FindNode( aNode->GetChildren(), wxT( "netNameRef" ) );
+
+    if( lNode )
+    {
+        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
         m_net = propValue;
     }
 }
 
-void PCB_LINE::SetPosOffset(int aX_offs, int aY_offs) {
-    PCB_COMPONENT::SetPosOffset(aX_offs, aY_offs);
-    m_toX += aX_offs;
-    m_toY += aY_offs;
+
+void PCB_LINE::SetPosOffset( int aX_offs, int aY_offs )
+{
+    PCB_COMPONENT::SetPosOffset( aX_offs, aY_offs );
+
+    m_toX   += aX_offs;
+    m_toY   += aY_offs;
 }
 
-void PCB_LINE::WriteToFile(wxFile *aFile, char aFileType) {
-    if (aFileType == 'L') { // Library
-        aFile->Write(wxString::Format("DS %d %d %d %d %d %d\n", m_positionX, m_positionY,
-                 m_toX, m_toY, m_width, m_KiCadLayer)); // Position
+
+void PCB_LINE::WriteToFile( wxFile* aFile, char aFileType )
+{
+    if( aFileType == 'L' )    // Library
+    {
+        aFile->Write( wxString::Format( "DS %d %d %d %d %d %d\n", m_positionX, m_positionY,
+                                        m_toX, m_toY, m_width, m_KiCadLayer ) ); // Position
     }
 
-    if (aFileType == 'P') { // PCB
-        aFile->Write(wxString::Format("Po 0 %d %d %d %d %d\n", m_positionX, m_positionY,
-                 m_toX, m_toY, m_width));
-        if (m_timestamp == 0)
-            aFile->Write(wxString::Format("De %d 0 0 0 0\n", m_KiCadLayer));
-        else aFile->Write(wxString::Format("De %d 0 0 %8X 0\n", m_KiCadLayer, m_timestamp));
+    if( aFileType == 'P' )    // PCB
+    {
+        aFile->Write( wxString::Format( "Po 0 %d %d %d %d %d\n", m_positionX, m_positionY,
+                                        m_toX, m_toY, m_width ) );
+
+        if( m_timestamp == 0 )
+            aFile->Write( wxString::Format( "De %d 0 0 0 0\n", m_KiCadLayer ) );
+        else
+            aFile->Write( wxString::Format( "De %d 0 0 %8X 0\n", m_KiCadLayer, m_timestamp ) );
     }
 }

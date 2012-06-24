@@ -33,26 +33,36 @@
 #include <pcb_cutout.h>
 
 
-PCB_CUTOUT::PCB_CUTOUT(PCB_CALLBACKS *aCallbacks) : PCB_POLYGON(aCallbacks) {
+PCB_CUTOUT::PCB_CUTOUT( PCB_CALLBACKS* aCallbacks ) : PCB_POLYGON( aCallbacks )
+{
     m_objType = 'C';
 }
 
-PCB_CUTOUT::~PCB_CUTOUT() {
+
+PCB_CUTOUT::~PCB_CUTOUT()
+{
 }
 
+
 // It seems that the same cutouts (with the same vertices) are inside of copper pour objects
-void PCB_CUTOUT::Parse(wxXmlNode *aNode, int aPCadLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
-    m_PCadLayer = aPCadLayer;
-    m_KiCadLayer = GetKiCadLayer();
+void PCB_CUTOUT::Parse( wxXmlNode*  aNode,
+                        int         aPCadLayer,
+                        wxString    aDefaultMeasurementUnit,
+                        wxString    aActualConversion )
+{
+    m_PCadLayer     = aPCadLayer;
+    m_KiCadLayer    = GetKiCadLayer();
 
     // retrieve cutout outline
-    FormPolygon(aNode, &m_outline, aDefaultMeasurementUnit, aActualConversion);
+    FormPolygon( aNode, &m_outline, aDefaultMeasurementUnit, aActualConversion );
 
     m_positionX = m_outline[0]->x;
     m_positionY = m_outline[0]->y;
 }
 
-void PCB_CUTOUT::WriteToFile(wxFile *aFile, char aFileType) {
-    //no operation
-    //(It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
+
+void PCB_CUTOUT::WriteToFile( wxFile* aFile, char aFileType )
+{
+    // no operation
+    // (It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
 }

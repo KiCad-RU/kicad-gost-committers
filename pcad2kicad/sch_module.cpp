@@ -37,262 +37,346 @@
 #include <sch_line.h>
 #include <sch_pin.h>
 
-SCH_MODULE::SCH_MODULE() {
+SCH_MODULE::SCH_MODULE()
+{
     int i;
-    InitTTextValue(&m_name);
-    InitTTextValue(&m_reference);
+
+    InitTTextValue( &m_name );
+    InitTTextValue( &m_reference );
     m_numParts = 0;
-    m_attachedPattern = wxEmptyString;
+    m_attachedPattern   = wxEmptyString;
     m_moduleDescription = wxEmptyString;
     m_alias = wxEmptyString;
 
-    for (i = 0; i < 10; i++)
+    for( i = 0; i < 10; i++ )
         m_attachedSymbols[i] = wxEmptyString;
 }
 
-SCH_MODULE::~SCH_MODULE() {
+
+SCH_MODULE::~SCH_MODULE()
+{
     int i;
 
-    for (i = 0; i < (int)m_moduleObjects.GetCount(); i++)
+    for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
         delete m_moduleObjects[i];
 }
 
-void SCH_MODULE::Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar,
-    wxString aDefaultMeasurementUnit, wxString aActualConversion)
+
+void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
+                        wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxString propValue, str;
-    wxXmlNode *lNode, *tNode;
-    SCH_PIN *pin;
-    long num;
-    int i;
+    wxString    propValue, str;
+    wxXmlNode*  lNode, * tNode;
+    SCH_PIN*    pin;
+    long        num;
+    int         i;
 
-    FindNode(aNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"), &propValue);
-    propValue.Trim(false);
+    FindNode( aNode->GetChildren(), wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
+                                                                         &propValue );
+    propValue.Trim( false );
     m_name.text = propValue;
-    m_objType = 'M';
-    aStatusBar->SetStatusText(wxT("Creating Component : ") + m_name.text);
+    m_objType   = 'M';
+    aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
 
-    lNode = FindNode(aNode->GetChildren(), wxT("compHeader"));
-    if (lNode) {
-        if (FindNode(lNode->GetChildren(), wxT("refDesPrefix")))
-            FindNode(lNode->GetChildren(), wxT("refDesPrefix"))->GetPropVal(wxT("Name"),
-                &m_reference.text);
+    lNode = FindNode( aNode->GetChildren(), wxT( "compHeader" ) );
 
-        if (FindNode(lNode->GetChildren(), wxT("numParts"))) {
-            FindNode(lNode->GetChildren(), wxT("numParts"))->GetNodeContent().ToLong(&num);
-            m_numParts = (int)num;
+    if( lNode )
+    {
+        if( FindNode( lNode->GetChildren(), wxT( "refDesPrefix" ) ) )
+            FindNode( lNode->GetChildren(),
+                      wxT( "refDesPrefix" ) )->GetPropVal( wxT( "Name" ), &m_reference.text );
+
+
+        if( FindNode( lNode->GetChildren(), wxT( "numParts" ) ) )
+        {
+            FindNode( lNode->GetChildren(), wxT( "numParts" ) )->GetNodeContent().ToLong( &num );
+            m_numParts = (int) num;
         }
     }
 
     tNode = aNode->GetChildren();
-    while (tNode) {
-        if (tNode->GetName() == wxT("compPin")) {
+
+    while( tNode )
+    {
+        if( tNode->GetName() == wxT( "compPin" ) )
+        {
             pin = new SCH_PIN;
-            pin->Parse(tNode);
-            m_moduleObjects.Add(pin);
+            pin->Parse( tNode );
+            m_moduleObjects.Add( pin );
         }
 
-        if (tNode->GetName() == wxT("attachedSymbol")) {
-            if (FindNode(tNode->GetChildren(), wxT("altType"))) {
-                str = FindNode(tNode->GetChildren(), wxT("altType"))->GetNodeContent();
-                str.Trim(false);
-                str.Trim(true);
-                if (str == wxT("Normal"))
+        if( tNode->GetName() == wxT( "attachedSymbol" ) )
+        {
+            if( FindNode( tNode->GetChildren(), wxT( "altType" ) ) )
+            {
+                str = FindNode( tNode->GetChildren(), wxT( "altType" ) )->GetNodeContent();
+                str.Trim( false );
+                str.Trim( true );
+
+                if( str == wxT( "Normal" ) )
                 {
-                    FindNode(tNode->GetChildren(), wxT("partNum"))->GetNodeContent().ToLong(&num);
-                    FindNode(tNode->GetChildren(), wxT("symbolName"))->GetPropVal(wxT("Name"),
-                        &m_attachedSymbols[(int)num]);
+                    FindNode( tNode->GetChildren(),
+                              wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
+                    FindNode( tNode->GetChildren(),
+                              wxT( "symbolName" ) )->GetPropVal( wxT("Name" ),
+                                                                 &m_attachedSymbols[(int)num] );
                 }
             }
         }
-        if (tNode->GetName() == wxT("attachedPattern")) {
-            FindNode(tNode->GetChildren(), wxT("patternName"))->GetPropVal(wxT("Name"),
-                &m_attachedPattern);
+
+        if( tNode->GetName() == wxT( "attachedPattern" ) )
+        {
+            FindNode( tNode->GetChildren(),
+                      wxT( "patternName" ) )->GetPropVal( wxT( "Name" ), &m_attachedPattern );
         }
-        if (tNode->GetName() == wxT("attr")) {
-            tNode->GetPropVal(wxT("Name"), &propValue);
-            if (propValue.Len() > 13 && propValue.Left(12) == wxT("Description "))
-                m_moduleDescription = propValue.Left(13);
+
+        if( tNode->GetName() == wxT( "attr" ) )
+        {
+            tNode->GetPropVal( wxT( "Name" ), &propValue );
+
+            if( propValue.Len() > 13 && propValue.Left( 12 ) == wxT( "Description " ) )
+                m_moduleDescription = propValue.Left( 13 );
         }
+
         tNode = tNode->GetNext();
     }
 
-    for (i = 0; i < m_numParts; i++)
-        FindAndProcessSymbolDef(aNode, i + 1, aDefaultMeasurementUnit, aActualConversion);
+    for( i = 0; i < m_numParts; i++ )
+        FindAndProcessSymbolDef( aNode, i + 1, aDefaultMeasurementUnit, aActualConversion );
 }
 
-void SCH_MODULE::SetPinProperties(wxXmlNode *aNode, int aSymbolIndex,
-    wxString aDefaultMeasurementUnit, wxString aActualConversion)
-{
-    SCH_PIN *schPin;
-    int i;
 
-    for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
-        if ((m_moduleObjects[i])->m_objType == 'P') {
-            schPin = (SCH_PIN *)m_moduleObjects[i];
-            schPin->ParsePinProperties(aNode, aSymbolIndex,
-                aDefaultMeasurementUnit, aActualConversion);
+void SCH_MODULE::SetPinProperties( wxXmlNode* aNode, int aSymbolIndex,
+                                   wxString aDefaultMeasurementUnit, wxString aActualConversion )
+{
+    SCH_PIN*    schPin;
+    int         i;
+
+    for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+    {
+        if( (m_moduleObjects[i])->m_objType == 'P' )
+        {
+            schPin = (SCH_PIN*) m_moduleObjects[i];
+            schPin->ParsePinProperties( aNode, aSymbolIndex,
+                                        aDefaultMeasurementUnit, aActualConversion );
         }
     }
 }
 
-void SCH_MODULE::FindAndProcessSymbolDef(wxXmlNode *aNode, int aSymbolIndex,
-    wxString aDefaultMeasurementUnit, wxString aActualConversion)
+
+void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
+                                          int           aSymbolIndex,
+                                          wxString      aDefaultMeasurementUnit,
+                                          wxString      aActualConversion )
 {
-    wxXmlNode *tNode, *ttNode;
-    wxString propValue, propValue2;
-    SCH_LINE *line;
-    SCH_ARC *arc;
+    wxXmlNode*  tNode, * ttNode;
+    wxString    propValue, propValue2;
+    SCH_LINE*   line;
+    SCH_ARC*    arc;
 
     tNode = aNode;
-    while (tNode->GetName() != wxT("www.lura.sk"))
+
+    while( tNode->GetName() != wxT( "www.lura.sk" ) )
         tNode = tNode->GetParent();
 
-    tNode = FindNode(tNode->GetChildren(), wxT("library"));
-    if (tNode) {
-        tNode = FindNode(tNode->GetChildren(), wxT("symbolDef"));
-        while (tNode) {
-            tNode->GetPropVal(wxT("Name"), &propValue);
-            if (FindNode(tNode->GetChildren(), wxT("originalName")))
-                FindNode(tNode->GetChildren(), wxT("originalName"))->GetPropVal(wxT("Name"),
-                    &propValue2);
+    tNode = FindNode( tNode->GetChildren(), wxT( "library" ) );
 
-            if (tNode->GetName() == wxT("symbolDef") &&
-                 (propValue == m_attachedSymbols[aSymbolIndex] ||
-                 (FindNode(tNode->GetChildren(), wxT("originalName")) &&
-                  propValue2 == m_attachedSymbols[aSymbolIndex])))
+    if( tNode )
+    {
+        tNode = FindNode( tNode->GetChildren(), wxT( "symbolDef" ) );
+
+        while( tNode )
+        {
+            tNode->GetPropVal( wxT( "Name" ), &propValue );
+
+            if( FindNode( tNode->GetChildren(), wxT( "originalName" ) ) )
+                FindNode( tNode->GetChildren(), wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
+                                                                                     &propValue2 );
+
+
+            if( tNode->GetName() == wxT( "symbolDef" )
+                && ( propValue == m_attachedSymbols[aSymbolIndex]
+                     || (FindNode( tNode->GetChildren(), wxT( "originalName" ) )
+                         && propValue2 == m_attachedSymbols[aSymbolIndex]) ) )
             {
-                ttNode = tNode;
-                tNode = FindNode(ttNode->GetChildren(), wxT("pin"));
-                while (tNode) {
-                    if (tNode->GetName() == wxT("pin") &&
-                        FindNode(tNode->GetChildren(), wxT("pinNum")))
+                ttNode  = tNode;
+                tNode   = FindNode( ttNode->GetChildren(), wxT( "pin" ) );
+
+                while( tNode )
+                {
+                    if( tNode->GetName() == wxT( "pin" )
+                        && FindNode( tNode->GetChildren(), wxT( "pinNum" ) ) )
                     {
-                        SetPinProperties(tNode, aSymbolIndex,
-                            aDefaultMeasurementUnit, aActualConversion);
+                        SetPinProperties( tNode, aSymbolIndex,
+                                          aDefaultMeasurementUnit, aActualConversion );
                     }
 
                     tNode = tNode->GetNext();
                 }
-                tNode = FindNode(ttNode->GetChildren(), wxT("line"));
-                while (tNode) {
-                    if (tNode->GetName() == wxT("line")) {
+
+                tNode = FindNode( ttNode->GetChildren(), wxT( "line" ) );
+
+                while( tNode )
+                {
+                    if( tNode->GetName() == wxT( "line" ) )
+                    {
                         line = new SCH_LINE;
-                        line->Parse(tNode, aSymbolIndex,
-                            aDefaultMeasurementUnit, aActualConversion);
-                        m_moduleObjects.Add(line);
+                        line->Parse( tNode, aSymbolIndex,
+                                     aDefaultMeasurementUnit, aActualConversion );
+                        m_moduleObjects.Add( line );
                     }
+
                     tNode = tNode->GetNext();
                 }
-                tNode = FindNode(ttNode->GetChildren(), wxT("arc"));
-                while (tNode) {
-                    if (tNode->GetName() == wxT("arc")) {
+
+                tNode = FindNode( ttNode->GetChildren(), wxT( "arc" ) );
+
+                while( tNode )
+                {
+                    if( tNode->GetName() == wxT( "arc" ) )
+                    {
                         arc = new SCH_ARC;
-                        arc->Parse(tNode, aSymbolIndex,
-                            aDefaultMeasurementUnit, aActualConversion);
-                        m_moduleObjects.Add(arc);
+                        arc->Parse( tNode, aSymbolIndex,
+                                    aDefaultMeasurementUnit, aActualConversion );
+                        m_moduleObjects.Add( arc );
                     }
+
                     tNode = tNode->GetNext();
                 }
-                tNode = FindNode(ttNode->GetChildren(), wxT("triplePointArc"));
-                while (tNode) {
-                    if (tNode->GetName() == wxT("triplePointArc")) {
+
+                tNode = FindNode( ttNode->GetChildren(), wxT( "triplePointArc" ) );
+
+                while( tNode )
+                {
+                    if( tNode->GetName() == wxT( "triplePointArc" ) )
+                    {
                         arc = new SCH_ARC;
-                        arc->Parse(tNode, aSymbolIndex,
-                            aDefaultMeasurementUnit, aActualConversion);
-                        m_moduleObjects.Add(arc);
+                        arc->Parse( tNode, aSymbolIndex,
+                                    aDefaultMeasurementUnit, aActualConversion );
+                        m_moduleObjects.Add( arc );
                     }
+
                     tNode = tNode->GetNext();
                 }
 
                 tNode = ttNode->GetChildren();
-                while (tNode) {
-                    if (tNode->GetName() == wxT("attr")) {
-                          // Reference
-                          tNode->GetPropVal(wxT("Name"), &propValue);
-                          propValue.Trim(false);
-                          propValue.Trim(true);
-                          if (propValue == wxT("RefDes"))
-                              SetTextParameters(tNode, &m_reference,
-                                  aDefaultMeasurementUnit, aActualConversion);
-                          // Type
-                          if (propValue == wxT("Type {Type}"))
-                              SetTextParameters(tNode, &m_name,
-                                  aDefaultMeasurementUnit, aActualConversion);
-                          // OR
-                          if (propValue == wxT("Type"))
-                              SetTextParameters(tNode, &m_name,
-                                  aDefaultMeasurementUnit, aActualConversion);
+
+                while( tNode )
+                {
+                    if( tNode->GetName() == wxT( "attr" ) )
+                    {
+                        // Reference
+                        tNode->GetPropVal( wxT( "Name" ), &propValue );
+                        propValue.Trim( false );
+                        propValue.Trim( true );
+
+                        if( propValue == wxT( "RefDes" ) )
+                            SetTextParameters( tNode, &m_reference,
+                                               aDefaultMeasurementUnit, aActualConversion );
+
+                        // Type
+                        if( propValue == wxT( "Type {Type}" ) )
+                            SetTextParameters( tNode, &m_name,
+                                               aDefaultMeasurementUnit, aActualConversion );
+
+                        // OR
+                        if( propValue == wxT( "Type" ) )
+                            SetTextParameters( tNode, &m_name,
+                                               aDefaultMeasurementUnit, aActualConversion );
                     }
+
                     tNode = tNode->GetNext();
                 }
             }
-            if (tNode) tNode = tNode->GetNext();
+
+            if( tNode )
+                tNode = tNode->GetNext();
         }
     }
 }
 
-void SCH_MODULE::WriteToFile(wxFile *aFile, char aFileType) {
+
+void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
+{
     int i, symbolIndex;
-    CorrectTextPosition(&m_name, m_rotation);
-    CorrectTextPosition(&m_reference, m_rotation);
+
+    CorrectTextPosition( &m_name, m_rotation );
+    CorrectTextPosition( &m_reference, m_rotation );
     // Go out
-    aFile->Write(wxT("\n"));
-    aFile->Write(wxT("#\n"));
-    aFile->Write(wxT("# ") + m_name.text + wxT("\n"));
-    aFile->Write(wxT("#\n"));
-    aFile->Write("DEF " + ValidateName(m_name.text) + " U 0 40 Y Y " +
-        wxString::Format("%d F N\n", m_numParts));
+    aFile->Write( wxT( "\n" ) );
+    aFile->Write( wxT( "#\n" ) );
+    aFile->Write( wxT( "# " ) + m_name.text + wxT( "\n" ) );
+    aFile->Write( wxT( "#\n" ) );
+    aFile->Write( "DEF " + ValidateName( m_name.text ) + " U 0 40 Y Y " +
+                  wxString::Format( "%d F N\n", m_numParts ) );
 
     // REFERENCE
-    aFile->Write(wxT("F0 \"") + m_reference.text + "\" " +
-        wxString::Format("%d %d 50 H V C C\n",
-            m_reference.correctedPositionX, m_reference.correctedPositionY));
+    aFile->Write( wxT( "F0 \"" ) + m_reference.text + "\" " +
+                  wxString::Format( "%d %d 50 H V C C\n",
+                                    m_reference.correctedPositionX,
+                                    m_reference.correctedPositionY ) );
     // NAME
-    aFile->Write(wxT("F1 \"") + m_name.text + "\" " +
-        wxString::Format("%d %d 50 H V C C\n",
-            m_name.correctedPositionX, m_name.correctedPositionY));
+    aFile->Write( wxT( "F1 \"" ) + m_name.text + "\" " +
+                  wxString::Format( "%d %d 50 H V C C\n",
+                                    m_name.correctedPositionX, m_name.correctedPositionY ) );
     // FOOTPRINT
-    aFile->Write(wxT("F2 \"") + m_attachedPattern +
-        wxT("\" 0 0 50 H I C C\n")); // invisible as default
+    aFile->Write( wxT( "F2 \"" ) + m_attachedPattern +
+                  wxT( "\" 0 0 50 H I C C\n" ) ); // invisible as default
 
     // Footprints filter
-    if (m_attachedPattern.Len() > 0) {
-        //$FPLIST  //SCHModule.AttachedPattern
-        //14DIP300*
-        //SO14*
-        //$ENDFPLIST
-        aFile->Write(wxT("$FPLIST\n"));
-        aFile->Write(' ' + m_attachedPattern + wxT("*\n"));
-        aFile->Write(wxT("$ENDFPLIST\n"));
-    }
-    // Alias
-    if (m_alias.Len() > 0) {
-        // ALIAS 74LS37 7400 74HCT00 74HC00
-        aFile->Write(wxT("ALIAS") + m_alias + wxT("\n"));
+    if( m_attachedPattern.Len() > 0 )
+    {
+        // $FPLIST  //SCHModule.AttachedPattern
+        // 14DIP300*
+        // SO14*
+        // $ENDFPLIST
+        aFile->Write( wxT( "$FPLIST\n" ) );
+        aFile->Write( ' ' + m_attachedPattern + wxT( "*\n" ) );
+        aFile->Write( wxT( "$ENDFPLIST\n" ) );
     }
 
-    aFile->Write(wxT("DRAW\n"));
-    for (symbolIndex = 1; symbolIndex <= m_numParts; symbolIndex++) {
+    // Alias
+    if( m_alias.Len() > 0 )
+    {
+        // ALIAS 74LS37 7400 74HCT00 74HC00
+        aFile->Write( wxT( "ALIAS" ) + m_alias + wxT( "\n" ) );
+    }
+
+    aFile->Write( wxT( "DRAW\n" ) );
+
+    for( symbolIndex = 1; symbolIndex <= m_numParts; symbolIndex++ )
+    {
         // LINES=POLYGONS
-        for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
-            if (m_moduleObjects[i]->m_objType == 'L')
-                if (((SCH_LINE *)m_moduleObjects[i])->m_partNum == symbolIndex)
-                    m_moduleObjects[i]->WriteToFile(aFile, aFileType);
+        for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+        {
+            if( m_moduleObjects[i]->m_objType == 'L' )
+                if( ( (SCH_LINE*) m_moduleObjects[i] )->m_partNum == symbolIndex )
+                    m_moduleObjects[i]->WriteToFile( aFile, aFileType );
+
+
         }
+
         // ARCS
-        for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
-            if (m_moduleObjects[i]->m_objType == 'A')
-                if (((SCH_ARC *)m_moduleObjects[i])->m_partNum == symbolIndex)
-                    m_moduleObjects[i]->WriteToFile(aFile, aFileType);
+        for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+        {
+            if( m_moduleObjects[i]->m_objType == 'A' )
+                if( ( (SCH_ARC*) m_moduleObjects[i] )->m_partNum == symbolIndex )
+                    m_moduleObjects[i]->WriteToFile( aFile, aFileType );
+
+
         }
+
         // PINS
-        for (i = 0; i < (int)m_moduleObjects.GetCount(); i++) {
-            if (m_moduleObjects[i]->m_objType == 'P')
-                if (((SCH_PIN *)m_moduleObjects[i])->m_partNum == symbolIndex)
-                    m_moduleObjects[i]->WriteToFile(aFile, aFileType);
+        for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+        {
+            if( m_moduleObjects[i]->m_objType == 'P' )
+                if( ( (SCH_PIN*) m_moduleObjects[i] )->m_partNum == symbolIndex )
+                    m_moduleObjects[i]->WriteToFile( aFile, aFileType );
+
+
         }
     }
-    aFile->Write(wxT("ENDDRAW\n"));   // ??
-    aFile->Write(wxT("ENDDEF\n"));   // ??
+
+    aFile->Write( wxT( "ENDDRAW\n" ) );     // ??
+    aFile->Write( wxT( "ENDDEF\n" ) );      // ??
 }

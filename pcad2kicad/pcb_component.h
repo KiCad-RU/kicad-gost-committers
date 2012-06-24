@@ -40,32 +40,31 @@
 class PCB_COMPONENT : public wxObject
 {
 public:
-    int m_tag;
-    char m_objType;
-    int m_PCadLayer;
-    int m_KiCadLayer;
-    int m_timestamp;
-    int m_positionX;
-    int m_positionY;
-    int m_rotation;
-    TTEXTVALUE m_name;   // name has also privete positions, rotations nand so on....
-    wxString m_net;
-    wxString m_compRef;  // internal ussage for XL parsing
-    wxString m_patGraphRefName;  // internal ussage for XL parsing
+    int         m_tag;
+    char        m_objType;
+    int         m_PCadLayer;
+    int         m_KiCadLayer;
+    int         m_timestamp;
+    int         m_positionX;
+    int         m_positionY;
+    int         m_rotation;
+    TTEXTVALUE  m_name;             // name has also privete positions, rotations nand so on....
+    wxString    m_net;
+    wxString    m_compRef;          // internal ussage for XL parsing
+    wxString    m_patGraphRefName;  // internal ussage for XL parsing
 
-    PCB_COMPONENT(PCB_CALLBACKS *aCallbacks);
+    PCB_COMPONENT( PCB_CALLBACKS* aCallbacks );
     ~PCB_COMPONENT();
 
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int aX_offs, int aY_offs);
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    virtual void    SetPosOffset( int aX_offs, int aY_offs );
 
-    int GetKiCadLayer() { return m_callbacks->GetKiCadLayer(m_PCadLayer); }
+    int GetKiCadLayer() { return m_callbacks->GetKiCadLayer( m_PCadLayer ); }
     int GetNewTimestamp() { return m_callbacks->GetNewTimestamp(); }
-
 protected:
-    PCB_CALLBACKS *m_callbacks;
+    PCB_CALLBACKS* m_callbacks;
 };
 
-WX_DEFINE_ARRAY(PCB_COMPONENT *, PCB_COMPONENTS_ARRAY);
+WX_DEFINE_ARRAY( PCB_COMPONENT*, PCB_COMPONENTS_ARRAY );
 
-#endif // PCB_COMPONENT_H_
+#endif    // PCB_COMPONENT_H_

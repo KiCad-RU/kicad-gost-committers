@@ -37,7 +37,9 @@
 class SCH_BUS : public SCH_LINE
 {
 public:
-    virtual void Parse(wxXmlNode *aNode, wxString aDefaultMeasurementUnit, wxString aActualConversion);
+    virtual void Parse( wxXmlNode*  aNode,
+                        wxString    aDefaultMeasurementUnit,
+                        wxString    aActualConversion );
 };
 
-#endif // SCH_BUS_H_
+#endif    // SCH_BUS_H_

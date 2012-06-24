@@ -44,25 +44,25 @@
 
 // PCAD2KICAD_APP
 
-void EDA_APP::MacOpenFile(const wxString &fileName)
+void EDA_APP::MacOpenFile( const wxString& fileName )
 {
 }
 
-IMPLEMENT_APP(EDA_APP)
 
-///-----------------------------------------------------------------------------
+IMPLEMENT_APP( EDA_APP )
+
+// /-----------------------------------------------------------------------------
 // PCAD2KICAD_APP
 // main program
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
 bool EDA_APP::OnInit()
 {
+    InitEDA_Appl( wxT( "PCadToKiCad - PCad ASCII to KiCad conversion utility" ) );
 
-    InitEDA_Appl(wxT("PCadToKiCad - PCad ASCII to KiCad conversion utility"));
-
-    wxFrame* frame = new PCAD2KICAD_FRAME(NULL);
-    SetTopWindow(frame);
-    frame->Show(true);
+    wxFrame* frame = new PCAD2KICAD_FRAME( NULL );
+    SetTopWindow( frame );
+    frame->Show( true );
 
     return true;
 }

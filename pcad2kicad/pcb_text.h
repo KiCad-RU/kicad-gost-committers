@@ -40,12 +40,15 @@ class PCB_TEXT : public PCB_COMPONENT
 {
 public:
 
-    PCB_TEXT(PCB_CALLBACKS *aCallbacks);
+    PCB_TEXT( PCB_CALLBACKS* aCallbacks );
     ~PCB_TEXT();
 
-    virtual void Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion);
-    virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int aX_offs, int aY_offs);
+    virtual void    Parse( wxXmlNode*   aNode,
+                           int          aLayer,
+                           wxString     aDefaultMeasurementUnit,
+                           wxString     aActualConversion );
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    virtual void    SetPosOffset( int aX_offs, int aY_offs );
 };
 
-#endif // PCB_TEXT_H_
+#endif    // PCB_TEXT_H_

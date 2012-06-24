@@ -33,28 +33,47 @@
 #include <wx/wx.h>
 #include <wx/xml/xml.h>
 
-typedef struct _TTEXTVALUE {
-    wxString text;
-    int textPositionX, textPositionY,
-        textRotation, textHeight, textstrokeWidth;
+typedef struct _TTEXTVALUE
+{
+    wxString    text;
+    int         textPositionX, textPositionY,
+                textRotation, textHeight, textstrokeWidth;
     int textIsVisible, mirror, textUnit;
     int correctedPositionX, correctedPositionY;
 } TTEXTVALUE;
 
-extern wxString GetWord(wxString *aStr);
-extern wxXmlNode *FindPinMap(wxXmlNode *aNode);
-extern int StrToIntUnits(wxString aStr, char aAxe, wxString aActualConversion);
-extern wxString GetAndCutWordWithMeasureUnits(wxString *aStr, wxString aDefaultMeasurementUnit);
-extern int StrToInt1Units(wxString aStr);
-extern wxString ValidateName(wxString aName);
-extern void SetWidth(wxString aStr, wxString aDefaultMeasurementUnit, int *aWidth, wxString aActualConversion);
-extern void SetPosition(wxString aStr, wxString aDefaultMeasurementUnit, int *aX, int *aY, wxString aActualConversion);
-extern void SetDoublePrecisionPosition(wxString aStr, wxString aDefaultMeasurementUnit, double *aX, double *aY, wxString aActualConversion);
-extern void SetTextParameters(wxXmlNode *aNode, TTEXTVALUE *aTextValue, wxString aDefaultMeasurementUnit, wxString aActualConversion);
-extern void SetFontProperty(wxXmlNode *aNode, TTEXTVALUE *aTextValue, wxString aDefaultMeasurementUnit, wxString aActualConversion);
-extern void CorrectTextPosition(TTEXTVALUE *aValue, int aRotation);
+extern wxString     GetWord( wxString* aStr );
+extern wxXmlNode*   FindPinMap( wxXmlNode* aNode );
+extern int          StrToIntUnits( wxString aStr, char aAxe, wxString aActualConversion );
+extern wxString     GetAndCutWordWithMeasureUnits( wxString*    aStr,
+                                                   wxString     aDefaultMeasurementUnit );
+extern int          StrToInt1Units( wxString aStr );
+extern wxString     ValidateName( wxString aName );
+extern void         SetWidth( wxString  aStr,
+                              wxString  aDefaultMeasurementUnit,
+                              int*      aWidth,
+                              wxString  aActualConversion );
+extern void         SetPosition( wxString   aStr,
+                                 wxString   aDefaultMeasurementUnit,
+                                 int*       aX,
+                                 int*       aY,
+                                 wxString   aActualConversion );
+extern void         SetDoublePrecisionPosition( wxString    aStr,
+                                                wxString    aDefaultMeasurementUnit,
+                                                double*     aX,
+                                                double*     aY,
+                                                wxString    aActualConversion );
+extern void         SetTextParameters( wxXmlNode*   aNode,
+                                       TTEXTVALUE*  aTextValue,
+                                       wxString     aDefaultMeasurementUnit,
+                                       wxString     aActualConversion );
+extern void         SetFontProperty( wxXmlNode*     aNode,
+                                     TTEXTVALUE*    aTextValue,
+                                     wxString       aDefaultMeasurementUnit,
+                                     wxString       aActualConversion );
+extern void         CorrectTextPosition( TTEXTVALUE* aValue, int aRotation );
 
-extern wxXmlNode *FindNode(wxXmlNode *aChild, wxString aTag);
-extern void InitTTextValue(TTEXTVALUE *aTextValue);
+extern wxXmlNode*   FindNode( wxXmlNode* aChild, wxString aTag );
+extern void         InitTTextValue( TTEXTVALUE* aTextValue );
 
-#endif // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_
+#endif    // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_

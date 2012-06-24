@@ -35,71 +35,101 @@
 #include <pcb_arc.h>
 
 
-PCB_ARC::PCB_ARC(PCB_CALLBACKS *aCallbacks) : PCB_COMPONENT(aCallbacks) {
-    m_objType = 'A';
-    m_startX = 0;
-    m_startY = 0;
-    m_angle = 0;
-    m_width = 0;
+PCB_ARC::PCB_ARC( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+{
+    m_objType   = 'A';
+    m_startX    = 0;
+    m_startY    = 0;
+    m_angle     = 0;
+    m_width     = 0;
 }
 
-PCB_ARC::~PCB_ARC() {
+
+PCB_ARC::~PCB_ARC()
+{
 }
 
-void PCB_ARC::Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
-    wxXmlNode *lNode;
-    double r, a;
 
-    m_PCadLayer = aLayer;
-    m_KiCadLayer = GetKiCadLayer();
-    SetWidth(FindNode(aNode->GetChildren(), wxT("width"))->GetNodeContent(),
-        aDefaultMeasurementUnit, &m_width, aActualConversion);
+void PCB_ARC::Parse( wxXmlNode* aNode,
+                     int        aLayer,
+                     wxString   aDefaultMeasurementUnit,
+                     wxString   aActualConversion )
+{
+    wxXmlNode*  lNode;
+    double      r, a;
 
-    if (aNode->GetName() == wxT("triplePointArc")) {
+    m_PCadLayer     = aLayer;
+    m_KiCadLayer    = GetKiCadLayer();
+    SetWidth( FindNode( aNode->GetChildren(), wxT( "width" ) )->GetNodeContent(),
+              aDefaultMeasurementUnit, &m_width, aActualConversion );
+
+    if( aNode->GetName() == wxT( "triplePointArc" ) )
+    {
         // origin
-        lNode = FindNode(aNode->GetChildren(), wxT("pt"));
-        if (lNode) SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-            &m_positionX, &m_positionY, aActualConversion);
+        lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+
+        if( lNode )
+            SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                         &m_positionX, &m_positionY, aActualConversion );
+
         lNode = lNode->GetNext();
-        if (lNode)
-            SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                &m_startX, &m_startY, aActualConversion);
+
+        if( lNode )
+            SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                         &m_startX, &m_startY, aActualConversion );
+
         // now temporary, it can be fixed later.....
         m_angle = 3600;
     }
 
-    if (aNode->GetName() == wxT("arc")) {
-        lNode = FindNode(aNode->GetChildren(), wxT("pt"));
-        if (lNode) SetPosition(lNode->GetNodeContent(), aDefaultMeasurementUnit,
-            &m_positionX, &m_positionY, aActualConversion);
-        lNode = FindNode(aNode->GetChildren(), wxT("radius"));
-        r = StrToIntUnits(lNode->GetNodeContent(), ' ', aActualConversion);
-        a = StrToInt1Units(FindNode(aNode->GetChildren(), wxT("startAngle"))->GetNodeContent());
-        m_startX = KiROUND(m_positionX + r * sin((a - 900.0) * M_PI / 1800.0));
-        m_startY = KiROUND(m_positionY - r * cos((a - 900.0) * M_PI / 1800.0));
-        m_angle = StrToInt1Units(FindNode(aNode->GetChildren(), wxT("sweepAngle"))->GetNodeContent());
+    if( aNode->GetName() == wxT( "arc" ) )
+    {
+        lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+
+        if( lNode )
+            SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                         &m_positionX, &m_positionY, aActualConversion );
+
+        lNode = FindNode( aNode->GetChildren(), wxT( "radius" ) );
+        r = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
+        a = StrToInt1Units( FindNode( aNode->GetChildren(),
+                                      wxT( "startAngle" ) )->GetNodeContent() );
+        m_startX    = KiROUND( m_positionX + r * sin( (a - 900.0) * M_PI / 1800.0 ) );
+        m_startY    = KiROUND( m_positionY - r * cos( (a - 900.0) * M_PI / 1800.0 ) );
+        m_angle     = StrToInt1Units( FindNode( aNode->GetChildren(),
+                                                wxT( "sweepAngle" ) )->GetNodeContent() );
     }
 }
 
-void PCB_ARC::WriteToFile(wxFile *aFile, char aFileType) {
+
+void PCB_ARC::WriteToFile( wxFile* aFile, char aFileType )
+{
 /*
- DC ox oy fx fy w  DC is a Draw Circle  DC Xcentre Ycentre Xpoint Ypoint Width Layer
- DA x0 y0 x1 y1 angle width layer  DA is a Draw ArcX0,y0 = Start point x1,y1 = end point
-*/
-    if (aFileType == 'L') { // Library component
-        aFile->Write(wxString::Format("DA %d %d %d %d %d %d %d\n", m_positionX, m_positionY, m_startX,
-                 m_startY, m_angle, m_width, m_KiCadLayer)); // ValueString
+ *  DC ox oy fx fy w  DC is a Draw Circle  DC Xcentre Ycentre Xpoint Ypoint Width Layer
+ *  DA x0 y0 x1 y1 angle width layer  DA is a Draw ArcX0,y0 = Start point x1,y1 = end point
+ */
+    if( aFileType == 'L' )    // Library component
+    {
+        aFile->Write( wxString::Format( "DA %d %d %d %d %d %d %d\n",
+                                        m_positionX, m_positionY, m_startX,
+                                        m_startY, m_angle, m_width,
+                                        m_KiCadLayer ) ); // ValueString
     }
 
-    if (aFileType == 'P') { // PCB
-        aFile->Write(wxString::Format("Po 2 %d %d %d %d %d", m_positionX, m_positionY,
-                 m_startX, m_startY, m_width));
-        aFile->Write(wxString::Format("De %d 0 %d 0 0\n", m_KiCadLayer, -m_angle));
+    if( aFileType == 'P' )    // PCB
+    {
+        aFile->Write( wxString::Format( "Po 2 %d %d %d %d %d",
+                                        m_positionX, m_positionY,
+                                        m_startX, m_startY, m_width ) );
+        aFile->Write( wxString::Format( "De %d 0 %d 0 0\n", m_KiCadLayer, -m_angle ) );
     }
 }
 
-void PCB_ARC::SetPosOffset(int aX_offs, int aY_offs) {
-    PCB_COMPONENT::SetPosOffset(aX_offs, aY_offs);
-    m_startX += aX_offs;
-    m_startY += aY_offs;
+
+void PCB_ARC::SetPosOffset( int aX_offs, int aY_offs )
+{
+    PCB_COMPONENT::SetPosOffset( aX_offs, aY_offs );
+
+    m_startX    += aX_offs;
+    m_startY    += aY_offs;
 }

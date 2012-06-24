@@ -34,89 +34,110 @@
 
 #include <pcb_copper_pour.h>
 
-PCB_COPPER_POUR::PCB_COPPER_POUR(PCB_CALLBACKS *aCallbacks) : PCB_POLYGON(aCallbacks) {
-}
-
-PCB_COPPER_POUR::~PCB_COPPER_POUR() {
-}
-
-bool PCB_COPPER_POUR::Parse(wxXmlNode *aNode, int aPCadLayer,
-    wxString aDefaultMeasurementUnit, wxString aActualConversion, wxStatusBar* aStatusBar)
+PCB_COPPER_POUR::PCB_COPPER_POUR( PCB_CALLBACKS* aCallbacks ) : PCB_POLYGON( aCallbacks )
 {
-    wxXmlNode *lNode, *tNode, *cNode;
-    wxString pourType, str, propValue;
-    int pourSpacing, thermalWidth;
-    VERTICES_ARRAY *island, *cutout;
+}
 
-    aStatusBar->SetStatusText(aStatusBar->GetStatusText() + wxT(" CooperPour..."));
-    m_PCadLayer = aPCadLayer;
-    m_KiCadLayer = GetKiCadLayer();
-    m_timestamp = GetNewTimestamp();
 
-    str = FindNode(aNode->GetChildren(), wxT("pourType"))->GetNodeContent();
-    str.Trim(false);
+PCB_COPPER_POUR::~PCB_COPPER_POUR()
+{
+}
+
+
+bool PCB_COPPER_POUR::Parse( wxXmlNode*     aNode,
+                             int            aPCadLayer,
+                             wxString       aDefaultMeasurementUnit,
+                             wxString       aActualConversion,
+                             wxStatusBar*   aStatusBar )
+{
+    wxXmlNode*      lNode, * tNode, * cNode;
+    wxString        pourType, str, propValue;
+    int             pourSpacing, thermalWidth;
+    VERTICES_ARRAY* island, * cutout;
+
+    aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " CooperPour..." ) );
+    m_PCadLayer     = aPCadLayer;
+    m_KiCadLayer    = GetKiCadLayer();
+    m_timestamp     = GetNewTimestamp();
+
+    str = FindNode( aNode->GetChildren(), wxT( "pourType" ) )->GetNodeContent();
+    str.Trim( false );
     pourType = str.MakeUpper();
 
-    lNode = FindNode(aNode->GetChildren(), wxT("netNameRef"));
-    if (lNode) {
-        lNode->GetPropVal(wxT("Name"), &propValue);
-        propValue.Trim(false);
-        propValue.Trim(true);
+    lNode = FindNode( aNode->GetChildren(), wxT( "netNameRef" ) );
+
+    if( lNode )
+    {
+        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
         m_net = propValue;
     }
 
-    SetWidth(FindNode(aNode->GetChildren(), wxT("width"))->GetNodeContent(),
-        aDefaultMeasurementUnit, &m_width, aActualConversion);
-    if (FindNode(aNode->GetChildren(), wxT("pourSpacing")))
-        SetWidth(FindNode(aNode->GetChildren(), wxT("pourSpacing"))->GetNodeContent(),
-            aDefaultMeasurementUnit, &pourSpacing, aActualConversion);
-    if (FindNode(aNode->GetChildren(), wxT("thermalWidth")))
-        SetWidth(FindNode(aNode->GetChildren(), wxT("thermalWidth"))->GetNodeContent(),
-            aDefaultMeasurementUnit, &thermalWidth, aActualConversion);
+    SetWidth( FindNode( aNode->GetChildren(), wxT( "width" ) )->GetNodeContent(),
+              aDefaultMeasurementUnit, &m_width, aActualConversion );
 
-    lNode = FindNode(aNode->GetChildren(), wxT("pcbPoly"));
-    if (lNode) {
+    if( FindNode( aNode->GetChildren(), wxT( "pourSpacing" ) ) )
+        SetWidth( FindNode( aNode->GetChildren(), wxT( "pourSpacing" ) )->GetNodeContent(),
+                  aDefaultMeasurementUnit, &pourSpacing, aActualConversion );
+
+    if( FindNode( aNode->GetChildren(), wxT( "thermalWidth" ) ) )
+        SetWidth( FindNode( aNode->GetChildren(), wxT( "thermalWidth" ) )->GetNodeContent(),
+                  aDefaultMeasurementUnit, &thermalWidth, aActualConversion );
+
+    lNode = FindNode( aNode->GetChildren(), wxT( "pcbPoly" ) );
+
+    if( lNode )
+    {
         // retrieve copper pour outline
-        FormPolygon(lNode, &m_outline, aDefaultMeasurementUnit, aActualConversion);
+        FormPolygon( lNode, &m_outline, aDefaultMeasurementUnit, aActualConversion );
 
         m_positionX = m_outline[0]->x;
         m_positionY = m_outline[0]->y;
 
-        lNode = FindNode(aNode->GetChildren(), wxT("island"));
-        while (lNode) {
-            tNode = FindNode(lNode->GetChildren(), wxT("islandOutline"));
-            if (tNode) {
+        lNode = FindNode( aNode->GetChildren(), wxT( "island" ) );
+
+        while( lNode )
+        {
+            tNode = FindNode( lNode->GetChildren(), wxT( "islandOutline" ) );
+
+            if( tNode )
+            {
                 island = new VERTICES_ARRAY;
-                FormPolygon(tNode, island, aDefaultMeasurementUnit, aActualConversion);
-                m_islands.Add(island);
-                tNode = FindNode(lNode->GetChildren(), wxT("cutout"));
-                while (tNode) {
-                    cNode = FindNode(tNode->GetChildren(), wxT("cutoutOutline"));
-                    if (cNode) {
+                FormPolygon( tNode, island, aDefaultMeasurementUnit, aActualConversion );
+                m_islands.Add( island );
+                tNode = FindNode( lNode->GetChildren(), wxT( "cutout" ) );
+
+                while( tNode )
+                {
+                    cNode = FindNode( tNode->GetChildren(), wxT( "cutoutOutline" ) );
+
+                    if( cNode )
+                    {
                         cutout = new VERTICES_ARRAY;
-                        FormPolygon(cNode, cutout, aDefaultMeasurementUnit, aActualConversion);
-                        m_cutouts.Add(cutout);
+                        FormPolygon( cNode, cutout, aDefaultMeasurementUnit, aActualConversion );
+                        m_cutouts.Add( cutout );
                     }
 
-                    tNode  = tNode->GetNext();
+                    tNode = tNode->GetNext();
                 }
             }
 
             /*tNode:=lNode.ChildNodes.FindNode('thermal');
-            while  Assigned(tNode) do
-            begin
-                DrawThermal(tNode, componentCopperPour.fill_lines, PCADlayer, thermalWidth,
-                            componentCopperPour.timestamp);
-                tNode := tNode.NextSibling;
-            end;*/
+             *  while  Assigned(tNode) do
+             *  begin
+             *   DrawThermal(tNode, componentCopperPour.fill_lines, PCADlayer, thermalWidth,
+             *               componentCopperPour.timestamp);
+             *   tNode := tNode.NextSibling;
+             *  end;*/
 
             lNode = lNode->GetNext();
         }
     }
-    else {
+    else
+    {
         return false;
     }
 
     return true;
 }
-

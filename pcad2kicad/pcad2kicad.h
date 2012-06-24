@@ -33,25 +33,23 @@
 #include <pcad2kicad_frame_base.h>
 
 /* Class PCAD2KICAD_FRAME_BASE
-This is the main frame for this application
-*/
+ *  This is the main frame for this application
+ */
 class PCAD2KICAD_FRAME : public PCAD2KICAD_FRAME_BASE
 {
 private:
-    wxString m_actualConversion;
+    wxString    m_actualConversion;
 
-    wxSize m_FrameSize;
-    wxPoint m_FramePos;
-
+    wxSize      m_FrameSize;
+    wxPoint     m_FramePos;
 public:
-    PCAD2KICAD_FRAME( wxWindow * parent = NULL );
+    PCAD2KICAD_FRAME( wxWindow* parent = NULL );
     ~PCAD2KICAD_FRAME();
-
 private:
 
     // Event handlers
-    void OnPcb( wxCommandEvent& event );
-    void OnSch( wxCommandEvent& event );
+    void    OnPcb( wxCommandEvent& event );
+    void    OnSch( wxCommandEvent& event );
 };
 
-#endif  // PCAD2KICAD_H
+#endif    // PCAD2KICAD_H

@@ -35,28 +35,35 @@
 #include <pcb_component.h>
 
 
-PCB_COMPONENT::PCB_COMPONENT(PCB_CALLBACKS *aCallbacks) : m_callbacks(aCallbacks) {
-    m_tag = 0;
-    m_objType = '?';
-    m_PCadLayer = 0;
-    m_KiCadLayer = 0;
-    m_timestamp = 0;
-    m_positionX = 0;
-    m_positionY = 0;
-    m_rotation = 0;
-    InitTTextValue(&m_name);
-    m_net = wxEmptyString;
-    m_compRef = wxEmptyString;
+PCB_COMPONENT::PCB_COMPONENT( PCB_CALLBACKS* aCallbacks ) : m_callbacks( aCallbacks )
+{
+    m_tag           = 0;
+    m_objType       = '?';
+    m_PCadLayer     = 0;
+    m_KiCadLayer    = 0;
+    m_timestamp     = 0;
+    m_positionX     = 0;
+    m_positionY     = 0;
+    m_rotation      = 0;
+    InitTTextValue( &m_name );
+    m_net       = wxEmptyString;
+    m_compRef   = wxEmptyString;
     m_patGraphRefName = wxEmptyString;
 }
 
-PCB_COMPONENT::~PCB_COMPONENT() {
+
+PCB_COMPONENT::~PCB_COMPONENT()
+{
 }
 
-void PCB_COMPONENT::WriteToFile(wxFile *aFile, char aFileType) {
+
+void PCB_COMPONENT::WriteToFile( wxFile* aFile, char aFileType )
+{
 }
 
-void PCB_COMPONENT::SetPosOffset(int aX_offs, int aY_offs) {
+
+void PCB_COMPONENT::SetPosOffset( int aX_offs, int aY_offs )
+{
     m_positionX += aX_offs;
     m_positionY += aY_offs;
 }
