@@ -32,6 +32,6 @@
 
 #include <wx/wx.h>
 
-extern void TextToXML(wxStatusBar* statusBar, wxString XMLFileName, wxArrayString *tLines);
+extern void TextToXML(wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString *aLines);
 
 #endif // TEXTTOXMLUNIT_H_

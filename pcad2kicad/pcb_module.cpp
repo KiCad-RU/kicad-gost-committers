@@ -335,14 +335,14 @@ void PCB_MODULE::Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar,
     }
 }
 
-wxString PCB_MODULE::ModuleLayer(int mirror) {
+wxString PCB_MODULE::ModuleLayer(int aMirror) {
     wxString result;
 
  /////NOT !   {IntToStr(KiCadLayer)}    NOT !
  ///  MODULES ARE HARD PLACED ON COMPONENT OR COPPER LAYER.
  ///  IsFLIPPED--> MIRROR attribute is decision Point!!!
 
-    if (mirror == 0) result = wxT("15"); //Components side
+    if (aMirror == 0) result = wxT("15"); //Components side
     else result = wxT("0"); // Copper side
 
     return result;

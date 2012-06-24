@@ -56,8 +56,8 @@ public:
     PCB_COMPONENT(PCB_CALLBACKS *aCallbacks);
     ~PCB_COMPONENT();
 
-    virtual void WriteToFile(wxFile *f, char ftype);
-    virtual void SetPosOffset(int x_offs, int y_offs);
+    virtual void WriteToFile(wxFile *aFile, char aFileType);
+    virtual void SetPosOffset(int aX_offs, int aY_offs);
 
     int GetKiCadLayer() { return m_callbacks->GetKiCadLayer(m_PCadLayer); }
     int GetNewTimestamp() { return m_callbacks->GetNewTimestamp(); }

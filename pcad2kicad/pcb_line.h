@@ -48,7 +48,7 @@ public:
 
     virtual void Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementUnit, wxString aActualConversion);
     virtual void WriteToFile(wxFile *aFile, char aFileType);
-    virtual void SetPosOffset(int x_offs, int y_offs);
+    virtual void SetPosOffset(int aX_offs, int aY_offs);
 };
 
 #endif // PCB_LINE_H_

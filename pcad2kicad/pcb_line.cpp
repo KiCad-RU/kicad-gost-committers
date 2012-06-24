@@ -78,10 +78,10 @@ void PCB_LINE::Parse(wxXmlNode *aNode, int aLayer, wxString aDefaultMeasurementU
     }
 }
 
-void PCB_LINE::SetPosOffset(int x_offs, int y_offs) {
-    PCB_COMPONENT::SetPosOffset(x_offs, y_offs);
-    m_toX += x_offs;
-    m_toY += y_offs;
+void PCB_LINE::SetPosOffset(int aX_offs, int aY_offs) {
+    PCB_COMPONENT::SetPosOffset(aX_offs, aY_offs);
+    m_toX += aX_offs;
+    m_toY += aY_offs;
 }
 
 void PCB_LINE::WriteToFile(wxFile *aFile, char aFileType) {

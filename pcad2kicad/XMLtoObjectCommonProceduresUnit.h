@@ -41,20 +41,20 @@ typedef struct _TTEXTVALUE {
     int correctedPositionX, correctedPositionY;
 } TTEXTVALUE;
 
-extern wxString GetWord(wxString *s);
-extern wxXmlNode *FindPinMap(wxXmlNode *iNode);
-extern int StrToIntUnits(wxString s, char axe, wxString actualConversion);
-extern wxString GetAndCutWordWithMeasureUnits(wxString *i, wxString defaultMeasurementUnit);
-extern int StrToInt1Units(wxString s);
-extern wxString ValidateName(wxString n);
-extern void SetWidth(wxString t, wxString defaultMeasurementUnit, int *width, wxString actualConversion);
-extern void SetPosition(wxString t, wxString defaultMeasurementUnit, int *x, int *y, wxString actualConversion);
-extern void SetDoublePrecisionPosition(wxString t, wxString defaultMeasurementUnit, double *x, double *y, wxString actualConversion);
-extern void SetTextParameters(wxXmlNode *iNode, TTEXTVALUE *tv, wxString defaultMeasurementUnit, wxString actualConversion);
-extern void SetFontProperty(wxXmlNode *iNode, TTEXTVALUE *tv, wxString defaultMeasurementUnit, wxString actualConversion);
-extern void CorrectTextPosition(TTEXTVALUE *value, int rotation);
+extern wxString GetWord(wxString *aStr);
+extern wxXmlNode *FindPinMap(wxXmlNode *aNode);
+extern int StrToIntUnits(wxString aStr, char aAxe, wxString aActualConversion);
+extern wxString GetAndCutWordWithMeasureUnits(wxString *aStr, wxString aDefaultMeasurementUnit);
+extern int StrToInt1Units(wxString aStr);
+extern wxString ValidateName(wxString aName);
+extern void SetWidth(wxString aStr, wxString aDefaultMeasurementUnit, int *aWidth, wxString aActualConversion);
+extern void SetPosition(wxString aStr, wxString aDefaultMeasurementUnit, int *aX, int *aY, wxString aActualConversion);
+extern void SetDoublePrecisionPosition(wxString aStr, wxString aDefaultMeasurementUnit, double *aX, double *aY, wxString aActualConversion);
+extern void SetTextParameters(wxXmlNode *aNode, TTEXTVALUE *aTextValue, wxString aDefaultMeasurementUnit, wxString aActualConversion);
+extern void SetFontProperty(wxXmlNode *aNode, TTEXTVALUE *aTextValue, wxString aDefaultMeasurementUnit, wxString aActualConversion);
+extern void CorrectTextPosition(TTEXTVALUE *aValue, int aRotation);
 
-extern wxXmlNode *FindNode(wxXmlNode *child, wxString tag);
-extern void InitTTextValue(TTEXTVALUE *textValue);
+extern wxXmlNode *FindNode(wxXmlNode *aChild, wxString aTag);
+extern void InitTTextValue(TTEXTVALUE *aTextValue);
 
 #endif // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_

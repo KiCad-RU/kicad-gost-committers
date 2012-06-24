@@ -53,10 +53,10 @@ PCB_COMPONENT::PCB_COMPONENT(PCB_CALLBACKS *aCallbacks) : m_callbacks(aCallbacks
 PCB_COMPONENT::~PCB_COMPONENT() {
 }
 
-void PCB_COMPONENT::WriteToFile(wxFile *f, char ftype) {
+void PCB_COMPONENT::WriteToFile(wxFile *aFile, char aFileType) {
 }
 
-void PCB_COMPONENT::SetPosOffset(int x_offs, int y_offs) {
-    m_positionX += x_offs;
-    m_positionY += y_offs;
+void PCB_COMPONENT::SetPosOffset(int aX_offs, int aY_offs) {
+    m_positionX += aX_offs;
+    m_positionY += aY_offs;
 }

@@ -33,7 +33,7 @@
 #include <wx/xml/xml.h>
 
 
-void TextToXML(wxStatusBar* statusBar, wxString XMLFileName, wxArrayString *tLines) {
+void TextToXML(wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString *aLines) {
     wxXmlNode *cNode, *iNode;
     wxXmlDocument xmlDoc;
     wxString ls, propValue, content;
@@ -43,20 +43,20 @@ void TextToXML(wxStatusBar* statusBar, wxString XMLFileName, wxArrayString *tLin
     iNode = new wxXmlNode(wxXML_ELEMENT_NODE, wxT("www.lura.sk"));
     xmlDoc.SetRoot(iNode);
 
-    i = tLines->GetCount() - 1;
+    i = aLines->GetCount() - 1;
     while (i >= 0) {
-        statusBar->SetStatusText(wxT("Creating XML file : ") + wxString::Format("%d", i));
-        ls = (*tLines)[i--];
+        aStatusBar->SetStatusText(wxT("Creating XML file : ") + wxString::Format("%d", i));
+        ls = (*aLines)[i--];
 
         if (ls == wxT("GoUP")) {
             iNode = iNode->GetParent();
         }
         else if (ls == wxT("GoDOWN")) {
-            ls = (*tLines)[i--];
+            ls = (*aLines)[i--];
             cNode = new wxXmlNode(wxXML_ELEMENT_NODE, ls);
             iNode->AddChild(cNode);
             while (i >= 0) {
-                ls = (*tLines)[i];
+                ls = (*aLines)[i];
                 if (ls == wxT("GoUP") || ls == wxT("GoDOWN")) {
                     iNode = cNode;
                     break;
@@ -97,6 +97,6 @@ void TextToXML(wxStatusBar* statusBar, wxString XMLFileName, wxArrayString *tLin
         }
     }
 
-    statusBar->SetStatusText(wxT("Saving XML file : ") + XMLFileName);
-    xmlDoc.Save(XMLFileName);
+    aStatusBar->SetStatusText(wxT("Saving XML file : ") + aXMLFileName);
+    xmlDoc.Save(aXMLFileName);
 }

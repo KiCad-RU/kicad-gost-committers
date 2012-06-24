@@ -35,27 +35,27 @@
 #include <XMLtoObjectCommonProceduresUnit.h>
 
 
-wxString GetWord(wxString *s) {
+wxString GetWord(wxString *aStr) {
     wxString result = wxEmptyString;
-    (*s) = s->Trim(false);
-    if (s->Len() == 0) return result;
-    if ((*s)[0] == '"') {
-        result += (*s)[0];
-        *s = s->Mid(1); // remove Frot apostrofe
-        while (s->Len() > 0 && (*s)[0] != '"') {
-            result += (*s)[0];
-            *s = s->Mid(1);
+    *aStr = aStr->Trim(false);
+    if (aStr->Len() == 0) return result;
+    if ((*aStr)[0] == '"') {
+        result += (*aStr)[0];
+        *aStr = aStr->Mid(1); // remove Frot apostrofe
+        while (aStr->Len() > 0 && (*aStr)[0] != '"') {
+            result += (*aStr)[0];
+            *aStr = aStr->Mid(1);
         }
 
-        if (s->Len() > 0 && (*s)[0] == '"') {
-            result += (*s)[0];
-            *s = s->Mid(1); // remove ending apostrophe
+        if (aStr->Len() > 0 && (*aStr)[0] == '"') {
+            result += (*aStr)[0];
+            *aStr = aStr->Mid(1); // remove ending apostrophe
         }
     }
     else {
-        while (s->Len() > 0 && !( (*s)[0] == ' ' || (*s)[0] == '(' || (*s)[0] == ')' )) {
-            result += (*s)[0];
-            *s = s->Mid(1);
+        while (aStr->Len() > 0 && !( (*aStr)[0] == ' ' || (*aStr)[0] == '(' || (*aStr)[0] == ')' )) {
+            result += (*aStr)[0];
+            *aStr = aStr->Mid(1);
         }
     }
 
@@ -65,27 +65,27 @@ wxString GetWord(wxString *s) {
     return result;
 }
 
-wxXmlNode *FindPinMap(wxXmlNode *iNode) {
+wxXmlNode *FindPinMap(wxXmlNode *aNode) {
     wxXmlNode *result, *lNode;
 
     result = NULL;
-    lNode = FindNode(iNode->GetChildren(), wxT("attachedPattern"));
+    lNode = FindNode(aNode->GetChildren(), wxT("attachedPattern"));
     if (lNode) result = FindNode(lNode->GetChildren(), wxT("padPinMap"));
 
     return result;
 }
 
-double StrToDoublePrecisionUnits(wxString s, char axe, wxString actualConversion) {
+double StrToDoublePrecisionUnits(wxString aStr, char aAxe, wxString aActualConversion) {
     wxString ls;
     double i, precision;
     char u;
 
-    ls = s;
+    ls = aStr;
     ls.Trim(true);
     ls.Trim(false);
     precision = 1.0;
-    if (actualConversion == wxT("PCB")) precision = 10.0;
-    if (actualConversion == wxT("SCH")) precision = 1.0;
+    if (aActualConversion == wxT("PCB")) precision = 10.0;
+    if (aActualConversion == wxT("SCH")) precision = 1.0;
 
     if (ls.Len() > 0) {
         u = ls[ls.Len() - 1];
@@ -120,33 +120,33 @@ double StrToDoublePrecisionUnits(wxString s, char axe, wxString actualConversion
     }
     else i = 0.0;
 
-    if ((actualConversion == wxT("PCB") || actualConversion == wxT("SCH")) && axe == 'Y')
+    if ((aActualConversion == wxT("PCB") || aActualConversion == wxT("SCH")) && aAxe == 'Y')
         return -i;
     else return i; // Y axe is mirrored in compare with PCAD
 }
 
-int StrToIntUnits(wxString s, char axe, wxString actualConversion) {
-    return KiROUND(StrToDoublePrecisionUnits(s, axe, actualConversion));
+int StrToIntUnits(wxString aStr, char aAxe, wxString aActualConversion) {
+    return KiROUND(StrToDoublePrecisionUnits(aStr, aAxe, aActualConversion));
 }
 
-wxString GetAndCutWordWithMeasureUnits(wxString *i, wxString defaultMeasurementUnit) {
+wxString GetAndCutWordWithMeasureUnits(wxString *aStr, wxString aDefaultMeasurementUnit) {
     wxString s1, s2, result;
 
-    i->Trim(false);
+    aStr->Trim(false);
     result = wxEmptyString;
     // value
-    while (i->Len() > 0 && (*i)[0] != ' ') {
-        result += (*i)[0];
-        *i = i->Mid(1);
+    while (aStr->Len() > 0 && (*aStr)[0] != ' ') {
+        result += (*aStr)[0];
+        *aStr = aStr->Mid(1);
     }
-    i->Trim(false);
+    aStr->Trim(false);
     // if there is also measurement unit
-    while (i->Len() > 0 &&
-           (((*i)[0] >= 'a' && (*i)[0] <= 'z') ||
-            ((*i)[0] >= 'A' && (*i)[0] <= 'Z')))
+    while (aStr->Len() > 0 &&
+           (((*aStr)[0] >= 'a' && (*aStr)[0] <= 'z') ||
+            ((*aStr)[0] >= 'A' && (*aStr)[0] <= 'Z')))
     {
-        result += (*i)[0];
-        *i = i->Mid(1);
+        result += (*aStr)[0];
+        *aStr = aStr->Mid(1);
     }
     // and if not, add default....
     if (result.Len() > 0 &&
@@ -154,166 +154,158 @@ wxString GetAndCutWordWithMeasureUnits(wxString *i, wxString defaultMeasurementU
          result[result.Len() - 1] == ',' ||
          (result[result.Len() - 1] >= '0' && result[result.Len() - 1] <= '9')))
     {
-        result += defaultMeasurementUnit;
+        result += aDefaultMeasurementUnit;
     }
 
     return result;
 }
 
-int StrToInt1Units(wxString s) {
+int StrToInt1Units(wxString aStr) {
     double num, precision = 10;
     //TODO: Is the following commented string necessary?
     //if (pos(',',s)>0) then DecimalSeparator:=',' else DecimalSeparator:='.';
-    s.ToDouble(&num);
+    aStr.ToDouble(&num);
     return KiROUND(num * precision);
 }
 
-wxString ValidateName(wxString n) {
+wxString ValidateName(wxString aName) {
     wxString o;
     int i;
 
     o = wxEmptyString;
-    for (i = 0; i < (int)n.Len(); i++) {
-        if (n[i] == ' ') o += '_';
-        else o += n[i];
+    for (i = 0; i < (int)aName.Len(); i++) {
+        if (aName[i] == ' ') o += '_';
+        else o += aName[i];
     }
 
     return o;
 }
 
-void SetWidth(wxString t, wxString defaultMeasurementUnit, int *width, wxString actualConversion) {
-    *width = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), ' ', actualConversion);
+void SetWidth(wxString aStr, wxString aDefaultMeasurementUnit, int *aWidth, wxString aActualConversion) {
+    *aWidth = StrToIntUnits(GetAndCutWordWithMeasureUnits(&aStr, aDefaultMeasurementUnit), ' ', aActualConversion);
 }
 
-void SetHeight(wxString t, wxString defaultMeasurementUnit, int *height, wxString actualConversion) {
-    *height = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), ' ', actualConversion);
+void SetHeight(wxString aStr, wxString aDefaultMeasurementUnit, int *aHeight, wxString aActualConversion) {
+    *aHeight = StrToIntUnits(GetAndCutWordWithMeasureUnits(&aStr, aDefaultMeasurementUnit), ' ', aActualConversion);
 }
 
-void SetPosition(wxString t, wxString defaultMeasurementUnit, int *x, int *y, wxString actualConversion) {
-    *x = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'X', actualConversion);
-    *y = StrToIntUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'Y', actualConversion);
+void SetPosition(wxString aStr, wxString aDefaultMeasurementUnit, int *aX, int *aY, wxString aActualConversion) {
+    *aX = StrToIntUnits(GetAndCutWordWithMeasureUnits(&aStr, aDefaultMeasurementUnit), 'X', aActualConversion);
+    *aY = StrToIntUnits(GetAndCutWordWithMeasureUnits(&aStr, aDefaultMeasurementUnit), 'Y', aActualConversion);
 }
 
-/*
-procedure SetDoublePrecisionPosition(t,DefaultMeasurementUnit:string;var x,y:double);
-begin
-    X:=StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(t,DefaultMeasurementUnit),'X');
-    Y:=StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(t,DefaultMeasurementUnit),'Y');
-end;
-*/
-
-void SetDoublePrecisionPosition(wxString t, wxString defaultMeasurementUnit, double *x, double *y, wxString actualConversion) {
-    *x = StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'X', actualConversion);
-    *y = StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(&t, defaultMeasurementUnit), 'Y', actualConversion);
+void SetDoublePrecisionPosition(wxString aStr, wxString aDefaultMeasurementUnit, double *aX, double *aY, wxString aActualConversion) {
+    *aX = StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(&aStr, aDefaultMeasurementUnit), 'X', aActualConversion);
+    *aY = StrToDoublePrecisionUnits(GetAndCutWordWithMeasureUnits(&aStr, aDefaultMeasurementUnit), 'Y', aActualConversion);
 }
 
-void SetTextParameters(wxXmlNode *iNode, TTEXTVALUE *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
+void SetTextParameters(wxXmlNode *aNode, TTEXTVALUE *aTextValue, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
     wxXmlNode *tNode;
     wxString str;
 
-    tNode = FindNode(iNode->GetChildren(), wxT("pt"));
-    if (tNode) SetPosition(tNode->GetNodeContent(), defaultMeasurementUnit, &tv->textPositionX, &tv->textPositionY, actualConversion);
+    tNode = FindNode(aNode->GetChildren(), wxT("pt"));
+    if (tNode) SetPosition(tNode->GetNodeContent(), aDefaultMeasurementUnit, &aTextValue->textPositionX, &aTextValue->textPositionY, aActualConversion);
 
-    tNode = FindNode(iNode->GetChildren(), wxT("rotation"));
+    tNode = FindNode(aNode->GetChildren(), wxT("rotation"));
     if (tNode) {
         str = tNode->GetNodeContent();
         str.Trim(false);
-        tv->textRotation = StrToInt1Units(str);
+        aTextValue->textRotation = StrToInt1Units(str);
     }
 
-    tv->textIsVisible = 1;
-    tNode = FindNode(iNode->GetChildren(), wxT("isVisible"));
+    aTextValue->textIsVisible = 1;
+    tNode = FindNode(aNode->GetChildren(), wxT("isVisible"));
     if (tNode) {
         str = tNode->GetNodeContent();
         str.Trim(false);
         str.Trim(true);
-        if (str == wxT("True")) tv->textIsVisible = 1;
-        else tv->textIsVisible = 0;
+        if (str == wxT("True")) aTextValue->textIsVisible = 1;
+        else aTextValue->textIsVisible = 0;
     }
 
-    tNode = FindNode(iNode->GetChildren(), wxT("textStyleRef"));
-    if (tNode) SetFontProperty(tNode, tv, defaultMeasurementUnit, actualConversion);
+    tNode = FindNode(aNode->GetChildren(), wxT("textStyleRef"));
+    if (tNode) SetFontProperty(tNode, aTextValue, aDefaultMeasurementUnit, aActualConversion);
 }
 
-void SetFontProperty(wxXmlNode *iNode, TTEXTVALUE *tv, wxString defaultMeasurementUnit, wxString actualConversion) {
+void SetFontProperty(wxXmlNode *aNode, TTEXTVALUE *aTextValue, wxString aDefaultMeasurementUnit, wxString aActualConversion) {
     wxString n, propValue;
 
-    iNode->GetPropVal(wxT("Name"), &n);
+    aNode->GetPropVal(wxT("Name"), &n);
 
-    while (iNode->GetName() != wxT("www.lura.sk"))
-        iNode = iNode->GetParent();
+    while (aNode->GetName() != wxT("www.lura.sk"))
+        aNode = aNode->GetParent();
 
-    iNode = FindNode(iNode->GetChildren(), wxT("library"));
-    if (iNode) iNode = FindNode(iNode->GetChildren(), wxT("textStyleDef"));
-    if (iNode) {
+    aNode = FindNode(aNode->GetChildren(), wxT("library"));
+    if (aNode) aNode = FindNode(aNode->GetChildren(), wxT("textStyleDef"));
+    if (aNode) {
         while (true) {
-            iNode->GetPropVal(wxT("Name"), &propValue);
+            aNode->GetPropVal(wxT("Name"), &propValue);
             propValue.Trim(false);
             propValue.Trim(true);
             if (propValue == n) break;
-            iNode = iNode->GetNext();
+            aNode = aNode->GetNext();
         }
-        if (iNode) {
-            iNode = FindNode(iNode->GetChildren(), wxT("font"));
-            if (iNode) {
-                if (FindNode(iNode->GetChildren(), wxT("fontHeight")))
+        if (aNode) {
+            aNode = FindNode(aNode->GetChildren(), wxT("font"));
+            if (aNode) {
+                if (FindNode(aNode->GetChildren(), wxT("fontHeight")))
                     ////SetWidth(iNode.ChildNodes.FindNode('fontHeight').Text,DefaultMeasurementUnit,tv.TextHeight);
                     // Fixed By Lubo, 02/2008
-                    SetHeight(FindNode(iNode->GetChildren(), wxT("fontHeight"))->GetNodeContent(),
-                              defaultMeasurementUnit, &tv->textHeight, actualConversion);
-                if (FindNode(iNode->GetChildren(), wxT("strokeWidth")))
-                    SetWidth(FindNode(iNode->GetChildren(), wxT("strokeWidth"))->GetNodeContent(),
-                             defaultMeasurementUnit, &tv->textstrokeWidth, actualConversion);
+                    SetHeight(FindNode(aNode->GetChildren(), wxT("fontHeight"))->GetNodeContent(),
+                              aDefaultMeasurementUnit, &aTextValue->textHeight, aActualConversion);
+                if (FindNode(aNode->GetChildren(), wxT("strokeWidth")))
+                    SetWidth(FindNode(aNode->GetChildren(), wxT("strokeWidth"))->GetNodeContent(),
+                             aDefaultMeasurementUnit, &aTextValue->textstrokeWidth, aActualConversion);
             }
         }
     }
 }
 
-void CorrectTextPosition(TTEXTVALUE *value, int rotation) {
-    value->correctedPositionX = value->textPositionX;
-    value->correctedPositionY = value->textPositionY;
-    value->correctedPositionY = value->correctedPositionY - KiROUND((double)value->textHeight / 3.0);
-    value->correctedPositionX = value->correctedPositionX + KiROUND(((double)value->text.Len() / 1.4) * ((double)value->textHeight / 1.8));
-    if (rotation == 900) {
-        value->correctedPositionX = -value->textPositionY;
-        value->correctedPositionY = value->textPositionX;
-        value->correctedPositionX = value->correctedPositionX + KiROUND((double)value->textHeight / 3.0);
-        value->correctedPositionY = value->correctedPositionY + KiROUND(((double)value->text.Len() / 1.4) * ((double)value->textHeight / 1.8));
+void CorrectTextPosition(TTEXTVALUE *aValue, int aRotation) {
+    aValue->correctedPositionX = aValue->textPositionX;
+    aValue->correctedPositionY = aValue->textPositionY;
+    aValue->correctedPositionY = aValue->correctedPositionY - KiROUND((double)aValue->textHeight / 3.0);
+    aValue->correctedPositionX = aValue->correctedPositionX + KiROUND(((double)aValue->text.Len() / 1.4) * ((double)aValue->textHeight / 1.8));
+    if (aRotation == 900) {
+        aValue->correctedPositionX = -aValue->textPositionY;
+        aValue->correctedPositionY = aValue->textPositionX;
+        aValue->correctedPositionX = aValue->correctedPositionX + KiROUND((double)aValue->textHeight / 3.0);
+        aValue->correctedPositionY = aValue->correctedPositionY + KiROUND(((double)aValue->text.Len() / 1.4) * ((double)aValue->textHeight / 1.8));
     }
-    if (rotation == 1800) {
-        value->correctedPositionX = -value->textPositionX;
-        value->correctedPositionY = -value->textPositionY;
-        value->correctedPositionY = value->correctedPositionY + KiROUND((double)value->textHeight / 3.0);
-        value->correctedPositionX = value->correctedPositionX - KiROUND(((double)value->text.Len() / 1.4) * ((double)value->textHeight / 1.8));
+    if (aRotation == 1800) {
+        aValue->correctedPositionX = -aValue->textPositionX;
+        aValue->correctedPositionY = -aValue->textPositionY;
+        aValue->correctedPositionY = aValue->correctedPositionY + KiROUND((double)aValue->textHeight / 3.0);
+        aValue->correctedPositionX = aValue->correctedPositionX - KiROUND(((double)aValue->text.Len() / 1.4) * ((double)aValue->textHeight / 1.8));
     }
-    if (rotation == 2700) {
-        value->correctedPositionX = value->textPositionY;
-        value->correctedPositionY = -value->textPositionX;
-        value->correctedPositionX = value->correctedPositionX + KiROUND((double)value->textHeight / 1.0);
-        value->correctedPositionY = value->correctedPositionY - KiROUND(((double)value->text.Len() / 3.4) * ((double)value->textHeight / 1.8));
+    if (aRotation == 2700) {
+        aValue->correctedPositionX = aValue->textPositionY;
+        aValue->correctedPositionY = -aValue->textPositionX;
+        aValue->correctedPositionX = aValue->correctedPositionX + KiROUND((double)aValue->textHeight / 1.0);
+        aValue->correctedPositionY = aValue->correctedPositionY - KiROUND(((double)aValue->text.Len() / 3.4) * ((double)aValue->textHeight / 1.8));
     }
 }
 
-wxXmlNode *FindNode(wxXmlNode *child, wxString tag) {
-    while (child) {
-        if (child->GetName() == tag) return child;
+wxXmlNode *FindNode(wxXmlNode *aChild, wxString aTag) {
+    while (aChild) {
+        if (aChild->GetName() == aTag) return aChild;
 
-        child = child->GetNext();
+        aChild = aChild->GetNext();
     }
 
     return NULL;
 }
 
-void InitTTextValue(TTEXTVALUE *textValue) {
-    textValue->text = wxEmptyString;
-    textValue->textPositionX = 0;
-    textValue->textPositionY = 0;
-    textValue->textRotation = 0;
-    textValue->textHeight = 0;
-    textValue->textstrokeWidth = 0;
-    textValue->textIsVisible = 0;
-    textValue->mirror = 0;
-    textValue->textUnit = 0;
-    textValue->correctedPositionX = 0;
-    textValue->correctedPositionY = 0;
+void InitTTextValue(TTEXTVALUE *aTextValue) {
+    aTextValue->text = wxEmptyString;
+    aTextValue->textPositionX = 0;
+    aTextValue->textPositionY = 0;
+    aTextValue->textRotation = 0;
+    aTextValue->textHeight = 0;
+    aTextValue->textstrokeWidth = 0;
+    aTextValue->textIsVisible = 0;
+    aTextValue->mirror = 0;
+    aTextValue->textUnit = 0;
+    aTextValue->correctedPositionX = 0;
+    aTextValue->correctedPositionY = 0;
 }

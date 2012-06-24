@@ -57,12 +57,12 @@ public:
     virtual void Parse(wxXmlNode *aNode, wxStatusBar* aStatusBar,
         wxString aDefaultMeasurementUnit, wxString aActualConversion);
 
-    virtual void WriteToFile(wxFile *f, char ftype);
+    virtual void WriteToFile(wxFile *aFile, char aFileType);
     virtual void Flip();
 
 private:
     wxXmlNode *FindPatternMultilayerSection(wxXmlNode *aNode, wxString *aPatGraphRefName);
-    wxString ModuleLayer(int mirror);
+    wxString ModuleLayer(int aMirror);
     int FlipLayers(int aLayer);
 };
 

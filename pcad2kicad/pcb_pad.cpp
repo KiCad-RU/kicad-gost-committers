@@ -48,20 +48,20 @@ PCB_PAD::~PCB_PAD() {
     }
 }
 
-int PCB_PAD::ToInt(char c) {
-    if (c >= '0' && c <= '9') return (c - '0');
-    else return (c - 'A' + 10);
+int PCB_PAD::ToInt(char aChar) {
+    if (aChar >= '0' && aChar <= '9') return (aChar - '0');
+    else return (aChar - 'A' + 10);
 }
 
 // The former mentioned here that the following implementation needs to be revised
-char PCB_PAD::OrMask(char m1, char m2) {
+char PCB_PAD::OrMask(char aM1, char aM2) {
     wxString s;
     int i;
 
-    if (m1 == m2) return m1;
+    if (aM1 == aM2) return aM1;
 
-    i = ToInt(m1);
-    i += ToInt(m2);
+    i = ToInt(aM1);
+    i += ToInt(aM2);
     s = wxString::Format("%X", i);
     return s[0];
 }
@@ -85,7 +85,7 @@ char PCB_PAD::OrMask(char m1, char m2) {
 27 Edge layer. Items on Edge layer are seen on all layers
 */
 
-wxString PCB_PAD::KiCadLayerMask(wxString mask, int l) {
+wxString PCB_PAD::KiCadLayerMask(wxString aMask, int aLayer) {
     wxString newmask;
     int i;
     /* Sometimes, a mask layer parameter is used.
@@ -95,24 +95,24 @@ wxString PCB_PAD::KiCadLayerMask(wxString mask, int l) {
        Mask layer is the ORed mask of the used layers */
 
     newmask = wxT("00000000");        // default
-    if (l == 0) newmask = wxT("00000001");
-    if (l == 15) newmask= wxT("00008000");
-    if (l == 16) newmask= wxT("00010000");
-    if (l == 17) newmask= wxT("00020000");
-    if (l == 18) newmask= wxT("00040000");
-    if (l == 19) newmask= wxT("00080000");
-    if (l == 20) newmask= wxT("00100000");
-    if (l == 21) newmask= wxT("00200000");
-    if (l == 22) newmask= wxT("00400000");
-    if (l == 23) newmask= wxT("00800000");
-    if (l == 24) newmask= wxT("01000000");
-    if (l == 25) newmask= wxT("02000000");
-    if (l == 26) newmask= wxT("04000000");
-    if (l == 27) newmask= wxT("08000000");
-    if (l == 28) newmask= wxT("10000000");
+    if (aLayer == 0) newmask = wxT("00000001");
+    if (aLayer == 15) newmask= wxT("00008000");
+    if (aLayer == 16) newmask= wxT("00010000");
+    if (aLayer == 17) newmask= wxT("00020000");
+    if (aLayer == 18) newmask= wxT("00040000");
+    if (aLayer == 19) newmask= wxT("00080000");
+    if (aLayer == 20) newmask= wxT("00100000");
+    if (aLayer == 21) newmask= wxT("00200000");
+    if (aLayer == 22) newmask= wxT("00400000");
+    if (aLayer == 23) newmask= wxT("00800000");
+    if (aLayer == 24) newmask= wxT("01000000");
+    if (aLayer == 25) newmask= wxT("02000000");
+    if (aLayer == 26) newmask= wxT("04000000");
+    if (aLayer == 27) newmask= wxT("08000000");
+    if (aLayer == 28) newmask= wxT("10000000");
 
     for (i = 0; i < 8; i++)
-        newmask[i] = OrMask(mask[i], newmask[i]);
+        newmask[i] = OrMask(aMask[i], newmask[i]);
 
     return newmask;
 }

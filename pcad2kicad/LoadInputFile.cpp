@@ -33,20 +33,20 @@
 #include <XMLtoObjectCommonProceduresUnit.h>
 
 
-int DoDepth(wxString *s) {
+int DoDepth(wxString *aStr) {
     int result = 0;
-    s->Trim(false);
-    if (s->Len() > 0) {
-        if ((*s)[0] == '(') {
+    aStr->Trim(false);
+    if (aStr->Len() > 0) {
+        if ((*aStr)[0] == '(') {
             result = 1;
-            *s = s->Mid(1);
+            *aStr = aStr->Mid(1);
         }
     }
 
-    if (s->Len() > 0) {
-        if ((*s)[0] == ')') {
+    if (aStr->Len() > 0) {
+        if ((*aStr)[0] == ')') {
             result = -1;
-            *s = s->Mid(1);
+            *aStr = aStr->Mid(1);
         }
     }
 
@@ -104,28 +104,28 @@ static wxString dummyLines[44] = {
 };
 
 // SKIP UNCONVERTED LINES
-static bool LineIsOk(wxString l) {
+static bool LineIsOk(wxString aLine) {
     bool result = true;
 
     for (int i = 0; i < 44; i++) {
-        if (l.Find(dummyLines[i]) != wxNOT_FOUND) result = false;
+        if (aLine.Find(dummyLines[i]) != wxNOT_FOUND) result = false;
     }
 
     return result;
 }
 
-static wxString GetLine(wxTextFile *f, bool firstLine) {
+static wxString GetLine(wxTextFile *aFile, bool aFirstLine) {
     wxString result;
     //int idx;
 
     result = wxT("END OF INPUT FILE");
 
-    while (!f->Eof()) {
-        if (firstLine) {
-            result = f->GetFirstLine();
-            firstLine = false;
+    while (!aFile->Eof()) {
+        if (aFirstLine) {
+            result = aFile->GetFirstLine();
+            aFirstLine = false;
         }
-        else result = f->GetNextLine();
+        else result = aFile->GetNextLine();
 
         if (LineIsOk(result)) {
             // fix copyright symbol
@@ -137,20 +137,20 @@ static wxString GetLine(wxTextFile *f, bool firstLine) {
         }
     }
 
-    if (f->Eof()) result = wxT("END OF INPUT FILE");
+    if (aFile->Eof()) result = wxT("END OF INPUT FILE");
 
     return result;
 }
 
-void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLines) {
+void LoadInputFile(wxString aFileName, wxStatusBar* aStatusBar, wxArrayString *aLines) {
     wxArrayString lines;
     wxTextFile f;
     wxString s, w;
     int fileLine = 0, depth = 0, i = 0;
 
-    statusBar->SetStatusText(wxT("Opening file : ") + fileName);
+    aStatusBar->SetStatusText(wxT("Opening file : ") + aFileName);
 
-    f.Open(fileName);
+    f.Open(aFileName);
     // preallocate memory for array to increase performance
     size_t lines_qty = f.GetLineCount();
     lines.Alloc(lines_qty * 10);
@@ -158,7 +158,7 @@ void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLi
     s = GetLine(&f, true);
     while (s != wxT("END OF INPUT FILE")) {
         fileLine++;
-        statusBar->SetStatusText(wxT("Processing input file - actual line : ") + wxString::Format("%d", fileLine) + wxT("/")
+        aStatusBar->SetStatusText(wxT("Processing input file - actual line : ") + wxString::Format("%d", fileLine) + wxT("/")
             + wxString::Format("%d", (int)lines.GetCount()) + s);
 
         s.Trim(false);
@@ -181,13 +181,13 @@ void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLi
         s = GetLine(&f, false);
     }
 
-    statusBar->SetStatusText(wxT("Input file processed  : ") + wxString::Format("%d", fileLine) + wxT(" lines."));
+    aStatusBar->SetStatusText(wxT("Input file processed  : ") + wxString::Format("%d", fileLine) + wxT(" lines."));
     // preallocate memory for array to increase performance
-    tLines->Alloc(lines.GetCount());
+    aLines->Alloc(lines.GetCount());
     // reverse order of lines
     for (i = lines.GetCount() - 1; i>=0; i--) {
-        statusBar->SetStatusText(wxT("Optimizing  : ") + wxString::Format("%d", (int)lines.GetCount()));
-        tLines->Add(lines[i]);
+        aStatusBar->SetStatusText(wxT("Optimizing  : ") + wxString::Format("%d", (int)lines.GetCount()));
+        aLines->Add(lines[i]);
     }
 
     f.Close();

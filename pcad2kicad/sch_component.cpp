@@ -46,5 +46,5 @@ SCH_COMPONENT::SCH_COMPONENT() {
 SCH_COMPONENT::~SCH_COMPONENT() {
 }
 
-void SCH_COMPONENT::WriteToFile(wxFile *f, char ftype) {
+void SCH_COMPONENT::WriteToFile(wxFile *aFile, char aFileType) {
 }

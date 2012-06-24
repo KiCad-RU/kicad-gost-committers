@@ -98,8 +98,8 @@ void PCB_ARC::WriteToFile(wxFile *aFile, char aFileType) {
     }
 }
 
-void PCB_ARC::SetPosOffset(int x_offs, int y_offs) {
-    PCB_COMPONENT::SetPosOffset(x_offs, y_offs);
-    m_startX += x_offs;
-    m_startY += y_offs;
+void PCB_ARC::SetPosOffset(int aX_offs, int aY_offs) {
+    PCB_COMPONENT::SetPosOffset(aX_offs, aY_offs);
+    m_startX += aX_offs;
+    m_startY += aY_offs;
 }

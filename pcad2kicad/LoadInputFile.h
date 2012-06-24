@@ -32,6 +32,6 @@
 
 #include <wx/wx.h>
 
-extern void LoadInputFile(wxString fileName, wxStatusBar* statusBar, wxArrayString *tLines);
+extern void LoadInputFile(wxString aFileName, wxStatusBar* aStatusBar, wxArrayString *aLines);
 
 #endif // LOADINPUTFILE_H_

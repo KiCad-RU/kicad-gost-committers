@@ -111,8 +111,8 @@ void PCB_TEXT::WriteToFile(wxFile *aFile, char aFileType) {
     }
 }
 
-void PCB_TEXT::SetPosOffset(int x_offs, int y_offs) {
-    PCB_COMPONENT::SetPosOffset(x_offs, y_offs);
-    m_name.textPositionX += x_offs;
-    m_name.textPositionY += y_offs;
+void PCB_TEXT::SetPosOffset(int aX_offs, int aY_offs) {
+    PCB_COMPONENT::SetPosOffset(aX_offs, aY_offs);
+    m_name.textPositionX += aX_offs;
+    m_name.textPositionY += aY_offs;
 }

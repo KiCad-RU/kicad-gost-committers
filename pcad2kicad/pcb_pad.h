@@ -50,9 +50,9 @@ public:
     virtual void WriteToFile(wxFile *aFile, char aFileType, int aRotation);
 
 private:
-    int ToInt(char c);
-    char OrMask(char m1, char m2);
-    wxString KiCadLayerMask(wxString mask, int l);
+    int ToInt(char aChar);
+    char OrMask(char aM1, char aM2);
+    wxString KiCadLayerMask(wxString aMask, int aLayer);
 };
 
 #endif // PCB_PAD_H_

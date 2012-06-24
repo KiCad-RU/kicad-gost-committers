@@ -45,7 +45,7 @@ public:
     SCH_COMPONENT();
     ~SCH_COMPONENT();
 
-    virtual void WriteToFile(wxFile *f, char ftype);
+    virtual void WriteToFile(wxFile *aFile, char aFileType);
 };
 
 WX_DEFINE_ARRAY(SCH_COMPONENT *, SCH_COMPONENTS_ARRAY);
