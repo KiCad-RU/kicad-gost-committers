@@ -198,6 +198,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
 {
     wxXmlNode*  lNode, * tNode, * mNode;
     PCB_MODULE* mc;
+    PCB_PAD*    pad;
     PCB_VIA*    via;
     wxString    cn, str, propValue;
 
@@ -352,6 +353,12 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
 
                 m_pcbComponents.Add( mc );
             }
+        }
+        else if( lNode->GetName() == wxT( "pad" ) )
+        {
+            pad = new PCB_PAD( this );
+            pad->Parse( lNode, m_defaultMeasurementUnit, aActualConversion );
+            m_pcbComponents.Add( pad );
         }
         else if( lNode->GetName() == wxT( "via" ) )
         {
@@ -730,7 +737,7 @@ void PCB::WriteToFile( wxString aFileName, char aFileType )
 
         for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
         {
-            // LINES
+            // lines
             if( m_pcbComponents[i]->m_objType == 'L'
                 && (m_pcbComponents[i]->m_KiCadLayer >= 0
                     && m_pcbComponents[i]->m_KiCadLayer <= 15) )
@@ -738,7 +745,11 @@ void PCB::WriteToFile( wxString aFileName, char aFileType )
                 m_pcbComponents[i]->WriteToFile( &f, 'P' );
             }
 
-            // VIAS
+            // pads
+            if( m_pcbComponents[i]->m_objType == 'P' )
+                ( (PCB_PAD*) m_pcbComponents[i] )->WriteToFile( &f, 'P', 0 );
+
+            // vias
             if( m_pcbComponents[i]->m_objType == 'V' )
                 ( (PCB_VIA*) m_pcbComponents[i] )->WriteToFile( &f, 'P', 0 );
         }

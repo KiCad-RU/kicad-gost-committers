@@ -33,12 +33,11 @@
 #include <pcb_pad.h>
 
 
-PCB_PAD::PCB_PAD( PCB_CALLBACKS* aCallbacks, wxString aName ) : PCB_COMPONENT( aCallbacks )
+PCB_PAD::PCB_PAD( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
 {
     m_objType   = 'P';
     m_number    = 0;
     m_hole      = 0;
-    m_name.text = aName;
 }
 
 

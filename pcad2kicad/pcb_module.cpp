@@ -380,7 +380,7 @@ void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
         {
             if( tNode->GetName() == wxT( "pad" ) )
             {
-                pad = new PCB_PAD( m_callbacks, wxEmptyString );
+                pad = new PCB_PAD( m_callbacks );
                 pad->Parse( tNode, aDefaultMeasurementUnit, aActualConversion );
                 m_moduleObjects.Add( pad );
             }

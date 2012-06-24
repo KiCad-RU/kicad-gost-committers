@@ -43,7 +43,7 @@ public:
     int m_hole;
     PCB_PAD_SHAPES_ARRAY m_shapes;
 
-    PCB_PAD( PCB_CALLBACKS* aCallbacks, wxString aName );
+    PCB_PAD( PCB_CALLBACKS* aCallbacks );
     ~PCB_PAD();
 
     virtual void    Parse( wxXmlNode*   aNode,

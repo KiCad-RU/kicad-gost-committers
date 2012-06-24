@@ -34,7 +34,7 @@
 #include <pcb_via_shape.h>
 
 
-PCB_VIA::PCB_VIA( PCB_CALLBACKS* aCallbacks ) : PCB_PAD( aCallbacks, wxEmptyString )
+PCB_VIA::PCB_VIA( PCB_CALLBACKS* aCallbacks ) : PCB_PAD( aCallbacks )
 {
     m_objType = 'V';
 }
