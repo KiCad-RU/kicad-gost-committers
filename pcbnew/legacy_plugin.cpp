@@ -354,13 +354,7 @@ void LEGACY_PLUGIN::loadGENERAL()
             if( !strcmp( data, "mm" ) )
             {
 #if defined( USE_PCBNEW_NANOMETRES )
-                diskToBiu = 1000000.0;
-
-#elif defined(DEBUG)
-                // mm to deci-mils:
-                // advanced testing of round tripping only, not supported in non DEBUG build
-                diskToBiu = 10000/25.4;
-
+                diskToBiu = IU_PER_MM;
 #else
                 THROW_IO_ERROR( _( "May not load millimeter *.brd file into 'Pcbnew compiled for deci-mils'" ) );
 #endif
@@ -2563,15 +2557,16 @@ void LEGACY_PLUGIN::loadPCB_TARGET()
 }
 
 
+#define SPBUFZ  50      // wire all usages of this together.
+
 int LEGACY_PLUGIN::biuSprintf( char* buf, BIU aValue ) const
 {
     double  engUnits = biuToDisk * aValue;
     int     len;
 
-    if( engUnits != 0.0 && fabs( engUnits ) <= 0.0001 )
+    if( engUnits != 0.0 && fabsl( engUnits ) <= 0.0001 )
     {
-        // printf( "f: " );
-        len = sprintf( buf, "%.10f", engUnits );
+        len = snprintf( buf, SPBUFZ, "%.10f", engUnits );
 
         while( --len > 0 && buf[len] == '0' )
             buf[len] = '\0';
@@ -2580,8 +2575,16 @@ int LEGACY_PLUGIN::biuSprintf( char* buf, BIU aValue ) const
     }
     else
     {
-        // printf( "g: " );
-        len = sprintf( buf, "%.10g", engUnits );
+        // The %.10g is about optimal since we are dealing with a bounded
+        // range on aValue, and we can be sure that there will never
+        // be a reason to have more than 6 digits to the right of the
+        // decimal point because we are converting from integer
+        // (signed whole numbers) nanometers to mm.  A value of
+        // 0.000001 is one nanometer, the smallest positive nonzero value
+        // that we can ever have here.  If you ever see a board file with
+        // more digits to the right of the decimal point than 6, this is a
+        // possibly a bug in a formatting string nearby.
+        len = snprintf( buf, SPBUFZ, "%.10g", engUnits );
     }
     return len;
 }
@@ -2589,7 +2592,7 @@ int LEGACY_PLUGIN::biuSprintf( char* buf, BIU aValue ) const
 
 std::string LEGACY_PLUGIN::fmtBIU( BIU aValue ) const
 {
-    char    temp[50];
+    char    temp[SPBUFZ];
 
     int len = biuSprintf( temp, aValue );
 
@@ -2603,7 +2606,8 @@ std::string LEGACY_PLUGIN::fmtDEG( double aAngle ) const
 
     // @todo a hook site to convert from tenths degrees to degrees for BOARD_FORMAT_VERSION 2.
 
-    int len = sprintf( temp, "%.10g", aAngle );
+    // MINGW: snprintf() comes from gcc folks, sprintf() comes from Microsoft.
+    int len = snprintf( temp, sizeof( temp ), "%.10g", aAngle );
 
     return std::string( temp, len );
 }
@@ -2611,7 +2615,7 @@ std::string LEGACY_PLUGIN::fmtDEG( double aAngle ) const
 
 std::string LEGACY_PLUGIN::fmtBIUPair( BIU first, BIU second ) const
 {
-    char    temp[100];
+    char    temp[2*SPBUFZ+2];
     char*   cp = temp;
 
     cp += biuSprintf( cp, first );
@@ -2651,20 +2655,11 @@ BIU LEGACY_PLUGIN::biuParse( const char* aValue, const char** nptrptr )
     if( nptrptr )
         *nptrptr = nptr;
 
-#if defined(DEBUG)
+    fval *= diskToBiu;
 
-    if( diskToBiu == 10000/25.4 )
-    {
-        // this is the special reverse trip mm -> deci-mils testing run,
-        // only available in DEBUG mode.
-        return BIU( KiROUND( fval * diskToBiu ) );
-    }
-
-#endif
-
-    // There should be no rounding issues here, since the values in the file initially
-    // came from integers via biuFmt(). In fact this product should be an integer, exactly.
-    return BIU( fval * diskToBiu );
+    // fval is up into the whole number realm here, and should be bounded
+    // within INT_MIN to INT_MAX since BIU's are nanometers.
+    return KiROUND( fval );
 }
 
 
@@ -2706,20 +2701,20 @@ void LEGACY_PLUGIN::init( PROPERTIES* aProperties )
 
     // conversion factor for saving RAM BIUs to KICAD legacy file format.
 #if defined( USE_PCBNEW_NANOMETRES )
-    biuToDisk = 1/IU_PER_MM;        // BIUs are nanometers & file is mm
+    biuToDisk = 1.0/IU_PER_MM;      // BIUs are nanometers & file is mm
 #else
     biuToDisk = 1.0;                // BIUs are deci-mils
 #endif
 
-    // conversion factor for loading KICAD legacy file format into BIUs in RAM
-
+    // Conversion factor for loading KICAD legacy file format into BIUs in RAM
     // Start by assuming the *.brd file is in deci-mils.
-    // if we see "Units mm" in the $GENERAL section, set diskToBiu to 1000000.0
+    // If we see "Units mm" in the $GENERAL section, set diskToBiu to 1000000.0
     // then, during the file loading process, to start a conversion from
-    // mm to nanometers.
+    // mm to nanometers.  The deci-mil legacy files have no such "Units" marker
+    // so we must assume the file is in deci-mils until told otherwise.
 
-    diskToBiu = IU_PER_DECIMILS;  // BIUs are nanometers if USE_PCBNEW_NANOMETRES
-                                                // or BIUs are deci-mils
+    diskToBiu = IU_PER_DECIMILS;    // BIUs are nanometers if defined(USE_PCBNEW_NANOMETRES)
+                                    // else are deci-mils
 }
 
 
@@ -3617,7 +3612,7 @@ void LEGACY_PLUGIN::saveDIMENTION( const DIMENSION* me ) const
 
     fprintf( m_fp, "Ge %d %d %lX\n", me->GetShape(), me->GetLayer(), me->GetTimeStamp() );
 
-    fprintf( m_fp, "Va %d\n", me->m_Value );
+    fprintf( m_fp, "Va %s\n", fmtBIU( me->m_Value ).c_str() );
 
     if( !me->m_Text.GetText().IsEmpty() )
         fprintf( m_fp, "Te %s\n", EscapedUTF8( me->m_Text.GetText() ).c_str() );
@@ -3856,13 +3851,7 @@ void FPL_CACHE::ReadAndVerifyHeader( LINE_READER* aReader )
             if( !strcmp( units, "mm" ) )
             {
 #if defined( USE_PCBNEW_NANOMETRES )
-                m_owner->diskToBiu = 1000000.0;
-
-#elif defined(DEBUG)
-                // mm to deci-mils:
-                // advanced testing of round tripping only, not supported in non DEBUG build
-                m_owner->diskToBiu = 10000/25.4;
-
+                m_owner->diskToBiu = IU_PER_MM;
 #else
                 THROW_IO_ERROR( _( "May not load millimeter legacy library file into 'Pcbnew compiled for deci-mils'" ) );
 #endif
