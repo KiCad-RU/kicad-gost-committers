@@ -124,12 +124,30 @@ void PCB_LINE::WriteToFile( wxFile* aFile, char aFileType )
 
 void PCB_LINE::AddToBoard()
 {
-    DRAWSEGMENT* dseg = new DRAWSEGMENT( m_board );
-    m_board->Add( dseg, ADD_APPEND );
+    if ( IsValidCopperLayerIndex( m_KiCadLayer) )
+    {
+        TRACK *track = new TRACK( m_board );
+        m_board->m_Track.Append( track );
 
-    dseg->SetTimeStamp( m_timestamp );
-    dseg->SetLayer( m_KiCadLayer );
-    dseg->SetStart( wxPoint( m_positionX, m_positionY ) );
-    dseg->SetEnd( wxPoint( m_toX, m_toY ) );
-    dseg->SetWidth( m_width );
+        track->SetTimeStamp( m_timestamp );
+
+        track->SetPosition( wxPoint( m_positionX, m_positionY ) );
+        track->SetEnd( wxPoint( m_toX, m_toY ) );
+
+        track->SetWidth( m_width );
+
+        track->SetLayer( m_KiCadLayer );
+        track->SetNet( 0 );
+    }
+    else
+    {
+        DRAWSEGMENT* dseg = new DRAWSEGMENT( m_board );
+        m_board->Add( dseg, ADD_APPEND );
+
+        dseg->SetTimeStamp( m_timestamp );
+        dseg->SetLayer( m_KiCadLayer );
+        dseg->SetStart( wxPoint( m_positionX, m_positionY ) );
+        dseg->SetEnd( wxPoint( m_toX, m_toY ) );
+        dseg->SetWidth( m_width );
+    }
 }

@@ -370,4 +370,32 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
 
 void PCB_PAD::AddToBoard()
 {
+    PCB_PAD_SHAPE*  padShape;
+    int i;
+
+    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    {
+        padShape = m_shapes[i];
+
+        // maybe should not to be filtered ????
+        if( IsValidCopperLayerIndex( m_KiCadLayer )
+            && ( padShape->m_width > 0 || padShape->m_height > 0 ) )
+        {
+            SEGVIA *via = new SEGVIA( m_board );
+            m_board->m_Track.Append( via );
+
+            via->SetTimeStamp( 0 );
+
+            via->SetPosition( wxPoint( m_positionX, m_positionY ) );
+            via->SetEnd( wxPoint( m_positionX, m_positionY ) );
+
+            via->SetWidth( padShape->m_height );
+            via->SetShape( VIA_THROUGH );
+            ( (SEGVIA*) via )->SetLayerPair( LAYER_N_FRONT, LAYER_N_BACK );
+            via->SetDrill( m_hole );
+
+            via->SetLayer( m_KiCadLayer );
+            via->SetNet( 0 );
+        }
+    }
 }
