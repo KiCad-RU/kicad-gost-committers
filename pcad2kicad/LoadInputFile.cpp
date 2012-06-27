@@ -29,6 +29,7 @@
 
 #include <wx/wx.h>
 #include <wx/config.h>
+#include <wx/textfile.h>
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 

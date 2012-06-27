@@ -31,6 +31,7 @@
 #define PCB_COMPONENT_H_
 
 #include <wx/wx.h>
+#include <wx/file.h>
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 #include <pcb_callbacks.h>

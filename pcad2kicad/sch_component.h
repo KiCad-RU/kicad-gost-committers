@@ -32,6 +32,7 @@
 
 #include <wx/wx.h>
 #include <wx/dynarray.h>
+#include <wx/file.h>
 
 class SCH_COMPONENT : public wxObject
 {
