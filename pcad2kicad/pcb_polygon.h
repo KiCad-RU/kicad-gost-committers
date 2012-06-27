@@ -45,7 +45,7 @@ public:
     ISLANDS_ARRAY   m_islands;
     ISLANDS_ARRAY   m_cutouts;
 
-    PCB_POLYGON( PCB_CALLBACKS* aCallbacks );
+    PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_POLYGON();
 
     virtual bool Parse( wxXmlNode*      aNode,
@@ -57,6 +57,7 @@ public:
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    WriteOutlineToFile( wxFile* aFile, char aFileType );
     virtual void    SetPosOffset( int aX_offs, int aY_offs );
+    void            AddToBoard();
 
 // protected:
     void            FormPolygon( wxXmlNode* aNode, VERTICES_ARRAY* aPolygon,

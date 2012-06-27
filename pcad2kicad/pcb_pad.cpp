@@ -33,7 +33,7 @@
 #include <pcb_pad.h>
 
 
-PCB_PAD::PCB_PAD( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+PCB_PAD::PCB_PAD( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
     m_objType   = 'P';
     m_number    = 0;
@@ -237,7 +237,7 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
             // we do not support pads on "Plane", "NonSignal" , "Signal" ... layerr
             if( FindNode( lNode->GetChildren(), wxT( "layerNumRef" ) ) )
             {
-                padShape = new PCB_PAD_SHAPE( m_callbacks );
+                padShape = new PCB_PAD_SHAPE( m_callbacks, m_board );
                 padShape->Parse( lNode, aDefaultMeasurementUnit, aActualConversion );
                 m_shapes.Add( padShape );
             }
@@ -366,4 +366,8 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
             }
         }
     }
+}
+
+void PCB_PAD::AddToBoard()
+{
 }

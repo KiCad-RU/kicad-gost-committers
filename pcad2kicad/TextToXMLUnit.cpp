@@ -48,7 +48,9 @@ void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* a
 
     while( i >= 0 )
     {
-        aStatusBar->SetStatusText( wxT( "Creating XML file : " ) + wxString::Format( "%d", i ) );
+        if( aStatusBar )
+            aStatusBar->SetStatusText( wxT( "Creating XML file : " ) + wxString::Format( "%d", i ) );
+
         ls = (*aLines)[i--];
 
         if( ls == wxT( "GoUP" ) )
@@ -120,6 +122,8 @@ void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* a
         }
     }
 
-    aStatusBar->SetStatusText( wxT( "Saving XML file : " ) + aXMLFileName );
+    if( aStatusBar )
+        aStatusBar->SetStatusText( wxT( "Saving XML file : " ) + aXMLFileName );
+
     xmlDoc.Save( aXMLFileName );
 }

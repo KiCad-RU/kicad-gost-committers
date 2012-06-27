@@ -43,7 +43,7 @@ public:
     int m_toX;
     int m_toY;
 
-    PCB_LINE( PCB_CALLBACKS* aCallbacks );
+    PCB_LINE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_LINE();
 
     virtual void    Parse( wxXmlNode*   aNode,
@@ -52,6 +52,7 @@ public:
                            wxString     aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    SetPosOffset( int aX_offs, int aY_offs );
+    void            AddToBoard();
 };
 
 #endif    // PCB_LINE_H_

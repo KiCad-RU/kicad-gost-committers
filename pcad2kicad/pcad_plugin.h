@@ -1,8 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
- * Copyright (C) 2007, 2008, 2012 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -24,46 +23,36 @@
  */
 
 /**
- * @file pcb_component.cpp
+ * @file pcad_plugin.h
+ * @brief Pcbnew PLUGIN for P-Cad 2002/2004 ASCII *.pcb format.
  */
 
-#include <wx/wx.h>
-#include <wx/config.h>
-
-#include <common.h>
-
-#include <pcb_component.h>
+#ifndef PCAD_PLUGIN_H_
+#define PCAD_PLUGIN_H_
 
 
-PCB_COMPONENT::PCB_COMPONENT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : m_callbacks( aCallbacks ), m_board( aBoard)
+#include <io_mgr.h>
+
+class PCAD_PLUGIN : public PLUGIN
 {
-    m_tag           = 0;
-    m_objType       = '?';
-    m_PCadLayer     = 0;
-    m_KiCadLayer    = 0;
-    m_timestamp     = 0;
-    m_positionX     = 0;
-    m_positionY     = 0;
-    m_rotation      = 0;
-    InitTTextValue( &m_name );
-    m_net       = wxEmptyString;
-    m_compRef   = wxEmptyString;
-    m_patGraphRefName = wxEmptyString;
-}
+public:
 
+    //-----<PUBLIC PLUGIN API>--------------------------------------------------
 
-PCB_COMPONENT::~PCB_COMPONENT()
-{
-}
+    const wxString& PluginName() const;
 
+    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe,  PROPERTIES* aProperties = NULL );
 
-void PCB_COMPONENT::WriteToFile( wxFile* aFile, char aFileType )
-{
-}
+    const wxString& GetFileExtension() const;
 
+    //-----</PUBLIC PLUGIN API>-------------------------------------------------
 
-void PCB_COMPONENT::SetPosOffset( int aX_offs, int aY_offs )
-{
-    m_positionX += aX_offs;
-    m_positionY += aY_offs;
-}
+    PCAD_PLUGIN();
+    ~PCAD_PLUGIN();
+
+private:
+    PROPERTIES* m_props;
+    BOARD*      m_board;
+};
+
+#endif  // PCAD_PLUGIN_H_

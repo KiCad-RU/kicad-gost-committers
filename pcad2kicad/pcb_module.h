@@ -43,7 +43,7 @@ public:
     PCB_COMPONENTS_ARRAY    m_moduleObjects;    // set of objects like PCB_LINE, PCB_PAD, PCB_VIA,....
     int         m_mirror;
 
-    PCB_MODULE( PCB_CALLBACKS* aCallbacks );
+    PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_MODULE();
 
     wxXmlNode*  FindModulePatternDefName( wxXmlNode* aNode, wxString aName );
@@ -62,6 +62,7 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    Flip();
+    void    AddToBoard();
 
 private:
     wxXmlNode*      FindPatternMultilayerSection( wxXmlNode* aNode, wxString* aPatGraphRefName );

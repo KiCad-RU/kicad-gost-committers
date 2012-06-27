@@ -43,7 +43,7 @@ public:
     int m_angle;
     int m_width;
 
-    PCB_ARC( PCB_CALLBACKS* aCallbacks );
+    PCB_ARC( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_ARC();
 
     virtual void    Parse( wxXmlNode* aNode, int aLayer,
@@ -51,6 +51,7 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    SetPosOffset( int aX_offs, int aY_offs );
+    void            AddToBoard();
 };
 
 #endif    // PCB_ARC_H_

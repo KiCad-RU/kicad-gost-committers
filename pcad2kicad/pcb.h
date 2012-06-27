@@ -35,6 +35,7 @@
 #include <pcb_module.h>
 #include <pcb_net.h>
 
+
 class PCB : public PCB_MODULE, public PCB_CALLBACKS
 {
 public:
@@ -45,7 +46,7 @@ public:
     int m_sizeX;
     int m_sizeY;
 
-    PCB();
+    PCB( BOARD* aBoard );
     ~PCB();
 
     int             GetKiCadLayer( int aPCadLayer );
@@ -56,6 +57,7 @@ public:
                            wxString     aActualConversion );
 
     virtual void    WriteToFile( wxString aFileName, char aFileType );
+    void            AddToBoard();
 
 private:
     int m_timestamp_cnt;

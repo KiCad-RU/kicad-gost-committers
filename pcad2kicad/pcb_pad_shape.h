@@ -42,12 +42,14 @@ public:
     int         m_width;
     int         m_height;
 
-    PCB_PAD_SHAPE( PCB_CALLBACKS* aCallbacks );
+    PCB_PAD_SHAPE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_PAD_SHAPE();
 
     virtual void Parse( wxXmlNode*  aNode,
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion );
+
+    void         AddToBoard();
 };
 
 WX_DEFINE_ARRAY( PCB_PAD_SHAPE*, PCB_PAD_SHAPES_ARRAY );

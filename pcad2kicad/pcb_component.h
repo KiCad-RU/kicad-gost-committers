@@ -34,6 +34,12 @@
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 #include <pcb_callbacks.h>
+#include <class_board.h>
+#include <class_module.h>
+#include <class_track.h>
+#include <class_edge_mod.h>
+#include <class_zone.h>
+#include <class_pcb_text.h>
 
 
 // basic parent class for PCB objects
@@ -53,16 +59,18 @@ public:
     wxString    m_compRef;          // internal ussage for XL parsing
     wxString    m_patGraphRefName;  // internal ussage for XL parsing
 
-    PCB_COMPONENT( PCB_CALLBACKS* aCallbacks );
+    PCB_COMPONENT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_COMPONENT();
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    SetPosOffset( int aX_offs, int aY_offs );
+    virtual void    AddToBoard() = 0;
 
     int GetKiCadLayer() { return m_callbacks->GetKiCadLayer( m_PCadLayer ); }
     int GetNewTimestamp() { return m_callbacks->GetNewTimestamp(); }
 protected:
     PCB_CALLBACKS* m_callbacks;
+    BOARD* m_board;
 };
 
 WX_DEFINE_ARRAY( PCB_COMPONENT*, PCB_COMPONENTS_ARRAY );

@@ -27,6 +27,7 @@
 #include <legacy_plugin.h>
 #include <kicad_plugin.h>
 #include <eagle_plugin.h>
+#include <pcad_plugin.h>
 
 
 #define FMT_UNIMPLEMENTED   _( "Plugin '%s' does not implement the '%s' function." )
@@ -63,6 +64,9 @@ PLUGIN* IO_MGR::PluginFind( PCB_FILE_T aFileType )
 
     case EAGLE:
         return new EAGLE_PLUGIN();
+
+    case PCAD:
+        return new PCAD_PLUGIN();
     }
 
     return NULL;

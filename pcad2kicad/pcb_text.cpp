@@ -35,7 +35,7 @@
 #include <pcb_text.h>
 
 
-PCB_TEXT::PCB_TEXT( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+PCB_TEXT::PCB_TEXT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
     m_objType = 'T';
 }
@@ -147,6 +147,9 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
     }
 }
 
+void PCB_TEXT::AddToBoard()
+{
+}
 
 void PCB_TEXT::SetPosOffset( int aX_offs, int aY_offs )
 {

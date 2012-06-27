@@ -38,7 +38,7 @@ class PCB_COPPER_POUR : public PCB_POLYGON
 {
 public:
 
-    PCB_COPPER_POUR( PCB_CALLBACKS* aCallbacks );
+    PCB_COPPER_POUR( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_COPPER_POUR();
 
     virtual bool Parse( wxXmlNode*      aNode,

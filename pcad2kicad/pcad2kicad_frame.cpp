@@ -47,7 +47,7 @@
 
 void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event )
 {
-    PCB             pcb;
+/*    PCB             pcb;
     wxArrayString   lines;
 
     wxFileDialog    fileDlg( this, wxT( "Open PCB file" ), wxEmptyString, wxEmptyString, wxT(
@@ -82,7 +82,7 @@ void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event )
     }
 
     m_statusBar->SetStatusText( wxT( "Done." ) );
-    m_actualConversion = wxEmptyString;
+    m_actualConversion = wxEmptyString;*/
 }
 
 

@@ -35,7 +35,7 @@
 #include <pcb_arc.h>
 
 
-PCB_ARC::PCB_ARC( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+PCB_ARC::PCB_ARC( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
     m_objType   = 'A';
     m_startX    = 0;
@@ -132,4 +132,8 @@ void PCB_ARC::SetPosOffset( int aX_offs, int aY_offs )
 
     m_startX    += aX_offs;
     m_startY    += aY_offs;
+}
+
+void PCB_ARC::AddToBoard()
+{
 }

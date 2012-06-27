@@ -35,7 +35,7 @@
 #include <pcb_line.h>
 
 
-PCB_LINE::PCB_LINE( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+PCB_LINE::PCB_LINE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
     m_width     = 0;
     m_toX       = 0;
@@ -110,7 +110,7 @@ void PCB_LINE::WriteToFile( wxFile* aFile, char aFileType )
                                         m_toX, m_toY, m_width, m_KiCadLayer ) ); // Position
     }
 
-    if( aFileType == 'P' )    // PCB
+/*    if( aFileType == 'P' )    // PCB
     {
         aFile->Write( wxString::Format( "Po 0 %d %d %d %d %d\n", m_positionX, m_positionY,
                                         m_toX, m_toY, m_width ) );
@@ -119,5 +119,17 @@ void PCB_LINE::WriteToFile( wxFile* aFile, char aFileType )
             aFile->Write( wxString::Format( "De %d 0 0 0 0\n", m_KiCadLayer ) );
         else
             aFile->Write( wxString::Format( "De %d 0 0 %8X 0\n", m_KiCadLayer, m_timestamp ) );
-    }
+    }*/
+}
+
+void PCB_LINE::AddToBoard()
+{
+    DRAWSEGMENT* dseg = new DRAWSEGMENT( m_board );
+    m_board->Add( dseg, ADD_APPEND );
+
+    dseg->SetTimeStamp( m_timestamp );
+    dseg->SetLayer( m_KiCadLayer );
+    dseg->SetStart( wxPoint( m_positionX, m_positionY ) );
+    dseg->SetEnd( wxPoint( m_toX, m_toY ) );
+    dseg->SetWidth( m_width );
 }

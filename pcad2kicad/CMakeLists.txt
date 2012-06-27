@@ -4,6 +4,7 @@ include_directories(
     bitmaps
     dialogs
     ../polygon
+    ../pcbnew
     ../common
     ${INC_AFTER}
     )
@@ -12,20 +13,20 @@ set(PCAD2KICAD_SRCS
     LoadInputFile.cpp
     pcad2kicad.cpp
     pcad2kicad_frame.cpp
-    pcb.cpp
-    pcb_arc.cpp
-    pcb_component.cpp
-    pcb_copper_pour.cpp
-    pcb_cutout.cpp
-    pcb_line.cpp
-    pcb_module.cpp
-    pcb_net.cpp
-    pcb_pad.cpp
-    pcb_pad_shape.cpp
-    pcb_polygon.cpp
-    pcb_text.cpp
-    pcb_via.cpp
-    pcb_via_shape.cpp
+#    pcb.cpp
+#    pcb_arc.cpp
+#    pcb_component.cpp
+#    pcb_copper_pour.cpp
+#    pcb_cutout.cpp
+#    pcb_line.cpp
+#    pcb_module.cpp
+#    pcb_net.cpp
+#    pcb_pad.cpp
+#    pcb_pad_shape.cpp
+#    pcb_polygon.cpp
+#    pcb_text.cpp
+#    pcb_via.cpp
+#    pcb_via_shape.cpp
     sch.cpp
     sch_arc.cpp
     sch_bus.cpp
@@ -71,7 +72,7 @@ if(APPLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
 endif(APPLE)
 
-target_link_libraries( pcad2kicad
+target_link_libraries(pcad2kicad
     common
     bitmaps
     polygon

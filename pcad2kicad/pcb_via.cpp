@@ -34,7 +34,7 @@
 #include <pcb_via_shape.h>
 
 
-PCB_VIA::PCB_VIA( PCB_CALLBACKS* aCallbacks ) : PCB_PAD( aCallbacks )
+PCB_VIA::PCB_VIA( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_PAD( aCallbacks, aBoard )
 {
     m_objType = 'V';
 }
@@ -119,7 +119,7 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
                 // we do not support vias on "Plane", "NonSignal" , "Signal" ... layerr
                 if( FindNode( lNode->GetChildren(), wxT( "layerNumRef" ) ) )
                 {
-                    viaShape = new PCB_VIA_SHAPE( m_callbacks );
+                    viaShape = new PCB_VIA_SHAPE( m_callbacks, m_board );
                     viaShape->Parse( lNode, aDefaultMeasurementUnit, aActualConversion );
                     m_shapes.Add( viaShape );
                 }

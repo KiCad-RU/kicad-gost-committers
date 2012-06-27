@@ -40,7 +40,7 @@ class PCB_TEXT : public PCB_COMPONENT
 {
 public:
 
-    PCB_TEXT( PCB_CALLBACKS* aCallbacks );
+    PCB_TEXT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_TEXT();
 
     virtual void    Parse( wxXmlNode*   aNode,
@@ -48,6 +48,7 @@ public:
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    void            AddToBoard();
     virtual void    SetPosOffset( int aX_offs, int aY_offs );
 };
 

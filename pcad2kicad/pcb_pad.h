@@ -43,13 +43,14 @@ public:
     int m_hole;
     PCB_PAD_SHAPES_ARRAY m_shapes;
 
-    PCB_PAD( PCB_CALLBACKS* aCallbacks );
+    PCB_PAD( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_PAD();
 
     virtual void    Parse( wxXmlNode*   aNode,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType, int aRotation );
+    void            AddToBoard();
 
 private:
     int             ToInt( char aChar );

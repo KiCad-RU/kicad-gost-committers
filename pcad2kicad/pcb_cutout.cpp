@@ -33,7 +33,7 @@
 #include <pcb_cutout.h>
 
 
-PCB_CUTOUT::PCB_CUTOUT( PCB_CALLBACKS* aCallbacks ) : PCB_POLYGON( aCallbacks )
+PCB_CUTOUT::PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_POLYGON( aCallbacks, aBoard )
 {
     m_objType = 'C';
 }
@@ -62,6 +62,12 @@ void PCB_CUTOUT::Parse( wxXmlNode*  aNode,
 
 
 void PCB_CUTOUT::WriteToFile( wxFile* aFile, char aFileType )
+{
+    // no operation
+    // (It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
+}
+
+void PCB_CUTOUT::AddToBoard()
 {
     // no operation
     // (It seems that the same cutouts (with the same vertices) are inside of copper pour objects)

@@ -38,7 +38,7 @@ class PCB_CUTOUT : public PCB_POLYGON
 {
 public:
 
-    PCB_CUTOUT( PCB_CALLBACKS* aCallbacks );
+    PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_CUTOUT();
 
     virtual void    Parse( wxXmlNode*   aNode,
@@ -47,6 +47,7 @@ public:
                            wxString     actualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    void            AddToBoard();
 };
 
 #endif    // PCB_CUTOUT_H_

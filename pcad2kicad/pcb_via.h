@@ -40,7 +40,7 @@ class PCB_VIA : public PCB_PAD
 {
 public:
 
-    PCB_VIA( PCB_CALLBACKS* aCallbacks );
+    PCB_VIA( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_VIA();
 
     virtual void Parse( wxXmlNode*  aNode,

@@ -35,7 +35,7 @@
 #include <pcb_polygon.h>
 
 
-PCB_POLYGON::PCB_POLYGON( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+PCB_POLYGON::PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
     m_width     = 0;
     m_objType   = 'Z';
@@ -104,7 +104,7 @@ bool PCB_POLYGON::Parse( wxXmlNode*     aNode,
     wxXmlNode*  lNode;
     wxString    propValue;
 
-    aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " Polygon..." ) );
+    //aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " Polygon..." ) );
     m_PCadLayer     = aPCadLayer;
     m_KiCadLayer    = GetKiCadLayer();
     m_timestamp     = GetNewTimestamp();
@@ -140,7 +140,7 @@ void PCB_POLYGON::WriteToFile( wxFile* aFile, char aFileType )
 
 void PCB_POLYGON::WriteOutlineToFile( wxFile* aFile, char aFileType )
 {
-    int     i, island;
+/*    int     i, island;
     char    c;
 
     if( m_outline.GetCount() > 0 )
@@ -199,8 +199,55 @@ void PCB_POLYGON::WriteOutlineToFile( wxFile* aFile, char aFileType )
 
         aFile->Write( wxT( "$endCZONE_OUTLINE\n" ) );
     }
+*/
 }
 
+void PCB_POLYGON::AddToBoard()
+{
+    int i = 0, island = 0;
+
+    if( m_outline.GetCount() > 0 )
+    {
+        ZONE_CONTAINER* zone = new ZONE_CONTAINER( m_board );
+        m_board->Add( zone, ADD_APPEND );
+
+        zone->SetTimeStamp( m_timestamp );
+        zone->SetLayer( m_KiCadLayer );
+        zone->SetNetName( m_net );
+
+        // add outline
+        int outline_hatch = CPolyLine::DIAGONAL_EDGE;
+
+        zone->m_Poly->Start( m_KiCadLayer, KiROUND( m_outline[i]->x ),
+                             KiROUND( m_outline[i]->y ), outline_hatch );
+
+        for( i = 1; i < (int) m_outline.GetCount(); i++ )
+        {
+            zone->AppendCorner( wxPoint( KiROUND( m_outline[i]->x ),
+                                         KiROUND( m_outline[i]->y ) ) );
+        }
+
+        zone->m_Poly->Close();
+
+        // add cutouts
+        for( island = 0; island < (int) m_cutouts.GetCount(); island++ )
+        {
+            for( i = 0; i < (int) m_cutouts[island]->GetCount(); i++ )
+            {
+                zone->AppendCorner( wxPoint( KiROUND( (*m_cutouts[island])[i]->x ),
+                                             KiROUND( (*m_cutouts[island])[i]->y ) ) );
+
+            }
+
+            zone->m_Poly->Close();
+        }
+
+        zone->m_Poly->SetHatch( outline_hatch,
+                                Mils2iu( zone->m_Poly->GetDefaultHatchPitchMils() ) );
+
+//        zone->BuildFilledPolysListData( m_board );
+    }
+}
 
 void PCB_POLYGON::SetPosOffset( int aX_offs, int aY_offs )
 {

@@ -51,6 +51,7 @@ public:
         LEGACY,             //< Legacy Pcbnew file formats prior to s-expression.
         KICAD,              //< S-expression Pcbnew file format.
         EAGLE,
+        PCAD,
 
         // add your type here.
 

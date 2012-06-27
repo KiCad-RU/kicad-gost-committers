@@ -185,6 +185,7 @@ the changes?" ) ) )
         { LegacyPcbFileWildcard,    IO_MGR::LEGACY },
         { PcbFileWildcard,          IO_MGR::KICAD },
         { EaglePcbFileWildcard,     IO_MGR::EAGLE },
+        { PCadPcbFileWildcard,      IO_MGR::PCAD },
     };
 
     if( !fileName.IsOk() || !fileName.FileExists() || aForceFileDialog )

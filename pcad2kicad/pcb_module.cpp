@@ -43,7 +43,7 @@
 #include <pcb_via.h>
 
 
-PCB_MODULE::PCB_MODULE( PCB_CALLBACKS* aCallbacks ) : PCB_COMPONENT( aCallbacks )
+PCB_MODULE::PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
     InitTTextValue( &m_value );
     m_mirror = 0;
@@ -232,7 +232,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
     long                num;
 
     i = 0;
-    aStatusBar->SetStatusText( wxT( "Processing LAYER CONTENT OBJECTS " ) );
+    //aStatusBar->SetStatusText( wxT( "Processing LAYER CONTENT OBJECTS " ) );
     FindNode( aNode->GetChildren(), wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &num );
     PCadLayer   = (int) num;
     lNode       = aNode->GetChildren();
@@ -240,19 +240,19 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
     while( lNode )
     {
         i++;
-        aStatusBar->SetStatusText( wxString::Format( "Processing LAYER CONTENT OBJECTS :%lld",
-                                                     i ) );
+        //aStatusBar->SetStatusText( wxString::Format( "Processing LAYER CONTENT OBJECTS :%lld",
+        //                                             i ) );
 
         if( lNode->GetName() == wxT( "line" ) )
         {
-            line = new PCB_LINE( m_callbacks );
+            line = new PCB_LINE( m_callbacks, m_board );
             line->Parse( lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion );
             aList->Add( line );
         }
 
         if( lNode->GetName() == wxT( "text" ) )
         {
-            text = new PCB_TEXT( m_callbacks );
+            text = new PCB_TEXT( m_callbacks, m_board );
             text->Parse( lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion );
             aList->Add( text );
         }
@@ -288,14 +288,14 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
         // added  as Sergeys request 02/2008
         if( lNode->GetName() == wxT( "arc" ) || lNode->GetName() == wxT( "triplePointArc" ) )
         {
-            arc = new PCB_ARC( m_callbacks );
+            arc = new PCB_ARC( m_callbacks, m_board );
             arc->Parse( lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion );
             aList->Add( arc );
         }
 
         if( lNode->GetName() == wxT( "pcbPoly" ) )
         {
-            polygon = new PCB_POLYGON( m_callbacks );
+            polygon = new PCB_POLYGON( m_callbacks, m_board );
             polygon->Parse( lNode,
                             PCadLayer,
                             aDefaultMeasurementUnit,
@@ -306,7 +306,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
 
         if( lNode->GetName() == wxT( "copperPour95" ) )
         {
-            copperPour = new PCB_COPPER_POUR( m_callbacks );
+            copperPour = new PCB_COPPER_POUR( m_callbacks, m_board );
 
             if( copperPour->Parse( lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion,
                                    aStatusBar ) )
@@ -325,7 +325,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
 
             if( tNode )
             {
-                cutout = new PCB_CUTOUT( m_callbacks );
+                cutout = new PCB_CUTOUT( m_callbacks, m_board );
                 cutout->Parse( tNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion );
                 aList->Add( cutout );
             }
@@ -367,7 +367,7 @@ void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
     propValue.Trim( false );
     m_name.text = propValue;
 
-    aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
+    //aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
     lNode   = aNode;
     lNode   = FindPatternMultilayerSection( lNode, &m_patGraphRefName );
 
@@ -380,14 +380,14 @@ void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
         {
             if( tNode->GetName() == wxT( "pad" ) )
             {
-                pad = new PCB_PAD( m_callbacks );
+                pad = new PCB_PAD( m_callbacks, m_board );
                 pad->Parse( tNode, aDefaultMeasurementUnit, aActualConversion );
                 m_moduleObjects.Add( pad );
             }
 
             if( tNode->GetName() == wxT( "via" ) )
             {
-                via = new PCB_VIA( m_callbacks );
+                via = new PCB_VIA( m_callbacks, m_board );
                 via->Parse( tNode, aDefaultMeasurementUnit, aActualConversion );
                 m_moduleObjects.Add( via );
             }
@@ -562,6 +562,9 @@ void PCB_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxT( "$EndMODULE " ) + m_name.text + wxT( "\n" ) );
 }
 
+void PCB_MODULE::AddToBoard()
+{
+}
 
 int PCB_MODULE::FlipLayers( int aLayer )
 {
