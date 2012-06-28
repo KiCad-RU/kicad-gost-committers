@@ -113,6 +113,8 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
         mirrored = 'N';
 
     // Simple, not the best, but acceptable text positioning.....
+    m_name.textPositionX = m_positionX;
+    m_name.textPositionY = m_positionY;
     CorrectTextPosition( &m_name, m_rotation );
 
     // Go out
@@ -128,7 +130,7 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
                       m_name.text + wxT( "\"\n" ) ); // ValueString
     }
 
-    if( aFileType == 'P' )    // Library component
+    if( aFileType == 'P' )    // PCB
     {
         if( m_name.mirror == 1 )
             mirrored = '0';
@@ -149,12 +151,34 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
 
 void PCB_TEXT::AddToBoard()
 {
+    // Simple, not the best, but acceptable text positioning.
+    m_name.textPositionX = m_positionX;
+    m_name.textPositionY = m_positionY;
+    CorrectTextPosition( &m_name, m_rotation );
+
+    TEXTE_PCB* pcbtxt = new TEXTE_PCB( m_board );
+    m_board->Add( pcbtxt, ADD_APPEND );
+
+    pcbtxt->SetText( m_name.text );
+
+    pcbtxt->SetSize( wxSize( KiROUND( m_name.textHeight / 2 ),
+                             KiROUND( m_name.textHeight / 1.1 ) ) );
+
+    pcbtxt->SetThickness( m_name.textstrokeWidth );
+    pcbtxt->SetOrientation( m_rotation );
+
+    pcbtxt->SetPosition( wxPoint( m_name.correctedPositionX, m_name.correctedPositionY ) );
+
+    pcbtxt->SetMirrored( m_name.mirror );
+    pcbtxt->SetTimeStamp( 0 );
+
+    pcbtxt->SetLayer( m_KiCadLayer );
 }
 
-void PCB_TEXT::SetPosOffset( int aX_offs, int aY_offs )
-{
-    PCB_COMPONENT::SetPosOffset( aX_offs, aY_offs );
+//void PCB_TEXT::SetPosOffset( int aX_offs, int aY_offs )
+//{
+//    PCB_COMPONENT::SetPosOffset( aX_offs, aY_offs );
 
-    m_name.textPositionX    += aX_offs;
-    m_name.textPositionY    += aY_offs;
-}
+//    m_name.textPositionX    += aX_offs;
+//    m_name.textPositionY    += aY_offs;
+//}
