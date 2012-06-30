@@ -129,24 +129,6 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
                       wxString::Format( " %d \"", m_KiCadLayer ) +
                       m_name.text + wxT( "\"\n" ) ); // ValueString
     }
-
-    if( aFileType == 'P' )    // PCB
-    {
-        if( m_name.mirror == 1 )
-            mirrored = '0';
-        else
-            mirrored = '1';
-
-        aFile->Write( wxT( "Te \"" ) + m_name.text + wxT( "\"\n" ) );
-
-        aFile->Write( wxString::Format( "Po %d %d %d %d %d %d\n", m_name.correctedPositionX,
-                                        m_name.correctedPositionY,
-                                        KiROUND( m_name.textHeight / 2 ),
-                                        KiROUND( m_name.textHeight / 1.1 ),
-                                        m_name.textstrokeWidth, m_rotation ) );
-
-        aFile->Write( wxString::Format( "De %d ", m_KiCadLayer ) + mirrored + wxT( " 0 0\n" ) );
-    }
 }
 
 void PCB_TEXT::AddToModule( MODULE* aModule )

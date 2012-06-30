@@ -109,17 +109,6 @@ void PCB_LINE::WriteToFile( wxFile* aFile, char aFileType )
         aFile->Write( wxString::Format( "DS %d %d %d %d %d %d\n", m_positionX, m_positionY,
                                         m_toX, m_toY, m_width, m_KiCadLayer ) ); // Position
     }
-
-/*    if( aFileType == 'P' )    // PCB
-    {
-        aFile->Write( wxString::Format( "Po 0 %d %d %d %d %d\n", m_positionX, m_positionY,
-                                        m_toX, m_toY, m_width ) );
-
-        if( m_timestamp == 0 )
-            aFile->Write( wxString::Format( "De %d 0 0 0 0\n", m_KiCadLayer ) );
-        else
-            aFile->Write( wxString::Format( "De %d 0 0 %8X 0\n", m_KiCadLayer, m_timestamp ) );
-    }*/
 }
 
 void PCB_LINE::AddToModule( MODULE* aModule )

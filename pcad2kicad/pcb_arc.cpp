@@ -31,6 +31,7 @@
 #include <wx/config.h>
 
 #include <common.h>
+#include <trigo.h>
 
 #include <pcb_arc.h>
 
@@ -57,6 +58,7 @@ void PCB_ARC::Parse( wxXmlNode* aNode,
 {
     wxXmlNode*  lNode;
     double      r, a;
+    int         endPointX, endPointY;
 
     m_PCadLayer     = aLayer;
     m_KiCadLayer    = GetKiCadLayer();
@@ -65,21 +67,32 @@ void PCB_ARC::Parse( wxXmlNode* aNode,
 
     if( aNode->GetName() == wxT( "triplePointArc" ) )
     {
-        // origin
+        // center point
         lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
 
         if( lNode )
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &m_positionX, &m_positionY, aActualConversion );
 
+        // start point
         lNode = lNode->GetNext();
 
         if( lNode )
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &m_startX, &m_startY, aActualConversion );
 
-        // now temporary, it can be fixed later.....
-        m_angle = 3600;
+        // end point
+        lNode = lNode->GetNext();
+
+        if( lNode )
+            SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                         &endPointX, &endPointY, aActualConversion );
+
+        int alpha1 = ArcTangente( m_startY - m_positionY, m_startX - m_positionX );
+        int alpha2 = ArcTangente( endPointY - m_positionY, endPointX - m_positionX );
+        m_angle = alpha1 - alpha2;
+
+        if( m_angle < 0 ) m_angle = 3600 + m_angle;
     }
 
     if( aNode->GetName() == wxT( "arc" ) )
@@ -115,14 +128,6 @@ void PCB_ARC::WriteToFile( wxFile* aFile, char aFileType )
                                         m_startY, m_angle, m_width,
                                         m_KiCadLayer ) ); // ValueString
     }
-
-    if( aFileType == 'P' )    // PCB
-    {
-        aFile->Write( wxString::Format( "Po 2 %d %d %d %d %d",
-                                        m_positionX, m_positionY,
-                                        m_startX, m_startY, m_width ) );
-        aFile->Write( wxString::Format( "De %d 0 %d 0 0\n", m_KiCadLayer, -m_angle ) );
-    }
 }
 
 
@@ -137,8 +142,32 @@ void PCB_ARC::SetPosOffset( int aX_offs, int aY_offs )
 
 void PCB_ARC::AddToModule( MODULE* aModule )
 {
+    if( IsValidNonCopperLayerIndex( m_KiCadLayer ) )
+    {
+        EDGE_MODULE* arc = new EDGE_MODULE( aModule, S_ARC );
+        aModule->m_Drawings.PushBack( arc );
+
+        arc->SetAngle( -m_angle );
+        arc->m_Start0 = wxPoint( m_positionX, m_positionY );
+        arc->m_End0   = wxPoint( m_startX, m_startY );
+
+        arc->SetWidth( m_width );
+        arc->SetLayer( m_KiCadLayer );
+
+        arc->SetDrawCoord();
+    }
 }
 
 void PCB_ARC::AddToBoard()
 {
+    DRAWSEGMENT* dseg = new DRAWSEGMENT( m_board );
+    m_board->Add( dseg, ADD_APPEND );
+
+    dseg->SetShape( S_ARC );
+    dseg->SetTimeStamp( m_timestamp );
+    dseg->SetLayer( m_KiCadLayer );
+    dseg->SetStart( wxPoint( m_positionX, m_positionY ) );
+    dseg->SetEnd( wxPoint( m_startX, m_startY ) );
+    dseg->SetAngle( -m_angle );
+    dseg->SetWidth( m_width );
 }

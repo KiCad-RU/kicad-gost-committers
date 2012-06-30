@@ -268,116 +268,95 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
     wxString        s, layerMask, padType;
     int             i, lc, ls;
 
-    if( aFileType == 'P' )    // PCB
-    {
-        for( i = 0; i < (int) m_shapes.GetCount(); i++ )
-        {
-            padShape = m_shapes[i];
+    // Library
+    lc = 0; ls = 0;
 
-            // maybe should not to be filtered ????
-            if( padShape->m_width > 0 || padShape->m_height > 0 )
-            {
-                s = wxT( "3" );   // default
-                aFile->Write( wxT( "Po " ) + s +
-                              wxString::Format( " %d %d %d %d %d %d\n", m_positionX, m_positionY,
-                                                m_positionX, m_positionY,
-                                                padShape->m_height, m_hole ) );
-                aFile->Write( wxString::Format( "De %d 1 0 0 0\n", padShape->m_KiCadLayer ) );
-            }
+    // Is it SMD pad , or not ?
+    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    {
+        padShape = m_shapes[i];
+
+        if( padShape->m_width > 0 && padShape->m_height > 0 )
+        {
+            if( padShape->m_KiCadLayer == 15 )
+                lc++;                               // Component
+
+            if( padShape->m_KiCadLayer == 0 )
+                ls++;                               // Cooper
         }
     }
-    else
+
+    // And default layers mask
+    layerMask   = wxT( "00C08001" ); // Comp,Coop,SoldCmp,SoldCoop
+    padType     = wxT( "STD" );
+
+    if( lc == 0 || ls == 0 )
     {
-        // Library
-        lc = 0; ls = 0;
-
-        // Is it SMD pad , or not ?
-        for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+        if( m_hole == 0 )
         {
-            padShape = m_shapes[i];
+            padType = wxT( "SMD" );
 
-            if( padShape->m_width > 0 && padShape->m_height > 0 )
-            {
-                if( padShape->m_KiCadLayer == 15 )
-                    lc++;                               // Component
+            if( ls > 0 )
+                layerMask = wxT( "00440001" );
 
-                if( padShape->m_KiCadLayer == 0 )
-                    ls++;                               // Cooper
-            }
+            if( lc > 0 )
+                layerMask = wxT( "00888000" );
         }
-
-        // And default layers mask
-        layerMask   = wxT( "00C08001" ); // Comp,Coop,SoldCmp,SoldCoop
-        padType     = wxT( "STD" );
-
-        if( lc == 0 || ls == 0 )
+        else
         {
-            if( m_hole == 0 )
-            {
-                padType = wxT( "SMD" );
+            if( ls > 0 )
+                layerMask = wxT( "00400001" );
 
-                if( ls > 0 )
-                    layerMask = wxT( "00440001" );
-
-                if( lc > 0 )
-                    layerMask = wxT( "00888000" );
-            }
-            else
-            {
-                if( ls > 0 )
-                    layerMask = wxT( "00400001" );
-
-                if( lc > 0 )
-                    layerMask = wxT( "00808000" );
-            }
+            if( lc > 0 )
+                layerMask = wxT( "00808000" );
         }
+    }
 
-        // Go out
-        for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    // Go out
+    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    {
+        padShape = m_shapes[i];
+
+        // maybe should not to be filtered ????
+        if( padShape->m_width > 0 || padShape->m_height > 0 )
         {
-            padShape = m_shapes[i];
-
-            // maybe should not to be filtered ????
-            if( padShape->m_width > 0 || padShape->m_height > 0 )
+            if( padShape->m_shape == wxT( "Oval" ) )
             {
-                if( padShape->m_shape == wxT( "Oval" ) )
-                {
-                    if( padShape->m_width != padShape->m_height )
-                        s = wxT( "O" );
-                    else
-                        s = wxT( "C" );
-                }
-                else if( padShape->m_shape == wxT( "Ellipse" ) )
+                if( padShape->m_width != padShape->m_height )
                     s = wxT( "O" );
-                else if( padShape->m_shape == wxT( "Rect" ) || padShape->m_shape ==
-                         wxT( "RndRect" ) )
-                    s = wxT( "R" );
-                else if( padShape->m_shape == wxT( "Polygon" ) )
-                    s = wxT( "R" );                                         // approximation.....
-
-                aFile->Write( wxT( "$PAD\n" ) );
-
-                // Name, Shape, Xsize Ysize Xdelta Ydelta Orientation
-                aFile->Write( wxT( "Sh \"" ) + m_name.text + wxT( "\" " ) + s +
-                              wxString::Format( " %d %d 0 0 %d\n",
-                                                padShape->m_width, padShape->m_height, m_rotation +
-                                                aRotation ) );
-
-                // Hole size , OffsetX, OffsetY
-                aFile->Write( wxString::Format( "Dr %d 0 0\n", m_hole ) );
-
-                layerMask = KiCadLayerMask( layerMask, padShape->m_KiCadLayer );
-
-                // <Pad type> N <layer mask>
-                aFile->Write( wxT( "At " ) + padType + wxT( " N " ) + layerMask + wxT( "\n" ) );
-
-                // Reference
-                aFile->Write( wxT( "Ne 0 \"" ) + m_net + "\"\n" );
-
-                // Position
-                aFile->Write( wxString::Format( "Po %d %d\n", m_positionX, m_positionY ) );
-                aFile->Write( wxT( "$EndPAD\n" ) );
+                else
+                    s = wxT( "C" );
             }
+            else if( padShape->m_shape == wxT( "Ellipse" ) )
+                s = wxT( "O" );
+            else if( padShape->m_shape == wxT( "Rect" )
+                  || padShape->m_shape == wxT( "RndRect" ) )
+                s = wxT( "R" );
+            else if( padShape->m_shape == wxT( "Polygon" ) )
+                s = wxT( "R" );                                         // approximation.....
+
+            aFile->Write( wxT( "$PAD\n" ) );
+
+            // Name, Shape, Xsize Ysize Xdelta Ydelta Orientation
+            aFile->Write( wxT( "Sh \"" ) + m_name.text + wxT( "\" " ) + s +
+                          wxString::Format( " %d %d 0 0 %d\n",
+                                            padShape->m_width, padShape->m_height, m_rotation +
+                                            aRotation ) );
+
+            // Hole size , OffsetX, OffsetY
+            aFile->Write( wxString::Format( "Dr %d 0 0\n", m_hole ) );
+
+            layerMask = KiCadLayerMask( layerMask, padShape->m_KiCadLayer );
+
+            // <Pad type> N <layer mask>
+            aFile->Write( wxT( "At " ) + padType + wxT( " N " ) + layerMask + wxT( "\n" ) );
+
+            // Reference
+            aFile->Write( wxT( "Ne 0 \"" ) + m_net + "\"\n" );
+
+            // Position
+            aFile->Write( wxString::Format( "Po %d %d\n", m_positionX, m_positionY ) );
+            aFile->Write( wxT( "$EndPAD\n" ) );
         }
     }
 }
