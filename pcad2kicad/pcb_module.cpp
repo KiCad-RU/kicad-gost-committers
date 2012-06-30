@@ -348,8 +348,6 @@ void PCB_MODULE::SetPadName( wxString aPin, wxString aName )
         if( m_moduleObjects[i]->m_objType == 'P' )
             if( ( (PCB_PAD*) m_moduleObjects[i] )->m_number == num )
                 ( (PCB_PAD*) m_moduleObjects[i] )->m_name.text = aName;
-
-
     }
 }
 
@@ -492,8 +490,7 @@ void PCB_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxString::Format( "T0 %d %d %d %d %d %d", m_name.correctedPositionX,
                                     m_name.correctedPositionY,
                                     KiROUND( m_name.textHeight / 2 ),
-                                    KiROUND(
-                                        m_name.textHeight / 1.5 ),
+                                    KiROUND( m_name.textHeight / 1.5 ),
                                     m_name.textRotation,
                                     /* TODO: Is it correct to use m_value.textstrokeWidth here? */
                                     m_value.textstrokeWidth ) +
@@ -564,6 +561,108 @@ void PCB_MODULE::WriteToFile( wxFile* aFile, char aFileType )
 
 void PCB_MODULE::AddToBoard()
 {
+    int i;
+
+    // transform text positions
+    CorrectTextPosition( &m_name, m_rotation );
+    CorrectTextPosition( &m_value, m_rotation );
+
+    MODULE* module = new MODULE( m_board );
+    m_board->Add( module, ADD_APPEND );
+
+    module->SetPosition( wxPoint( m_positionX, m_positionY ) );
+    module->SetLayer( m_mirror ? LAYER_N_BACK : LAYER_N_FRONT );
+    module->SetOrientation( m_rotation );
+    module->SetTimeStamp( 0 );
+    module->SetLastEditTime( 0 );
+
+    module->SetLibRef( m_name.text );
+
+    module->SetAttributes( MOD_DEFAULT | MOD_CMS );
+
+    // reference text
+    TEXTE_MODULE* ref_text = new TEXTE_MODULE( module );
+    module->m_Drawings.PushBack( ref_text );
+
+    ref_text->SetText( m_name.text );
+    ref_text->SetType( TEXT_is_REFERENCE );
+
+    ref_text->SetPos0( wxPoint( m_name.correctedPositionX, m_name.correctedPositionY ) );
+    ref_text->SetSize( wxSize( KiROUND( m_name.textHeight / 2 ),
+                               KiROUND( m_name.textHeight / 1.5 ) ) );
+
+    ref_text->SetOrientation( m_name.textRotation );
+    ref_text->SetThickness( m_name.textstrokeWidth );
+
+    ref_text->SetMirrored( m_name.mirror );
+    ref_text->SetVisible( m_name.textIsVisible );
+
+    ref_text->SetLayer( m_KiCadLayer );
+
+    // Calculate the actual position.
+    ref_text->SetDrawCoord();
+
+    // value text
+    TEXTE_MODULE* val_text = new TEXTE_MODULE( module );
+    module->m_Drawings.PushBack( val_text );
+
+    val_text->SetText( m_value.text );
+    val_text->SetType( TEXT_is_REFERENCE );
+
+    val_text->SetPos0( wxPoint( m_value.correctedPositionX, m_value.correctedPositionY ) );
+    val_text->SetSize( wxSize( KiROUND( m_value.textHeight / 2 ),
+                               KiROUND( m_value.textHeight / 1.5 ) ) );
+
+    val_text->SetOrientation( m_value.textRotation );
+    val_text->SetThickness( m_value.textstrokeWidth );
+
+    val_text->SetMirrored( m_value.mirror );
+    val_text->SetVisible( m_value.textIsVisible );
+
+    val_text->SetLayer( m_KiCadLayer );
+
+    // Calculate the actual position.
+    val_text->SetDrawCoord();
+
+    // TEXTS
+    for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+    {
+        if( m_moduleObjects[i]->m_objType == 'T' )
+        {
+            ( (PCB_TEXT*) m_moduleObjects[i] )->m_tag = i + 2;
+            m_moduleObjects[i]->AddToModule( module );
+        }
+    }
+
+    // MODULE LINES
+    for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+    {
+        if( m_moduleObjects[i]->m_objType == 'L' )
+            m_moduleObjects[i]->AddToModule( module );
+    }
+
+    // MODULE Arcs
+    for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+    {
+        if( m_moduleObjects[i]->m_objType == 'A' )
+            m_moduleObjects[i]->AddToModule( module );
+    }
+
+    // PADS
+    for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+    {
+        if( m_moduleObjects[i]->m_objType == 'P' )
+            ( (PCB_PAD*) m_moduleObjects[i] )->AddToModule( module, m_rotation );
+    }
+
+    // VIAS
+    for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+    {
+        if( m_moduleObjects[i]->m_objType == 'V' )
+            ( (PCB_VIA*) m_moduleObjects[i] )->AddToModule( module, m_rotation );
+    }
+
+    module->CalculateBoundingBox();
 }
 
 int PCB_MODULE::FlipLayers( int aLayer )

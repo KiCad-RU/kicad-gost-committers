@@ -202,6 +202,10 @@ void PCB_POLYGON::WriteOutlineToFile( wxFile* aFile, char aFileType )
 */
 }
 
+void PCB_POLYGON::AddToModule( MODULE* aModule )
+{
+}
+
 void PCB_POLYGON::AddToBoard()
 {
     int i = 0, island = 0;

@@ -134,6 +134,11 @@ void PCB_ARC::SetPosOffset( int aX_offs, int aY_offs )
     m_startY    += aY_offs;
 }
 
+
+void PCB_ARC::AddToModule( MODULE* aModule )
+{
+}
+
 void PCB_ARC::AddToBoard()
 {
 }

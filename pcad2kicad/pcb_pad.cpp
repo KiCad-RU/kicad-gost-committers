@@ -29,6 +29,7 @@
 
 #include <wx/wx.h>
 #include <wx/config.h>
+#include <trigo.h>
 
 #include <pcb_pad.h>
 
@@ -159,6 +160,19 @@ wxString PCB_PAD::KiCadLayerMask( wxString aMask, int aLayer )
         newmask[i] = OrMask( aMask[i], newmask[i] );
 
     return newmask;
+}
+
+unsigned long PCB_PAD::KiCadLayerMask( unsigned long aMask, int aLayer )
+{
+    unsigned long newMask;
+
+    newMask = 1 << aLayer;
+    if( !IsValidLayerIndex( aLayer ) ) newMask = 0;
+    if( aLayer == FIRST_COPPER_LAYER ) newMask = 1;
+
+    newMask |= aMask;
+
+    return newMask;
 }
 
 
@@ -364,6 +378,112 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
                 aFile->Write( wxString::Format( "Po %d %d\n", m_positionX, m_positionY ) );
                 aFile->Write( wxT( "$EndPAD\n" ) );
             }
+        }
+    }
+}
+
+void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
+{
+    PCB_PAD_SHAPE*  padShape;
+    wxString        s;
+    PAD_ATTR_T      padType;
+    unsigned long   layerMask;
+    int             i, lc, ls;
+
+    // Library
+    lc = 0; ls = 0;
+
+    // Is it SMD pad , or not ?
+    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    {
+        padShape = m_shapes[i];
+
+        if( padShape->m_width > 0 && padShape->m_height > 0 )
+        {
+            if( padShape->m_KiCadLayer == 15 )
+                lc++;                               // Component
+
+            if( padShape->m_KiCadLayer == 0 )
+                ls++;                               // Cooper
+        }
+    }
+
+    // And default layers mask
+    layerMask = 0x00C08001; // Comp,Coop,SoldCmp,SoldCoop
+    padType   = PAD_STANDARD;
+
+    if( lc == 0 || ls == 0 )
+    {
+        if( m_hole == 0 )
+        {
+            padType = PAD_SMD;
+
+            if( ls > 0 )
+                layerMask = 0x00440001;
+
+            if( lc > 0 )
+                layerMask = 0x00888000;
+        }
+        else
+        {
+            if( ls > 0 )
+                layerMask = 0x00400001;
+
+            if( lc > 0 )
+                layerMask = 0x00808000;
+        }
+    }
+
+    // Go out
+    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    {
+        padShape = m_shapes[i];
+
+        // maybe should not to be filtered ????
+        if( padShape->m_width > 0 || padShape->m_height > 0 )
+        {
+            D_PAD* pad = new D_PAD( aModule );
+            aModule->m_Pads.PushBack( pad );
+
+            pad->SetPadName( m_name.text );
+
+            if( padShape->m_shape == wxT( "Oval" ) )
+            {
+                if( padShape->m_width != padShape->m_height )
+                    pad->SetShape( PAD_OVAL );
+                else
+                    pad->SetShape( PAD_CIRCLE );
+            }
+            else if( padShape->m_shape == wxT( "Ellipse" ) )
+                pad->SetShape( PAD_OVAL );
+            else if( padShape->m_shape == wxT( "Rect" )
+                  || padShape->m_shape == wxT( "RndRect" ) )
+                pad->SetShape( PAD_RECT );
+            else if( padShape->m_shape == wxT( "Polygon" ) )
+                pad->SetShape( PAD_RECT );                        // approximation
+
+            pad->SetSize( wxSize( padShape->m_width, padShape->m_height ) );
+            pad->SetDelta( wxSize( 0, 0 ) );
+            pad->SetOrientation( m_rotation + aRotation );
+
+            pad->SetDrillShape( PAD_CIRCLE );
+            pad->SetOffset( wxPoint( 0, 0 ) );
+            pad->SetDrillSize( wxSize( m_hole, m_hole ) );
+
+            layerMask = KiCadLayerMask( layerMask, padShape->m_KiCadLayer );
+
+            pad->SetLayerMask( layerMask );
+            pad->SetAttribute( padType );
+
+            pad->SetNet( 0 );
+            pad->SetNetname( m_net );
+
+            // pad's "Position" is not relative to the module's,
+            // whereas Pos0 is relative to the module's but is the unrotated coordinate.
+            wxPoint padpos( m_positionX, m_positionY );
+            pad->SetPos0( padpos );
+            RotatePoint( &padpos, aModule->GetOrientation() );
+            pad->SetPosition( padpos + aModule->GetPosition() );
         }
     }
 }

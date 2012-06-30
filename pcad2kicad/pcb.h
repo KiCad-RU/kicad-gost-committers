@@ -56,7 +56,7 @@ public:
                            wxString     aXMLFileName,
                            wxString     aActualConversion );
 
-    virtual void    WriteToFile( wxString aFileName, char aFileType );
+    virtual void    WriteToFile( wxString aFileName );
     void            AddToBoard();
 
 private:

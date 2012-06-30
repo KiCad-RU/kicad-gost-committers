@@ -61,6 +61,10 @@ void PCB_COMPONENT::WriteToFile( wxFile* aFile, char aFileType )
 {
 }
 
+void PCB_COMPONENT::AddToModule( MODULE* aModule )
+{
+}
+
 
 void PCB_COMPONENT::SetPosOffset( int aX_offs, int aY_offs )
 {

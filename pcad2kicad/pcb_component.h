@@ -65,6 +65,7 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    SetPosOffset( int aX_offs, int aY_offs );
+    virtual void    AddToModule( MODULE* aModule );
     virtual void    AddToBoard() = 0;
 
     int GetKiCadLayer() { return m_callbacks->GetKiCadLayer( m_PCadLayer ); }

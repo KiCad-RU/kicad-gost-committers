@@ -48,6 +48,7 @@ public:
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
+    void            AddToModule( MODULE* aModule );
     void            AddToBoard();
 //    virtual void    SetPosOffset( int aX_offs, int aY_offs );
 };

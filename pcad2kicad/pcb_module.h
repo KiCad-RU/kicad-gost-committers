@@ -62,7 +62,7 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    Flip();
-    void    AddToBoard();
+    void            AddToBoard();
 
 private:
     wxXmlNode*      FindPatternMultilayerSection( wxXmlNode* aNode, wxString* aPatGraphRefName );

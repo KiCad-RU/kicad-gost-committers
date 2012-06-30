@@ -42,16 +42,16 @@
 
 /*
  *  PCad ASCII file description:
- *  www.eltm.ru/store/Altium/PCAD_2006_ASCII.pdf
+ *  www.eurointech.ru/products/Altium/PCAD_2006_ASCII.pdf
  */
 
 void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event )
 {
-/*    PCB             pcb;
+/*    PCB             pcb( NULL );
     wxArrayString   lines;
 
-    wxFileDialog    fileDlg( this, wxT( "Open PCB file" ), wxEmptyString, wxEmptyString, wxT(
-                                 "PCad PCB Board ASCII |*.pcb|PCad PCB Library ASCII |*.lia" ) );
+    wxFileDialog    fileDlg( this, wxT( "Open PCB file" ), wxEmptyString, wxEmptyString,
+                             wxT( "PCad PCB Library ASCII |*.lia" ) );
     int             diag = fileDlg.ShowModal();
 
     if( diag != wxID_OK )
@@ -70,16 +70,8 @@ void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event )
     m_statusBar->SetStatusText( wxT( "Generating output file.... " ) );
     wxFileName outFile( fileName );
 
-    if( fileDlg.GetFilterIndex() == 1 )
-    {
-        outFile.SetExt( wxT( "mod" ) );
-        pcb.WriteToFile( outFile.GetFullPath(), 'L' );
-    }
-    else
-    {
-        outFile.SetExt( wxT( "brd" ) );
-        pcb.WriteToFile( outFile.GetFullPath(), 'P' );
-    }
+    outFile.SetExt( wxT( "mod" ) );
+    pcb.WriteToFile( outFile.GetFullPath() );
 
     m_statusBar->SetStatusText( wxT( "Done." ) );
     m_actualConversion = wxEmptyString;*/

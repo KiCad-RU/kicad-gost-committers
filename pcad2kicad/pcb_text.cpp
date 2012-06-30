@@ -149,6 +149,10 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
     }
 }
 
+void PCB_TEXT::AddToModule( MODULE* aModule )
+{
+}
+
 void PCB_TEXT::AddToBoard()
 {
     // Simple, not the best, but acceptable text positioning.

@@ -661,126 +661,33 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
 }
 
 
-void PCB::WriteToFile( wxString aFileName, char aFileType )
+void PCB::WriteToFile( wxString aFileName)
 {
     wxFile  f;
     int     i;
 
     f.Open( aFileName, wxFile::write );
 
-    if( aFileType == 'L' )
+    // LIBRARY
+    f.Write( wxT( "PCBNEW-LibModule-V1  01/01/2001-01:01:01\n" ) );
+    f.Write( wxT( "\n" ) );
+    f.Write( wxT( "$INDEX\n" ) );
+
+    for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
     {
-        // LIBRARY
-        f.Write( wxT( "PCBNEW-LibModule-V1  01/01/2001-01:01:01\n" ) );
-        f.Write( wxT( "\n" ) );
-        f.Write( wxT( "$INDEX\n" ) );
-
-        for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
-        {
-            if( m_pcbComponents[i]->m_objType == 'M' )
-                f.Write( m_pcbComponents[i]->m_name.text + wxT( "\n" ) );
-        }
-
-        f.Write( wxT( "$EndINDEX\n" ) );
-
-        for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
-        {
-            if( m_pcbComponents[i]->m_objType == 'M' )
-                m_pcbComponents[i]->WriteToFile( &f, 'L' );
-        }
-
-        f.Write( wxT( "$EndLIBRARY\n" ) );
-    }    // LIBRARY
-
-    if( aFileType == 'P' )
-    {
-        // PCB
-        f.Write( wxT( "PCBNEW-BOARD Version 1 date 01/1/2000-01:01:01\n" ) );
-        f.Write( wxT( "$SHEETDESCR\n" ) );
-        f.Write( wxString::Format( "$Sheet User %d %d\n", m_sizeX, m_sizeY ) );
-        f.Write( wxT( "$EndSHEETDESCR\n" ) );
-
-        // MODULES
-        for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
-        {
-            if( m_pcbComponents[i]->m_objType == 'M' )
-                m_pcbComponents[i]->WriteToFile( &f, 'L' );
-        }
-
-        // TEXTS
-        f.Write( wxT( "\n" ) );
-
-        for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
-        {
-            if( m_pcbComponents[i]->m_objType == 'T' )
-            {
-                f.Write( wxT( "$TEXTPCB\n" ) );
-                m_pcbComponents[i]->WriteToFile( &f, 'P' );
-                f.Write( wxT( "$EndTEXTPCB\n" ) );
-            }
-        }
-
-        // SEGMENTS
-        f.Write( wxT( "\n" ) );
-
-        for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
-        {
-            if( (m_pcbComponents[i]->m_objType == 'L'
-                 || m_pcbComponents[i]->m_objType == 'A')
-                && !(m_pcbComponents[i]->m_KiCadLayer >= 0
-                     && m_pcbComponents[i]->m_KiCadLayer <= 15) )
-            {
-                f.Write( wxT( "$DRAWSEGMENT\n" ) );
-                m_pcbComponents[i]->WriteToFile( &f, 'P' );
-                f.Write( wxT( "$EndDRAWSEGMENT\n" ) );
-            }
-        }
-
-        // TRACKS
-        f.Write( wxT( "\n" ) );
-        f.Write( wxT( "$TRACK\n" ) );
-
-        for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
-        {
-            // lines
-            if( m_pcbComponents[i]->m_objType == 'L'
-                && (m_pcbComponents[i]->m_KiCadLayer >= 0
-                    && m_pcbComponents[i]->m_KiCadLayer <= 15) )
-            {
-                m_pcbComponents[i]->WriteToFile( &f, 'P' );
-            }
-
-            // pads
-            if( m_pcbComponents[i]->m_objType == 'P' )
-                ( (PCB_PAD*) m_pcbComponents[i] )->WriteToFile( &f, 'P', 0 );
-
-            // vias
-            if( m_pcbComponents[i]->m_objType == 'V' )
-                ( (PCB_VIA*) m_pcbComponents[i] )->WriteToFile( &f, 'P', 0 );
-        }
-
-        f.Write( wxT( "$EndTRACK\n" ) );
-        // ZONES
-        f.Write( wxT( "\n" ) );
-        f.Write( wxT( "$ZONE\n" ) );
-
-        for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
-        {
-            if( m_pcbComponents[i]->m_objType == 'Z' )
-                m_pcbComponents[i]->WriteToFile( &f, 'P' );
-        }
-
-        f.Write( wxT( "$EndZONE\n" ) );
-
-        for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
-        {
-            if( m_pcbComponents[i]->m_objType == 'Z' )
-                ( (PCB_POLYGON*) m_pcbComponents[i] )->WriteOutlineToFile( &f, 'P' );
-        }
-
-        f.Write( wxT( "\n" ) );
-        f.Write( wxT( "$EndBOARD\n" ) );
+        if( m_pcbComponents[i]->m_objType == 'M' )
+            f.Write( m_pcbComponents[i]->m_name.text + wxT( "\n" ) );
     }
+
+    f.Write( wxT( "$EndINDEX\n" ) );
+
+    for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
+    {
+        if( m_pcbComponents[i]->m_objType == 'M' )
+            m_pcbComponents[i]->WriteToFile( &f, 'L' );
+    }
+
+    f.Write( wxT( "$EndLIBRARY\n" ) );
 
     f.Close();
 }

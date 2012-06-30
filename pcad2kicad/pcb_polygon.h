@@ -57,6 +57,7 @@ public:
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    WriteOutlineToFile( wxFile* aFile, char aFileType );
     virtual void    SetPosOffset( int aX_offs, int aY_offs );
+    void            AddToModule( MODULE* aModule );
     void            AddToBoard();
 
 // protected:
