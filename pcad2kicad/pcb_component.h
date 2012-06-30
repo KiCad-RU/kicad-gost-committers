@@ -71,8 +71,8 @@ public:
     int GetKiCadLayer() { return m_callbacks->GetKiCadLayer( m_PCadLayer ); }
     int GetNewTimestamp() { return m_callbacks->GetNewTimestamp(); }
 protected:
-    PCB_CALLBACKS* m_callbacks;
-    BOARD* m_board;
+    PCB_CALLBACKS*  m_callbacks;
+    BOARD*          m_board;
 };
 
 WX_DEFINE_ARRAY( PCB_COMPONENT*, PCB_COMPONENTS_ARRAY );

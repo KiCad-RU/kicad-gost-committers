@@ -132,10 +132,10 @@ void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString a
 // http://www.pdas.com/lineint.htm
 // extended format replaced by integer
 void SCH::LinesIntersect( const int aX1, const int aY1,
-                          const int aX2, const int aY2,   // first line
+                          const int aX2, const int aY2,     // first line
                           const int aX3, const int aY3,
-                          const int aX4, const int aY4,   // second line
-                          int* aCode,                     // =0 OK; =1 lines parallel
+                          const int aX4, const int aY4,     // second line
+                          int* aCode,                       // =0 OK; =1 lines parallel
                           int* aX, int* aY )
 {
     // intersection point
@@ -146,13 +146,13 @@ void SCH::LinesIntersect( const int aX1, const int aY1,
     b1  = aX1 - aX2;
 
     // a1*x + b1*y + c1 = 0 is line 1
-    c1  = (long double) aX2 * (long double) aY1 - (long double) aX1 * (long double) aY2;
+    c1 = (long double) aX2 * (long double) aY1 - (long double) aX1 * (long double) aY2;
 
     a2  = aY4 - aY3;
     b2  = aX3 - aX4;
 
     // a2*x + b2*y + c2 = 0 is line 2
-    c2  = (long double) aX4 * (long double) aY3 - (long double) aX3 * (long double) aY4;
+    c2 = (long double) aX4 * (long double) aY3 - (long double) aX3 * (long double) aY4;
 
     denom = a1 * b2 - a2 * b1;
 
@@ -178,8 +178,8 @@ bool SCH::IsPointOnLine( int aX, int aY, SCH_LINE* aLine )
     b   = aLine->m_positionX - aLine->m_toX;
 
     // a1*x + b1*y + c1 = 0 is line 1
-    c   = (long double) aLine->m_toX * (long double) aLine->m_positionY -
-          (long double) aLine->m_positionX * (long double) aLine->m_toY;
+    c = (long double) aLine->m_toX * (long double) aLine->m_positionY -
+        (long double) aLine->m_positionX * (long double) aLine->m_toY;
     px = false; py = false;
 
     if( a * (long double) aX + b * (long double) aY + c == 0 )
@@ -215,7 +215,7 @@ SCH_JUNCTION* SCH::CheckJunction( SCH_LINE* aSchLine, int aIndex )
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
         if( (m_schComponents[i])->m_objType == 'L'
-            && aIndex != i ) // not  for itself
+            && aIndex != i )    // not  for itself
         {
             if( aSchLine->m_net == ( (SCH_LINE*) m_schComponents[i] )->m_net )
             {
@@ -239,18 +239,20 @@ SCH_JUNCTION* SCH::CheckJunction( SCH_LINE* aSchLine, int aIndex )
                     {
                         // Point Candidate
                         // Firstly to check if the other line with different NET
-                        //  is crossing this point, if so, there is not point !
+                        // is crossing this point, if so, there is not point !
                         p = true;
 
                         for( j = 0; j < (int) m_schComponents.GetCount(); j++ )
                         {
                             if( (m_schComponents[j])->m_objType == 'L'
-                                && p )   // not  for itself
+                                && p )    // not  for itself
                             {
                                 if( ( (SCH_LINE*) m_schComponents[j] )->m_net !=
                                     ( (SCH_LINE*) m_schComponents[i] )->m_net )
                                     if( IsPointOnLine( x, y, (SCH_LINE*) m_schComponents[j] ) )
                                         p = false;
+
+
 
 
                                 // NOT POINT - net cross
@@ -335,6 +337,7 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
 
 
 
+
             if( aNode->GetName() == wxT( "bus" ) )
             {
                 bus = new SCH_BUS;
@@ -414,11 +417,12 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         // POSTPROCESS -- CREATE JUNCTIONS FROM NEWTLIST
         if( !isJunction )
         {
-            if( wxMessageBox( wxT( "There are not JUNCTIONS in your schematics file . \
+            if( wxMessageBox( wxT(
+                                  "There are not JUNCTIONS in your schematics file . \
 It can be, that your design is without Junctions. \
 But it can be that your input file is in obsolete format. \
 Would you like to run postprocess and create junctions from Netlist/Wires information ?    \
-YOU HAVE TO CHECK/CORRECT Juntions in converted design, placement is only approximation !" ),
+YOU HAVE TO CHECK/CORRECT Juntions in converted design, placement is only approximation !"                                                                                                                                                                                                                                                                                                     ),
                               wxEmptyString, wxYES_NO ) == wxYES )
             {
                 for( i = 0; i < (int) m_schComponents.GetCount(); i++ )

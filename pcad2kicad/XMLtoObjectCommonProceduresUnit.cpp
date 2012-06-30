@@ -150,7 +150,7 @@ double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConv
     if( ( aActualConversion == wxT( "PCB" ) || aActualConversion == wxT( "SCH" ) ) && aAxe == 'Y' )
         return -i;
     else
-        return i;  // Y axe is mirrored in compare with PCAD
+        return i; // Y axe is mirrored in compare with PCAD
 }
 
 
@@ -366,8 +366,8 @@ void SetFontProperty( wxXmlNode*    aNode,
             if( aNode )
             {
                 if( FindNode( aNode->GetChildren(), wxT( "fontHeight" ) ) )
-                    //// SetWidth(iNode.ChildNodes.FindNode('fontHeight').Text,
-                    ////          DefaultMeasurementUnit,tv.TextHeight);
+                    // // SetWidth(iNode.ChildNodes.FindNode('fontHeight').Text,
+                    // //          DefaultMeasurementUnit,tv.TextHeight);
                     // Fixed By Lubo, 02/2008
                     SetHeight( FindNode( aNode->GetChildren(), wxT(
                                              "fontHeight" ) )->GetNodeContent(),
@@ -390,20 +390,20 @@ void CorrectTextPosition( TTEXTVALUE* aValue, int aRotation )
     aValue->correctedPositionX  = aValue->textPositionX;
     aValue->correctedPositionY  = aValue->textPositionY;
     aValue->correctedPositionY  = aValue->correctedPositionY - KiROUND(
-         (double) aValue->textHeight / 3.0 );
-    aValue->correctedPositionX  = aValue->correctedPositionX +
-                                  KiROUND( ( (double) aValue->text.Len() /
-                                             1.4 ) * ( (double) aValue->textHeight / 1.8 ) );
+        (double) aValue->textHeight / 3.0 );
+    aValue->correctedPositionX = aValue->correctedPositionX +
+                                 KiROUND( ( (double) aValue->text.Len() /
+                                            1.4 ) * ( (double) aValue->textHeight / 1.8 ) );
 
     if( aRotation == 900 )
     {
         aValue->correctedPositionX  = -aValue->textPositionY;
         aValue->correctedPositionY  = aValue->textPositionX;
         aValue->correctedPositionX  = aValue->correctedPositionX + KiROUND(
-             (double) aValue->textHeight / 3.0 );
-        aValue->correctedPositionY  = aValue->correctedPositionY +
-                                      KiROUND( ( (double) aValue->text.Len() /
-                                                 1.4 ) * ( (double) aValue->textHeight / 1.8 ) );
+            (double) aValue->textHeight / 3.0 );
+        aValue->correctedPositionY = aValue->correctedPositionY +
+                                     KiROUND( ( (double) aValue->text.Len() /
+                                                1.4 ) * ( (double) aValue->textHeight / 1.8 ) );
     }
 
     if( aRotation == 1800 )
@@ -411,10 +411,10 @@ void CorrectTextPosition( TTEXTVALUE* aValue, int aRotation )
         aValue->correctedPositionX  = -aValue->textPositionX;
         aValue->correctedPositionY  = -aValue->textPositionY;
         aValue->correctedPositionY  = aValue->correctedPositionY +
-            KiROUND( (double) aValue->textHeight / 3.0 );
-        aValue->correctedPositionX  = aValue->correctedPositionX -
-                                      KiROUND( ( (double) aValue->text.Len() /
-                                                 1.4 ) * ( (double) aValue->textHeight / 1.8 ) );
+                                      KiROUND( (double) aValue->textHeight / 3.0 );
+        aValue->correctedPositionX = aValue->correctedPositionX -
+                                     KiROUND( ( (double) aValue->text.Len() /
+                                                1.4 ) * ( (double) aValue->textHeight / 1.8 ) );
     }
 
     if( aRotation == 2700 )
@@ -422,10 +422,10 @@ void CorrectTextPosition( TTEXTVALUE* aValue, int aRotation )
         aValue->correctedPositionX  = aValue->textPositionY;
         aValue->correctedPositionY  = -aValue->textPositionX;
         aValue->correctedPositionX  = aValue->correctedPositionX +
-            KiROUND( (double) aValue->textHeight / 1.0 );
-        aValue->correctedPositionY  = aValue->correctedPositionY -
-                                      KiROUND( ( (double) aValue->text.Len() /
-                                                 3.4 ) * ( (double) aValue->textHeight / 1.8 ) );
+                                      KiROUND( (double) aValue->textHeight / 1.0 );
+        aValue->correctedPositionY = aValue->correctedPositionY -
+                                     KiROUND( ( (double) aValue->text.Len() /
+                                                3.4 ) * ( (double) aValue->textHeight / 1.8 ) );
     }
 }
 
@@ -447,14 +447,14 @@ wxXmlNode* FindNode( wxXmlNode* aChild, wxString aTag )
 void InitTTextValue( TTEXTVALUE* aTextValue )
 {
     aTextValue->text = wxEmptyString;
-    aTextValue->textPositionX = 0;
-    aTextValue->textPositionY = 0;
-    aTextValue->textRotation = 0;
-    aTextValue->textHeight = 0;
-    aTextValue->textstrokeWidth     = 0;
-    aTextValue->textIsVisible       = 0;
-    aTextValue->mirror              = 0;
-    aTextValue->textUnit            = 0;
+    aTextValue->textPositionX   = 0;
+    aTextValue->textPositionY   = 0;
+    aTextValue->textRotation    = 0;
+    aTextValue->textHeight      = 0;
+    aTextValue->textstrokeWidth = 0;
+    aTextValue->textIsVisible   = 0;
+    aTextValue->mirror      = 0;
+    aTextValue->textUnit    = 0;
     aTextValue->correctedPositionX  = 0;
     aTextValue->correctedPositionY  = 0;
 }

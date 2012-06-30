@@ -118,8 +118,8 @@ void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
                     FindNode( tNode->GetChildren(),
                               wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
                     FindNode( tNode->GetChildren(),
-                              wxT( "symbolName" ) )->GetPropVal( wxT("Name" ),
-                                                                 &m_attachedSymbols[(int)num] );
+                              wxT( "symbolName" ) )->GetPropVal( wxT( "Name" ),
+                                                                 &m_attachedSymbols[(int) num] );
                 }
             }
         }
@@ -192,6 +192,7 @@ void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
             if( FindNode( tNode->GetChildren(), wxT( "originalName" ) ) )
                 FindNode( tNode->GetChildren(), wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
                                                                                      &propValue2 );
+
 
 
             if( tNode->GetName() == wxT( "symbolDef" )
@@ -321,7 +322,7 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
                                     m_name.correctedPositionX, m_name.correctedPositionY ) );
     // FOOTPRINT
     aFile->Write( wxT( "F2 \"" ) + m_attachedPattern +
-                  wxT( "\" 0 0 50 H I C C\n" ) ); // invisible as default
+                  wxT( "\" 0 0 50 H I C C\n" ) );    // invisible as default
 
     // Footprints filter
     if( m_attachedPattern.Len() > 0 )

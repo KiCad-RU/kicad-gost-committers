@@ -45,11 +45,11 @@ public:
     PCB_PAD_SHAPE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_PAD_SHAPE();
 
-    virtual void Parse( wxXmlNode*  aNode,
-                        wxString    aDefaultMeasurementUnit,
-                        wxString    aActualConversion );
+    virtual void    Parse( wxXmlNode*   aNode,
+                           wxString     aDefaultMeasurementUnit,
+                           wxString     aActualConversion );
 
-    void         AddToBoard();
+    void            AddToBoard();
 };
 
 WX_DEFINE_ARRAY( PCB_PAD_SHAPE*, PCB_PAD_SHAPES_ARRAY );

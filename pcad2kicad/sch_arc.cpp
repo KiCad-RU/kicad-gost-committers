@@ -37,10 +37,10 @@
 
 SCH_ARC::SCH_ARC()
 {
-    m_startX = 0;
-    m_startY = 0;
-    m_toX = 0;
-    m_toY = 0;
+    m_startX        = 0;
+    m_startY        = 0;
+    m_toX           = 0;
+    m_toY           = 0;
     m_startAngle    = 0;
     m_sweepAngle    = 0;
     m_radius        = 0;
@@ -67,7 +67,7 @@ void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
                                                "width" ) )->GetNodeContent(),
                                  ' ', aActualConversion );
     else
-        m_width = 1;  // default
+        m_width = 1; // default
 
     if( aNode->GetName() == wxT( "triplePointArc" ) )
     {
@@ -115,8 +115,8 @@ void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
             FindNode( aNode->GetChildren(), wxT( "startAngle" ) )->GetNodeContent() );
         m_startX =
             KiROUND( m_positionX + r * sin( (m_startAngle - 900.0) * M_PI / 1800.0 ) );
-        m_startY = KiROUND( m_positionY - r * cos( (m_startAngle - 900) * M_PI / 1800.0 ) );
-        m_sweepAngle = StrToInt1Units(
+        m_startY        = KiROUND( m_positionY - r * cos( (m_startAngle - 900) * M_PI / 1800.0 ) );
+        m_sweepAngle    = StrToInt1Units(
             FindNode( aNode->GetChildren(), wxT( "sweepAngle" ) )->GetNodeContent() );
         m_toX = KiROUND( m_positionX +
                          r * sin( (m_startAngle + m_sweepAngle - 900.0) * M_PI / 1800.0 ) );

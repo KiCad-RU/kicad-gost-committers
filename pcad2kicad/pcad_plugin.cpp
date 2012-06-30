@@ -47,33 +47,39 @@ PCAD_PLUGIN::PCAD_PLUGIN()
     m_props = NULL;
 }
 
+
 PCAD_PLUGIN::~PCAD_PLUGIN()
 {
 }
 
+
 const wxString& PCAD_PLUGIN::PluginName() const
 {
     static const wxString name = wxT( "P-Cad" );
+
     return name;
 }
+
 
 const wxString& PCAD_PLUGIN::GetFileExtension() const
 {
     static const wxString extension = wxT( "pcb" );
+
     return extension;
 }
 
-BOARD* PCAD_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe,  PROPERTIES* aProperties )
+
+BOARD* PCAD_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe, PROPERTIES* aProperties )
 {
-    wxArrayString   lines;
+    wxArrayString lines;
 
     m_props = aProperties;
 
     m_board = aAppendToMe ? aAppendToMe : new BOARD();
-    PCB pcb(m_board);
+    PCB         pcb( m_board );
 
     LoadInputFile( aFileName, NULL, &lines );
-    wxFileName xmlFile( aFileName );
+    wxFileName  xmlFile( aFileName );
     xmlFile.SetExt( wxT( "xml" ) );
     TextToXML( NULL, xmlFile.GetFullPath(), &lines );
     pcb.Parse( NULL, xmlFile.GetFullPath(), wxT( "PCB" ) );

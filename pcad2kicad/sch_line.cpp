@@ -54,14 +54,14 @@ void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
     m_partNum   = aSymbolIndex;
 
     if( aNode->GetName() == wxT( "line" ) )
-        m_lineType = 'W';                                  // wire
+        m_lineType = 'W'; // wire
 
     if( FindNode( aNode->GetChildren(), wxT( "width" ) ) )
         m_width = StrToIntUnits( FindNode( aNode->GetChildren(), wxT(
                                                "width" ) )->GetNodeContent(),
                                  ' ', aActualConversion );
     else
-        m_width = 1;  // default
+        m_width = 1; // default
 
     lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
 

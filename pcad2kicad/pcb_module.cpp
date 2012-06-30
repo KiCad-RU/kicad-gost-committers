@@ -43,7 +43,8 @@
 #include <pcb_via.h>
 
 
-PCB_MODULE::PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
+PCB_MODULE::PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
+                                                                                    aBoard )
 {
     InitTTextValue( &m_value );
     m_mirror = 0;
@@ -94,7 +95,7 @@ wxXmlNode* PCB_MODULE::FindModulePatternDefName( wxXmlNode* aNode, wxString aNam
 
     if( result == NULL )
     {
-        lNode = FindNode( aNode->GetChildren(), wxT( "patternDefExtended" ) );    // New file format
+        lNode = FindNode( aNode->GetChildren(), wxT( "patternDefExtended" ) );  // New file format
 
         while( lNode )
         {
@@ -127,7 +128,8 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
     pNode   = aNode; // pattern;
     lNode   = aNode;
 
-    if( lNode->GetName() == wxT( "compDef" ) )    // calling from library  conversion we need to find pattern
+    // calling from library  conversion we need to find pattern
+    if( lNode->GetName() == wxT( "compDef" ) )
     {
         lNode->GetPropVal( wxT( "Name" ), &propValue );
         propValue.Trim( false );
@@ -232,7 +234,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
     long                num;
 
     i = 0;
-    //aStatusBar->SetStatusText( wxT( "Processing LAYER CONTENT OBJECTS " ) );
+    // aStatusBar->SetStatusText( wxT( "Processing LAYER CONTENT OBJECTS " ) );
     FindNode( aNode->GetChildren(), wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &num );
     PCadLayer   = (int) num;
     lNode       = aNode->GetChildren();
@@ -240,8 +242,8 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
     while( lNode )
     {
         i++;
-        //aStatusBar->SetStatusText( wxString::Format( "Processing LAYER CONTENT OBJECTS :%lld",
-        //                                             i ) );
+        // aStatusBar->SetStatusText( wxString::Format( "Processing LAYER CONTENT OBJECTS :%lld",
+        // i ) );
 
         if( lNode->GetName() == wxT( "line" ) )
         {
@@ -272,11 +274,12 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
                 if( tNode && aPCBModule )
                 {
                     // TODO: to understand and may be repair
-                    // Alexander Lunev: originally in Delphi version of the project there was a strange access
-                    // to pcbModule->m_name (it was global variable). This access is necessary
-                    // when the function DoLayerContentsObjects() is called from function CreatePCBModule().
-                    // However it is not clear whether the access is required when the function DoLayerContentsObjects()
-                    // is called from function ProcessXMLtoPCBLib().
+                    // Alexander Lunev: originally in Delphi version of the project there was
+                    // a strange access to pcbModule->m_name (it was global variable). This access
+                    // is necessary when the function DoLayerContentsObjects() is called from
+                    // function CreatePCBModule(). However it is not clear whether the access is
+                    // required when the function DoLayerContentsObjects() is called from
+                    // function ProcessXMLtoPCBLib().
                     SetFontProperty( tNode,
                                      &aPCBModule->m_name,
                                      aDefaultMeasurementUnit,
@@ -348,6 +351,8 @@ void PCB_MODULE::SetPadName( wxString aPin, wxString aName )
         if( m_moduleObjects[i]->m_objType == 'P' )
             if( ( (PCB_PAD*) m_moduleObjects[i] )->m_number == num )
                 ( (PCB_PAD*) m_moduleObjects[i] )->m_name.text = aName;
+
+
     }
 }
 
@@ -365,7 +370,7 @@ void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
     propValue.Trim( false );
     m_name.text = propValue;
 
-    //aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
+    // aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
     lNode   = aNode;
     lNode   = FindPatternMultilayerSection( lNode, &m_patGraphRefName );
 
@@ -496,7 +501,7 @@ void PCB_MODULE::WriteToFile( wxFile* aFile, char aFileType )
                                     m_value.textstrokeWidth ) +
                   ' ' + mirrored + ' ' + visibility +
                   wxString::Format( " %d \"", m_KiCadLayer ) +
-                  m_name.text + wxT( "\"\n" ) );  // NameString
+                  m_name.text + wxT( "\"\n" ) );    // NameString
 
     if( m_value.textIsVisible == 1 )
         visibility = 'V';
@@ -558,6 +563,7 @@ void PCB_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     // END
     aFile->Write( wxT( "$EndMODULE " ) + m_name.text + wxT( "\n" ) );
 }
+
 
 void PCB_MODULE::AddToBoard()
 {
@@ -664,6 +670,7 @@ void PCB_MODULE::AddToBoard()
 
     module->CalculateBoundingBox();
 }
+
 
 int PCB_MODULE::FlipLayers( int aLayer )
 {

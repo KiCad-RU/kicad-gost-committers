@@ -37,22 +37,23 @@ class PCAD_PLUGIN : public PLUGIN
 {
 public:
 
-    //-----<PUBLIC PLUGIN API>--------------------------------------------------
+    // -----<PUBLIC PLUGIN API>--------------------------------------------------
 
     const wxString& PluginName() const;
 
-    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe,  PROPERTIES* aProperties = NULL );
+    BOARD*          Load( const wxString&   aFileName,
+                          BOARD*            aAppendToMe,
+                          PROPERTIES*       aProperties = NULL );
 
     const wxString& GetFileExtension() const;
 
-    //-----</PUBLIC PLUGIN API>-------------------------------------------------
+    // -----</PUBLIC PLUGIN API>-------------------------------------------------
 
     PCAD_PLUGIN();
     ~PCAD_PLUGIN();
-
 private:
     PROPERTIES* m_props;
     BOARD*      m_board;
 };
 
-#endif  // PCAD_PLUGIN_H_
+#endif    // PCAD_PLUGIN_H_

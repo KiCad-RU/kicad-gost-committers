@@ -35,7 +35,8 @@
 #include <pcb_pad_shape.h>
 
 
-PCB_PAD_SHAPE::PCB_PAD_SHAPE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
+PCB_PAD_SHAPE::PCB_PAD_SHAPE( PCB_CALLBACKS*    aCallbacks,
+                              BOARD*            aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
     m_shape     = wxEmptyString;
     m_width     = 0;
@@ -131,6 +132,7 @@ void PCB_PAD_SHAPE::Parse( wxXmlNode*   aNode,
         m_height    = maxY - minY;
     }
 }
+
 
 void PCB_PAD_SHAPE::AddToBoard()
 {

@@ -162,13 +162,18 @@ wxString PCB_PAD::KiCadLayerMask( wxString aMask, int aLayer )
     return newmask;
 }
 
+
 unsigned long PCB_PAD::KiCadLayerMask( unsigned long aMask, int aLayer )
 {
     unsigned long newMask;
 
     newMask = 1 << aLayer;
-    if( !IsValidLayerIndex( aLayer ) ) newMask = 0;
-    if( aLayer == FIRST_COPPER_LAYER ) newMask = 1;
+
+    if( !IsValidLayerIndex( aLayer ) )
+        newMask = 0;
+
+    if( aLayer == FIRST_COPPER_LAYER )
+        newMask = 1;
 
     newMask |= aMask;
 
@@ -279,10 +284,10 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
         if( padShape->m_width > 0 && padShape->m_height > 0 )
         {
             if( padShape->m_KiCadLayer == 15 )
-                lc++;                               // Component
+                lc++; // Component
 
             if( padShape->m_KiCadLayer == 0 )
-                ls++;                               // Cooper
+                ls++; // Cooper
         }
     }
 
@@ -330,10 +335,10 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
             else if( padShape->m_shape == wxT( "Ellipse" ) )
                 s = wxT( "O" );
             else if( padShape->m_shape == wxT( "Rect" )
-                  || padShape->m_shape == wxT( "RndRect" ) )
+                     || padShape->m_shape == wxT( "RndRect" ) )
                 s = wxT( "R" );
             else if( padShape->m_shape == wxT( "Polygon" ) )
-                s = wxT( "R" );                                         // approximation.....
+                s = wxT( "R" ); // approximation.....
 
             aFile->Write( wxT( "$PAD\n" ) );
 
@@ -361,6 +366,7 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
     }
 }
 
+
 void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
 {
     PCB_PAD_SHAPE*  padShape;
@@ -380,16 +386,16 @@ void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
         if( padShape->m_width > 0 && padShape->m_height > 0 )
         {
             if( padShape->m_KiCadLayer == 15 )
-                lc++;                               // Component
+                lc++; // Component
 
             if( padShape->m_KiCadLayer == 0 )
-                ls++;                               // Cooper
+                ls++; // Cooper
         }
     }
 
     // And default layers mask
-    layerMask = 0x00C08001; // Comp,Coop,SoldCmp,SoldCoop
-    padType   = PAD_STANDARD;
+    layerMask   = 0x00C08001; // Comp,Coop,SoldCmp,SoldCoop
+    padType     = PAD_STANDARD;
 
     if( lc == 0 || ls == 0 )
     {
@@ -436,10 +442,10 @@ void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
             else if( padShape->m_shape == wxT( "Ellipse" ) )
                 pad->SetShape( PAD_OVAL );
             else if( padShape->m_shape == wxT( "Rect" )
-                  || padShape->m_shape == wxT( "RndRect" ) )
+                     || padShape->m_shape == wxT( "RndRect" ) )
                 pad->SetShape( PAD_RECT );
             else if( padShape->m_shape == wxT( "Polygon" ) )
-                pad->SetShape( PAD_RECT );                        // approximation
+                pad->SetShape( PAD_RECT ); // approximation
 
             pad->SetSize( wxSize( padShape->m_width, padShape->m_height ) );
             pad->SetDelta( wxSize( 0, 0 ) );
@@ -467,10 +473,11 @@ void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
     }
 }
 
+
 void PCB_PAD::AddToBoard()
 {
     PCB_PAD_SHAPE*  padShape;
-    int i;
+    int             i;
 
     for( i = 0; i < (int) m_shapes.GetCount(); i++ )
     {
@@ -480,7 +487,7 @@ void PCB_PAD::AddToBoard()
         if( IsValidCopperLayerIndex( m_KiCadLayer )
             && ( padShape->m_width > 0 || padShape->m_height > 0 ) )
         {
-            SEGVIA *via = new SEGVIA( m_board );
+            SEGVIA* via = new SEGVIA( m_board );
             m_board->m_Track.Append( via );
 
             via->SetTimeStamp( 0 );

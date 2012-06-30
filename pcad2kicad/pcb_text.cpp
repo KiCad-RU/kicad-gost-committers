@@ -35,7 +35,8 @@
 #include <pcb_text.h>
 
 
-PCB_TEXT::PCB_TEXT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
+PCB_TEXT::PCB_TEXT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
+                                                                                aBoard )
 {
     m_objType = 'T';
 }
@@ -113,8 +114,8 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
         mirrored = 'N';
 
     // Simple, not the best, but acceptable text positioning.....
-    m_name.textPositionX = m_positionX;
-    m_name.textPositionY = m_positionY;
+    m_name.textPositionX    = m_positionX;
+    m_name.textPositionY    = m_positionY;
     CorrectTextPosition( &m_name, m_rotation );
 
     // Go out
@@ -127,19 +128,21 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
                                         m_rotation, m_name.textstrokeWidth ) +
                       mirrored + ' ' + visibility +
                       wxString::Format( " %d \"", m_KiCadLayer ) +
-                      m_name.text + wxT( "\"\n" ) ); // ValueString
+                      m_name.text + wxT( "\"\n" ) );    // ValueString
     }
 }
+
 
 void PCB_TEXT::AddToModule( MODULE* aModule )
 {
 }
 
+
 void PCB_TEXT::AddToBoard()
 {
     // Simple, not the best, but acceptable text positioning.
-    m_name.textPositionX = m_positionX;
-    m_name.textPositionY = m_positionY;
+    m_name.textPositionX    = m_positionX;
+    m_name.textPositionY    = m_positionY;
     CorrectTextPosition( &m_name, m_rotation );
 
     TEXTE_PCB* pcbtxt = new TEXTE_PCB( m_board );
@@ -161,10 +164,11 @@ void PCB_TEXT::AddToBoard()
     pcbtxt->SetLayer( m_KiCadLayer );
 }
 
-//void PCB_TEXT::SetPosOffset( int aX_offs, int aY_offs )
-//{
-//    PCB_COMPONENT::SetPosOffset( aX_offs, aY_offs );
 
-//    m_name.textPositionX    += aX_offs;
-//    m_name.textPositionY    += aY_offs;
-//}
+// void PCB_TEXT::SetPosOffset( int aX_offs, int aY_offs )
+// {
+// PCB_COMPONENT::SetPosOffset( aX_offs, aY_offs );
+
+// m_name.textPositionX    += aX_offs;
+// m_name.textPositionY    += aY_offs;
+// }

@@ -35,7 +35,8 @@
 #include <pcb_line.h>
 
 
-PCB_LINE::PCB_LINE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
+PCB_LINE::PCB_LINE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
+                                                                                aBoard )
 {
     m_width     = 0;
     m_toX       = 0;
@@ -107,9 +108,10 @@ void PCB_LINE::WriteToFile( wxFile* aFile, char aFileType )
     if( aFileType == 'L' )    // Library
     {
         aFile->Write( wxString::Format( "DS %d %d %d %d %d %d\n", m_positionX, m_positionY,
-                                        m_toX, m_toY, m_width, m_KiCadLayer ) ); // Position
+                                        m_toX, m_toY, m_width, m_KiCadLayer ) );    // Position
     }
 }
+
 
 void PCB_LINE::AddToModule( MODULE* aModule )
 {
@@ -118,8 +120,8 @@ void PCB_LINE::AddToModule( MODULE* aModule )
         EDGE_MODULE* segment = new EDGE_MODULE( aModule, S_SEGMENT );
         aModule->m_Drawings.PushBack( segment );
 
-        segment->m_Start0 = wxPoint( m_positionX, m_positionY );
-        segment->m_End0   = wxPoint( m_toX, m_toY );
+        segment->m_Start0   = wxPoint( m_positionX, m_positionY );
+        segment->m_End0     = wxPoint( m_toX, m_toY );
 
         segment->SetWidth( m_width );
         segment->SetLayer( m_KiCadLayer );
@@ -128,11 +130,12 @@ void PCB_LINE::AddToModule( MODULE* aModule )
     }
 }
 
+
 void PCB_LINE::AddToBoard()
 {
-    if ( IsValidCopperLayerIndex( m_KiCadLayer) )
+    if( IsValidCopperLayerIndex( m_KiCadLayer ) )
     {
-        TRACK *track = new TRACK( m_board );
+        TRACK* track = new TRACK( m_board );
         m_board->m_Track.Append( track );
 
         track->SetTimeStamp( m_timestamp );

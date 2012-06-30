@@ -291,7 +291,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                             if( FindNode( tNode->GetChildren(), wxT( "compValue" ) ) )
                             {
                                 FindNode( tNode->GetChildren(),
-                                          wxT( "compValue" ) )->GetPropVal( wxT("Name" ),
+                                          wxT( "compValue" ) )->GetPropVal( wxT( "Name" ),
                                                                             &mc->m_value.text );
                                 mc->m_value.text.Trim( false );
                                 mc->m_value.text.Trim( true );
@@ -300,7 +300,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                             if( FindNode( tNode->GetChildren(), wxT( "compRef" ) ) )
                             {
                                 FindNode( tNode->GetChildren(),
-                                          wxT( "compRef" ) )->GetPropVal( wxT("Name" ),
+                                          wxT( "compRef" ) )->GetPropVal( wxT( "Name" ),
                                                                           &mc->m_compRef );
                                 mc->m_compRef.Trim( false );
                                 mc->m_compRef.Trim( true );
@@ -513,7 +513,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     }
 
     // NETLIST
-    //aStatusBar->SetStatusText( wxT( "Loading NETLIST " ) );
+    // aStatusBar->SetStatusText( wxT( "Loading NETLIST " ) );
 
     aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "netlist" ) );
 
@@ -532,7 +532,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     }
 
     // BOARD FILE
-    //aStatusBar->SetStatusText( wxT( "Loading BOARD DEFINITION " ) );
+    // aStatusBar->SetStatusText( wxT( "Loading BOARD DEFINITION " ) );
 
     aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "pcbDesign" ) );
 
@@ -556,7 +556,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         }
 
         // POSTPROCESS -- SET NETLIST REFERENCES
-        //aStatusBar->SetStatusText( wxT( "Processing NETLIST " ) );
+        // aStatusBar->SetStatusText( wxT( "Processing NETLIST " ) );
 
         for( i = 0; i < (int) m_pcbNetlist.GetCount(); i++ )
         {
@@ -582,7 +582,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         }
 
         // POSTPROCESS -- SET/OPTIMIZE NEW PCB POSITION
-        //aStatusBar->SetStatusText( wxT( "Optimizing BOARD POSITION " ) );
+        // aStatusBar->SetStatusText( wxT( "Optimizing BOARD POSITION " ) );
 
         m_sizeX = 10000000;
         m_sizeY = 0;
@@ -592,7 +592,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
             comp = m_pcbComponents[i];
 
             if( comp->m_positionY < m_sizeY )
-                m_sizeY = comp->m_positionY;                              // max Y
+                m_sizeY = comp->m_positionY; // max Y
 
             if( comp->m_positionX < m_sizeX && comp->m_positionX > 0 )
                 m_sizeX = comp->m_positionX; // Min X
@@ -600,7 +600,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
 
         m_sizeY -= 10000;
         m_sizeX -= 10000;
-        //aStatusBar->SetStatusText( wxT( " POSITIONING POSTPROCESS " ) );
+        // aStatusBar->SetStatusText( wxT( " POSITIONING POSTPROCESS " ) );
 
         for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
             m_pcbComponents[i]->SetPosOffset( -m_sizeX, -m_sizeY );
@@ -613,10 +613,10 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
             comp = m_pcbComponents[i];
 
             if( comp->m_positionY < m_sizeY )
-                m_sizeY = comp->m_positionY;                              // max Y
+                m_sizeY = comp->m_positionY; // max Y
 
             if( comp->m_positionX > m_sizeX )
-                m_sizeX = comp->m_positionX;                              // Min X
+                m_sizeX = comp->m_positionX; // Min X
         }
 
         // SHEET SIZE CALCULATION
@@ -634,7 +634,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     else
     {
         // LIBRARY FILE
-        //aStatusBar->SetStatusText( wxT( "Processing LIBRARY FILE " ) );
+        // aStatusBar->SetStatusText( wxT( "Processing LIBRARY FILE " ) );
 
         aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "library" ) );
 
@@ -644,7 +644,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
 
             while( aNode )
             {
-                //aStatusBar->SetStatusText( wxT( "Processing COMPONENTS " ) );
+                // aStatusBar->SetStatusText( wxT( "Processing COMPONENTS " ) );
 
                 if( aNode->GetName() == wxT( "compDef" ) )
                 {
@@ -661,7 +661,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
 }
 
 
-void PCB::WriteToFile( wxString aFileName)
+void PCB::WriteToFile( wxString aFileName )
 {
     wxFile  f;
     int     i;
@@ -692,9 +692,10 @@ void PCB::WriteToFile( wxString aFileName)
     f.Close();
 }
 
+
 void PCB::AddToBoard()
 {
-    int     i;
+    int i;
 
     for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
     {

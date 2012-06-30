@@ -96,7 +96,7 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
     }
 
     if( m_pinName.text.Len() == 0 )
-        m_pinName.text = '~';                            // Default
+        m_pinName.text = '~'; // Default
 }
 
 
@@ -250,16 +250,16 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
     shape = wxEmptyString;    // Default , standard line without shape
 
     if( m_edgeStyle == wxT( "Dot" ) )
-        shape = 'I';                            // Invert
+        shape = 'I'; // Invert
 
     if( m_edgeStyle == wxT( "Clock" ) )
-        shape = 'C';                              // Clock
+        shape = 'C'; // Clock
 
     if( m_edgeStyle == wxT( "???" ) )
-        shape = wxT( "IC" );                          // Clock Invert
+        shape = wxT( "IC" ); // Clock Invert
 
     if( m_isVisible == 0 )
-        shape += 'N';                   // Invisible
+        shape += 'N'; // Invisible
 
     // unit = 0 if common to the parts; if not, number of part (1. .n).
     // convert = 0 so common to the representations, if not 1 or 2.

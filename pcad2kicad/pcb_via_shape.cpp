@@ -35,7 +35,8 @@
 #include <pcb_via_shape.h>
 
 
-PCB_VIA_SHAPE::PCB_VIA_SHAPE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_PAD_SHAPE( aCallbacks, aBoard )
+PCB_VIA_SHAPE::PCB_VIA_SHAPE( PCB_CALLBACKS*    aCallbacks,
+                              BOARD*            aBoard ) : PCB_PAD_SHAPE( aCallbacks, aBoard )
 {
 }
 

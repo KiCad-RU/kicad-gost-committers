@@ -35,10 +35,12 @@
 #include <pcb_component.h>
 
 
-PCB_COMPONENT::PCB_COMPONENT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : m_callbacks( aCallbacks ), m_board( aBoard)
+PCB_COMPONENT::PCB_COMPONENT( PCB_CALLBACKS*    aCallbacks,
+                              BOARD*            aBoard ) : m_callbacks( aCallbacks ),
+    m_board( aBoard )
 {
-    m_tag           = 0;
-    m_objType       = '?';
+    m_tag       = 0;
+    m_objType   = '?';
     m_PCadLayer     = 0;
     m_KiCadLayer    = 0;
     m_timestamp     = 0;
@@ -60,6 +62,7 @@ PCB_COMPONENT::~PCB_COMPONENT()
 void PCB_COMPONENT::WriteToFile( wxFile* aFile, char aFileType )
 {
 }
+
 
 void PCB_COMPONENT::AddToModule( MODULE* aModule )
 {

@@ -88,11 +88,12 @@ void PCB_ARC::Parse( wxXmlNode* aNode,
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &endPointX, &endPointY, aActualConversion );
 
-        int alpha1 = ArcTangente( m_startY - m_positionY, m_startX - m_positionX );
-        int alpha2 = ArcTangente( endPointY - m_positionY, endPointX - m_positionX );
+        int alpha1  = ArcTangente( m_startY - m_positionY, m_startX - m_positionX );
+        int alpha2  = ArcTangente( endPointY - m_positionY, endPointX - m_positionX );
         m_angle = alpha1 - alpha2;
 
-        if( m_angle < 0 ) m_angle = 3600 + m_angle;
+        if( m_angle < 0 )
+            m_angle = 3600 + m_angle;
     }
 
     if( aNode->GetName() == wxT( "arc" ) )
@@ -103,10 +104,10 @@ void PCB_ARC::Parse( wxXmlNode* aNode,
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &m_positionX, &m_positionY, aActualConversion );
 
-        lNode = FindNode( aNode->GetChildren(), wxT( "radius" ) );
-        r = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
-        a = StrToInt1Units( FindNode( aNode->GetChildren(),
-                                      wxT( "startAngle" ) )->GetNodeContent() );
+        lNode   = FindNode( aNode->GetChildren(), wxT( "radius" ) );
+        r       = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
+        a       = StrToInt1Units( FindNode( aNode->GetChildren(),
+                                            wxT( "startAngle" ) )->GetNodeContent() );
         m_startX    = KiROUND( m_positionX + r * sin( (a - 900.0) * M_PI / 1800.0 ) );
         m_startY    = KiROUND( m_positionY - r * cos( (a - 900.0) * M_PI / 1800.0 ) );
         m_angle     = StrToInt1Units( FindNode( aNode->GetChildren(),
@@ -126,7 +127,7 @@ void PCB_ARC::WriteToFile( wxFile* aFile, char aFileType )
         aFile->Write( wxString::Format( "DA %d %d %d %d %d %d %d\n",
                                         m_positionX, m_positionY, m_startX,
                                         m_startY, m_angle, m_width,
-                                        m_KiCadLayer ) ); // ValueString
+                                        m_KiCadLayer ) );    // ValueString
     }
 }
 
@@ -148,8 +149,8 @@ void PCB_ARC::AddToModule( MODULE* aModule )
         aModule->m_Drawings.PushBack( arc );
 
         arc->SetAngle( -m_angle );
-        arc->m_Start0 = wxPoint( m_positionX, m_positionY );
-        arc->m_End0   = wxPoint( m_startX, m_startY );
+        arc->m_Start0   = wxPoint( m_positionX, m_positionY );
+        arc->m_End0     = wxPoint( m_startX, m_startY );
 
         arc->SetWidth( m_width );
         arc->SetLayer( m_KiCadLayer );
@@ -158,9 +159,11 @@ void PCB_ARC::AddToModule( MODULE* aModule )
     }
 }
 
+
 void PCB_ARC::AddToBoard()
 {
     DRAWSEGMENT* dseg = new DRAWSEGMENT( m_board );
+
     m_board->Add( dseg, ADD_APPEND );
 
     dseg->SetShape( S_ARC );
