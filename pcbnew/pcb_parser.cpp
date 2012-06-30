@@ -319,7 +319,7 @@ BOARD_ITEM* PCB_PARSER::Parse() throw( IO_ERROR, PARSE_ERROR )
 
     default:
         wxString err;
-        err.Printf( _( "unknown token \"%s\" " ), GetChars( FromUTF8() ) );
+        err.Printf( _( "unknown token \"%s\"" ), GetChars( FromUTF8() ) );
         THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
     }
 
@@ -431,7 +431,7 @@ void PCB_PARSER::parseHeader() throw( IO_ERROR, PARSE_ERROR )
         Expecting( GetTokenText( T_version ) );
 
     // Get the file version.
-    m_board->SetFileFormatVersionAtLoad( NeedNUMBER( GetTokenText( T_version ) ) );
+    m_board->SetFileFormatVersionAtLoad( parseInt( GetTokenText( T_version ) ) );
 
     // Skip the host name and host build version information.
     NeedRIGHT();
@@ -489,37 +489,50 @@ void PCB_PARSER::parsePAGE_INFO() throw( IO_ERROR, PARSE_ERROR )
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as a PAGE_INFO." ) );
 
     T token;
-    bool isPortrait = false;
+    PAGE_INFO pageInfo;
 
     NeedSYMBOL();
 
     wxString pageType = FromUTF8();
 
+    if( !pageInfo.SetType( pageType ) )
+    {
+        wxString err;
+        err.Printf( _( "page type \"%s\" is not valid " ), GetChars( FromUTF8() ) );
+        THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
+    }
+
     if( pageType == PAGE_INFO::Custom )
     {
-        PAGE_INFO::SetCustomWidthMils( Iu2Mils( NeedNUMBER( "width" ) ) );
-        PAGE_INFO::SetCustomHeightMils( Iu2Mils( NeedNUMBER( "height" ) ) );
+        double width = parseDouble( "width" );      // width in mm
+
+        // Perform some controls to avoid crashes if the size is edited by hands
+        if( width < 100.0 )
+            width = 100.0;
+        else if( width > 1200.0 )
+            width = 1200.0;
+
+        double height = parseDouble( "height" );    // height in mm
+
+        if( height < 100.0 )
+            height = 100.0;
+        else if( height > 1200.0 )
+            height = 1200.0;
+
+        pageInfo.SetWidthMils( Mm2mils( width ) );
+        pageInfo.SetHeightMils( Mm2mils( height ) );
     }
 
     token = NextTok();
 
     if( token == T_portrait )
     {
-        isPortrait = true;
+        pageInfo.SetPortrait( true );
         NeedRIGHT();
     }
     else if( token != T_RIGHT )
     {
         Expecting( "portrait|)" );
-    }
-
-    PAGE_INFO pageInfo;
-
-    if( !pageInfo.SetType( pageType, isPortrait ) )
-    {
-        wxString err;
-        err.Printf( _( "page type \"%s\" is not valid " ), GetChars( FromUTF8() ) );
-        THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
     }
 
     m_board->SetPageSettings( pageInfo );
@@ -566,7 +579,7 @@ void PCB_PARSER::parseTITLE_BLOCK() throw( IO_ERROR, PARSE_ERROR )
 
         case T_comment:
         {
-            int commentNumber = NeedNUMBER( "comment" );
+            int commentNumber = parseInt( "comment" );
 
             switch( commentNumber )
             {
@@ -592,7 +605,7 @@ void PCB_PARSER::parseTITLE_BLOCK() throw( IO_ERROR, PARSE_ERROR )
 
             default:
                 wxString err;
-                err.Printf( _( "%d is not a valid title block comment number" ), commentNumber );
+                err.Printf( wxT( "%d is not a valid title block comment number" ), commentNumber );
                 THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
             }
 
@@ -692,7 +705,7 @@ int PCB_PARSER::lookUpLayer() throw( PARSE_ERROR, IO_ERROR )
     if( it == m_layerMap.end() )
     {
         wxString error;
-        error.Printf( _( "Layer '%s' in file <%s> at line %d, position %d was not defined in the layers section" ),
+        error.Printf( wxT( "Layer '%s' in file <%s> at line %d, position %d was not defined in the layers section" ),
                       GetChars( name ), GetChars( CurSource() ), CurLineNumber(), CurOffset() );
         THROW_IO_ERROR( error );
     }
@@ -707,7 +720,7 @@ int PCB_PARSER::lookUpLayer() throw( PARSE_ERROR, IO_ERROR )
     if( !m_board->IsLayerEnabled( layerIndex ) )
     {
         wxString error;
-        error.Printf( _( "Layer index %d in file <%s> at line %d, offset %d was not defined in the layers section" ),
+        error.Printf( wxT( "Layer index %d in file <%s> at line %d, offset %d was not defined in the layers section" ),
                       layerIndex, GetChars( CurSource() ), CurLineNumber(), CurOffset() );
         THROW_IO_ERROR( error );
     }
@@ -990,10 +1003,16 @@ void PCB_PARSER::parseNETINFO_ITEM() throw( IO_ERROR, PARSE_ERROR )
     wxString name = FromUTF8();
     NeedRIGHT();
 
-    NETINFO_ITEM* net = new NETINFO_ITEM( m_board );
-    net->SetNet( number );
-    net->SetNetname( name );
-    m_board->AppendNet( net );
+    // net 0 should be already in list, so store this net
+    // if it is not the net 0, or if the net 0 does not exists.
+    // (TODO: a better test.)
+    if( number > 0 || m_board->FindNet( 0 ) == NULL )
+    {
+        NETINFO_ITEM* net = new NETINFO_ITEM( m_board );
+        net->SetNet( number );
+        net->SetNetname( name );
+        m_board->AppendNet( net );
+    }
 }
 
 
@@ -1515,13 +1534,13 @@ MODULE* PCB_PARSER::parseMODULE() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_descr:
-            NeedSYMBOL();
+            NeedSYMBOLorNUMBER();   // some symbols can be 0508, so a number is also a symbol here
             module->SetDescription( FromUTF8() );
             NeedRIGHT();
             break;
 
         case T_tags:
-            NeedSYMBOL();
+            NeedSYMBOLorNUMBER();   // some symbols can be 0508, so a number is also a symbol here
             module->SetKeywords( FromUTF8() );
             NeedRIGHT();
             break;
@@ -1775,6 +1794,7 @@ EDGE_MODULE* PCB_PARSER::parseEDGE_MODULE() throw( IO_ERROR, PARSE_ERROR )
         pt.y = parseBoardUnits( "Y coordinate" );
         segment->SetStart0( pt );
         NeedRIGHT();
+        NeedLEFT();
         token = NextTok();
 
         if( token != T_end )
@@ -2308,7 +2328,10 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
         switch( token )
         {
         case T_net:
-            zone->SetNet( parseInt( "net number" ) );
+            // Init the net code only, not the netname, to be sure
+            // the zone net name is the name read in file.
+            // (When mismatch, the user will be prompted in DRC, to fix the actual name)
+            zone->BOARD_CONNECTED_ITEM::SetNet( parseInt( "net number" ) );
             NeedRIGHT();
             break;
 
