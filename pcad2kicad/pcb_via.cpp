@@ -57,7 +57,7 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
 
     if( lNode )
     {
-        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_name.text = propValue;
@@ -73,7 +73,7 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
 
     if( lNode )
     {
-        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_net = propValue;
@@ -91,7 +91,7 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
     {
         while( lNode )
         {
-            lNode->GetPropVal( wxT( "Name" ), &propValue );
+            lNode->GetAttribute( wxT( "Name" ), &propValue );
 
             if( propValue == m_name.text )
                 break;

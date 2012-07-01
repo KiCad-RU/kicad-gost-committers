@@ -118,7 +118,7 @@ void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString a
         {
             if( aNode->GetName() == wxT( "compAlias" ) )
             {
-                aNode->GetPropVal( wxT( "Name" ), &propValue );
+                aNode->GetAttribute( wxT( "Name" ), &propValue );
                 DoAlias( propValue );
             }
 
@@ -172,7 +172,7 @@ void SCH::LinesIntersect( const int aX1, const int aY1,
 bool SCH::IsPointOnLine( int aX, int aY, SCH_LINE* aLine )
 {
     long double a, b, c;    // Coefficients of line eqns./
-    bool        px, py, result;
+    bool        px, py, result = false;
 
     a   = aLine->m_toY - aLine->m_positionY;
     b   = aLine->m_positionX - aLine->m_toX;
@@ -199,8 +199,6 @@ bool SCH::IsPointOnLine( int aX, int aY, SCH_LINE* aLine )
         if( px && py )
             result = true;
     }
-    else
-        result = false;
 
     return result;
 }

@@ -202,7 +202,7 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
 
     if( lNode )
     {
-        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         m_name.text = propValue;
     }
@@ -232,7 +232,7 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
 
     while( true )
     {
-        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
 
         if( propValue == m_name.text )
             break;

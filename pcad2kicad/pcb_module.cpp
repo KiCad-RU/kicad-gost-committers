@@ -76,10 +76,9 @@ wxXmlNode* PCB_MODULE::FindModulePatternDefName( wxXmlNode* aNode, wxString aNam
     {
         if( lNode->GetName() == wxT( "patternDef" ) )
         {
-            lNode->GetPropVal( wxT( "Name" ), &propValue1 );
-            FindNode( lNode->GetChildren(), wxT( "originalName" ) )->GetPropVal( wxT(
-                                                                                     "Name" ),
-                                                                                 &propValue2 );
+            lNode->GetAttribute( wxT( "Name" ), &propValue1 );
+            FindNode( lNode->GetChildren(),
+                      wxT( "originalName" ) )->GetAttribute( wxT( "Name" ), &propValue2 );
 
             if( ValidateName( propValue1 ) == aName
                 || ValidateName( propValue2 ) == aName )
@@ -101,7 +100,7 @@ wxXmlNode* PCB_MODULE::FindModulePatternDefName( wxXmlNode* aNode, wxString aNam
         {
             if( lNode->GetName() == wxT( "patternDefExtended" ) )
             {
-                lNode->GetPropVal( wxT( "Name" ), &propValue1 );
+                lNode->GetAttribute( wxT( "Name" ), &propValue1 );
 
                 if( ValidateName( propValue1 ) == aName )
                 {
@@ -131,7 +130,7 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
     // calling from library  conversion we need to find pattern
     if( lNode->GetName() == wxT( "compDef" ) )
     {
-        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         patName = ValidateName( propValue );
 
@@ -139,7 +138,7 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
         {
             FindNode( FindNode( lNode->GetChildren(), wxT(
                                     "attachedPattern" ) )->GetChildren(),
-                      wxT( "patternName" ) )->GetPropVal( wxT( "Name" ), &propValue );
+                      wxT( "patternName" ) )->GetAttribute( wxT( "Name" ), &propValue );
             propValue.Trim( false );
             propValue.Trim( true );
             patName = ValidateName( propValue );
@@ -164,9 +163,8 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
         if( FindNode( aNode->GetChildren(), wxT( "patternGraphicsNameRef" ) ) )
         {
             FindNode( aNode->GetChildren(),
-                      wxT( "patternGraphicsNameRef" ) )->GetPropVal( wxT(
-                                                                         "Name" ),
-                                                                     aPatGraphRefName );
+                      wxT( "patternGraphicsNameRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                       aPatGraphRefName );
         }
 
 // /////////////////////////////////////////////////////////////////////
@@ -194,8 +192,8 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
             if( lNode->GetName() == wxT( "patternGraphicsDef" ) )
             {
                 FindNode( lNode->GetChildren(),
-                          wxT( "patternGraphicsNameDef" ) )->GetPropVal( wxT( "Name" ),
-                                                                         &propValue );
+                          wxT( "patternGraphicsNameDef" ) )->GetAttribute( wxT( "Name" ),
+                                                                           &propValue );
 
                 if( propValue == *aPatGraphRefName )
                 {
@@ -263,7 +261,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
         if( lNode->GetName() == wxT( "attr" ) )
         {
             // assign fonts to Module Name,Value,Type,....s
-            lNode->GetPropVal( wxT( "Name" ), &propValue );
+            lNode->GetAttribute( wxT( "Name" ), &propValue );
             propValue.Trim( false );
             propValue.Trim( true );
 
@@ -365,8 +363,8 @@ void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
     PCB_VIA*    via;
     wxString    propValue, str;
 
-    FindNode( aNode->GetChildren(), wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
-                                                                         &propValue );
+    FindNode( aNode->GetChildren(), wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
+                                                                           &propValue );
     propValue.Trim( false );
     m_name.text = propValue;
 
@@ -428,7 +426,7 @@ void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
                 if( !mNode )
                     break;
 
-                mNode->GetPropVal( wxT( "Name" ), &propValue );
+                mNode->GetAttribute( wxT( "Name" ), &propValue );
                 SetPadName( str, propValue );
                 mNode = mNode->GetNext();
             }

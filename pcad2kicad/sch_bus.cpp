@@ -44,7 +44,7 @@ void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
     m_objType   = 'L';
     m_lineType  = 'B'; // Bus
     m_labelText.textIsVisible = 0;
-    aNode->GetPropVal( wxT( "Name" ), &m_labelText.text );
+    aNode->GetAttribute( wxT( "Name" ), &m_labelText.text );
     m_labelText.text.Trim( false );
     m_labelText.text.Trim( true );
 
@@ -65,7 +65,7 @@ void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
 
     if( lNode )
     {
-        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
 

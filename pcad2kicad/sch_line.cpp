@@ -83,7 +83,7 @@ void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
     if( FindNode( aNode->GetChildren(), wxT( "netNameRef" ) ) )
     {
         FindNode( aNode->GetChildren(),
-                  wxT( "netNameRef" ) )->GetPropVal( wxT( "Name" ), &propValue );
+                  wxT( "netNameRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_net = propValue;

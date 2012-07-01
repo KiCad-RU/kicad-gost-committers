@@ -58,7 +58,7 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
 
     m_objType = 'P';
 // SCHLine.PartNum:=SymbolIndex;
-    aNode->GetPropVal( wxT( "Name" ), &m_number.text );
+    aNode->GetAttribute( wxT( "Name" ), &m_number.text );
     m_pinNum.text   = '0';  // Default
     m_isVisible     = 0;    // Default is not visible
 
@@ -74,8 +74,8 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
 // SCHPin.pinName.Text:=SCHPin.pinNum.Text; // Default
     if( FindNode( aNode->GetChildren(), wxT( "pinName" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "pinName" ) )->GetPropVal( wxT( "Name" ),
-                                                                        &propValue );
+        FindNode( aNode->GetChildren(), wxT( "pinName" ) )->GetAttribute( wxT( "Name" ),
+                                                                          &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_pinName.text = propValue;

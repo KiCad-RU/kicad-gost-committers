@@ -79,7 +79,7 @@ void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* a
                     {
                         ls = ls.Mid( 1, ls.Len() - 2 );
 
-                        if( cNode->GetPropVal( wxT( "Name" ), &propValue ) )
+                        if( cNode->GetAttribute( wxT( "Name" ), &propValue ) )
                         {
                             cNode->DeleteProperty( wxT( "Name" ) );
                             cNode->AddProperty( wxT( "Name" ), propValue + ' ' + ls );

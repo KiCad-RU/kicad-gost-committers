@@ -106,7 +106,7 @@ wxXmlNode* PCB::FindCompDefName( wxXmlNode* aNode, wxString aName )
     {
         if( lNode->GetName() == wxT( "compDef" ) )
         {
-            lNode->GetPropVal( wxT( "Name" ), &propValue );
+            lNode->GetAttribute( wxT( "Name" ), &propValue );
 
             if( ValidateName( propValue ) == aName )
             {
@@ -139,8 +139,8 @@ void PCB::SetTextProperty( wxXmlNode* aNode, TTEXTVALUE* aTextValue,
     if( FindNode( tNode->GetChildren(), wxT( "patternGraphicsNameRef" ) ) )
     {
         FindNode( tNode->GetChildren(),
-                  wxT( "patternGraphicsNameRef" ) )->GetPropVal( wxT( "Name" ),
-                                                                 &pn );
+                  wxT( "patternGraphicsNameRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                   &pn );
         pn.Trim( false );
         pn.Trim( true );
         tNode = FindNode( tNode->GetChildren(), wxT( "patternGraphicsRef" ) );
@@ -152,8 +152,8 @@ void PCB::SetTextProperty( wxXmlNode* aNode, TTEXTVALUE* aTextValue,
                 if( FindNode( tNode->GetChildren(), wxT( "patternGraphicsNameRef" ) ) )
                 {
                     FindNode( tNode->GetChildren(),
-                              wxT( "patternGraphicsNameRef" ) )->GetPropVal( wxT( "Name" ),
-                                                                             &propValue );
+                              wxT( "patternGraphicsNameRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                               &propValue );
 
                     if( propValue == pn )
                     {
@@ -177,7 +177,7 @@ void PCB::SetTextProperty( wxXmlNode* aNode, TTEXTVALUE* aTextValue,
 
     while( tNode )
     {
-        tNode->GetPropVal( wxT( "Name" ), &propValue );
+        tNode->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
 
@@ -211,8 +211,8 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
 
         if( lNode->GetName() == wxT( "pattern" ) )
         {
-            FindNode( lNode->GetChildren(), wxT( "patternRef" ) )->GetPropVal( wxT( "Name" ),
-                                                                               &cn );
+            FindNode( lNode->GetChildren(), wxT( "patternRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                                 &cn );
             cn      = ValidateName( cn );
             tNode   = FindNode( aXmlDoc->GetRoot()->GetChildren(), wxT( "library" ) );
 
@@ -234,7 +234,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
 
                 if( tNode )
                 {
-                    tNode->GetPropVal( wxT( "Name" ), &mc->m_name.text );
+                    tNode->GetAttribute( wxT( "Name" ), &mc->m_name.text );
                     SetTextProperty( lNode, &mc->m_name, mc->m_patGraphRefName, wxT(
                                          "RefDes" ), aActualConversion );
                     SetTextProperty( lNode, &mc->m_value, mc->m_patGraphRefName, wxT(
@@ -284,15 +284,15 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
 
                     while( tNode )
                     {
-                        tNode->GetPropVal( wxT( "Name" ), &propValue );
+                        tNode->GetAttribute( wxT( "Name" ), &propValue );
 
                         if( propValue == mc->m_name.text )
                         {
                             if( FindNode( tNode->GetChildren(), wxT( "compValue" ) ) )
                             {
                                 FindNode( tNode->GetChildren(),
-                                          wxT( "compValue" ) )->GetPropVal( wxT( "Name" ),
-                                                                            &mc->m_value.text );
+                                          wxT( "compValue" ) )->GetAttribute( wxT( "Name" ),
+                                                                              &mc->m_value.text );
                                 mc->m_value.text.Trim( false );
                                 mc->m_value.text.Trim( true );
                             }
@@ -300,8 +300,8 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                             if( FindNode( tNode->GetChildren(), wxT( "compRef" ) ) )
                             {
                                 FindNode( tNode->GetChildren(),
-                                          wxT( "compRef" ) )->GetPropVal( wxT( "Name" ),
-                                                                          &mc->m_compRef );
+                                          wxT( "compRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                            &mc->m_compRef );
                                 mc->m_compRef.Trim( false );
                                 mc->m_compRef.Trim( true );
                             }
@@ -335,7 +335,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                                 if( !mNode )
                                     break;
 
-                                mNode->GetPropVal( wxT( "Name" ), &propValue );
+                                mNode->GetAttribute( wxT( "Name" ), &propValue );
                                 mc->SetPadName( str, propValue );
                                 mNode = mNode->GetNext();
                             }
@@ -424,7 +424,7 @@ void PCB::MapLayer( wxXmlNode* aNode )
     int         KiCadLayer;
     long        num;
 
-    aNode->GetPropVal( wxT( "Name" ), &lName );
+    aNode->GetAttribute( wxT( "Name" ), &lName );
     lName = lName.MakeUpper();
     KiCadLayer = 24;    // defaullt
 

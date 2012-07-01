@@ -63,9 +63,9 @@ void SCH_JUNCTION::Parse( wxXmlNode*    aNode,
 
     if( FindNode( aNode->GetChildren(), wxT( "netNameRef" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "netNameRef" ) )->GetPropVal( wxT(
-                                                                               "Name" ),
-                                                                           &propValue );
+        FindNode( aNode->GetChildren(),
+                  wxT( "netNameRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
+
         propValue.Trim( true );
         propValue.Trim( false );
         m_net = propValue;

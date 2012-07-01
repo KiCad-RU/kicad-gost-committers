@@ -67,8 +67,8 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
 
     if( FindNode( aNode->GetChildren(), wxT( "symbolRef" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "symbolRef" ) )->GetPropVal( wxT( "Name" ),
-                                                                          &propValue );
+        FindNode( aNode->GetChildren(), wxT( "symbolRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                            &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_module.text = propValue;
@@ -76,8 +76,8 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
 
     if( FindNode( aNode->GetChildren(), wxT( "refDesRef" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "refDesRef" ) )->GetPropVal( wxT( "Name" ),
-                                                                          &propValue );
+        FindNode( aNode->GetChildren(), wxT( "refDesRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                            &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_reference.text = propValue;
@@ -112,7 +112,7 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
     {
         if( lNode->GetName() == wxT( "attr" ) )
         {
-            lNode->GetPropVal( wxT( "Name" ), &propValue );
+            lNode->GetAttribute( wxT( "Name" ), &propValue );
             propValue.Trim( false );
             propValue.Trim( true );
 
@@ -147,7 +147,7 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
 
         while( lNode )
         {
-            lNode->GetPropVal( wxT( "Name" ), &propValue );
+            lNode->GetAttribute( wxT( "Name" ), &propValue );
 
             if( lNode->GetName() == wxT( "compInst" ) && propValue == m_reference.text )
             {
@@ -155,7 +155,7 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
                 if( FindNode( lNode->GetChildren(), wxT( "compValue" ) ) )
                 {
                     FindNode( lNode->GetChildren(),
-                              wxT( "compValue" ) )->GetPropVal( wxT( "Name" ), &propValue );
+                              wxT( "compValue" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     propValue.Trim( false );
                     propValue.Trim( true );
                     m_typ.text = propValue;
@@ -163,8 +163,8 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
                 else if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
                 {
                     FindNode( lNode->GetChildren(),
-                              wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
-                                                                   &propValue );
+                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
+                                                                     &propValue );
                     m_typ.text = propValue;
                 }
 
@@ -172,14 +172,14 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
                 if( FindNode( lNode->GetChildren(), wxT( "patternName" ) ) )
                 {
                     FindNode( lNode->GetChildren(),
-                              wxT( "patternName" ) )->GetPropVal( wxT( "Name" ), &propValue );
+                              wxT( "patternName" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     m_attachedPattern = propValue;
                 }
                 else if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
                 {
                     FindNode( lNode->GetChildren(),
-                              wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
-                                                                   &propValue );
+                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
+                                                                     &propValue );
                     m_attachedPattern = propValue;
                 }
 
@@ -187,14 +187,14 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
                 if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
                 {
                     FindNode( lNode->GetChildren(),
-                              wxT( "originalName" ) )->GetPropVal( wxT( "Name" ),
-                                                                   &propValue );
+                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
+                                                                     &propValue );
                     m_attachedSymbol = propValue;
                 }
                 else if( FindNode( lNode->GetChildren(), wxT( "compRef" ) ) )
                 {
-                    FindNode( lNode->GetChildren(), wxT( "compRef" ) )->GetPropVal( wxT( "Name" ),
-                                                                                    &propValue );
+                    FindNode( lNode->GetChildren(),
+                              wxT( "compRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     m_attachedSymbol = propValue;
                 }
             }
@@ -219,7 +219,7 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
 
             while( lNode )
             {
-                lNode->GetPropVal( wxT( "Name" ), &propValue );
+                lNode->GetAttribute( wxT( "Name" ), &propValue );
 
                 if( lNode->GetName() == wxT( "symbolDef" ) && propValue == m_module.text )
                 {
@@ -230,7 +230,7 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
                         if( lNode->GetName() == wxT( "attr" ) )
                         {
                             // Reference
-                            lNode->GetPropVal( wxT( "Name" ), &propValue );
+                            lNode->GetAttribute( wxT( "Name" ), &propValue );
                             propValue.Trim( false );
                             propValue.Trim( true );
 

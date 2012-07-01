@@ -86,7 +86,7 @@ void PCB_LINE::Parse( wxXmlNode*    aNode,
 
     if( lNode )
     {
-        lNode->GetPropVal( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_net = propValue;

@@ -335,7 +335,7 @@ void SetFontProperty( wxXmlNode*    aNode,
 {
     wxString n, propValue;
 
-    aNode->GetPropVal( wxT( "Name" ), &n );
+    aNode->GetAttribute( wxT( "Name" ), &n );
 
     while( aNode->GetName() != wxT( "www.lura.sk" ) )
         aNode = aNode->GetParent();
@@ -349,7 +349,7 @@ void SetFontProperty( wxXmlNode*    aNode,
     {
         while( true )
         {
-            aNode->GetPropVal( wxT( "Name" ), &propValue );
+            aNode->GetAttribute( wxT( "Name" ), &propValue );
             propValue.Trim( false );
             propValue.Trim( true );
 
