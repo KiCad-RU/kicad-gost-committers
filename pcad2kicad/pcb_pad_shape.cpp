@@ -58,7 +58,7 @@ void PCB_PAD_SHAPE::Parse( wxXmlNode*   aNode,
     int         minX, maxX, minY, maxY, x, y;
     wxXmlNode*  lNode;
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "padShapeType" ) );
+    lNode = FindNode( aNode, wxT( "padShapeType" ) );
 
     if( lNode )
     {
@@ -67,7 +67,7 @@ void PCB_PAD_SHAPE::Parse( wxXmlNode*   aNode,
         m_shape = str;
     }
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "layerNumRef" ) );
+    lNode = FindNode( aNode, wxT( "layerNumRef" ) );
 
     if( lNode )
     {
@@ -82,13 +82,13 @@ void PCB_PAD_SHAPE::Parse( wxXmlNode*   aNode,
         || m_shape == wxT( "Ellipse" )
         || m_shape == wxT( "RndRect" ) )
     {
-        lNode = FindNode( aNode->GetChildren(), wxT( "shapeWidth" ) );
+        lNode = FindNode( aNode, wxT( "shapeWidth" ) );
 
         if( lNode )
             SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width,
                       aActualConversion );
 
-        lNode = FindNode( aNode->GetChildren(), wxT( "shapeHeight" ) );
+        lNode = FindNode( aNode, wxT( "shapeHeight" ) );
 
         if( lNode )
             SetWidth(
@@ -98,10 +98,10 @@ void PCB_PAD_SHAPE::Parse( wxXmlNode*   aNode,
     if( m_shape == wxT( "Polygon" ) )
     {
         // aproximation to simplier pad shape .....
-        lNode = FindNode( aNode->GetChildren(), wxT( "shapeOutline" ) );
+        lNode = FindNode( aNode, wxT( "shapeOutline" ) );
 
         if( lNode )
-            lNode = FindNode( lNode->GetChildren(), wxT( "pt" ) );
+            lNode = FindNode( lNode, wxT( "pt" ) );
 
         minX    = 0;
         maxX    = 0;

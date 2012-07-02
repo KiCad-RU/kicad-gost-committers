@@ -56,14 +56,13 @@ void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
     if( aNode->GetName() == wxT( "line" ) )
         m_lineType = 'W'; // wire
 
-    if( FindNode( aNode->GetChildren(), wxT( "width" ) ) )
-        m_width = StrToIntUnits( FindNode( aNode->GetChildren(), wxT(
-                                               "width" ) )->GetNodeContent(),
+    if( FindNode( aNode, wxT( "width" ) ) )
+        m_width = StrToIntUnits( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
                                  ' ', aActualConversion );
     else
         m_width = 1; // default
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+    lNode = FindNode( aNode, wxT( "pt" ) );
 
     if( lNode )
     {
@@ -80,9 +79,9 @@ void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
                          &m_toX, &m_toY, aActualConversion );
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "netNameRef" ) ) )
+    if( FindNode( aNode, wxT( "netNameRef" ) ) )
     {
-        FindNode( aNode->GetChildren(),
+        FindNode( aNode,
                   wxT( "netNameRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
@@ -96,7 +95,7 @@ void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
 
     if( lNode->GetName() == wxT( "wire" ) )
     {
-        lNode = FindNode( lNode->GetChildren(), wxT( "dispName" ) );
+        lNode = FindNode( lNode, wxT( "dispName" ) );
 
         if( lNode )
         {
@@ -108,18 +107,18 @@ void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
                 m_labelText.textIsVisible = 1;
 
             lNode   = lNode->GetParent();
-            lNode   = FindNode( lNode->GetChildren(), wxT( "text" ) );
+            lNode   = FindNode( lNode, wxT( "text" ) );
 
             if( lNode )
             {
-                if( FindNode( lNode->GetChildren(), wxT( "pt" ) ) )
-                    SetPosition( FindNode( lNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+                if( FindNode( lNode, wxT( "pt" ) ) )
+                    SetPosition( FindNode( lNode, wxT( "pt" ) )->GetNodeContent(),
                                  aDefaultMeasurementUnit, &m_labelText.textPositionX,
                                  &m_labelText.textPositionY, aActualConversion );
 
-                if( FindNode( lNode->GetChildren(), wxT( "rotation" ) ) )
+                if( FindNode( lNode, wxT( "rotation" ) ) )
                     m_labelText.textRotation = StrToInt1Units(
-                        FindNode( lNode->GetChildren(), wxT( "rotation" ) )->GetNodeContent() );
+                        FindNode( lNode, wxT( "rotation" ) )->GetNodeContent() );
             }
         }
     }

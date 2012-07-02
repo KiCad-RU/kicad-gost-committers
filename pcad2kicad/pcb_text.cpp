@@ -60,13 +60,13 @@ void PCB_TEXT::Parse( wxXmlNode*    aNode,
     m_positionX     = 0;
     m_positionY     = 0;
     m_name.mirror   = 0;    // Normal, not mirrored
-    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+    lNode = FindNode( aNode, wxT( "pt" ) );
 
     if( lNode )
         SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                      &m_positionX, &m_positionY, aActualConversion );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "rotation" ) );
+    lNode = FindNode( aNode, wxT( "rotation" ) );
 
     if( lNode )
     {
@@ -75,12 +75,12 @@ void PCB_TEXT::Parse( wxXmlNode*    aNode,
         m_rotation = StrToInt1Units( str );
     }
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "value" ) );
+    lNode = FindNode( aNode, wxT( "value" ) );
 
     if( lNode )
         m_name.text = lNode->GetNodeContent();
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "isFlipped" ) );
+    lNode = FindNode( aNode, wxT( "isFlipped" ) );
 
     if( lNode )
     {
@@ -92,7 +92,7 @@ void PCB_TEXT::Parse( wxXmlNode*    aNode,
             m_name.mirror = 1;
     }
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "textStyleRef" ) );
+    lNode = FindNode( aNode, wxT( "textStyleRef" ) );
 
     if( lNode )
         SetFontProperty( lNode, &m_name, aDefaultMeasurementUnit, aActualConversion );

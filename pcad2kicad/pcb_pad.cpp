@@ -190,7 +190,7 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
     PCB_PAD_SHAPE*  padShape;
 
     m_rotation = 0;
-    lNode = FindNode( aNode->GetChildren(), wxT( "padNum" ) );
+    lNode = FindNode( aNode, wxT( "padNum" ) );
 
     if( lNode )
     {
@@ -198,7 +198,7 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
         m_number = (int) num;
     }
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "padStyleRef" ) );
+    lNode = FindNode( aNode, wxT( "padStyleRef" ) );
 
     if( lNode )
     {
@@ -207,13 +207,13 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
         m_name.text = propValue;
     }
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+    lNode = FindNode( aNode, wxT( "pt" ) );
 
     if( lNode )
         SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                      &m_positionX, &m_positionY, aActualConversion );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "rotation" ) );
+    lNode = FindNode( aNode, wxT( "rotation" ) );
 
     if( lNode )
     {
@@ -227,8 +227,8 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
     while( lNode->GetName() != wxT( "www.lura.sk" ) )
         lNode = lNode->GetParent();
 
-    lNode   = FindNode( lNode->GetChildren(), wxT( "library" ) );
-    lNode   = FindNode( lNode->GetChildren(), wxT( "padStyleDef" ) );
+    lNode   = FindNode( lNode, wxT( "library" ) );
+    lNode   = FindNode( lNode, wxT( "padStyleDef" ) );
 
     while( true )
     {
@@ -240,13 +240,13 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
         lNode = lNode->GetNext();
     }
 
-    lNode = FindNode( lNode->GetChildren(), wxT( "holeDiam" ) );
+    lNode = FindNode( lNode, wxT( "holeDiam" ) );
 
     if( lNode )
         SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_hole, aActualConversion );
 
     lNode   = lNode->GetParent();
-    lNode   = FindNode( lNode->GetChildren(), wxT( "padShape" ) );
+    lNode   = FindNode( lNode, wxT( "padShape" ) );
 
     while( lNode )
     {
@@ -254,7 +254,7 @@ void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
         {
             // we support only Pads on specific layers......
             // we do not support pads on "Plane", "NonSignal" , "Signal" ... layerr
-            if( FindNode( lNode->GetChildren(), wxT( "layerNumRef" ) ) )
+            if( FindNode( lNode, wxT( "layerNumRef" ) ) )
             {
                 padShape = new PCB_PAD_SHAPE( m_callbacks, m_board );
                 padShape->Parse( lNode, aDefaultMeasurementUnit, aActualConversion );

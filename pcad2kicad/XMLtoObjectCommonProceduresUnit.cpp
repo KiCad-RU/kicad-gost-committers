@@ -83,10 +83,10 @@ wxXmlNode* FindPinMap( wxXmlNode* aNode )
     wxXmlNode* result, * lNode;
 
     result  = NULL;
-    lNode   = FindNode( aNode->GetChildren(), wxT( "attachedPattern" ) );
+    lNode   = FindNode( aNode, wxT( "attachedPattern" ) );
 
     if( lNode )
-        result = FindNode( lNode->GetChildren(), wxT( "padPinMap" ) );
+        result = FindNode( lNode, wxT( "padPinMap" ) );
 
     return result;
 }
@@ -288,7 +288,7 @@ void SetTextParameters( wxXmlNode*  aNode,
     wxXmlNode*  tNode;
     wxString    str;
 
-    tNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+    tNode = FindNode( aNode, wxT( "pt" ) );
 
     if( tNode )
         SetPosition( tNode->GetNodeContent(),
@@ -297,7 +297,7 @@ void SetTextParameters( wxXmlNode*  aNode,
                      &aTextValue->textPositionY,
                      aActualConversion );
 
-    tNode = FindNode( aNode->GetChildren(), wxT( "rotation" ) );
+    tNode = FindNode( aNode, wxT( "rotation" ) );
 
     if( tNode )
     {
@@ -307,7 +307,7 @@ void SetTextParameters( wxXmlNode*  aNode,
     }
 
     aTextValue->textIsVisible = 1;
-    tNode = FindNode( aNode->GetChildren(), wxT( "isVisible" ) );
+    tNode = FindNode( aNode, wxT( "isVisible" ) );
 
     if( tNode )
     {
@@ -321,7 +321,7 @@ void SetTextParameters( wxXmlNode*  aNode,
             aTextValue->textIsVisible = 0;
     }
 
-    tNode = FindNode( aNode->GetChildren(), wxT( "textStyleRef" ) );
+    tNode = FindNode( aNode, wxT( "textStyleRef" ) );
 
     if( tNode )
         SetFontProperty( tNode, aTextValue, aDefaultMeasurementUnit, aActualConversion );
@@ -340,10 +340,10 @@ void SetFontProperty( wxXmlNode*    aNode,
     while( aNode->GetName() != wxT( "www.lura.sk" ) )
         aNode = aNode->GetParent();
 
-    aNode = FindNode( aNode->GetChildren(), wxT( "library" ) );
+    aNode = FindNode( aNode, wxT( "library" ) );
 
     if( aNode )
-        aNode = FindNode( aNode->GetChildren(), wxT( "textStyleDef" ) );
+        aNode = FindNode( aNode, wxT( "textStyleDef" ) );
 
     if( aNode )
     {
@@ -361,21 +361,21 @@ void SetFontProperty( wxXmlNode*    aNode,
 
         if( aNode )
         {
-            aNode = FindNode( aNode->GetChildren(), wxT( "font" ) );
+            aNode = FindNode( aNode, wxT( "font" ) );
 
             if( aNode )
             {
-                if( FindNode( aNode->GetChildren(), wxT( "fontHeight" ) ) )
+                if( FindNode( aNode, wxT( "fontHeight" ) ) )
                     // // SetWidth(iNode.ChildNodes.FindNode('fontHeight').Text,
                     // //          DefaultMeasurementUnit,tv.TextHeight);
                     // Fixed By Lubo, 02/2008
-                    SetHeight( FindNode( aNode->GetChildren(), wxT(
+                    SetHeight( FindNode( aNode, wxT(
                                              "fontHeight" ) )->GetNodeContent(),
                                aDefaultMeasurementUnit, &aTextValue->textHeight,
                                aActualConversion );
 
-                if( FindNode( aNode->GetChildren(), wxT( "strokeWidth" ) ) )
-                    SetWidth( FindNode( aNode->GetChildren(), wxT(
+                if( FindNode( aNode, wxT( "strokeWidth" ) ) )
+                    SetWidth( FindNode( aNode, wxT(
                                             "strokeWidth" ) )->GetNodeContent(),
                               aDefaultMeasurementUnit, &aTextValue->textstrokeWidth,
                               aActualConversion );
@@ -432,6 +432,8 @@ void CorrectTextPosition( TTEXTVALUE* aValue, int aRotation )
 
 wxXmlNode* FindNode( wxXmlNode* aChild, wxString aTag )
 {
+    aChild = aChild->GetChildren();
+
     while( aChild )
     {
         if( aChild->GetName() == aTag )

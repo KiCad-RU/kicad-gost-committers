@@ -48,7 +48,7 @@ void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
     m_labelText.text.Trim( false );
     m_labelText.text.Trim( true );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+    lNode = FindNode( aNode, wxT( "pt" ) );
 
     if( lNode )
         SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
@@ -61,7 +61,7 @@ void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
         SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                      &m_toX, &m_toY, aActualConversion );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "dispName" ) );
+    lNode = FindNode( aNode, wxT( "dispName" ) );
 
     if( lNode )
     {
@@ -73,17 +73,17 @@ void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
             m_labelText.textIsVisible = 1;
     }
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "text" ) );
+    lNode = FindNode( aNode, wxT( "text" ) );
 
     if( lNode )
     {
-        if( FindNode( lNode->GetChildren(), wxT( "pt" ) ) )
-            SetPosition( FindNode( lNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+        if( FindNode( lNode, wxT( "pt" ) ) )
+            SetPosition( FindNode( lNode, wxT( "pt" ) )->GetNodeContent(),
                          aDefaultMeasurementUnit, &m_labelText.textPositionX,
                          &m_labelText.textPositionY, aActualConversion );
 
-        if( FindNode( lNode->GetChildren(), wxT( "rotation" ) ) )
+        if( FindNode( lNode, wxT( "rotation" ) ) )
             m_labelText.textRotation = StrToInt1Units(
-                FindNode( lNode->GetChildren(), wxT( "rotation" ) )->GetNodeContent() );
+                FindNode( lNode, wxT( "rotation" ) )->GetNodeContent() );
     }
 }

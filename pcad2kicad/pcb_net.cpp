@@ -73,7 +73,7 @@ void PCB_NET::Parse( wxXmlNode* aNode )
     propValue.Trim( true );
     m_name = propValue;
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "node" ) );
+    lNode = FindNode( aNode, wxT( "node" ) );
 
     while( lNode )
     {

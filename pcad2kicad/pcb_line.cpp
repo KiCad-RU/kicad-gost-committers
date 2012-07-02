@@ -65,7 +65,7 @@ void PCB_LINE::Parse( wxXmlNode*    aNode,
     m_toX   = 0;
     m_toY   = 0;
     m_width = 0;
-    lNode   = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+    lNode   = FindNode( aNode, wxT( "pt" ) );
 
     if( lNode )
         SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
@@ -77,12 +77,12 @@ void PCB_LINE::Parse( wxXmlNode*    aNode,
         SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                      &m_toX, &m_toY, aActualConversion );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "width" ) );
+    lNode = FindNode( aNode, wxT( "width" ) );
 
     if( lNode )
         SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "netNameRef" ) );
+    lNode = FindNode( aNode, wxT( "netNameRef" ) );
 
     if( lNode )
     {

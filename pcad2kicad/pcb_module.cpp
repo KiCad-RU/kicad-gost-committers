@@ -70,14 +70,14 @@ wxXmlNode* PCB_MODULE::FindModulePatternDefName( wxXmlNode* aNode, wxString aNam
     wxString    propValue1, propValue2;
 
     result  = NULL;
-    lNode   = FindNode( aNode->GetChildren(), wxT( "patternDef" ) );
+    lNode   = FindNode( aNode, wxT( "patternDef" ) );
 
     while( lNode )
     {
         if( lNode->GetName() == wxT( "patternDef" ) )
         {
             lNode->GetAttribute( wxT( "Name" ), &propValue1 );
-            FindNode( lNode->GetChildren(),
+            FindNode( lNode,
                       wxT( "originalName" ) )->GetAttribute( wxT( "Name" ), &propValue2 );
 
             if( ValidateName( propValue1 ) == aName
@@ -94,7 +94,7 @@ wxXmlNode* PCB_MODULE::FindModulePatternDefName( wxXmlNode* aNode, wxString aNam
 
     if( result == NULL )
     {
-        lNode = FindNode( aNode->GetChildren(), wxT( "patternDefExtended" ) );  // New file format
+        lNode = FindNode( aNode, wxT( "patternDefExtended" ) );  // New file format
 
         while( lNode )
         {
@@ -134,10 +134,9 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
         propValue.Trim( false );
         patName = ValidateName( propValue );
 
-        if( FindNode( lNode->GetChildren(), wxT( "attachedPattern" ) ) )
+        if( FindNode( lNode, wxT( "attachedPattern" ) ) )
         {
-            FindNode( FindNode( lNode->GetChildren(), wxT(
-                                    "attachedPattern" ) )->GetChildren(),
+            FindNode( FindNode( lNode, wxT( "attachedPattern" ) ),
                       wxT( "patternName" ) )->GetAttribute( wxT( "Name" ), &propValue );
             propValue.Trim( false );
             propValue.Trim( true );
@@ -151,7 +150,7 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
     lNode = NULL;
 
     if( pNode )
-        lNode = FindNode( pNode->GetChildren(), wxT( "multiLayer" ) );  // Old file format
+        lNode = FindNode( pNode, wxT( "multiLayer" ) );  // Old file format
 
     *aPatGraphRefName = wxEmptyString;                                  // default
 
@@ -160,9 +159,9 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
     else
     {
         // New file format
-        if( FindNode( aNode->GetChildren(), wxT( "patternGraphicsNameRef" ) ) )
+        if( FindNode( aNode, wxT( "patternGraphicsNameRef" ) ) )
         {
-            FindNode( aNode->GetChildren(),
+            FindNode( aNode,
                       wxT( "patternGraphicsNameRef" ) )->GetAttribute( wxT( "Name" ),
                                                                        aPatGraphRefName );
         }
@@ -173,16 +172,16 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
 // Did it work before  ????
 // lNode:=pNode.ChildNodes.FindNode('patternGraphicsDef');  Nw for some files
 // ////////////////////////////////////////////////////////////////////
-        if( FindNode( aNode->GetChildren(), wxT( "patternGraphicsDef" ) ) )
-            lNode = FindNode( aNode->GetChildren(), wxT( "patternGraphicsDef" ) );
+        if( FindNode( aNode, wxT( "patternGraphicsDef" ) ) )
+            lNode = FindNode( aNode, wxT( "patternGraphicsDef" ) );
         else
-            lNode = FindNode( pNode->GetChildren(), wxT( "patternGraphicsDef" ) );
+            lNode = FindNode( pNode, wxT( "patternGraphicsDef" ) );
 
         if( *aPatGraphRefName == wxEmptyString )    // no patern delection, the first is actual...
         {
             if( lNode )
             {
-                result  = FindNode( lNode->GetChildren(), wxT( "multiLayer" ) );
+                result  = FindNode( lNode, wxT( "multiLayer" ) );
                 lNode   = NULL;
             }
         }
@@ -191,13 +190,13 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
         {
             if( lNode->GetName() == wxT( "patternGraphicsDef" ) )
             {
-                FindNode( lNode->GetChildren(),
+                FindNode( lNode,
                           wxT( "patternGraphicsNameDef" ) )->GetAttribute( wxT( "Name" ),
                                                                            &propValue );
 
                 if( propValue == *aPatGraphRefName )
                 {
-                    result  = FindNode( lNode->GetChildren(), wxT( "multiLayer" ) );
+                    result  = FindNode( lNode, wxT( "multiLayer" ) );
                     lNode   = NULL;
                 }
                 else
@@ -233,7 +232,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
 
     i = 0;
     // aStatusBar->SetStatusText( wxT( "Processing LAYER CONTENT OBJECTS " ) );
-    FindNode( aNode->GetChildren(), wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &num );
+    FindNode( aNode, wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &num );
     PCadLayer   = (int) num;
     lNode       = aNode->GetChildren();
 
@@ -267,7 +266,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
 
             if( propValue == wxT( "Type" ) )
             {
-                tNode = FindNode( lNode->GetChildren(), wxT( "textStyleRef" ) );
+                tNode = FindNode( lNode, wxT( "textStyleRef" ) );
 
                 if( tNode && aPCBModule )
                 {
@@ -322,7 +321,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
 
             // list of polygons....
             tNode   = lNode;
-            tNode   = FindNode( tNode->GetChildren(), wxT( "pcbPoly" ) );
+            tNode   = FindNode( tNode, wxT( "pcbPoly" ) );
 
             if( tNode )
             {
@@ -363,8 +362,8 @@ void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
     PCB_VIA*    via;
     wxString    propValue, str;
 
-    FindNode( aNode->GetChildren(), wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
-                                                                           &propValue );
+    FindNode( aNode, wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
+                                                            &propValue );
     propValue.Trim( false );
     m_name.text = propValue;
 
@@ -398,7 +397,7 @@ void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
     }
 
     lNode   = lNode->GetParent();
-    lNode   = FindNode( lNode->GetChildren(), wxT( "layerContents" ) );
+    lNode   = FindNode( lNode, wxT( "layerContents" ) );
 
     while( lNode )
     {

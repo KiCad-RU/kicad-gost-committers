@@ -89,7 +89,7 @@ void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString a
     wxString    propValue;
     SCH_MODULE* module;
 
-    aNode = FindNode( aXmlDoc->GetRoot()->GetChildren(), wxT( "library" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
 
     if( aNode )    // ORIGINAL Modules
     {
@@ -108,7 +108,7 @@ void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString a
         }
     }
 
-    aNode = FindNode( aXmlDoc->GetRoot()->GetChildren(), wxT( "library" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
 
     if( aNode )    // ALIASes
     {
@@ -286,11 +286,11 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         return;
 
     // Defaut measurement units
-    aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "asciiHeader" ) );
+    aNode = FindNode( xmlDoc.GetRoot(), wxT( "asciiHeader" ) );
 
     if( aNode )
     {
-        aNode = FindNode( aNode->GetChildren(), wxT( "fileUnits" ) );
+        aNode = FindNode( aNode, wxT( "fileUnits" ) );
 
         if( aNode )
         {
@@ -306,14 +306,14 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
 
     DoLibrary( &xmlDoc, aStatusBar, aActualConversion );
 
-    aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "schematicDesign" ) );
+    aNode = FindNode( xmlDoc.GetRoot(), wxT( "schematicDesign" ) );
 
     if( aNode )
     {
         // SCHEMATIC FILE
         // aNode is schematicDesign node actually
         aActualConversion = wxT( "SCH" );
-        aNode = FindNode( aNode->GetChildren(), wxT( "sheet" ) )->GetChildren();
+        aNode = FindNode( aNode, wxT( "sheet" ) )->GetChildren();
 
         while( aNode )
         {
@@ -325,10 +325,10 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
             }
 
             if( aNode->GetName() == wxT( "wire" ) )
-                if( FindNode( aNode->GetChildren(), wxT( "line" ) ) )
+                if( FindNode( aNode, wxT( "line" ) ) )
                 {
                     line = new SCH_LINE;
-                    line->Parse( FindNode( aNode->GetChildren(), wxT( "line" ) ), 0,
+                    line->Parse( FindNode( aNode, wxT( "line" ) ), 0,
                                  m_defaultMeasurementUnit, aActualConversion );
                     m_schComponents.Add( line );
                 }

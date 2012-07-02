@@ -71,25 +71,25 @@ void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
     long        num;
     int         i;
 
-    FindNode( aNode->GetChildren(), wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
-                                                                           &propValue );
+    FindNode( aNode, wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
+                                                            &propValue );
     propValue.Trim( false );
     m_name.text = propValue;
     m_objType   = 'M';
     aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "compHeader" ) );
+    lNode = FindNode( aNode, wxT( "compHeader" ) );
 
     if( lNode )
     {
-        if( FindNode( lNode->GetChildren(), wxT( "refDesPrefix" ) ) )
-            FindNode( lNode->GetChildren(),
+        if( FindNode( lNode, wxT( "refDesPrefix" ) ) )
+            FindNode( lNode,
                       wxT( "refDesPrefix" ) )->GetAttribute( wxT( "Name" ), &m_reference.text );
 
 
-        if( FindNode( lNode->GetChildren(), wxT( "numParts" ) ) )
+        if( FindNode( lNode, wxT( "numParts" ) ) )
         {
-            FindNode( lNode->GetChildren(), wxT( "numParts" ) )->GetNodeContent().ToLong( &num );
+            FindNode( lNode, wxT( "numParts" ) )->GetNodeContent().ToLong( &num );
             m_numParts = (int) num;
         }
     }
@@ -107,17 +107,17 @@ void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
 
         if( tNode->GetName() == wxT( "attachedSymbol" ) )
         {
-            if( FindNode( tNode->GetChildren(), wxT( "altType" ) ) )
+            if( FindNode( tNode, wxT( "altType" ) ) )
             {
-                str = FindNode( tNode->GetChildren(), wxT( "altType" ) )->GetNodeContent();
+                str = FindNode( tNode, wxT( "altType" ) )->GetNodeContent();
                 str.Trim( false );
                 str.Trim( true );
 
                 if( str == wxT( "Normal" ) )
                 {
-                    FindNode( tNode->GetChildren(),
+                    FindNode( tNode,
                               wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
-                    FindNode( tNode->GetChildren(),
+                    FindNode( tNode,
                               wxT( "symbolName" ) )->GetAttribute( wxT( "Name" ),
                                                                    &m_attachedSymbols[(int) num] );
                 }
@@ -126,7 +126,7 @@ void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
 
         if( tNode->GetName() == wxT( "attachedPattern" ) )
         {
-            FindNode( tNode->GetChildren(),
+            FindNode( tNode,
                       wxT( "patternName" ) )->GetAttribute( wxT( "Name" ), &m_attachedPattern );
         }
 
@@ -179,34 +179,34 @@ void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
     while( tNode->GetName() != wxT( "www.lura.sk" ) )
         tNode = tNode->GetParent();
 
-    tNode = FindNode( tNode->GetChildren(), wxT( "library" ) );
+    tNode = FindNode( tNode, wxT( "library" ) );
 
     if( tNode )
     {
-        tNode = FindNode( tNode->GetChildren(), wxT( "symbolDef" ) );
+        tNode = FindNode( tNode, wxT( "symbolDef" ) );
 
         while( tNode )
         {
             tNode->GetAttribute( wxT( "Name" ), &propValue );
 
-            if( FindNode( tNode->GetChildren(), wxT( "originalName" ) ) )
-                FindNode( tNode->GetChildren(),
+            if( FindNode( tNode, wxT( "originalName" ) ) )
+                FindNode( tNode,
                           wxT( "originalName" ) )->GetAttribute( wxT( "Name" ), &propValue2 );
 
 
 
             if( tNode->GetName() == wxT( "symbolDef" )
                 && ( propValue == m_attachedSymbols[aSymbolIndex]
-                     || (FindNode( tNode->GetChildren(), wxT( "originalName" ) )
+                     || (FindNode( tNode, wxT( "originalName" ) )
                          && propValue2 == m_attachedSymbols[aSymbolIndex]) ) )
             {
                 ttNode  = tNode;
-                tNode   = FindNode( ttNode->GetChildren(), wxT( "pin" ) );
+                tNode   = FindNode( ttNode, wxT( "pin" ) );
 
                 while( tNode )
                 {
                     if( tNode->GetName() == wxT( "pin" )
-                        && FindNode( tNode->GetChildren(), wxT( "pinNum" ) ) )
+                        && FindNode( tNode, wxT( "pinNum" ) ) )
                     {
                         SetPinProperties( tNode, aSymbolIndex,
                                           aDefaultMeasurementUnit, aActualConversion );
@@ -215,7 +215,7 @@ void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
                     tNode = tNode->GetNext();
                 }
 
-                tNode = FindNode( ttNode->GetChildren(), wxT( "line" ) );
+                tNode = FindNode( ttNode, wxT( "line" ) );
 
                 while( tNode )
                 {
@@ -230,7 +230,7 @@ void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
                     tNode = tNode->GetNext();
                 }
 
-                tNode = FindNode( ttNode->GetChildren(), wxT( "arc" ) );
+                tNode = FindNode( ttNode, wxT( "arc" ) );
 
                 while( tNode )
                 {
@@ -245,7 +245,7 @@ void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
                     tNode = tNode->GetNext();
                 }
 
-                tNode = FindNode( ttNode->GetChildren(), wxT( "triplePointArc" ) );
+                tNode = FindNode( ttNode, wxT( "triplePointArc" ) );
 
                 while( tNode )
                 {

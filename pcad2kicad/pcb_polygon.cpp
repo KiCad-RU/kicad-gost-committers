@@ -80,7 +80,7 @@ void PCB_POLYGON::FormPolygon( wxXmlNode* aNode, VERTICES_ARRAY* aPolygon,
     wxXmlNode*  lNode;
     double      x, y;
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+    lNode = FindNode( aNode, wxT( "pt" ) );
 
     while( lNode )
     {
@@ -110,7 +110,7 @@ bool PCB_POLYGON::Parse( wxXmlNode*     aNode,
     m_KiCadLayer    = GetKiCadLayer();
     m_timestamp     = GetNewTimestamp();
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "netNameRef" ) );
+    lNode = FindNode( aNode, wxT( "netNameRef" ) );
 
     if( lNode )
     {

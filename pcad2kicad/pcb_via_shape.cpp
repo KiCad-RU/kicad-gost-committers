@@ -54,7 +54,7 @@ void PCB_VIA_SHAPE::Parse( wxXmlNode*   aNode,
     wxString    str;
     long        num;
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "viaShapeType" ) );
+    lNode = FindNode( aNode, wxT( "viaShapeType" ) );
 
     if( lNode )
     {
@@ -63,7 +63,7 @@ void PCB_VIA_SHAPE::Parse( wxXmlNode*   aNode,
         m_shape = str;
     }
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "layerNumRef" ) );
+    lNode = FindNode( aNode, wxT( "layerNumRef" ) );
 
     if( lNode )
     {
@@ -72,12 +72,12 @@ void PCB_VIA_SHAPE::Parse( wxXmlNode*   aNode,
     }
 
     m_KiCadLayer = GetKiCadLayer();
-    lNode = FindNode( aNode->GetChildren(), wxT( "shapeWidth" ) );
+    lNode = FindNode( aNode, wxT( "shapeWidth" ) );
 
     if( lNode )
         SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "shapeHeight" ) );
+    lNode = FindNode( aNode, wxT( "shapeHeight" ) );
 
     if( lNode )
         SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_height, aActualConversion );

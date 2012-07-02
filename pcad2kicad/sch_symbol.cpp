@@ -59,39 +59,39 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
 
     m_objType = 'S';
 
-    if( FindNode( aNode->GetChildren(), wxT( "partNum" ) ) )
+    if( FindNode( aNode, wxT( "partNum" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
+        FindNode( aNode, wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
         m_partNum = (int) num;
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "symbolRef" ) ) )
+    if( FindNode( aNode, wxT( "symbolRef" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "symbolRef" ) )->GetAttribute( wxT( "Name" ),
-                                                                            &propValue );
+        FindNode( aNode, wxT( "symbolRef" ) )->GetAttribute( wxT( "Name" ),
+                                                             &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_module.text = propValue;
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "refDesRef" ) ) )
+    if( FindNode( aNode, wxT( "refDesRef" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "refDesRef" ) )->GetAttribute( wxT( "Name" ),
-                                                                            &propValue );
+        FindNode( aNode, wxT( "refDesRef" ) )->GetAttribute( wxT( "Name" ),
+                                                             &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_reference.text = propValue;
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "pt" ) ) )
+    if( FindNode( aNode, wxT( "pt" ) ) )
     {
-        SetPosition( FindNode( aNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+        SetPosition( FindNode( aNode, wxT( "pt" ) )->GetNodeContent(),
                      aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion );
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "isFlipped" ) ) )
+    if( FindNode( aNode, wxT( "isFlipped" ) ) )
     {
-        str = FindNode( aNode->GetChildren(), wxT( "isFlipped" ) )->GetNodeContent();
+        str = FindNode( aNode, wxT( "isFlipped" ) )->GetNodeContent();
         str.Trim( false );
         str.Trim( true );
 
@@ -99,9 +99,9 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
             m_mirror = 1;
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "rotation" ) ) )
+    if( FindNode( aNode, wxT( "rotation" ) ) )
         m_rotation = StrToInt1Units(
-            FindNode( aNode->GetChildren(), wxT( "rotation" ) )->GetNodeContent() );
+            FindNode( aNode, wxT( "rotation" ) )->GetNodeContent() );
 
 
     lNode = aNode->GetChildren();
@@ -139,11 +139,11 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
     while( lNode->GetName() != wxT( "www.lura.sk" ) )
         lNode = lNode->GetParent();
 
-    lNode = FindNode( lNode->GetChildren(), wxT( "netlist" ) );
+    lNode = FindNode( lNode, wxT( "netlist" ) );
 
     if( lNode )
     {
-        lNode = FindNode( lNode->GetChildren(), wxT( "compInst" ) );
+        lNode = FindNode( lNode, wxT( "compInst" ) );
 
         while( lNode )
         {
@@ -152,48 +152,48 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
             if( lNode->GetName() == wxT( "compInst" ) && propValue == m_reference.text )
             {
                 // Type - or Value , depends on version
-                if( FindNode( lNode->GetChildren(), wxT( "compValue" ) ) )
+                if( FindNode( lNode, wxT( "compValue" ) ) )
                 {
-                    FindNode( lNode->GetChildren(),
+                    FindNode( lNode,
                               wxT( "compValue" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     propValue.Trim( false );
                     propValue.Trim( true );
                     m_typ.text = propValue;
                 }
-                else if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
+                else if( FindNode( lNode, wxT( "originalName" ) ) )
                 {
-                    FindNode( lNode->GetChildren(),
+                    FindNode( lNode,
                               wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
                                                                      &propValue );
                     m_typ.text = propValue;
                 }
 
                 // Pattern
-                if( FindNode( lNode->GetChildren(), wxT( "patternName" ) ) )
+                if( FindNode( lNode, wxT( "patternName" ) ) )
                 {
-                    FindNode( lNode->GetChildren(),
+                    FindNode( lNode,
                               wxT( "patternName" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     m_attachedPattern = propValue;
                 }
-                else if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
+                else if( FindNode( lNode, wxT( "originalName" ) ) )
                 {
-                    FindNode( lNode->GetChildren(),
+                    FindNode( lNode,
                               wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
                                                                      &propValue );
                     m_attachedPattern = propValue;
                 }
 
                 // Symbol
-                if( FindNode( lNode->GetChildren(), wxT( "originalName" ) ) )
+                if( FindNode( lNode, wxT( "originalName" ) ) )
                 {
-                    FindNode( lNode->GetChildren(),
+                    FindNode( lNode,
                               wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
                                                                      &propValue );
                     m_attachedSymbol = propValue;
                 }
-                else if( FindNode( lNode->GetChildren(), wxT( "compRef" ) ) )
+                else if( FindNode( lNode, wxT( "compRef" ) ) )
                 {
-                    FindNode( lNode->GetChildren(),
+                    FindNode( lNode,
                               wxT( "compRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     m_attachedSymbol = propValue;
                 }
@@ -211,11 +211,11 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
         while( lNode->GetName() != wxT( "www.lura.sk" ) )
             lNode = lNode->GetParent();
 
-        lNode = FindNode( lNode->GetChildren(), wxT( "library" ) );
+        lNode = FindNode( lNode, wxT( "library" ) );
 
         if( lNode )
         {
-            lNode = FindNode( lNode->GetChildren(), wxT( "symbolDef" ) );
+            lNode = FindNode( lNode, wxT( "symbolDef" ) );
 
             while( lNode )
             {

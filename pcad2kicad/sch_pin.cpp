@@ -63,35 +63,35 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
     m_isVisible     = 0;    // Default is not visible
 
 // SCHPin.pinName.Text:='~'; // Default
-    if( FindNode( aNode->GetChildren(), wxT( "symPinNum" ) ) )
+    if( FindNode( aNode, wxT( "symPinNum" ) ) )
     {
-        str = FindNode( aNode->GetChildren(), wxT( "symPinNum" ) )->GetNodeContent();
+        str = FindNode( aNode, wxT( "symPinNum" ) )->GetNodeContent();
         str.Trim( false );
         str.Trim( true );
         m_pinNum.text = str;
     }
 
 // SCHPin.pinName.Text:=SCHPin.pinNum.Text; // Default
-    if( FindNode( aNode->GetChildren(), wxT( "pinName" ) ) )
+    if( FindNode( aNode, wxT( "pinName" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "pinName" ) )->GetAttribute( wxT( "Name" ),
-                                                                          &propValue );
+        FindNode( aNode, wxT( "pinName" ) )->GetAttribute( wxT( "Name" ),
+                                                           &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_pinName.text = propValue;
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "pinType" ) ) )
+    if( FindNode( aNode, wxT( "pinType" ) ) )
     {
-        str = FindNode( aNode->GetChildren(), wxT( "pinType" ) )->GetNodeContent();
+        str = FindNode( aNode, wxT( "pinType" ) )->GetNodeContent();
         str.Trim( false );
         str.Trim( true );
         m_pinType = str;
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "partNum" ) ) )
+    if( FindNode( aNode, wxT( "partNum" ) ) )
     {
-        FindNode( aNode->GetChildren(), wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
+        FindNode( aNode, wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
         m_partNum = (int) num;
     }
 
@@ -106,7 +106,7 @@ void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
     wxString    pn, t, str;
     TTEXTVALUE  lpn;
 
-    pn = FindNode( aNode->GetChildren(), wxT( "pinNum" ) )->GetNodeContent();
+    pn = FindNode( aNode, wxT( "pinNum" ) )->GetNodeContent();
     pn.Trim( false );
     pn.Trim( true );
 
@@ -116,38 +116,38 @@ void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
         m_isVisible = 1;                            // This pin is described, it means is visible
         m_pinLength = DEFAULT_SYMBOL_PIN_LENGTH;    // Default value
 
-        if( FindNode( aNode->GetChildren(), wxT( "pinLength" ) ) )
+        if( FindNode( aNode, wxT( "pinLength" ) ) )
         {
-            t = FindNode( aNode->GetChildren(), wxT( "pinLength" ) )->GetNodeContent();
+            t = FindNode( aNode, wxT( "pinLength" ) )->GetNodeContent();
             m_pinLength = StrToIntUnits( GetAndCutWordWithMeasureUnits( &t,
                                                                         aDefaultMeasurementUnit ),
                                          ' ', aActualConversion );
         }
 
-        if( FindNode( aNode->GetChildren(), wxT( "outsideEdgeStyle" ) ) )
+        if( FindNode( aNode, wxT( "outsideEdgeStyle" ) ) )
         {
-            str = FindNode( aNode->GetChildren(), wxT( "outsideEdgeStyle" ) )->GetNodeContent();
+            str = FindNode( aNode, wxT( "outsideEdgeStyle" ) )->GetNodeContent();
             str.Trim( false );
             str.Trim( true );
             m_edgeStyle = str;
         }
 
-        if( FindNode( aNode->GetChildren(), wxT( "rotation" ) ) )
+        if( FindNode( aNode, wxT( "rotation" ) ) )
             m_rotation = StrToInt1Units(
-                FindNode( aNode->GetChildren(), wxT( "rotation" ) )->GetNodeContent() );
+                FindNode( aNode, wxT( "rotation" ) )->GetNodeContent() );
 
-        if( FindNode( aNode->GetChildren(), wxT( "pt" ) ) )
+        if( FindNode( aNode, wxT( "pt" ) ) )
         {
-            SetPosition( FindNode( aNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+            SetPosition( FindNode( aNode, wxT( "pt" ) )->GetNodeContent(),
                          aDefaultMeasurementUnit,
                          &m_positionX,
                          &m_positionY,
                          aActualConversion );
         }
 
-        if( FindNode( aNode->GetChildren(), wxT( "isFlipped" ) ) )
+        if( FindNode( aNode, wxT( "isFlipped" ) ) )
         {
-            str = FindNode( aNode->GetChildren(), wxT( "isFlipped" ) )->GetNodeContent();
+            str = FindNode( aNode, wxT( "isFlipped" ) )->GetNodeContent();
             str.Trim( false );
             str.Trim( true );
 
@@ -155,33 +155,25 @@ void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
                 m_mirror = 1;
         }
 
-        if( FindNode( aNode->GetChildren(), wxT( "pinName" ) ) )
+        if( FindNode( aNode, wxT( "pinName" ) ) )
         {
             lpn = m_number;
 
-            if( FindNode( FindNode(
-                              aNode->GetChildren(),
-                              wxT( "pinName" ) )->GetChildren(), wxT( "text" ) ) )
+            if( FindNode( FindNode( aNode,
+                                    wxT( "pinName" ) )->GetChildren(), wxT( "text" ) ) )
             {
-                SetTextParameters( FindNode( FindNode(
-                                                 aNode->GetChildren(),
-                                                 wxT( "pinName" ) )->GetChildren(), wxT(
-                                                 "text" ) ),
+                SetTextParameters( FindNode( FindNode( aNode, wxT( "pinName" ) ), wxT( "text" ) ),
                                    &lpn, aDefaultMeasurementUnit, aActualConversion );
             }
         }
 
-        if( FindNode( aNode->GetChildren(), wxT( "pinDes" ) ) )
+        if( FindNode( aNode, wxT( "pinDes" ) ) )
         {
             lpn = m_pinName;
 
-            if( FindNode( FindNode(
-                              aNode->GetChildren(),
-                              wxT( "pinDes" ) )->GetChildren(), wxT( "text" ) ) )
+            if( FindNode( FindNode( aNode, wxT( "pinDes" ) ), wxT( "text" ) ) )
             {
-                SetTextParameters( FindNode( FindNode(
-                                                 aNode->GetChildren(),
-                                                 wxT( "pinDes" ) )->GetChildren(), wxT( "text" ) ),
+                SetTextParameters( FindNode( FindNode( aNode, wxT( "pinDes" ) ), wxT( "text" ) ),
                                    &lpn, aDefaultMeasurementUnit, aActualConversion );
             }
         }

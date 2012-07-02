@@ -55,15 +55,15 @@ void SCH_JUNCTION::Parse( wxXmlNode*    aNode,
 
     m_net = wxEmptyString;
 
-    if( FindNode( aNode->GetChildren(), wxT( "pt" ) ) )
+    if( FindNode( aNode, wxT( "pt" ) ) )
     {
-        SetPosition( FindNode( aNode->GetChildren(), wxT( "pt" ) )->GetNodeContent(),
+        SetPosition( FindNode( aNode, wxT( "pt" ) )->GetNodeContent(),
                      aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion );
     }
 
-    if( FindNode( aNode->GetChildren(), wxT( "netNameRef" ) ) )
+    if( FindNode( aNode, wxT( "netNameRef" ) ) )
     {
-        FindNode( aNode->GetChildren(),
+        FindNode( aNode,
                   wxT( "netNameRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
 
         propValue.Trim( true );

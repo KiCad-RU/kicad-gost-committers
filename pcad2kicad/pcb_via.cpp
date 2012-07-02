@@ -53,7 +53,7 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
     PCB_VIA_SHAPE*  viaShape;
 
     m_rotation = 0;
-    lNode = FindNode( aNode->GetChildren(), wxT( "viaStyleRef" ) );
+    lNode = FindNode( aNode, wxT( "viaStyleRef" ) );
 
     if( lNode )
     {
@@ -63,13 +63,13 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
         m_name.text = propValue;
     }
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+    lNode = FindNode( aNode, wxT( "pt" ) );
 
     if( lNode )
         SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                      &m_positionX, &m_positionY, aActualConversion );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "netNameRef" ) );
+    lNode = FindNode( aNode, wxT( "netNameRef" ) );
 
     if( lNode )
     {
@@ -84,8 +84,8 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
     while( lNode->GetName() != wxT( "www.lura.sk" ) )
         lNode = lNode->GetParent();
 
-    lNode   = FindNode( lNode->GetChildren(), wxT( "library" ) );
-    lNode   = FindNode( lNode->GetChildren(), wxT( "viaStyleDef" ) );
+    lNode   = FindNode( lNode, wxT( "library" ) );
+    lNode   = FindNode( lNode, wxT( "viaStyleDef" ) );
 
     if( lNode )
     {
@@ -103,13 +103,13 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
     if( lNode )
     {
         tNode   = lNode;
-        lNode   = FindNode( tNode->GetChildren(), wxT( "holeDiam" ) );
+        lNode   = FindNode( tNode, wxT( "holeDiam" ) );
 
         if( lNode )
             SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_hole,
                       aActualConversion );
 
-        lNode = FindNode( tNode->GetChildren(), wxT( "viaShape" ) );
+        lNode = FindNode( tNode, wxT( "viaShape" ) );
 
         while( lNode )
         {
@@ -117,7 +117,7 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
             {
                 // we support only Vias on specific layers......
                 // we do not support vias on "Plane", "NonSignal" , "Signal" ... layerr
-                if( FindNode( lNode->GetChildren(), wxT( "layerNumRef" ) ) )
+                if( FindNode( lNode, wxT( "layerNumRef" ) ) )
                 {
                     viaShape = new PCB_VIA_SHAPE( m_callbacks, m_board );
                     viaShape->Parse( lNode, aDefaultMeasurementUnit, aActualConversion );

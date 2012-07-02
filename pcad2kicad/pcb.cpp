@@ -100,7 +100,7 @@ wxXmlNode* PCB::FindCompDefName( wxXmlNode* aNode, wxString aName )
     wxXmlNode*  result = NULL, * lNode;
     wxString    propValue;
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "compDef" ) );
+    lNode = FindNode( aNode, wxT( "compDef" ) );
 
     while( lNode )
     {
@@ -136,22 +136,22 @@ void PCB::SetTextProperty( wxXmlNode* aNode, TTEXTVALUE* aTextValue,
     n = aXmlName;
 
     // new file foramat version
-    if( FindNode( tNode->GetChildren(), wxT( "patternGraphicsNameRef" ) ) )
+    if( FindNode( tNode, wxT( "patternGraphicsNameRef" ) ) )
     {
-        FindNode( tNode->GetChildren(),
+        FindNode( tNode,
                   wxT( "patternGraphicsNameRef" ) )->GetAttribute( wxT( "Name" ),
                                                                    &pn );
         pn.Trim( false );
         pn.Trim( true );
-        tNode = FindNode( tNode->GetChildren(), wxT( "patternGraphicsRef" ) );
+        tNode = FindNode( tNode, wxT( "patternGraphicsRef" ) );
 
         while( tNode )
         {
             if( tNode->GetName() == wxT( "patternGraphicsRef" ) )
             {
-                if( FindNode( tNode->GetChildren(), wxT( "patternGraphicsNameRef" ) ) )
+                if( FindNode( tNode, wxT( "patternGraphicsNameRef" ) ) )
                 {
-                    FindNode( tNode->GetChildren(),
+                    FindNode( tNode,
                               wxT( "patternGraphicsNameRef" ) )->GetAttribute( wxT( "Name" ),
                                                                                &propValue );
 
@@ -173,7 +173,7 @@ void PCB::SetTextProperty( wxXmlNode* aNode, TTEXTVALUE* aTextValue,
     }
 
     // old version and compatibile fr both from this point
-    tNode = FindNode( t1Node->GetChildren(), wxT( "attr" ) );
+    tNode = FindNode( t1Node, wxT( "attr" ) );
 
     while( tNode )
     {
@@ -211,10 +211,10 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
 
         if( lNode->GetName() == wxT( "pattern" ) )
         {
-            FindNode( lNode->GetChildren(), wxT( "patternRef" ) )->GetAttribute( wxT( "Name" ),
-                                                                                 &cn );
+            FindNode( lNode, wxT( "patternRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                  &cn );
             cn      = ValidateName( cn );
-            tNode   = FindNode( aXmlDoc->GetRoot()->GetChildren(), wxT( "library" ) );
+            tNode   = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
 
             if( tNode && cn.Len() > 0 )
             {
@@ -230,7 +230,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
             if( mc )
             {
                 mc->m_compRef = cn;    // default - in new version of file it is updated later....
-                tNode = FindNode( lNode->GetChildren(), wxT( "refDesRef" ) );
+                tNode = FindNode( lNode, wxT( "refDesRef" ) );
 
                 if( tNode )
                 {
@@ -241,7 +241,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                                          "Value" ), aActualConversion );
                 }
 
-                tNode = FindNode( lNode->GetChildren(), wxT( "pt" ) );
+                tNode = FindNode( lNode, wxT( "pt" ) );
 
                 if( tNode )
                     SetPosition( tNode->GetNodeContent(),
@@ -250,7 +250,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                                  &mc->m_positionY,
                                  aActualConversion );
 
-                tNode = FindNode( lNode->GetChildren(), wxT( "rotation" ) );
+                tNode = FindNode( lNode, wxT( "rotation" ) );
 
                 if( tNode )
                 {
@@ -259,7 +259,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                     mc->m_rotation = StrToInt1Units( str );
                 }
 
-                tNode = FindNode( lNode->GetChildren(), wxT( "isFlipped" ) );
+                tNode = FindNode( lNode, wxT( "isFlipped" ) );
 
                 if( tNode )
                 {
@@ -276,11 +276,11 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                 while( tNode->GetName() != wxT( "www.lura.sk" ) )
                     tNode = tNode->GetParent();
 
-                tNode = FindNode( tNode->GetChildren(), wxT( "netlist" ) );
+                tNode = FindNode( tNode, wxT( "netlist" ) );
 
                 if( tNode )
                 {
-                    tNode = FindNode( tNode->GetChildren(), wxT( "compInst" ) );
+                    tNode = FindNode( tNode, wxT( "compInst" ) );
 
                     while( tNode )
                     {
@@ -288,18 +288,18 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
 
                         if( propValue == mc->m_name.text )
                         {
-                            if( FindNode( tNode->GetChildren(), wxT( "compValue" ) ) )
+                            if( FindNode( tNode, wxT( "compValue" ) ) )
                             {
-                                FindNode( tNode->GetChildren(),
+                                FindNode( tNode,
                                           wxT( "compValue" ) )->GetAttribute( wxT( "Name" ),
                                                                               &mc->m_value.text );
                                 mc->m_value.text.Trim( false );
                                 mc->m_value.text.Trim( true );
                             }
 
-                            if( FindNode( tNode->GetChildren(), wxT( "compRef" ) ) )
+                            if( FindNode( tNode, wxT( "compRef" ) ) )
                             {
-                                FindNode( tNode->GetChildren(),
+                                FindNode( tNode,
                                           wxT( "compRef" ) )->GetAttribute( wxT( "Name" ),
                                                                             &mc->m_compRef );
                                 mc->m_compRef.Trim( false );
@@ -314,7 +314,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                 }
 
                 // map pins
-                tNode   = FindNode( aXmlDoc->GetRoot()->GetChildren(), wxT( "library" ) );
+                tNode   = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
                 tNode   = FindCompDefName( tNode, mc->m_compRef );
 
                 if( tNode )
@@ -463,7 +463,7 @@ void PCB::MapLayer( wxXmlNode* aNode )
     if( lName == wxT( "BOARD" ) )
         KiCadLayer = 28;
 
-    FindNode( aNode->GetChildren(), wxT( "layerNum" ) )->GetNodeContent().ToLong( &num );
+    FindNode( aNode, wxT( "layerNum" ) )->GetNodeContent().ToLong( &num );
     m_layersMap[(int) num] = KiCadLayer;
 }
 
@@ -482,11 +482,11 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         return;
 
     // Defaut measurement units
-    aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "asciiHeader" ) );
+    aNode = FindNode( xmlDoc.GetRoot(), wxT( "asciiHeader" ) );
 
     if( aNode )
     {
-        aNode = FindNode( aNode->GetChildren(), wxT( "fileUnits" ) );
+        aNode = FindNode( aNode, wxT( "fileUnits" ) );
 
         if( aNode )
         {
@@ -497,11 +497,11 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     }
 
     // Layers mapping
-    aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "pcbDesign" ) );
+    aNode = FindNode( xmlDoc.GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
-        aNode = FindNode( aNode->GetChildren(), wxT( "layerDef" ) );
+        aNode = FindNode( aNode, wxT( "layerDef" ) );
 
         while( aNode )
         {
@@ -515,11 +515,11 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     // NETLIST
     // aStatusBar->SetStatusText( wxT( "Loading NETLIST " ) );
 
-    aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "netlist" ) );
+    aNode = FindNode( xmlDoc.GetRoot(), wxT( "netlist" ) );
 
     if( aNode )
     {
-        aNode = FindNode( aNode->GetChildren(), wxT( "net" ) );
+        aNode = FindNode( aNode, wxT( "net" ) );
 
         while( aNode )
         {
@@ -534,7 +534,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     // BOARD FILE
     // aStatusBar->SetStatusText( wxT( "Loading BOARD DEFINITION " ) );
 
-    aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "pcbDesign" ) );
+    aNode = FindNode( xmlDoc.GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -636,11 +636,11 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         // LIBRARY FILE
         // aStatusBar->SetStatusText( wxT( "Processing LIBRARY FILE " ) );
 
-        aNode = FindNode( xmlDoc.GetRoot()->GetChildren(), wxT( "library" ) );
+        aNode = FindNode( xmlDoc.GetRoot(), wxT( "library" ) );
 
         if( aNode )
         {
-            aNode = FindNode( aNode->GetChildren(), wxT( "compDef" ) );
+            aNode = FindNode( aNode, wxT( "compDef" ) );
 
             while( aNode )
             {

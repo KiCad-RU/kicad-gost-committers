@@ -62,13 +62,13 @@ void PCB_ARC::Parse( wxXmlNode* aNode,
 
     m_PCadLayer     = aLayer;
     m_KiCadLayer    = GetKiCadLayer();
-    SetWidth( FindNode( aNode->GetChildren(), wxT( "width" ) )->GetNodeContent(),
+    SetWidth( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
               aDefaultMeasurementUnit, &m_width, aActualConversion );
 
     if( aNode->GetName() == wxT( "triplePointArc" ) )
     {
         // center point
-        lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+        lNode = FindNode( aNode, wxT( "pt" ) );
 
         if( lNode )
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
@@ -98,19 +98,19 @@ void PCB_ARC::Parse( wxXmlNode* aNode,
 
     if( aNode->GetName() == wxT( "arc" ) )
     {
-        lNode = FindNode( aNode->GetChildren(), wxT( "pt" ) );
+        lNode = FindNode( aNode, wxT( "pt" ) );
 
         if( lNode )
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &m_positionX, &m_positionY, aActualConversion );
 
-        lNode   = FindNode( aNode->GetChildren(), wxT( "radius" ) );
+        lNode   = FindNode( aNode, wxT( "radius" ) );
         r       = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
-        a       = StrToInt1Units( FindNode( aNode->GetChildren(),
+        a       = StrToInt1Units( FindNode( aNode,
                                             wxT( "startAngle" ) )->GetNodeContent() );
         m_startX    = KiROUND( m_positionX + r * sin( (a - 900.0) * M_PI / 1800.0 ) );
         m_startY    = KiROUND( m_positionY - r * cos( (a - 900.0) * M_PI / 1800.0 ) );
-        m_angle     = StrToInt1Units( FindNode( aNode->GetChildren(),
+        m_angle     = StrToInt1Units( FindNode( aNode,
                                                 wxT( "sweepAngle" ) )->GetNodeContent() );
     }
 }

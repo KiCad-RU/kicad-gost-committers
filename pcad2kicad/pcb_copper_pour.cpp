@@ -61,11 +61,11 @@ bool PCB_COPPER_POUR::Parse( wxXmlNode*     aNode,
     m_KiCadLayer    = GetKiCadLayer();
     m_timestamp     = GetNewTimestamp();
 
-    str = FindNode( aNode->GetChildren(), wxT( "pourType" ) )->GetNodeContent();
+    str = FindNode( aNode, wxT( "pourType" ) )->GetNodeContent();
     str.Trim( false );
     pourType = str.MakeUpper();
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "netNameRef" ) );
+    lNode = FindNode( aNode, wxT( "netNameRef" ) );
 
     if( lNode )
     {
@@ -75,18 +75,18 @@ bool PCB_COPPER_POUR::Parse( wxXmlNode*     aNode,
         m_net = propValue;
     }
 
-    SetWidth( FindNode( aNode->GetChildren(), wxT( "width" ) )->GetNodeContent(),
+    SetWidth( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
               aDefaultMeasurementUnit, &m_width, aActualConversion );
 
-    if( FindNode( aNode->GetChildren(), wxT( "pourSpacing" ) ) )
-        SetWidth( FindNode( aNode->GetChildren(), wxT( "pourSpacing" ) )->GetNodeContent(),
+    if( FindNode( aNode, wxT( "pourSpacing" ) ) )
+        SetWidth( FindNode( aNode, wxT( "pourSpacing" ) )->GetNodeContent(),
                   aDefaultMeasurementUnit, &pourSpacing, aActualConversion );
 
-    if( FindNode( aNode->GetChildren(), wxT( "thermalWidth" ) ) )
-        SetWidth( FindNode( aNode->GetChildren(), wxT( "thermalWidth" ) )->GetNodeContent(),
+    if( FindNode( aNode, wxT( "thermalWidth" ) ) )
+        SetWidth( FindNode( aNode, wxT( "thermalWidth" ) )->GetNodeContent(),
                   aDefaultMeasurementUnit, &thermalWidth, aActualConversion );
 
-    lNode = FindNode( aNode->GetChildren(), wxT( "pcbPoly" ) );
+    lNode = FindNode( aNode, wxT( "pcbPoly" ) );
 
     if( lNode )
     {
@@ -96,22 +96,22 @@ bool PCB_COPPER_POUR::Parse( wxXmlNode*     aNode,
         m_positionX = m_outline[0]->x;
         m_positionY = m_outline[0]->y;
 
-        lNode = FindNode( aNode->GetChildren(), wxT( "island" ) );
+        lNode = FindNode( aNode, wxT( "island" ) );
 
         while( lNode )
         {
-            tNode = FindNode( lNode->GetChildren(), wxT( "islandOutline" ) );
+            tNode = FindNode( lNode, wxT( "islandOutline" ) );
 
             if( tNode )
             {
                 island = new VERTICES_ARRAY;
                 FormPolygon( tNode, island, aDefaultMeasurementUnit, aActualConversion );
                 m_islands.Add( island );
-                tNode = FindNode( lNode->GetChildren(), wxT( "cutout" ) );
+                tNode = FindNode( lNode, wxT( "cutout" ) );
 
                 while( tNode )
                 {
-                    cNode = FindNode( tNode->GetChildren(), wxT( "cutoutOutline" ) );
+                    cNode = FindNode( tNode, wxT( "cutoutOutline" ) );
 
                     if( cNode )
                     {
