@@ -283,12 +283,7 @@ void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
                                                aDefaultMeasurementUnit, aActualConversion );
 
                         // Type
-                        if( propValue == wxT( "Type {Type}" ) )
-                            SetTextParameters( tNode, &m_name,
-                                               aDefaultMeasurementUnit, aActualConversion );
-
-                        // OR
-                        if( propValue == wxT( "Type" ) )
+                        if( propValue == wxT( "Type {Type}" ) || propValue == wxT( "Type" ) )
                             SetTextParameters( tNode, &m_name,
                                                aDefaultMeasurementUnit, aActualConversion );
                     }

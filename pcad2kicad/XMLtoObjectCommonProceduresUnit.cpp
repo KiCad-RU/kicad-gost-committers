@@ -308,8 +308,9 @@ void SetTextParameters( wxXmlNode*  aNode,
 
     str = FindNodeGetContent( aNode, wxT( "isVisible" ) );
 
-    aTextValue->textIsVisible = 1;
-    if( str == wxT( "False" ) )
+    if( str == wxT( "True" ) )
+        aTextValue->textIsVisible = 1;
+    else if( str == wxT( "False" ) )
         aTextValue->textIsVisible = 0;
 
     tNode = FindNode( aNode, wxT( "textStyleRef" ) );

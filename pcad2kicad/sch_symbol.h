@@ -38,8 +38,11 @@
 class SCH_SYMBOL : public SCH_COMPONENT
 {
 public:
-    TTEXTVALUE  m_module, m_reference, m_typ;
-    wxString    m_attachedSymbol, m_attachedPattern;
+    TTEXTVALUE  m_module;
+    TTEXTVALUE  m_reference;
+    TTEXTVALUE  m_value;
+    wxString    m_attachedSymbol;
+    wxString    m_attachedPattern;
 
     SCH_SYMBOL();
     ~SCH_SYMBOL();
@@ -48,6 +51,11 @@ public:
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
+
+private:
+    void ParseNetlist( wxXmlNode* aNode, wxString aReference );
+    void ParseLibrary( wxXmlNode* aNode, wxString aModule,
+                       wxString aDefaultMeasurementUnit, wxString aActualConversion );
 };
 
 #endif    // SCH_SYMBOL_H_
