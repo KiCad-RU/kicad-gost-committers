@@ -259,17 +259,10 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                     mc->m_rotation = StrToInt1Units( str );
                 }
 
-                tNode = FindNode( lNode, wxT( "isFlipped" ) );
+                str = FindNodeGetContent( lNode, wxT( "isFlipped" ) );
 
-                if( tNode )
-                {
-                    str = tNode->GetNodeContent();
-                    str.Trim( false );
-                    str.Trim( true );
-
-                    if( str == wxT( "True" ) )
-                        mc->m_mirror = 1;
-                }
+                if( str == wxT( "True" ) )
+                    mc->m_mirror = 1;
 
                 tNode = aNode;
 
@@ -422,7 +415,7 @@ void PCB::MapLayer( wxXmlNode* aNode )
 {
     wxString    lName;
     int         KiCadLayer;
-    long        num;
+    long        num = 0;
 
     aNode->GetAttribute( wxT( "Name" ), &lName );
     lName = lName.MakeUpper();
@@ -463,7 +456,9 @@ void PCB::MapLayer( wxXmlNode* aNode )
     if( lName == wxT( "BOARD" ) )
         KiCadLayer = 28;
 
-    FindNode( aNode, wxT( "layerNum" ) )->GetNodeContent().ToLong( &num );
+    if( FindNode( aNode, wxT( "layerNum" ) ) )
+        FindNode( aNode, wxT( "layerNum" ) )->GetNodeContent().ToLong( &num );
+
     m_layersMap[(int) num] = KiCadLayer;
 }
 

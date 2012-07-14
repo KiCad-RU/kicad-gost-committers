@@ -80,17 +80,10 @@ void PCB_TEXT::Parse( wxXmlNode*    aNode,
     if( lNode )
         m_name.text = lNode->GetNodeContent();
 
-    lNode = FindNode( aNode, wxT( "isFlipped" ) );
+    str = FindNodeGetContent( aNode, wxT( "isFlipped" ) );
 
-    if( lNode )
-    {
-        str = lNode->GetNodeContent();
-        str.Trim( false );
-        str.Trim( true );
-
-        if( str == wxT( "True" ) )
-            m_name.mirror = 1;
-    }
+    if( str == wxT( "True" ) )
+        m_name.mirror = 1;
 
     lNode = FindNode( aNode, wxT( "textStyleRef" ) );
 

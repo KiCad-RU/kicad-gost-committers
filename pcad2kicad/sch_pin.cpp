@@ -43,6 +43,8 @@ SCH_PIN::SCH_PIN()
     m_pinType   = wxEmptyString;
     m_edgeStyle = wxEmptyString;
     m_pinLength = 0;
+    m_pinNumVisible = true;
+    m_pinNameVisible = false;
 }
 
 
@@ -63,13 +65,7 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
     m_isVisible     = 0;    // Default is not visible
 
 // SCHPin.pinName.Text:='~'; // Default
-    if( FindNode( aNode, wxT( "symPinNum" ) ) )
-    {
-        str = FindNode( aNode, wxT( "symPinNum" ) )->GetNodeContent();
-        str.Trim( false );
-        str.Trim( true );
-        m_pinNum.text = str;
-    }
+    m_pinNum.text = FindNodeGetContent( aNode, wxT( "symPinNum" ) );
 
 // SCHPin.pinName.Text:=SCHPin.pinNum.Text; // Default
     if( FindNode( aNode, wxT( "pinName" ) ) )
@@ -81,13 +77,7 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
         m_pinName.text = propValue;
     }
 
-    if( FindNode( aNode, wxT( "pinType" ) ) )
-    {
-        str = FindNode( aNode, wxT( "pinType" ) )->GetNodeContent();
-        str.Trim( false );
-        str.Trim( true );
-        m_pinType = str;
-    }
+    m_pinType = FindNodeGetContent( aNode, wxT( "pinType" ) );
 
     if( FindNode( aNode, wxT( "partNum" ) ) )
     {
@@ -105,10 +95,9 @@ void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
 {
     wxString    pn, t, str;
     TTEXTVALUE  lpn;
+    wxXmlNode* cNode;
 
-    pn = FindNode( aNode, wxT( "pinNum" ) )->GetNodeContent();
-    pn.Trim( false );
-    pn.Trim( true );
+    pn = FindNodeGetContent( aNode, wxT( "pinNum" ) );
 
     if( m_pinNum.text == pn
         && m_partNum == aSymbolIndex )
@@ -124,13 +113,7 @@ void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
                                          ' ', aActualConversion );
         }
 
-        if( FindNode( aNode, wxT( "outsideEdgeStyle" ) ) )
-        {
-            str = FindNode( aNode, wxT( "outsideEdgeStyle" ) )->GetNodeContent();
-            str.Trim( false );
-            str.Trim( true );
-            m_edgeStyle = str;
-        }
+        m_edgeStyle = FindNodeGetContent( aNode, wxT( "outsideEdgeStyle" ) );
 
         if( FindNode( aNode, wxT( "rotation" ) ) )
             m_rotation = StrToInt1Units(
@@ -145,15 +128,9 @@ void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
                          aActualConversion );
         }
 
-        if( FindNode( aNode, wxT( "isFlipped" ) ) )
-        {
-            str = FindNode( aNode, wxT( "isFlipped" ) )->GetNodeContent();
-            str.Trim( false );
-            str.Trim( true );
-
-            if( str == wxT( "True" ) )
-                m_mirror = 1;
-        }
+        str = FindNodeGetContent( aNode, wxT( "isFlipped" ) );
+        if( str == wxT( "True" ) )
+            m_mirror = 1;
 
         if( FindNode( aNode, wxT( "pinName" ) ) )
         {
@@ -176,6 +153,20 @@ void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
                 SetTextParameters( FindNode( FindNode( aNode, wxT( "pinDes" ) ), wxT( "text" ) ),
                                    &lpn, aDefaultMeasurementUnit, aActualConversion );
             }
+        }
+
+        cNode = FindNode( aNode, wxT( "pinDisplay" ) );
+        if( cNode )
+        {
+            str = FindNodeGetContent( cNode, wxT( "dispPinDes" ) );
+
+            if( str == wxT( "False" ) )
+                m_pinNumVisible = false;
+
+            str = FindNodeGetContent( cNode, wxT( "dispPinName" ) );
+
+            if( str == wxT( "True" ) )
+                m_pinNameVisible = true;
         }
     }
 }

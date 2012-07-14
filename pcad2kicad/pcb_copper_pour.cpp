@@ -61,9 +61,9 @@ bool PCB_COPPER_POUR::Parse( wxXmlNode*     aNode,
     m_KiCadLayer    = GetKiCadLayer();
     m_timestamp     = GetNewTimestamp();
 
-    str = FindNode( aNode, wxT( "pourType" ) )->GetNodeContent();
-    str.Trim( false );
-    pourType = str.MakeUpper();
+    //str = FindNode( aNode, wxT( "pourType" ) )->GetNodeContent();
+    //str.Trim( false );
+    //pourType = str.MakeUpper();
 
     lNode = FindNode( aNode, wxT( "netNameRef" ) );
 
@@ -75,8 +75,9 @@ bool PCB_COPPER_POUR::Parse( wxXmlNode*     aNode,
         m_net = propValue;
     }
 
-    SetWidth( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
-              aDefaultMeasurementUnit, &m_width, aActualConversion );
+    if( FindNode( aNode, wxT( "width" ) ) )
+        SetWidth( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
+                  aDefaultMeasurementUnit, &m_width, aActualConversion );
 
     if( FindNode( aNode, wxT( "pourSpacing" ) ) )
         SetWidth( FindNode( aNode, wxT( "pourSpacing" ) )->GetNodeContent(),

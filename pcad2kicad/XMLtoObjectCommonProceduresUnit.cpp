@@ -306,20 +306,11 @@ void SetTextParameters( wxXmlNode*  aNode,
         aTextValue->textRotation = StrToInt1Units( str );
     }
 
+    str = FindNodeGetContent( aNode, wxT( "isVisible" ) );
+
     aTextValue->textIsVisible = 1;
-    tNode = FindNode( aNode, wxT( "isVisible" ) );
-
-    if( tNode )
-    {
-        str = tNode->GetNodeContent();
-        str.Trim( false );
-        str.Trim( true );
-
-        if( str == wxT( "True" ) )
-            aTextValue->textIsVisible = 1;
-        else
-            aTextValue->textIsVisible = 0;
-    }
+    if( str == wxT( "False" ) )
+        aTextValue->textIsVisible = 0;
 
     tNode = FindNode( aNode, wxT( "textStyleRef" ) );
 
@@ -445,6 +436,21 @@ wxXmlNode* FindNode( wxXmlNode* aChild, wxString aTag )
     return NULL;
 }
 
+wxString FindNodeGetContent( wxXmlNode* aChild, wxString aTag )
+{
+    wxString str = wxEmptyString;
+
+    aChild = FindNode( aChild, aTag );
+
+    if( aChild )
+    {
+        str = aChild->GetNodeContent();
+        str.Trim( false );
+        str.Trim( true );
+    }
+
+    return str;
+}
 
 void InitTTextValue( TTEXTVALUE* aTextValue )
 {

@@ -38,12 +38,20 @@
 class SCH_MODULE : public SCH_COMPONENT
 {
 public:
-    SCH_COMPONENTS_ARRAY    m_moduleObjects;
-    TTEXTVALUE              m_name, m_reference;
-    int m_numParts;
-    wxString                m_attachedPattern, m_moduleDescription, m_alias;
-    wxString                m_attachedSymbols[10];
+    TTEXTVALUE              m_name;
+    wxString                m_alias;
+    wxString                m_moduleDescription;
 
+private:
+    SCH_COMPONENTS_ARRAY    m_moduleObjects;
+    TTEXTVALUE              m_reference;
+    int                     m_numParts;
+    wxString                m_attachedPattern;
+    wxString                m_attachedSymbols[10];
+    char                    m_pinNumVisibility;
+    char                    m_pinNameVisibility;
+
+public:
     SCH_MODULE();
     ~SCH_MODULE();
 

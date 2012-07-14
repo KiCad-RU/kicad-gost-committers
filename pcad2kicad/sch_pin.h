@@ -40,9 +40,14 @@
 class SCH_PIN : public SCH_COMPONENT
 {
 public:
-    TTEXTVALUE  m_pinNum, m_pinName, m_number;
-    wxString    m_pinType, m_edgeStyle;
+    TTEXTVALUE  m_pinNum;
+    TTEXTVALUE  m_pinName;
+    TTEXTVALUE  m_number;
+    wxString    m_pinType;
+    wxString    m_edgeStyle;
     int         m_pinLength;
+    bool        m_pinNumVisible;
+    bool        m_pinNameVisible;
 
     SCH_PIN();
     ~SCH_PIN();

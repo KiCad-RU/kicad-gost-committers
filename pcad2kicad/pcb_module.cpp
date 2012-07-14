@@ -228,11 +228,13 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
     wxString            propValue;
     long long           i;
     int PCadLayer;
-    long                num;
+    long                num = 0;
 
     i = 0;
     // aStatusBar->SetStatusText( wxT( "Processing LAYER CONTENT OBJECTS " ) );
-    FindNode( aNode, wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &num );
+    if( FindNode( aNode, wxT( "layerNumRef" ) ) )
+        FindNode( aNode, wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &num );
+
     PCadLayer   = (int) num;
     lNode       = aNode->GetChildren();
 

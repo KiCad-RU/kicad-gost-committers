@@ -57,7 +57,7 @@ void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
 {
     wxXmlNode*  lNode;
     wxString    propValue;
-    double      r;
+    double      r = 0.0;
 
     m_objType   = wxT("arc");
     m_partNum   = aSymbolIndex;
@@ -105,18 +105,24 @@ void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
                          &m_positionX, &m_positionY, aActualConversion );
 
         lNode = FindNode( aNode, wxT( "radius" ) );
-
         if( lNode )
-            m_radius = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
+            r = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
 
-        r = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
-        m_startAngle = StrToInt1Units(
-            FindNode( aNode, wxT( "startAngle" ) )->GetNodeContent() );
+        m_radius = r;
+
+        lNode = FindNode( aNode, wxT( "startAngle" ) );
+        if( lNode )
+            m_startAngle = StrToInt1Units( lNode->GetNodeContent() );
+
         m_startX =
             KiROUND( m_positionX + r * sin( (m_startAngle - 900.0) * M_PI / 1800.0 ) );
-        m_startY        = KiROUND( m_positionY - r * cos( (m_startAngle - 900) * M_PI / 1800.0 ) );
-        m_sweepAngle    = StrToInt1Units(
-            FindNode( aNode, wxT( "sweepAngle" ) )->GetNodeContent() );
+        m_startY        = KiROUND( m_positionY -
+                                   r * cos( (m_startAngle - 900) * M_PI / 1800.0 ) );
+
+        lNode = FindNode( aNode, wxT( "sweepAngle" ) );
+        if( lNode )
+            m_sweepAngle    = StrToInt1Units( lNode->GetNodeContent() );
+
         m_toX = KiROUND( m_positionX +
                          r * sin( (m_startAngle + m_sweepAngle - 900.0) * M_PI / 1800.0 ) );
         m_toY = KiROUND( m_positionY -

@@ -57,13 +57,14 @@ void PCB_ARC::Parse( wxXmlNode* aNode,
                      wxString   aActualConversion )
 {
     wxXmlNode*  lNode;
-    double      r, a;
+    double      r = 0.0, a = 0.0;
     int         endPointX, endPointY;
 
     m_PCadLayer     = aLayer;
     m_KiCadLayer    = GetKiCadLayer();
-    SetWidth( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
-              aDefaultMeasurementUnit, &m_width, aActualConversion );
+    if( FindNode( aNode, wxT( "width" ) ) )
+        SetWidth( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
+                  aDefaultMeasurementUnit, &m_width, aActualConversion );
 
     if( aNode->GetName() == wxT( "triplePointArc" ) )
     {
@@ -105,13 +106,19 @@ void PCB_ARC::Parse( wxXmlNode* aNode,
                          &m_positionX, &m_positionY, aActualConversion );
 
         lNode   = FindNode( aNode, wxT( "radius" ) );
-        r       = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
-        a       = StrToInt1Units( FindNode( aNode,
-                                            wxT( "startAngle" ) )->GetNodeContent() );
+        if( lNode)
+            r = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
+
+        lNode   = FindNode( aNode, wxT( "startAngle" ) );
+        if( lNode )
+            a = StrToInt1Units( lNode->GetNodeContent() );
+
         m_startX    = KiROUND( m_positionX + r * sin( (a - 900.0) * M_PI / 1800.0 ) );
         m_startY    = KiROUND( m_positionY - r * cos( (a - 900.0) * M_PI / 1800.0 ) );
-        m_angle     = StrToInt1Units( FindNode( aNode,
-                                                wxT( "sweepAngle" ) )->GetNodeContent() );
+
+        lNode   = FindNode( aNode, wxT( "sweepAngle" ) );
+        if( lNode )
+            m_angle = StrToInt1Units( lNode->GetNodeContent() );
     }
 }
 

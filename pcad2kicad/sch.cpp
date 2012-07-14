@@ -137,16 +137,7 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     iNode = FindNode( xmlDoc.GetRoot(), wxT( "asciiHeader" ) );
 
     if( iNode )
-    {
-        iNode = FindNode( iNode, wxT( "fileUnits" ) );
-
-        if( iNode )
-        {
-            m_defaultMeasurementUnit = iNode->GetNodeContent();
-            m_defaultMeasurementUnit.Trim( true );
-            m_defaultMeasurementUnit.Trim( false );
-        }
-    }
+        m_defaultMeasurementUnit = FindNodeGetContent( iNode, wxT( "fileUnits" ) );
 
     // Allways also library file
     isJunction = false;

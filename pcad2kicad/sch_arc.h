@@ -38,7 +38,13 @@
 class SCH_ARC : public SCH_COMPONENT
 {
 public:
-    int m_startX, m_startY, m_toX, m_toY, m_startAngle, m_sweepAngle, m_radius;
+    int m_startX;
+    int m_startY;
+    int m_toX;
+    int m_toY;
+    int m_startAngle;
+    int m_sweepAngle;
+    int m_radius;
 
     SCH_ARC();
     ~SCH_ARC();

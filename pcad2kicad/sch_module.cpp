@@ -47,6 +47,8 @@ SCH_MODULE::SCH_MODULE()
     m_attachedPattern   = wxEmptyString;
     m_moduleDescription = wxEmptyString;
     m_alias = wxEmptyString;
+    m_pinNumVisibility = 'Y';
+    m_pinNameVisibility = 'N';
 
     for( i = 0; i < 10; i++ )
         m_attachedSymbols[i] = wxEmptyString;
@@ -107,27 +109,26 @@ void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
 
         if( tNode->GetName() == wxT( "attachedSymbol" ) )
         {
-            if( FindNode( tNode, wxT( "altType" ) ) )
-            {
-                str = FindNode( tNode, wxT( "altType" ) )->GetNodeContent();
-                str.Trim( false );
-                str.Trim( true );
+            str = FindNodeGetContent( tNode, wxT( "altType" ) );
 
-                if( str == wxT( "Normal" ) )
-                {
-                    FindNode( tNode,
-                              wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
+            if( str == wxT( "Normal" ) )
+            {
+                if( FindNode( tNode, wxT( "partNum" ) ) )
+                    FindNode( tNode, wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
+
+                if( FindNode( tNode, wxT( "symbolName" ) ) )
                     FindNode( tNode,
                               wxT( "symbolName" ) )->GetAttribute( wxT( "Name" ),
                                                                    &m_attachedSymbols[(int) num] );
-                }
             }
         }
 
         if( tNode->GetName() == wxT( "attachedPattern" ) )
         {
-            FindNode( tNode,
-                      wxT( "patternName" ) )->GetAttribute( wxT( "Name" ), &m_attachedPattern );
+            if( FindNode( tNode, wxT( "patternName" ) ) )
+                FindNode( tNode,
+                          wxT( "patternName" ) )->GetAttribute( wxT( "Name" ),
+                                                                &m_attachedPattern );
         }
 
         if( tNode->GetName() == wxT( "attr" ) )
@@ -159,6 +160,12 @@ void SCH_MODULE::SetPinProperties( wxXmlNode* aNode, int aSymbolIndex,
             schPin = (SCH_PIN*) m_moduleObjects[i];
             schPin->ParsePinProperties( aNode, aSymbolIndex,
                                         aDefaultMeasurementUnit, aActualConversion );
+
+            if( !schPin->m_pinNumVisible )
+                m_pinNumVisibility = 'N';
+
+            if( schPin->m_pinNameVisible )
+                m_pinNameVisibility = 'Y';
         }
     }
 }
@@ -308,8 +315,9 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxT( "#\n" ) );
     aFile->Write( wxT( "# " ) + m_name.text + wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );
-    aFile->Write( "DEF " + ValidateName( m_name.text ) + " U 0 40 Y Y " +
-                  wxString::Format( "%d F N\n", m_numParts ) );
+    aFile->Write( "DEF " + ValidateName( m_name.text ) + " U 0 40 " +
+                  m_pinNumVisibility + ' ' + m_pinNameVisibility +
+                  wxString::Format( " %d F N\n", m_numParts ) );
 
     // REFERENCE
     aFile->Write( wxT( "F0 \"" ) + m_reference.text + "\" " +

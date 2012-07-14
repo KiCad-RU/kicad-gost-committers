@@ -74,6 +74,7 @@ extern void         SetFontProperty( wxXmlNode*     aNode,
 extern void         CorrectTextPosition( TTEXTVALUE* aValue, int aRotation );
 
 extern wxXmlNode*   FindNode( wxXmlNode* aChild, wxString aTag );
+extern wxString     FindNodeGetContent( wxXmlNode* aChild, wxString aTag );
 extern void         InitTTextValue( TTEXTVALUE* aTextValue );
 
 #endif    // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_

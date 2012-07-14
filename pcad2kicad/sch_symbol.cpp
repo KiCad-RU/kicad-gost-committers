@@ -89,15 +89,9 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
                      aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion );
     }
 
-    if( FindNode( aNode, wxT( "isFlipped" ) ) )
-    {
-        str = FindNode( aNode, wxT( "isFlipped" ) )->GetNodeContent();
-        str.Trim( false );
-        str.Trim( true );
-
-        if( str == wxT( "True" ) )
-            m_mirror = 1;
-    }
+    str = FindNodeGetContent( aNode, wxT( "isFlipped" ) );
+    if( str == wxT( "True" ) )
+        m_mirror = 1;
 
     if( FindNode( aNode, wxT( "rotation" ) ) )
         m_rotation = StrToInt1Units(
