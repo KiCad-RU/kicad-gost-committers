@@ -117,7 +117,7 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
         // we convert also library for schematics file
         outFile.SetExt( wxT( "KiCad.lib" ) );
         sch.WriteToFile( outFile.GetFullPath(), 'L' );
-        outFile.SetExt( wxT( "KiCad.sch" ) );
+        outFile.SetExt( wxT( "KiCad" ) );
         sch.WriteToFile( outFile.GetFullPath(), 'S' );
     }
 

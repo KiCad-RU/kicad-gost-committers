@@ -38,7 +38,7 @@
 PCB_TEXT::PCB_TEXT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
                                                                                 aBoard )
 {
-    m_objType = wxT( "text" );
+    m_objType = 'T';
 }
 
 
