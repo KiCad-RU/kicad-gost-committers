@@ -3,8 +3,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007-2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2004 Jean-Pierre Charras, jean-pierre.charras@gipsa-lab.inpg.fr
- * Copyright (C) 1992-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004 Jean-Pierre Charras, jp.charras@wanadoo.fr
+ * Copyright (C) 1992-2012 KiCad Developers, see change_log.txt for contributors.
 
  *
  * This program is free software; you can redistribute it and/or
@@ -106,10 +106,16 @@ typedef LEGACY_PLUGIN::BIU      BIU;
 #define SZ( x )         (sizeof(x)-1)
 
 
+static const char delims[] = " \t\r\n";
+
+
+static bool inline isSpace( int c ) { return strchr( delims, c ) != 0; }
+
+
 //-----<BOARD Load Functions>---------------------------------------------------
 
 /// C string compare test for a specific length of characters.
-#define TESTLINE( x )   ( !strnicmp( line, x, SZ( x ) ) && isspace( line[SZ( x )] ) )
+#define TESTLINE( x )   ( !strnicmp( line, x, SZ( x ) ) && isSpace( line[SZ( x )] ) )
 
 /// C sub-string compare test for a specific length of characters.
 #define TESTSUBSTR( x ) ( !strnicmp( line, x, SZ( x ) ) )
@@ -141,7 +147,6 @@ static inline unsigned ReadLine( LINE_READER* rdr, const char* caller )
 #define READLINE( rdr )     ReadLine( rdr, __FUNCTION__ )
 #endif
 
-static const char delims[] = " \t\r\n";
 
 using namespace std;    // auto_ptr
 
@@ -1101,8 +1106,10 @@ void LEGACY_PLUGIN::loadPAD( MODULE* aModule )
             data = data + ReadDelimitedText( mypadname, data, sizeof(mypadname) ) + 1;  // +1 trailing whitespace
 
             // sscanf( PtLine, " %s %d %d %d %d %d", BufCar, &m_Size.x, &m_Size.y, &m_DeltaSize.x, &m_DeltaSize.y, &m_Orient );
-
+            while( isSpace( *data ) )
+                ++data;
             int     padshape = *data++;
+
             BIU     size_x   = biuParse( data, &data );
             BIU     size_y   = biuParse( data, &data );
             BIU     delta_x  = biuParse( data, &data );
@@ -2198,6 +2205,34 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
             zc->SetCornerRadius( cornerRadius );
         }
 
+        else if( TESTLINE( "ZKeepout" ) )
+        {
+            zc->SetIsKeepout( true );
+            // e.g. "ZKeepout tracks N vias N pads Y"
+           data = strtok( line + SZ( "ZKeepout" ), delims );
+
+            while( data )
+            {
+                if( !strcmp( data, "tracks" ) )
+                {
+                    data = strtok( NULL, delims );
+                    zc->SetDoNotAllowTracks( data && *data == 'N' );
+                }
+                else if( !strcmp( data, "vias" ) )
+                {
+                    data = strtok( NULL, delims );
+                    zc->SetDoNotAllowVias( data && *data == 'N' );
+                }
+                else if( !strcmp( data, "pads" ) )
+                {
+                    data = strtok( NULL, delims );
+                    zc->SetDoNotAllowPads( data && *data == 'N' );
+                }
+
+                data = strtok( NULL, delims );
+            }
+        }
+
         else if( TESTLINE( "ZOptions" ) )
         {
             // e.g. "ZOptions 0 32 F 200 200"
@@ -2232,6 +2267,7 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
             {
             case 'I':   popt = PAD_IN_ZONE;        break;
             case 'T':   popt = THERMAL_PAD;        break;
+            case 'H':   popt = THT_THERMAL;        break;
             case 'X':   popt = PAD_NOT_IN_ZONE;    break;
 
             default:
@@ -3541,6 +3577,7 @@ void LEGACY_PLUGIN::saveZONE_CONTAINER( const ZONE_CONTAINER* me ) const
     default:
     case PAD_IN_ZONE:       padoption = 'I';  break;
     case THERMAL_PAD:       padoption = 'T';  break;
+    case THT_THERMAL:       padoption = 'H';  break; // H is for 'hole' since it reliefs holes only
     case PAD_NOT_IN_ZONE:   padoption = 'X';  break;
     }
 
@@ -3556,6 +3593,14 @@ void LEGACY_PLUGIN::saveZONE_CONTAINER( const ZONE_CONTAINER* me ) const
                     me->IsFilled() ? 'S' : 'F',
                     fmtBIU( me->GetThermalReliefGap() ).c_str(),
                     fmtBIU( me->GetThermalReliefCopperBridge() ).c_str() );
+
+    if( me->GetIsKeepout() )
+    {
+        fprintf( m_fp,  "ZKeepout tracks %c vias %c pads %c\n",
+                        me->GetDoNotAllowTracks() ? 'N' : 'Y',
+                        me->GetDoNotAllowVias() ? 'N' : 'Y',
+                        me->GetDoNotAllowPads() ? 'N' : 'Y' );
+    }
 
     fprintf( m_fp,  "ZSmoothing %d %s\n",
                     me->GetCornerSmoothingType(),

@@ -36,7 +36,8 @@ enum ZoneConnection {
     UNDEFINED_CONNECTION = -1,
     PAD_NOT_IN_ZONE,        ///< Pads are not covered
     THERMAL_PAD,            ///< Use thermal relief for pads
-    PAD_IN_ZONE             ///< pads are covered by copper
+    PAD_IN_ZONE,            ///< pads are covered by copper
+    THT_THERMAL             ///< Thermal relief only for THT pads
 };
 
 class ZONE_CONTAINER;
@@ -66,5 +67,16 @@ ZONE_EDIT_T InvokeNonCopperZonesEditor( PCB_BASE_FRAME* aParent, ZONE_CONTAINER*
  * @return ZONE_EDIT_T - tells if user aborted, changed only one zone, or all of them.
  */
 ZONE_EDIT_T InvokeCopperZonesEditor( PCB_BASE_FRAME* aCaller, ZONE_SETTINGS* aSettings );
+
+/**
+ * Function InvokeKeepoutAreaEditor
+ * invokes up a modal dialog window for copper zone editing.
+ *
+ * @param aCaller is the PCB_BASE_FRAME calling parent window for the modal dialog,
+ *                and it gives access to the BOARD through PCB_BASE_FRAME::GetBoard().
+ * @param aSettings points to the ZONE_SETTINGS to edit.
+ * @return ZONE_EDIT_T - tells if user aborted, changed only one zone, or all of them.
+ */
+ZONE_EDIT_T InvokeKeepoutAreaEditor( PCB_BASE_FRAME* aCaller, ZONE_SETTINGS* aSettings );
 
 #endif  // ZONES_H_
