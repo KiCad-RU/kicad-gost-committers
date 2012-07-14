@@ -50,7 +50,7 @@ void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
     wxXmlNode*  lNode;
     wxString    propValue, str;
 
-    m_objType   = 'L';
+    m_objType   = wxT( "line" );
     m_partNum   = aSymbolIndex;
 
     if( aNode->GetName() == wxT( "line" ) )
@@ -129,6 +129,15 @@ SCH_LINE::~SCH_LINE()
 {
 }
 
+void SCH_LINE::SetPosOffset( int aX_offs, int aY_offs )
+{
+    SCH_COMPONENT::SetPosOffset( aX_offs, aY_offs );
+
+    m_toX   += aX_offs;
+    m_toY   += aY_offs;
+    m_labelText.textPositionX += aX_offs;
+    m_labelText.textPositionY += aY_offs;
+}
 
 void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
 {

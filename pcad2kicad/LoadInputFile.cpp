@@ -181,15 +181,12 @@ void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar, wxArrayString* 
 
     s = GetLine( &f, true );
 
+    if( aStatusBar )
+        aStatusBar->SetStatusText( wxT( "Processing input file..." ) );
+
     while( s != wxT( "END OF INPUT FILE" ) )
     {
         fileLine++;
-
-        if( aStatusBar )
-            aStatusBar->SetStatusText( wxT(
-                                           "Processing input file - actual line : " ) +
-                                       wxString::Format( "%d", fileLine ) + wxT( "/" )
-                                       + wxString::Format( "%d", (int) lines.GetCount() ) + s );
 
         s.Trim( false );
 
@@ -234,13 +231,7 @@ void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar, wxArrayString* 
 
     // reverse order of lines
     for( i = lines.GetCount() - 1; i>=0; i-- )
-    {
-        if( aStatusBar )
-            aStatusBar->SetStatusText( wxT( "Optimizing  : " ) +
-                                       wxString::Format( "%d", (int) lines.GetCount() ) );
-
         aLines->Add( lines[i] );
-    }
 
     f.Close();
 }

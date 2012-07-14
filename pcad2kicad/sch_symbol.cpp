@@ -57,7 +57,7 @@ void SCH_SYMBOL::Parse( wxXmlNode* aNode,
     long        num;
     bool        t, r;
 
-    m_objType = 'S';
+    m_objType = wxT( "symbol" );
 
     if( FindNode( aNode, wxT( "partNum" ) ) )
     {

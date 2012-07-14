@@ -75,7 +75,7 @@ void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
                                                             &propValue );
     propValue.Trim( false );
     m_name.text = propValue;
-    m_objType   = 'M';
+    m_objType   = wxT( "module" );
     aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
 
     lNode = FindNode( aNode, wxT( "compHeader" ) );
@@ -154,7 +154,7 @@ void SCH_MODULE::SetPinProperties( wxXmlNode* aNode, int aSymbolIndex,
 
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( (m_moduleObjects[i])->m_objType == 'P' )
+        if( (m_moduleObjects[i])->m_objType == wxT( "pin" ) )
         {
             schPin = (SCH_PIN*) m_moduleObjects[i];
             schPin->ParsePinProperties( aNode, aSymbolIndex,
@@ -350,7 +350,7 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
         // LINES=POLYGONS
         for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
         {
-            if( m_moduleObjects[i]->m_objType == 'L' )
+            if( m_moduleObjects[i]->m_objType == wxT( "line" ) )
                 if( ( (SCH_LINE*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
 
@@ -360,7 +360,7 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
         // ARCS
         for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
         {
-            if( m_moduleObjects[i]->m_objType == 'A' )
+            if( m_moduleObjects[i]->m_objType == wxT( "arc" ) )
                 if( ( (SCH_ARC*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
 
@@ -370,7 +370,7 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
         // PINS
         for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
         {
-            if( m_moduleObjects[i]->m_objType == 'P' )
+            if( m_moduleObjects[i]->m_objType == wxT( "pin" ) )
                 if( ( (SCH_PIN*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
 

@@ -37,15 +37,19 @@
 class SCH_COMPONENT : public wxObject
 {
 public:
-    char    m_objType;
-    int     m_positionX, m_positionY, m_rotation, m_mirror;
-    int     m_partNum;
-    int     m_width;
-    int     m_isVisible;
+    wxString m_objType;
+    int      m_positionX;
+    int      m_positionY;
+    int      m_rotation;
+    int      m_mirror;
+    int      m_partNum;
+    int      m_width;
+    int      m_isVisible;
 
     SCH_COMPONENT();
     ~SCH_COMPONENT();
 
+    virtual void SetPosOffset( int aX_offs, int aY_offs );
     virtual void WriteToFile( wxFile* aFile, char aFileType );
 };
 

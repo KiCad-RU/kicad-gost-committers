@@ -49,6 +49,7 @@ public:
     virtual void    Parse( wxXmlNode* aNode, int aSymbolIndex,
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
+    virtual void    SetPosOffset( int aX_offs, int aY_offs );
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    WriteLabelToFile( wxFile* aFile, char aFileType );
 };

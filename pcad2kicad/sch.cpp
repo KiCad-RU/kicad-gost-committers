@@ -40,6 +40,7 @@
 #include <sch_bus.h>
 #include <sch_module.h>
 #include <sch_pin.h>
+#include <sch_port.h>
 #include <sch_symbol.h>
 
 SCH::SCH()
@@ -66,7 +67,7 @@ void SCH::DoAlias( wxString aAlias )
 
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
-        if( (m_schComponents[i])->m_objType == 'M' )
+        if( (m_schComponents[i])->m_objType == wxT( "module" ) )
         {
             n   = aAlias;
             a   = GetWord( &n );
@@ -212,7 +213,7 @@ SCH_JUNCTION* SCH::CheckJunction( SCH_LINE* aSchLine, int aIndex )
 
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
-        if( (m_schComponents[i])->m_objType == 'L'
+        if( (m_schComponents[i])->m_objType == wxT( "line" )
             && aIndex != i )    // not  for itself
         {
             if( aSchLine->m_net == ( (SCH_LINE*) m_schComponents[i] )->m_net )
@@ -242,7 +243,7 @@ SCH_JUNCTION* SCH::CheckJunction( SCH_LINE* aSchLine, int aIndex )
 
                         for( j = 0; j < (int) m_schComponents.GetCount(); j++ )
                         {
-                            if( (m_schComponents[j])->m_objType == 'L'
+                            if( (m_schComponents[j])->m_objType == wxT( "line" )
                                 && p )    // not  for itself
                             {
                                 if( ( (SCH_LINE*) m_schComponents[j] )->m_net !=
@@ -276,6 +277,7 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     SCH_COMPONENT*  schComp;
     SCH_JUNCTION*   schJunction;
     SCH_LINE*       line;
+    SCH_PORT*       port;
     SCH_BUS*        bus;
     SCH_JUNCTION*   junction;
     SCH_SYMBOL*     symbol;
@@ -333,8 +335,12 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
                     m_schComponents.Add( line );
                 }
 
-
-
+            if( aNode->GetName() == wxT( "port" ) )
+            {
+                port = new SCH_PORT;
+                port->Parse( aNode, m_defaultMeasurementUnit, aActualConversion );
+                m_schComponents.Add( port );
+            }
 
             if( aNode->GetName() == wxT( "bus" ) )
             {
@@ -377,16 +383,7 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
         {
             schComp = m_schComponents[i];
-            schComp->m_positionY    -= m_sizeY;
-            schComp->m_positionX    -= m_sizeX;
-
-            if( schComp->m_objType == 'L' )
-            {
-                ( (SCH_LINE*) schComp )->m_toY -= m_sizeY;
-                ( (SCH_LINE*) schComp )->m_labelText.textPositionY -= m_sizeY;
-                ( (SCH_LINE*) schComp )->m_toX -= m_sizeX;
-                ( (SCH_LINE*) schComp )->m_labelText.textPositionX -= m_sizeX;
-            }
+            schComp->SetPosOffset( -m_sizeX, -m_sizeY );
         }
 
         // final sheet settings
@@ -427,7 +424,7 @@ YOU HAVE TO CHECK/CORRECT Juntions in converted design, placement is only approx
                 {
                     schComp = m_schComponents[i];
 
-                    if( schComp->m_objType == 'L' )
+                    if( schComp->m_objType == wxT( "line" ) )
                     {
                         schJunction = CheckJunction( (SCH_LINE*) schComp, i );
 
@@ -455,7 +452,7 @@ void SCH::WriteToFile( wxString aFileName, char aFileType )
 
         for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
         {
-            if( m_schComponents[i]->m_objType == 'M' )
+            if( m_schComponents[i]->m_objType == wxT( "module" ) )
                 m_schComponents[i]->WriteToFile( &f, aFileType );
         }
 
@@ -469,7 +466,7 @@ void SCH::WriteToFile( wxString aFileName, char aFileType )
 
         for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
         {
-            if( m_schComponents[i]->m_objType == 'M' )
+            if( m_schComponents[i]->m_objType == wxT(" module ") )
             {
                 f.Write( wxT( "#\n" ) );
                 f.Write( wxT( "$CMP " ) +
@@ -505,28 +502,35 @@ void SCH::WriteToFile( wxString aFileName, char aFileType )
         // Junctions
         for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
         {
-            if( m_schComponents[i]->m_objType == 'J' )
+            if( m_schComponents[i]->m_objType == wxT( "junction" ) )
                 m_schComponents[i]->WriteToFile( &f, aFileType );
         }
 
         // Lines
         for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
         {
-            if( m_schComponents[i]->m_objType == 'L' )
+            if( m_schComponents[i]->m_objType == wxT( "line" ) )
+                m_schComponents[i]->WriteToFile( &f, aFileType );
+        }
+
+        // Ports
+        for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
+        {
+            if( m_schComponents[i]->m_objType == wxT( "port" ) )
                 m_schComponents[i]->WriteToFile( &f, aFileType );
         }
 
         // Labels of lines - line and bus names
         for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
         {
-            if( m_schComponents[i]->m_objType == 'L' )
+            if( m_schComponents[i]->m_objType == wxT( "line" ) )
                 ( (SCH_LINE*) m_schComponents[i] )->WriteLabelToFile( &f, aFileType );
         }
 
         // Symbols
         for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
         {
-            if( m_schComponents[i]->m_objType == 'S' )
+            if( m_schComponents[i]->m_objType == wxT( "symbol" ) )
             {
                 f.Write( wxT( "$Comp\n" ) );
                 m_schComponents[i]->WriteToFile( &f, aFileType );

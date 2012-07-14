@@ -1,7 +1,6 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
  * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
@@ -24,37 +23,29 @@
  */
 
 /**
- * @file sch_component.cpp
+ * @file sch_port.h
  */
 
+#ifndef SCH_PORT_H_
+#define SCH_PORT_H_
+
 #include <wx/wx.h>
-#include <wx/config.h>
 
 #include <sch_component.h>
+#include <XMLtoObjectCommonProceduresUnit.h>
 
-SCH_COMPONENT::SCH_COMPONENT()
+class SCH_PORT : public SCH_COMPONENT
 {
-    m_objType   = wxT("?");
-    m_positionX = 0;
-    m_positionY = 0;
-    m_rotation  = 0;
-    m_mirror    = 0;
-    m_partNum   = 0;
-    m_width     = 0;
-    m_isVisible = 0;
-}
+public:
+    TTEXTVALUE  m_labelText;
 
+    SCH_PORT();
+    ~SCH_PORT();
 
-SCH_COMPONENT::~SCH_COMPONENT()
-{
-}
+    virtual void    Parse( wxXmlNode* aNode,
+                           wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
-void SCH_COMPONENT::SetPosOffset( int aX_offs, int aY_offs )
-{
-    m_positionX += aX_offs;
-    m_positionY += aY_offs;
-}
+    virtual void    WriteToFile( wxFile* aFile, char aFileType );
+};
 
-void SCH_COMPONENT::WriteToFile( wxFile* aFile, char aFileType )
-{
-}
+#endif    // SCH_PORT_H_

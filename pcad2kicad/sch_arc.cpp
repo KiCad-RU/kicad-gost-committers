@@ -59,7 +59,7 @@ void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
     wxString    propValue;
     double      r;
 
-    m_objType   = 'A';
+    m_objType   = wxT("arc");
     m_partNum   = aSymbolIndex;
 
     if( FindNode( aNode, wxT( "width" ) ) )

@@ -56,7 +56,7 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
     wxString    str, propValue;
     long        num;
 
-    m_objType = 'P';
+    m_objType = wxT( "pin" );
 // SCHLine.PartNum:=SymbolIndex;
     aNode->GetAttribute( wxT( "Name" ), &m_number.text );
     m_pinNum.text   = '0';  // Default

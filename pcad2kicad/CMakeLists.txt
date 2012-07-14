@@ -35,6 +35,7 @@ set(PCAD2KICAD_SRCS
     sch_line.cpp
     sch_module.cpp
     sch_pin.cpp
+    sch_port.cpp
     sch_symbol.cpp
     TextToXMLUnit.cpp
     XMLtoObjectCommonProceduresUnit.cpp

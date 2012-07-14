@@ -1,7 +1,6 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
  * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
@@ -24,7 +23,7 @@
  */
 
 /**
- * @file sch_junction.cpp
+ * @file sch_port.cpp
  */
 
 #include <wx/wx.h>
@@ -32,48 +31,60 @@
 
 #include <common.h>
 
-#include <sch_junction.h>
+#include <sch_port.h>
 
-SCH_JUNCTION::SCH_JUNCTION( int aX, int aY, wxString aNet ) : m_net( aNet )
+SCH_PORT::SCH_PORT()
 {
-    m_positionX = aX;
-    m_positionY = aY;
-    m_objType   = wxT( "junction" );
+    InitTTextValue( &m_labelText );
 }
 
 
-SCH_JUNCTION::~SCH_JUNCTION()
+void SCH_PORT::Parse( wxXmlNode* aNode,
+                      wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-}
+    wxXmlNode*  lNode;
+    wxString    propValue;
 
+    m_objType   = wxT( "port" );
 
-void SCH_JUNCTION::Parse( wxXmlNode*    aNode,
-                          wxString      aDefaultMeasurementUnit,
-                          wxString      aActualConversion )
-{
-    wxString propValue;
+    lNode = FindNode( aNode, wxT( "pt" ) );
 
-    m_net = wxEmptyString;
-
-    if( FindNode( aNode, wxT( "pt" ) ) )
+    if( lNode )
     {
-        SetPosition( FindNode( aNode, wxT( "pt" ) )->GetNodeContent(),
-                     aDefaultMeasurementUnit, &m_positionX, &m_positionY, aActualConversion );
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_positionX, &m_positionY, aActualConversion );
     }
 
     if( FindNode( aNode, wxT( "netNameRef" ) ) )
     {
         FindNode( aNode,
                   wxT( "netNameRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
-
-        propValue.Trim( true );
         propValue.Trim( false );
-        m_net = propValue;
+        propValue.Trim( true );
+        m_labelText.text = propValue;
     }
+
+    if( FindNode( lNode, wxT( "rotation" ) ) )
+        m_labelText.textRotation = StrToInt1Units(
+            FindNode( lNode, wxT( "rotation" ) )->GetNodeContent() );
 }
 
 
-void SCH_JUNCTION::WriteToFile( wxFile* aFile, char aFileType )
+SCH_PORT::~SCH_PORT()
 {
-    aFile->Write( wxString::Format( "Connection ~ %d %d\n", m_positionX, m_positionY ) );
+}
+
+void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
+{
+    char lr;
+
+    if( m_labelText.textRotation == 0 )
+        lr = '0';
+    else
+        lr = '1';
+
+    aFile->Write( wxString::Format( "Text Label %d %d",
+                                    m_positionX, m_positionY ) +
+                  ' ' + lr + ' ' + wxT( " 60 ~\n" ) );
+    aFile->Write( m_labelText.text + wxT( "\n" ) );
 }
