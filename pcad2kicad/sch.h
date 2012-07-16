@@ -53,6 +53,7 @@ public:
 
 private:
     void            DoAlias( wxString aAlias );
+    bool            DoesModuleAlreadyExist( wxString aOriginalName );
     void            DoLibrary( wxXmlDocument*   aXmlDoc,
                                wxStatusBar*     aStatusBar,
                                wxString         aActualConversion );

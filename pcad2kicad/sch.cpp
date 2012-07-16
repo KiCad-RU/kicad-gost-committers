@@ -77,6 +77,18 @@ void SCH::DoAlias( wxString aAlias )
     }
 }
 
+bool SCH::DoesModuleAlreadyExist( wxString aOriginalName )
+{
+    int i;
+
+    for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
+    {
+        if( ( (SCH_MODULE* )m_schComponents[i] )->m_name.text == aOriginalName )
+            return true;
+    }
+
+    return false;
+}
 
 // FULL PROCESS OF LIBRARY CONVERSION
 void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString aActualConversion )
@@ -95,9 +107,16 @@ void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString a
         {
             if( aNode->GetName() == wxT( "compDef" ) )
             {
-                module = new SCH_MODULE;
-                module->Parse( aNode, aStatusBar, m_defaultMeasurementUnit, aActualConversion );
-                m_schComponents.Add( module );
+                FindNode( aNode, wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
+                                                            &propValue );
+                propValue.Trim( false );
+
+                if( !DoesModuleAlreadyExist( propValue ) )
+                {
+                    module = new SCH_MODULE;
+                    module->Parse( aNode, aStatusBar, m_defaultMeasurementUnit, aActualConversion );
+                    m_schComponents.Add( module );
+                }
             }
 
             aNode = aNode->GetNext();
