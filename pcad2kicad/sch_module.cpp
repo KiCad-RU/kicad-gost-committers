@@ -36,6 +36,7 @@
 #include <sch_arc.h>
 #include <sch_line.h>
 #include <sch_pin.h>
+#include <sch_text.h>
 
 SCH_MODULE::SCH_MODULE()
 {
@@ -180,6 +181,7 @@ void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
     wxString    propValue, propValue2;
     SCH_LINE*   line;
     SCH_ARC*    arc;
+    SCH_TEXT*   text;
 
     tNode = aNode;
 
@@ -290,6 +292,21 @@ void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
 
                     tNode = tNode->GetNext();
                 }
+
+                tNode = FindNode( ttNode, wxT( "text" ) );
+
+                while( tNode )
+                {
+                    if( tNode->GetName() == wxT( "text" ) )
+                    {
+                        text = new SCH_TEXT;
+                        text->Parse( tNode, aSymbolIndex,
+                                    aDefaultMeasurementUnit, aActualConversion );
+                        m_moduleObjects.Add( text );
+                    }
+
+                    tNode = tNode->GetNext();
+                }
             }
 
             if( tNode )
@@ -365,6 +382,16 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
         {
             if( m_moduleObjects[i]->m_objType == wxT( "arc" ) )
                 if( ( (SCH_ARC*) m_moduleObjects[i] )->m_partNum == symbolIndex )
+                    m_moduleObjects[i]->WriteToFile( aFile, aFileType );
+
+
+        }
+
+        // TEXTS
+        for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+        {
+            if( m_moduleObjects[i]->m_objType == wxT( "text" ) )
+                if( ( (SCH_TEXT*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
 
 

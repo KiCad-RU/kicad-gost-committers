@@ -38,6 +38,7 @@ set(PCAD2KICAD_SRCS
     sch_port.cpp
     sch_sheet.cpp
     sch_symbol.cpp
+    sch_text.cpp
     TextToXMLUnit.cpp
     XMLtoObjectCommonProceduresUnit.cpp
     dialogs/pcad2kicad_frame_base.cpp
