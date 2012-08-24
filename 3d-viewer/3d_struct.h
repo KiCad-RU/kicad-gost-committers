@@ -41,34 +41,35 @@
 
 
 class S3D_MASTER;
-class Struct3D_Shape;
+class STRUCT_3D_SHAPE;
 
-class S3D_Color     /* 3D color (R, G, G) 3 floats range 0 to 1.0*/
-{
-public:
-    double m_Red, m_Green, m_Blue;
-public: S3D_Color()
-    {
-        m_Red = m_Green = m_Blue = 0;
-    }
-};
-
-class S3D_Vertex    /*  3D coordinate (3 float numbers: x,y,z coordinates)*/
+/*  S3D_VERTEX manages a 3D coordinate (3 float numbers: x,y,z coordinates)*/
+class S3D_VERTEX
 {
 public:
     double x, y, z;
 
 public:
-    S3D_Vertex();
+    S3D_VERTEX()
+    {
+        x = y = z = 0.0;
+    }
+
+    S3D_VERTEX( double px, double py, double pz)
+    {
+        x = px;
+        y = py;
+        z = pz;
+    }
 };
 
 class S3D_MATERIAL : public EDA_ITEM       /* openGL "material" data*/
 {
 public:
     wxString   m_Name;
-    S3D_Vertex m_DiffuseColor;
-    S3D_Vertex m_EmissiveColor;
-    S3D_Vertex m_SpecularColor;
+    S3D_VERTEX m_DiffuseColor;
+    S3D_VERTEX m_EmissiveColor;
+    S3D_VERTEX m_SpecularColor;
     float      m_AmbientIntensity;
     float      m_Transparency;
     float      m_Shininess;
@@ -92,10 +93,10 @@ class S3D_MASTER : public EDA_ITEM
 {
 public:
     wxString        m_Shape3DName; /* 3D shape name in 3D library */
-    S3D_Vertex      m_MatScale;
-    S3D_Vertex      m_MatRotation;
-    S3D_Vertex      m_MatPosition;
-    Struct3D_Shape* m_3D_Drawings;
+    S3D_VERTEX      m_MatScale;
+    S3D_VERTEX      m_MatRotation;
+    S3D_VERTEX      m_MatPosition;
+    STRUCT_3D_SHAPE* m_3D_Drawings;
     S3D_MATERIAL*   m_Materials;
 
 public:
@@ -134,7 +135,7 @@ public:
     int  ReadShape( FILE* file, int* LineNum );
     int  ReadAppearance( FILE* file, int* LineNum );
     int  ReadGeometry( FILE* file, int* LineNum );
-    void Set_Object_Coords( std::vector< S3D_Vertex >& aVertices );
+    void Set_Object_Coords( std::vector< S3D_VERTEX >& aVertices );
 
 #if defined(DEBUG)
     void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
@@ -143,19 +144,19 @@ public:
 
 
 /* Describes a complex 3D */
-class Struct3D_Shape : public EDA_ITEM
+class STRUCT_3D_SHAPE : public EDA_ITEM
 {
 public:
-    S3D_Vertex* m_3D_Coord;
+    S3D_VERTEX* m_3D_Coord;
     int*        m_3D_CoordIndex;
     int         m_3D_Points;
 
 public:
-    Struct3D_Shape( EDA_ITEM* aParent );
-    ~Struct3D_Shape();
+    STRUCT_3D_SHAPE( EDA_ITEM* aParent );
+    ~STRUCT_3D_SHAPE();
 
-    Struct3D_Shape* Next() const { return (Struct3D_Shape*) Pnext; }
-    Struct3D_Shape* Back() const { return (Struct3D_Shape*) Pback; }
+    STRUCT_3D_SHAPE* Next() const { return (STRUCT_3D_SHAPE*) Pnext; }
+    STRUCT_3D_SHAPE* Back() const { return (STRUCT_3D_SHAPE*) Pback; }
 
     int ReadData( FILE* file, int* LineNum );
 
@@ -166,33 +167,27 @@ public:
 
 
 /**
- * Class WinEDA_VertexCtrl
- * displays a vertex for editing.  A vertex is a triplet of values in INCHES, MM,
- * or without units.
- *
- * Internal_units are the internal units by inch which is  1000 for Eeschema and
- * 10000 for Pcbnew
+ * Class VERTEX_VALUE_CTRL
+ * displays a vertex for editing.  A vertex is a triplet of values
+ * Values can be scale, rotation, offset...
  */
-class WinEDA_VertexCtrl
+class VERTEX_VALUE_CTRL
 {
 private:
-    int           m_Units;
-    int           m_Internal_Unit;
     wxTextCtrl*   m_XValueCtrl, * m_YValueCtrl, * m_ZValueCtrl;
     wxStaticText* m_Text;
 
 public:
-    WinEDA_VertexCtrl( wxWindow* parent, const wxString& title,
-                       wxBoxSizer* BoxSizer, EDA_UNITS_T units, int internal_unit );
+    VERTEX_VALUE_CTRL( wxWindow* parent, const wxString& title, wxBoxSizer* BoxSizer );
 
-    ~WinEDA_VertexCtrl();
+    ~VERTEX_VALUE_CTRL();
 
     /**
      * Function GetValue
      * @return the vertex in internal units.
      */
-    S3D_Vertex GetValue();
-    void       SetValue( S3D_Vertex vertex );
+    S3D_VERTEX GetValue();
+    void       SetValue( S3D_VERTEX vertex );
     void       Enable( bool enbl );
     void       SetToolTip( const wxString& text );
 };

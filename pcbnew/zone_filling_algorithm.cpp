@@ -89,52 +89,46 @@ int ZONE_CONTAINER::BuildFilledPolysListData( BOARD* aPcb, std::vector <CPolyPt>
         break;
     }
 
-    m_smoothedPoly->MakeKboolPoly( -1, -1, NULL, true );
-    int count = 0;
-    while( m_smoothedPoly->GetKboolEngine()->StartPolygonGet() )
-    {
-        CPolyPt corner( 0, 0, false );
-        while( m_smoothedPoly->GetKboolEngine()->PolygonHasMorePoints() )
-        {
-            corner.x = (int) m_smoothedPoly->GetKboolEngine()->GetPolygonXPoint();
-            corner.y = (int) m_smoothedPoly->GetKboolEngine()->GetPolygonYPoint();
-            corner.end_contour = false;
-            if( aCornerBuffer )
-                aCornerBuffer->push_back( corner );
-            else
-                m_FilledPolysList.push_back( corner );
-            count++;
-        }
-
-        corner.end_contour = true;
-        if( aCornerBuffer )
-        {
-            aCornerBuffer->pop_back();
-            aCornerBuffer->push_back( corner );
-        }
-        else
-        {
-            m_FilledPolysList.pop_back();
-            m_FilledPolysList.push_back( corner );
-        }
-        m_smoothedPoly->GetKboolEngine()->EndPolygonGet();
-    }
-
-    m_smoothedPoly->FreeKboolEngine();
+    if( aCornerBuffer )
+        ConvertPolysListWithHolesToOnePolygon( m_smoothedPoly->m_CornersList,
+                                               *aCornerBuffer );
+    else
+        ConvertPolysListWithHolesToOnePolygon( m_smoothedPoly->m_CornersList,
+                                               m_FilledPolysList );
 
     /* For copper layers, we now must add holes in the Polygon list.
      * holes are pads and tracks with their clearance area
+     * for non copper layers just recalculate the m_FilledPolysList
+     * with m_ZoneMinThickness taken in account
      */
     if( ! aCornerBuffer )
     {
         if( IsOnCopperLayer() )
             AddClearanceAreasPolygonsToPolysList( aPcb );
+        else
+        {
+            // This KI_POLYGON_SET is the area(s) to fill, with m_ZoneMinThickness/2
+            KI_POLYGON_SET polyset_zone_solid_areas;
+            int         margin = m_ZoneMinThickness / 2;
 
+            /* First, creates the main polygon (i.e. the filled area using only one outline)
+             * to reserve a m_ZoneMinThickness/2 margin around the outlines and holes
+             * this margin is the room to redraw outlines with segments having a width set to
+             * m_ZoneMinThickness
+             * so m_ZoneMinThickness is the min thickness of the filled zones areas
+             * the polygon is stored in polyset_zone_solid_areas
+             */
+            CopyPolygonsFromFilledPolysListToKiPolygonList( polyset_zone_solid_areas );
+            polyset_zone_solid_areas -= margin;
+            // put solid area in m_FilledPolysList:
+            m_FilledPolysList.clear();
+            CopyPolygonsFromKiPolygonListToFilledPolysList( polyset_zone_solid_areas );
+        }
         if ( m_FillMode )   // if fill mode uses segments, create them:
             Fill_Zone_Areas_With_Segments( );
     }
 
-    return count;
+    return 1;
 }
 
 // Sort function to build filled zones
@@ -162,9 +156,10 @@ int ZONE_CONTAINER::Fill_Zone_Areas_With_Segments()
     int      istart, iend;      // index od the starting and the endif corner of one filled area in m_FilledPolysList
 
     int margin = m_ZoneMinThickness * 2 / 10;
-    margin = max (2, margin);
+    int minwidth = Mils2iu( 2 );
+    margin = std::max ( minwidth, margin );
     int step = m_ZoneMinThickness - margin;
-    step = max(step, 2);
+    step = std::max( step, minwidth );
 
     // Read all filled areas in m_FilledPolysList
     m_FillSegmList.clear();
@@ -188,7 +183,7 @@ int ZONE_CONTAINER::Fill_Zone_Areas_With_Segments()
                 x_coordinates.clear();
                 for( ics = istart, ice = iend; ics <= iend; ice = ics, ics++ )
                 {
-                    if ( m_FilledPolysList[ice].utility )
+                    if ( m_FilledPolysList[ice].m_utility )
                         continue;
                     int seg_startX = m_FilledPolysList[ics].x;
                     int seg_startY = m_FilledPolysList[ics].y;

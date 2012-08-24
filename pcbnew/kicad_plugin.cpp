@@ -523,10 +523,20 @@ void PCB_IO::format( EDGE_MODULE* aModuleDrawing, int aNestLevel ) const
         m_out->Print( aNestLevel, "(fp_poly (pts" );
 
         for( unsigned i = 0;  i < aModuleDrawing->GetPolyPoints().size();  ++i )
-            m_out->Print( 0, " (xy %s)",
-                          FMT_IU( aModuleDrawing->GetPolyPoints()[i] ).c_str() );
+        {
+            int nestLevel = 0;
 
-        m_out->Print( 0, ")\n" );
+            if( i && !(i%4) )   // newline every 4(pts)
+            {
+                nestLevel = aNestLevel + 1;
+                m_out->Print( 0, "\n" );
+            }
+
+            m_out->Print( nestLevel, "%s(xy %s)",
+                          nestLevel ? "" : " ",
+                          FMT_IU( aModuleDrawing->GetPolyPoints()[i] ).c_str() );
+        }
+        m_out->Print( 0, ")" );
         break;
 
     case S_CURVE:   // Bezier curve
@@ -1011,10 +1021,10 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
 
     if( aZone->GetIsKeepout() )
     {
-        m_out->Print( aNestLevel+1, "(keepout (tracks %s) (vias %s) (pads %s))\n",
+        m_out->Print( aNestLevel+1, "(keepout (tracks %s) (vias %s) (copperpour %s))\n",
                       aZone->GetDoNotAllowTracks() ? "not_allowed" : "allowed",
                       aZone->GetDoNotAllowVias() ? "not_allowed" : "allowed",
-                      aZone->GetDoNotAllowPads() ? "not_allowed" : "allowed" );
+                      aZone->GetDoNotAllowCopperPour() ? "not_allowed" : "allowed" );
     }
 
     m_out->Print( aNestLevel+1, "(fill" );
@@ -1059,7 +1069,7 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
 
     m_out->Print( 0, ")\n" );
 
-    const std::vector< CPolyPt >& cv = aZone->m_Poly->corner;
+    const std::vector< CPolyPt >& cv = aZone->m_Poly->m_CornersList;
     int newLine = 0;
 
     if( cv.size() )

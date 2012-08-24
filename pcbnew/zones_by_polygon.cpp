@@ -44,8 +44,6 @@
 #include <zones_functions_for_undo_redo.h>
 #include <drc_stuff.h>
 
-bool s_Verbose = false;       // false if zone outline diags must not be shown
-
 // Outline creation:
 static void Abort_Zone_Create_Outline( EDA_DRAW_PANEL* Panel, wxDC* DC );
 static void Show_New_Edge_While_Move_Mouse( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
@@ -65,7 +63,7 @@ static bool            s_AddCutoutToCurrentZone;    // if true, the next outline
 static ZONE_CONTAINER* s_CurrentZone;               // if != NULL, these ZONE_CONTAINER params will be used for the next zone
 static wxPoint         s_CursorLastPosition;        // in move zone outline, last cursor position. Used to calculate the move vector
 static PICKED_ITEMS_LIST s_PickedList;              // a picked list to save zones for undo/redo command
-static PICKED_ITEMS_LIST _AuxiliaryList;            // a picked list to store zones that are deleted or added when combined
+static PICKED_ITEMS_LIST s_AuxiliaryList;           // a picked list to store zones that are deleted or added when combined
 
 
 void PCB_EDIT_FRAME::Add_Similar_Zone( wxDC* DC, ZONE_CONTAINER* aZone )
@@ -130,7 +128,7 @@ void PCB_EDIT_FRAME::duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone )
         zoneSettings.ExportSetting( *newZone );
         newZone->m_Poly->Hatch();
 
-        _AuxiliaryList.ClearListAndDeleteItems();
+        s_AuxiliaryList.ClearListAndDeleteItems();
         s_PickedList.ClearListAndDeleteItems();
         SaveCopyOfZones( s_PickedList, GetBoard(), newZone->GetNet(), newZone->GetLayer() );
         GetBoard()->Add( newZone );
@@ -141,7 +139,7 @@ void PCB_EDIT_FRAME::duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone )
         GetScreen()->SetCurItem( NULL );       // This outline may be deleted when merging outlines
 
         // Combine zones if possible
-        GetBoard()->AreaPolygonModified( &_AuxiliaryList, newZone, true, s_Verbose );
+        GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, newZone );
 
         // Redraw zones
         GetBoard()->RedrawAreasOutlines( m_canvas, aDC, GR_OR, newZone->GetLayer() );
@@ -153,7 +151,7 @@ void PCB_EDIT_FRAME::duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone )
             DisplayError( this, _( "Duplicate Zone: The outline of the duplicated zone fails DRC check!" ) );
         }
 
-        UpdateCopyOfZonesList( s_PickedList, _AuxiliaryList, GetBoard() );
+        UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
         SaveCopyInUndoList( s_PickedList, UR_UNSPECIFIED );
         s_PickedList.ClearItemsList();
 
@@ -247,7 +245,7 @@ void PCB_EDIT_FRAME::Start_Move_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone,
     if ( IsNewCorner )
         aZone->m_Poly->DeleteCorner( corner_id );
 
-    _AuxiliaryList.ClearListAndDeleteItems();
+    s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList.ClearListAndDeleteItems();
 
     SaveCopyOfZones( s_PickedList, GetBoard(), aZone->GetNet(),
@@ -279,7 +277,7 @@ void PCB_EDIT_FRAME::Start_Move_Zone_Drag_Outline_Edge( wxDC*           DC,
     s_CurrentZone = NULL;
 
     s_PickedList.ClearListAndDeleteItems();
-    _AuxiliaryList.ClearListAndDeleteItems();
+    s_AuxiliaryList.ClearListAndDeleteItems();
     SaveCopyOfZones( s_PickedList, GetBoard(), aZone->GetNet(),
                      aZone->GetLayer() );
 }
@@ -304,7 +302,7 @@ void PCB_EDIT_FRAME::Start_Move_Zone_Outlines( wxDC* DC, ZONE_CONTAINER* aZone )
     }
 
     s_PickedList.ClearListAndDeleteItems();
-    _AuxiliaryList.ClearListAndDeleteItems();
+    s_AuxiliaryList.ClearListAndDeleteItems();
     SaveCopyOfZones( s_PickedList, GetBoard(), aZone->GetNet(),
                      aZone->GetLayer() );
 
@@ -334,7 +332,7 @@ void PCB_EDIT_FRAME::End_Move_Zone_Corner_Or_Outlines( wxDC* DC, ZONE_CONTAINER*
 
     // Combine zones if possible
     wxBusyCursor dummy;
-    GetBoard()->AreaPolygonModified( &_AuxiliaryList, aZone, true, s_Verbose );
+    GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, aZone );
     m_canvas->Refresh();
 
 
@@ -343,7 +341,7 @@ void PCB_EDIT_FRAME::End_Move_Zone_Corner_Or_Outlines( wxDC* DC, ZONE_CONTAINER*
     if( ii < 0 )
         aZone = NULL;                          // was removed by combining zones
 
-    UpdateCopyOfZonesList( s_PickedList, _AuxiliaryList, GetBoard() );
+    UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
     SaveCopyInUndoList(s_PickedList, UR_UNSPECIFIED);
     s_PickedList.ClearItemsList(); // s_ItemsListPicker is no more owner of picked items
 
@@ -382,14 +380,14 @@ void PCB_EDIT_FRAME::Remove_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone )
         GetBoard()->RedrawFilledAreas( m_canvas, DC, GR_XOR, layer );
     }
 
-    _AuxiliaryList.ClearListAndDeleteItems();
+    s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList. ClearListAndDeleteItems();
     SaveCopyOfZones( s_PickedList, GetBoard(), aZone->GetNet(),
                      aZone->GetLayer() );
     aZone->m_Poly->DeleteCorner( aZone->m_CornerSelection );
 
     // modify zones outlines according to the new aZone shape
-    GetBoard()->AreaPolygonModified( &_AuxiliaryList, aZone, true, s_Verbose );
+    GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, aZone );
 
     if( DC )
     {
@@ -397,7 +395,7 @@ void PCB_EDIT_FRAME::Remove_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone )
         GetBoard()->RedrawFilledAreas( m_canvas, DC, GR_OR, layer );
     }
 
-    UpdateCopyOfZonesList( s_PickedList, _AuxiliaryList, GetBoard() );
+    UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
     SaveCopyInUndoList(s_PickedList, UR_UNSPECIFIED);
     s_PickedList.ClearItemsList(); // s_ItemsListPicker is no more owner of picked items
 
@@ -450,7 +448,7 @@ void Abort_Zone_Move_Corner_Or_Outlines( EDA_DRAW_PANEL* Panel, wxDC* DC )
     }
 
     Panel->SetMouseCapture( NULL, NULL );
-    _AuxiliaryList.ClearListAndDeleteItems();
+    s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList. ClearListAndDeleteItems();
     Panel->Refresh();
 
@@ -679,8 +677,12 @@ int PCB_EDIT_FRAME::Begin_Zone( wxDC* DC )
             if( !Drc_On || !zone->IsOnCopperLayer() || ( m_drc->Drc( zone, ii - 1 ) == OK_DRC ) )
             {
                 // Ok, we can add a new corner
+                if( m_canvas->IsMouseCaptured() )
+                    m_canvas->CallMouseCapture( DC, wxPoint(0,0), false );
                 zone->AppendCorner( GetScreen()->GetCrossHairPosition() );
                 SetCurItem( zone );     // calls DisplayInfo().
+                if( m_canvas->IsMouseCaptured() )
+                    m_canvas->CallMouseCapture( DC, wxPoint(0,0), false );
             }
         }
     }
@@ -731,14 +733,14 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
     GetBoard()->RedrawFilledAreas( m_canvas, DC, GR_XOR, layer );
 
     // Save initial zones configuration, for undo/redo, before adding new zone
-    _AuxiliaryList.ClearListAndDeleteItems();
+    s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList.ClearListAndDeleteItems();
     SaveCopyOfZones(s_PickedList, GetBoard(), zone->GetNet(), zone->GetLayer() );
 
     // Put new zone in list
     if( !s_CurrentZone )
     {
-        zone->m_Poly->Close(); // Close the current corner list
+        zone->m_Poly->CloseLastContour(); // Close the current corner list
         GetBoard()->Add( zone );
         GetBoard()->m_CurrentZoneContour = NULL;
 
@@ -753,7 +755,7 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
             s_CurrentZone->AppendCorner( zone->GetCornerPosition( ii ) );
         }
 
-        s_CurrentZone->m_Poly->Close(); // Close the current corner list
+        s_CurrentZone->m_Poly->CloseLastContour(); // Close the current corner list
         zone->RemoveAllContours();      // All corners are copied in s_CurrentZone. Free corner list.
         zone = s_CurrentZone;
     }
@@ -764,7 +766,7 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
     GetScreen()->SetCurItem( NULL );       // This outline can be deleted when merging outlines
 
     // Combine zones if possible :
-    GetBoard()->AreaPolygonModified( &_AuxiliaryList, zone, true, s_Verbose );
+    GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, zone );
 
     // Redraw the real edge zone :
     GetBoard()->RedrawAreasOutlines( m_canvas, DC, GR_OR, layer );
@@ -782,7 +784,7 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
         DisplayError( this, _( "Area: DRC outline error" ) );
     }
 
-    UpdateCopyOfZonesList( s_PickedList, _AuxiliaryList, GetBoard() );
+    UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
     SaveCopyInUndoList(s_PickedList, UR_UNSPECIFIED);
     s_PickedList.ClearItemsList(); // s_ItemsListPicker is no more owner of picked items
 
@@ -836,7 +838,7 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
 
     // Save initial zones configuration, for undo/redo, before adding new zone
     // note the net name and the layer can be changed, so we must save all zones
-    _AuxiliaryList.ClearListAndDeleteItems();
+    s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList.ClearListAndDeleteItems();
     SaveCopyOfZones(s_PickedList, GetBoard(), -1, -1 );
 
@@ -864,7 +866,7 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
 
     if( edited == ZONE_ABORT )
     {
-        _AuxiliaryList.ClearListAndDeleteItems();
+        s_AuxiliaryList.ClearListAndDeleteItems();
         s_PickedList.ClearListAndDeleteItems();
         return;
     }
@@ -873,7 +875,7 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
 
     if( edited == ZONE_EXPORT_VALUES )
     {
-        UpdateCopyOfZonesList( s_PickedList, _AuxiliaryList, GetBoard() );
+        UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
         SaveCopyInUndoList(s_PickedList, UR_UNSPECIFIED);
         s_PickedList.ClearItemsList(); // s_ItemsListPicker is no more owner of picked items
         return;
@@ -894,12 +896,12 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
         aZone->SetNetName( net->GetNetname() );
 
     // Combine zones if possible
-    GetBoard()->AreaPolygonModified( &_AuxiliaryList, aZone, true, s_Verbose );
+    GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, aZone );
 
     // Redraw the real new zone outlines
     GetBoard()->RedrawAreasOutlines( m_canvas, DC, GR_OR, -1 );
 
-    UpdateCopyOfZonesList( s_PickedList, _AuxiliaryList, GetBoard() );
+    UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
     SaveCopyInUndoList(s_PickedList, UR_UNSPECIFIED);
 
     s_PickedList.ClearItemsList();  // s_ItemsListPicker is no longer owner of picked items

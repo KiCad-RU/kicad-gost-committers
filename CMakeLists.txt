@@ -50,6 +50,19 @@ option(KICAD_TESTING_VERSION
        "set this option to ON to build the stable version of KICAD. mainly used to set version ID (default OFF)"
        )
 
+option(KICAD_SCRIPTING
+       "set this option ON to build the scripting support inside kicad binaries"
+       )
+
+option(KICAD_SCRIPTING_MODULES
+       "set this option ON to build kicad modules that can be used from scripting languages"
+       )
+
+option(KICAD_SCRIPTING_WXPYTHON
+       "set this option ON to build wxpython implementation for wx interface building in python and py.shell"
+       )
+
+
 #Set version option (stable or testing)
 
 if (KICAD_STABLE_VERSION )
@@ -72,25 +85,36 @@ else (KICAD_STABLE_VERSION )
 endif(KICAD_STABLE_VERSION )
 
 # Nanometers must be enabled when USE_PCBNEW_SEXPR_FILE_FORMAT=ON.
-#if( USE_PCBNEW_SEXPR_FILE_FORMAT AND NOT USE_PCBNEW_NANOMETRES )
-#    set( TMP "The Pcbnew s-expression file format requires nano-meter internal units to be " )
-#    set( TMP "${TMP} enabled using -DUSE_PCBNEW_NANOMETRES=ON." )
-#    message( FATAL_ERROR ${TMP} )
-#endif( USE_PCBNEW_SEXPR_FILE_FORMAT AND NOT USE_PCBNEW_NANOMETRES )
+if( USE_PCBNEW_SEXPR_FILE_FORMAT AND NOT USE_PCBNEW_NANOMETRES )
+    set( TMP "The Pcbnew s-expression file format requires nano-meter internal units to be " )
+    set( TMP "${TMP} enabled using -DUSE_PCBNEW_NANOMETRES=ON." )
+    message( FATAL_ERROR ${TMP} )
+endif( USE_PCBNEW_SEXPR_FILE_FORMAT AND NOT USE_PCBNEW_NANOMETRES )
 
 #================================================
 # Set flags for GCC.
 #================================================
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    # Set default flags for Release build.
-    set(CMAKE_C_FLAGS_RELEASE "-Wall -O2 -DNDEBUG ")
-    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -DNDEBUG")
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
+    if(WIN32)   # under Windows/mingw,  -fPIC option is enabled by default
+        # Set default flags for Release build.
+        set(CMAKE_C_FLAGS_RELEASE "-Wall -O2 -DNDEBUG")
+        set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -DNDEBUG")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
 
-    # Set default flags for Debug build.
-    set(CMAKE_C_FLAGS_DEBUG "-Wall -g3 -ggdb3 -DDEBUG")
-    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -g3 -ggdb3 -DDEBUG")
+        # Set default flags for Debug build.
+        set(CMAKE_C_FLAGS_DEBUG "-Wall -g3 -ggdb3 -DDEBUG")
+        set(CMAKE_CXX_FLAGS_DEBUG "-Wall -g3 -ggdb3 -DDEBUG")
+    else(WIN32)
+        # Set default flags for Release build.
+        set(CMAKE_C_FLAGS_RELEASE "-Wall -O2 -DNDEBUG -fPIC")
+        set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -DNDEBUG -fPIC")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
+
+        # Set default flags for Debug build.
+        set(CMAKE_C_FLAGS_DEBUG "-Wall -g3 -ggdb3 -DDEBUG -fPIC")
+        set(CMAKE_CXX_FLAGS_DEBUG "-Wall -g3 -ggdb3 -DDEBUG -fPIC")
+    endif(WIN32)
 
 endif(CMAKE_COMPILER_IS_GNUCXX)
 
@@ -114,6 +138,19 @@ if(USE_WX_OVERLAY OR APPLE)
     add_definitions(-DUSE_WX_OVERLAY)
 endif(USE_WX_OVERLAY OR APPLE)
 
+if(KICAD_SCRIPTING)
+    add_definitions(-DKICAD_SCRIPTING)
+endif(KICAD_SCRIPTING)
+
+if(KICAD_SCRIPTING_MODULES)
+    add_definitions(-DKICAD_SCRIPTING_MODULES)
+endif(KICAD_SCRIPTING_MODULES)
+
+if(KICAD_SCRIPTING_WXPYTHON)
+    add_definitions(-DKICAD_SCRIPTING_WXPYTHON)
+
+
+endif(KICAD_SCRIPTING_WXPYTHON)
 
 if(USE_WX_GRAPHICS_CONTEXT)
     add_definitions(-DUSE_WX_GRAPHICS_CONTEXT)
@@ -225,6 +262,19 @@ if(WIN32 AND USE_WX_GRAPHICS_CONTEXT)
     check_find_package_result(GDI_PLUS_FOUND "GDI+")
 endif(WIN32 AND USE_WX_GRAPHICS_CONTEXT)
 
+# Find Python and other scripting resources
+if (KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES)
+
+  execute_process(COMMAND python2 -c "import sys;print\"%s.%s\"%sys.version_info[0:2]" OUTPUT_VARIABLE PYTHON_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(PYTHON_DEST "lib/python${PYTHON_VERSION}/dist-packages" )
+  find_package(PythonLibs)
+  include_directories(${PYTHON_INCLUDE_PATH}
+                      ./scripting)
+
+endif(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES)
+
+
+
 # Automagically create version header file.
 include(CreateBzrVersionHeader)
 create_bzr_version_header()
@@ -270,7 +320,6 @@ add_subdirectory(gerbview)
 add_subdirectory(kicad)
 add_subdirectory(pcbnew)
 add_subdirectory(polygon)
-add_subdirectory(polygon/kbool/src)
 add_subdirectory(potrace)
 add_subdirectory(bitmap2component)
 add_subdirectory(pcb_calculator)

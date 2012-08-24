@@ -262,6 +262,21 @@ public:
     int BuildFilledPolysListData( BOARD* aPcb, std::vector <CPolyPt>* aCornerBuffer = NULL );
 
     /**
+     * Function CopyPolygonsFromKiPolygonListToFilledPolysList
+     * Copy polygons stored in aKiPolyList to m_FilledPolysList
+     * The previous m_FilledPolysList contents is replaced.
+     * @param aKiPolyList = a KI_POLYGON_SET containing polygons.
+     */
+    void CopyPolygonsFromKiPolygonListToFilledPolysList( KI_POLYGON_SET& aKiPolyList );
+
+    /**
+     * Function CopyPolygonsFromFilledPolysListToKiPolygonList
+     * Copy polygons from m_FilledPolysList to aKiPolyList
+     * @param aKiPolyList = a KI_POLYGON_SET to fill by polygons.
+     */
+    void  CopyPolygonsFromFilledPolysListToKiPolygonList( KI_POLYGON_SET& aKiPolyList );
+
+    /**
      * Function AddClearanceAreasPolygonsToPolysList
      * Add non copper areas polygons (pads and tracks with clearance)
      * to a filled copper area
@@ -273,24 +288,6 @@ public:
      * @param aPcb: the current board
      */
     void AddClearanceAreasPolygonsToPolysList( BOARD* aPcb );
-
-    /**
-     * Function CopyPolygonsFromBoolengineToFilledPolysList
-     * Copy (Add) polygons created by kbool (after Do_Operation) to m_FilledPolysList
-     * @param aBoolengine = the kbool engine used in Do_Operation
-     * @return the corner count
-     */
-    int CopyPolygonsFromBoolengineToFilledPolysList( Bool_Engine* aBoolengine );
-
-    /**
-     * Function CopyPolygonsFromFilledPolysListToBoolengine
-     * Copy (Add) polygons created by kbool (after Do_Operation) to m_FilledPolysList
-     * @param aBoolengine = kbool engine
-     * @param aGroup = group in kbool engine (GROUP_A or GROUP_B only)
-     * @return the corner count
-     */
-    int CopyPolygonsFromFilledPolysListToBoolengine( Bool_Engine* aBoolengine,
-                                                     GroupType    aGroup = GROUP_A );
 
     /**
      * Function HitTestForCorner
@@ -429,7 +426,7 @@ public:
         return m_Poly->GetHatchStyle();
     }
 
-    void SetHatchStyle( CPolyLine::hatch_style aStyle )
+    void SetHatchStyle( CPolyLine::HATCH_STYLE aStyle )
     {
         m_Poly->SetHatchStyle( aStyle );
     }
@@ -539,12 +536,12 @@ public:
      * Accessors to parameters used in Keepout zones:
      */
     bool GetIsKeepout() const { return m_isKeepout; }
-    bool GetDoNotAllowPads() const { return m_doNotAllowPads; }
+    bool GetDoNotAllowCopperPour() const { return m_doNotAllowCopperPour; }
     bool GetDoNotAllowVias() const { return m_doNotAllowVias; }
     bool GetDoNotAllowTracks() const { return m_doNotAllowTracks; }
 
     void SetIsKeepout( bool aEnable ) { m_isKeepout = aEnable; }
-    void SetDoNotAllowPads( bool aEnable ) { m_doNotAllowPads = aEnable; }
+    void SetDoNotAllowCopperPour( bool aEnable ) { m_doNotAllowCopperPour = aEnable; }
     void SetDoNotAllowVias( bool aEnable ) { m_doNotAllowVias = aEnable; }
     void SetDoNotAllowTracks( bool aEnable ) { m_doNotAllowTracks = aEnable; }
 
@@ -573,7 +570,7 @@ public:
 
     // thickness of the copper bridge in thermal reliefs
     int                   m_ThermalReliefCopperBridge;
-    int                   utility, utility2;                // flags used in polygon calculations
+    int                   utility;                // flags used in polygon calculations
 
     // true when a zone was filled, false after deleting the filled areas
     bool                  m_IsFilled;
@@ -605,7 +602,7 @@ private:
     /* For keepout zones only:
      * what is not allowed inside the keepout ( pads, tracks and vias )
      */
-    bool                  m_doNotAllowPads;
+    bool                  m_doNotAllowCopperPour;
     bool                  m_doNotAllowVias;
     bool                  m_doNotAllowTracks;
 
@@ -613,7 +610,7 @@ private:
 
     /* set of filled polygons used to draw a zone as a filled area.
      * from outlines (m_Poly) but unlike m_Poly these filled polygons have no hole
-     * (they are* all in one piece)  In very simple cases m_FilledPolysList is same
+     * (they are all in one piece)  In very simple cases m_FilledPolysList is same
      * as m_Poly.  In less simple cases (when m_Poly has holes) m_FilledPolysList is
      * a polygon equivalent to m_Poly, without holes but with extra outline segment
      * connecting "holes" with external main outline.  In complex cases an outline

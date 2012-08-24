@@ -79,7 +79,6 @@ target_link_libraries(pcad2kicad
     common
     bitmaps
     polygon
-    kbool
     ${wxWidgets_LIBRARIES}
     )
 

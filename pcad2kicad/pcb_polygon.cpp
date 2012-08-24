@@ -234,7 +234,7 @@ void PCB_POLYGON::AddToBoard()
                                          KiROUND( m_outline[i]->y ) ) );
         }
 
-        zone->m_Poly->Close();
+        zone->m_Poly->CloseLastContour();
 
         // add cutouts
         for( island = 0; island < (int) m_cutouts.GetCount(); island++ )
@@ -245,11 +245,12 @@ void PCB_POLYGON::AddToBoard()
                                              KiROUND( (*m_cutouts[island])[i]->y ) ) );
             }
 
-            zone->m_Poly->Close();
+            zone->m_Poly->CloseLastContour();
         }
 
         zone->m_Poly->SetHatch( outline_hatch,
-                                Mils2iu( zone->m_Poly->GetDefaultHatchPitchMils() ) );
+                                Mils2iu( zone->m_Poly->GetDefaultHatchPitchMils() ),
+                                true );
 
 // zone->BuildFilledPolysListData( m_board );
     }

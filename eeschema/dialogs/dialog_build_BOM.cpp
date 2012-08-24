@@ -468,7 +468,7 @@ void DIALOG_BUILD_BOM::CreatePartsList( )
     cmplist.RemoveSubComponentsFromList();
 
     // sort component list by value
-    cmplist.SortByValueAndRef( );
+    cmplist.SortByValueOnly( );
     PrintComponentsListByPart( f, cmplist, false );
 
     fclose( f );

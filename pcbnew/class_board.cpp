@@ -377,8 +377,8 @@ wxString BOARD::GetLayerName( int aLayerIndex, bool aTranslate ) const
 
 // Default layer names are statically initialized,
 // because we want the English name and the translation
-// The English name is stored here, and to get the tranlation
-// wxGetTranslation must be called explicitely
+// The English name is stored here, and to get the translation
+// wxGetTranslation must be called explicitly
 static const wxChar * layer_FRONT_name  = _( "Front" );
 static const wxChar * layer_INNER1_name = _( "Inner1" );
 static const wxChar * layer_INNER2_name = _( "Inner2" );
@@ -1681,7 +1681,7 @@ D_PAD* BOARD::GetPad( TRACK* aTrace, int aEndPoint )
 
     int     aLayerMask = GetLayerMask( aTrace->GetLayer() );
 
-    if( aEndPoint == START )
+    if( aEndPoint == FLG_START )
     {
         aPosition = aTrace->m_Start;
     }
@@ -2271,7 +2271,7 @@ TRACK* BOARD::CreateLockPoint( wxPoint& aPosition, TRACK* aSegment, PICKED_ITEMS
     aSegment->end = newTrack;
     aSegment->SetState( END_ONPAD, OFF );
 
-    D_PAD * pad = GetPad( newTrack, START );
+    D_PAD * pad = GetPad( newTrack, FLG_START );
 
     if ( pad )
     {

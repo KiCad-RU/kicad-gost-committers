@@ -48,6 +48,7 @@
 
 #include <pcb_parser.h>
 
+using namespace std;
 
 double PCB_PARSER::parseDouble() throw( IO_ERROR )
 {
@@ -983,8 +984,10 @@ void PCB_PARSER::parseNETINFO_ITEM() throw( IO_ERROR, PARSE_ERROR )
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as net." ) );
 
     int number = parseInt( "net number" );
-    NeedSYMBOL();
+
+    NeedSYMBOLorNUMBER();
     wxString name = FromUTF8();
+
     NeedRIGHT();
 
     // net 0 should be already in list, so store this net
@@ -1048,7 +1051,7 @@ void PCB_PARSER::parseNETCLASS() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_add_net:
-            NeedSYMBOL();
+            NeedSYMBOLorNUMBER();
             nc->Add( FromUTF8() );
             break;
 
@@ -2089,7 +2092,7 @@ D_PAD* PCB_PARSER::parseD_PAD() throw( IO_ERROR, PARSE_ERROR )
 
         case T_net:
             pad->SetNet( parseInt( "net number" ) );
-            NeedSYMBOL();
+            NeedSYMBOLorNUMBER();
             pad->SetNetname( FromUTF8() );
             NeedRIGHT();
             break;
@@ -2292,8 +2295,8 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) +
                  wxT( " as ZONE_CONTAINER." ) );
 
-    int     hatchStyle = CPolyLine::NO_HATCH;   // Fix compile warning
-    int     hatchPitch = 0;                     // Fix compile warning
+    CPolyLine::HATCH_STYLE hatchStyle = CPolyLine::NO_HATCH;
+    int     hatchPitch = Mils2iu( CPolyLine::GetDefaultHatchPitchMils() );
     wxPoint pt;
     T       token;
 
@@ -2490,16 +2493,16 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                     zone->SetDoNotAllowVias( token == T_not_allowed );
                     break;
 
-                case T_pads:
+                case T_copperpour:
                     token = NextTok();
 
                     if( token != T_allowed && token != T_not_allowed )
                         Expecting( "allowed or not_allowed" );
-                    zone->SetDoNotAllowPads( token == T_not_allowed );
+                    zone->SetDoNotAllowCopperPour( token == T_not_allowed );
                     break;
 
                 default:
-                    Expecting( "tracks, vias or pads" );
+                    Expecting( "tracks, vias or copperpour" );
                 }
 
                 NeedRIGHT();
@@ -2587,7 +2590,7 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
         }
 
         // Set hatch here, after outlines corners are read
-        zone->m_Poly->SetHatch( hatchStyle, hatchPitch );
+        zone->m_Poly->SetHatch( hatchStyle, hatchPitch, true );
     }
 
     if( pts.size() )

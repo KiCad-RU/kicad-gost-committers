@@ -44,6 +44,7 @@
 
 #include <class_board.h>
 #include <class_module.h>
+#include <polygon_test_point_inside.h>
 
 
 int D_PAD::m_PadSketchModePenSize = 0;      // Pen size used to draw pads in sketch mode
@@ -347,7 +348,7 @@ int D_PAD::GetClearance( BOARD_CONNECTED_ITEM* aItem ) const
     if( aItem )
     {
         int hisClearance = aItem->GetClearance();
-        return max( hisClearance, clearance );
+        return std::max( hisClearance, clearance );
     }
 
     // Return the specific clearance.
