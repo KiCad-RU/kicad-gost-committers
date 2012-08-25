@@ -34,6 +34,7 @@
 
 #include <pcb_component.h>
 
+namespace PCAD2KICAD {
 
 PCB_COMPONENT::PCB_COMPONENT( PCB_CALLBACKS*    aCallbacks,
                               BOARD*            aBoard ) : m_callbacks( aCallbacks ),
@@ -74,3 +75,5 @@ void PCB_COMPONENT::SetPosOffset( int aX_offs, int aY_offs )
     m_positionX += aX_offs;
     m_positionY += aY_offs;
 }
+
+} // namespace PCAD2KICAD

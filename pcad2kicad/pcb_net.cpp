@@ -32,6 +32,7 @@
 
 #include <pcb_net.h>
 
+namespace PCAD2KICAD {
 
 PCB_NET_NODE::PCB_NET_NODE()
 {
@@ -99,3 +100,5 @@ void PCB_NET::Parse( wxXmlNode* aNode )
         lNode = lNode->GetNext();
     }
 }
+
+} // namespace PCAD2KICAD

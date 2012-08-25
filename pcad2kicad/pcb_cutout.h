@@ -34,6 +34,8 @@
 
 #include <pcb_polygon.h>
 
+namespace PCAD2KICAD {
+
 class PCB_CUTOUT : public PCB_POLYGON
 {
 public:
@@ -49,5 +51,7 @@ public:
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     void            AddToBoard();
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_CUTOUT_H_

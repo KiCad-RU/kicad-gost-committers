@@ -35,6 +35,8 @@
 #include <sch_junction.h>
 #include <sch_line.h>
 
+namespace PCAD2KICAD {
+
 class SCH_SHEET : public wxObject
 {
 public:
@@ -59,5 +61,7 @@ private:
 };
 
 WX_DEFINE_ARRAY( SCH_SHEET*, SCH_SHEETS_ARRAY );
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_SHEET_H_

@@ -34,6 +34,7 @@
 
 #include <pcb_via_shape.h>
 
+namespace PCAD2KICAD {
 
 PCB_VIA_SHAPE::PCB_VIA_SHAPE( PCB_CALLBACKS*    aCallbacks,
                               BOARD*            aBoard ) : PCB_PAD_SHAPE( aCallbacks, aBoard )
@@ -83,3 +84,5 @@ void PCB_VIA_SHAPE::Parse( wxXmlNode*   aNode,
         SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_height, aActualConversion );
 
 }
+
+} // namespace PCAD2KICAD

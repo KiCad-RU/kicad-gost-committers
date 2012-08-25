@@ -42,6 +42,7 @@
 #include <pcb_text.h>
 #include <pcb_via.h>
 
+namespace PCAD2KICAD {
 
 PCB_MODULE::PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
                                                                                     aBoard )
@@ -766,3 +767,5 @@ void PCB_MODULE::Flip()
         }
     }
 }
+
+} // namespace PCAD2KICAD

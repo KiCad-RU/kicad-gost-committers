@@ -42,6 +42,7 @@
 #include <class_zone.h>
 #include <class_pcb_text.h>
 
+namespace PCAD2KICAD {
 
 // basic parent class for PCB objects
 class PCB_COMPONENT : public wxObject
@@ -76,5 +77,7 @@ protected:
 };
 
 WX_DEFINE_ARRAY( PCB_COMPONENT*, PCB_COMPONENTS_ARRAY );
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_COMPONENT_H_

@@ -32,6 +32,10 @@
 
 #include <wx/wx.h>
 
-extern void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar, wxArrayString* aLines );
+namespace PCAD2KICAD
+{
+    extern void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar,
+                               wxArrayString* aLines );
+}
 
 #endif    // LOADINPUTFILE_H_

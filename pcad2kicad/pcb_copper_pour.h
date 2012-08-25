@@ -34,6 +34,8 @@
 
 #include <pcb_polygon.h>
 
+namespace PCAD2KICAD {
+
 class PCB_COPPER_POUR : public PCB_POLYGON
 {
 public:
@@ -47,5 +49,7 @@ public:
                         wxString        aActualConversion,
                         wxStatusBar*    aStatusBar );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_COPPER_POUR_H_

@@ -44,6 +44,7 @@
 #include <pcb_text.h>
 #include <pcb_via.h>
 
+namespace PCAD2KICAD {
 
 int PCB::GetKiCadLayer( int aPCadLayer )
 {
@@ -697,3 +698,5 @@ void PCB::AddToBoard()
         m_pcbComponents[i]->AddToBoard();
     }
 }
+
+} // namespace PCAD2KICAD

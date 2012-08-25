@@ -35,6 +35,8 @@
 #include <XMLtoObjectCommonProceduresUnit.h>
 #include <sch_component.h>
 
+namespace PCAD2KICAD {
+
 class SCH_SYMBOL : public SCH_COMPONENT
 {
 public:
@@ -57,5 +59,7 @@ private:
     void ParseLibrary( wxXmlNode* aNode, wxString aModule,
                        wxString aDefaultMeasurementUnit, wxString aActualConversion );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_SYMBOL_H_

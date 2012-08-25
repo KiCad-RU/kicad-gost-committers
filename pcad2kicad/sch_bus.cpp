@@ -34,6 +34,7 @@
 
 #include <sch_bus.h>
 
+namespace PCAD2KICAD {
 
 void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
                      wxString aActualConversion )
@@ -87,3 +88,5 @@ void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
                 FindNode( lNode, wxT( "rotation" ) )->GetNodeContent() );
     }
 }
+
+} // namespace PCAD2KICAD

@@ -34,6 +34,7 @@
 
 #include <pcb_text.h>
 
+namespace PCAD2KICAD {
 
 PCB_TEXT::PCB_TEXT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
                                                                                 aBoard )
@@ -165,3 +166,5 @@ void PCB_TEXT::AddToBoard()
 // m_name.textPositionX    += aX_offs;
 // m_name.textPositionY    += aY_offs;
 // }
+
+} // namespace PCAD2KICAD

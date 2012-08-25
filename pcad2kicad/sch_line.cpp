@@ -34,6 +34,8 @@
 
 #include <sch_line.h>
 
+namespace PCAD2KICAD {
+
 SCH_LINE::SCH_LINE()
 {
     m_toX   = 0;
@@ -184,3 +186,5 @@ void SCH_LINE::WriteLabelToFile( wxFile* aFile, char aFileType )
         aFile->Write( m_labelText.text + wxT( "\n" ) );
     }
 }
+
+} // namespace PCAD2KICAD

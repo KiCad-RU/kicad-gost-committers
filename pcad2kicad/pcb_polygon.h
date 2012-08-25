@@ -34,6 +34,8 @@
 
 #include <pcb_component.h>
 
+namespace PCAD2KICAD {
+
 WX_DEFINE_ARRAY( wxRealPoint*, VERTICES_ARRAY );
 WX_DEFINE_ARRAY( VERTICES_ARRAY*, ISLANDS_ARRAY );
 
@@ -64,5 +66,7 @@ public:
     void            FormPolygon( wxXmlNode* aNode, VERTICES_ARRAY* aPolygon,
                                  wxString aDefaultMeasurementUnit, wxString actualConversion );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_POLYGON_H_

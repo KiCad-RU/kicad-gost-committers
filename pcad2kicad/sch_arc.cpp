@@ -34,6 +34,7 @@
 
 #include <sch_arc.h>
 
+namespace PCAD2KICAD {
 
 SCH_ARC::SCH_ARC()
 {
@@ -137,3 +138,5 @@ void SCH_ARC::WriteToFile( wxFile* aFile, char aFileType )
                                     m_positionX, m_positionY, m_radius, m_startAngle, m_sweepAngle,
                                     m_partNum, m_width, m_startX, m_startY, m_toX, m_toY ) );
 }
+
+} // namespace PCAD2KICAD

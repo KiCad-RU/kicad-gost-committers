@@ -35,6 +35,8 @@
 
 #include <pcb_component.h>
 
+namespace PCAD2KICAD {
+
 class PCB_PAD_SHAPE : public PCB_COMPONENT
 {
 public:
@@ -53,5 +55,7 @@ public:
 };
 
 WX_DEFINE_ARRAY( PCB_PAD_SHAPE*, PCB_PAD_SHAPES_ARRAY );
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_PAD_SHAPE_H_

@@ -34,6 +34,8 @@
 #include <wx/dynarray.h>
 #include <wx/file.h>
 
+namespace PCAD2KICAD {
+
 class SCH_COMPONENT : public wxObject
 {
 public:
@@ -54,5 +56,7 @@ public:
 };
 
 WX_DEFINE_ARRAY( SCH_COMPONENT*, SCH_COMPONENTS_ARRAY );
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_COMPONENT_H_

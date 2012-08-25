@@ -41,6 +41,8 @@
 #include <macros.h>
 #include <fctsys.h>
 
+using namespace PCAD2KICAD;
+
 PCAD_PLUGIN::PCAD_PLUGIN()
 {
     m_board = NULL;

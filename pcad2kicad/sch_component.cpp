@@ -32,6 +32,8 @@
 
 #include <sch_component.h>
 
+namespace PCAD2KICAD {
+
 SCH_COMPONENT::SCH_COMPONENT()
 {
     m_objType   = wxT("?");
@@ -58,3 +60,5 @@ void SCH_COMPONENT::SetPosOffset( int aX_offs, int aY_offs )
 void SCH_COMPONENT::WriteToFile( wxFile* aFile, char aFileType )
 {
 }
+
+} // namespace PCAD2KICAD

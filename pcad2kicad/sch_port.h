@@ -34,6 +34,9 @@
 #include <sch_component.h>
 #include <XMLtoObjectCommonProceduresUnit.h>
 
+
+namespace PCAD2KICAD {
+
 class SCH_PORT : public SCH_COMPONENT
 {
 public:
@@ -47,5 +50,7 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_PORT_H_

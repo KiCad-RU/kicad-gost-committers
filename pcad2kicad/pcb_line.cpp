@@ -34,6 +34,7 @@
 
 #include <pcb_line.h>
 
+namespace PCAD2KICAD {
 
 PCB_LINE::PCB_LINE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
                                                                                 aBoard )
@@ -160,3 +161,5 @@ void PCB_LINE::AddToBoard()
         dseg->SetWidth( m_width );
     }
 }
+
+} // namespace PCAD2KICAD

@@ -35,6 +35,8 @@
 #include <sch_component.h>
 #include <XMLtoObjectCommonProceduresUnit.h>
 
+namespace PCAD2KICAD {
+
 #define DEFAULT_SYMBOL_PIN_LENGTH 300
 
 class SCH_PIN : public SCH_COMPONENT
@@ -61,5 +63,7 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_PIN_H_

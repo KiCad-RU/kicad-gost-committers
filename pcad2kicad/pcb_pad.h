@@ -35,6 +35,7 @@
 #include <pcb_component.h>
 #include <pcb_pad_shape.h>
 
+namespace PCAD2KICAD {
 
 class PCB_PAD : public PCB_COMPONENT
 {
@@ -59,5 +60,7 @@ private:
     wxString        KiCadLayerMask( wxString aMask, int aLayer );
     unsigned long   KiCadLayerMask( unsigned long aMask, int aLayer );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_PAD_H_

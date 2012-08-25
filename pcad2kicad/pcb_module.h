@@ -35,6 +35,7 @@
 #include <XMLtoObjectCommonProceduresUnit.h>
 #include <pcb_component.h>
 
+namespace PCAD2KICAD {
 
 class PCB_MODULE : public PCB_COMPONENT
 {
@@ -69,5 +70,7 @@ private:
     wxString        ModuleLayer( int aMirror );
     int             FlipLayers( int aLayer );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_MODULE_H_

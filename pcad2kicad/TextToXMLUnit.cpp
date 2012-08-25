@@ -32,6 +32,7 @@
 
 #include <wx/xml/xml.h>
 
+namespace PCAD2KICAD {
 
 void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* aLines )
 {
@@ -127,3 +128,5 @@ void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* a
 
     xmlDoc.Save( aXMLFileName );
 }
+
+} // namespace PCAD2KICAD

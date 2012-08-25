@@ -34,6 +34,7 @@
 
 #include <pcb_component.h>
 
+namespace PCAD2KICAD {
 
 class PCB_ARC : public PCB_COMPONENT
 {
@@ -54,5 +55,7 @@ public:
     void            AddToModule( MODULE* aModule );
     void            AddToBoard();
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_ARC_H_

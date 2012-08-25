@@ -34,6 +34,8 @@
 
 #include <sch_line.h>
 
+namespace PCAD2KICAD {
+
 class SCH_BUS : public SCH_LINE
 {
 public:
@@ -41,5 +43,7 @@ public:
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_BUS_H_

@@ -34,6 +34,8 @@
 
 #include <pcb_copper_pour.h>
 
+namespace PCAD2KICAD {
+
 PCB_COPPER_POUR::PCB_COPPER_POUR( PCB_CALLBACKS*    aCallbacks,
                                   BOARD*            aBoard ) : PCB_POLYGON( aCallbacks, aBoard )
 {
@@ -143,3 +145,5 @@ bool PCB_COPPER_POUR::Parse( wxXmlNode*     aNode,
 
     return true;
 }
+
+} // namespace PCAD2KICAD

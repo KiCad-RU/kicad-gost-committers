@@ -34,6 +34,7 @@
 
 #include <pcb_polygon.h>
 
+namespace PCAD2KICAD {
 
 PCB_POLYGON::PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
                                                                                       aBoard )
@@ -287,3 +288,5 @@ void PCB_POLYGON::SetPosOffset( int aX_offs, int aY_offs )
         }
     }
 }
+
+} // namespace PCAD2KICAD

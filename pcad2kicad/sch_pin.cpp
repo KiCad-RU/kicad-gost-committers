@@ -34,6 +34,7 @@
 
 #include <sch_pin.h>
 
+namespace PCAD2KICAD {
 
 SCH_PIN::SCH_PIN()
 {
@@ -255,3 +256,5 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( " 30 30 %d 0 ", m_partNum ) +
                   pinType + ' ' + shape + wxT( "\n" ) );
 }
+
+} // namespace PCAD2KICAD

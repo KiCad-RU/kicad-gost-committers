@@ -33,6 +33,8 @@
 
 #include <sch_port.h>
 
+namespace PCAD2KICAD {
+
 SCH_PORT::SCH_PORT()
 {
     InitTTextValue( &m_labelText );
@@ -88,3 +90,5 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
                   ' ' + lr + ' ' + wxT( " 60 ~\n" ) );
     aFile->Write( m_labelText.text + wxT( "\n" ) );
 }
+
+} // namespace PCAD2KICAD

@@ -33,6 +33,9 @@
 #include <wx/wx.h>
 #include <wx/xml/xml.h>
 
+namespace PCAD2KICAD
+{
+
 typedef struct _TTEXTVALUE
 {
     wxString    text;
@@ -76,5 +79,7 @@ extern void         CorrectTextPosition( TTEXTVALUE* aValue, int aRotation );
 extern wxXmlNode*   FindNode( wxXmlNode* aChild, wxString aTag );
 extern wxString     FindNodeGetContent( wxXmlNode* aChild, wxString aTag );
 extern void         InitTTextValue( TTEXTVALUE* aTextValue );
+
+} // namespace PCAD2KICAD
 
 #endif    // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_

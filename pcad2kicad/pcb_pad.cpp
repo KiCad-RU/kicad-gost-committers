@@ -33,6 +33,7 @@
 
 #include <pcb_pad.h>
 
+namespace PCAD2KICAD {
 
 PCB_PAD::PCB_PAD( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
@@ -505,3 +506,5 @@ void PCB_PAD::AddToBoard()
         }
     }
 }
+
+} // namespace PCAD2KICAD

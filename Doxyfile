@@ -83,7 +83,8 @@ INPUT                  = kicad \
                          gerbview \
                          include \
                          polygon \
-                         potrace
+                         potrace \
+                         pcad2kicad
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.h \
                          *.cpp

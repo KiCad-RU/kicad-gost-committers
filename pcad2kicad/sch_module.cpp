@@ -38,6 +38,8 @@
 #include <sch_pin.h>
 #include <sch_text.h>
 
+namespace PCAD2KICAD {
+
 SCH_MODULE::SCH_MODULE()
 {
     int i;
@@ -411,3 +413,5 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxT( "ENDDRAW\n" ) );     // ??
     aFile->Write( wxT( "ENDDEF\n" ) );      // ??
 }
+
+} // namespace PCAD2KICAD

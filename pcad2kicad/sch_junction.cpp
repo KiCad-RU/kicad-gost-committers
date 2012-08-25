@@ -34,6 +34,8 @@
 
 #include <sch_junction.h>
 
+namespace PCAD2KICAD {
+
 SCH_JUNCTION::SCH_JUNCTION( int aX, int aY, wxString aNet ) : m_net( aNet )
 {
     m_positionX = aX;
@@ -77,3 +79,5 @@ void SCH_JUNCTION::WriteToFile( wxFile* aFile, char aFileType )
 {
     aFile->Write( wxString::Format( "Connection ~ %d %d\n", m_positionX, m_positionY ) );
 }
+
+} // namespace PCAD2KICAD

@@ -34,6 +34,7 @@
 
 #include <pcb_component.h>
 
+namespace PCAD2KICAD {
 
 // Name property of parent is used for text value
 class PCB_TEXT : public PCB_COMPONENT
@@ -53,5 +54,7 @@ public:
 
 // virtual void    SetPosOffset( int aX_offs, int aY_offs );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_TEXT_H_

@@ -32,6 +32,10 @@
 
 #include <wx/wx.h>
 
-extern void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* aLines );
+namespace PCAD2KICAD
+{
+    extern void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName,
+                           wxArrayString* aLines );
+}
 
 #endif    // TEXTTOXMLUNIT_H_

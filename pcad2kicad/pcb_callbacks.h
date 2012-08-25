@@ -32,11 +32,14 @@
 
 #include <wx/wx.h>
 
-class PCB_CALLBACKS
+namespace PCAD2KICAD
 {
-public:
-    virtual int GetKiCadLayer( int aPCadLayer ) = 0;
-    virtual int GetNewTimestamp() = 0;
-};
+    class PCB_CALLBACKS
+    {
+    public:
+        virtual int GetKiCadLayer( int aPCadLayer ) = 0;
+        virtual int GetNewTimestamp() = 0;
+    };
+}
 
 #endif    // PCB_CALLBACKS_H_

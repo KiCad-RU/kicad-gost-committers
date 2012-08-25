@@ -34,6 +34,7 @@
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 
+namespace PCAD2KICAD {
 
 wxString GetWord( wxString* aStr )
 {
@@ -467,3 +468,5 @@ void InitTTextValue( TTEXTVALUE* aTextValue )
     aTextValue->correctedPositionX  = 0;
     aTextValue->correctedPositionY  = 0;
 }
+
+} // namespace PCAD2KICAD

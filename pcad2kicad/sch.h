@@ -34,6 +34,8 @@
 #include <sch_component.h>
 #include <sch_sheet.h>
 
+namespace PCAD2KICAD {
+
 class SCH : public wxObject
 {
 public:
@@ -58,5 +60,7 @@ private:
                                wxStatusBar*     aStatusBar,
                                wxString         aActualConversion );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_H_

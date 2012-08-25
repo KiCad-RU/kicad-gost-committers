@@ -33,6 +33,7 @@
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 
+namespace PCAD2KICAD {
 
 int DoDepth( wxString* aStr )
 {
@@ -235,3 +236,5 @@ void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar, wxArrayString* 
 
     f.Close();
 }
+
+} // namespace PCAD2KICAD

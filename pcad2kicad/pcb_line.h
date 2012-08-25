@@ -34,6 +34,7 @@
 
 #include <pcb_component.h>
 
+namespace PCAD2KICAD {
 
 // Line , routes and drawings
 class PCB_LINE : public PCB_COMPONENT
@@ -55,5 +56,7 @@ public:
     void            AddToModule( MODULE* aModule );
     void            AddToBoard();
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_LINE_H_

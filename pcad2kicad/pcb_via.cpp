@@ -33,6 +33,7 @@
 #include <pcb_via.h>
 #include <pcb_via_shape.h>
 
+namespace PCAD2KICAD {
 
 PCB_VIA::PCB_VIA( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_PAD( aCallbacks, aBoard )
 {
@@ -129,3 +130,5 @@ void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
         }
     }
 }
+
+} // namespace PCAD2KICAD

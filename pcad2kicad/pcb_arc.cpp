@@ -35,6 +35,7 @@
 
 #include <pcb_arc.h>
 
+namespace PCAD2KICAD {
 
 PCB_ARC::PCB_ARC( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
@@ -181,3 +182,5 @@ void PCB_ARC::AddToBoard()
     dseg->SetAngle( -m_angle );
     dseg->SetWidth( m_width );
 }
+
+} // namespace PCAD2KICAD

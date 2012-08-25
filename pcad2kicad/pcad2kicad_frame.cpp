@@ -40,6 +40,8 @@
 #include <sch.h>
 #include <TextToXMLUnit.h>
 
+using namespace PCAD2KICAD;
+
 /*
  *  PCad ASCII file description:
  *  www.eurointech.ru/products/Altium/PCAD_2006_ASCII.pdf

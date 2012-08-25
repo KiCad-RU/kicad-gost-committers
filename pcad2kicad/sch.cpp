@@ -38,6 +38,8 @@
 #include <sch.h>
 #include <sch_module.h>
 
+namespace PCAD2KICAD {
+
 SCH::SCH()
 {
     m_defaultMeasurementUnit = wxEmptyString;
@@ -244,3 +246,5 @@ void SCH::WriteToFile( wxString aFileName, char aFileType )
         }
     }
 }
+
+} // namespace PCAD2KICAD

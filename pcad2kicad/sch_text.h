@@ -34,6 +34,8 @@
 
 #include <sch_component.h>
 
+namespace PCAD2KICAD {
+
 class SCH_TEXT : public SCH_COMPONENT
 {
 public:
@@ -47,5 +49,7 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_TEXT_H_

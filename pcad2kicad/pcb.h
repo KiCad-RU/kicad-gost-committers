@@ -35,6 +35,7 @@
 #include <pcb_module.h>
 #include <pcb_net.h>
 
+namespace PCAD2KICAD {
 
 class PCB : public PCB_MODULE, public PCB_CALLBACKS
 {
@@ -75,5 +76,7 @@ private:
     void            ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName );
     void            MapLayer( wxXmlNode* aNode );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // pcb_H_

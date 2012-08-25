@@ -32,6 +32,7 @@
 
 #include <pcb_cutout.h>
 
+namespace PCAD2KICAD {
 
 PCB_CUTOUT::PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_POLYGON( aCallbacks,
                                                                                   aBoard )
@@ -74,3 +75,5 @@ void PCB_CUTOUT::AddToBoard()
     // no operation
     // (It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
 }
+
+} // namespace PCAD2KICAD

@@ -34,6 +34,7 @@
 
 #include <pcb_pad_shape.h>
 
+namespace PCAD2KICAD {
 
 PCB_PAD_SHAPE::PCB_PAD_SHAPE( PCB_CALLBACKS*    aCallbacks,
                               BOARD*            aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
@@ -137,3 +138,5 @@ void PCB_PAD_SHAPE::Parse( wxXmlNode*   aNode,
 void PCB_PAD_SHAPE::AddToBoard()
 {
 }
+
+} // namespace PCAD2KICAD

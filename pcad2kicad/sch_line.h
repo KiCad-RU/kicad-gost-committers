@@ -35,6 +35,8 @@
 #include <sch_component.h>
 #include <XMLtoObjectCommonProceduresUnit.h>
 
+namespace PCAD2KICAD {
+
 class SCH_LINE : public SCH_COMPONENT
 {
 public:
@@ -53,5 +55,7 @@ public:
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
     virtual void    WriteLabelToFile( wxFile* aFile, char aFileType );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_LINE_H_

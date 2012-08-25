@@ -34,6 +34,8 @@
 
 #include <sch_symbol.h>
 
+namespace PCAD2KICAD {
+
 SCH_SYMBOL::SCH_SYMBOL()
 {
     InitTTextValue( &m_module );
@@ -385,3 +387,5 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxString::Format( " %d %d %d %d \n", a, b, c, d ) );
     // FOOTPRINT
 }
+
+} // namespace PCAD2KICAD

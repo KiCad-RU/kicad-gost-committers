@@ -35,6 +35,8 @@
 #include <XMLtoObjectCommonProceduresUnit.h>
 #include <sch_component.h>
 
+namespace PCAD2KICAD {
+
 class SCH_MODULE : public SCH_COMPONENT
 {
 public:
@@ -71,5 +73,7 @@ private:
                                              wxString   aDefaultMeasurementUnit,
                                              wxString   aActualConversion );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // SCH_MODULE_H_

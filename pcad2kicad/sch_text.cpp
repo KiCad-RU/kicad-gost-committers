@@ -33,6 +33,7 @@
 
 #include <sch_text.h>
 
+namespace PCAD2KICAD {
 
 SCH_TEXT::SCH_TEXT()
 {
@@ -73,3 +74,5 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
                                     m_text.textHeight, m_partNum ) +
                   m_text.text + " Normal 0 C C\n" );
 }
+
+} // namespace PCAD2KICAD

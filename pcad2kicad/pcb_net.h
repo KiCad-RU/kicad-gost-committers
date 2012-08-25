@@ -34,6 +34,7 @@
 
 #include <XMLtoObjectCommonProceduresUnit.h>
 
+namespace PCAD2KICAD {
 
 class PCB_NET_NODE : public wxObject
 {
@@ -60,5 +61,7 @@ public:
 };
 
 WX_DEFINE_ARRAY( PCB_NET*, PCB_NETS_ARRAY );
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_NET_H_

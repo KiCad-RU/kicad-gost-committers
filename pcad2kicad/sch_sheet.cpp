@@ -43,6 +43,8 @@
 #include <sch_port.h>
 #include <sch_symbol.h>
 
+namespace PCAD2KICAD {
+
 SCH_SHEET::SCH_SHEET()
 {
     m_sizeX = 0;
@@ -392,3 +394,5 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     f.Write( wxT( "$EndSCHEMATC\n" ) );
     f.Close();
 }
+
+} // namespace PCAD2KICAD

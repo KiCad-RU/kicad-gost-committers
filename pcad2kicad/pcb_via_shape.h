@@ -34,6 +34,8 @@
 
 #include <pcb_pad_shape.h>
 
+namespace PCAD2KICAD {
+
 class PCB_VIA_SHAPE : public PCB_PAD_SHAPE
 {
 public:
@@ -44,5 +46,7 @@ public:
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion );
 };
+
+} // namespace PCAD2KICAD
 
 #endif    // PCB_VIA_SHAPE_H_
