@@ -43,7 +43,7 @@ int DoDepth( wxString* aStr )
 
     if( aStr->Len() > 0 )
     {
-        if( (*aStr)[0] == '(' )
+        if( (*aStr)[0] == wxT( '(' ) )
         {
             result  = 1;
             *aStr   = aStr->Mid( 1 );
@@ -52,7 +52,7 @@ int DoDepth( wxString* aStr )
 
     if( aStr->Len() > 0 )
     {
-        if( (*aStr)[0] == ')' )
+        if( (*aStr)[0] == wxT( ')' ) )
         {
             result  = -1;
             *aStr   = aStr->Mid( 1 );
@@ -65,53 +65,53 @@ int DoDepth( wxString* aStr )
 
 static wxString dummyLines[44] =
 {
-    // "(padShape (layerType Signal)",
-    // "(padShape (layerType Plane)",
-    // "(padShape (layerType NonSignal)",
-    "(textStyleDisplayTType ",
-    "(textStyleAllowTType ",
-    "(attr \"PadToPadClearance\"",
-    "(attr \"PadToLineClearance\"",
-    "(attr \"LineToLineClearance\"",
-    "(attr \"ViaToPadClearance\"",
-    "(attr \"ViaToLineClearance\"",
-    "(attr \"ViaToViaClearance\"",
-    "(fieldSetRef ",
-    "(attr \"SimType\"",
-    "(attr \"SimPins\"",
-    "(attr \"SimNetlist\"",
-    "(attr \"SimField1\"",
-    "(attr \"SimField2\"",
-    "(attr \"SimField3\"",
-    "(attr \"SimField4\"",
-    "(attr \"SimField5\"",
-    "(attr \"SimField6\"",
-    "(attr \"SimField7\"",
-    "(attr \"SimField8\"",
-    "(attr \"SimField9\"",
-    "(attr \"SimField10\"",
-    "(attr \"SimField11\"",
-    "(attr \"SimField12\"",
-    "(attr \"SimField13\"",
-    "(attr \"SimField14\"",
-    "(attr \"SimField15\"",
-    "(attr \"SimField16\"",
-    "(attr \"Part Field 1\"",
-    "(attr \"Part Field 2\"",
-    "(attr \"Part Field 3\"",
-    "(attr \"Part Field 4\"",
-    "(attr \"Part Field 5\"",
-    "(attr \"Part Field 6\"",
-    "(attr \"Part Field 7\"",
-    "(attr \"Part Field 8\"",
-    "(attr \"Part Field 9\"",
-    "(attr \"Part Field 10\"",
-    "(attr \"Part Field 11\"",
-    "(attr \"Part Field 12\"",
-    "(attr \"Part Field 13\"",
-    "(attr \"Part Field 14\"",
-    "(attr \"Part Field 15\"",
-    "(attr \"Part Field 16\""
+    // wxT( "(padShape (layerType Signal)" ),
+    // wxT( "(padShape (layerType Plane)" ),
+    // wxT( "(padShape (layerType NonSignal)" ),
+    wxT( "(textStyleDisplayTType " ),
+    wxT( "(textStyleAllowTType " ),
+    wxT( "(attr \"PadToPadClearance\"" ),
+    wxT( "(attr \"PadToLineClearance\"" ),
+    wxT( "(attr \"LineToLineClearance\"" ),
+    wxT( "(attr \"ViaToPadClearance\"" ),
+    wxT( "(attr \"ViaToLineClearance\"" ),
+    wxT( "(attr \"ViaToViaClearance\"" ),
+    wxT( "(fieldSetRef " ),
+    wxT( "(attr \"SimType\"" ),
+    wxT( "(attr \"SimPins\"" ),
+    wxT( "(attr \"SimNetlist\"" ),
+    wxT( "(attr \"SimField1\"" ),
+    wxT( "(attr \"SimField2\"" ),
+    wxT( "(attr \"SimField3\"" ),
+    wxT( "(attr \"SimField4\"" ),
+    wxT( "(attr \"SimField5\"" ),
+    wxT( "(attr \"SimField6\"" ),
+    wxT( "(attr \"SimField7\"" ),
+    wxT( "(attr \"SimField8\"" ),
+    wxT( "(attr \"SimField9\"" ),
+    wxT( "(attr \"SimField10\"" ),
+    wxT( "(attr \"SimField11\"" ),
+    wxT( "(attr \"SimField12\"" ),
+    wxT( "(attr \"SimField13\"" ),
+    wxT( "(attr \"SimField14\"" ),
+    wxT( "(attr \"SimField15\"" ),
+    wxT( "(attr \"SimField16\"" ),
+    wxT( "(attr \"Part Field 1\"" ),
+    wxT( "(attr \"Part Field 2\"" ),
+    wxT( "(attr \"Part Field 3\"" ),
+    wxT( "(attr \"Part Field 4\"" ),
+    wxT( "(attr \"Part Field 5\"" ),
+    wxT( "(attr \"Part Field 6\"" ),
+    wxT( "(attr \"Part Field 7\"" ),
+    wxT( "(attr \"Part Field 8\"" ),
+    wxT( "(attr \"Part Field 9\"" ),
+    wxT( "(attr \"Part Field 10\"" ),
+    wxT( "(attr \"Part Field 11\"" ),
+    wxT( "(attr \"Part Field 12\"" ),
+    wxT( "(attr \"Part Field 13\"" ),
+    wxT( "(attr \"Part Field 14\"" ),
+    wxT( "(attr \"Part Field 15\"" ),
+    wxT( "(attr \"Part Field 16\"" )
 };
 
 // SKIP UNCONVERTED LINES
@@ -208,11 +208,11 @@ void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar, wxArrayString* 
 
                 if( w.Len() > 0 )
                 {
-                    if( w[0] == '-' )
-                        w = '_' + w;
+                    if( w[0] == wxT( '-' ) )
+                        w = wxT( '_' ) + w;
 
-                    if( w[0] == '+' )
-                        w = '_' + w;
+                    if( w[0] == wxT( '+' ) )
+                        w = wxT( '_' ) + w;
 
                     lines.Add( w );
                 }
@@ -224,7 +224,7 @@ void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar, wxArrayString* 
 
     if( aStatusBar )
         aStatusBar->SetStatusText( wxT( "Input file processed  : " ) +
-                                   wxString::Format( "%d", fileLine ) +
+                                   wxString::Format( wxT( "%d" ), fileLine ) +
                                    wxT( " lines." ) );
 
     // preallocate memory for array to increase performance

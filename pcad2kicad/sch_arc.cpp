@@ -60,12 +60,12 @@ void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
     wxString    propValue;
     double      r = 0.0;
 
-    m_objType   = wxT("arc");
+    m_objType   = wxT( "arc" );
     m_partNum   = aSymbolIndex;
 
     if( FindNode( aNode, wxT( "width" ) ) )
         m_width = StrToIntUnits( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
-                                 ' ', aActualConversion );
+                                 wxT( ' ' ), aActualConversion );
     else
         m_width = 1; // default
 
@@ -107,7 +107,7 @@ void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
 
         lNode = FindNode( aNode, wxT( "radius" ) );
         if( lNode )
-            r = StrToIntUnits( lNode->GetNodeContent(), ' ', aActualConversion );
+            r = StrToIntUnits( lNode->GetNodeContent(), wxT( ' ' ), aActualConversion );
 
         m_radius = r;
 
@@ -134,7 +134,7 @@ void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
 
 void SCH_ARC::WriteToFile( wxFile* aFile, char aFileType )
 {
-    aFile->Write( wxString::Format( "A %d %d %d %d %d %d 0 %d N %d %d %d %d\n",
+    aFile->Write( wxString::Format( wxT( "A %d %d %d %d %d %d 0 %d N %d %d %d %d\n" ),
                                     m_positionX, m_positionY, m_radius, m_startAngle, m_sweepAngle,
                                     m_partNum, m_width, m_startX, m_startY, m_toX, m_toY ) );
 }

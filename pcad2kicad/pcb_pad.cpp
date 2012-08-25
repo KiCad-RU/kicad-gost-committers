@@ -37,7 +37,7 @@ namespace PCAD2KICAD {
 
 PCB_PAD::PCB_PAD( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
-    m_objType   = 'P';
+    m_objType   = wxT( 'P' );
     m_number    = 0;
     m_hole      = 0;
 }
@@ -56,10 +56,10 @@ PCB_PAD::~PCB_PAD()
 
 int PCB_PAD::ToInt( char aChar )
 {
-    if( aChar >= '0' && aChar <= '9' )
-        return aChar - '0';
+    if( aChar >= wxT( '0' ) && aChar <= wxT( '9' ) )
+        return aChar - wxT( '0' );
     else
-        return aChar - 'A' + 10;
+        return aChar - wxT( 'A' ) + 10;
 }
 
 
@@ -74,7 +74,7 @@ char PCB_PAD::OrMask( char aM1, char aM2 )
 
     i   = ToInt( aM1 );
     i   += ToInt( aM2 );
-    s   = wxString::Format( "%X", i );
+    s   = wxString::Format( wxT( "%X" ), i );
     return s[0];
 }
 
@@ -345,12 +345,12 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
 
             // Name, Shape, Xsize Ysize Xdelta Ydelta Orientation
             aFile->Write( wxT( "Sh \"" ) + m_name.text + wxT( "\" " ) + s +
-                          wxString::Format( " %d %d 0 0 %d\n",
+                          wxString::Format( wxT( " %d %d 0 0 %d\n" ),
                                             padShape->m_width, padShape->m_height, m_rotation +
                                             aRotation ) );
 
             // Hole size , OffsetX, OffsetY
-            aFile->Write( wxString::Format( "Dr %d 0 0\n", m_hole ) );
+            aFile->Write( wxString::Format( wxT( "Dr %d 0 0\n" ), m_hole ) );
 
             layerMask = KiCadLayerMask( layerMask, padShape->m_KiCadLayer );
 
@@ -358,10 +358,10 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
             aFile->Write( wxT( "At " ) + padType + wxT( " N " ) + layerMask + wxT( "\n" ) );
 
             // Reference
-            aFile->Write( wxT( "Ne 0 \"" ) + m_net + "\"\n" );
+            aFile->Write( wxT( "Ne 0 \"" ) + m_net + wxT( "\"\n" ) );
 
             // Position
-            aFile->Write( wxString::Format( "Po %d %d\n", m_positionX, m_positionY ) );
+            aFile->Write( wxString::Format( wxT( "Po %d %d\n" ), m_positionX, m_positionY ) );
             aFile->Write( wxT( "$EndPAD\n" ) );
         }
     }

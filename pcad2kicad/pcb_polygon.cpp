@@ -40,7 +40,7 @@ PCB_POLYGON::PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPO
                                                                                       aBoard )
 {
     m_width     = 0;
-    m_objType   = 'Z';
+    m_objType   = wxT( 'Z' );
 }
 
 

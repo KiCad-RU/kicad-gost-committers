@@ -45,18 +45,18 @@ wxString GetWord( wxString* aStr )
     if( aStr->Len() == 0 )
         return result;
 
-    if( (*aStr)[0] == '"' )
+    if( (*aStr)[0] == wxT( '"' ) )
     {
         result  += (*aStr)[0];
         *aStr   = aStr->Mid( 1 ); // remove Frot apostrofe
 
-        while( aStr->Len() > 0 && (*aStr)[0] != '"' )
+        while( aStr->Len() > 0 && (*aStr)[0] != wxT( '"' ) )
         {
             result  += (*aStr)[0];
             *aStr   = aStr->Mid( 1 );
         }
 
-        if( aStr->Len() > 0 && (*aStr)[0] == '"' )
+        if( aStr->Len() > 0 && (*aStr)[0] == wxT( '"' ) )
         {
             result  += (*aStr)[0];
             *aStr   = aStr->Mid( 1 ); // remove ending apostrophe
@@ -65,7 +65,9 @@ wxString GetWord( wxString* aStr )
     else
     {
         while( aStr->Len() > 0
-               && !( (*aStr)[0] == ' ' || (*aStr)[0] == '(' || (*aStr)[0] == ')' ) )
+               && !( (*aStr)[0] == wxT( ' ' )
+                     || (*aStr)[0] == wxT( '(' )
+                     || (*aStr)[0] == wxT( ')' ) ) )
         {
             result  += (*aStr)[0];
             *aStr   = aStr->Mid( 1 );
@@ -115,26 +117,26 @@ double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConv
         u = ls[ls.Len() - 1];
 
         while( ls.Len() > 0
-               && !( ls[ls.Len() - 1] == '.'
-                     || ls[ls.Len() - 1] == ','
-                     || (ls[ls.Len() - 1] >= '0' && ls[ls.Len() - 1] <= '9') ) )
+               && !( ls[ls.Len() - 1] == wxT( '.' )
+                     || ls[ls.Len() - 1] == wxT( ',' )
+                     || (ls[ls.Len() - 1] >= wxT( '0' ) && ls[ls.Len() - 1] <= wxT( '9' ) ) ) )
         {
             ls = ls.Left( ls.Len() - 1 );
         }
 
         while( ls.Len() > 0
-               && !( ls[0] == '-'
-                     || ls[0] == '+'
-                     || ls[0] == '.'
-                     || ls[0] == ','
-                     || (ls[0] >= '0' && ls[0] <= '9') ) )
+               && !( ls[0] == wxT( '-' )
+                     || ls[0] == wxT( '+' )
+                     || ls[0] == wxT( '.' )
+                     || ls[0] == wxT( ',' )
+                     || (ls[0] >= wxT( '0' ) && ls[0] <= wxT( '9' ) ) ) )
         {
             ls = ls.Mid( 1 );
         }
 
         // TODO: Is the following commented string necessary?
         // if (pos(',',ls) > 0) DecimalSeparator:=',' else DecimalSeparator:='.';
-        if( u == 'm' )
+        if( u == wxT( 'm' ) )
         {
             ls.ToDouble( &i );
             i = i * precision / 0.0254;
@@ -148,7 +150,8 @@ double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConv
     else
         i = 0.0;
 
-    if( ( aActualConversion == wxT( "PCB" ) || aActualConversion == wxT( "SCH" ) ) && aAxe == 'Y' )
+    if( ( aActualConversion == wxT( "PCB" ) || aActualConversion == wxT( "SCH" ) )
+        && aAxe == wxT( 'Y' ) )
         return -i;
     else
         return i; // Y axe is mirrored in compare with PCAD
@@ -169,7 +172,7 @@ wxString GetAndCutWordWithMeasureUnits( wxString* aStr, wxString aDefaultMeasure
     result = wxEmptyString;
 
     // value
-    while( aStr->Len() > 0 && (*aStr)[0] != ' ' )
+    while( aStr->Len() > 0 && (*aStr)[0] != wxT( ' ' ) )
     {
         result  += (*aStr)[0];
         *aStr   = aStr->Mid( 1 );
@@ -179,8 +182,8 @@ wxString GetAndCutWordWithMeasureUnits( wxString* aStr, wxString aDefaultMeasure
 
     // if there is also measurement unit
     while( aStr->Len() > 0
-           && ( ( (*aStr)[0] >= 'a' && (*aStr)[0] <= 'z' )
-                || ( (*aStr)[0] >= 'A' && (*aStr)[0] <= 'Z' ) ) )
+           && ( ( (*aStr)[0] >= wxT( 'a' ) && (*aStr)[0] <= wxT( 'z' ) )
+                || ( (*aStr)[0] >= wxT( 'A' ) && (*aStr)[0] <= wxT( 'Z' ) ) ) )
     {
         result  += (*aStr)[0];
         *aStr   = aStr->Mid( 1 );
@@ -188,9 +191,10 @@ wxString GetAndCutWordWithMeasureUnits( wxString* aStr, wxString aDefaultMeasure
 
     // and if not, add default....
     if( result.Len() > 0
-        && ( result[result.Len() - 1] == '.'
-             || result[result.Len() - 1] == ','
-             || (result[result.Len() - 1] >= '0' && result[result.Len() - 1] <= '9') ) )
+        && ( result[result.Len() - 1] == wxT( '.' )
+             || result[result.Len() - 1] == wxT( ',' )
+             || (result[result.Len() - 1] >= wxT( '0' )
+                 && result[result.Len() - 1] <= wxT( '9' ) ) ) )
     {
         result += aDefaultMeasurementUnit;
     }
@@ -219,8 +223,8 @@ wxString ValidateName( wxString aName )
 
     for( i = 0; i < (int) aName.Len(); i++ )
     {
-        if( aName[i] == ' ' )
-            o += '_';
+        if( aName[i] == wxT( ' ' ) )
+            o += wxT( '_' );
         else
             o += aName[i];
     }
@@ -235,7 +239,7 @@ void SetWidth( wxString aStr,
                wxString aActualConversion )
 {
     *aWidth = StrToIntUnits( GetAndCutWordWithMeasureUnits( &aStr,
-                                                            aDefaultMeasurementUnit ), ' ',
+                                                            aDefaultMeasurementUnit ), wxT( ' ' ),
                              aActualConversion );
 }
 
@@ -246,7 +250,7 @@ void SetHeight( wxString    aStr,
                 wxString    aActualConversion )
 {
     *aHeight = StrToIntUnits( GetAndCutWordWithMeasureUnits( &aStr,
-                                                             aDefaultMeasurementUnit ), ' ',
+                                                             aDefaultMeasurementUnit ), wxT( ' ' ),
                               aActualConversion );
 }
 
@@ -258,10 +262,10 @@ void SetPosition( wxString  aStr,
                   wxString  aActualConversion )
 {
     *aX = StrToIntUnits( GetAndCutWordWithMeasureUnits( &aStr,
-                                                        aDefaultMeasurementUnit ), 'X',
+                                                        aDefaultMeasurementUnit ), wxT( 'X' ),
                          aActualConversion );
     *aY = StrToIntUnits( GetAndCutWordWithMeasureUnits( &aStr,
-                                                        aDefaultMeasurementUnit ), 'Y',
+                                                        aDefaultMeasurementUnit ), wxT( 'Y' ),
                          aActualConversion );
 }
 
@@ -273,10 +277,10 @@ void SetDoublePrecisionPosition( wxString   aStr,
                                  wxString   aActualConversion )
 {
     *aX = StrToDoublePrecisionUnits( GetAndCutWordWithMeasureUnits( &aStr,
-                                                                    aDefaultMeasurementUnit ), 'X',
+                                                                    aDefaultMeasurementUnit ), wxT( 'X' ),
                                      aActualConversion );
     *aY = StrToDoublePrecisionUnits( GetAndCutWordWithMeasureUnits( &aStr,
-                                                                    aDefaultMeasurementUnit ), 'Y',
+                                                                    aDefaultMeasurementUnit ), wxT( 'Y' ),
                                      aActualConversion );
 }
 

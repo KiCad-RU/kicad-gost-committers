@@ -77,7 +77,7 @@ void SCH_JUNCTION::Parse( wxXmlNode*    aNode,
 
 void SCH_JUNCTION::WriteToFile( wxFile* aFile, char aFileType )
 {
-    aFile->Write( wxString::Format( "Connection ~ %d %d\n", m_positionX, m_positionY ) );
+    aFile->Write( wxString::Format( wxT( "Connection ~ %d %d\n" ), m_positionX, m_positionY ) );
 }
 
 } // namespace PCAD2KICAD

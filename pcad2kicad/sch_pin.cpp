@@ -62,7 +62,7 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
     m_objType = wxT( "pin" );
 // SCHLine.PartNum:=SymbolIndex;
     aNode->GetAttribute( wxT( "Name" ), &m_number.text );
-    m_pinNum.text   = '0';  // Default
+    m_pinNum.text   = wxT( '0' );  // Default
     m_isVisible     = 0;    // Default is not visible
 
 // SCHPin.pinName.Text:='~'; // Default
@@ -87,7 +87,7 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
     }
 
     if( m_pinName.text.Len() == 0 )
-        m_pinName.text = '~'; // Default
+        m_pinName.text = wxT( '~' ); // Default
 }
 
 
@@ -111,7 +111,7 @@ void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
             t = FindNode( aNode, wxT( "pinLength" ) )->GetNodeContent();
             m_pinLength = StrToIntUnits( GetAndCutWordWithMeasureUnits( &t,
                                                                         aDefaultMeasurementUnit ),
-                                         ' ', aActualConversion );
+                                         wxT( ' ' ), aActualConversion );
         }
 
         m_edgeStyle = FindNodeGetContent( aNode, wxT( "outsideEdgeStyle" ) );
@@ -178,33 +178,33 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
     char        orientation, pinType;
     wxString    shape;
 
-    orientation = 'L';
+    orientation = wxT( 'L' );
 
     if( m_rotation == 0 )
     {
-        orientation = 'L';
+        orientation = wxT( 'L' );
         m_positionX += m_pinLength;    // Set corrected to KiCad position
     }
 
     if( m_rotation == 900 )
     {
-        orientation = 'D';
+        orientation = wxT( 'D' );
         m_positionY += m_pinLength;    // Set corrected to KiCad position
     }
 
     if( m_rotation == 1800 )
     {
-        orientation = 'R';
+        orientation = wxT( 'R' );
         m_positionX -= m_pinLength;    // Set corrected to KiCad position
     }
 
     if( m_rotation == 2700 )
     {
-        orientation = 'U';
+        orientation = wxT( 'U' );
         m_positionY -= m_pinLength;    // Set corrected to KiCad position
     }
 
-    pinType = 'U';    // Default
+    pinType = wxT( 'U' );    // Default
 
 /*  E  Open E
  *   C Open C
@@ -217,44 +217,44 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
  *   O Output
  *   I Input */
     if( m_pinType == wxT( "Pasive" ) )
-        pinType = 'P';
+        pinType = wxT( 'P' );
 
     if( m_pinType == wxT( "Input" ) )
-        pinType = 'I';
+        pinType = wxT( 'I' );
 
     if( m_pinType == wxT( "Output" ) )
-        pinType = 'O';
+        pinType = wxT( 'O' );
 
     if( m_pinType == wxT( "Power" ) )
-        pinType = 'W';
+        pinType = wxT( 'W' );
 
     if( m_pinType == wxT( "Bidirectional" ) )
-        pinType = 'B';
+        pinType = wxT( 'B' );
 
     shape = wxEmptyString;    // Default , standard line without shape
 
     if( m_edgeStyle == wxT( "Dot" ) )
-        shape = 'I'; // Invert
+        shape = wxT( 'I' ); // Invert
 
     if( m_edgeStyle == wxT( "Clock" ) )
-        shape = 'C'; // Clock
+        shape = wxT( 'C' ); // Clock
 
     if( m_edgeStyle == wxT( "???" ) )
         shape = wxT( "IC" ); // Clock Invert
 
     if( m_isVisible == 0 )
-        shape += 'N'; // Invisible
+        shape += wxT( 'N' ); // Invisible
 
     // unit = 0 if common to the parts; if not, number of part (1. .n).
     // convert = 0 so common to the representations, if not 1 or 2.
     // Go out
-    aFile->Write( wxT( "X " ) + m_pinName.text + ' ' + m_number.text + ' ' +
-                  wxString::Format( "%d %d %d",
+    aFile->Write( wxT( "X " ) + m_pinName.text + wxT( ' ' ) + m_number.text + wxT( ' ' ) +
+                  wxString::Format( wxT( "%d %d %d" ),
                                     m_positionX,
                                     m_positionY,
-                                    m_pinLength ) + ' ' + orientation +
-                  wxString::Format( " 30 30 %d 0 ", m_partNum ) +
-                  pinType + ' ' + shape + wxT( "\n" ) );
+                                    m_pinLength ) + wxT( ' ' ) + orientation +
+                  wxString::Format( wxT( " 30 30 %d 0 " ), m_partNum ) +
+                  pinType + wxT( ' ' ) + shape + wxT( "\n" ) );
 }
 
 } // namespace PCAD2KICAD

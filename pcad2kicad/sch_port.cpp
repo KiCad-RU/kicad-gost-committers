@@ -81,13 +81,13 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
     char lr;
 
     if( m_labelText.textRotation == 0 )
-        lr = '0';
+        lr = wxT( '0' );
     else
-        lr = '1';
+        lr = wxT( '1' );
 
-    aFile->Write( wxString::Format( "Text Label %d %d",
+    aFile->Write( wxString::Format( wxT( "Text Label %d %d" ),
                                     m_positionX, m_positionY ) +
-                  ' ' + lr + ' ' + wxT( " 60 ~\n" ) );
+                  wxT( ' ' ) + lr + wxT( ' ' ) + wxT( " 60 ~\n" ) );
     aFile->Write( m_labelText.text + wxT( "\n" ) );
 }
 

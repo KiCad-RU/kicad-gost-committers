@@ -49,7 +49,7 @@ PCB_MODULE::PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONE
 {
     InitTTextValue( &m_value );
     m_mirror = 0;
-    m_objType = 'M';    // MODULE
+    m_objType = wxT( 'M' );    // MODULE
     m_KiCadLayer = 21;  // default
 }
 
@@ -348,7 +348,7 @@ void PCB_MODULE::SetPadName( wxString aPin, wxString aName )
 
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'P' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'P' ) )
             if( ( (PCB_PAD*) m_moduleObjects[i] )->m_number == num )
                 ( (PCB_PAD*) m_moduleObjects[i] )->m_name.text = aName;
 
@@ -474,7 +474,7 @@ void PCB_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     // Go out
     aFile->Write( wxT( "\n" ) );
     aFile->Write( wxT( "$MODULE " ) + m_name.text + wxT( "\n" ) );
-    aFile->Write( wxString::Format( "Po %d %d %d ", m_positionX, m_positionY, m_rotation ) +
+    aFile->Write( wxString::Format( wxT( "Po %d %d %d " ), m_positionX, m_positionY, m_rotation ) +
                   ModuleLayer( m_mirror ) + wxT( " 00000000 00000000 ~~\n" ) ); // Position
     aFile->Write( wxT( "Li " ) + m_name.text + wxT( "\n" ) );                   // Modulename
     aFile->Write( wxT( "Sc 00000000\n" ) );                                     // Timestamp
@@ -483,49 +483,49 @@ void PCB_MODULE::WriteToFile( wxFile* aFile, char aFileType )
 
     // MODULE STRINGS
     if( m_name.textIsVisible == 1 )
-        visibility = 'V';
+        visibility = wxT( 'V' );
     else
-        visibility = 'I';
+        visibility = wxT( 'I' );
 
     if( m_name.mirror == 1 )
-        mirrored = 'M';
+        mirrored = wxT( 'M' );
     else
-        mirrored = 'N';
+        mirrored = wxT( 'N' );
 
-    aFile->Write( wxString::Format( "T0 %d %d %d %d %d %d", m_name.correctedPositionX,
+    aFile->Write( wxString::Format( wxT( "T0 %d %d %d %d %d %d" ), m_name.correctedPositionX,
                                     m_name.correctedPositionY,
                                     KiROUND( m_name.textHeight / 2 ),
                                     KiROUND( m_name.textHeight / 1.5 ),
                                     m_name.textRotation,
                                     /* TODO: Is it correct to use m_value.textstrokeWidth here? */
                                     m_value.textstrokeWidth ) +
-                  ' ' + mirrored + ' ' + visibility +
-                  wxString::Format( " %d \"", m_KiCadLayer ) +
+                  wxT( ' ' ) + mirrored + wxT( ' ' ) + visibility +
+                  wxString::Format( wxT( " %d \"" ), m_KiCadLayer ) +
                   m_name.text + wxT( "\"\n" ) );    // NameString
 
     if( m_value.textIsVisible == 1 )
-        visibility = 'V';
+        visibility = wxT( 'V' );
     else
-        visibility = 'I';
+        visibility = wxT( 'I' );
 
     if( m_value.mirror == 1 )
-        mirrored = 'M';
+        mirrored = wxT( 'M' );
     else
-        mirrored = 'N';
+        mirrored = wxT( 'N' );
 
-    aFile->Write( wxString::Format( "T1 %d %d %d %d %d %d", m_value.correctedPositionX,
+    aFile->Write( wxString::Format( wxT( "T1 %d %d %d %d %d %d" ), m_value.correctedPositionX,
                                     m_value.correctedPositionY,
                                     KiROUND( m_value.textHeight / 2 ),
                                     KiROUND( m_value.textHeight / 1.5 ),
                                     m_value.textRotation, m_value.textstrokeWidth ) +
-                  ' ' + mirrored + ' ' + visibility +
-                  wxString::Format( " %d \"", m_KiCadLayer ) + m_value.text +
+                  wxT( ' ' ) + mirrored + wxT( ' ' ) + visibility +
+                  wxString::Format( wxT( " %d \"" ), m_KiCadLayer ) + m_value.text +
                   wxT( "\"\n" ) );    // ValueString
 
     // TEXTS
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'T' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'T' ) )
         {
             ( (PCB_TEXT*) m_moduleObjects[i] )->m_tag = i + 2;
             m_moduleObjects[i]->WriteToFile( aFile, aFileType );
@@ -535,28 +535,28 @@ void PCB_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     // MODULE LINES
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'L' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'L' ) )
             m_moduleObjects[i]->WriteToFile( aFile, aFileType );
     }
 
     // MODULE Arcs
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'A' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'A' ) )
             m_moduleObjects[i]->WriteToFile( aFile, aFileType );
     }
 
     // PADS
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'P' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'P' ) )
             ( (PCB_PAD*) m_moduleObjects[i] )->WriteToFile( aFile, aFileType, m_rotation );
     }
 
     // VIAS
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'V' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'V' ) )
             ( (PCB_VIA*) m_moduleObjects[i] )->WriteToFile( aFile, aFileType, m_rotation );
     }
 
@@ -633,7 +633,7 @@ void PCB_MODULE::AddToBoard()
     // TEXTS
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'T' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'T' ) )
         {
             ( (PCB_TEXT*) m_moduleObjects[i] )->m_tag = i + 2;
             m_moduleObjects[i]->AddToModule( module );
@@ -643,28 +643,28 @@ void PCB_MODULE::AddToBoard()
     // MODULE LINES
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'L' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'L' ) )
             m_moduleObjects[i]->AddToModule( module );
     }
 
     // MODULE Arcs
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'A' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'A' ) )
             m_moduleObjects[i]->AddToModule( module );
     }
 
     // PADS
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'P' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'P' ) )
             ( (PCB_PAD*) m_moduleObjects[i] )->AddToModule( module, m_rotation );
     }
 
     // VIAS
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
-        if( m_moduleObjects[i]->m_objType == 'V' )
+        if( m_moduleObjects[i]->m_objType == wxT( 'V' ) )
             ( (PCB_VIA*) m_moduleObjects[i] )->AddToModule( module, m_rotation );
     }
 
@@ -725,7 +725,7 @@ void PCB_MODULE::Flip()
         for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
         {
             // MODULE LINES
-            if( m_moduleObjects[i]->m_objType == 'L' )
+            if( m_moduleObjects[i]->m_objType == wxT( 'L' ) )
             {
                 m_moduleObjects[i]->m_positionX = -m_moduleObjects[i]->m_positionX;
                 ( (PCB_LINE*) m_moduleObjects[i] )->m_toX =
@@ -734,7 +734,7 @@ void PCB_MODULE::Flip()
             }
 
             // MODULE Arcs
-            if( m_moduleObjects[i]->m_objType == 'A' )
+            if( m_moduleObjects[i]->m_objType == wxT( 'A' ) )
             {
                 m_moduleObjects[i]->m_positionX = -m_moduleObjects[i]->m_positionX;
                 ( (PCB_ARC*) m_moduleObjects[i] )->m_startX =
@@ -743,7 +743,7 @@ void PCB_MODULE::Flip()
             }
 
             // PADS
-            if( m_moduleObjects[i]->m_objType == 'P' )
+            if( m_moduleObjects[i]->m_objType == wxT( 'P' ) )
             {
                 m_moduleObjects[i]->m_positionX = -m_moduleObjects[i]->m_positionX;
                 m_moduleObjects[i]->m_rotation  = -m_moduleObjects[i]->m_rotation;
@@ -755,7 +755,7 @@ void PCB_MODULE::Flip()
             }
 
             // VIAS
-            if( m_moduleObjects[i]->m_objType == 'V' )
+            if( m_moduleObjects[i]->m_objType == wxT( 'V' ) )
             {
                 m_moduleObjects[i]->m_positionX = -m_moduleObjects[i]->m_positionX;
 

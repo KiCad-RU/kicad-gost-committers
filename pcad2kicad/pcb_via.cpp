@@ -37,7 +37,7 @@ namespace PCAD2KICAD {
 
 PCB_VIA::PCB_VIA( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_PAD( aCallbacks, aBoard )
 {
-    m_objType = 'V';
+    m_objType = wxT( 'V' );
 }
 
 

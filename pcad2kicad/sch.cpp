@@ -73,7 +73,7 @@ void SCH::DoAlias( wxString aAlias )
 
             if( ( (SCH_MODULE*) m_schComponents[i] )->m_name.text == n )
             {
-                ( (SCH_MODULE*) m_schComponents[i] )->m_alias += ' ' + a;
+                ( (SCH_MODULE*) m_schComponents[i] )->m_alias += wxT( ' ' ) + a;
             }
         }
     }
@@ -195,7 +195,7 @@ void SCH::WriteToFile( wxString aFileName, char aFileType )
     wxFile  f;
     int     i;
 
-    if( aFileType == 'L' )
+    if( aFileType == wxT( 'L' ) )
     {
         // LIBRARY
         f.Open( aFileName, wxFile::write );
@@ -236,7 +236,7 @@ void SCH::WriteToFile( wxString aFileName, char aFileType )
         f.Close();
     }    // LIBRARY
 
-    if( aFileType == 'S' )
+    if( aFileType == wxT( 'S' ) )
     {
         // SCHEMATICS
 

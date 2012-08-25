@@ -41,7 +41,7 @@ SCH_LINE::SCH_LINE()
     m_toX   = 0;
     m_toY   = 0;
     m_net   = wxEmptyString;
-    m_lineType = '?';
+    m_lineType = wxT( '?' );
     InitTTextValue( &m_labelText );
 }
 
@@ -56,11 +56,11 @@ void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
     m_partNum   = aSymbolIndex;
 
     if( aNode->GetName() == wxT( "line" ) )
-        m_lineType = 'W'; // wire
+        m_lineType = wxT( 'W' ); // wire
 
     if( FindNode( aNode, wxT( "width" ) ) )
         m_width = StrToIntUnits( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
-                                 ' ', aActualConversion );
+                                 wxT( ' ' ), aActualConversion );
     else
         m_width = 1; // default
 
@@ -145,8 +145,8 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
 {
     wxString lt;
 
-    if( aFileType == 'L' )
-        aFile->Write( wxString::Format( "P 2 %d 0 %d %d %d %d %d N\n",
+    if( aFileType == wxT( 'L' ) )
+        aFile->Write( wxString::Format( wxT( "P 2 %d 0 %d %d %d %d %d N\n" ),
                                         m_partNum,
                                         m_width,
                                         m_positionX,
@@ -154,16 +154,16 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
                                         m_toX,
                                         m_toY ) );
 
-    if( aFileType == 'S' )
+    if( aFileType == wxT( 'S' ) )
     {
-        if( m_lineType == 'W' )
-            lt = wxString( "Wire" );
+        if( m_lineType == wxT( 'W' ) )
+            lt = wxT( "Wire" );
 
-        if( m_lineType == 'B' )
-            lt = wxString( "Bus" );
+        if( m_lineType == wxT( 'B' ) )
+            lt = wxT( "Bus" );
 
         aFile->Write( wxT( "Wire " ) + lt + wxT( " Line\n" ) );
-        aFile->Write( wxString::Format( "               %d %d %d %d\n",
+        aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
                                         m_positionX, m_positionY, m_toX, m_toY ) );
     }
 }
@@ -176,13 +176,13 @@ void SCH_LINE::WriteLabelToFile( wxFile* aFile, char aFileType )
     if( m_labelText.textIsVisible == 1 )
     {
         if( m_labelText.textRotation == 0 )
-            lr = '0';
+            lr = wxT( '0' );
         else
-            lr = '1';
+            lr = wxT( '1' );
 
-        aFile->Write( wxString::Format( "Text Label %d %d",
+        aFile->Write( wxString::Format( wxT( "Text Label %d %d" ),
                                         m_labelText.textPositionX, m_labelText.textPositionY ) +
-                      ' ' + lr + ' ' + wxT( " 60 ~\n" ) );
+                      wxT( ' ' ) + lr + wxT( ' ' ) + wxT( " 60 ~\n" ) );
         aFile->Write( m_labelText.text + wxT( "\n" ) );
     }
 }

@@ -340,44 +340,44 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     wxFile  f;
     int     i;
 
-    f.Open( aFileName + wxT("_") + m_name + wxT(".sch"), wxFile::write );
+    f.Open( aFileName + wxT( "_" ) + m_name + wxT( ".sch" ), wxFile::write );
     f.Write( wxT( "EESchema Schematic File Version 1\n" ) );
     wxFileName tmpFile( aFileName );
     tmpFile.SetExt( wxEmptyString );
     f.Write( wxT( "LIBS:" ) + aFileName + wxT( "\n" ) );
     f.Write( wxT( "EELAYER 43  0\n" ) );
     f.Write( wxT( "EELAYER END\n" ) );
-    f.Write( wxT( "$Descr User " ) + wxString::Format( "%d",
-                                                       m_sizeX ) + ' ' +
-             wxString::Format( "%d", m_sizeY ) + wxT( "\n" ) );
+    f.Write( wxT( "$Descr User " ) + wxString::Format( wxT( "%d" ),
+                                                       m_sizeX ) + wxT( ' ' ) +
+             wxString::Format( wxT( "%d" ), m_sizeY ) + wxT( "\n" ) );
     f.Write( wxT( "$EndDescr\n" ) );
 
     // Junctions
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
         if( m_schComponents[i]->m_objType == wxT( "junction" ) )
-            m_schComponents[i]->WriteToFile( &f, 'S' );
+            m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
     }
 
     // Lines
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
         if( m_schComponents[i]->m_objType == wxT( "line" ) )
-            m_schComponents[i]->WriteToFile( &f, 'S' );
+            m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
     }
 
     // Ports
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
         if( m_schComponents[i]->m_objType == wxT( "port" ) )
-            m_schComponents[i]->WriteToFile( &f, 'S' );
+            m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
     }
 
     // Labels of lines - line and bus names
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
         if( m_schComponents[i]->m_objType == wxT( "line" ) )
-            ( (SCH_LINE*) m_schComponents[i] )->WriteLabelToFile( &f, 'S' );
+            ( (SCH_LINE*) m_schComponents[i] )->WriteLabelToFile( &f, wxT( 'S' ) );
     }
 
     // Symbols
@@ -386,7 +386,7 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
         if( m_schComponents[i]->m_objType == wxT( "symbol" ) )
         {
             f.Write( wxT( "$Comp\n" ) );
-            m_schComponents[i]->WriteToFile( &f, 'S' );
+            m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
             f.Write( wxT( "$EndComp\n" ) );
         }
     }

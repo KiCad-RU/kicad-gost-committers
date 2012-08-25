@@ -36,7 +36,7 @@ namespace PCAD2KICAD {
 
 SCH_COMPONENT::SCH_COMPONENT()
 {
-    m_objType   = wxT("?");
+    m_objType   = wxT( "?" );
     m_positionX = 0;
     m_positionY = 0;
     m_rotation  = 0;

@@ -50,8 +50,8 @@ SCH_MODULE::SCH_MODULE()
     m_attachedPattern   = wxEmptyString;
     m_moduleDescription = wxEmptyString;
     m_alias = wxEmptyString;
-    m_pinNumVisibility = 'Y';
-    m_pinNameVisibility = 'N';
+    m_pinNumVisibility = wxT( 'Y' );
+    m_pinNameVisibility = wxT( 'N' );
 
     for( i = 0; i < 10; i++ )
         m_attachedSymbols[i] = wxEmptyString;
@@ -165,10 +165,10 @@ void SCH_MODULE::SetPinProperties( wxXmlNode* aNode, int aSymbolIndex,
                                         aDefaultMeasurementUnit, aActualConversion );
 
             if( !schPin->m_pinNumVisible )
-                m_pinNumVisibility = 'N';
+                m_pinNumVisibility = wxT( 'N' );
 
             if( schPin->m_pinNameVisible )
-                m_pinNameVisibility = 'Y';
+                m_pinNameVisibility = wxT( 'Y' );
         }
     }
 }
@@ -329,18 +329,18 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxT( "#\n" ) );
     aFile->Write( wxT( "# " ) + m_name.text + wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );
-    aFile->Write( "DEF " + ValidateName( m_name.text ) + " U 0 40 " +
-                  m_pinNumVisibility + ' ' + m_pinNameVisibility +
-                  wxString::Format( " %d F N\n", m_numParts ) );
+    aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " U 0 40 " ) +
+                  m_pinNumVisibility + wxT( ' ' ) + m_pinNameVisibility +
+                  wxString::Format( wxT( " %d F N\n" ), m_numParts ) );
 
     // REFERENCE
-    aFile->Write( wxT( "F0 \"" ) + m_reference.text + "\" " +
-                  wxString::Format( "%d %d 50 H V C C\n",
+    aFile->Write( wxT( "F0 \"" ) + m_reference.text + wxT( "\" " ) +
+                  wxString::Format( wxT( "%d %d 50 H V C C\n" ),
                                     m_reference.correctedPositionX,
                                     m_reference.correctedPositionY ) );
     // NAME
-    aFile->Write( wxT( "F1 \"" ) + m_name.text + "\" " +
-                  wxString::Format( "%d %d 50 H V C C\n",
+    aFile->Write( wxT( "F1 \"" ) + m_name.text + wxT( "\" " ) +
+                  wxString::Format( wxT( "%d %d 50 H V C C\n" ),
                                     m_name.correctedPositionX, m_name.correctedPositionY ) );
     // FOOTPRINT
     aFile->Write( wxT( "F2 \"" ) + m_attachedPattern +
@@ -354,7 +354,7 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
         // SO14*
         // $ENDFPLIST
         aFile->Write( wxT( "$FPLIST\n" ) );
-        aFile->Write( ' ' + m_attachedPattern + wxT( "*\n" ) );
+        aFile->Write( wxT( ' ' ) + m_attachedPattern + wxT( "*\n" ) );
         aFile->Write( wxT( "$ENDFPLIST\n" ) );
     }
 
