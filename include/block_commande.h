@@ -34,7 +34,7 @@
 
 #include <base_struct.h>
 #include <class_undoredo_container.h>
-
+#include <gr_basic.h>
 
 /* Block state codes. */
 typedef enum {
@@ -123,8 +123,8 @@ public:
     void Draw( EDA_DRAW_PANEL* aPanel,
                wxDC*           aDC,
                const wxPoint&  aOffset,
-               int             aDrawMode,
-               int             aColor );
+               GR_DRAWMODE     aDrawMode,
+               EDA_COLOR_T     aColor );
 
     /**
      * Function PushItem
@@ -147,7 +147,7 @@ public:
      */
     void ClearItemsList();
 
-    unsigned GetCount()
+    unsigned GetCount() const
     {
         return m_items.GetCount();
     }

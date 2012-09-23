@@ -87,8 +87,8 @@ EDA_DRAW_PANEL::EDA_DRAW_PANEL( EDA_DRAW_FRAME* parent, int id,
 {
     wxASSERT( parent );
 
-    m_scrollIncrementX = MIN( size.x / 8, 10 );
-    m_scrollIncrementY = MIN( size.y / 8, 10 );
+    m_scrollIncrementX = std::min( size.x / 8, 10 );
+    m_scrollIncrementY = std::min( size.y / 8, 10 );
 
     SetBackgroundColour( MakeColour( g_DrawBgColor ) );
 
@@ -153,7 +153,7 @@ BASE_SCREEN* EDA_DRAW_PANEL::GetScreen()
 }
 
 
-void EDA_DRAW_PANEL::DrawCrossHair( wxDC* aDC, int aColor )
+void EDA_DRAW_PANEL::DrawCrossHair( wxDC* aDC, EDA_COLOR_T aColor )
 {
     if( m_cursorLevel != 0 || aDC == NULL || !m_showCrossHair )
         return;
@@ -441,8 +441,8 @@ void EDA_DRAW_PANEL::SetClipBox( wxDC& aDC, const wxRect* aRect )
         scrollX = KiROUND( Screen->GetGridSize().x * scalar );
         scrollY = KiROUND( Screen->GetGridSize().y * scalar );
 
-        m_scrollIncrementX = MAX( GetClientSize().x / 8, scrollX );
-        m_scrollIncrementY = MAX( GetClientSize().y / 8, scrollY );
+        m_scrollIncrementX = std::max( GetClientSize().x / 8, scrollX );
+        m_scrollIncrementY = std::max( GetClientSize().y / 8, scrollY );
         Screen->m_ScrollbarPos.x = GetScrollPos( wxHORIZONTAL );
         Screen->m_ScrollbarPos.y = GetScrollPos( wxVERTICAL );
     }
@@ -560,7 +560,7 @@ void EDA_DRAW_PANEL::ReDraw( wxDC* DC, bool erasebg )
 
 void EDA_DRAW_PANEL::DrawBackGround( wxDC* DC )
 {
-    int          axis_color = BLUE;
+    EDA_COLOR_T axis_color = BLUE;
 
     GRSetDrawMode( DC, GR_COPY );
 
@@ -714,14 +714,14 @@ void EDA_DRAW_PANEL::DrawGrid( wxDC* aDC )
 }
 
 
-void EDA_DRAW_PANEL::DrawAuxiliaryAxis( wxDC* aDC, int aDrawMode )
+void EDA_DRAW_PANEL::DrawAuxiliaryAxis( wxDC* aDC, GR_DRAWMODE aDrawMode )
 {
     wxPoint origin = GetParent()->GetOriginAxisPosition();
 
     if( origin == wxPoint( 0, 0 ) )
         return;
 
-    int     color    = DARKRED;
+    EDA_COLOR_T color = DARKRED;
     wxSize  pageSize = GetParent()->GetPageSizeIU();
 
     GRSetDrawMode( aDC, aDrawMode );
@@ -744,7 +744,7 @@ void EDA_DRAW_PANEL::DrawAuxiliaryAxis( wxDC* aDC, int aDrawMode )
 }
 
 
-void EDA_DRAW_PANEL::DrawGridAxis( wxDC* aDC, int aDrawMode )
+void EDA_DRAW_PANEL::DrawGridAxis( wxDC* aDC, GR_DRAWMODE aDrawMode )
 {
     BASE_SCREEN* screen = GetScreen();
 
@@ -752,7 +752,7 @@ void EDA_DRAW_PANEL::DrawGridAxis( wxDC* aDC, int aDrawMode )
         || ( screen->m_GridOrigin.x == 0 && screen->m_GridOrigin.y == 0 ) )
         return;
 
-    int     color    = GetParent()->GetGridColor();
+    EDA_COLOR_T color = GetParent()->GetGridColor();
     wxSize  pageSize = GetParent()->GetPageSizeIU();
 
     GRSetDrawMode( aDC, aDrawMode );
@@ -1205,8 +1205,8 @@ void EDA_DRAW_PANEL::OnMouseEvent( wxMouseEvent& event )
              */
             #define BLOCK_MINSIZE_LIMIT 1
             bool BlockIsSmall =
-                ( ABS( screen->m_BlockLocate.GetWidth() ) < BLOCK_MINSIZE_LIMIT )
-                && ( ABS( screen->m_BlockLocate.GetHeight() ) < BLOCK_MINSIZE_LIMIT );
+                ( std::abs( screen->m_BlockLocate.GetWidth() ) < BLOCK_MINSIZE_LIMIT )
+                && ( std::abs( screen->m_BlockLocate.GetHeight() ) < BLOCK_MINSIZE_LIMIT );
 
             if( (screen->m_BlockLocate.GetState() != STATE_NO_BLOCK) && BlockIsSmall )
             {

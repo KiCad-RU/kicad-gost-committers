@@ -44,6 +44,7 @@
 
 
 extern void IncrementLabelMember( wxString& name );
+extern int OverbarPositionY( int size_v, int thickness );
 
 
 /* Names of sheet label types. */
@@ -273,19 +274,19 @@ void SCH_TEXT::Rotate( wxPoint aPosition )
 
     switch( GetOrientation() )
     {
-    case 0:             /* horizontal text */
+    case 0:     // horizontal text
         dy = m_Size.y;
         break;
 
-    case 1: /* Vert Orientation UP */
+    case 1:     // Vert Orientation UP
         dy = 0;
         break;
 
-    case 2:        /* invert horizontal text*/
+    case 2:     // invert horizontal text
         dy = m_Size.y;
         break;
 
-    case 3: /*  Vert Orientation BOTTOM */
+    case 3:     // Vert Orientation BOTTOM
         dy = 0;
         break;
 
@@ -370,7 +371,7 @@ int SCH_TEXT::GetPenSize() const
 
 
 void SCH_TEXT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& aOffset,
-                     int DrawMode, int Color )
+                     GR_DRAWMODE DrawMode, EDA_COLOR_T Color )
 {
     EDA_COLOR_T color;
     int         linewidth = ( m_Thickness == 0 ) ? g_DrawDefaultLineThickness : m_Thickness;
@@ -378,7 +379,7 @@ void SCH_TEXT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& aOffset,
     linewidth = Clamp_Text_PenSize( linewidth, m_Size, m_Bold );
 
     if( Color >= 0 )
-        color = (EDA_COLOR_T) Color;
+        color = Color;
     else
         color = ReturnLayerColor( m_Layer );
 
@@ -386,7 +387,7 @@ void SCH_TEXT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& aOffset,
 
     wxPoint text_offset = aOffset + GetSchematicTextOffset();
     EXCHG( linewidth, m_Thickness );            // Set the minimum width
-    EDA_TEXT::Draw( panel, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED );
+    EDA_TEXT::Draw( panel, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
     EXCHG( linewidth, m_Thickness );            // set initial value
 
     if( m_isDangling )
@@ -880,7 +881,7 @@ bool SCH_LABEL::Load( LINE_READER& aLine, wxString& aErrorMsg )
 
 
 void SCH_LABEL::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
-                      int DrawMode, int Color )
+                      GR_DRAWMODE DrawMode, EDA_COLOR_T Color )
 {
     SCH_TEXT::Draw( panel, DC, offset, DrawMode, Color );
 }
@@ -1191,15 +1192,15 @@ void SCH_GLOBALLABEL::SetOrientation( int aOrientation )
 void SCH_GLOBALLABEL::Draw( EDA_DRAW_PANEL* panel,
                             wxDC*           DC,
                             const wxPoint&  aOffset,
-                            int             DrawMode,
-                            int             Color )
+                            GR_DRAWMODE     DrawMode,
+                            EDA_COLOR_T     Color )
 {
     static std::vector <wxPoint> Poly;
     EDA_COLOR_T color;
     wxPoint     text_offset = aOffset + GetSchematicTextOffset();
 
     if( Color >= 0 )
-        color = (EDA_COLOR_T) Color;
+        color = Color;
     else
         color = ReturnLayerColor( m_Layer );
 
@@ -1208,7 +1209,7 @@ void SCH_GLOBALLABEL::Draw( EDA_DRAW_PANEL* panel,
     int linewidth = (m_Thickness == 0) ? g_DrawDefaultLineThickness : m_Thickness;
     linewidth = Clamp_Text_PenSize( linewidth, m_Size, m_Bold );
     EXCHG( linewidth, m_Thickness );            // Set the minimum width
-    EDA_TEXT::Draw( panel, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED );
+    EDA_TEXT::Draw( panel, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
     EXCHG( linewidth, m_Thickness );            // set initial value
 
     CreateGraphicShape( Poly, m_Pos + aOffset );
@@ -1241,8 +1242,14 @@ void SCH_GLOBALLABEL::CreateGraphicShape( std::vector <wxPoint>& aPoints, const 
     // Create outline shape : 6 points
     int x = symb_len + linewidth + 3;
 
-    // 50% more for negation bar
-    int y = KiROUND( (double) HalfSize * 1.5 + (double) linewidth + 3.0 );
+    // Use negation bar Y position to calculate full vertical size
+    #define Y_CORRECTION 1.22
+    // Note: this factor is due to the fact the negation bar Y position
+    // does not give exactly the full Y size of text
+    // and is experimentally set  to this value
+    int y = KiROUND( OverbarPositionY( HalfSize, linewidth ) * Y_CORRECTION );
+    // add room for line thickness and space between top of text and graphic shape
+    y += linewidth;
 
     // Starting point(anchor)
     aPoints.push_back( wxPoint( 0, 0 ) );
@@ -1521,8 +1528,8 @@ void SCH_HIERLABEL::SetOrientation( int aOrientation )
 void SCH_HIERLABEL::Draw( EDA_DRAW_PANEL* panel,
                           wxDC*           DC,
                           const wxPoint&  offset,
-                          int             DrawMode,
-                          int             Color )
+                          GR_DRAWMODE     DrawMode,
+                          EDA_COLOR_T     Color )
 {
     static std::vector <wxPoint> Poly;
     EDA_COLOR_T color;
@@ -1531,7 +1538,7 @@ void SCH_HIERLABEL::Draw( EDA_DRAW_PANEL* panel,
     linewidth = Clamp_Text_PenSize( linewidth, m_Size, m_Bold );
 
     if( Color >= 0 )
-        color = (EDA_COLOR_T) Color;
+        color = Color;
     else
         color = ReturnLayerColor( m_Layer );
 
@@ -1539,7 +1546,7 @@ void SCH_HIERLABEL::Draw( EDA_DRAW_PANEL* panel,
 
     EXCHG( linewidth, m_Thickness );            // Set the minimum width
     wxPoint text_offset = offset + GetSchematicTextOffset();
-    EDA_TEXT::Draw( panel, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED );
+    EDA_TEXT::Draw( panel, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
     EXCHG( linewidth, m_Thickness );            // set initial value
 
     CreateGraphicShape( Poly, m_Pos + offset );
@@ -1636,7 +1643,7 @@ wxPoint SCH_HIERLABEL::GetSchematicTextOffset() const
 {
     wxPoint text_offset;
 
-    int     width = MAX( m_Thickness, g_DrawDefaultLineThickness );
+    int     width = std::max( m_Thickness, g_DrawDefaultLineThickness );
 
     int     ii = m_Size.x + TXTMARGE + width;
 

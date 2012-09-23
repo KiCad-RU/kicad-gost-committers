@@ -305,7 +305,7 @@ int BOARD::GetBiggestClearanceValue()
     for( NETCLASSES::const_iterator nc = m_NetClasses.begin(); nc != m_NetClasses.end(); nc++ )
     {
         NETCLASS* netclass = nc->second;
-        clearance = MAX( clearance, netclass->GetClearance() );
+        clearance = std::max( clearance, netclass->GetClearance() );
     }
 
     return clearance;
@@ -320,7 +320,7 @@ int BOARD::GetSmallestClearanceValue()
     for( NETCLASSES::const_iterator nc = m_NetClasses.begin(); nc != m_NetClasses.end(); nc++ )
     {
         NETCLASS* netclass = nc->second;
-        clearance = MIN( clearance, netclass->GetClearance() );
+        clearance = std::min( clearance, netclass->GetClearance() );
     }
 
     return clearance;
@@ -723,9 +723,9 @@ void BOARD::SetElementVisibility( int aPCB_VISIBLE, bool isEnabled )
 }
 
 
-int BOARD::GetVisibleElementColor( int aPCB_VISIBLE )
+EDA_COLOR_T BOARD::GetVisibleElementColor( int aPCB_VISIBLE )
 {
-    int color = -1;
+    EDA_COLOR_T color = UNSPECIFIED_COLOR;
 
     switch( aPCB_VISIBLE )
     {
@@ -751,7 +751,7 @@ int BOARD::GetVisibleElementColor( int aPCB_VISIBLE )
 }
 
 
-void BOARD::SetVisibleElementColor( int aPCB_VISIBLE, int aColor )
+void BOARD::SetVisibleElementColor( int aPCB_VISIBLE, EDA_COLOR_T aColor )
 {
     switch( aPCB_VISIBLE )
     {
@@ -775,13 +775,13 @@ void BOARD::SetVisibleElementColor( int aPCB_VISIBLE, int aColor )
 }
 
 
-void BOARD::SetLayerColor( int aLayer, int aColor )
+void BOARD::SetLayerColor( int aLayer, EDA_COLOR_T aColor )
 {
     GetColorsSettings()->SetLayerColor( aLayer, aColor );
 }
 
 
-int BOARD::GetLayerColor( int aLayer )
+EDA_COLOR_T BOARD::GetLayerColor( int aLayer ) const
 {
     return GetColorsSettings()->GetLayerColor( aLayer );
 }
@@ -1538,7 +1538,7 @@ int BOARD::ReturnSortedNetnamesList( wxArrayString& aNames, bool aSortbyPadsCoun
 }
 
 
-void BOARD::RedrawAreasOutlines( EDA_DRAW_PANEL* panel, wxDC* aDC, int aDrawMode, int aLayer )
+void BOARD::RedrawAreasOutlines( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode, int aLayer )
 {
     if( !aDC )
         return;
@@ -1553,7 +1553,7 @@ void BOARD::RedrawAreasOutlines( EDA_DRAW_PANEL* panel, wxDC* aDC, int aDrawMode
 }
 
 
-void BOARD::RedrawFilledAreas( EDA_DRAW_PANEL* panel, wxDC* aDC, int aDrawMode, int aLayer )
+void BOARD::RedrawFilledAreas( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode, int aLayer )
 {
     if( !aDC )
         return;
@@ -1807,8 +1807,9 @@ D_PAD* BOARD::GetPad( std::vector<D_PAD*>& aPadList, const wxPoint& aPosition, i
 /**
  * Function SortPadsByXCoord
  * is used by GetSortedPadListByXCoord to Sort a pad list by x coordinate value.
+ * This function is used to build ordered pads lists
  */
-static bool sortPadsByXthenYCoord( D_PAD* const & ref, D_PAD* const & comp )
+bool sortPadsByXthenYCoord( D_PAD* const & ref, D_PAD* const & comp )
 {
     if( ref->GetPosition().x == comp->GetPosition().x )
         return ref->GetPosition().y < comp->GetPosition().y;
@@ -2151,7 +2152,7 @@ MODULE* BOARD::GetFootprint( const wxPoint& aPosition, int aActiveLayer,
         //off x & offy point to the middle of the box.
         int dist = abs( aPosition.x - offx ) + abs( aPosition.y - offy );
 
-        //int dist = MIN(lx, ly);  // to pick the smallest module (kinda
+        //int dist = std::min(lx, ly);  // to pick the smallest module (kinda
         // screwy with same-sized modules -- this is bad!)
 
         if( aActiveLayer == layer )

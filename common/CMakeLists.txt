@@ -47,9 +47,9 @@ set(COMMON_SRCS
     common_plotPDF_functions.cpp
     common_plotGERBER_functions.cpp
     common_plotDXF_functions.cpp
+    common_plotSVG_functions.cpp
     confirm.cpp
     copy_to_clipboard.cpp
-    dcsvg.cpp
     dialog_shim.cpp
     displlst.cpp
     dlist.cpp
@@ -88,6 +88,7 @@ set(PCB_COMMON_SRCS
     base_screen.cpp
     eda_text.cpp
     class_page_info.cpp
+    convert_basic_shapes_to_polygon.cpp
     pcbcommon.cpp
     footprint_info.cpp
     ../pcad2kicad/LoadInputFile.cpp

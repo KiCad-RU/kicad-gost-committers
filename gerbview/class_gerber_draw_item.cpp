@@ -303,12 +303,12 @@ bool GERBER_DRAW_ITEM::HasNegativeItems()
 }
 
 
-void GERBER_DRAW_ITEM::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDrawMode,
+void GERBER_DRAW_ITEM::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMode,
                              const wxPoint& aOffset )
 {
     // used when a D_CODE is not found. default D_CODE to draw a flashed item
     static D_CODE dummyD_CODE( 0 );
-    int           color, alt_color;
+    EDA_COLOR_T   color, alt_color;
     bool          isFilled;
     int           radius;
     int           halfPenWidth;
@@ -325,12 +325,7 @@ void GERBER_DRAW_ITEM::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDrawMode,
     color = gerbFrame->GetLayerColor( GetLayer() );
 
     if( aDrawMode & GR_HIGHLIGHT )
-    {
-        if( aDrawMode & GR_AND )
-            color &= ~HIGHLIGHT_FLAG;
-        else
-            color |= HIGHLIGHT_FLAG;
-    }
+        ColorChangeHighlightFlag( &color, !(aDrawMode & GR_AND) );
 
     if( color & HIGHLIGHT_FLAG )
         color = ColorRefs[color & MASKCOLOR].m_LightColor;
@@ -528,7 +523,7 @@ void GERBER_DRAW_ITEM::ConvertSegmentToPolygon( )
 
 void GERBER_DRAW_ITEM::DrawGbrPoly( EDA_RECT*      aClipBox,
                                     wxDC*          aDC,
-                                    int            aColor,
+                                    EDA_COLOR_T    aColor,
                                     const wxPoint& aOffset,
                                     bool           aFilledShape )
 {
@@ -590,7 +585,7 @@ bool GERBER_DRAW_ITEM::HitTest( const wxPoint& aRefPos )
     wxPoint ref_pos = GetXYPosition( aRefPos );
 
     // TODO: a better analyze of the shape (perhaps create a D_CODE::HitTest for flashed items)
-    int     radius = MIN( m_Size.x, m_Size.y ) >> 1;
+    int     radius = std::min( m_Size.x, m_Size.y ) >> 1;
 
     // delta is a vector from m_Start to m_End (an origin of m_Start)
     wxPoint delta = m_End - m_Start;

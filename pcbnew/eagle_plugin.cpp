@@ -279,8 +279,9 @@ struct EWIRE
 
 /**
  * Constructor EWIRE
- * converts a <wire>'s xml attributes to binary without additional conversion.
- * This result is an EWIRE with the <wire> textual data merely converted to binary.
+ * converts a "wire"'s xml attributes ( &ltwire&gt )
+ * to binary without additional conversion.
+ * This result is an EWIRE with the &ltwire&gt textual data merely converted to binary.
  */
 EWIRE::EWIRE( CPTREE& aWire )
 {
@@ -1100,6 +1101,10 @@ BOARD* EAGLE_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe,  PROPE
     init( aProperties );
 
     m_board = aAppendToMe ? aAppendToMe : new BOARD();
+
+    // Give the filename to the board if it's new
+    if( !aAppendToMe )
+        m_board->SetFileName( aFileName );
 
     // delete on exception, iff I own m_board, according to aAppendToMe
     auto_ptr<BOARD> deleter( aAppendToMe ? NULL : m_board );

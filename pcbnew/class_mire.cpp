@@ -94,9 +94,10 @@ void PCB_TARGET::Copy( PCB_TARGET* source )
  * The circle radius is half the radius of the target
  * 2 lines have length the diameter of the target
  */
-void PCB_TARGET::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int mode_color, const wxPoint& offset )
+void PCB_TARGET::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE mode_color,
+                       const wxPoint& offset )
 {
-    int radius, ox, oy, gcolor, width;
+    int radius, ox, oy, width;
     int dx1, dx2, dy1, dy2;
     int typeaff;
 
@@ -108,7 +109,7 @@ void PCB_TARGET::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int mode_color, const wx
     if( brd->IsLayerVisible( m_Layer ) == false )
         return;
 
-    gcolor = brd->GetLayerColor( m_Layer );
+    EDA_COLOR_T gcolor = brd->GetLayerColor( m_Layer );
 
     GRSetDrawMode( DC, mode_color );
     typeaff = DisplayOpt.DisplayDrawItems;
@@ -117,7 +118,9 @@ void PCB_TARGET::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int mode_color, const wx
     if( DC->LogicalToDeviceXRel( width ) < 2 )
         typeaff = LINE;
 
-    radius = m_Size / 4;
+    radius = m_Size / 3;
+    if( GetShape() )   // shape X
+        radius = m_Size / 2;
 
     switch( typeaff )
     {
@@ -141,9 +144,9 @@ void PCB_TARGET::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int mode_color, const wx
     dx2   = 0;
     dy2   = radius;
 
-    if( m_Shape ) /* Form X */
+    if( GetShape() )   // shape X
     {
-        dx1 = dy1 = ( radius * 7 ) / 5;
+        dx1 = dy1 = radius;
         dx2 = dx1;
         dy2 = -dy1;
     }

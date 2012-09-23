@@ -23,7 +23,7 @@
 
 
 static void Print_Module( EDA_DRAW_PANEL* aPanel, wxDC* aDC, MODULE* aModule,
-                          int aDraw_mode, int aMasklayer,
+                          GR_DRAWMODE aDraw_mode, int aMasklayer,
                           PRINT_PARAMETERS::DrillShapeOptT aDrillShapeOpt );
 
 void FOOTPRINT_EDIT_FRAME::PrintPage( wxDC* aDC,
@@ -31,7 +31,7 @@ void FOOTPRINT_EDIT_FRAME::PrintPage( wxDC* aDC,
                                       bool  aPrintMirrorMode,
                                       void * aData)
 {
-    int     drawmode = GR_COPY;
+    GR_DRAWMODE drawmode = GR_COPY;
     int     defaultPenSize = 50;
 
     DISPLAY_OPTIONS save_opt;
@@ -114,7 +114,7 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
                                 void* aData)
 {
     MODULE* Module;
-    int drawmode = GR_COPY;
+    GR_DRAWMODE     drawmode = GR_COPY;
     DISPLAY_OPTIONS save_opt;
     TRACK*          pt_trace;
     BOARD*          Pcb   = GetBoard();
@@ -232,7 +232,7 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
         if( pt_trace->Type() == PCB_VIA_T ) // VIA encountered.
         {
             int radius = pt_trace->m_Width >> 1;
-            int color = g_ColorsSettings.GetItemColor( VIAS_VISIBLE + pt_trace->m_Shape );
+            EDA_COLOR_T color = g_ColorsSettings.GetItemColor( VIAS_VISIBLE + pt_trace->m_Shape );
             GRSetDrawMode( aDC, drawmode );
             GRFilledCircle( m_canvas->GetClipBox(), aDC,
                             pt_trace->m_Start.x,
@@ -285,7 +285,7 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
     if( drillShapeOpt != PRINT_PARAMETERS::NO_DRILL_SHAPE )
     {
         pt_trace = Pcb->m_Track;
-        int  color = g_DrawBgColor;
+        EDA_COLOR_T color = g_DrawBgColor;
         bool blackpenstate = GetGRForceBlackPenState();
         GRForceBlackPen( false );
         GRSetDrawMode( aDC, GR_COPY );
@@ -329,7 +329,7 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
 
 
 static void Print_Module( EDA_DRAW_PANEL* aPanel, wxDC* aDC, MODULE* aModule,
-                          int aDraw_mode, int aMasklayer,
+                          GR_DRAWMODE aDraw_mode, int aMasklayer,
                           PRINT_PARAMETERS::DrillShapeOptT aDrillShapeOpt )
 {
     // Print pads

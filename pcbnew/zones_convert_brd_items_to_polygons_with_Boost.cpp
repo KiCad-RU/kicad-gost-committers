@@ -44,7 +44,7 @@
  *      - shapes are smoothed.
  */
 
-#include <math.h>
+#include <cmath>
 
 #include <fctsys.h>
 #include <polygons_defs.h>
@@ -232,6 +232,7 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList( BOARD* aPcb )
             {
                 item_clearance   = pad->GetClearance() + margin;
                 item_boundingbox = pad->GetBoundingBox();
+                item_boundingbox.Inflate( item_clearance );
 
                 if( item_boundingbox.Intersects( zone_boundingbox ) )
                 {

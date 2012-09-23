@@ -45,7 +45,7 @@
 #include <sch_sheet_path.h>
 
 
-void DrawDanglingSymbol( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& pos, int Color )
+void DrawDanglingSymbol( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& pos, EDA_COLOR_T Color )
 {
     BASE_SCREEN* screen = panel->GetScreen();
 
@@ -71,7 +71,8 @@ void SCH_EDIT_FRAME::RedrawActiveWindow( wxDC* DC, bool EraseBg )
 
     GetScreen()->Draw( m_canvas, DC, GR_DEFAULT_DRAWMODE );
 
-    TraceWorkSheet( DC, GetScreen(), g_DrawDefaultLineThickness, IU_PER_MILS );
+    TraceWorkSheet( DC, GetScreen(), g_DrawDefaultLineThickness, IU_PER_MILS,
+                    GetScreenDesc() );
 
 #ifdef USE_WX_OVERLAY
     if( IsShown() )

@@ -31,7 +31,6 @@
 #include <appl_wxstruct.h>
 #include <confirm.h>
 #include <gestfich.h>
-#include <macros.h>
 
 #include <kicad.h>
 #include <tree_project_frame.h>
@@ -41,24 +40,26 @@
 
 static const wxString TreeFrameWidthEntry( wxT( "LeftWinWidth" ) );
 
+#define KICAD_MANAGER_FRAME_NAME wxT( "KicadFrame" )
 
 KICAD_MANAGER_FRAME::KICAD_MANAGER_FRAME( wxWindow*       parent,
                                           const wxString& title,
                                           const wxPoint&  pos,
                                           const wxSize&   size ) :
-    EDA_BASE_FRAME( parent, KICAD_MAIN_FRAME, title, pos, size )
+    EDA_BASE_FRAME( parent, KICAD_MAIN_FRAME_TYPE, title, pos, size,
+                    KICAD_DEFAULT_DRAWFRAME_STYLE, KICAD_MANAGER_FRAME_NAME )
 {
     wxString msg;
     wxString line;
     wxSize   clientsize;
 
-    m_FrameName            = wxT( "KicadFrame" );
+    m_FrameName            = KICAD_MANAGER_FRAME_NAME;
     m_VToolBar             = NULL;              // No Vertical tooolbar used here
     m_LeftWin              = NULL;              // A shashwindow that contains the project tree
     m_RightWin             = NULL;              /* A shashwindow that contains the buttons
                                                  *  and the window display text
                                                  */
-    m_LeftWin_Width        = MAX( 60, GetSize().x/3 );
+    m_LeftWin_Width        = std::max( 60, GetSize().x/3 );
 
     LoadSettings();
 

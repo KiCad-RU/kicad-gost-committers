@@ -265,11 +265,11 @@ int LIB_POLYLINE::GetPenSize() const
 
 
 void LIB_POLYLINE::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                                int aColor, int aDrawMode, void* aData,
+                                EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
                                 const TRANSFORM& aTransform )
 {
     wxPoint  pos1;
-    int      color = ReturnLayerColor( LAYER_DEVICE );
+    EDA_COLOR_T color = ReturnLayerColor( LAYER_DEVICE );
     wxPoint* buffer = NULL;
 
     if( aColor < 0 )                // Used normal color or selected color
@@ -362,10 +362,10 @@ EDA_RECT LIB_POLYLINE::GetBoundingBox() const
 
     for( unsigned ii = 1; ii < GetCornerCount(); ii++ )
     {
-        xmin = MIN( xmin, m_PolyPoints[ii].x );
-        xmax = MAX( xmax, m_PolyPoints[ii].x );
-        ymin = MIN( ymin, m_PolyPoints[ii].y );
-        ymax = MAX( ymax, m_PolyPoints[ii].y );
+        xmin = std::min( xmin, m_PolyPoints[ii].x );
+        xmax = std::max( xmax, m_PolyPoints[ii].x );
+        ymin = std::min( ymin, m_PolyPoints[ii].y );
+        ymax = std::max( ymax, m_PolyPoints[ii].y );
     }
 
     rect.SetOrigin( xmin, ymin * -1 );
@@ -412,7 +412,7 @@ void LIB_POLYLINE::DisplayInfo( EDA_DRAW_FRAME* aFrame )
 
 wxString LIB_POLYLINE::GetSelectMenuText() const
 {
-    return wxString::Format( _( "Polyline at (%s, %s) with %u points" ),
+    return wxString::Format( _( "Polyline at (%s, %s) with %zu points" ),
                              GetChars( CoordinateToString( m_PolyPoints[0].x ) ),
                              GetChars( CoordinateToString( m_PolyPoints[0].y ) ),
                              m_PolyPoints.size() );

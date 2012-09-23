@@ -180,7 +180,7 @@ void BOARD_PRINTOUT_CONTROLER::DrawPage()
     // In module editor, the module is located at 0,0 but for printing
     // it is moved to pageSizeIU.x/2, pageSizeIU.y/2.
     // So the equivalent board must be moved:
-    if( m_Parent->IsType( MODULE_EDITOR_FRAME ) )
+    if( m_Parent->IsType( MODULE_EDITOR_FRAME_TYPE ) )
     {
         bbbox.Move( wxPoint( pageSizeIU.x/2, pageSizeIU.y/2 ) );
     }
@@ -281,11 +281,11 @@ void BOARD_PRINTOUT_CONTROLER::DrawPage()
     panel->SetClipBox( EDA_RECT( wxPoint( 0, 0 ), wxSize( MAX_VALUE, MAX_VALUE ) ) );
 
     m_Parent->GetScreen()->m_IsPrinting = true;
-    int bg_color = g_DrawBgColor;
+    EDA_COLOR_T bg_color = g_DrawBgColor;
 
     if( m_PrintParams.m_Print_Sheet_Ref )
         m_Parent->TraceWorkSheet( dc, screen, m_PrintParams.m_PenDefaultSize,
-                                  IU_PER_MILS );
+                                  IU_PER_MILS, m_Parent->GetScreenDesc() );
 
     if( printMirror )
     {

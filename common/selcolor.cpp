@@ -7,10 +7,8 @@
 
 #include <fctsys.h>
 #include <gr_basic.h>
-
 #include <common.h>
 #include <colors.h>
-#include <macros.h>
 
 #include <wx/statline.h>
 
@@ -45,19 +43,19 @@ BEGIN_EVENT_TABLE( WinEDA_SelColorFrame, wxDialog )
 END_EVENT_TABLE()
 
 
-int DisplayColorFrame( wxWindow* parent, int OldColor )
+EDA_COLOR_T DisplayColorFrame( wxWindow* parent, int OldColor )
 {
     wxPoint framepos;
-    int     color;
+    EDA_COLOR_T     color;
 
     wxGetMousePosition( &framepos.x, &framepos.y );
 
     WinEDA_SelColorFrame* frame = new WinEDA_SelColorFrame( parent,
                                                             framepos, OldColor );
-    color = frame->ShowModal();
+    color = static_cast<EDA_COLOR_T>( frame->ShowModal() );
     frame->Destroy();
     if( color > NBCOLOR )
-        color = -1;
+        color = UNSPECIFIED_COLOR;
     return color;
 }
 
@@ -84,7 +82,7 @@ WinEDA_SelColorFrame::WinEDA_SelColorFrame( wxWindow*      parent,
         if( windowPosition.x < margin )
             windowPosition.x = margin;
         // Under MACOS, a vertical margin >= 20 is needed by the system menubar
-        int v_margin = MAX(20, margin);
+        int v_margin = std::max(20, margin);
         if( windowPosition.y < v_margin )
             windowPosition.y = v_margin;
         if( windowPosition != framepos )

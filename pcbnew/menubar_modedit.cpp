@@ -35,8 +35,8 @@
 #include <module_editor_frame.h>
 #include <menus_helpers.h>
 
-#include <protos.h>
 #include <pcbnew_id.h>
+#include <hotkeys.h>
 
 
 void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
@@ -55,9 +55,16 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
         delete menuBar->Remove( 0 );
 
     // Recreate all menus:
+    wxString text;
 
     // Menu File:
     wxMenu* fileMenu = new wxMenu;
+
+    // Active library selection
+    AddMenuItem( fileMenu, ID_MODEDIT_SELECT_CURRENT_LIB, _("Current Library"),
+                           _( "Select active library" ),
+                           KiBitmap( open_library_xpm ) );
+    fileMenu->AppendSeparator();
 
     // New module
     AddMenuItem( fileMenu, ID_MODEDIT_NEW_MODULE,
@@ -90,10 +97,12 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
                  _( "&Load Module" ),
                  _( "Load a footprint module" ),
                  KiBitmap( open_document_xpm ) );
+    fileMenu->AppendSeparator();
 
     // Save module
-    AddMenuItem( fileMenu, ID_MODEDIT_SAVE_LIBMODULE,
-                 _( "&Save Module in Active Library" ),
+    text = AddHotkeyName( _( "&Save Module in Active Library" ),
+                          g_Module_Editor_Hokeys_Descr, HK_SAVE_MODULE );
+    AddMenuItem( fileMenu, ID_MODEDIT_SAVE_LIBMODULE, text,
                  _( "Save module in active library" ),
                  KiBitmap( save_library_xpm ) );
 
@@ -108,8 +117,6 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
                  _( "&Export Module" ),
                  _( "Save the current loaded module to a file" ),
                  KiBitmap( export_module_xpm ) );
-
-    // Separator
     fileMenu->AppendSeparator();
 
     // Print
@@ -131,13 +138,15 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     wxMenu* editMenu = new wxMenu;
 
     // Undo
+    text = AddHotkeyName( _( "&Undo" ), g_Module_Editor_Hokeys_Descr, HK_UNDO );
     AddMenuItem( editMenu, wxID_UNDO,
-                 _( "&Undo" ), _( "Undo last edit" ),
+                 text, _( "Undo last edit" ),
                  KiBitmap( undo_xpm ) );
 
     // Redo
+    text = AddHotkeyName( _( "&Redo" ), g_Module_Editor_Hokeys_Descr, HK_REDO );
     AddMenuItem( editMenu, wxID_REDO,
-                 _( "&Redo" ), _( "Redo the last undo action" ),
+                 text, _( "Redo the last undo action" ),
                  KiBitmap( redo_xpm ) );
 
     // Delete items

@@ -39,14 +39,10 @@
 #include <pcbcommon.h>
 #include <colors_selection.h>
 #include <wxstruct.h>
-#include <macros.h>
 #include <wxBasePcbFrame.h>
-
 #include <class_board.h>
 #include <class_track.h>
-
 #include <pcbnew.h>
-#include <protos.h>
 #include <base_units.h>
 
 /**
@@ -348,11 +344,11 @@ EDA_RECT TRACK::GetBoundingBox() const
     {
         radius = ( m_Width + 1 ) / 2;
 
-        ymax = MAX( m_Start.y, m_End.y );
-        xmax = MAX( m_Start.x, m_End.x );
+        ymax = std::max( m_Start.y, m_End.y );
+        xmax = std::max( m_Start.x, m_End.x );
 
-        ymin = MIN( m_Start.y, m_End.y );
-        xmin = MIN( m_Start.x, m_End.x );
+        ymin = std::min( m_Start.y, m_End.y );
+        xmin = std::min( m_Start.x, m_End.x );
     }
 
     if( ShowClearance( this ) )
@@ -582,10 +578,10 @@ TRACK* TRACK::GetEndNetCode( int NetCode )
 }
 
 
-void TRACK::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint& aOffset )
+void TRACK::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
+                  const wxPoint& aOffset )
 {
     int l_trace;
-    int color;
     int radius;
     int curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
 
@@ -593,7 +589,7 @@ void TRACK::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint&
         return;
 
     BOARD * brd =  GetBoard( );
-    color = brd->GetLayerColor(m_Layer);
+    EDA_COLOR_T color = brd->GetLayerColor(m_Layer);
 
     if( brd->IsLayerVisible( m_Layer ) == false && !( draw_mode & GR_HIGHLIGHT ) )
         return;
@@ -607,19 +603,11 @@ void TRACK::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint&
     if( ( draw_mode & GR_ALLOW_HIGHCONTRAST ) && DisplayOpt.ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
-        {
-            color &= ~MASKCOLOR;
-            color |= DARKDARKGRAY;
-        }
+            ColorTurnToDarkDarkGray( &color );
     }
 
     if( draw_mode & GR_HIGHLIGHT )
-    {
-        if( draw_mode & GR_AND )
-            color &= ~HIGHLIGHT_FLAG;
-        else
-            color |= HIGHLIGHT_FLAG;
-    }
+        ColorChangeHighlightFlag( &color, !(draw_mode & GR_AND) );
 
     if( color & HIGHLIGHT_FLAG )
         color = ColorRefs[color & MASKCOLOR].m_LightColor;
@@ -709,7 +697,7 @@ void TRACK::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint&
     if( (m_End.x - m_Start.x) != 0 &&  (m_End.y - m_Start.y) != 0 )
         return;
 
-    int len = ABS( (m_End.x - m_Start.x) + (m_End.y - m_Start.y) );
+    int len = std::abs( (m_End.x - m_Start.x) + (m_End.y - m_Start.y) );
 
     if( len < THRESHOLD * m_Width )
         return;
@@ -730,7 +718,7 @@ void TRACK::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint&
     if( textlen > 0 )
     {
         // calculate a good size for the text
-        int     tsize = MIN( m_Width, len / textlen );
+        int     tsize = std::min( m_Width, len / textlen );
         wxPoint tpos  = m_Start + m_End;
         tpos.x /= 2;
         tpos.y /= 2;
@@ -756,9 +744,9 @@ void TRACK::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint&
 }
 
 
-void SEGVIA::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint& aOffset )
+void SEGVIA::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
+                   const wxPoint& aOffset )
 {
-    int color;
     int radius;
     int curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
 
@@ -772,7 +760,7 @@ void SEGVIA::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint
     GRSetDrawMode( DC, draw_mode );
 
     BOARD * brd =  GetBoard( );
-    color = brd->GetVisibleElementColor(VIAS_VISIBLE + m_Shape);
+    EDA_COLOR_T color = brd->GetVisibleElementColor(VIAS_VISIBLE + m_Shape);
 
     if( brd->IsElementVisible( PCB_VISIBLE(VIAS_VISIBLE + m_Shape) ) == false
         && ( color & HIGHLIGHT_FLAG ) != HIGHLIGHT_FLAG )
@@ -781,19 +769,11 @@ void SEGVIA::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint
     if( DisplayOpt.ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
-        {
-            color &= ~MASKCOLOR;
-            color |= DARKDARKGRAY;
-        }
+            ColorTurnToDarkDarkGray( &color );
     }
 
     if( draw_mode & GR_HIGHLIGHT )
-    {
-        if( draw_mode & GR_AND )
-            color &= ~HIGHLIGHT_FLAG;
-        else
-            color |= HIGHLIGHT_FLAG;
-    }
+        ColorChangeHighlightFlag( &color, !(draw_mode & GR_AND) );
 
     if( color & HIGHLIGHT_FLAG )
         color = ColorRefs[color & MASKCOLOR].m_LightColor;
@@ -986,7 +966,7 @@ void TRACK::DisplayInfo( EDA_DRAW_FRAME* frame )
     DisplayInfoBase( frame );
 
     // Display full track length (in Pcbnew)
-    if( frame->IsType( PCB_FRAME ) )
+    if( frame->IsType( PCB_FRAME_TYPE ) )
     {
         int trackLen = 0;
         int lenDie = 0;
@@ -1074,7 +1054,7 @@ void TRACK::DisplayInfoBase( EDA_DRAW_FRAME* frame )
     frame->AppendMsgPanel( _( "Type" ), msg, DARKCYAN );
 
     // Display Net Name (in Pcbnew)
-    if( frame->IsType( PCB_FRAME ) )
+    if( frame->IsType( PCB_FRAME_TYPE ) )
     {
         NETINFO_ITEM* net = board->FindNet( GetNet() );
 

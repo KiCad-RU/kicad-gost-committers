@@ -34,6 +34,7 @@
 #include <param_config.h>
 #include <wxstruct.h>
 
+#include <gerbview.h>
 #include <class_gbr_layout.h>
 #include <class_gbr_screen.h>
 
@@ -162,6 +163,8 @@ protected:
 
     // Auxiliary file history used to store drill files history.
     wxFileHistory           m_drillFileHistory;
+    /// The last filename chosen to be proposed to the user
+    wxString                m_lastFileName;
 public:
     GBR_LAYER_BOX_SELECTOR* m_SelLayerBox;
     DCODE_SELECTION_BOX*    m_DCodeSelector;    // a list box to select the dcode Id to highlight.
@@ -188,9 +191,9 @@ private:
     // An array sting to store warning messages when reaging a gerber file.
     wxArrayString   m_Messages;
 public:
-    GERBVIEW_FRAME( wxWindow* father, const wxString& title,
-                    const wxPoint& pos, const wxSize& size,
-                    long style = KICAD_DEFAULT_DRAWFRAME_STYLE );
+    GERBVIEW_FRAME( wxWindow* aParent, const wxString& aTitle,
+                    const wxPoint& aPosition, const wxSize& aSize,
+                    long aStyle = KICAD_DEFAULT_DRAWFRAME_STYLE );
 
     ~GERBVIEW_FRAME();
 
@@ -261,20 +264,19 @@ public:
      * Function IsElementVisible
      * tests whether a given element category is visible. Keep this as an
      * inline function.
-     * @param aGERBER_VISIBLE is from the enum by the same name
+     * @param aItemIdVisible is an item id from the enum GERBER_VISIBLE_ID
      * @return bool - true if the element is visible.
-     * @see enum PCB_VISIBLE
      */
-    bool    IsElementVisible( int aGERBER_VISIBLE );
+    bool    IsElementVisible( GERBER_VISIBLE_ID aItemIdVisible );
 
     /**
      * Function SetElementVisibility
      * changes the visibility of an element category
-     * @param aGERBER_VISIBLE is from the enum by the same name
+     * @param aItemIdVisible is an item id from the enum GERBER_VISIBLE_ID
      * @param aNewState = The new visibility state of the element category
-     * @see enum PCB_VISIBLE
+     *  (see enum PCB_VISIBLE)
      */
-    void    SetElementVisibility( int aGERBER_VISIBLE, bool aNewState );
+    void    SetElementVisibility( GERBER_VISIBLE_ID aItemIdVisible, bool aNewState );
 
     /**
      * Function SetVisibleAlls
@@ -315,24 +317,23 @@ public:
 
     /**
      * Function GetVisibleElementColor
-     * returns the color of a pcb visible element.
-     * @see enum PCB_VISIBLE
+     * returns the color of a gerber visible element.
      */
-    int     GetVisibleElementColor( int aItemIdVisible );
+    EDA_COLOR_T GetVisibleElementColor( GERBER_VISIBLE_ID aItemIdVisible );
 
-    void    SetVisibleElementColor( int aItemIdVisible, int aColor );
+    void    SetVisibleElementColor( GERBER_VISIBLE_ID aItemIdVisible, EDA_COLOR_T aColor );
 
     /**
      * Function GetLayerColor
      * gets a layer color for any valid layer, including non-copper ones.
      */
-    int     GetLayerColor( int aLayer );
+    EDA_COLOR_T GetLayerColor( int aLayer ) const;
 
     /**
      * Function SetLayerColor
      * changes a layer color for any valid layer, including non-copper ones.
      */
-    void    SetLayerColor( int aLayer, int aColor );
+    void    SetLayerColor( int aLayer, EDA_COLOR_T aColor );
 
     /**
      * Function ReFillLayerWidget
@@ -684,7 +685,7 @@ public:
      * @param aDC = the current device context
      * @param aDrawMode = GR_COPY, GR_OR ...
      */
-    void            DrawItemsDCodeID( wxDC* aDC, int aDrawMode );
+    void            DrawItemsDCodeID( wxDC* aDC, GR_DRAWMODE aDrawMode );
 
     DECLARE_EVENT_TABLE()
 };

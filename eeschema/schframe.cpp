@@ -56,7 +56,6 @@
 #include <dialogs/dialog_erc.h>
 #include <dialogs/dialog_print_using_printer.h>
 #include <dialogs/dialog_schematic_find.h>
-#include <dialogs/dialog_SVG_print.h>
 
 #include <wx/display.h>
 #include <build_version.h>
@@ -82,11 +81,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_MENU( ID_SAVE_PROJECT, SCH_EDIT_FRAME::OnSaveProject )
     EVT_MENU( ID_SAVE_ONE_SHEET, SCH_EDIT_FRAME::Save_File )
     EVT_MENU( ID_SAVE_ONE_SHEET_AS, SCH_EDIT_FRAME::Save_File )
-    EVT_MENU( ID_GEN_PLOT_PS, SCH_EDIT_FRAME::ToPlot_PS )
-    EVT_MENU( ID_GEN_PLOT_HPGL, SCH_EDIT_FRAME::ToPlot_HPGL )
-    EVT_MENU( ID_GEN_PLOT_SVG, SCH_EDIT_FRAME::SVG_Print )
-    EVT_MENU( ID_GEN_PLOT_DXF, SCH_EDIT_FRAME::ToPlot_DXF )
-    EVT_MENU( ID_GEN_PLOT_PDF, SCH_EDIT_FRAME::ToPlot_PDF )
+    EVT_MENU( ID_GEN_PLOT_SCHEMATIC, SCH_EDIT_FRAME::PlotSchematic )
     EVT_MENU( ID_GEN_COPY_SHEET_TO_CLIPBOARD, EDA_DRAW_FRAME::CopyToClipboard )
     EVT_MENU( wxID_EXIT, SCH_EDIT_FRAME::OnExit )
 
@@ -178,15 +173,15 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
 
 END_EVENT_TABLE()
 
+#define SCH_EDIT_FRAME_NAME wxT( "SchematicFrame" )
 
-SCH_EDIT_FRAME::SCH_EDIT_FRAME( wxWindow*       father,
-                                const wxString& title,
-                                const wxPoint&  pos,
-                                const wxSize&   size,
-                                long            style ) :
-    SCH_BASE_FRAME( father, SCHEMATIC_FRAME, title, pos, size, style )
+SCH_EDIT_FRAME::SCH_EDIT_FRAME( wxWindow* aParent, const wxString& aTitle,
+                    const wxPoint& aPosition, const wxSize& aSize,
+                    long aStyle ) :
+    SCH_BASE_FRAME( aParent, SCHEMATIC_FRAME_TYPE, aTitle, aPosition, aSize,
+                    aStyle, SCH_EDIT_FRAME_NAME )
 {
-    m_FrameName = wxT( "SchematicFrame" );
+    m_FrameName = SCH_EDIT_FRAME_NAME;
     m_showAxis = false;                 // true to show axis
     m_showBorderAndTitleBlock = true;   // true to show sheet references
     m_CurrentSheet = new SCH_SHEET_PATH();
@@ -414,10 +409,12 @@ void SCH_EDIT_FRAME::SaveUndoItemInUndoList( SCH_ITEM* aItem )
 
 void SCH_EDIT_FRAME::OnCloseWindow( wxCloseEvent& aEvent )
 {
-    if( m_LibeditFrame && !m_LibeditFrame->Close() )   // Can close component editor?
+    LIB_EDIT_FRAME * libeditFrame = LIB_EDIT_FRAME::GetActiveLibraryEditor();;
+    if( libeditFrame && !libeditFrame->Close() )   // Can close component editor?
         return;
 
-    if( m_ViewlibFrame && !m_ViewlibFrame->Close() )   // Can close component viewer?
+    LIB_VIEW_FRAME * viewlibFrame = LIB_VIEW_FRAME::GetActiveLibraryViewer();;
+    if( viewlibFrame && !viewlibFrame->Close() )   // Can close component viewer?
         return;
 
     SCH_SHEET_LIST SheetList;
@@ -503,7 +500,7 @@ double SCH_EDIT_FRAME::BestZoom()
     double zx =(double) dx / ( margin_scale_factor * (double)size.x );
     double zy = (double) dy / ( margin_scale_factor * (double)size.y );
 
-    double bestzoom = MAX( zx, zy );
+    double bestzoom = std::max( zx, zy );
 
     GetScreen()->SetScrollCenterPosition( wxPoint( dx / 2, dy / 2 ) );
 
@@ -787,19 +784,20 @@ void SCH_EDIT_FRAME::OnOpenLibraryEditor( wxCommandEvent& event )
         component = (SCH_COMPONENT*) item;
     }
 
-    if( m_LibeditFrame )
+    LIB_EDIT_FRAME * libeditFrame = LIB_EDIT_FRAME::GetActiveLibraryEditor();;
+    if( libeditFrame )
     {
-        if( m_LibeditFrame->IsIconized() )
-             m_LibeditFrame->Iconize( false );
+        if( libeditFrame->IsIconized() )
+             libeditFrame->Iconize( false );
 
-        m_LibeditFrame->Raise();
+        libeditFrame->Raise();
     }
     else
     {
-        m_LibeditFrame = new LIB_EDIT_FRAME( this,
-                                             wxT( "Library Editor" ),
-                                             wxPoint( -1, -1 ),
-                                             wxSize( 600, 400 ) );
+        libeditFrame = new LIB_EDIT_FRAME( this,
+                                           wxT( "Library Editor" ),
+                                           wxPoint( -1, -1 ),
+                                           wxSize( 600, 400 ) );
     }
 
     if( component )
@@ -810,7 +808,7 @@ void SCH_EDIT_FRAME::OnOpenLibraryEditor( wxCommandEvent& event )
             return;
 
         CMP_LIBRARY* library = entry->GetLibrary();
-        m_LibeditFrame->LoadComponentAndSelectLib( entry, library );
+        libeditFrame->LoadComponentAndSelectLib( entry, library );
     }
 }
 
@@ -825,8 +823,9 @@ void SCH_EDIT_FRAME::SetLanguage( wxCommandEvent& event )
 {
     EDA_BASE_FRAME::SetLanguage( event );
 
-    if( m_LibeditFrame )
-        m_LibeditFrame->EDA_BASE_FRAME::SetLanguage( event );
+    LIB_EDIT_FRAME * libeditFrame = LIB_EDIT_FRAME::GetActiveLibraryEditor();;
+    if( libeditFrame )
+        libeditFrame->EDA_BASE_FRAME::SetLanguage( event );
 }
 
 
@@ -849,19 +848,11 @@ void SCH_EDIT_FRAME::OnPrint( wxCommandEvent& event )
     }
 }
 
-
-void SCH_EDIT_FRAME::SVG_Print( wxCommandEvent& event )
-{
-    DIALOG_SVG_PRINT frame( this );
-
-    frame.ShowModal();
-}
-
-
 void SCH_EDIT_FRAME::PrintPage( wxDC* aDC, int aPrintMask, bool aPrintMirrorMode, void* aData )
 {
     GetScreen()->Draw( m_canvas, aDC, GR_DEFAULT_DRAWMODE );
-    TraceWorkSheet( aDC, GetScreen(), g_DrawDefaultLineThickness, IU_PER_MILS );
+    TraceWorkSheet( aDC, GetScreen(), g_DrawDefaultLineThickness, IU_PER_MILS,
+                    GetScreenDesc() );
 }
 
 

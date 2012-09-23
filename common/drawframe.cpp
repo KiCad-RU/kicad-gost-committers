@@ -84,9 +84,12 @@ BEGIN_EVENT_TABLE( EDA_DRAW_FRAME, EDA_BASE_FRAME )
 END_EVENT_TABLE()
 
 
-EDA_DRAW_FRAME::EDA_DRAW_FRAME( wxWindow* father, int idtype, const wxString& title,
-                                const wxPoint& pos, const wxSize& size, long style ) :
-    EDA_BASE_FRAME( father, idtype, title, pos, size, style )
+EDA_DRAW_FRAME::EDA_DRAW_FRAME( wxWindow* aParent,
+                                ID_DRAWFRAME_TYPE aFrameType,
+                                const wxString& aTitle,
+                                const wxPoint& aPos, const wxSize& aSize,
+                                long aStyle, const wxString & aFrameName ) :
+    EDA_BASE_FRAME( aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName )
 {
     m_drawToolBar         = NULL;
     m_optionsToolBar      = NULL;
@@ -475,7 +478,7 @@ void EDA_DRAW_FRAME::OnGrid( int grid_type )
 }
 
 
-wxPoint EDA_DRAW_FRAME::GetGridPosition( const wxPoint& aPosition )
+wxPoint EDA_DRAW_FRAME::GetGridPosition( const wxPoint& aPosition ) const
 {
     wxPoint pos = aPosition;
 
@@ -553,7 +556,7 @@ void EDA_DRAW_FRAME::LoadSettings()
     int itmp;
 
     if( cfg->Read( m_FrameName + GridColorEntryKeyword, &itmp ) )
-        SetGridColor( itmp );
+        SetGridColor( ColorFromInt( itmp ) );
 
     cfg->Read( m_FrameName + LastGridSizeId, &m_LastGridSizeId, 0L );
 }
@@ -568,14 +571,14 @@ void EDA_DRAW_FRAME::SaveSettings()
     EDA_BASE_FRAME::SaveSettings();
     cfg->Write( m_FrameName + CursorShapeEntryKeyword, m_cursorShape );
     cfg->Write( m_FrameName + ShowGridEntryKeyword, IsGridVisible() );
-    cfg->Write( m_FrameName + GridColorEntryKeyword, GetGridColor() );
+    cfg->Write( m_FrameName + GridColorEntryKeyword, ( long ) GetGridColor() );
     cfg->Write( m_FrameName + LastGridSizeId, ( long ) m_LastGridSizeId );
 }
 
 
 void EDA_DRAW_FRAME::AppendMsgPanel( const wxString& textUpper,
                                      const wxString& textLower,
-                                     int color, int pad )
+                                     EDA_COLOR_T color, int pad )
 {
     if( m_messagePanel == NULL )
         return;
@@ -593,12 +596,12 @@ void EDA_DRAW_FRAME::ClearMsgPanel( void )
 }
 
 
-wxString EDA_DRAW_FRAME::CoordinateToString( int aValue, bool aConvertToMils )
+wxString EDA_DRAW_FRAME::CoordinateToString( int aValue, bool aConvertToMils ) const
 {
     return ::CoordinateToString( aValue, aConvertToMils );
 }
 
-wxString EDA_DRAW_FRAME::LengthDoubleToString( double aValue, bool aConvertToMils )
+wxString EDA_DRAW_FRAME::LengthDoubleToString( double aValue, bool aConvertToMils ) const
 {
     return ::LengthDoubleToString( aValue, aConvertToMils );
 }

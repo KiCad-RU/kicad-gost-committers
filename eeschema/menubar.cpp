@@ -70,14 +70,14 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     // New
     AddMenuItem( fileMenu,
                  ID_NEW_PROJECT,
-                 _( "&New\tCtrl+N" ),
+                 _( "&New" ),
                  _( "New schematic project" ),
                  KiBitmap( new_xpm ) );
 
     // Open
+    text = AddHotkeyName( _( "&Open" ), s_Schematic_Hokeys_Descr, HK_LOAD_SCH );
     AddMenuItem( fileMenu,
-                 ID_LOAD_PROJECT,
-                 _( "&Open\tCtrl+O" ),
+                 ID_LOAD_PROJECT, text,
                  _( "Open an existing schematic project" ),
                  KiBitmap( open_document_xpm ) );
 
@@ -101,9 +101,10 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     fileMenu->AppendSeparator();
 
     // Save schematic project
+    text = AddHotkeyName( _( "&Save Whole Schematic Project" ),
+                          s_Schematic_Hokeys_Descr, HK_SAVE_SCH );
     AddMenuItem( fileMenu,
-                 ID_SAVE_PROJECT,
-                 _( "&Save Whole Schematic Project\tCtrl+S" ),
+                 ID_SAVE_PROJECT, text,
                  _( "Save all sheets in the schematic project" ),
                  KiBitmap( save_project_xpm ) );
 
@@ -140,38 +141,9 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
 
     // Plot submenu
     wxMenu* choice_plot_fmt = new wxMenu;
-
-    // Plot PostScript
-    AddMenuItem( choice_plot_fmt, ID_GEN_PLOT_PS,
-                 _( "Plot &PostScript" ),
-                 _( "Plot schematic sheet in PostScript format" ),
-                 KiBitmap( plot_ps_xpm ) );
-
-    // Plot PDF
-    AddMenuItem( choice_plot_fmt, ID_GEN_PLOT_PDF,
-                 _( "Plot PDF" ),
-                 _( "Plot schematic sheet in PDF format" ),
-                 KiBitmap( plot_pdf_xpm ) );
-
-    // Plot HPGL
-    AddMenuItem( choice_plot_fmt,
-                 ID_GEN_PLOT_HPGL,
-                 _( "Plot &HPGL" ),
-                 _( "Plot schematic sheet in HPGL format" ),
-                 KiBitmap( plot_hpg_xpm ) );
-
-    // Plot SVG
-    AddMenuItem( choice_plot_fmt,
-                 ID_GEN_PLOT_SVG,
-                 _( "Plot &SVG" ),
-                 _( "Plot schematic sheet in SVG format" ),
-                 KiBitmap( plot_xpm ) );
-
-    // Plot DXF
-    AddMenuItem( choice_plot_fmt,
-                 ID_GEN_PLOT_DXF,
-                 _( "Plot &DXF" ),
-                 _( "Plot schematic sheet in DXF format" ),
+    AddMenuItem( choice_plot_fmt, ID_GEN_PLOT_SCHEMATIC,
+                 _( "&Plot" ),
+                 _( "Plot schematic sheet in PostScript, PDF, SVG, DXF or HPGL format" ),
                  KiBitmap( plot_xpm ) );
 
     // Plot to Clipboard (Windows only)

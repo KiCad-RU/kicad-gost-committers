@@ -71,7 +71,8 @@ class LIB_FIELD : public LIB_ITEM, public EDA_TEXT
      * </p>
      */
     void drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                      int aColor, int aDrawMode, void* aData, const TRANSFORM& aTransform );
+                      EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
+                      const TRANSFORM& aTransform );
 
     /**
      * Calculate the new circle at \a aPosition when editing.
@@ -204,7 +205,7 @@ public:
      */
     wxString GetFullText( int unit = 1 );
 
-    int GetDefaultColor();
+    EDA_COLOR_T GetDefaultColor();
 
     void BeginEdit( int aEditMode, const wxPoint aStartPoint = wxPoint( 0, 0 ) );
 

@@ -102,7 +102,7 @@ BOARD_ITEM* FOOTPRINT_EDIT_FRAME::ModeditLocateAndDisplay( int aHotKeyCode )
         itemMenu.Append( item_title );
         itemMenu.AppendSeparator();
 
-        int limit = MIN( MAX_ITEMS_IN_PICKER, m_Collector->GetCount() );
+        int limit = std::min( MAX_ITEMS_IN_PICKER, m_Collector->GetCount() );
 
         for( int ii = 0; ii<limit; ++ii )
         {
@@ -195,6 +195,9 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_MODEDIT_EDIT_LAYER_CURRENT_EDGE:
     case ID_POPUP_MODEDIT_EDIT_LAYER_ALL_EDGE:
     case ID_POPUP_MODEDIT_ENTER_EDGE_WIDTH:
+    case ID_POPUP_PCB_DELETE_EDGE:
+    case ID_POPUP_PCB_DELETE_TEXTMODULE:
+    case ID_POPUP_PCB_DELETE_PAD:
     case ID_POPUP_DELETE_BLOCK:
     case ID_POPUP_PLACE_BLOCK:
     case ID_POPUP_ZOOM_BLOCK:
@@ -228,15 +231,16 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_OPEN_MODULE_VIEWER:
-        if( GetActiveViewerFrame() == NULL )
         {
-            m_ModuleViewerFrame = new FOOTPRINT_VIEWER_FRAME( this, NULL );
-            m_ModuleViewerFrame->Show( true );
-            m_ModuleViewerFrame->Zoom_Automatique( false );
+        FOOTPRINT_VIEWER_FRAME * viewer = FOOTPRINT_VIEWER_FRAME::GetActiveFootprintViewer();
+        if( viewer == NULL )
+        {
+            viewer = new FOOTPRINT_VIEWER_FRAME( this, NULL );
+            viewer->Show( true );
+            viewer->Zoom_Automatique( false );
         }
         else
         {
-            FOOTPRINT_VIEWER_FRAME * viewer = GetActiveViewerFrame();
             if( viewer->IsIconized() )
                  viewer->Iconize( false );
 
@@ -246,6 +250,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             // any platform.
             if( wxWindow::FindFocus() != viewer )
                 viewer->SetFocus();
+        }
         }
         break;
 
@@ -285,7 +290,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         }
         break;
     }
-    
+
      case ID_MODEDIT_NEW_MODULE_FROM_WIZARD:
     {
         Clear_Pcb( true );
@@ -293,12 +298,12 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         SetCurItem( NULL );
         GetScreen()->SetCrossHairPosition( wxPoint( 0, 0 ) );
 
-        
         wxSemaphore semaphore( 0, 1 );
-        FOOTPRINT_WIZARD_FRAME *wizard = new FOOTPRINT_WIZARD_FRAME( this, &semaphore );
+        FOOTPRINT_WIZARD_FRAME *wizard = new FOOTPRINT_WIZARD_FRAME( this, &semaphore,
+                            KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT );
         wizard->Show( true );
         wizard->Zoom_Automatique( false );
-        
+
         while( semaphore.TryWait() == wxSEMA_BUSY ) // Wait for viewer closing event
         {
             wxYield();
@@ -306,7 +311,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         }
 
         MODULE* module = wizard->GetBuiltFootprint();
-        
+
         if( module )        // i.e. if create module command not aborted
         {
             /* Here we should make a copy of the object before adding to board*/
@@ -322,8 +327,8 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
             if( GetBoard()->m_Modules )
                 GetBoard()->m_Modules->ClearFlags();
-    
-   
+
+
         }
 
         wizard->Destroy();
@@ -563,7 +568,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_PCB_MOVE_PAD_REQUEST:
     {
         m_canvas->MoveCursorToCrossHair();
-        StartMovePad( (D_PAD*) GetScreen()->GetCurItem(), &dc );
+        StartMovePad( (D_PAD*) GetScreen()->GetCurItem(), &dc, false );
     }
     break;
 

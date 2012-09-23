@@ -34,7 +34,7 @@
 #include <wxEeschemaStruct.h>
 
 #include <general.h>
-#include <protos.h>
+//#include <protos.h>
 #include <viewlib_frame.h>
 #include <class_library.h>
 #include <hotkeys.h>
@@ -97,15 +97,16 @@ static wxAcceleratorEntry accels[] =
 #define ACCEL_TABLE_CNT ( sizeof( accels ) / sizeof( wxAcceleratorEntry ) )
 
 #define EXTRA_BORDER_SIZE 2
+#define LIB_VIEW_FRAME_NAME wxT( "ViewlibFrame" )
 
-
-LIB_VIEW_FRAME::LIB_VIEW_FRAME( wxWindow* father, CMP_LIBRARY* Library, wxSemaphore* semaphore ) :
-    SCH_BASE_FRAME( father, VIEWER_FRAME, _( "Library Browser" ),
-                    wxDefaultPosition, wxDefaultSize )
+LIB_VIEW_FRAME::LIB_VIEW_FRAME( wxWindow* father, CMP_LIBRARY* Library,
+                                wxSemaphore* semaphore, long style ) :
+    SCH_BASE_FRAME( father, VIEWER_FRAME_TYPE, _( "Library Browser" ),
+                    wxDefaultPosition, wxDefaultSize, style, GetLibViewerFrameName() )
 {
     wxAcceleratorTable table( ACCEL_TABLE_CNT, accels );
 
-    m_FrameName = wxT( "ViewlibFrame" );
+    m_FrameName = GetLibViewerFrameName();
     m_configPath = wxT( "LibraryViewer" );
 
     // Give an icon
@@ -120,13 +121,12 @@ LIB_VIEW_FRAME::LIB_VIEW_FRAME( wxWindow* father, CMP_LIBRARY* Library, wxSemaph
     m_LibListWindow = NULL;
     m_CmpListWindow = NULL;
     m_Semaphore     = semaphore;
+    if( m_Semaphore )
+        SetModalMode( true );
     m_exportToEeschemaCmpName.Empty();
 
-    if( m_Semaphore )
-        MakeModal(true);
-
     SetScreen( new SCH_SCREEN() );
-    GetScreen()->m_Center = true;      // Center coordinate origins on screen.
+    GetScreen()->m_Center = true;      // Axis origin centered on screen.
     LoadSettings();
 
     SetSize( m_FramePos.x, m_FramePos.y, m_FrameSize.x, m_FrameSize.y );
@@ -258,10 +258,20 @@ LIB_VIEW_FRAME::LIB_VIEW_FRAME( wxWindow* father, CMP_LIBRARY* Library, wxSemaph
 
 LIB_VIEW_FRAME::~LIB_VIEW_FRAME()
 {
-    SCH_BASE_FRAME* frame = (SCH_BASE_FRAME*) GetParent();
-    frame->SetLibraryViewerWindow( NULL );
 }
 
+const wxChar* LIB_VIEW_FRAME::GetLibViewerFrameName()
+{
+    return LIB_VIEW_FRAME_NAME;
+}
+
+/* return a reference to the current opened Library viewer
+ * or NULL if no Library viewer currently opened
+ */
+LIB_VIEW_FRAME* LIB_VIEW_FRAME::GetActiveLibraryViewer()
+{
+    return (LIB_VIEW_FRAME*) wxWindow::FindWindowByName(GetLibViewerFrameName());
+}
 
 void LIB_VIEW_FRAME::OnCloseWindow( wxCloseEvent& Event )
 {
@@ -270,9 +280,9 @@ void LIB_VIEW_FRAME::OnCloseWindow( wxCloseEvent& Event )
     if( m_Semaphore )
     {
         m_Semaphore->Post();
-        MakeModal(false);
         // This window will be destroyed by the calling function,
-        // to avoid side effects
+        // if needed
+        SetModalMode( false );
     }
     else
     {
@@ -364,7 +374,7 @@ double LIB_VIEW_FRAME::BestZoom()
                 ( margin_scale_factor * (double)size.y);
 
     // Calculates the best zoom
-    bestzoom = MAX( zx, zy );
+    bestzoom = std::max( zx, zy );
 
     // keep it >= minimal existing zoom (can happen for very small components
     // like small power symbols

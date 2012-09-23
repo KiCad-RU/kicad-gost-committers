@@ -167,13 +167,15 @@ MODULE* DRAWSEGMENT::GetParentModule() const
 }
 
 
-void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wxPoint& aOffset )
+void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
+                        const wxPoint& aOffset )
 {
     int ux0, uy0, dx, dy;
     int l_trace;
-    int color, mode;
+    int mode;
     int radius;
     int curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
+    EDA_COLOR_T color;
 
     BOARD * brd =  GetBoard( );
 
@@ -185,10 +187,7 @@ void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode, const wx
     if( ( draw_mode & GR_ALLOW_HIGHCONTRAST ) &&  DisplayOpt.ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) && !IsOnLayer( EDGE_N ) )
-        {
-            color &= ~MASKCOLOR;
-            color |= DARKDARKGRAY;
-        }
+            ColorTurnToDarkDarkGray( &color );
     }
 
 
@@ -404,10 +403,10 @@ EDA_RECT DRAWSEGMENT::GetBoundingBox() const
                 if( ii == 0 )
                     p_end = pt;
 
-                bbox.SetX( MIN( bbox.GetX(), pt.x ) );
-                bbox.SetY( MIN( bbox.GetY(), pt.y ) );
-                p_end.x   = MAX( p_end.x, pt.x );
-                p_end.y   = MAX( p_end.y, pt.y );
+                bbox.SetX( std::min( bbox.GetX(), pt.x ) );
+                bbox.SetY( std::min( bbox.GetY(), pt.y ) );
+                p_end.x   = std::max( p_end.x, pt.x );
+                p_end.y   = std::max( p_end.y, pt.y );
             }
 
             bbox.SetEnd( p_end );

@@ -67,6 +67,7 @@ BEGIN_EVENT_TABLE( DISPLAY_FOOTPRINTS_FRAME, PCB_BASE_FRAME )
                    DISPLAY_FOOTPRINTS_FRAME::OnUpdateLineDrawMode )
 END_EVENT_TABLE()
 
+#define DISPLAY_FOOTPRINTS_FRAME_NAME wxT( "CmpFrame" )
 
 /***************************************************************************/
 /* DISPLAY_FOOTPRINTS_FRAME: the frame to display the current focused footprint */
@@ -76,9 +77,10 @@ DISPLAY_FOOTPRINTS_FRAME::DISPLAY_FOOTPRINTS_FRAME( CVPCB_MAINFRAME* parent,
                                                     const wxString& title,
                                                     const wxPoint& pos,
                                                     const wxSize& size, long style ) :
-    PCB_BASE_FRAME( parent, CVPCB_DISPLAY_FRAME, title, pos, size, style )
+    PCB_BASE_FRAME( parent, CVPCB_DISPLAY_FRAME_TYPE, title, pos, size,
+                    style, DISPLAY_FOOTPRINTS_FRAME_NAME )
 {
-    m_FrameName = wxT( "CmpFrame" );
+    m_FrameName = DISPLAY_FOOTPRINTS_FRAME_NAME;
     m_showAxis = true;         // true to draw axis.
 
     // Give an icon
@@ -464,7 +466,7 @@ void PCB_SCREEN::ClearUndoORRedoList( UNDO_REDO_CONTAINER&, int )
  * Function IsGridVisible() , virtual
  * @return true if the grid must be shown
  */
-bool DISPLAY_FOOTPRINTS_FRAME::IsGridVisible()
+bool DISPLAY_FOOTPRINTS_FRAME::IsGridVisible() const
 {
     return m_DrawGrid;
 }
@@ -486,7 +488,7 @@ void DISPLAY_FOOTPRINTS_FRAME::SetGridVisibility(bool aVisible)
  * Function GetGridColor() , virtual
  * @return the color of the grid
  */
-int DISPLAY_FOOTPRINTS_FRAME::GetGridColor()
+EDA_COLOR_T DISPLAY_FOOTPRINTS_FRAME::GetGridColor() const
 {
     return DARKGRAY;
 }

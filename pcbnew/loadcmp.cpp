@@ -116,18 +116,14 @@ wxString PCB_BASE_FRAME::SelectFootprintFromLibBrowser( void )
 {
     wxSemaphore semaphore( 0, 1 );
 
-    // Close the current Lib browser, if open, and open a new one, in "modal" mode:
-    FOOTPRINT_VIEWER_FRAME * viewer = GetActiveViewerFrame();
-    if( viewer )
-    {
-        viewer->Destroy();
-        // Clear the 2 existing references
-        m_ModuleViewerFrame = NULL;
-        if( m_ModuleEditFrame )
-            m_ModuleEditFrame->m_ModuleViewerFrame = NULL;
-    }
+    // Close the current Lib browser, if opened, and open a new one, in "modal" mode:
+    FOOTPRINT_VIEWER_FRAME * viewer = FOOTPRINT_VIEWER_FRAME::GetActiveFootprintViewer();
 
-    m_ModuleViewerFrame = new FOOTPRINT_VIEWER_FRAME( this, &semaphore );
+    if( viewer )
+        viewer->Destroy();
+
+    viewer = new FOOTPRINT_VIEWER_FRAME( this, &semaphore,
+                 KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT );
 
     // Show the library viewer frame until it is closed
     while( semaphore.TryWait() == wxSEMA_BUSY ) // Wait for viewer closing event
@@ -136,8 +132,8 @@ wxString PCB_BASE_FRAME::SelectFootprintFromLibBrowser( void )
         wxMilliSleep( 50 );
     }
 
-    wxString fpname = m_ModuleViewerFrame->GetSelectedFootprint();
-    m_ModuleViewerFrame->Destroy();
+    wxString fpname = viewer->GetSelectedFootprint();
+    viewer->Destroy();
 
     return fpname;
 }
@@ -178,8 +174,6 @@ MODULE* PCB_BASE_FRAME::Load_Module_From_Library( const wxString& aLibrary,
         m_canvas->MoveCursorToCrossHair();
         return NULL;
     }
-
-    moduleName.MakeUpper();
 
     if( dlg.IsKeyword() )   // Selection by keywords
     {
@@ -245,12 +239,12 @@ MODULE* PCB_BASE_FRAME::Load_Module_From_Library( const wxString& aLibrary,
         module->SetPosition( curspos );
 
         // Put it on FRONT layer,
-        // (Can be stored on BACK layer if the lib is an archive built from a board)
-        if( module->GetLayer() != LAYER_N_FRONT )
+        // (Can be stored flipped if the lib is an archive built from a board)
+        if( module->IsFlipped() )
             module->Flip( module->m_Pos );
 
-        // Put in in orientation 0,
-        // even if it is not saved with with orientation 0 in lib
+        // Place it in orientation 0,
+        // even if it is not saved with orientation 0 in lib
         // (Can happen if the lib is an archive built from a board)
         Rotate_Module( NULL, module, 0, false );
 
@@ -263,7 +257,32 @@ MODULE* PCB_BASE_FRAME::Load_Module_From_Library( const wxString& aLibrary,
     return module;
 }
 
+/* scans active libraries to find and load aFootprintName.
+ * If found  the module is added to the BOARD, just for good measure.
+ *  aLibraryPath is the full/short name of the library.
+ *                      if empty, search in all libraries
+ *  aFootprintName is the footprint to load
+ *  aDisplayError = true to display an error message if any.
+ *
+ *  return a pointer to the new module, or NULL
+ */
+MODULE* PCB_BASE_FRAME::GetModuleLibrary( const wxString& aLibraryPath,
+                                          const wxString& aFootprintName,
+                                          bool aDisplayError )
+{
+    if( aLibraryPath.IsEmpty() )
+        return loadFootprintFromLibraries( aFootprintName, aDisplayError );
+    else
+        return loadFootprintFromLibrary( aLibraryPath, aFootprintName, aDisplayError );
+}
 
+
+/* loads aFootprintName from aLibraryPath.
+ * If found the module is added to the BOARD, just for good measure.
+ *
+ * aLibraryPath - the full filename or the short name of the library to read.
+ * if it is a short name, the file is searched in all library valid paths
+ */
 MODULE* PCB_BASE_FRAME::loadFootprintFromLibrary( const wxString& aLibraryPath,
             const wxString& aFootprintName, bool aDisplayError )
 {
@@ -302,6 +321,10 @@ MODULE* PCB_BASE_FRAME::loadFootprintFromLibrary( const wxString& aLibraryPath,
 }
 
 
+/* Explore the libraries list and
+ * loads aFootprintName from the first library it is found
+ * If found add the module is also added to the BOARD, just for good measure.
+ */
 MODULE* PCB_BASE_FRAME::loadFootprintFromLibraries(
         const wxString& aFootprintName, bool aDisplayError )
 {

@@ -187,6 +187,9 @@ class BOARD : public BOARD_ITEM
     friend class PCB_EDIT_FRAME;
 
 private:
+    /// the board filename
+    wxString            m_fileName;
+
     // @todo: switch to boost:ptr_vector, and change ~BOARD()
     typedef std::vector<MARKER_PCB*> MARKERS;
 
@@ -236,6 +239,10 @@ private:
         throw( IO_ERROR );
 
 public:
+
+    void SetFileName( const wxString& aFileName ) { m_fileName = aFileName; }
+
+    const wxString &GetFileName() const { return m_fileName; }
 
     /// Flags used in ratsnest calculation and update.
     int m_Status_Pcb;
@@ -567,9 +574,9 @@ public:
      * returns the color of a pcb visible element.
      * @see enum PCB_VISIBLE
      */
-    int GetVisibleElementColor( int aPCB_VISIBLE );
+    EDA_COLOR_T GetVisibleElementColor( int aPCB_VISIBLE );
 
-    void SetVisibleElementColor( int aPCB_VISIBLE, int aColor );
+    void SetVisibleElementColor( int aPCB_VISIBLE, EDA_COLOR_T aColor );
 
     /**
      * Function GetDesignSettings
@@ -666,13 +673,13 @@ public:
      * Function SetLayerColor
      * changes a layer color for any valid layer, including non-copper ones.
      */
-    void SetLayerColor( int aLayer, int aColor );
+    void SetLayerColor( int aLayer, EDA_COLOR_T aColor );
 
     /**
      * Function GetLayerColor
      * gets a layer color for any valid layer, including non-copper ones.
      */
-    int GetLayerColor( int aLayer );
+    EDA_COLOR_T GetLayerColor( int aLayer ) const;
 
     /** Functions to get some items count */
     int GetNumSegmTrack() const;
@@ -800,7 +807,7 @@ public:
      * @param aOffset = an draw offset value (default = 0,0)
      */
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
-               int aDrawMode, const wxPoint& aOffset = ZeroOffset );
+               GR_DRAWMODE aDrawMode, const wxPoint& aOffset = ZeroOffset );
 
     /**
      * Function DrawHighLight
@@ -969,14 +976,15 @@ public:
      */
     void RedrawAreasOutlines( EDA_DRAW_PANEL* aPanel,
                               wxDC*           aDC,
-                              int             aDrawMode,
+                              GR_DRAWMODE     aDrawMode,
                               int             aLayer );
 
     /**
      * Function RedrawFilledAreas
      * Redraw all filled areas on layer aLayer ( redraw all if aLayer < 0 )
      */
-    void RedrawFilledAreas( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDrawMode, int aLayer );
+    void RedrawFilledAreas( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMode,
+                            int aLayer );
 
     /**
      * Function SetAreasNetCodesFromNetNames

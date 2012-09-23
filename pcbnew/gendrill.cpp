@@ -129,7 +129,7 @@ void DIALOG_GENDRILL::GenDrillAndReportFiles()
 
         if( s_ToolListBuffer.size() > 0 ) //  holes?
         {
-            fn = m_parent->GetScreen()->GetFileName();
+            fn = m_parent->GetBoard()->GetFileName();
             layer_extend.Empty();
 
             if( gen_NPTH_holes )
@@ -150,8 +150,11 @@ void DIALOG_GENDRILL::GenDrillAndReportFiles()
 
             fn.SetName( fn.GetName() + layer_extend );
             fn.SetExt( DrillFileExtension );
+            wxString defaultPath = m_plotDefaultpath;
+            if( defaultPath.IsEmpty() )
+                defaultPath = ::wxGetCwd();
 
-            wxFileDialog dlg( this, _( "Save Drill File" ), ::wxGetCwd(),
+            wxFileDialog dlg( this, _( "Save Drill File" ), defaultPath,
                               fn.GetFullName(), wxGetTranslation( DrillFileWildcard ),
                               wxFD_SAVE | wxFD_CHANGE_DIR );
 
@@ -202,6 +205,11 @@ void DIALOG_GENDRILL::GenDrillAndReportFiles()
                 GenDrillMap( dlg.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
                              PLOT_FORMAT_DXF );
                 break;
+
+            case 5:
+                GenDrillMap( dlg.GetPath(), s_HoleListBuffer, s_ToolListBuffer,
+                             PLOT_FORMAT_SVG );
+                break;
             }
         }
 
@@ -237,7 +245,7 @@ void DIALOG_GENDRILL::GenDrillAndReportFiles()
 
     if( m_Choice_Drill_Report->GetSelection() > 0 )
     {
-        fn = m_parent->GetScreen()->GetFileName();
+        fn = m_parent->GetBoard()->GetFileName();
         GenDrillReport( fn.GetFullName() );
     }
 
@@ -327,8 +335,8 @@ int EXCELLON_WRITER::CreateDrillFile()
             fprintf( m_file, "T%d\n", tool_reference );
         }
 
-        diam = MIN( hole_descr.m_Hole_Size.x,
-                    hole_descr.m_Hole_Size.y );
+        diam = std::min( hole_descr.m_Hole_Size.x,
+                         hole_descr.m_Hole_Size.y );
         if( diam == 0 )
             continue;
 
@@ -604,23 +612,28 @@ void DIALOG_GENDRILL::GenDrillMap( const wxString           aFileName,
     switch( format )
     {
     case PLOT_FORMAT_HPGL:
-        ext = wxT( "plt" );
+        ext = HPGL_PLOTTER::GetDefaultFileExtension();
         wildcard = _( "HPGL plot files (.plt)|*.plt" );
         break;
 
     case PLOT_FORMAT_POST:
-        ext = wxT( "ps" );
+        ext = PS_PLOTTER::GetDefaultFileExtension();
         wildcard = _( "PostScript files (.ps)|*.ps" );
         break;
 
     case PLOT_FORMAT_GERBER:
-        ext = wxT( "pho" );
+        ext = GERBER_PLOTTER::GetDefaultFileExtension();
         wildcard = _( "Gerber files (.pho)|*.pho" );
         break;
 
     case PLOT_FORMAT_DXF:
-        ext = wxT( "dxf" );
+        ext = DXF_PLOTTER::GetDefaultFileExtension();
         wildcard = _( "DXF files (.dxf)|*.dxf" );
+        break;
+
+    case PLOT_FORMAT_SVG:
+        ext = SVG_PLOTTER::GetDefaultFileExtension();
+        wildcard = SVGFileWildcard;
         break;
 
     default:
@@ -690,7 +703,7 @@ void DIALOG_GENDRILL::GenDrillReport( const wxString aFileName )
     }
 
     GenDrillReportFile( report_dest, m_parent->GetBoard(),
-                        m_parent->GetScreen()->GetFileName(),
+                        m_parent->GetBoard()->GetFileName(),
                         m_UnitDrillIsInch,
                         s_HoleListBuffer,
                         s_ToolListBuffer );

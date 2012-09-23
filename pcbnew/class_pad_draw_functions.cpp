@@ -38,12 +38,8 @@
 #include <layers_id_colors_and_visibility.h>
 #include <wxBasePcbFrame.h>
 #include <pcbcommon.h>
-#include <macros.h>
-
 #include <pcbnew_id.h>             // ID_TRACK_BUTT
 #include <pcbnew.h>
-#include <colors_selection.h>
-
 #include <class_board.h>
 
 
@@ -61,7 +57,7 @@
 PAD_DRAWINFO::PAD_DRAWINFO()
 {
     m_DrawPanel       = NULL;
-    m_DrawMode        = 0;
+    m_DrawMode        = GR_COPY;
     m_Color           = BLACK;
     m_HoleColor       = BLACK; // could be DARKGRAY;
     m_NPHoleColor     = YELLOW;
@@ -75,9 +71,9 @@ PAD_DRAWINFO::PAD_DRAWINFO()
 }
 
 
-void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDraw_mode, const wxPoint& aOffset )
+void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDraw_mode,
+                  const wxPoint& aOffset )
 {
-    int    color = 0;
     wxSize mask_margin;   // margin (clearance) used for some non copper layers
 
 #ifdef SHOW_PADMASK_REAL_SIZE_AND_COLOR
@@ -142,6 +138,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDraw_mode, const wxPoi
     else
         drawInfo.m_ShowPadFilled = false;
 
+    EDA_COLOR_T color = ColorFromInt(0); // XXX EVIL (it will be ORed later)
     if( m_layerMask & LAYER_FRONT )
     {
         color = brd->GetVisibleElementColor( PAD_FR_VISIBLE );
@@ -149,10 +146,11 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDraw_mode, const wxPoi
 
     if( m_layerMask & LAYER_BACK )
     {
-        color |= brd->GetVisibleElementColor( PAD_BK_VISIBLE );
+        // XXX EVIL merge
+        color = ColorFromInt( color | brd->GetVisibleElementColor( PAD_BK_VISIBLE ) );
     }
 
-    if( color == 0 ) /* Not on copper layer */
+    if( color == 0 ) // Not on a visible copper layer XXX EVIL check
     {
         // If the pad in on only one tech layer, use the layer color else use DARKGRAY
         int mask_non_copper_layers = m_layerMask & ~ALL_CU_LAYERS;
@@ -252,10 +250,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDraw_mode, const wxPoi
                || ( ( 1 << screen->m_Active_Layer ) & ( LAYER_BACK | LAYER_FRONT ) ) )
             {
                 if( !IsOnLayer( screen->m_Active_Layer ) )
-                {
-                    color &= ~MASKCOLOR;
-                    color |= DARKDARKGRAY;
-                }
+                    ColorTurnToDarkDarkGray( &color );
             }
             // else routing between an internal signal layer and some other
             // layer.  Grey out all PAD_SMD pads not on current or the single
@@ -264,8 +259,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDraw_mode, const wxPoi
                     && !IsOnLayer( routeTop )
                     && !IsOnLayer( routeBot ) )
             {
-                color &= ~MASKCOLOR;
-                color |= DARKDARKGRAY;
+                ColorTurnToDarkDarkGray( &color );
             }
         }
         // when not edting tracks, show PAD_SMD components not on active layer
@@ -273,10 +267,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDraw_mode, const wxPoi
         else
         {
             if( !IsOnLayer( screen->m_Active_Layer ) )
-            {
-                color &= ~MASKCOLOR;
-                color |= DARKDARKGRAY;
-            }
+                ColorTurnToDarkDarkGray( &color );
         }
     }
 
@@ -335,12 +326,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDraw_mode, const wxPoi
 
 
     if( aDraw_mode & GR_HIGHLIGHT )
-    {
-        if( aDraw_mode & GR_AND )
-            color &= ~HIGHLIGHT_FLAG;
-        else
-            color |= HIGHLIGHT_FLAG;
-    }
+        ColorChangeHighlightFlag( &color, !(aDraw_mode & GR_AND) );
 
     if( color & HIGHLIGHT_FLAG )
         color = ColorRefs[color & MASKCOLOR].m_LightColor;
@@ -504,7 +490,7 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
         else
             GRSetDrawMode( aDC, GR_XOR );
 
-        int hole_color = aDrawInfo.m_HoleColor;
+        EDA_COLOR_T hole_color = aDrawInfo.m_HoleColor;
 
         if( aDrawInfo. m_ShowNotPlatedHole )    // Draw a specific hole color
             hole_color = aDrawInfo.m_NPHoleColor;
@@ -554,8 +540,8 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
     /* Draw "No connect" ( / or \ or cross X ) if necessary. : */
     if( m_Netname.IsEmpty() && aDrawInfo.m_ShowNCMark )
     {
-        int dx0 = MIN( halfsize.x, halfsize.y );
-        int nc_color = BLUE;
+        int dx0 = std::min( halfsize.x, halfsize.y );
+        EDA_COLOR_T nc_color = BLUE;
 
         if( m_layerMask & LAYER_FRONT )    /* Draw \ */
             GRLine( aClipBox, aDC, holepos.x - dx0, holepos.y - dx0,
@@ -637,7 +623,7 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
     if( shortname_len == 0 )
         return;
 
-    shortname_len = MAX( shortname_len, MIN_CHAR_COUNT );
+    shortname_len = std::max( shortname_len, MIN_CHAR_COUNT );
     tsize = std::min( AreaSize.y, AreaSize.x / shortname_len );
 
     if( aDC->LogicalToDeviceXRel( tsize ) >= CHAR_SIZE_MIN )  // Not drawable in size too small.

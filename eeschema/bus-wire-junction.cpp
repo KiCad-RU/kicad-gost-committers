@@ -63,13 +63,13 @@ static void DrawSegment( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
                          bool aErase )
 {
     SCH_LINE* segment;
-    int color;
 
     if( s_wires.GetCount() == 0 )
         return;
 
     segment = (SCH_LINE*) s_wires.begin();
-    color = ReturnLayerColor( segment->GetLayer() ) ^ HIGHLIGHT_FLAG;
+    EDA_COLOR_T color = ReturnLayerColor( segment->GetLayer() );
+    ColorChangeHighlightFlag( &color, !(color & HIGHLIGHT_FLAG) );
 
     if( aErase )
     {
@@ -322,8 +322,8 @@ static void ComputeBreakPoint( SCH_LINE* aSegment, const wxPoint& aPosition )
     }
     else
     {
-        if( ABS( midPoint.x - aSegment->GetStartPoint().x ) <
-            ABS( midPoint.y - aSegment->GetStartPoint().y ) )
+        if( std::abs( midPoint.x - aSegment->GetStartPoint().x ) <
+            std::abs( midPoint.y - aSegment->GetStartPoint().y ) )
             midPoint.x = aSegment->GetStartPoint().x;
         else
             midPoint.y = aSegment->GetStartPoint().y;
@@ -359,7 +359,7 @@ void SCH_EDIT_FRAME::DeleteCurrentSegment( wxDC* DC )
         if( g_HVLines )
         {
             /* Coerce the line to vertical or horizontal one: */
-            if( ABS( endpos.x - pt.x ) < ABS( endpos.y - pt.y ) )
+            if( std::abs( endpos.x - pt.x ) < std::abs( endpos.y - pt.y ) )
                 endpos.x = pt.x;
             else
                 endpos.y = pt.y;

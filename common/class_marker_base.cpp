@@ -22,7 +22,7 @@
 #define M_SHAPE_SCALE 6     // default scaling factor for MarkerShapeCorners coordinates
 #define CORNERS_COUNT 8
 /* corners of the default shape
- * real coordinates are these values * .m_ScalingFactor
+ * actual coordinates are these values * .m_ScalingFactor
 */
 static const wxPoint MarkerShapeCorners[CORNERS_COUNT] =
 {
@@ -50,10 +50,10 @@ void MARKER_BASE::init()
     {
         wxPoint corner = MarkerShapeCorners[ii];
         m_Corners.push_back( corner );
-        start.x = MIN( start.x, corner.x);
-        start.y = MIN( start.y, corner.y);
-        end.x = MAX( end.x, corner.x);
-        end.y = MAX( end.y, corner.y);
+        start.x = std::min( start.x, corner.x);
+        start.y = std::min( start.y, corner.y);
+        end.x = std::max( end.x, corner.x);
+        end.y = std::max( end.y, corner.y);
     }
 
     m_ShapeBoundingBox.SetOrigin(start);
@@ -147,7 +147,7 @@ EDA_RECT MARKER_BASE::GetBoundingBoxMarker() const
     return EDA_RECT( m_Pos, realsize );
 }
 
-void MARKER_BASE::DrawMarker( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDrawMode,
+void MARKER_BASE::DrawMarker( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMode,
                               const wxPoint& aOffset )
 {
     wxPoint corners[CORNERS_COUNT];

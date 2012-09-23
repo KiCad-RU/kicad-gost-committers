@@ -110,9 +110,11 @@ void GERBER_LAYER_WIDGET::ReFillRender()
     {
         if( renderRows[row].color != -1 )       // does this row show a color?
         {
-            renderRows[row].color = myframe->GetVisibleElementColor( renderRows[row].id );
+            renderRows[row].color = myframe->GetVisibleElementColor(
+                                    (GERBER_VISIBLE_ID)renderRows[row].id );
         }
-        renderRows[row].state = myframe->IsElementVisible( renderRows[row].id );
+        renderRows[row].state = myframe->IsElementVisible(
+                                (GERBER_VISIBLE_ID)renderRows[row].id );
     }
 
     AppendRenderRows( renderRows, DIM(renderRows) );
@@ -208,7 +210,7 @@ void GERBER_LAYER_WIDGET::ReFill()
 
 //-----<LAYER_WIDGET callbacks>-------------------------------------------
 
-void GERBER_LAYER_WIDGET::OnLayerColorChange( int aLayer, int aColor )
+void GERBER_LAYER_WIDGET::OnLayerColorChange( int aLayer, EDA_COLOR_T aColor )
 {
     myframe->SetLayerColor( aLayer, aColor );
     myframe->m_SelLayerBox->ResyncBitmapOnly();
@@ -244,15 +246,15 @@ void GERBER_LAYER_WIDGET::OnLayerVisible( int aLayer, bool isVisible, bool isFin
         myframe->GetCanvas()->Refresh();
 }
 
-void GERBER_LAYER_WIDGET::OnRenderColorChange( int aId, int aColor )
+void GERBER_LAYER_WIDGET::OnRenderColorChange( int aId, EDA_COLOR_T aColor )
 {
-    myframe->SetVisibleElementColor( aId, aColor );
+    myframe->SetVisibleElementColor( (GERBER_VISIBLE_ID)aId, aColor );
     myframe->GetCanvas()->Refresh();
 }
 
 void GERBER_LAYER_WIDGET::OnRenderEnable( int aId, bool isEnabled )
 {
-    myframe->SetElementVisibility( aId, isEnabled );
+    myframe->SetElementVisibility( (GERBER_VISIBLE_ID)aId, isEnabled );
     myframe->GetCanvas()->Refresh();
 }
 
