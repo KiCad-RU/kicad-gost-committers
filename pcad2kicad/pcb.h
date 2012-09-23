@@ -43,7 +43,7 @@ public:
     PCB_COMPONENTS_ARRAY    m_pcbComponents;    // PCB Modules,Lines,Routes,Texts, .... and so on
     PCB_NETS_ARRAY          m_pcbNetlist;       // net objects collection
     wxString                m_defaultMeasurementUnit;
-    int m_layersMap[28];                        // flexible layers mapping
+    int m_layersMap[NB_LAYERS];                 // flexible layers mapping
     int m_sizeX;
     int m_sizeY;
 
@@ -61,7 +61,8 @@ public:
     void            AddToBoard();
 
 private:
-    int m_timestamp_cnt;
+    int             m_timestamp_cnt;
+    wxArrayString   m_layersStackup;
 
     wxXmlNode*      FindCompDefName( wxXmlNode* aNode, wxString aName );
     void            SetTextProperty( wxXmlNode*     aNode,
@@ -74,6 +75,7 @@ private:
                                      wxString       aActualConversion,
                                      wxStatusBar*   aStatusBar );
     void            ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName );
+    int             FindLayer( wxString aLayerName );
     void            MapLayer( wxXmlNode* aNode );
 };
 
