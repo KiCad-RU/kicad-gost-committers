@@ -37,7 +37,7 @@ namespace PCAD2KICAD {
 PCB_CUTOUT::PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_POLYGON( aCallbacks,
                                                                                   aBoard )
 {
-    m_objType = 'C';
+    m_objType = wxT( 'C' );
 }
 
 

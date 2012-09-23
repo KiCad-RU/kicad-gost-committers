@@ -42,7 +42,7 @@ PCB_LINE::PCB_LINE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( 
     m_width     = 0;
     m_toX       = 0;
     m_toY       = 0;
-    m_objType   = 'L';
+    m_objType   = wxT( 'L' );
 }
 
 
@@ -106,9 +106,9 @@ void PCB_LINE::SetPosOffset( int aX_offs, int aY_offs )
 
 void PCB_LINE::WriteToFile( wxFile* aFile, char aFileType )
 {
-    if( aFileType == 'L' )    // Library
+    if( aFileType == wxT( 'L' ) )    // Library
     {
-        aFile->Write( wxString::Format( "DS %d %d %d %d %d %d\n", m_positionX, m_positionY,
+        aFile->Write( wxString::Format( wxT( "DS %d %d %d %d %d %d\n" ), m_positionX, m_positionY,
                                         m_toX, m_toY, m_width, m_KiCadLayer ) );    // Position
     }
 }

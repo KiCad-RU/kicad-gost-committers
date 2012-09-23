@@ -41,7 +41,7 @@ PCB_COMPONENT::PCB_COMPONENT( PCB_CALLBACKS*    aCallbacks,
     m_board( aBoard )
 {
     m_tag       = 0;
-    m_objType   = '?';
+    m_objType   = wxT( '?' );
     m_PCadLayer     = 0;
     m_KiCadLayer    = 0;
     m_timestamp     = 0;

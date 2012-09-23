@@ -51,7 +51,7 @@ void SCH_TEXT::Parse( wxXmlNode* aNode, int aSymbolIndex,
 {
     wxXmlNode*  lNode;
 
-    m_objType   = wxT("text");
+    m_objType   = wxT( "text" );
     m_partNum   = aSymbolIndex;
 
     if( aNode->GetName() == wxT( "text" ) )
@@ -69,10 +69,10 @@ void SCH_TEXT::Parse( wxXmlNode* aNode, int aSymbolIndex,
 
 void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
 {
-    aFile->Write( wxString::Format( "T %d %d %d %d 0 %d 0 ", m_text.textRotation,
+    aFile->Write( wxString::Format( wxT( "T %d %d %d %d 0 %d 0 " ), m_text.textRotation,
                                     m_text.textPositionX, m_text.textPositionY,
                                     m_text.textHeight, m_partNum ) +
-                  m_text.text + " Normal 0 C C\n" );
+                  m_text.text + wxT( " Normal 0 C C\n" ) );
 }
 
 } // namespace PCAD2KICAD

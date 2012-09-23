@@ -112,15 +112,15 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     if( fileDlg.GetFilterIndex() == 1 )
     {
         outFile.SetExt( wxT( "lib" ) );
-        sch.WriteToFile( outFile.GetFullPath(), 'L' );
+        sch.WriteToFile( outFile.GetFullPath(), wxT( 'L' ) );
     }
     else
     {
         // we convert also library for schematics file
         outFile.SetExt( wxT( "KiCad.lib" ) );
-        sch.WriteToFile( outFile.GetFullPath(), 'L' );
+        sch.WriteToFile( outFile.GetFullPath(), wxT( 'L' ) );
         outFile.SetExt( wxT( "KiCad" ) );
-        sch.WriteToFile( outFile.GetFullPath(), 'S' );
+        sch.WriteToFile( outFile.GetFullPath(), wxT( 'S' ) );
     }
 
     m_statusBar->SetStatusText( wxT( "Done." ) );

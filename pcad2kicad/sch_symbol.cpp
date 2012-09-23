@@ -272,27 +272,27 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     // Go out
     str = m_attachedSymbol;
     str.Replace( wxT( " " ), wxT( "~" ), true );
-    aFile->Write( wxT( "L " ) + str + ' ' + m_reference.text + wxT( "\n" ) );
-    aFile->Write( wxString::Format( "U %d 1 00000000\n", m_partNum ) );
-    aFile->Write( wxString::Format( "P %d %d\n", m_positionX, m_positionY ) );
+    aFile->Write( wxT( "L " ) + str + wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
+    aFile->Write( wxString::Format( wxT( "U %d 1 00000000\n" ), m_partNum ) );
+    aFile->Write( wxString::Format( wxT( "P %d %d\n" ), m_positionX, m_positionY ) );
 
     // Reference
     if( m_reference.textRotation == 900 )
-        orientation = 'V';
+        orientation = wxT( 'V' );
     else
-        orientation = 'H';
+        orientation = wxT( 'H' );
 
     if( m_reference.textIsVisible == 1 )
         visibility = wxT( "0000" );
     else
         visibility = wxT( "0001" );
 
-    aFile->Write( wxT( "F 0 \"" ) + m_reference.text + wxT( "\" " ) + orientation + ' ' +
-                  wxString::Format( "%d %d %d",
+    aFile->Write( wxT( "F 0 \"" ) + m_reference.text + wxT( "\" " ) + orientation + wxT( ' ' ) +
+                  wxString::Format( wxT( "%d %d %d" ),
                                     m_reference.correctedPositionX + m_positionX,
                                     m_reference.correctedPositionY + m_positionY,
                                     KiROUND( (double) m_reference.textHeight / 2.0 ) ) +
-                  ' ' + visibility + wxT( " C C\n" ) );
+                  wxT( ' ' ) + visibility + wxT( " C C\n" ) );
 
     // Value
     if( m_value.textIsVisible == 1 )
@@ -301,16 +301,16 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
         visibility = wxT( "0001" );
 
     if( m_value.textRotation == 900 || m_value.textRotation == 2700 )
-        orientation = 'V';
+        orientation = wxT( 'V' );
     else
-        orientation = 'H';
+        orientation = wxT( 'H' );
 
-    aFile->Write( wxT( "F 1 \"" ) + m_value.text + wxT( "\" " ) + orientation + ' ' +
-                  wxString::Format( "%d %d %d",
+    aFile->Write( wxT( "F 1 \"" ) + m_value.text + wxT( "\" " ) + orientation + wxT( ' ' ) +
+                  wxString::Format( wxT( "%d %d %d" ),
                                     m_value.correctedPositionX + m_positionX,
                                     m_value.correctedPositionY + m_positionY,
                                     KiROUND( (double) m_value.textHeight / 2.0 ) ) +
-                  ' ' + visibility + wxT( " C C\n" ) );
+                  wxT( ' ' ) + visibility + wxT( " C C\n" ) );
 
 // SOME ROTATION MATRICS ?????????????
 // 1    2900 5200
@@ -334,7 +334,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
  *  MirrorX      1   0    0    1
  *  MirrorY     -1   0    0   -1
  */
-    aFile->Write( wxString::Format( " %d %d %d\n", m_partNum, m_positionX, m_positionY ) );
+    aFile->Write( wxString::Format( wxT( " %d %d %d\n" ), m_partNum, m_positionX, m_positionY ) );
     // Miror is negative in compare with PCad represenation...
     a = 0; b = 0; c = 0; d = 0;
 
@@ -384,7 +384,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
         }
     }
 
-    aFile->Write( wxString::Format( " %d %d %d %d \n", a, b, c, d ) );
+    aFile->Write( wxString::Format( wxT( " %d %d %d %d \n" ), a, b, c, d ) );
     // FOOTPRINT
 }
 

@@ -82,7 +82,7 @@ void PCB_NET::Parse( wxXmlNode* aNode )
         s2.Trim( false );
         s1 = wxEmptyString;
 
-        while( s2.Len() > 0 && s2[0] != ' ' )
+        while( s2.Len() > 0 && s2[0] != wxT( ' ' ) )
         {
             s1  = s1 + s2[0];
             s2  = s2.Mid( 1 );

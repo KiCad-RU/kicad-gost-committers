@@ -162,7 +162,7 @@ void PCB::SetTextProperty( wxXmlNode* aNode, TTEXTVALUE* aTextValue,
                         str     = aTextValue->text;
                         str.Trim( false );
                         str.Trim( true );
-                        n       = n + ' ' + str; // changed in new file version.....
+                        n       = n + wxT( ' ' ) + str; // changed in new file version.....
                         tNode   = NULL;
                     }
                 }
@@ -377,11 +377,11 @@ void PCB::ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName )
     {
         module = (PCB_MODULE*) m_pcbComponents[i];
 
-        if( module->m_objType == 'M' && module->m_name.text == aCr )
+        if( module->m_objType == wxT( 'M' ) && module->m_name.text == aCr )
         {
             for( j = 0; j < (int) module->m_moduleObjects.GetCount(); j++ )
             {
-                if( module->m_moduleObjects[j]->m_objType == 'P' )
+                if( module->m_moduleObjects[j]->m_objType == wxT( 'P' ) )
                 {
                     cp = (PCB_PAD*) module->m_moduleObjects[j];
 
@@ -573,7 +573,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         // POSTPROCESS -- FLIP COMPONENTS
         for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
         {
-            if( m_pcbComponents[i]->m_objType == 'M' )
+            if( m_pcbComponents[i]->m_objType == wxT( 'M' ) )
                 ( (PCB_MODULE*) m_pcbComponents[i] )->Flip();
         }
 
@@ -671,7 +671,7 @@ void PCB::WriteToFile( wxString aFileName )
 
     for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
     {
-        if( m_pcbComponents[i]->m_objType == 'M' )
+        if( m_pcbComponents[i]->m_objType == wxT( 'M' ) )
             f.Write( m_pcbComponents[i]->m_name.text + wxT( "\n" ) );
     }
 
@@ -679,8 +679,8 @@ void PCB::WriteToFile( wxString aFileName )
 
     for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
     {
-        if( m_pcbComponents[i]->m_objType == 'M' )
-            m_pcbComponents[i]->WriteToFile( &f, 'L' );
+        if( m_pcbComponents[i]->m_objType == wxT( 'M' ) )
+            m_pcbComponents[i]->WriteToFile( &f, wxT( 'L' ) );
     }
 
     f.Write( wxT( "$EndLIBRARY\n" ) );

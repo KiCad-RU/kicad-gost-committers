@@ -75,14 +75,14 @@ void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* a
                 }
                 else
                 {
-                    if( (ls.Len() > 0) && (ls[0] == '"') )
+                    if( (ls.Len() > 0) && (ls[0] == wxT( '"' ) ) )
                     {
                         ls = ls.Mid( 1, ls.Len() - 2 );
 
                         if( cNode->GetAttribute( wxT( "Name" ), &propValue ) )
                         {
                             cNode->DeleteProperty( wxT( "Name" ) );
-                            cNode->AddProperty( wxT( "Name" ), propValue + ' ' + ls );
+                            cNode->AddProperty( wxT( "Name" ), propValue + wxT( ' ' ) + ls );
                         }
                         else
                             cNode->AddProperty( wxT( "Name" ), ls );
@@ -90,7 +90,7 @@ void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* a
                     else
                     {
                         // update node content
-                        content = cNode->GetNodeContent() + ' ' + ls;
+                        content = cNode->GetNodeContent() + wxT( ' ' ) + ls;
 
                         if( cNode->GetChildren() )
                             cNode->GetChildren()->SetContent( content );
@@ -106,7 +106,7 @@ void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* a
         }
         else
         {
-            if( ls.Len() > 0 && ls[0] == '"' )
+            if( ls.Len() > 0 && ls[0] == wxT( '"' ) )
             {
                 ls = ls.Mid( 1, ls.Len() - 2 );
             }
@@ -114,7 +114,7 @@ void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName, wxArrayString* a
             cNode = new wxXmlNode( wxXML_ELEMENT_NODE, wxT( "value" ) );
             iNode->AddChild( cNode );
 
-            if( ls.Len() > 0 && ls[0] == '"' )
+            if( ls.Len() > 0 && ls[0] == wxT( '"' ) )
             {
                 ls = ls.Mid( 1, ls.Len() - 2 );
             }

@@ -39,7 +39,7 @@ namespace PCAD2KICAD {
 PCB_TEXT::PCB_TEXT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
                                                                                 aBoard )
 {
-    m_objType = 'T';
+    m_objType = wxT( 'T' );
 }
 
 
@@ -98,14 +98,14 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
     char visibility, mirrored;
 
     if( m_name.textIsVisible == 1 )
-        visibility = 'V';
+        visibility = wxT( 'V' );
     else
-        visibility = 'I';
+        visibility = wxT( 'I' );
 
     if( m_name.mirror == 1 )
-        mirrored = 'M';
+        mirrored = wxT( 'M' );
     else
-        mirrored = 'N';
+        mirrored = wxT( 'N' );
 
     // Simple, not the best, but acceptable text positioning.....
     m_name.textPositionX    = m_positionX;
@@ -113,15 +113,16 @@ void PCB_TEXT::WriteToFile( wxFile* aFile, char aFileType )
     CorrectTextPosition( &m_name, m_rotation );
 
     // Go out
-    if( aFileType == 'L' )    // Library component
+    if( aFileType == wxT( 'L' ) )    // Library component
     {
-        aFile->Write( wxString::Format( "T%d %d %d %d %d %d %d ", m_tag, m_name.correctedPositionX,
+        aFile->Write( wxString::Format( wxT( "T%d %d %d %d %d %d %d " ), m_tag,
+                                        m_name.correctedPositionX,
                                         m_name.correctedPositionY,
                                         KiROUND( m_name.textHeight / 2 ),
                                         KiROUND( m_name.textHeight / 1.1 ),
                                         m_rotation, m_name.textstrokeWidth ) +
-                      mirrored + ' ' + visibility +
-                      wxString::Format( " %d \"", m_KiCadLayer ) +
+                      mirrored + wxT( ' ' ) + visibility +
+                      wxString::Format( wxT( " %d \"" ), m_KiCadLayer ) +
                       m_name.text + wxT( "\"\n" ) );    // ValueString
     }
 }
