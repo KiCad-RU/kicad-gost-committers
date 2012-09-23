@@ -189,18 +189,15 @@ protected:
     void addCurrentItemToList( wxDC* aDC );
 
 public:
-    SCH_EDIT_FRAME( wxWindow* father,
-                    const wxString& title,
-                    const wxPoint& pos, const wxSize& size,
-                    long style = KICAD_DEFAULT_DRAWFRAME_STYLE );
+    SCH_EDIT_FRAME( wxWindow* aParent, const wxString& aTitle,
+                    const wxPoint& aPosition, const wxSize& aSize,
+                    long aStyle = KICAD_DEFAULT_DRAWFRAME_STYLE );
 
     ~SCH_EDIT_FRAME();
 
     SCH_SCREEN* GetScreen() const;                  // overload SCH_BASE_FRAME
 
     void OnCloseWindow( wxCloseEvent& Event );
-
-    void SetLibraryEditorWindow( LIB_EDIT_FRAME* aFrame ) { m_LibeditFrame = aFrame; }
 
     bool GetShowAllPins() const { return m_showAllPins; }
 
@@ -592,14 +589,10 @@ public:
     void SetPrintMonochrome( bool aMonochrome ) { m_printMonochrome = aMonochrome; }
     bool GetPrintSheetReference() { return m_printSheetReference; }
     void SetPrintSheetReference( bool aShow ) { m_printSheetReference = aShow; }
-    void SVG_Print( wxCommandEvent& event );
 
     // Plot functions:
-    void ToPlot_PS( wxCommandEvent& event );
-    void ToPlot_PDF( wxCommandEvent& event );
-    void ToPlot_HPGL( wxCommandEvent& event );
-    void ToPlot_DXF( wxCommandEvent& event );
-    void ToPostProcess( wxCommandEvent& event );
+//    void ToPostProcess( wxCommandEvent& event );
+    void PlotSchematic( wxCommandEvent& event );
 
     // read and save files
     void Save_File( wxCommandEvent& event );

@@ -31,7 +31,7 @@
 
 #include <base_struct.h>
 #include <dlist.h>
-
+#include <gr_basic.h>
 
 class GERBER_IMAGE;
 class GBR_LAYOUT;
@@ -221,7 +221,7 @@ public:
     /* Display on screen: */
     void Draw( EDA_DRAW_PANEL*         aPanel,
                wxDC*                   aDC,
-               int                     aDrawMode,
+               GR_DRAWMODE             aDrawMode,
                const wxPoint&aOffset );
 
     /**
@@ -237,7 +237,7 @@ public:
      * a helper function used to draw the polygon stored in m_PolyCorners
      */
     void DrawGbrPoly( EDA_RECT* aClipBox,
-                      wxDC* aDC, int aColor,
+                      wxDC* aDC, EDA_COLOR_T aColor,
                       const wxPoint& aOffset, bool aFilledShape );
 
     /* divers */

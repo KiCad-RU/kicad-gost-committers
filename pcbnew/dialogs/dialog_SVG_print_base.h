@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun 30 2011)
+// C++ code generated with wxFormBuilder (version Apr 10 2012)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -37,19 +37,19 @@ class DIALOG_SVG_PRINT_base : public wxDialog
 	protected:
 		enum
 		{
-			wxID_PRINT_CURRENT = 1000,
-			wxID_PRINT_BOARD,
+			wxID_PRINT_BOARD = 1000
 		};
 		
 		wxStaticBoxSizer* m_CopperLayersBoxSizer;
 		wxStaticBoxSizer* m_TechnicalBoxSizer;
 		wxStaticText* m_TextPenWidth;
-		wxTextCtrl* m_DialogPenWidth;
+		wxTextCtrl* m_DialogDefaultPenSize;
 		wxRadioBox* m_ModeColorOption;
-		wxCheckBox* m_Print_Frame_Ref_Ctrl;
+		wxRadioBox* m_rbSvgPageSizeOpt;
 		wxCheckBox* m_PrintBoardEdgesCtrl;
-		wxButton* m_buttonPrintSelected;
-		wxButton* m_buttonBoard;
+		wxCheckBox* m_printMirrorOpt;
+		wxRadioBox* m_rbFileOpt;
+		wxButton* m_buttonCreateFile;
 		wxButton* m_buttonQuit;
 		wxStaticText* m_staticText1;
 		wxTextCtrl* m_FileNameCtrl;
@@ -58,15 +58,13 @@ class DIALOG_SVG_PRINT_base : public wxDialog
 		
 		// Virtual event handlers, overide them in your derived class
 		virtual void OnCloseWindow( wxCloseEvent& event ) { event.Skip(); }
-		virtual void OnSetColorModeSelected( wxCommandEvent& event ) { event.Skip(); }
-		virtual void OnButtonPrintSelectedClick( wxCommandEvent& event ) { event.Skip(); }
-		virtual void OnButtonPrintBoardClick( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnButtonPlot( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnButtonCancelClick( wxCommandEvent& event ) { event.Skip(); }
 		
 	
 	public:
 		
-		DIALOG_SVG_PRINT_base( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Create SVG file"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 507,375 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+		DIALOG_SVG_PRINT_base( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Export SVG file"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 507,420 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_SVG_PRINT_base();
 	
 };

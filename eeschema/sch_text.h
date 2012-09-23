@@ -133,8 +133,8 @@ public:
     virtual void Draw( EDA_DRAW_PANEL* panel,
                        wxDC*           DC,
                        const wxPoint&  offset,
-                       int             draw_mode,
-                       int             Color = -1 );
+                       GR_DRAWMODE     draw_mode,
+                       EDA_COLOR_T     Color = UNSPECIFIED_COLOR );
 
     /**
      * Function CreateGraphicShape
@@ -230,8 +230,8 @@ public:
     void Draw( EDA_DRAW_PANEL* panel,
                wxDC*           DC,
                const wxPoint&  offset,
-               int             draw_mode,
-               int             Color = -1 );
+               GR_DRAWMODE     draw_mode,
+               EDA_COLOR_T     Color = UNSPECIFIED_COLOR );
 
     wxString GetClass() const
     {
@@ -281,8 +281,8 @@ public:
     void Draw( EDA_DRAW_PANEL* panel,
                wxDC*           DC,
                const wxPoint&  offset,
-               int             draw_mode,
-               int             Color = -1 );
+               GR_DRAWMODE     draw_mode,
+               EDA_COLOR_T     Color = UNSPECIFIED_COLOR );
 
     wxString GetClass() const
     {
@@ -336,8 +336,8 @@ public:
     void Draw( EDA_DRAW_PANEL* panel,
                wxDC*           DC,
                const wxPoint&  offset,
-               int             draw_mode,
-               int             Color = -1 );
+               GR_DRAWMODE     draw_mode,
+               EDA_COLOR_T     Color = UNSPECIFIED_COLOR );
 
     wxString GetClass() const
     {

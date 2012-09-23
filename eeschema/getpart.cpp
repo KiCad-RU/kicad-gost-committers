@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2008-2012 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2012 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 
 /**
  * @file getpart.cpp
- * @brief Cod to handle get & place library component.
+ * @brief functions to get and place library components.
  */
 
 #include <fctsys.h>
@@ -54,29 +54,23 @@ wxString SCH_BASE_FRAME::SelectComponentFromLibBrowser( void )
     wxSemaphore semaphore( 0, 1 );
     wxString cmpname;
 
-    /* Close the current Lib browser, if open, and open a new one, in "modal" mode */
-    if( m_ViewlibFrame )
-    {
-        m_ViewlibFrame->Destroy();
-        m_ViewlibFrame = NULL;
-    }
+    // Close the current Lib browser, if open, and open a new one, in "modal" mode:
+    LIB_VIEW_FRAME * viewlibFrame = LIB_VIEW_FRAME::GetActiveLibraryViewer();;
+    if( viewlibFrame )
+        viewlibFrame->Destroy();
 
-    if( m_LibeditFrame && m_LibeditFrame->m_ViewlibFrame )
-    {
-        m_LibeditFrame->m_ViewlibFrame->Destroy();
-        m_LibeditFrame->m_ViewlibFrame = NULL;
-    }
-
-    m_ViewlibFrame = new LIB_VIEW_FRAME( this, NULL, &semaphore );
+    viewlibFrame = new LIB_VIEW_FRAME( this, NULL, &semaphore,
+                        KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT );
     // Show the library viewer frame until it is closed
-    while( semaphore.TryWait() == wxSEMA_BUSY ) // Wait for viewer closing event
+    // Wait for viewer closing event:
+    while( semaphore.TryWait() == wxSEMA_BUSY )
     {
         wxYield();
         wxMilliSleep( 50 );
     }
 
-    cmpname = m_ViewlibFrame->GetSelectedComponent();
-    m_ViewlibFrame->Destroy();
+    cmpname = viewlibFrame->GetSelectedComponent();
+    viewlibFrame->Destroy();
 
     return cmpname;
 }
@@ -137,9 +131,9 @@ wxString SCH_BASE_FRAME::SelectComponentFromLibrary( const wxString& aLibname,
     {
         cmpName = SelectComponentFromLibBrowser();
         if( aUnit )
-            *aUnit = m_ViewlibFrame->GetUnit();
+            *aUnit = LIB_VIEW_FRAME::GetUnit();
         if( aConvert )
-            *aConvert = m_ViewlibFrame->GetConvert();
+            *aConvert = LIB_VIEW_FRAME::GetConvert();
         if( !cmpName.IsEmpty() )
             AddHistoryComponentName( aHistoryList, cmpName );
         return cmpName;

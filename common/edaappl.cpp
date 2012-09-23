@@ -655,9 +655,11 @@ void EDA_APP::GetSettings( bool aReopenLastUsedDirectory )
         }
     }
 
-    m_settings->Read( wxT( "BgColor" ), &g_DrawBgColor );
+    int draw_bg_color;
+    m_settings->Read( wxT( "BgColor" ), &draw_bg_color );
+    g_DrawBgColor = ColorFromInt( draw_bg_color );
 
-    /* Load per-user search paths from settings file */
+    // Load per-user search paths from settings file
 
     wxString   upath;
     int i = 1;
@@ -681,7 +683,7 @@ void EDA_APP::SaveSettings()
     wxASSERT( m_settings != NULL );
     m_settings->Write( wxT( "ShowPageLimits" ), g_ShowPageLimits );
     m_settings->Write( wxT( "WorkingDir" ), wxGetCwd() );
-    m_settings->Write( wxT( "BgColor" ), g_DrawBgColor );
+    m_settings->Write( wxT( "BgColor" ), (long) g_DrawBgColor );
 
     /* Save the file history list */
     m_fileHistory.Save( *m_settings );

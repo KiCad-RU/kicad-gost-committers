@@ -77,7 +77,7 @@ TEXTE_MODULE* PCB_BASE_FRAME::CreateTextModule( MODULE* Module, wxDC* DC )
     Text->m_Text = wxT( "text" );
 
     GetDesignSettings().m_ModuleTextWidth = Clamp_Text_PenSize( GetDesignSettings().m_ModuleTextWidth,
-                                            MIN( GetDesignSettings().m_ModuleTextSize.x, GetDesignSettings().m_ModuleTextSize.y ), true );
+                                            std::min( GetDesignSettings().m_ModuleTextSize.x, GetDesignSettings().m_ModuleTextSize.y ), true );
     Text->m_Size  = GetDesignSettings().m_ModuleTextSize;
     Text->m_Thickness = GetDesignSettings().m_ModuleTextWidth;
     Text->m_Pos   = GetScreen()->GetCrossHairPosition();
@@ -108,7 +108,7 @@ void PCB_BASE_FRAME::RotateTextModule( TEXTE_MODULE* Text, wxDC* DC )
 
     if( module && module->GetFlags() == 0 && Text->GetFlags() == 0 ) // prepare undo command
     {
-        if( this->m_Ident == PCB_FRAME )
+        if( IsType( PCB_FRAME_TYPE ) )
             SaveCopyInUndoList( module, UR_CHANGED );
     }
 
@@ -124,7 +124,7 @@ void PCB_BASE_FRAME::RotateTextModule( TEXTE_MODULE* Text, wxDC* DC )
     Text->DisplayInfo( this );
 
     if( module )
-        module->m_LastEdit_Time = time( NULL );
+        module->SetLastEditTime();
 
     OnModify();
 }
@@ -147,7 +147,7 @@ void PCB_BASE_FRAME::DeleteTextModule( TEXTE_MODULE* Text )
         m_canvas->RefreshDrawingRect( Text->GetBoundingBox() );
         Text->DeleteStructure();
         OnModify();
-        Module->m_LastEdit_Time = time( NULL );
+        Module->SetLastEditTime();
     }
 }
 
@@ -239,7 +239,7 @@ void PCB_BASE_FRAME::PlaceTexteModule( TEXTE_MODULE* Text, wxDC* DC )
             // Prepare undo command (a rotation can be made while moving)
             EXCHG( Text->m_Orient, TextInitialOrientation );
 
-            if( m_Ident == PCB_FRAME )
+            if( IsType( PCB_FRAME_TYPE ) )
                 SaveCopyInUndoList( Module, UR_CHANGED );
             else
                 SaveCopyInUndoList( Module, UR_MODEDIT );
@@ -253,7 +253,7 @@ void PCB_BASE_FRAME::PlaceTexteModule( TEXTE_MODULE* Text, wxDC* DC )
             Text->SetPos0( textRelPos );
             Text->ClearFlags();
             Module->ClearFlags();
-            Module->m_LastEdit_Time = time( NULL );
+            Module->SetLastEditTime();
             OnModify();
 
             /* Redraw text. */

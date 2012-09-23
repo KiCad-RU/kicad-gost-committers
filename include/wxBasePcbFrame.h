@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
  *
@@ -42,8 +42,6 @@
 
 
 /* Forward declarations of classes. */
-class FOOTPRINT_EDIT_FRAME;
-class FOOTPRINT_VIEWER_FRAME;
 class BOARD;
 class BOARD_CONNECTED_ITEM;
 class MODULE;
@@ -79,8 +77,6 @@ public:
     int m_FastGrid2;
 
     EDA_3D_FRAME* m_Draw3DFrame;
-    FOOTPRINT_EDIT_FRAME* m_ModuleEditFrame;
-    FOOTPRINT_VIEWER_FRAME * m_ModuleViewerFrame;
 
 
 protected:
@@ -91,21 +87,17 @@ protected:
     /// main window.
     wxAuiToolBar* m_auxiliaryToolBar;
 
-    /// True prints or plots the drawing border and title block.
-    bool m_printBorderAndTitleBlock;
-
     void updateGridSelectBox();
     void updateZoomSelectBox();
     virtual void unitsChangeRefresh();
 
 public:
-    PCB_BASE_FRAME( wxWindow* father, int idtype, const wxString& title,
-                    const wxPoint& pos, const wxSize& size,
-                    long style = KICAD_DEFAULT_DRAWFRAME_STYLE );
+    PCB_BASE_FRAME( wxWindow* aParent, ID_DRAWFRAME_TYPE aFrameType,
+                    const wxString& aTitle,
+                    const wxPoint& aPos, const wxSize& aSize,
+                    long aStyle, const wxString & aFrameName );
 
     ~PCB_BASE_FRAME();
-
-    bool GetPrintBorderAndTitleBlock() const { return m_printBorderAndTitleBlock; }
 
     /**
      * Function GetBoardBoundingBox
@@ -344,7 +336,16 @@ public:
      */
     void DeletePad( D_PAD* aPad, bool aQuery = true );
 
-    void StartMovePad( D_PAD* Pad, wxDC* DC );
+    /**
+     * Function StartMovePad
+     * Initialize a drag or move pad command
+     * @param aPad = the pad to move or drag
+     * @param aDC = the current device context
+     * @param aDragConnectedTracks = true to drag connected tracks,
+     *                               false to just move the pad
+     */
+    void StartMovePad( D_PAD* aPad, wxDC* aDC, bool aDragConnectedTracks );
+
     void RotatePad( D_PAD* Pad, wxDC* DC );
     void PlacePad( D_PAD* Pad, wxDC* DC );
     void Export_Pad_Settings( D_PAD* aPad );
@@ -377,11 +378,9 @@ public:
      * loads @a aFootprintName from @a aLibraryPath.
      * If found add the module is also added to the BOARD, just for good measure.
      *
-     *  @param aLibraryFullFilename - the full filename of the library to read. If empty,
-     *                   all active libraries are read
-     *
+     *  @param aLibraryPath - the full filename or the short name of the library to read.
+     *      if it is a short name, the file is searched in all library valid paths
      *  @param aFootprintName is the footprint to load
-     *
      *  @param aDisplayError = true to display an error message if any.
      *
      *  @return MODULE* - new module, or NULL
@@ -389,29 +388,34 @@ public:
     MODULE* loadFootprintFromLibrary( const wxString& aLibraryPath,
               const wxString& aFootprintName, bool aDisplayError );
 
+    /**
+     * Function loadFootprintFromLibraries
+     * Explore the libraries list and
+     * loads @a aFootprintName from the first library it is found
+     * If found the module is added to the BOARD, just for good measure.
+     *
+     *  @param aFootprintName is the footprint to load
+     *  @param aDisplayError = true to display an error message if any.
+     *
+     *  @return MODULE* - new module, or NULL
+     */
     MODULE* loadFootprintFromLibraries( const wxString& aFootprintName,
-                              bool            aDisplayError );
+                                        bool            aDisplayError );
 
     /**
      * Function GetModuleLibrary
      * scans active libraries to find and load @a aFootprintName.
-     * If found add the module is also added to the BOARD, just for good measure.
+     * If found  the module is added to the BOARD, just for good measure.
      *
+     *  @param aLibraryPath is the full/short name of the library.
+     *                      if empty, search in all libraries
      *  @param aFootprintName is the footprint to load
-     *
      *  @param aDisplayError = true to display an error message if any.
      *
      *  @return a pointer to the new module, or NULL
-     *
      */
     MODULE* GetModuleLibrary( const wxString& aLibraryPath, const wxString& aFootprintName,
-                              bool aDisplayError )
-    {
-        if( !aLibraryPath )
-            return loadFootprintFromLibraries( aFootprintName, aDisplayError );
-        else
-            return loadFootprintFromLibrary( aLibraryPath, aFootprintName, aDisplayError );
-    }
+                              bool aDisplayError );
 
     /**
      * Function Select_1_Module_From_List
@@ -452,16 +456,6 @@ public:
      * @return the selected footprint name
      */
     wxString SelectFootprintFromLibBrowser( void );
-
-    /**
-     * Function GetActiveViewerFrame
-     * @return a reference to the current Module Viewer Frame if exists
-     * if called from the PCB editor, this is the m_ModuleViewerFrame
-     * or m_ModuleEditFrame->m_ModuleViewerFrame
-     * if called from the module editor, this is the m_ModuleViewerFrame
-     * or parent->m_ModuleViewerFrame
-     */
-    FOOTPRINT_VIEWER_FRAME * GetActiveViewerFrame();
 
     //  ratsnest functions
     /**
@@ -568,73 +562,6 @@ public:
      * segments.
      */
     void RecalculateAllTracksNetcode();
-
-    /* Plotting functions:
-     * Return true if OK, false if the file is not created (or has a problem)
-     */
-
-    /**
-     * Function ExportToGerberFile
-     * create one output files one per board layer in the RS274X format.
-     * <p>
-     * The units are in inches and in the format 3.4 with the leading zeros omitted.
-     * Coordinates are absolute value.  The 3.4 format is used because the native Pcbnew
-     * units are 1/10000 inch.
-     * </p>
-     */
-    bool ExportToGerberFile( const wxString& aFullFileName,
-                             int             aLayer,
-                             bool            aPlotOriginIsAuxAxis,
-                             EDA_DRAW_MODE_T aTraceMode );
-
-    bool ExportToHpglFile( const wxString& aFullFileName,
-                           int             aLayer,
-                           EDA_DRAW_MODE_T aTraceMode );
-
-    bool ExportToPostScriptFile( const wxString& aFullFileName,
-                                 int             aLayer,
-                                 bool            aUseA4,
-                                 EDA_DRAW_MODE_T aTraceMode );
-
-    bool ExportToDxfFile( const wxString& aFullFileName,
-                          int             aLayer,
-                          EDA_DRAW_MODE_T aTraceMode );
-
-    void Plot_Layer( PLOTTER*        plotter,
-                     int             Layer,
-                     EDA_DRAW_MODE_T trace_mode );
-
-    /**
-     * Function Plot_Standard_Layer
-     * plot copper or technical layers.
-     * not used for silk screen layers, because these layers have specific
-     * requirements, mainly for pads
-     * @param aPlotter = the plotter to use
-     * @param aLayerMask = the mask to define the layers to plot
-     * @param aPlotVia = true to plot vias, false to skip vias (has meaning
-     *                  only for solder mask layers).
-     * @param aPlotMode = the plot mode (files, sketch). Has meaning for some formats only
-     * @param aSkipNPTH_Pads = true to skip NPTH Pads, when the pad size and the pad hole
-     *                      have the same size. Used in GERBER format only.
-     */
-    void Plot_Standard_Layer( PLOTTER* aPlotter, int aLayerMask,
-                              bool aPlotVia, EDA_DRAW_MODE_T aPlotMode,
-                              bool aSkipNPTH_Pads = false );
-
-    void PlotSilkScreen( PLOTTER* plotter, int masque_layer, EDA_DRAW_MODE_T trace_mode );
-
-    /**
-     * Function PlotDrillMark
-     * Draw a drill mark for pads and vias.
-     * Must be called after all drawings, because it
-     * redraw the drill mark on a pad or via, as a negative (i.e. white) shape
-     * in FILLED plot mode
-     * @param aPlotter = the PLOTTER
-     * @param aTraceMode = the mode of plot (FILLED, SKETCH)
-     * @param aSmallDrillShape = true to plot a small drill shape, false to
-     *                           plot the actual drill shape
-     */
-    void PlotDrillMark( PLOTTER* aPlotter, EDA_DRAW_MODE_T aTraceMode, bool aSmallDrillShape );
 
     /* Functions relative to Undo/redo commands:
      */

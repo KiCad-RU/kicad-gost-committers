@@ -174,7 +174,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_MODULE, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_TRACKS, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_FREEROUTE_ACCESS, PCB_EDIT_FRAME::Access_to_External_Tool )
-#ifdef KICAD_SCRIPTING_WXPYTHON        
+#ifdef KICAD_SCRIPTING_WXPYTHON
     EVT_TOOL( ID_TOOLBARH_PCB_SCRIPTING_CONSOLE, PCB_EDIT_FRAME::ScriptingConsoleEnableDisable )
 #endif
     // Option toolbar
@@ -264,13 +264,15 @@ END_EVENT_TABLE()
 
 ///////****************************///////////:
 
+#define PCB_EDIT_FRAME_NAME wxT( "PcbFrame" )
 
 PCB_EDIT_FRAME::PCB_EDIT_FRAME( wxWindow* parent, const wxString& title,
                                 const wxPoint& pos, const wxSize& size,
                                 long style ) :
-    PCB_BASE_FRAME( parent, PCB_FRAME, title, pos, size, style )
+    PCB_BASE_FRAME( parent, PCB_FRAME_TYPE, title, pos, size,
+                    style, PCB_EDIT_FRAME_NAME )
 {
-    m_FrameName = wxT( "PcbFrame" );
+    m_FrameName = PCB_EDIT_FRAME_NAME;
     m_showBorderAndTitleBlock = true;   // true to display sheet references
     m_showAxis = false;                 // true to display X and Y axis
     m_showOriginAxis = true;
@@ -285,7 +287,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( wxWindow* parent, const wxString& title,
     m_RecordingMacros = -1;
     m_microWaveToolBar = NULL;
     m_autoPlaceModeId = 0;
-#ifdef KICAD_SCRIPTING_WXPYTHON 
+#ifdef KICAD_SCRIPTING_WXPYTHON
     m_pythonPanel = NULL;
 #endif
     for ( int i = 0; i < 10; i++ )
@@ -404,7 +406,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( wxWindow* parent, const wxString& title,
         m_auimgr.AddPane( m_messagePanel,
                           wxAuiPaneInfo( mesg ).Name( wxT( "MsgPanel" ) ).Bottom().Layer(10) );
 
-    
+
     #ifdef KICAD_SCRIPTING_WXPYTHON
     // Add the scripting panel
     EDA_PANEINFO  pythonAuiInfo;
@@ -413,7 +415,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( wxWindow* parent, const wxString& title,
     pythonAuiInfo.MinSize( wxSize( 200, 100 ) );
     pythonAuiInfo.BestSize( wxSize( GetClientSize().x/2, 200 ) );
     pythonAuiInfo.Hide();
-    
+
     m_pythonPanel = CreatePythonShellWindow( this );
     m_auimgr.AddPane( m_pythonPanel,
                           pythonAuiInfo.Name( wxT( "PythonPanel" ) ).Bottom().Layer(9) );
@@ -482,7 +484,7 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
     {
         wxString msg;
         msg.Printf( _("Save the changes in\n<%s>\nbefore closing?"),
-                    GetChars( GetScreen()->GetFileName() ) );
+                    GetChars( GetBoard()->GetFileName() ) );
 
         int ii = DisplayExitDialog( this, msg );
         switch( ii )
@@ -496,13 +498,13 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
 
         case wxID_OK:
         case wxID_YES:
-            SavePcbFile( GetScreen()->GetFileName() );
+            SavePcbFile( GetBoard()->GetFileName() );
             break;
         }
     }
 
     // Delete the auto save file if it exists.
-    wxFileName fn = GetScreen()->GetFileName();
+    wxFileName fn = GetBoard()->GetFileName();
 
     // Auto save file name is the normal file name prefixed with a '$'.
     fn.SetName( wxT( "$" ) + fn.GetName() );
@@ -546,6 +548,7 @@ void PCB_EDIT_FRAME::Show3D_Frame( wxCommandEvent& event )
     }
 
     m_Draw3DFrame = new EDA_3D_FRAME( this, _( "3D Viewer" ) );
+    m_Draw3DFrame->SetDefaultFileName( GetBoard()->GetFileName() );
     m_Draw3DFrame->Show( true );
 }
 
@@ -615,7 +618,7 @@ void PCB_EDIT_FRAME::SaveSettings()
 }
 
 
-bool PCB_EDIT_FRAME::IsGridVisible()
+bool PCB_EDIT_FRAME::IsGridVisible() const
 {
     return IsElementVisible( GRID_VISIBLE );
 }
@@ -627,13 +630,13 @@ void PCB_EDIT_FRAME::SetGridVisibility(bool aVisible)
 }
 
 
-int PCB_EDIT_FRAME::GetGridColor()
+EDA_COLOR_T PCB_EDIT_FRAME::GetGridColor() const
 {
     return GetBoard()->GetVisibleElementColor( GRID_VISIBLE );
 }
 
 
-void PCB_EDIT_FRAME::SetGridColor(int aColor)
+void PCB_EDIT_FRAME::SetGridColor(EDA_COLOR_T aColor)
 {
     GetBoard()->SetVisibleElementColor( GRID_VISIBLE, aColor );
 }
@@ -687,7 +690,7 @@ void PCB_EDIT_FRAME::unitsChangeRefresh()
 }
 
 
-bool PCB_EDIT_FRAME::IsElementVisible( int aElement )
+bool PCB_EDIT_FRAME::IsElementVisible( int aElement ) const
 {
     return GetBoard()->IsElementVisible( aElement );
 }
@@ -718,15 +721,16 @@ void PCB_EDIT_FRAME::SetLanguage( wxCommandEvent& event )
     m_auimgr.Update();
     ReFillLayerWidget();
 
-    if( m_ModuleEditFrame )
-        m_ModuleEditFrame->EDA_DRAW_FRAME::SetLanguage( event );
+    FOOTPRINT_EDIT_FRAME * moduleEditFrame = FOOTPRINT_EDIT_FRAME::GetActiveFootprintEditor();
+    if( moduleEditFrame )
+        moduleEditFrame->EDA_DRAW_FRAME::SetLanguage( event );
 }
 
 
 wxString PCB_EDIT_FRAME::GetLastNetListRead()
 {
     wxFileName absoluteFileName = m_lastNetListRead;
-    wxFileName pcbFileName = GetScreen()->GetFileName();
+    wxFileName pcbFileName = GetBoard()->GetFileName();
 
     if( !absoluteFileName.MakeAbsolute( pcbFileName.GetPath() ) || !absoluteFileName.FileExists() )
     {
@@ -741,7 +745,7 @@ wxString PCB_EDIT_FRAME::GetLastNetListRead()
 void PCB_EDIT_FRAME::SetLastNetListRead( const wxString& aLastNetListRead )
 {
     wxFileName relativeFileName = aLastNetListRead;
-    wxFileName pcbFileName = GetScreen()->GetFileName();
+    wxFileName pcbFileName = GetBoard()->GetFileName();
 
     if( relativeFileName.MakeRelativeTo( pcbFileName.GetPath() )
         && relativeFileName.GetFullPath() != aLastNetListRead )
@@ -771,7 +775,7 @@ void PCB_EDIT_FRAME::SVG_Print( wxCommandEvent& event )
 void PCB_EDIT_FRAME::UpdateTitle()
 {
     wxString title;
-    wxFileName fileName = GetScreen()->GetFileName();
+    wxFileName fileName = GetBoard()->GetFileName();
 
     if( fileName.IsOk() && fileName.FileExists() )
     {
@@ -803,9 +807,9 @@ void PCB_EDIT_FRAME::ScriptingConsoleEnableDisable( wxCommandEvent& aEvent )
         m_auimgr.GetPane( m_pythonPanel ).Hide();
         m_pythonPanelHidden = true;
     }
-    
+
     m_auimgr.Update();
-    
+
 }
 #endif
 

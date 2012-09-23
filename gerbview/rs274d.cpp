@@ -11,7 +11,7 @@
 #include <class_gerber_draw_item.h>
 #include <class_GERBER.h>
 
-#include <math.h>
+#include <cmath>
 
 /* Gerber: NOTES about some important commands found in RS274D and RS274X (G codes):
  * Gn =
@@ -358,7 +358,7 @@ static void fillArcPOLY(  GERBER_DRAW_ITEM* aGbrItem,
     int arc_angle = start_angle - end_angle;
     // Approximate arc by 36 segments per 360 degree
     const int increment_angle = 3600 / 36;
-    int count = ABS( arc_angle / increment_angle );
+    int count = std::abs( arc_angle / increment_angle );
 
     // calculate polygon corners
     // when arc is counter-clockwise, dummyGbrItem arc goes from end to start

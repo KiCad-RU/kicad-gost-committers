@@ -167,8 +167,8 @@ public:
     virtual void Draw( EDA_DRAW_PANEL* aPanel,
                        wxDC*           aDC,
                        const wxPoint&  aOffset,
-                       int             aDrawMode,
-                       int             aColor = -1 ) = 0;
+                       GR_DRAWMODE     aDrawMode,
+                       EDA_COLOR_T     aColor = UNSPECIFIED_COLOR ) = 0;
 
     /**
      * Function Move

@@ -19,6 +19,9 @@ extern const double hvb_widths[256];
 extern const double hvo_widths[256];
 extern const double hvbo_widths[256];
 
+const double PSLIKE_PLOTTER::postscriptTextAscent = 0.718;
+
+
 // Common routines for Postscript-like plotting engines
 
 void PSLIKE_PLOTTER::SetDefaultLineWidth( int width )
@@ -308,6 +311,7 @@ void PS_PLOTTER::SetViewport( const wxPoint& aOffset, double aIusPerDecimil,
     plotMirror = aMirror;
     plotOffset = aOffset;
     plotScale = aScale;
+    m_IUsPerDecimil = aIusPerDecimil;
     iuPerDeviceUnit = 1.0 / aIusPerDecimil;
     /* Compute the paper size in IUs */
     paperSize = pageInfo.GetSizeMils();
@@ -550,7 +554,7 @@ void PS_PLOTTER::PlotImage( const wxImage & aImage, const wxPoint& aPos,
     // Map image size to device
     DPOINT end_dev = userToDeviceCoordinates( end );
     fprintf( outputFile, "%g %g scale\n",
-            ABS(end_dev.x - start_dev.x), ABS(end_dev.y - start_dev.y));
+            std::abs(end_dev.x - start_dev.x), std::abs(end_dev.y - start_dev.y));
 
     // Dimensions of source image (in pixels
     fprintf( outputFile, "%d %d 8", pix_size.x, pix_size.y );
@@ -818,7 +822,7 @@ void PS_PLOTTER::Text( const wxPoint&              aPos,
     SetColor( aColor );
 
     // Draw the native postscript text (if requested)
-    if( psTextMode == PSTEXTMODE_NATIVE )
+    if( m_textMode == PLOTTEXTMODE_NATIVE )
     {
         const char *fontname = aItalic ? (aBold ? "/KicadFont-BoldOblique"
                 : "/KicadFont-Oblique")
@@ -862,7 +866,7 @@ void PS_PLOTTER::Text( const wxPoint&              aPos,
     }
 
     // Draw the hidden postscript text (if requested)
-    if( psTextMode == PSTEXTMODE_PHANTOM )
+    if( m_textMode == PLOTTEXTMODE_PHANTOM )
     {
         fputsPostscriptString( outputFile, aText );
 	DPOINT pos_dev = userToDeviceCoordinates( aPos );
@@ -871,7 +875,7 @@ void PS_PLOTTER::Text( const wxPoint&              aPos,
     }
 
     // Draw the stroked text (if requested)
-    if( psTextMode != PSTEXTMODE_NATIVE )
+    if( m_textMode != PLOTTEXTMODE_NATIVE )
     {
         PLOTTER::Text( aPos, aColor, aText, aOrient, aSize, aH_justify, aV_justify,
                 aWidth, aItalic, aBold );

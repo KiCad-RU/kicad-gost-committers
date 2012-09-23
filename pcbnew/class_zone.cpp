@@ -163,7 +163,7 @@ void ZONE_CONTAINER::SetNet( int aNetCode )
 }
 
 
-void ZONE_CONTAINER::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int aDrawMode, const wxPoint& offset )
+void ZONE_CONTAINER::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE aDrawMode, const wxPoint& offset )
 {
     if( DC == NULL )
         return;
@@ -172,7 +172,7 @@ void ZONE_CONTAINER::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int aDrawMode, const
     int     curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
 
     BOARD*  brd   = GetBoard();
-    int     color = brd->GetLayerColor( m_Layer );
+    EDA_COLOR_T color = brd->GetLayerColor( m_Layer );
 
     if( brd->IsLayerVisible( m_Layer ) == false && ( color & HIGHLIGHT_FLAG ) != HIGHLIGHT_FLAG )
         return;
@@ -182,19 +182,11 @@ void ZONE_CONTAINER::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int aDrawMode, const
     if( DisplayOpt.ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
-        {
-            color &= ~MASKCOLOR;
-            color |= DARKDARKGRAY;
-        }
+            ColorTurnToDarkDarkGray( &color );
     }
 
     if( aDrawMode & GR_HIGHLIGHT )
-    {
-        if( aDrawMode & GR_AND )
-            color &= ~HIGHLIGHT_FLAG;
-        else
-            color |= HIGHLIGHT_FLAG;
-    }
+        ColorChangeHighlightFlag( &color, !(aDrawMode & GR_AND) );
 
     if( color & HIGHLIGHT_FLAG )
         color = ColorRefs[color & MASKCOLOR].m_LightColor;
@@ -243,7 +235,7 @@ void ZONE_CONTAINER::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, int aDrawMode, const
 
 
 void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
-                                     wxDC* DC, int aDrawMode, const wxPoint& offset )
+                                     wxDC* DC, GR_DRAWMODE aDrawMode, const wxPoint& offset )
 {
     static std::vector <char>    CornersTypeBuffer;
     static std::vector <wxPoint> CornersBuffer;
@@ -263,7 +255,7 @@ void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
 
     BOARD* brd = GetBoard();
     int    curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
-    int    color = brd->GetLayerColor( m_Layer );
+    EDA_COLOR_T color = brd->GetLayerColor( m_Layer );
 
     if( brd->IsLayerVisible( m_Layer ) == false && ( color & HIGHLIGHT_FLAG ) != HIGHLIGHT_FLAG )
         return;
@@ -273,19 +265,11 @@ void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
     if( DisplayOpt.ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
-        {
-            color &= ~MASKCOLOR;
-            color |= DARKDARKGRAY;
-        }
+            ColorTurnToDarkDarkGray( &color );
     }
 
     if( aDrawMode & GR_HIGHLIGHT )
-    {
-        if( aDrawMode & GR_AND )
-            color &= ~HIGHLIGHT_FLAG;
-        else
-            color |= HIGHLIGHT_FLAG;
-    }
+        ColorChangeHighlightFlag( &color, !(aDrawMode & GR_AND) );
 
     if( color & HIGHLIGHT_FLAG )
         color = ColorRefs[color & MASKCOLOR].m_LightColor;
@@ -388,10 +372,10 @@ EDA_RECT ZONE_CONTAINER::GetBoundingBox() const
     {
         wxPoint corner = GetCornerPosition( i );
 
-        ymax = MAX( ymax, corner.y );
-        xmax = MAX( xmax, corner.x );
-        ymin = MIN( ymin, corner.y );
-        xmin = MIN( xmin, corner.x );
+        ymax = std::max( ymax, corner.y );
+        xmax = std::max( xmax, corner.x );
+        ymin = std::min( ymin, corner.y );
+        xmin = std::min( xmin, corner.x );
     }
 
     EDA_RECT ret( wxPoint( xmin, ymin ), wxSize( xmax - xmin + 1, ymax - ymin + 1 ) );
@@ -400,9 +384,10 @@ EDA_RECT ZONE_CONTAINER::GetBoundingBox() const
 }
 
 
-void ZONE_CONTAINER::DrawWhileCreateOutline( EDA_DRAW_PANEL* panel, wxDC* DC, int draw_mode )
+void ZONE_CONTAINER::DrawWhileCreateOutline( EDA_DRAW_PANEL* panel, wxDC* DC,
+                                             GR_DRAWMODE draw_mode )
 {
-    int     current_gr_mode  = draw_mode;
+    GR_DRAWMODE current_gr_mode  = draw_mode;
     bool    is_close_segment = false;
     wxPoint seg_start, seg_end;
 
@@ -411,15 +396,12 @@ void ZONE_CONTAINER::DrawWhileCreateOutline( EDA_DRAW_PANEL* panel, wxDC* DC, in
 
     int    curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
     BOARD* brd   = GetBoard();
-    int    color = brd->GetLayerColor( m_Layer ) & MASKCOLOR;
+    EDA_COLOR_T color = brd->GetLayerColor( m_Layer );
 
     if( DisplayOpt.ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
-        {
-            color &= ~MASKCOLOR;
-            color |= DARKDARKGRAY;
-        }
+            ColorTurnToDarkDarkGray( &color );
     }
 
     // draw the lines
@@ -515,7 +497,7 @@ bool ZONE_CONTAINER::HitTestForCorner( const wxPoint& refPos )
         delta.y = refPos.y - m_Poly->m_CornersList[item_pos].y;
 
         // Calculate a distance:
-        int dist = MAX( abs( delta.x ), abs( delta.y ) );
+        int dist = std::max( abs( delta.x ), abs( delta.y ) );
 
         if( dist < min_dist )  // this corner is a candidate:
         {

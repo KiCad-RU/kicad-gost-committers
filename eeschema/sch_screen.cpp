@@ -393,10 +393,10 @@ bool SCH_SCREEN::IsTerminalPoint( const wxPoint& aPosition, int aLayer )
         break;
 
     case LAYER_WIRE:
-        if( GetItem( aPosition, MAX( g_DrawDefaultLineThickness, 3 ), SCH_BUS_ENTRY_T ) )
+        if( GetItem( aPosition, std::max( g_DrawDefaultLineThickness, 3 ), SCH_BUS_ENTRY_T ) )
             return true;
 
-        if( GetItem( aPosition, MAX( g_DrawDefaultLineThickness, 3 ), SCH_JUNCTION_T ) )
+        if( GetItem( aPosition, std::max( g_DrawDefaultLineThickness, 3 ), SCH_JUNCTION_T ) )
             return true;
 
         if( GetPin( aPosition, NULL, true ) )
@@ -549,7 +549,7 @@ bool SCH_SCREEN::Save( FILE* aFile ) const
 // note: SCH_SCREEN::Draw is useful only for schematic.
 // library editor and library viewer do not use a draw list, and therefore
 // SCH_SCREEN::Draw draws nothing
-void SCH_SCREEN::Draw( EDA_DRAW_PANEL* aCanvas, wxDC* aDC, int aDrawMode, int aColor )
+void SCH_SCREEN::Draw( EDA_DRAW_PANEL* aCanvas, wxDC* aDC, GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
 {
     for( SCH_ITEM* item = m_drawList.begin(); item != NULL; item = item->Next() )
     {

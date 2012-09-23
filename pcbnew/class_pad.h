@@ -69,11 +69,11 @@ class PAD_DRAWINFO
 {
 public:
     EDA_DRAW_PANEL* m_DrawPanel;  // the EDA_DRAW_PANEL used to draw a PAD ; can be null
-    int m_DrawMode;               // the draw mode
-    int m_Color;                  // color used to draw the pad shape , from pad layers and
+    GR_DRAWMODE m_DrawMode;       // the draw mode
+    EDA_COLOR_T m_Color;          // color used to draw the pad shape , from pad layers and
                                   // visible layers
-    int m_HoleColor;              // color used to draw the pad hole
-    int m_NPHoleColor;            // color used to draw a pad Not Plated hole
+    EDA_COLOR_T m_HoleColor;      // color used to draw the pad hole
+    EDA_COLOR_T m_NPHoleColor;    // color used to draw a pad Not Plated hole
     int m_PadClearance;           // clearance value, used to draw the pad area outlines
     wxSize m_Mask_margin;         // margin, used to draw solder paste when only one layer is shown
     bool m_Display_padnum;        // true to show pad number
@@ -270,7 +270,7 @@ public:
 
     /* drawing functions */
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
-               int aDrawMode, const wxPoint& aOffset = ZeroOffset );
+               GR_DRAWMODE aDrawMode, const wxPoint& aOffset = ZeroOffset );
 
     void Draw3D( EDA_3D_CANVAS* glcanvas );
 

@@ -789,8 +789,8 @@ int LIB_PIN::GetPenSize() const
 void LIB_PIN::drawGraphic( EDA_DRAW_PANEL*  aPanel,
                            wxDC*            aDC,
                            const wxPoint&   aOffset,
-                           int              aColor,
-                           int              aDrawMode,
+                           EDA_COLOR_T      aColor,
+                           GR_DRAWMODE      aDrawMode,
                            void*            aData,
                            const TRANSFORM& aTransform )
 {
@@ -805,7 +805,7 @@ void LIB_PIN::drawGraphic( EDA_DRAW_PANEL*  aPanel,
         if( aPanel && aPanel->GetParent() )
             frame = (EDA_DRAW_FRAME*)aPanel->GetParent();
 
-        if( frame && frame->IsType( SCHEMATIC_FRAME ) &&
+        if( frame && frame->IsType( SCHEMATIC_FRAME_TYPE ) &&
             ! ((SCH_EDIT_FRAME*)frame)->GetShowAllPins() )
             return;
 
@@ -853,16 +853,15 @@ void LIB_PIN::DrawPinSymbol( EDA_DRAW_PANEL* aPanel,
                              wxDC*           aDC,
                              const wxPoint&  aPinPos,
                              int             aOrient,
-                             int             aDrawMode,
-                             int             aColor )
+                             GR_DRAWMODE     aDrawMode,
+                             EDA_COLOR_T     aColor )
 {
     int       MapX1, MapY1, x1, y1;
-    int       color;
     int       width   = GetPenSize();
     int       posX    = aPinPos.x, posY = aPinPos.y, len = m_length;
     EDA_RECT* clipbox = aPanel ? aPanel->GetClipBox() : NULL;
 
-    color = ReturnLayerColor( LAYER_PIN );
+    EDA_COLOR_T color = ReturnLayerColor( LAYER_PIN );
 
     if( aColor < 0 )       // Used normal color or selected color
     {
@@ -1069,8 +1068,8 @@ void LIB_PIN::DrawPinTexts( EDA_DRAW_PANEL* panel,
                             int             TextInside,
                             bool            DrawPinNum,
                             bool            DrawPinName,
-                            int             Color,
-                            int             DrawMode )
+                            EDA_COLOR_T     Color,
+                            GR_DRAWMODE     DrawMode )
 {
     int         x, y, x1, y1;
     wxString    StringPinNum;
@@ -1271,9 +1270,7 @@ void LIB_PIN::DrawPinTexts( EDA_DRAW_PANEL* panel,
 void LIB_PIN::PlotSymbol( PLOTTER* aPlotter, const wxPoint& aPosition, int aOrientation )
 {
     int         MapX1, MapY1, x1, y1;
-    EDA_COLOR_T color = UNSPECIFIED;
-
-    color = ReturnLayerColor( LAYER_PIN );
+    EDA_COLOR_T color = ReturnLayerColor( LAYER_PIN );
 
     aPlotter->SetColor( color );
 
@@ -1892,12 +1889,12 @@ EDA_RECT LIB_PIN::GetBoundingBox() const
     int numberTextHeight  = showNum ? KiROUND( m_numTextSize * 1.1 ) : 0;
 
     if( m_shape & INVERT )
-        minsizeV = MAX( TARGET_PIN_RADIUS, INVERT_PIN_RADIUS );
+        minsizeV = std::max( TARGET_PIN_RADIUS, INVERT_PIN_RADIUS );
 
     // calculate top left corner position
     // for the default pin orientation (PIN_RIGHT)
-    begin.y = MAX( minsizeV, numberTextHeight + TXTMARGE );
-    begin.x = MIN( -TARGET_PIN_RADIUS, m_length - (numberTextLength / 2) );
+    begin.y = std::max( minsizeV, numberTextHeight + TXTMARGE );
+    begin.x = std::min( -TARGET_PIN_RADIUS, m_length - (numberTextLength / 2) );
 
     // calculate bottom right corner position and adjust top left corner position
     int nameTextLength = 0;
@@ -1920,15 +1917,15 @@ EDA_RECT LIB_PIN::GetBoundingBox() const
     if( nameTextOffset )        // for values > 0, pin name is inside the body
     {
         end.x = m_length + nameTextLength;
-        end.y = MIN( -minsizeV, -nameTextHeight / 2 );
+        end.y = std::min( -minsizeV, -nameTextHeight / 2 );
     }
     else        // if value == 0:
                 // pin name is outside the body, and above the pin line
                 // pin num is below the pin line
     {
-        end.x = MAX(m_length, nameTextLength);
+        end.x = std::max(m_length, nameTextLength);
         end.y = -begin.y;
-        begin.y = MAX( minsizeV, nameTextHeight );
+        begin.y = std::max( minsizeV, nameTextHeight );
     }
 
     // Now, calculate boundary box corners position for the actual pin orientation

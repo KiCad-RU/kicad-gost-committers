@@ -58,17 +58,18 @@ static const wxString   cfgShowBorderAndTitleBlock( wxT( "ShowBorderAndTitleBloc
 /* class GERBVIEW_FRAME for GerbView */
 /*************************************/
 
-GERBVIEW_FRAME::GERBVIEW_FRAME( wxWindow*       father,
-                                const wxString& title,
-                                const wxPoint&  pos,
-                                const wxSize&   size,
-                                long            style ) :
-    EDA_DRAW_FRAME( father, GERBER_FRAME, title, pos, size, style )
+#define GERBVIEW_FRAME_NAME wxT( "GerberFrame" )
+
+GERBVIEW_FRAME::GERBVIEW_FRAME( wxWindow* aParent, const wxString& aTitle,
+                                const wxPoint& aPosition, const wxSize& aSize,
+                                long aStyle ) :
+    EDA_DRAW_FRAME( aParent, GERBER_FRAME_TYPE, aTitle, aPosition, aSize,
+                    aStyle, GERBVIEW_FRAME_NAME )
 {
     m_colorsSettings = &g_ColorsSettings;
     m_Layout = NULL;
 
-    m_FrameName = wxT( "GerberFrame" );
+    m_FrameName = GERBVIEW_FRAME_NAME;
     m_show_layer_manager_tools = true;
 
     m_showAxis = true;                      // true to show X and Y axis on screen
@@ -194,7 +195,7 @@ double GERBVIEW_FRAME::BestZoom()
     double  y   = (double) bbox.GetHeight() / (double) size.y;
     GetScreen()->SetScrollCenterPosition( bbox.Centre() );
 
-    double  best_zoom = MAX( x, y );
+    double  best_zoom = std::max( x, y );
     return best_zoom;
 }
 
@@ -291,11 +292,11 @@ void GERBVIEW_FRAME::ReFillLayerWidget()
 /**
  * Function SetElementVisibility
  * changes the visibility of an element category
- * @param aItemIdVisible is from the enum by the same name
+ * @param aItemIdVisible is an item id from the enum GERBER_VISIBLE_ID
  * @param aNewState = The new visibility state of the element category
- * @see enum aGERBER_VISIBLE
  */
-void GERBVIEW_FRAME::SetElementVisibility( int aItemIdVisible, bool aNewState )
+void GERBVIEW_FRAME::SetElementVisibility( GERBER_VISIBLE_ID aItemIdVisible,
+                                           bool aNewState )
 {
     switch( aItemIdVisible )
     {
@@ -485,13 +486,11 @@ void GERBVIEW_FRAME::UpdateTitleAndInfo()
 
 /*
  * Function IsElementVisible
- * tests whether a given element category is visible. Keep this as an
- * inline function.
- * @param aGERBER_VISIBLE is from the enum by the same name
- * @return bool - true if the element is visible.
- * @see enum PCB_VISIBLE
+ * tests whether a given element category is visible
+ * aItemIdVisible is an item id from the enum GERBER_VISIBLE_ID
+ * return true if the element is visible.
  */
-bool GERBVIEW_FRAME::IsElementVisible( int aItemIdVisible )
+bool GERBVIEW_FRAME::IsElementVisible( GERBER_VISIBLE_ID aItemIdVisible )
 {
     switch( aItemIdVisible )
     {
@@ -504,7 +503,7 @@ bool GERBVIEW_FRAME::IsElementVisible( int aItemIdVisible )
         break;
 
     default:
-        wxLogDebug( wxT( "GERBVIEW_FRAME::SetVisibleElementColor(): bad arg %d" ), aItemIdVisible );
+        wxLogDebug( wxT( "GERBVIEW_FRAME::IsElementVisible(): bad arg %d" ), aItemIdVisible );
     }
 
     return true;
@@ -563,9 +562,9 @@ bool GERBVIEW_FRAME::IsLayerVisible( int aLayerIndex ) const
  * returns the color of a pcb visible element.
  * @see enum PCB_VISIBLE
  */
-int GERBVIEW_FRAME::GetVisibleElementColor( int aItemIdVisible )
+EDA_COLOR_T GERBVIEW_FRAME::GetVisibleElementColor( GERBER_VISIBLE_ID aItemIdVisible )
 {
-    int color = -1;
+    EDA_COLOR_T color = UNSPECIFIED_COLOR;
 
     switch( aItemIdVisible )
     {
@@ -578,7 +577,8 @@ int GERBVIEW_FRAME::GetVisibleElementColor( int aItemIdVisible )
         break;
 
     default:
-        wxLogDebug( wxT( "GERBVIEW_FRAME::GetVisibleElementColor(): bad arg %d" ), aItemIdVisible );
+        wxLogDebug( wxT( "GERBVIEW_FRAME::GetVisibleElementColor(): bad arg %d" ),
+                    (int)aItemIdVisible );
     }
 
     return color;
@@ -594,7 +594,8 @@ void GERBVIEW_FRAME::SetGridVisibility( bool aVisible )
 }
 
 
-void GERBVIEW_FRAME::SetVisibleElementColor( int aItemIdVisible, int aColor )
+void GERBVIEW_FRAME::SetVisibleElementColor( GERBER_VISIBLE_ID aItemIdVisible,
+                                             EDA_COLOR_T aColor )
 {
     switch( aItemIdVisible )
     {
@@ -608,7 +609,8 @@ void GERBVIEW_FRAME::SetVisibleElementColor( int aItemIdVisible, int aColor )
         break;
 
     default:
-        wxLogDebug( wxT( "GERBVIEW_FRAME::SetVisibleElementColor(): bad arg %d" ), aItemIdVisible );
+        wxLogDebug( wxT( "GERBVIEW_FRAME::SetVisibleElementColor(): bad arg %d" ),
+                    (int) aItemIdVisible );
     }
 }
 
@@ -617,7 +619,7 @@ void GERBVIEW_FRAME::SetVisibleElementColor( int aItemIdVisible, int aColor )
  * Function GetLayerColor
  * gets a layer color for any valid layer, including non-copper ones.
  */
-int GERBVIEW_FRAME::GetLayerColor( int aLayer )
+EDA_COLOR_T GERBVIEW_FRAME::GetLayerColor( int aLayer ) const
 {
     return m_colorsSettings->GetLayerColor( aLayer );
 }
@@ -627,7 +629,7 @@ int GERBVIEW_FRAME::GetLayerColor( int aLayer )
  * Function SetLayerColor
  * changes a layer color for any valid layer, including non-copper ones.
  */
-void GERBVIEW_FRAME::SetLayerColor( int aLayer, int aColor )
+void GERBVIEW_FRAME::SetLayerColor( int aLayer, EDA_COLOR_T aColor )
 {
     m_colorsSettings->SetLayerColor( aLayer, aColor );
 }

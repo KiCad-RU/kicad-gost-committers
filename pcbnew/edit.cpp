@@ -189,40 +189,42 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_OPEN_MODULE_EDITOR:
-        if( m_ModuleEditFrame == NULL )
         {
-            m_ModuleEditFrame = new FOOTPRINT_EDIT_FRAME( this,
-                                                          _( "Module Editor" ),
-                                                          wxPoint( -1, -1 ),
-                                                          wxSize( 600, 400 ) );
-            m_ModuleEditFrame->Show( true );
-            m_ModuleEditFrame->Zoom_Automatique( false );
+        FOOTPRINT_EDIT_FRAME * editorFrame =
+                FOOTPRINT_EDIT_FRAME::GetActiveFootprintEditor();
+        if( editorFrame == NULL )
+        {
+            editorFrame = new FOOTPRINT_EDIT_FRAME( this );
+            editorFrame->Show( true );
+            editorFrame->Zoom_Automatique( false );
         }
         else
         {
-            if( m_ModuleEditFrame->IsIconized() )
-                 m_ModuleEditFrame->Iconize( false );
+            if( editorFrame->IsIconized() )
+                 editorFrame->Iconize( false );
 
-            m_ModuleEditFrame->Raise();
+            editorFrame->Raise();
 
             // Raising the window does not set the focus on Linux.  This should work on
             // any platform.
-            if( wxWindow::FindFocus() != m_ModuleEditFrame )
-                m_ModuleEditFrame->SetFocus();
+            if( wxWindow::FindFocus() != editorFrame )
+                editorFrame->SetFocus();
         }
-
+        }
         break;
 
     case ID_OPEN_MODULE_VIEWER:
-        if( GetActiveViewerFrame() == NULL )
         {
-            m_ModuleViewerFrame = new FOOTPRINT_VIEWER_FRAME( this, NULL );
-            m_ModuleViewerFrame->Show( true );
-            m_ModuleViewerFrame->Zoom_Automatique( false );
+        FOOTPRINT_VIEWER_FRAME * viewer =
+                FOOTPRINT_VIEWER_FRAME::GetActiveFootprintViewer();
+        if( viewer == NULL )
+        {
+            viewer = new FOOTPRINT_VIEWER_FRAME( this, NULL );
+            viewer->Show( true );
+            viewer->Zoom_Automatique( false );
         }
         else
         {
-            FOOTPRINT_VIEWER_FRAME * viewer = GetActiveViewerFrame();
             if( viewer->IsIconized() )
                  viewer->Iconize( false );
 
@@ -232,6 +234,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             // any platform.
             if( wxWindow::FindFocus() != viewer )
                 viewer->SetFocus();
+        }
         }
         break;
 
@@ -614,8 +617,6 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_POPUP_PCB_DRAG_MODULE_REQUEST:
-        g_Drag_Pistes_On = true;
-
     case ID_POPUP_PCB_MOVE_MODULE_REQUEST:
         if( GetCurItem() == NULL )
             break;
@@ -625,10 +626,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             SetCurItem( GetCurItem()->GetParent() );
 
         if( !GetCurItem() || GetCurItem()->Type() != PCB_MODULE_T )
-        {
-            g_Drag_Pistes_On = false;
             break;
-        }
 
         module = (MODULE*) GetCurItem();
 
@@ -644,7 +642,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         SendMessageToEESCHEMA( module );
         GetScreen()->SetCrossHairPosition( module->m_Pos );
         m_canvas->MoveCursorToCrossHair();
-        StartMove_Module( module, &dc );
+        StartMoveModule( module, &dc, id == ID_POPUP_PCB_DRAG_MODULE_REQUEST );
         break;
 
     case ID_POPUP_PCB_GET_AND_MOVE_MODULE_REQUEST:      /* get module by name and move it */
@@ -665,7 +663,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
         SendMessageToEESCHEMA( module );
         m_canvas->MoveCursorToCrossHair();
-        StartMove_Module( module, &dc );
+        StartMoveModule( module, &dc, false );
         break;
 
     case ID_POPUP_PCB_DELETE_MODULE:
@@ -809,9 +807,8 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             break;
         }
 
-        g_Drag_Pistes_On = true;
         m_canvas->MoveCursorToCrossHair();
-        StartMovePad( (D_PAD*) GetCurItem(), &dc );
+        StartMovePad( (D_PAD*) GetCurItem(), &dc, true );
         break;
 
     case ID_POPUP_PCB_MOVE_PAD_REQUEST:
@@ -829,9 +826,8 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             break;
         }
 
-        g_Drag_Pistes_On = false;
         m_canvas->MoveCursorToCrossHair();
-        StartMovePad( (D_PAD*) GetCurItem(), &dc );
+        StartMovePad( (D_PAD*) GetCurItem(), &dc, false );
         break;
 
     case ID_POPUP_PCB_EDIT_PAD:

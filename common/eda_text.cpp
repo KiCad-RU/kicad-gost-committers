@@ -29,7 +29,6 @@
 
 #include <eda_text.h>
 #include <drawtxt.h>
-#include <macros.h>              // MAX
 #include <trigo.h>               // RotatePoint
 #include <class_drawpanel.h>     // EDA_DRAW_PANEL
 
@@ -134,7 +133,7 @@ EDA_RECT EDA_TEXT::GetTextBox( int aLine, int aThickness, bool aInvertY ) const
         {
             text = list->Item( ii );
             dx   = LenSize( text );
-            textsize.x  = MAX( textsize.x, dx );
+            textsize.x  = std::max( textsize.x, dx );
             textsize.y += dy;
         }
     }
@@ -215,7 +214,7 @@ bool EDA_TEXT::TextHitTest( const EDA_RECT& aRect, bool aContains, int aAccuracy
 
 
 void EDA_TEXT::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                     EDA_COLOR_T aColor, int aDrawMode,
+                     EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode,
                      EDA_DRAW_MODE_T aFillMode, EDA_COLOR_T aAnchor_color )
 {
     if( m_MultilineAllowed )
@@ -237,7 +236,7 @@ void EDA_TEXT::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
                                aColor,
                                aDrawMode,
                                aFillMode,
-                               i ?  UNSPECIFIED : aAnchor_color,
+                               i ?  UNSPECIFIED_COLOR : aAnchor_color,
                                txt,
                                pos );
             pos += offset;
@@ -260,7 +259,7 @@ void EDA_TEXT::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
 
 void EDA_TEXT::DrawOneLineOfText( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
                                   const wxPoint& aOffset, EDA_COLOR_T aColor,
-                                  int aDrawMode, EDA_DRAW_MODE_T aFillMode,
+                                  GR_DRAWMODE aDrawMode, EDA_DRAW_MODE_T aFillMode,
                                   EDA_COLOR_T aAnchor_color,
                                   wxString& aText, wxPoint aPos )
 {
@@ -273,7 +272,7 @@ void EDA_TEXT::DrawOneLineOfText( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
         GRSetDrawMode( aDC, aDrawMode );
 
     /* Draw text anchor, if allowed */
-    if( aAnchor_color != UNSPECIFIED )
+    if( aAnchor_color != UNSPECIFIED_COLOR )
     {
 
         int anchor_size = aDC->DeviceToLogicalXRel( 2 );

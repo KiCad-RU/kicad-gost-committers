@@ -165,8 +165,8 @@ public:
      */
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
                const wxPoint& aOffset, EDA_COLOR_T aColor,
-               int aDrawMode, EDA_DRAW_MODE_T aDisplay_mode = LINE,
-               EDA_COLOR_T aAnchor_color = UNSPECIFIED );
+               GR_DRAWMODE aDrawMode, EDA_DRAW_MODE_T aDisplay_mode = LINE,
+               EDA_COLOR_T aAnchor_color = UNSPECIFIED_COLOR );
 
 private:
 
@@ -180,13 +180,13 @@ private:
      * @param aColor = text color
      * @param aDrawMode = GR_OR, GR_XOR.., -1 to use the current mode.
      * @param aFillMode = LINE, FILLED or SKETCH
-     * @param aAnchor_color = anchor color ( UNSPECIFIED = do not draw anchor ).
+     * @param aAnchor_color = anchor color ( UNSPECIFIED_COLOR = do not draw anchor ).
      * @param aText = the single line of text to draw.
      * @param aPos = the position of this line ).
      */
     void DrawOneLineOfText( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
                             const wxPoint& aOffset, EDA_COLOR_T aColor,
-                            int aDrawMode, EDA_DRAW_MODE_T aFillMode,
+                            GR_DRAWMODE aDrawMode, EDA_DRAW_MODE_T aFillMode,
                             EDA_COLOR_T aAnchor_color, wxString& aText,
                             wxPoint aPos );
 

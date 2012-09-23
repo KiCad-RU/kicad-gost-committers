@@ -287,12 +287,13 @@ int LIB_BEZIER::GetPenSize() const
 
 
 void LIB_BEZIER::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                              int aColor, int aDrawMode, void* aData, const TRANSFORM& aTransform )
+                              EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
+                              const TRANSFORM& aTransform )
 {
     wxPoint              pos1;
     std::vector<wxPoint> PolyPointsTraslated;
 
-    int                  color = ReturnLayerColor( LAYER_DEVICE );
+    EDA_COLOR_T color = ReturnLayerColor( LAYER_DEVICE );
 
     m_PolyPoints = Bezier2Poly( m_BezierPoints[0],
                                 m_BezierPoints[1],
@@ -390,15 +391,15 @@ EDA_RECT LIB_BEZIER::GetBoundingBox() const
 
     for( unsigned ii = 1; ii < GetCornerCount(); ii++ )
     {
-        xmin = MIN( xmin, m_PolyPoints[ii].x );
-        xmax = MAX( xmax, m_PolyPoints[ii].x );
-        ymin = MIN( ymin, m_PolyPoints[ii].y );
-        ymax = MAX( ymax, m_PolyPoints[ii].y );
+        xmin = std::min( xmin, m_PolyPoints[ii].x );
+        xmax = std::max( xmax, m_PolyPoints[ii].x );
+        ymin = std::min( ymin, m_PolyPoints[ii].y );
+        ymax = std::max( ymax, m_PolyPoints[ii].y );
     }
 
-    rect.SetOrigin( xmin, ymin * -1 );
-    rect.SetEnd( xmax, ymax * -1 );
-    rect.Inflate( m_Width / 2, m_Width / 2 );
+    rect.SetOrigin( xmin, - ymin );
+    rect.SetEnd( xmax, - ymax );
+    rect.Inflate( m_Width / 2 );
 
     return rect;
 }

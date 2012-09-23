@@ -123,11 +123,11 @@ EDA_RECT SCH_LINE::GetBoundingBox() const
 {
     int      width = 25;
 
-    int      xmin = MIN( m_start.x, m_end.x ) - width;
-    int      ymin = MIN( m_start.y, m_end.y ) - width;
+    int      xmin = std::min( m_start.x, m_end.x ) - width;
+    int      ymin = std::min( m_start.y, m_end.y ) - width;
 
-    int      xmax = MAX( m_start.x, m_end.x ) + width;
-    int      ymax = MAX( m_start.y, m_end.y ) + width;
+    int      xmax = std::max( m_start.x, m_end.x ) + width;
+    int      ymax = std::max( m_start.y, m_end.y ) + width;
 
     // return a rectangle which is [pos,dim) in nature.  therefore the +1
     EDA_RECT ret( wxPoint( xmin, ymin ), wxSize( xmax - xmin + 1, ymax - ymin + 1 ) );
@@ -222,9 +222,9 @@ int SCH_LINE::GetPenSize() const
 
 
 void SCH_LINE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
-                     int DrawMode, int Color )
+                     GR_DRAWMODE DrawMode, EDA_COLOR_T Color )
 {
-    int color;
+    EDA_COLOR_T color;
     int width = GetPenSize();
 
     if( Color >= 0 )

@@ -373,7 +373,8 @@ end_of_tst:
 
 void PCB_EDIT_FRAME::DrawInfoPlace( wxDC* DC )
 {
-    int       color, ii, jj;
+    int       ii, jj;
+    EDA_COLOR_T color;
     int       ox, oy;
     MATRIX_CELL top_state, bottom_state;
 
@@ -896,7 +897,7 @@ double PCB_EDIT_FRAME::Compute_Ratsnest_PlaceModule( wxDC* DC )
 
     cout = 0;
 
-    int color = g_ColorsSettings.GetItemColor(RATSNEST_VISIBLE);
+    EDA_COLOR_T color = g_ColorsSettings.GetItemColor(RATSNEST_VISIBLE);
 
     if( AutoPlaceShowAll )
         GRSetDrawMode( DC, GR_XOR );
@@ -1044,7 +1045,7 @@ void CreateKeepOutRectangle( int ux0, int uy0, int ux1, int uy1,
             if( trace & 2 )
             {
                 data = RoutingMatrix.GetDist( row, col, TOP );
-                data = MAX( data, LocalKeepOut );
+                data = std::max( data, LocalKeepOut );
                 RoutingMatrix.SetDist( row, col, TOP, data );
             }
         }
@@ -1170,7 +1171,7 @@ static MODULE* PickModule( PCB_EDIT_FRAME* pcbframe, wxDC* DC )
  *
  *  This function can request some iterations
  *  Iterations are made until no cell is added to the zone.
- *  @return: added cells count (i.e. which the attribute CELL_is_ZONE is set)
+ *  @return added cells count (i.e. which the attribute CELL_is_ZONE is set)
  */
 int propagate()
 {
@@ -1181,7 +1182,7 @@ int propagate()
 
 #define NO_CELL_ZONE (HOLE | CELL_is_EDGE | CELL_is_ZONE)
 
-    pt_cell_V.reserve( MAX( RoutingMatrix.m_Nrows, RoutingMatrix.m_Ncols ) );
+    pt_cell_V.reserve( std::max( RoutingMatrix.m_Nrows, RoutingMatrix.m_Ncols ) );
     fill( pt_cell_V.begin(), pt_cell_V.end(), 0 );
 
     // Search from left to right and top to bottom.

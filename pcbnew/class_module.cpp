@@ -46,8 +46,6 @@
 #include <3d_struct.h>
 
 #include <drag.h>
-
-#include <protos.h>
 #include <class_board.h>
 #include <class_edge_mod.h>
 #include <class_module.h>
@@ -182,7 +180,7 @@ MODULE::~MODULE()
  * every thing already drawn.
  */
 void MODULE::DrawAncre( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
-                        int dim_ancre, int draw_mode )
+                        int dim_ancre, GR_DRAWMODE draw_mode )
 {
     int anchor_size = DC->DeviceToLogicalXRel( dim_ancre );
 
@@ -190,7 +188,7 @@ void MODULE::DrawAncre( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
 
     if( GetBoard()->IsElementVisible( ANCHOR_VISIBLE ) )
     {
-        int color = g_ColorsSettings.GetItemColor( ANCHOR_VISIBLE );
+        EDA_COLOR_T color = g_ColorsSettings.GetItemColor( ANCHOR_VISIBLE );
         GRLine( panel->GetClipBox(), DC,
                 m_Pos.x - offset.x - anchor_size, m_Pos.y - offset.y,
                 m_Pos.x - offset.x + anchor_size, m_Pos.y - offset.y,
@@ -307,7 +305,7 @@ void MODULE::Copy( MODULE* aModule )
  * @param aDrawMode = GR_OR, GR_XOR..
  * @param aOffset = draw offset (usually wxPoint(0,0)
  */
-void MODULE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDrawMode, const wxPoint& aOffset )
+void MODULE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMode, const wxPoint& aOffset )
 {
     if( (m_Flags & DO_NOT_DRAW) || (IsMoving()) )
         return;
@@ -371,7 +369,8 @@ void MODULE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, int aDrawMode, const wxPoi
  *  @param offset = draw offset (usually wxPoint(0,0)
  *  @param draw_mode =  GR_OR, GR_XOR, GR_AND
  */
-void MODULE::DrawEdgesOnly( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset, int draw_mode )
+void MODULE::DrawEdgesOnly( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
+                            GR_DRAWMODE draw_mode )
 {
     for( BOARD_ITEM* item = m_Drawings;  item;  item = item->Next() )
     {
@@ -391,7 +390,7 @@ void MODULE::DrawEdgesOnly( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offs
 void MODULE::CalculateBoundingBox()
 {
     m_BoundaryBox = GetFootPrintRect();
-    m_Surface = ABS( (double) m_BoundaryBox.GetWidth() * m_BoundaryBox.GetHeight() );
+    m_Surface = std::abs( (double) m_BoundaryBox.GetWidth() * m_BoundaryBox.GetHeight() );
 }
 
 
@@ -445,7 +444,7 @@ void MODULE::DisplayInfo( EDA_DRAW_FRAME* frame )
 
     frame->EraseMsgBox();
 
-    if( frame->IsType( PCB_FRAME ) )
+    if( frame->IsType( PCB_FRAME_TYPE ) )
         flag = true;
 
     frame->AppendMsgPanel( m_Reference->m_Text, m_Value->m_Text, DARKCYAN );

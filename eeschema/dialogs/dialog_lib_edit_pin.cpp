@@ -54,7 +54,7 @@ void DIALOG_LIB_EDIT_PIN::OnPaintShowPanel( wxPaintEvent& event )
     EDA_RECT bBox = m_dummyPin->GetBoundingBox();
     double xscale    = (double) dc_size.x / bBox.GetWidth();
     double yscale = (double) dc_size.y / bBox.GetHeight();
-    double scale = MIN( xscale, yscale );
+    double scale = std::min( xscale, yscale );
 
     // Give a 10% margin
     scale *= 0.9;
@@ -65,7 +65,7 @@ void DIALOG_LIB_EDIT_PIN::OnPaintShowPanel( wxPaintEvent& event )
     NEGATE( offset.y );
 
     GRResetPenAndBrush( &dc );
-    m_dummyPin->Draw( NULL, &dc, offset, -1, wxCOPY,
+    m_dummyPin->Draw( NULL, &dc, offset, UNSPECIFIED_COLOR, GR_COPY,
                       NULL, DefaultTransform );
 
     m_dummyPin->SetParent(NULL);

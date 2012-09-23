@@ -102,7 +102,7 @@ public:
     double        m_Surface;            // Bounding box area
 
     time_t        m_Link;               // Temporary logical link used in edition
-    long          m_LastEdit_Time;
+    time_t        m_LastEdit_Time;
     wxString      m_Path;
 
     wxString      m_Doc;                // Module Description (info for users)
@@ -196,6 +196,12 @@ public:
 
     void Flip( const wxPoint& aCentre );
 
+    /**
+     * function IsFlipped
+     * @return true if the module is flipped, i.e. on the back side of the board
+     */
+    bool IsFlipped() const {return GetLayer() == LAYER_N_BACK; }
+
     bool IsLocked() const
     {
         return (m_ModuleStatus & MODULE_is_LOCKED) != 0;
@@ -223,8 +229,9 @@ public:
             m_ModuleStatus &= ~MODULE_is_PLACED;
     }
 
-    void SetLastEditTime( long aTime ) { m_LastEdit_Time = aTime; }
-    long GetLastEditTime() const { return m_LastEdit_Time; }
+    void SetLastEditTime( time_t aTime ) { m_LastEdit_Time = aTime; }
+    void SetLastEditTime( ) { m_LastEdit_Time = time( NULL ); }
+    time_t GetLastEditTime() const { return m_LastEdit_Time; }
 
     /**
      * Function Read_GPCB_Descr
@@ -239,15 +246,16 @@ public:
 
     void Draw( EDA_DRAW_PANEL* aPanel,
                wxDC*           aDC,
-               int             aDrawMode,
+               GR_DRAWMODE     aDrawMode,
                const wxPoint&  aOffset = ZeroOffset );
 
     void Draw3D( EDA_3D_CANVAS* glcanvas );
 
-    void DrawEdgesOnly( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset, int draw_mode );
+    void DrawEdgesOnly( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
+                        GR_DRAWMODE draw_mode );
 
     void DrawAncre( EDA_DRAW_PANEL* panel, wxDC* DC,
-                    const wxPoint& offset, int dim_ancre, int draw_mode );
+                    const wxPoint& offset, int dim_ancre, GR_DRAWMODE draw_mode );
 
     void DisplayInfo( EDA_DRAW_FRAME* frame );
 
