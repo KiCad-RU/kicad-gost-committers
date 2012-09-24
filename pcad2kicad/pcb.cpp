@@ -462,7 +462,7 @@ void PCB::MapLayer( wxXmlNode* aNode )
         if( KiCadLayer == -1 )
             KiCadLayer = DRAW_N;    // default
         else
-            KiCadLayer = LAST_COPPER_LAYER - KiCadLayer;
+            KiCadLayer = FIRST_COPPER_LAYER + m_layersStackup.GetCount() - 1 - KiCadLayer;
     }
 
     if( FindNode( aNode, wxT( "layerNum" ) ) )

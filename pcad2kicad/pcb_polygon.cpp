@@ -253,7 +253,7 @@ void PCB_POLYGON::AddToBoard()
                                 Mils2iu( zone->m_Poly->GetDefaultHatchPitchMils() ),
                                 true );
 
-// zone->BuildFilledPolysListData( m_board );
+        //zone->BuildFilledPolysListData( m_board );
     }
 }
 
