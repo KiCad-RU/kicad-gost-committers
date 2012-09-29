@@ -1,7 +1,6 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
  * Copyright (C) 2007, 2008, 2012 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
@@ -24,50 +23,32 @@
  */
 
 /**
- * @file PCBPolygon.h
+ * @file pcb_plane.h
  */
 
-#ifndef PCB_POLYGON_H_
-#define PCB_POLYGON_H_
+#ifndef PCB_PLANE_H_
+#define PCB_PLANE_H_
 
 #include <wx/wx.h>
 
-#include <pcb_component.h>
+#include <pcb_polygon.h>
 
 namespace PCAD2KICAD {
 
-WX_DEFINE_ARRAY( wxRealPoint*, VERTICES_ARRAY );
-WX_DEFINE_ARRAY( VERTICES_ARRAY*, ISLANDS_ARRAY );
-
-class PCB_POLYGON : public PCB_COMPONENT
+class PCB_PLANE : public PCB_POLYGON
 {
 public:
-    int             m_width;
-    int             m_priority;
-    VERTICES_ARRAY  m_outline; // collection of boundary/outline lines - objects
-    ISLANDS_ARRAY   m_islands;
-    ISLANDS_ARRAY   m_cutouts;
 
-    PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
-    ~PCB_POLYGON();
+    PCB_PLANE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
+    ~PCB_PLANE();
 
     virtual bool Parse( wxXmlNode*      aNode,
                         int             aPCadLayer,
                         wxString        aDefaultMeasurementUnit,
                         wxString        aActualConversion,
                         wxStatusBar*    aStatusBar );
-
-    virtual void    WriteToFile( wxFile* aFile, char aFileType );
-    virtual void    WriteOutlineToFile( wxFile* aFile, char aFileType );
-    virtual void    SetPosOffset( int aX_offs, int aY_offs );
-    void            AddToModule( MODULE* aModule );
-    void            AddToBoard();
-
-// protected:
-    void            FormPolygon( wxXmlNode* aNode, VERTICES_ARRAY* aPolygon,
-                                 wxString aDefaultMeasurementUnit, wxString actualConversion );
 };
 
 } // namespace PCAD2KICAD
 
-#endif    // PCB_POLYGON_H_
+#endif    // PCB_PLANE_H_

@@ -105,6 +105,7 @@ set(PCB_COMMON_SRCS
     ../pcad2kicad/pcb_net.cpp
     ../pcad2kicad/pcb_pad.cpp
     ../pcad2kicad/pcb_pad_shape.cpp
+    ../pcad2kicad/pcb_plane.cpp
     ../pcad2kicad/pcb_polygon.cpp
     ../pcad2kicad/pcb_text.cpp
     ../pcad2kicad/pcb_via.cpp
