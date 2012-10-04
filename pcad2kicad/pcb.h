@@ -54,7 +54,7 @@ public:
     int             GetNewTimestamp();
 
     void            Parse( wxStatusBar* aStatusBar,
-                           wxString     aXMLFileName,
+                           wxXmlDocument* aXmlDoc,
                            wxString     aActualConversion );
 
     virtual void    WriteToFile( wxString aFileName );

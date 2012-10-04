@@ -104,12 +104,36 @@ FILE_LINE_READER::~FILE_LINE_READER()
 
 unsigned FILE_LINE_READER::ReadLine() throw( IO_ERROR )
 {
+    char* str_ptr;
+    ssize_t actual_len;
+    size_t n;
+    int null_pos;
+
     length  = 0;
     line[0] = 0;
 
-    // fgets always puts a terminating nul at end of its read.
-    while( fgets( line + length, capacity - length, fp ) )
+    // getline always puts a terminating null at the end of its read.
+    while( true )
     {
+        str_ptr = line + length;
+        n = capacity - length;
+        if( ( actual_len = getline( &str_ptr, &n, fp ) ) == -1 )
+            break;
+
+        // remove all nulls inside a string (e.g. ACCEL/P-Cad ASCII files often contain nulls)
+        while( (ssize_t)strlen( line + length ) < actual_len )
+        {
+            str_ptr = strchr( line + length, '\0' );
+            null_pos = str_ptr - ( line + length );
+            if( str_ptr )
+            {
+                // left shift the substring starting right after the fake null position
+                // and ending at the real useful null position
+                memmove( str_ptr, str_ptr + 1, actual_len - null_pos );
+                actual_len--;
+            }
+        }
+
         length += strlen( line + length );
 
         if( length >= maxLineLength )

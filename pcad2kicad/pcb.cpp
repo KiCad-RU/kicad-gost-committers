@@ -43,6 +43,7 @@
 #include <pcb_pad.h>
 #include <pcb_text.h>
 #include <pcb_via.h>
+#include <s_expr_loader.h>
 
 namespace PCAD2KICAD {
 
@@ -472,10 +473,8 @@ void PCB::MapLayer( wxXmlNode* aNode )
     m_layersMap[(int) num] = KiCadLayer;
 }
 
-
-void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActualConversion )
+void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
 {
-    wxXmlDocument   xmlDoc;
     wxXmlNode*      aNode, *aaNode;
     PCB_NET*        net;
     PCB_COMPONENT*  comp;
@@ -483,11 +482,8 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     wxString        cr, pr, layerName;
     int             i, j;
 
-    if( !xmlDoc.Load( aXMLFileName ) )
-        return;
-
     // Defaut measurement units
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "asciiHeader" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
 
     if( aNode )
     {
@@ -502,7 +498,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     }
 
     // Determine layers stackup
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "pcbDesign" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -531,7 +527,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     }
 
     // Layers mapping
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "pcbDesign" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -549,7 +545,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     // NETLIST
     // aStatusBar->SetStatusText( wxT( "Loading NETLIST " ) );
 
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "netlist" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "netlist" ) );
 
     if( aNode )
     {
@@ -568,7 +564,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     // BOARD FILE
     // aStatusBar->SetStatusText( wxT( "Loading BOARD DEFINITION " ) );
 
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "pcbDesign" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -579,7 +575,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         {
             // Components/modules
             if( aNode->GetName() == wxT( "multiLayer" ) )
-                DoPCBComponents( aNode, &xmlDoc, aActualConversion, aStatusBar );
+                DoPCBComponents( aNode, aXmlDoc, aActualConversion, aStatusBar );
 
             // objects
             if( aNode->GetName() == wxT( "layerContents" ) )
@@ -670,7 +666,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         // LIBRARY FILE
         // aStatusBar->SetStatusText( wxT( "Processing LIBRARY FILE " ) );
 
-        aNode = FindNode( xmlDoc.GetRoot(), wxT( "library" ) );
+        aNode = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
 
         if( aNode )
         {
