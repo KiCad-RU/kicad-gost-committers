@@ -144,18 +144,14 @@ void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString a
     }
 }
 
-void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActualConversion )
+void SCH::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
 {
-    wxXmlDocument   xmlDoc;
     wxXmlNode*      iNode;
     SCH_SHEET*      sheet;
     bool            isJunction;
 
-    if( !xmlDoc.Load( aXMLFileName ) )
-        return;
-
     // Defaut measurement units
-    iNode = FindNode( xmlDoc.GetRoot(), wxT( "asciiHeader" ) );
+    iNode = FindNode( aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
 
     if( iNode )
         m_defaultMeasurementUnit = FindNodeGetContent( iNode, wxT( "fileUnits" ) );
@@ -164,9 +160,9 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     isJunction = false;
     aActualConversion = wxT( "SCHLIB" );
 
-    DoLibrary( &xmlDoc, aStatusBar, aActualConversion );
+    DoLibrary( aXmlDoc, aStatusBar, aActualConversion );
 
-    iNode = FindNode( xmlDoc.GetRoot(), wxT( "schematicDesign" ) );
+    iNode = FindNode( aXmlDoc->GetRoot(), wxT( "schematicDesign" ) );
 
     if( iNode )
     {

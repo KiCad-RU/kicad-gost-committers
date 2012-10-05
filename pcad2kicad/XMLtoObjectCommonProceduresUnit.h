@@ -36,6 +36,8 @@
 namespace PCAD2KICAD
 {
 
+#define PCAD2KICAD_SCALE_SCH_TO_INCH_GRID
+
 typedef struct _TTEXTVALUE
 {
     wxString    text;

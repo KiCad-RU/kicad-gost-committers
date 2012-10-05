@@ -139,7 +139,11 @@ double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConv
         if( u == wxT( 'm' ) )
         {
             ls.ToDouble( &i );
+#ifdef PCAD2KICAD_SCALE_SCH_TO_INCH_GRID
+            i = i * precision / 0.025;
+#else
             i = i * precision / 0.0254;
+#endif
         }
         else
         {

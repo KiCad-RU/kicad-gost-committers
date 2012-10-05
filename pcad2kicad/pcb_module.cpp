@@ -35,6 +35,7 @@
 #include <pcb_arc.h>
 #include <pcb_copper_pour.h>
 #include <pcb_cutout.h>
+#include <pcb_plane.h>
 #include <pcb_line.h>
 #include <pcb_module.h>
 #include <pcb_pad.h>
@@ -223,6 +224,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
     PCB_POLYGON*        polygon;
     PCB_COPPER_POUR*    copperPour;
     PCB_CUTOUT*         cutout;
+    PCB_PLANE*          plane;
     PCB_LINE*           line;
     PCB_TEXT*           text;
     wxXmlNode*          lNode, * tNode;
@@ -332,6 +334,17 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
                 cutout->Parse( tNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion );
                 aList->Add( cutout );
             }
+        }
+
+        if( lNode->GetName() == wxT( "planeObj" ) )
+        {
+            plane = new PCB_PLANE( m_callbacks, m_board );
+
+            if( plane->Parse( lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion,
+                              aStatusBar ) )
+                aList->Add( plane );
+            else
+                delete plane;
         }
 
         lNode = lNode->GetNext();

@@ -10,7 +10,6 @@ include_directories(
     )
 
 set(PCAD2KICAD_SRCS
-    LoadInputFile.cpp
     pcad2kicad.cpp
     pcad2kicad_frame.cpp
 #    pcb.cpp
@@ -27,6 +26,7 @@ set(PCAD2KICAD_SRCS
 #    pcb_text.cpp
 #    pcb_via.cpp
 #    pcb_via_shape.cpp
+    s_expr_loader.cpp
     sch.cpp
     sch_arc.cpp
     sch_bus.cpp
@@ -39,7 +39,6 @@ set(PCAD2KICAD_SRCS
     sch_sheet.cpp
     sch_symbol.cpp
     sch_text.cpp
-    TextToXMLUnit.cpp
     XMLtoObjectCommonProceduresUnit.cpp
     dialogs/pcad2kicad_frame_base.cpp
     )

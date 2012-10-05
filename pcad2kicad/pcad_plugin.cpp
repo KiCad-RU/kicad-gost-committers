@@ -31,10 +31,10 @@
 
 #include <wx/string.h>
 #include <wx/filename.h>
+#include <wx/xml/xml.h>
 
 #include <pcad_plugin.h>
-#include <LoadInputFile.h>
-#include <TextToXMLUnit.h>
+#include <s_expr_loader.h>
 #include <pcb.h>
 
 #include <common.h>
@@ -73,18 +73,15 @@ const wxString& PCAD_PLUGIN::GetFileExtension() const
 
 BOARD* PCAD_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe, PROPERTIES* aProperties )
 {
-    wxArrayString lines;
+    wxXmlDocument   xmlDoc;
 
     m_props = aProperties;
 
     m_board = aAppendToMe ? aAppendToMe : new BOARD();
     PCB         pcb( m_board );
 
-    LoadInputFile( aFileName, NULL, &lines );
-    wxFileName  xmlFile( aFileName );
-    xmlFile.SetExt( wxT( "xml" ) );
-    TextToXML( NULL, xmlFile.GetFullPath(), &lines );
-    pcb.Parse( NULL, xmlFile.GetFullPath(), wxT( "PCB" ) );
+    LoadInputFile( aFileName, &xmlDoc );
+    pcb.Parse( NULL, &xmlDoc, wxT( "PCB" ) );
     pcb.AddToBoard();
 
     return m_board;

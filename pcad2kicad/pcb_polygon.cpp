@@ -40,6 +40,7 @@ PCB_POLYGON::PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPO
                                                                                       aBoard )
 {
     m_width     = 0;
+    m_priority  = 0;
     m_objType   = wxT( 'Z' );
 }
 
@@ -142,66 +143,6 @@ void PCB_POLYGON::WriteToFile( wxFile* aFile, char aFileType )
 
 void PCB_POLYGON::WriteOutlineToFile( wxFile* aFile, char aFileType )
 {
-/*    int     i, island;
- *   char    c;
- *
- *   if( m_outline.GetCount() > 0 )
- *   {
- *       aFile->Write( wxT( "$CZONE_OUTLINE\n" ) );
- *       aFile->Write( wxString::Format( "ZInfo %8X 0 \"", m_timestamp ) + m_net + wxT( "\"\n" ) );
- *       aFile->Write( wxString::Format( "ZLayer %d\n", m_KiCadLayer ) );
- *       aFile->Write( wxString::Format( "ZAux %d E\n", (int) m_outline.GetCount() ) );
- *       // print outline
- *       c = '0';
- *
- *       for( i = 0; i < (int) m_outline.GetCount(); i++ )
- *       {
- *           if( i == (int) m_outline.GetCount() - 1 )
- *               c = '1';
- *
- *           aFile->Write( wxString::Format( "ZCorner %d %d %c\n",
- *                                           KiROUND( m_outline[i]->x ), KiROUND( m_outline[i]->y ),
- *                                           c ) );
- *       }
- *
- *       // print cutouts
- *       for( island = 0; island < (int) m_cutouts.GetCount(); island++ )
- *       {
- *           c = '0';
- *
- *           for( i = 0; i < (int) m_cutouts[island]->GetCount(); i++ )
- *           {
- *               if( i == (int) m_cutouts[island]->GetCount() - 1 )
- *                   c = '1';
- *
- *               aFile->Write( wxString::Format( "ZCorner %d %d %c\n",
- *                                               KiROUND( (*m_cutouts[island])[i]->x ),
- *                                               KiROUND( (*m_cutouts[island])[i]->y ), c ) );
- *           }
- *       }
- *
- *       // print filled islands
- *       for( island = 0; island < (int) m_islands.GetCount(); island++ )
- *       {
- *           aFile->Write( wxT( "$POLYSCORNERS\n" ) );
- *           c = '0';
- *
- *           for( i = 0; i < (int) m_islands[island]->GetCount(); i++ )
- *           {
- *               if( i == (int) m_islands[island]->GetCount() - 1 )
- *                   c = '1';
- *
- *               aFile->Write( wxString::Format( "%d %d %c 0\n",
- *                                               KiROUND( (*m_islands[island])[i]->x ),
- *                                               KiROUND( (*m_islands[island])[i]->y ), c ) );
- *           }
- *
- *           aFile->Write( wxT( "$endPOLYSCORNERS\n" ) );
- *       }
- *
- *       aFile->Write( wxT( "$endCZONE_OUTLINE\n" ) );
- *   }
- */
 }
 
 
@@ -249,11 +190,15 @@ void PCB_POLYGON::AddToBoard()
             zone->m_Poly->CloseLastContour();
         }
 
+        zone->SetZoneClearance( m_width );
+
+        zone->SetPriority( m_priority );
+
         zone->m_Poly->SetHatch( outline_hatch,
                                 Mils2iu( zone->m_Poly->GetDefaultHatchPitchMils() ),
                                 true );
 
-// zone->BuildFilledPolysListData( m_board );
+        //zone->BuildFilledPolysListData( m_board );
     }
 }
 

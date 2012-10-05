@@ -43,6 +43,7 @@ class PCB_POLYGON : public PCB_COMPONENT
 {
 public:
     int             m_width;
+    int             m_priority;
     VERTICES_ARRAY  m_outline; // collection of boundary/outline lines - objects
     ISLANDS_ARRAY   m_islands;
     ISLANDS_ARRAY   m_cutouts;

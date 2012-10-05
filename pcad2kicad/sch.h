@@ -48,7 +48,7 @@ public:
     ~SCH();
 
     void            Parse( wxStatusBar* aStatusBar,
-                           wxString     aXMLFileName,
+                           wxXmlDocument* aXmlDoc,
                            wxString     aActualConversion );
 
     virtual void    WriteToFile( wxString aFileName, char aFileType );

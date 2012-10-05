@@ -31,14 +31,14 @@
 #include <wx/config.h>
 
 #include <wx/filename.h>
+#include <wx/xml/xml.h>
 
 #include <pcad2kicad.h>
 #include <bitmaps.h>
 
-#include <LoadInputFile.h>
+#include <s_expr_loader.h>
 #include <pcb.h>
 #include <sch.h>
-#include <TextToXMLUnit.h>
 
 using namespace PCAD2KICAD;
 
@@ -50,7 +50,7 @@ using namespace PCAD2KICAD;
 void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event )
 {
 /*    PCB             pcb( NULL );
-    wxArrayString   lines;
+    wxXmlDocument   xmlDoc;
 
     wxFileDialog    fileDlg( this, wxT( "Open PCB file" ), wxEmptyString, wxEmptyString,
                              wxT( "PCad PCB Library ASCII |*.lia" ) );
@@ -63,11 +63,8 @@ void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event )
     wxString fileName = fileDlg.GetPath();
     m_inputFileName->SetLabel( fileName );
 
-    LoadInputFile( fileName, m_statusBar, &lines );
-    wxFileName xmlFile( fileName );
-    xmlFile.SetExt( wxT( "xml" ) );
-    TextToXML( m_statusBar, xmlFile.GetFullPath(), &lines );
-    pcb.Parse( m_statusBar, xmlFile.GetFullPath(), m_actualConversion );
+    LoadInputFile( fileName, &xmlDoc );
+    pcb.Parse( m_statusBar, &xmlDoc, m_actualConversion );
 
     m_statusBar->SetStatusText( wxT( "Generating output file.... " ) );
     wxFileName outFile( fileName );
@@ -83,7 +80,7 @@ void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event )
 void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
 {
     SCH             sch;
-    wxArrayString   lines;
+    wxXmlDocument   xmlDoc;
 
     wxFileDialog    fileDlg( this, wxT( "Open sch file" ), wxEmptyString, wxEmptyString, wxT(
                                  "PCad SCH Schematics ASCII |*.sch|PCad SCH Library ASCII |*.lia" ) );
@@ -100,11 +97,8 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     wxString fileName = fileDlg.GetPath();
     m_inputFileName->SetLabel( fileName );
 
-    LoadInputFile( fileName, m_statusBar, &lines );
-    wxFileName xmlFile( fileName );
-    xmlFile.SetExt( wxT( "xml" ) );
-    TextToXML( m_statusBar, xmlFile.GetFullPath(), &lines );
-    sch.Parse( m_statusBar, xmlFile.GetFullPath(), m_actualConversion );
+    LoadInputFile( fileName, &xmlDoc );
+    sch.Parse( m_statusBar, &xmlDoc, m_actualConversion );
 
     m_statusBar->SetStatusText( wxT( "Generating output file.... " ) );
     wxFileName outFile( fileName );

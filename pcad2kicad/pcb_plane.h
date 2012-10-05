@@ -1,8 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
- * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2007, 2008, 2012 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -24,18 +23,32 @@
  */
 
 /**
- * @file LoadInputFile.h
+ * @file pcb_plane.h
  */
 
-#ifndef LOADINPUTFILE_H_
-#define LOADINPUTFILE_H_
+#ifndef PCB_PLANE_H_
+#define PCB_PLANE_H_
 
 #include <wx/wx.h>
 
-namespace PCAD2KICAD
-{
-    extern void LoadInputFile( wxString aFileName, wxStatusBar* aStatusBar,
-                               wxArrayString* aLines );
-}
+#include <pcb_polygon.h>
 
-#endif    // LOADINPUTFILE_H_
+namespace PCAD2KICAD {
+
+class PCB_PLANE : public PCB_POLYGON
+{
+public:
+
+    PCB_PLANE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
+    ~PCB_PLANE();
+
+    virtual bool Parse( wxXmlNode*      aNode,
+                        int             aPCadLayer,
+                        wxString        aDefaultMeasurementUnit,
+                        wxString        aActualConversion,
+                        wxStatusBar*    aStatusBar );
+};
+
+} // namespace PCAD2KICAD
+
+#endif    // PCB_PLANE_H_

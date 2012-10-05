@@ -1,7 +1,6 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
  * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
@@ -24,18 +23,15 @@
  */
 
 /**
- * @file TextToXMLUnit.h
+ * @file s_expr_loader.h
  */
 
-#ifndef TEXTTOXMLUNIT_H_
-#define TEXTTOXMLUNIT_H_
-
-#include <wx/wx.h>
+#ifndef S_EXPR_LOADER_H_
+#define S_EXPR_LOADER_H_
 
 namespace PCAD2KICAD
 {
-    extern void TextToXML( wxStatusBar* aStatusBar, wxString aXMLFileName,
-                           wxArrayString* aLines );
+    void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc );
 }
 
-#endif    // TEXTTOXMLUNIT_H_
+#endif    // S_EXPR_LOADER_H_

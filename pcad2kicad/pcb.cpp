@@ -43,12 +43,13 @@
 #include <pcb_pad.h>
 #include <pcb_text.h>
 #include <pcb_via.h>
+#include <s_expr_loader.h>
 
 namespace PCAD2KICAD {
 
 int PCB::GetKiCadLayer( int aPCadLayer )
 {
-    assert( aPCadLayer >= 0 && aPCadLayer <= 28 );
+    assert( aPCadLayer >= FIRST_COPPER_LAYER && aPCadLayer <= LAST_NO_COPPER_LAYER );
     return m_layersMap[aPCadLayer];
 }
 
@@ -59,17 +60,17 @@ PCB::PCB( BOARD* aBoard ) : PCB_MODULE( this, aBoard )
 
     m_defaultMeasurementUnit = wxT( "mil" );
 
-    for( i = 0; i < 28; i++ )
-        m_layersMap[i] = 23; // default
+    for( i = 0; i < NB_LAYERS; i++ )
+        m_layersMap[i] = SOLDERMASK_N_FRONT; // default
 
     m_sizeX = 0;
     m_sizeY = 0;
 
-    m_layersMap[1]  = 15;
-    m_layersMap[2]  = 0;
-    m_layersMap[3]  = 27;
-    m_layersMap[6]  = 21;
-    m_layersMap[7]  = 20;
+    m_layersMap[1]  = LAST_COPPER_LAYER;
+    m_layersMap[2]  = FIRST_COPPER_LAYER;
+    m_layersMap[3]  = ECO2_N;
+    m_layersMap[6]  = SILKSCREEN_N_FRONT;
+    m_layersMap[7]  = SILKSCREEN_N_BACK;
     m_timestamp_cnt = 0x10000000;
 }
 
@@ -393,6 +394,18 @@ void PCB::ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName )
     }
 }
 
+int PCB::FindLayer( wxString aLayerName )
+{
+    int i;
+
+    for ( i = 0; i < (int) m_layersStackup.GetCount(); i++ )
+    {
+        if( m_layersStackup[i] == aLayerName )
+            return i;
+    }
+
+    return -1;
+}
 
 /* KiCad layers
  *  0 Copper layer
@@ -420,65 +433,57 @@ void PCB::MapLayer( wxXmlNode* aNode )
 
     aNode->GetAttribute( wxT( "Name" ), &lName );
     lName = lName.MakeUpper();
-    KiCadLayer = 24;    // defaullt
 
     if( lName == wxT( "TOP ASSY" ) )
+        KiCadLayer = COMMENT_N;
+    else if( lName == wxT( "TOP SILK" ) )
+        KiCadLayer = SILKSCREEN_N_FRONT;
+    else if( lName == wxT( "TOP PASTE" ) )
+        KiCadLayer = SOLDERPASTE_N_FRONT;
+    else if( lName == wxT( "TOP MASK" ) )
+        KiCadLayer = SOLDERMASK_N_FRONT;
+    else if( lName == wxT( "TOP" ) )
+        KiCadLayer = LAST_COPPER_LAYER;
+    else if( lName == wxT( "BOTTOM" ) )
+        KiCadLayer = FIRST_COPPER_LAYER;
+    else if( lName == wxT( "BOT MASK" ) )
+        KiCadLayer = SOLDERMASK_N_BACK;
+    else if( lName == wxT( "BOT PASTE" ) )
+        KiCadLayer = SOLDERPASTE_N_BACK;
+    else if( lName == wxT( "BOT SILK" ) )
+        KiCadLayer = SILKSCREEN_N_BACK;
+    else if( lName == wxT( "BOT ASSY" ) )
+        KiCadLayer = DRAW_N;
+    else if( lName == wxT( "BOARD" ) )
+        KiCadLayer = EDGE_N;
+    else
     {
-    }                                 // ?
+        KiCadLayer = FindLayer( lName );
 
-    if( lName == wxT( "TOP SILK" ) )
-        KiCadLayer = 21;
-
-    if( lName == wxT( "TOP PASTE" ) )
-        KiCadLayer = 19;
-
-    if( lName == wxT( "TOP MASK" ) )
-        KiCadLayer = 23;
-
-    if( lName == wxT( "TOP" ) )
-        KiCadLayer = 15;
-
-    if( lName == wxT( "BOTTOM" ) )
-        KiCadLayer = 0;
-
-    if( lName == wxT( "BOT MASK" ) )
-        KiCadLayer = 22;
-
-    if( lName == wxT( "BOT PASTE" ) )
-        KiCadLayer = 18;
-
-    if( lName == wxT( "BOT SILK" ) )
-        KiCadLayer = 20;
-
-    if( lName == wxT( "BOT ASSY" ) )
-    {
-    }                                 // ?
-
-    if( lName == wxT( "BOARD" ) )
-        KiCadLayer = 28;
+        if( KiCadLayer == -1 )
+            KiCadLayer = DRAW_N;    // default
+        else
+            KiCadLayer = FIRST_COPPER_LAYER + m_layersStackup.GetCount() - 1 - KiCadLayer;
+    }
 
     if( FindNode( aNode, wxT( "layerNum" ) ) )
         FindNode( aNode, wxT( "layerNum" ) )->GetNodeContent().ToLong( &num );
 
+    assert( num >= FIRST_COPPER_LAYER && num <= LAST_NO_COPPER_LAYER );
     m_layersMap[(int) num] = KiCadLayer;
 }
 
-
-void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActualConversion )
+void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
 {
-    wxXmlDocument   xmlDoc;
-    wxXmlNode*      aNode;
+    wxXmlNode*      aNode, *aaNode;
     PCB_NET*        net;
     PCB_COMPONENT*  comp;
     PCB_MODULE*     module;
-    wxString        cr, pr;
+    wxString        cr, pr, layerName;
     int             i, j;
 
-    if( !xmlDoc.Load( aXMLFileName ) )
-        return;
-
     // Defaut measurement units
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "asciiHeader" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
 
     if( aNode )
     {
@@ -492,8 +497,37 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         }
     }
 
+    // Determine layers stackup
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
+
+    if( aNode )
+    {
+        aNode = FindNode( aNode, wxT( "layersStackup" ) );
+
+        if( aNode )
+        {
+            aNode = FindNode( aNode, wxT( "layerStackupData" ) );
+
+            while( aNode )
+            {
+                if( aNode->GetName() == wxT( "layerStackupData" ) )
+                {
+                    aaNode = FindNode( aNode, wxT( "layerStackupName" ) );
+
+                    if( aaNode ) {
+                        aaNode->GetAttribute( wxT( "Name" ), &layerName );
+                        layerName = layerName.MakeUpper();
+                        m_layersStackup.Add( layerName );
+                    }
+                }
+
+                aNode = aNode->GetNext();
+            }
+        }
+    }
+
     // Layers mapping
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "pcbDesign" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -511,7 +545,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     // NETLIST
     // aStatusBar->SetStatusText( wxT( "Loading NETLIST " ) );
 
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "netlist" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "netlist" ) );
 
     if( aNode )
     {
@@ -530,7 +564,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
     // BOARD FILE
     // aStatusBar->SetStatusText( wxT( "Loading BOARD DEFINITION " ) );
 
-    aNode = FindNode( xmlDoc.GetRoot(), wxT( "pcbDesign" ) );
+    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -541,7 +575,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         {
             // Components/modules
             if( aNode->GetName() == wxT( "multiLayer" ) )
-                DoPCBComponents( aNode, &xmlDoc, aActualConversion, aStatusBar );
+                DoPCBComponents( aNode, aXmlDoc, aActualConversion, aStatusBar );
 
             // objects
             if( aNode->GetName() == wxT( "layerContents" ) )
@@ -632,7 +666,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxString aXMLFileName, wxString aActua
         // LIBRARY FILE
         // aStatusBar->SetStatusText( wxT( "Processing LIBRARY FILE " ) );
 
-        aNode = FindNode( xmlDoc.GetRoot(), wxT( "library" ) );
+        aNode = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
 
         if( aNode )
         {
