@@ -119,21 +119,6 @@ public:
 
     virtual void SetDash( bool dashed ) = 0;
 
-    /** PLEASE NOTE: the plot width adjustment is actually done by the
-     * pcbnew routines, the plotter class only carry it along!
-     * XXX In fact it's only used during postscript plot, I'd move this
-     * variable as a static in pcbnew/plot_rtn.cpp. Also: why it's double?
-     * it's added to pad/track size and it's specified in IU, so it should
-     * be an int */
-    virtual void SetPlotWidthAdj( double width )
-    {
-    }
-
-    virtual double GetPlotWidthAdj()
-    {
-        return 0.;
-    }
-
     virtual void SetCreator( const wxString& _creator )
     {
         creator = _creator;
@@ -359,18 +344,16 @@ protected:
 class HPGL_PLOTTER : public PLOTTER
 {
 public:
-    HPGL_PLOTTER()
-    {
-    }
+    HPGL_PLOTTER();
 
     virtual PlotFormat GetPlotterType() const
     {
-	return PLOT_FORMAT_HPGL;
+        return PLOT_FORMAT_HPGL;
     }
 
     static wxString GetDefaultFileExtension()
     {
-	return wxString( wxT( "plt" ) );
+        return wxString( wxT( "plt" ) );
     }
 
     virtual bool StartPlot( FILE* fout );
@@ -390,25 +373,21 @@ public:
 
     virtual void SetPenSpeed( int speed )
     {
-        wxASSERT( outputFile == 0 );
         penSpeed = speed;
     }
 
     virtual void SetPenNumber( int number )
     {
-        wxASSERT( outputFile == 0 );
         penNumber = number;
     }
 
     virtual void SetPenDiameter( double diameter )
     {
-        wxASSERT( outputFile == 0 );
         penDiameter = diameter;
     }
 
     virtual void SetPenOverlap( double overlap )
     {
-        wxASSERT( outputFile == 0 );
         penOverlap = overlap;
     }
 
@@ -452,7 +431,7 @@ protected:
 class PSLIKE_PLOTTER : public PLOTTER
 {
 public:
-    PSLIKE_PLOTTER() : plotScaleAdjX( 1 ), plotScaleAdjY( 1 ), plotWidthAdj( 0 ),
+    PSLIKE_PLOTTER() : plotScaleAdjX( 1 ), plotScaleAdjY( 1 ),
                        m_textMode( PLOTTEXTMODE_PHANTOM )
     {
     }
@@ -474,20 +453,6 @@ public:
     {
         plotScaleAdjX = scaleX;
         plotScaleAdjY = scaleY;
-    }
-
-    /**
-     * Set the 'width adjustment' for the postscript engine
-     * (useful for controlling toner bleeding during direct transfer)
-     */
-    virtual void SetPlotWidthAdj( double width )
-    {
-        plotWidthAdj = width;
-    }
-
-    virtual double GetPlotWidthAdj() const
-    {
-        return plotWidthAdj;
     }
 
     // Pad routines are handled with lower level primitives
@@ -538,13 +503,8 @@ protected:
     int returnPostscriptTextWidth( const wxString& aText, int aXSize,
                                    bool aItalic, bool aBold );
 
-    /// Fine user scale
+    /// Fine user scale adjust ( = 1.0 if no correction)
     double plotScaleAdjX, plotScaleAdjY;
-
-    /** Plot width adjust XXX should be moved in the PCB plotting
-     * routines!
-     */
-    double plotWidthAdj;
 
     /// How to draw text
     PlotTextMode m_textMode;

@@ -60,20 +60,7 @@ public:
     DIALOG_DRC_CONTROL( DRC* aTester, PCB_EDIT_FRAME* parent );
     ~DIALOG_DRC_CONTROL(){};
 
-    /**
-     * Function Show
-     * overloads the wxDialog::Show() function so it can position the
-     * dialog at its remembered size and position.
-     */
-    bool Show( bool show );
-
-
 private:
-
-    static wxSize		    s_LastSize;		        ///< last position and size
-    static wxPoint		    s_LastPos;
-
-
     /**
      * Function writeReport
      * outputs the MARKER items and unconnecte DRC_ITEMs with commentary to an
