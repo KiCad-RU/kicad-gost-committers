@@ -44,7 +44,7 @@ public:
     PCB_VIA( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_VIA();
 
-    virtual void Parse( wxXmlNode*  aNode,
+    virtual void Parse( XNODE*      aNode,
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion );
 };

@@ -41,10 +41,10 @@ SCH_PORT::SCH_PORT()
 }
 
 
-void SCH_PORT::Parse( wxXmlNode* aNode,
+void SCH_PORT::Parse( XNODE*   aNode,
                       wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    propValue;
 
     m_objType   = wxT( "port" );

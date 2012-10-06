@@ -45,7 +45,7 @@ public:
     SCH_PORT();
     ~SCH_PORT();
 
-    virtual void    Parse( wxXmlNode* aNode,
+    virtual void    Parse( XNODE*   aNode,
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );

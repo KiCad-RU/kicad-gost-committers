@@ -48,12 +48,12 @@ PCB_TEXT::~PCB_TEXT()
 }
 
 
-void PCB_TEXT::Parse( wxXmlNode*    aNode,
+void PCB_TEXT::Parse( XNODE*        aNode,
                       int           aLayer,
                       wxString      aDefaultMeasurementUnit,
                       wxString      aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    str;
 
     m_PCadLayer     = aLayer;

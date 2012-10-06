@@ -46,10 +46,10 @@ SCH_TEXT::~SCH_TEXT()
 }
 
 
-void SCH_TEXT::Parse( wxXmlNode* aNode, int aSymbolIndex,
+void SCH_TEXT::Parse( XNODE*  aNode, int aSymbolIndex,
                      wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*  lNode;
 
     m_objType   = wxT( "text" );
     m_partNum   = aSymbolIndex;

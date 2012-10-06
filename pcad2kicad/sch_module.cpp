@@ -67,11 +67,11 @@ SCH_MODULE::~SCH_MODULE()
 }
 
 
-void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
+void SCH_MODULE::Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
                         wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
     wxString    propValue, str;
-    wxXmlNode*  lNode, * tNode;
+    XNODE*      lNode, * tNode;
     SCH_PIN*    pin;
     long        num;
     int         i;
@@ -150,7 +150,7 @@ void SCH_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
 }
 
 
-void SCH_MODULE::SetPinProperties( wxXmlNode* aNode, int aSymbolIndex,
+void SCH_MODULE::SetPinProperties( XNODE*   aNode, int aSymbolIndex,
                                    wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
     SCH_PIN*    schPin;
@@ -174,12 +174,12 @@ void SCH_MODULE::SetPinProperties( wxXmlNode* aNode, int aSymbolIndex,
 }
 
 
-void SCH_MODULE::FindAndProcessSymbolDef( wxXmlNode*    aNode,
+void SCH_MODULE::FindAndProcessSymbolDef( XNODE*        aNode,
                                           int           aSymbolIndex,
                                           wxString      aDefaultMeasurementUnit,
                                           wxString      aActualConversion )
 {
-    wxXmlNode*  tNode, * ttNode;
+    XNODE*      tNode, * ttNode;
     wxString    propValue, propValue2;
     SCH_LINE*   line;
     SCH_ARC*    arc;

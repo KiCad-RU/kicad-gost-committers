@@ -47,7 +47,7 @@ public:
     SCH_SHEET();
     ~SCH_SHEET();
 
-    void            Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit );
+    void            Parse( XNODE* aNode, wxString aDefaultMeasurementUnit );
 
     virtual void    WriteToFile( wxString aFileName );
 

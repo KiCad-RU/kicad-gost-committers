@@ -50,14 +50,14 @@ PCB_PAD_SHAPE::~PCB_PAD_SHAPE()
 }
 
 
-void PCB_PAD_SHAPE::Parse( wxXmlNode*   aNode,
+void PCB_PAD_SHAPE::Parse( XNODE*       aNode,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion )
 {
     wxString    str, s;
     long        num;
     int         minX, maxX, minY, maxY, x, y;
-    wxXmlNode*  lNode;
+    XNODE*  lNode;
 
     lNode = FindNode( aNode, wxT( "padShapeType" ) );
 

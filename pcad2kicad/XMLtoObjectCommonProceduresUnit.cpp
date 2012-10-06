@@ -81,9 +81,9 @@ wxString GetWord( wxString* aStr )
 }
 
 
-wxXmlNode* FindPinMap( wxXmlNode* aNode )
+XNODE* FindPinMap( XNODE* aNode )
 {
-    wxXmlNode* result, * lNode;
+    XNODE* result, * lNode;
 
     result  = NULL;
     lNode   = FindNode( aNode, wxT( "attachedPattern" ) );
@@ -289,12 +289,12 @@ void SetDoublePrecisionPosition( wxString   aStr,
 }
 
 
-void SetTextParameters( wxXmlNode*  aNode,
+void SetTextParameters( XNODE*      aNode,
                         TTEXTVALUE* aTextValue,
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion )
 {
-    wxXmlNode*  tNode;
+    XNODE*      tNode;
     wxString    str;
 
     tNode = FindNode( aNode, wxT( "pt" ) );
@@ -329,7 +329,7 @@ void SetTextParameters( wxXmlNode*  aNode,
 }
 
 
-void SetFontProperty( wxXmlNode*    aNode,
+void SetFontProperty( XNODE*        aNode,
                       TTEXTVALUE*   aTextValue,
                       wxString      aDefaultMeasurementUnit,
                       wxString      aActualConversion )
@@ -431,7 +431,7 @@ void CorrectTextPosition( TTEXTVALUE* aValue, int aRotation )
 }
 
 
-wxXmlNode* FindNode( wxXmlNode* aChild, wxString aTag )
+XNODE* FindNode( XNODE* aChild, wxString aTag )
 {
     aChild = aChild->GetChildren();
 
@@ -446,7 +446,7 @@ wxXmlNode* FindNode( wxXmlNode* aChild, wxString aTag )
     return NULL;
 }
 
-wxString FindNodeGetContent( wxXmlNode* aChild, wxString aTag )
+wxString FindNodeGetContent( XNODE* aChild, wxString aTag )
 {
     wxString str = wxEmptyString;
 

@@ -97,9 +97,9 @@ int PCB::GetNewTimestamp()
 }
 
 
-wxXmlNode* PCB::FindCompDefName( wxXmlNode* aNode, wxString aName )
+XNODE* PCB::FindCompDefName( XNODE* aNode, wxString aName )
 {
-    wxXmlNode*  result = NULL, * lNode;
+    XNODE*      result = NULL, * lNode;
     wxString    propValue;
 
     lNode = FindNode( aNode, wxT( "compDef" ) );
@@ -125,11 +125,11 @@ wxXmlNode* PCB::FindCompDefName( wxXmlNode* aNode, wxString aName )
 }
 
 
-void PCB::SetTextProperty( wxXmlNode* aNode, TTEXTVALUE* aTextValue,
+void PCB::SetTextProperty( XNODE*   aNode, TTEXTVALUE* aTextValue,
                            wxString aPatGraphRefName, wxString aXmlName,
                            wxString aActualConversion )
 {
-    wxXmlNode*  tNode, * t1Node;
+    XNODE*      tNode, * t1Node;
     wxString    n, pn, propValue, str;
 
     // aNode is pattern now
@@ -194,12 +194,12 @@ void PCB::SetTextProperty( wxXmlNode* aNode, TTEXTVALUE* aTextValue,
 }
 
 
-void PCB::DoPCBComponents( wxXmlNode*       aNode,
+void PCB::DoPCBComponents( XNODE*           aNode,
                            wxXmlDocument*   aXmlDoc,
                            wxString         aActualConversion,
                            wxStatusBar*     aStatusBar )
 {
-    wxXmlNode*  lNode, * tNode, * mNode;
+    XNODE*      lNode, * tNode, * mNode;
     PCB_MODULE* mc;
     PCB_PAD*    pad;
     PCB_VIA*    via;
@@ -216,7 +216,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
             FindNode( lNode, wxT( "patternRef" ) )->GetAttribute( wxT( "Name" ),
                                                                   &cn );
             cn      = ValidateName( cn );
-            tNode   = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
+            tNode   = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "library" ) );
 
             if( tNode && cn.Len() > 0 )
             {
@@ -309,7 +309,7 @@ void PCB::DoPCBComponents( wxXmlNode*       aNode,
                 }
 
                 // map pins
-                tNode   = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
+                tNode   = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "library" ) );
                 tNode   = FindCompDefName( tNode, mc->m_compRef );
 
                 if( tNode )
@@ -425,7 +425,7 @@ int PCB::FindLayer( wxString aLayerName )
  *  26 ECO2 layer (Other layer used for general drawings)       // BUG      27
  *  27 Edge layer. Items on Edge layer are seen on all layers   // BUG     28
  */
-void PCB::MapLayer( wxXmlNode* aNode )
+void PCB::MapLayer( XNODE* aNode )
 {
     wxString    lName;
     int         KiCadLayer;
@@ -475,7 +475,7 @@ void PCB::MapLayer( wxXmlNode* aNode )
 
 void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
 {
-    wxXmlNode*      aNode, *aaNode;
+    XNODE*          aNode, *aaNode;
     PCB_NET*        net;
     PCB_COMPONENT*  comp;
     PCB_MODULE*     module;
@@ -483,7 +483,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     int             i, j;
 
     // Defaut measurement units
-    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
+    aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
 
     if( aNode )
     {
@@ -498,7 +498,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     }
 
     // Determine layers stackup
-    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
+    aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -527,7 +527,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     }
 
     // Layers mapping
-    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
+    aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -545,7 +545,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     // NETLIST
     // aStatusBar->SetStatusText( wxT( "Loading NETLIST " ) );
 
-    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "netlist" ) );
+    aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "netlist" ) );
 
     if( aNode )
     {
@@ -564,7 +564,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     // BOARD FILE
     // aStatusBar->SetStatusText( wxT( "Loading BOARD DEFINITION " ) );
 
-    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
+    aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
     if( aNode )
     {
@@ -666,7 +666,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
         // LIBRARY FILE
         // aStatusBar->SetStatusText( wxT( "Processing LIBRARY FILE " ) );
 
-        aNode = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
+        aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "library" ) );
 
         if( aNode )
         {

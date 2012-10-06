@@ -54,9 +54,9 @@ public:
     SCH_PIN();
     ~SCH_PIN();
 
-    virtual void    Parse( wxXmlNode* aNode );
+    virtual void    Parse( XNODE* aNode );
 
-    void            ParsePinProperties( wxXmlNode*  aNode,
+    void            ParsePinProperties( XNODE*      aNode,
                                         int         aSymbolIndex,
                                         wxString    aDefaultMeasurementUnit,
                                         wxString    aActualConversion );

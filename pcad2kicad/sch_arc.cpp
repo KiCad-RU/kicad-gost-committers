@@ -53,10 +53,10 @@ SCH_ARC::~SCH_ARC()
 }
 
 
-void SCH_ARC::Parse( wxXmlNode* aNode, int aSymbolIndex,
+void SCH_ARC::Parse( XNODE*   aNode, int aSymbolIndex,
                      wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    propValue;
     double      r = 0.0;
 

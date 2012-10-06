@@ -66,9 +66,9 @@ PCB_MODULE::~PCB_MODULE()
 }
 
 
-wxXmlNode* PCB_MODULE::FindModulePatternDefName( wxXmlNode* aNode, wxString aName )
+XNODE* PCB_MODULE::FindModulePatternDefName( XNODE* aNode, wxString aName )
 {
-    wxXmlNode*  result, * lNode;
+    XNODE*      result, * lNode;
     wxString    propValue1, propValue2;
 
     result  = NULL;
@@ -120,9 +120,9 @@ wxXmlNode* PCB_MODULE::FindModulePatternDefName( wxXmlNode* aNode, wxString aNam
 }
 
 
-wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString* aPatGraphRefName )
+XNODE* PCB_MODULE::FindPatternMultilayerSection( XNODE* aNode, wxString* aPatGraphRefName )
 {
-    wxXmlNode*  result, * pNode, * lNode;
+    XNODE*      result, * pNode, * lNode;
     wxString    propValue, patName;
 
     result  = NULL;
@@ -213,7 +213,7 @@ wxXmlNode* PCB_MODULE::FindPatternMultilayerSection( wxXmlNode* aNode, wxString*
 }
 
 
-void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
+void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
                                          PCB_MODULE*            aPCBModule,
                                          PCB_COMPONENTS_ARRAY*  aList,
                                          wxStatusBar*           aStatusBar,
@@ -227,7 +227,7 @@ void PCB_MODULE::DoLayerContentsObjects( wxXmlNode*             aNode,
     PCB_PLANE*          plane;
     PCB_LINE*           line;
     PCB_TEXT*           text;
-    wxXmlNode*          lNode, * tNode;
+    XNODE*              lNode, * tNode;
     wxString            propValue;
     long long           i;
     int PCadLayer;
@@ -370,10 +370,10 @@ void PCB_MODULE::SetPadName( wxString aPin, wxString aName )
 }
 
 
-void PCB_MODULE::Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
+void PCB_MODULE::Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
                         wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxXmlNode*  lNode, * tNode, * mNode;
+    XNODE*      lNode, * tNode, * mNode;
     PCB_PAD*    pad;
     PCB_VIA*    via;
     wxString    propValue, str;

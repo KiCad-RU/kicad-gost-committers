@@ -47,7 +47,7 @@ public:
     PCB_ARC( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_ARC();
 
-    virtual void    Parse( wxXmlNode* aNode, int aLayer,
+    virtual void    Parse( XNODE* aNode, int aLayer,
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );

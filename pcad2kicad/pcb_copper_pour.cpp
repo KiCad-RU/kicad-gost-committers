@@ -47,13 +47,13 @@ PCB_COPPER_POUR::~PCB_COPPER_POUR()
 }
 
 
-bool PCB_COPPER_POUR::Parse( wxXmlNode*     aNode,
+bool PCB_COPPER_POUR::Parse( XNODE*         aNode,
                              int            aPCadLayer,
                              wxString       aDefaultMeasurementUnit,
                              wxString       aActualConversion,
                              wxStatusBar*   aStatusBar )
 {
-    wxXmlNode*      lNode, * tNode, * cNode;
+    XNODE*          lNode, * tNode, * cNode;
     wxString        pourType, str, propValue;
     int             pourSpacing, thermalWidth;
     VERTICES_ARRAY* island, * cutout;

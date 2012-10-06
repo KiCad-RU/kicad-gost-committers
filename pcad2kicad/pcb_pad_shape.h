@@ -47,7 +47,7 @@ public:
     PCB_PAD_SHAPE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_PAD_SHAPE();
 
-    virtual void    Parse( wxXmlNode*   aNode,
+    virtual void    Parse( XNODE*       aNode,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );
 

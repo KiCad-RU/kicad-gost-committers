@@ -202,7 +202,7 @@ SCH_JUNCTION* SCH_SHEET::CheckJunction( SCH_LINE* aSchLine, int aIndex )
 }
 
 
-void SCH_SHEET::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit )
+void SCH_SHEET::Parse( XNODE* aNode, wxString aDefaultMeasurementUnit )
 {
     SCH_COMPONENT*  schComp;
     SCH_JUNCTION*   schJunction;

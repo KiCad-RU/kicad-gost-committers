@@ -44,7 +44,7 @@ public:
     PCB_TEXT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_TEXT();
 
-    virtual void    Parse( wxXmlNode*   aNode,
+    virtual void    Parse( XNODE*       aNode,
                            int          aLayer,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );

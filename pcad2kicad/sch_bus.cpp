@@ -36,10 +36,10 @@
 
 namespace PCAD2KICAD {
 
-void SCH_BUS::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
+void SCH_BUS::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
                      wxString aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    propValue;
 
     m_objType   = wxT( "line" );

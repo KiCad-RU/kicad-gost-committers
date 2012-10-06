@@ -51,7 +51,7 @@ public:
     PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_POLYGON();
 
-    virtual bool Parse( wxXmlNode*      aNode,
+    virtual bool Parse( XNODE*          aNode,
                         int             aPCadLayer,
                         wxString        aDefaultMeasurementUnit,
                         wxString        aActualConversion,
@@ -64,7 +64,7 @@ public:
     void            AddToBoard();
 
 // protected:
-    void            FormPolygon( wxXmlNode* aNode, VERTICES_ARRAY* aPolygon,
+    void            FormPolygon( XNODE*   aNode, VERTICES_ARRAY* aPolygon,
                                  wxString aDefaultMeasurementUnit, wxString actualConversion );
 };
 

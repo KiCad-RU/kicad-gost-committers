@@ -46,10 +46,10 @@ SCH_LINE::SCH_LINE()
 }
 
 
-void SCH_LINE::Parse( wxXmlNode* aNode, int aSymbolIndex,
+void SCH_LINE::Parse( XNODE*   aNode, int aSymbolIndex,
                       wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    propValue, str;
 
     m_objType   = wxT( "line" );

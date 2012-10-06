@@ -51,12 +51,12 @@ PCB_LINE::~PCB_LINE()
 }
 
 
-void PCB_LINE::Parse( wxXmlNode*    aNode,
+void PCB_LINE::Parse( XNODE*        aNode,
                       int           aLayer,
                       wxString      aDefaultMeasurementUnit,
                       wxString      aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    propValue;
 
     m_PCadLayer     = aLayer;

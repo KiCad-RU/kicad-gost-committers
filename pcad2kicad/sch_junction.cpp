@@ -49,7 +49,7 @@ SCH_JUNCTION::~SCH_JUNCTION()
 }
 
 
-void SCH_JUNCTION::Parse( wxXmlNode*    aNode,
+void SCH_JUNCTION::Parse( XNODE*        aNode,
                           wxString      aDefaultMeasurementUnit,
                           wxString      aActualConversion )
 {

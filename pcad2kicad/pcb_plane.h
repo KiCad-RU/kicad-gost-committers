@@ -42,7 +42,7 @@ public:
     PCB_PLANE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_PLANE();
 
-    virtual bool Parse( wxXmlNode*      aNode,
+    virtual bool Parse( XNODE*          aNode,
                         int             aPCadLayer,
                         wxString        aDefaultMeasurementUnit,
                         wxString        aActualConversion,

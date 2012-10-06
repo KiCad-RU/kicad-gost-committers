@@ -30,6 +30,7 @@
 #include <dsnlexer.h>
 #include <macros.h>
 #include <wx/xml/xml.h>
+#include <xnode.h>
 
 namespace PCAD2KICAD {
 
@@ -37,11 +38,11 @@ static KEYWORD empty_keywords[1] = {};
 
 void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
 {
-    int tok;
-    wxXmlNode* iNode = NULL, *cNode = NULL;
-    wxString str;
-    bool growing = false;
-    bool attr = false;
+    int       tok;
+    XNODE*    iNode = NULL, *cNode = NULL;
+    wxString  str;
+    bool      growing = false;
+    bool      attr = false;
 
     FILE* fp = wxFopen( aFileName, wxT( "rt" ) );
 
@@ -54,7 +55,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
     // lexer now owns fp, will close on exception or return
     DSNLEXER lexer( empty_keywords, 0, fp,  aFileName );
 
-    iNode = new wxXmlNode( wxXML_ELEMENT_NODE, wxT( "www.lura.sk" ) );
+    iNode = new XNODE( wxXML_ELEMENT_NODE, wxT( "www.lura.sk" ) );
 
     while( ( tok = lexer.NextTok() ) != DSN_EOF )
     {
@@ -62,11 +63,11 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
         {
             if( attr )
             {
-                cNode->AddProperty( wxT( "Name" ), str.Trim( false ) );
+                cNode->AddAttribute( wxT( "Name" ), str.Trim( false ) );
             }
             else
             {
-                cNode->AddChild( new wxXmlNode( wxXML_TEXT_NODE, wxEmptyString, str ) );
+                cNode->AddChild( new XNODE( wxXML_TEXT_NODE, wxEmptyString, str ) );
             }
 
             growing = false;
@@ -81,7 +82,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
         {
             tok = lexer.NextTok();
             str = wxEmptyString;
-            cNode = new wxXmlNode( wxXML_ELEMENT_NODE, lexer.CurText() );
+            cNode = new XNODE( wxXML_ELEMENT_NODE, lexer.CurText() );
             iNode->AddChild( cNode );
             iNode = cNode;
             growing = true;

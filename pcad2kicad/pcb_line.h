@@ -47,7 +47,7 @@ public:
     PCB_LINE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_LINE();
 
-    virtual void    Parse( wxXmlNode*   aNode,
+    virtual void    Parse( XNODE*       aNode,
                            int          aLayer,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );

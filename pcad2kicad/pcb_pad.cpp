@@ -182,10 +182,10 @@ unsigned long PCB_PAD::KiCadLayerMask( unsigned long aMask, int aLayer )
 }
 
 
-void PCB_PAD::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
+void PCB_PAD::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
                      wxString aActualConversion )
 {
-    wxXmlNode*      lNode;
+    XNODE*          lNode;
     long            num;
     wxString        propValue, str;
     PCB_PAD_SHAPE*  padShape;

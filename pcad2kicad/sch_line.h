@@ -48,7 +48,7 @@ public:
     SCH_LINE();
     ~SCH_LINE();
 
-    virtual void    Parse( wxXmlNode* aNode, int aSymbolIndex,
+    virtual void    Parse( XNODE*   aNode, int aSymbolIndex,
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    SetPosOffset( int aX_offs, int aY_offs );
