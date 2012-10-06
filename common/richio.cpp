@@ -34,7 +34,7 @@
 
 //-----<LINE_READER>------------------------------------------------------
 
-LINE_READER::LINE_READER( unsigned aMaxLineLength )
+LINE_READER::LINE_READER( size_t aMaxLineLength )
 {
     lineNum = 0;
 
@@ -57,7 +57,7 @@ LINE_READER::LINE_READER( unsigned aMaxLineLength )
 }
 
 
-void LINE_READER::expandCapacity( unsigned newsize )
+void LINE_READER::expandCapacity( size_t newsize )
 {
     // length can equal maxLineLength and nothing breaks, there's room for
     // the terminating nul. cannot go over this.
@@ -85,7 +85,7 @@ void LINE_READER::expandCapacity( unsigned newsize )
 FILE_LINE_READER::FILE_LINE_READER( FILE* aFile, const wxString& aFileName,
                     bool doOwn,
                     unsigned aStartingLineNumber,
-                    unsigned aMaxLineLength ) :
+                    size_t   aMaxLineLength ) :
     LINE_READER( aMaxLineLength ),
     iOwn( doOwn ),
     fp( aFile )
@@ -102,29 +102,27 @@ FILE_LINE_READER::~FILE_LINE_READER()
 }
 
 
-unsigned FILE_LINE_READER::ReadLine() throw( IO_ERROR )
+size_t FILE_LINE_READER::ReadLine() throw( IO_ERROR )
 {
     char* str_ptr;
     ssize_t actual_len;
-    size_t n;
-    int null_pos;
+    ssize_t null_pos;
 
     length  = 0;
     line[0] = 0;
 
+    // if the preallocated buffer space is not enough, getline reallocates the buffer by itself
     // getline always puts a terminating null at the end of its read.
-    while( true )
+    if( ( actual_len = getline( &line, &capacity, fp ) ) > 0 )
     {
-        str_ptr = line + length;
-        n = capacity - length;
-        if( ( actual_len = getline( &str_ptr, &n, fp ) ) == -1 )
-            break;
+        if( actual_len >= (ssize_t)maxLineLength )
+            THROW_IO_ERROR( _("Line length exceeded") );
 
         // remove all nulls inside a string (e.g. ACCEL/P-Cad ASCII files often contain nulls)
-        while( (ssize_t)strlen( line + length ) < actual_len )
+        while( (ssize_t)strlen( line ) < actual_len )
         {
-            str_ptr = strchr( line + length, '\0' );
-            null_pos = str_ptr - ( line + length );
+            str_ptr = strchr( line, '\0' );
+            null_pos = str_ptr - line;
             if( str_ptr )
             {
                 // left shift the substring starting right after the fake null position
@@ -134,16 +132,7 @@ unsigned FILE_LINE_READER::ReadLine() throw( IO_ERROR )
             }
         }
 
-        length += strlen( line + length );
-
-        if( length >= maxLineLength )
-            THROW_IO_ERROR( _("Line length exceeded") );
-
-        // a normal line breaks here, once through while loop
-        if( length+1 < capacity || line[length-1] == '\n' )
-            break;
-
-        expandCapacity( capacity * 2 );
+        length = strlen( line );
     }
 
     // lineNum is incremented even if there was no line read, because this
@@ -177,7 +166,7 @@ STRING_LINE_READER::STRING_LINE_READER( const STRING_LINE_READER& aStartingPoint
     lineNum = aStartingPoint.lineNum;
 }
 
-unsigned STRING_LINE_READER::ReadLine() throw( IO_ERROR )
+size_t STRING_LINE_READER::ReadLine() throw( IO_ERROR )
 {
     size_t  nlOffset = lines.find( '\n', ndx );
 

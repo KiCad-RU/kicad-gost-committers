@@ -46,10 +46,10 @@ PCB_VIA::~PCB_VIA()
 }
 
 
-void PCB_VIA::Parse( wxXmlNode* aNode, wxString aDefaultMeasurementUnit,
+void PCB_VIA::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
                      wxString aActualConversion )
 {
-    wxXmlNode*      lNode, * tNode;
+    XNODE*          lNode, * tNode;
     wxString        propValue;
     PCB_VIA_SHAPE*  viaShape;
 

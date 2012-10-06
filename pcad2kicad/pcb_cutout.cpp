@@ -47,7 +47,7 @@ PCB_CUTOUT::~PCB_CUTOUT()
 
 
 // It seems that the same cutouts (with the same vertices) are inside of copper pour objects
-void PCB_CUTOUT::Parse( wxXmlNode*  aNode,
+void PCB_CUTOUT::Parse( XNODE*      aNode,
                         int         aPCadLayer,
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion )

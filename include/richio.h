@@ -200,22 +200,22 @@ struct PARSE_ERROR : public IO_ERROR
 class LINE_READER
 {
 protected:
-    unsigned    length;         ///< no. bytes in line before trailing nul.
+    size_t      length;         ///< no. bytes in line before trailing nul.
     unsigned    lineNum;
 
     char*       line;           ///< the read line of UTF8 text
-    unsigned    capacity;       ///< no. bytes allocated for line.
+    size_t      capacity;       ///< no. bytes allocated for line.
 
-    unsigned    maxLineLength;  ///< maximum allowed capacity using resizing.
+    size_t      maxLineLength;  ///< maximum allowed capacity using resizing.
 
     wxString    source;         ///< origin of text lines, e.g. filename or "clipboard"
 
     /**
      * Function expandCapacity
-     * will exand the capacity of @a line up to maxLineLength but not greater, so
+     * will expand the capacity of @a line up to maxLineLength but not greater, so
      * be careful about making assumptions of @a capacity after calling this.
      */
-    void        expandCapacity( unsigned newsize );
+    void        expandCapacity( size_t newsize );
 
 
 public:
@@ -225,7 +225,7 @@ public:
      * builds a line reader and fixes the length of the maximum supported
      * line length to @a aMaxLineLength.
      */
-    LINE_READER( unsigned aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
+    LINE_READER( size_t aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
 
     virtual ~LINE_READER()
     {
@@ -240,7 +240,7 @@ public:
      * @return unsigned - The number of bytes read, 0 at end of file.
      * @throw IO_ERROR when a line is too long.
      */
-    virtual unsigned ReadLine() throw( IO_ERROR ) = 0;
+    virtual size_t ReadLine() throw( IO_ERROR ) = 0;
 
     /**
      * Function GetSource
@@ -287,7 +287,7 @@ public:
      * Function Length
      * returns the number of bytes in the last line read from this LINE_READER.
      */
-    virtual unsigned Length() const
+    virtual size_t Length() const
     {
         return length;
     }
@@ -325,7 +325,7 @@ public:
      */
     FILE_LINE_READER( FILE* aFile, const wxString& aFileName, bool doOwn = true,
             unsigned aStartingLineNumber = 0,
-            unsigned aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
+            size_t   aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
 
     /**
      * Destructor
@@ -333,7 +333,7 @@ public:
      */
     ~FILE_LINE_READER();
 
-    unsigned ReadLine() throw( IO_ERROR );   // see LINE_READER::ReadLine() description
+    size_t ReadLine() throw( IO_ERROR );   // see LINE_READER::ReadLine() description
 
     /**
      * Function Rewind
@@ -380,7 +380,7 @@ public:
      */
     STRING_LINE_READER( const STRING_LINE_READER& aStartingPoint );
 
-    unsigned ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
+    size_t ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
 };
 
 

@@ -49,14 +49,14 @@ public:
     SCH_SYMBOL();
     ~SCH_SYMBOL();
 
-    virtual void    Parse( wxXmlNode* aNode,
+    virtual void    Parse( XNODE*   aNode,
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 
 private:
-    void ParseNetlist( wxXmlNode* aNode, wxString aReference );
-    void ParseLibrary( wxXmlNode* aNode, wxString aModule,
+    void ParseNetlist( XNODE*   aNode, wxString aReference );
+    void ParseLibrary( XNODE*   aNode, wxString aModule,
                        wxString aDefaultMeasurementUnit, wxString aActualConversion );
 };
 

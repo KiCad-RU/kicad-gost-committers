@@ -50,10 +50,10 @@ SCH_SYMBOL::~SCH_SYMBOL()
 {
 }
 
-void SCH_SYMBOL::ParseNetlist( wxXmlNode* aNode, wxString aReference )
+void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
 {
     wxString    propValue;
-    wxXmlNode* lNode = aNode;
+    XNODE* lNode = aNode;
 
     // also symbol from library as name of component as is known in schematics library
     while( lNode->GetName() != wxT( "www.lura.sk" ) )
@@ -124,11 +124,11 @@ void SCH_SYMBOL::ParseNetlist( wxXmlNode* aNode, wxString aReference )
     }
 }
 
-void SCH_SYMBOL::ParseLibrary( wxXmlNode* aNode, wxString aModule,
+void SCH_SYMBOL::ParseLibrary( XNODE*   aNode, wxString aModule,
                                wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
     wxString   propValue;
-    wxXmlNode* lNode = aNode;
+    XNODE* lNode = aNode;
 
     while( lNode->GetName() != wxT( "www.lura.sk" ) )
         lNode = lNode->GetParent();
@@ -181,10 +181,10 @@ void SCH_SYMBOL::ParseLibrary( wxXmlNode* aNode, wxString aModule,
     }
 }
 
-void SCH_SYMBOL::Parse( wxXmlNode* aNode,
+void SCH_SYMBOL::Parse( XNODE*   aNode,
                         wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    propValue, str;
     long        num;
 

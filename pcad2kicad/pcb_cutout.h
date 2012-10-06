@@ -43,7 +43,7 @@ public:
     PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_CUTOUT();
 
-    virtual void    Parse( wxXmlNode*   aNode,
+    virtual void    Parse( XNODE*       aNode,
                            int          aPCadLayer,
                            wxString     aDefaultMeasurementUnit,
                            wxString     actualConversion );

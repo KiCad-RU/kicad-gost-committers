@@ -47,9 +47,9 @@ public:
     PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_MODULE();
 
-    wxXmlNode*  FindModulePatternDefName( wxXmlNode* aNode, wxString aName );
+    XNODE*      FindModulePatternDefName( XNODE* aNode, wxString aName );
 
-    void        DoLayerContentsObjects( wxXmlNode*              aNode,
+    void        DoLayerContentsObjects( XNODE*                  aNode,
                                         PCB_MODULE*             aPCBModule,
                                         PCB_COMPONENTS_ARRAY*   aList,
                                         wxStatusBar*            aStatusBar,
@@ -58,7 +58,7 @@ public:
 
     void            SetPadName( wxString aPin, wxString aName );
 
-    virtual void    Parse( wxXmlNode* aNode, wxStatusBar* aStatusBar,
+    virtual void    Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
@@ -66,7 +66,7 @@ public:
     void            AddToBoard();
 
 private:
-    wxXmlNode*      FindPatternMultilayerSection( wxXmlNode* aNode, wxString* aPatGraphRefName );
+    XNODE*          FindPatternMultilayerSection( XNODE* aNode, wxString* aPatGraphRefName );
     wxString        ModuleLayer( int aMirror );
     int             FlipLayers( int aLayer );
 };

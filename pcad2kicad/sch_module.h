@@ -57,18 +57,18 @@ public:
     SCH_MODULE();
     ~SCH_MODULE();
 
-    virtual void    Parse( wxXmlNode*   aNode,
+    virtual void    Parse( XNODE*       aNode,
                            wxStatusBar* aStatusBar,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 
 private:
-    void            SetPinProperties( wxXmlNode* aNode, int aSymbolIndex,
+    void            SetPinProperties( XNODE*   aNode, int aSymbolIndex,
                                       wxString aDefaultMeasurementUnit,
                                       wxString aActualConversion );
 
-    void            FindAndProcessSymbolDef( wxXmlNode* aNode,
+    void            FindAndProcessSymbolDef( XNODE*     aNode,
                                              int        aSymbolIndex,
                                              wxString   aDefaultMeasurementUnit,
                                              wxString   aActualConversion );

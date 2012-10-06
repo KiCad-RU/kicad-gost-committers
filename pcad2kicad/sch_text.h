@@ -44,7 +44,7 @@ public:
     SCH_TEXT();
     ~SCH_TEXT();
 
-    virtual void    Parse( wxXmlNode* aNode, int aSymbolIndex,
+    virtual void    Parse( XNODE* aNode, int aSymbolIndex,
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );

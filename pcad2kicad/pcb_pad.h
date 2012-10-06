@@ -47,7 +47,7 @@ public:
     PCB_PAD( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_PAD();
 
-    virtual void    Parse( wxXmlNode*   aNode,
+    virtual void    Parse( XNODE*       aNode,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType, int aRotation );

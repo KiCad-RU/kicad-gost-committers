@@ -32,6 +32,7 @@
 
 #include <wx/wx.h>
 #include <wx/xml/xml.h>
+#include <xnode.h>
 
 namespace PCAD2KICAD
 {
@@ -48,7 +49,7 @@ typedef struct _TTEXTVALUE
 } TTEXTVALUE;
 
 extern wxString     GetWord( wxString* aStr );
-extern wxXmlNode*   FindPinMap( wxXmlNode* aNode );
+extern XNODE*       FindPinMap( XNODE* aNode );
 extern int          StrToIntUnits( wxString aStr, char aAxe, wxString aActualConversion );
 extern wxString     GetAndCutWordWithMeasureUnits( wxString*    aStr,
                                                    wxString     aDefaultMeasurementUnit );
@@ -68,18 +69,18 @@ extern void         SetDoublePrecisionPosition( wxString    aStr,
                                                 double*     aX,
                                                 double*     aY,
                                                 wxString    aActualConversion );
-extern void         SetTextParameters( wxXmlNode*   aNode,
+extern void         SetTextParameters( XNODE*       aNode,
                                        TTEXTVALUE*  aTextValue,
                                        wxString     aDefaultMeasurementUnit,
                                        wxString     aActualConversion );
-extern void         SetFontProperty( wxXmlNode*     aNode,
+extern void         SetFontProperty( XNODE*         aNode,
                                      TTEXTVALUE*    aTextValue,
                                      wxString       aDefaultMeasurementUnit,
                                      wxString       aActualConversion );
 extern void         CorrectTextPosition( TTEXTVALUE* aValue, int aRotation );
 
-extern wxXmlNode*   FindNode( wxXmlNode* aChild, wxString aTag );
-extern wxString     FindNodeGetContent( wxXmlNode* aChild, wxString aTag );
+extern XNODE*       FindNode( XNODE* aChild, wxString aTag );
+extern wxString     FindNodeGetContent( XNODE* aChild, wxString aTag );
 extern void         InitTTextValue( TTEXTVALUE* aTextValue );
 
 } // namespace PCAD2KICAD

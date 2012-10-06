@@ -46,9 +46,9 @@ public:
     SCH_JUNCTION( int aX = 0, int aY = 0, wxString aNet = wxEmptyString );
     ~SCH_JUNCTION();
 
-    virtual void    Parse( wxXmlNode*   aNode,
-                           wxString     aDefaultMeasurementUnit,
-                           wxString     aActualConversion );
+    virtual void    Parse( XNODE*   aNode,
+                           wxString aDefaultMeasurementUnit,
+                           wxString aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 };
 

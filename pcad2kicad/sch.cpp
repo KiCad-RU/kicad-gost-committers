@@ -95,11 +95,11 @@ bool SCH::DoesModuleAlreadyExist( wxString aOriginalName )
 // FULL PROCESS OF LIBRARY CONVERSION
 void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString aActualConversion )
 {
-    wxXmlNode*  aNode;
+    XNODE*      aNode;
     wxString    propValue;
     SCH_MODULE* module;
 
-    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
+    aNode = FindNode( (XNODE* )aXmlDoc->GetRoot(), wxT( "library" ) );
 
     if( aNode )    // ORIGINAL Modules
     {
@@ -125,7 +125,7 @@ void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString a
         }
     }
 
-    aNode = FindNode( aXmlDoc->GetRoot(), wxT( "library" ) );
+    aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "library" ) );
 
     if( aNode )    // ALIASes
     {
@@ -146,12 +146,12 @@ void SCH::DoLibrary( wxXmlDocument* aXmlDoc, wxStatusBar* aStatusBar, wxString a
 
 void SCH::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
 {
-    wxXmlNode*      iNode;
+    XNODE*          iNode;
     SCH_SHEET*      sheet;
     bool            isJunction;
 
     // Defaut measurement units
-    iNode = FindNode( aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
+    iNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
 
     if( iNode )
         m_defaultMeasurementUnit = FindNodeGetContent( iNode, wxT( "fileUnits" ) );
@@ -162,7 +162,7 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
 
     DoLibrary( aXmlDoc, aStatusBar, aActualConversion );
 
-    iNode = FindNode( aXmlDoc->GetRoot(), wxT( "schematicDesign" ) );
+    iNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "schematicDesign" ) );
 
     if( iNode )
     {

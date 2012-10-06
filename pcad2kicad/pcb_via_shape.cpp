@@ -47,11 +47,11 @@ PCB_VIA_SHAPE::~PCB_VIA_SHAPE()
 }
 
 
-void PCB_VIA_SHAPE::Parse( wxXmlNode*   aNode,
+void PCB_VIA_SHAPE::Parse( XNODE*       aNode,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    str;
     long        num;
 

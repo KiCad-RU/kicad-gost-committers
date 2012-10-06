@@ -76,10 +76,10 @@ PCB_POLYGON::~PCB_POLYGON()
 }
 
 
-void PCB_POLYGON::FormPolygon( wxXmlNode* aNode, VERTICES_ARRAY* aPolygon,
+void PCB_POLYGON::FormPolygon( XNODE*   aNode, VERTICES_ARRAY* aPolygon,
                                wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     double      x, y;
 
     lNode = FindNode( aNode, wxT( "pt" ) );
@@ -98,13 +98,13 @@ void PCB_POLYGON::FormPolygon( wxXmlNode* aNode, VERTICES_ARRAY* aPolygon,
 }
 
 
-bool PCB_POLYGON::Parse( wxXmlNode*     aNode,
+bool PCB_POLYGON::Parse( XNODE*         aNode,
                          int            aPCadLayer,
                          wxString       aDefaultMeasurementUnit,
                          wxString       aActualConversion,
                          wxStatusBar*   aStatusBar )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     wxString    propValue;
 
     // aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " Polygon..." ) );

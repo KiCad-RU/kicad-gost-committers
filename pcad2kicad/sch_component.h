@@ -33,6 +33,7 @@
 #include <wx/wx.h>
 #include <wx/dynarray.h>
 #include <wx/file.h>
+#include <xnode.h>
 
 namespace PCAD2KICAD {
 

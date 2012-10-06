@@ -54,7 +54,7 @@ SCH_PIN::~SCH_PIN()
 }
 
 
-void SCH_PIN::Parse( wxXmlNode* aNode )
+void SCH_PIN::Parse( XNODE* aNode )
 {
     wxString    str, propValue;
     long        num;
@@ -91,12 +91,12 @@ void SCH_PIN::Parse( wxXmlNode* aNode )
 }
 
 
-void SCH_PIN::ParsePinProperties( wxXmlNode* aNode, int aSymbolIndex,
+void SCH_PIN::ParsePinProperties( XNODE*   aNode, int aSymbolIndex,
                                   wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
     wxString    pn, t, str;
     TTEXTVALUE  lpn;
-    wxXmlNode* cNode;
+    XNODE* cNode;
 
     pn = FindNodeGetContent( aNode, wxT( "pinNum" ) );
 

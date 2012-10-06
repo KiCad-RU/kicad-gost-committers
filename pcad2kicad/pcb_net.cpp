@@ -63,11 +63,11 @@ PCB_NET::~PCB_NET()
 }
 
 
-void PCB_NET::Parse( wxXmlNode* aNode )
+void PCB_NET::Parse( XNODE* aNode )
 {
     wxString        propValue, s1, s2;
     PCB_NET_NODE*   netNode;
-    wxXmlNode*      lNode;
+    XNODE*          lNode;
 
     aNode->GetAttribute( wxT( "Name" ), &propValue );
     propValue.Trim( false );

@@ -151,9 +151,8 @@ set(PCBNEW_CLASS_SRCS
     export_vrml.cpp
     files.cpp
     gen_drill_report_files.cpp
-    gen_holes_and_tools_lists_for_drill.cpp
     gen_modules_placefile.cpp
-    gendrill.cpp
+    gendrill_Excellon_writer.cpp
     globaleditpad.cpp
     gpcb_exchange.cpp
     highlight.cpp
@@ -189,7 +188,8 @@ set(PCBNEW_CLASS_SRCS
     pcbnew.cpp
     pcbnew_config.cpp
     pcbplot.cpp
-    plot_rtn.cpp
+    plot_board_layers.cpp
+    plot_brditems_plotter.cpp
     print_board_functions.cpp
     printout_controler.cpp
     ratsnest.cpp
@@ -300,7 +300,7 @@ if (KICAD_SCRIPTING)
                        DEPENDS ../scripting/kicadplugins.i
 
 	               COMMAND ${SWIG_EXECUTABLE} ${SWIG_OPTS} -o ${CMAKE_CURRENT_BINARY_DIR}/pcbnew_wrap.cxx  scripting/pcbnew.i
-	               COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../scripting/fixswigimports.py ${CMAKE_CURRENT_BINARY_DIR}/pcbnew.py
+	               COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../scripting/fixswigimports.py ${CMAKE_CURRENT_BINARY_DIR}/pcbnew.py
 	               WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	)
 
@@ -431,9 +431,9 @@ install(TARGETS pcbnew
 
 if(KICAD_SCRIPTING)
 	add_custom_target(FixSwigImportsScripting ALL
-                     ${CMAKE_CURRENT_SOURCE_DIR}/../scripting/fixswigimports.py ${CMAKE_CURRENT_BINARY_DIR}/pcbnew.py
+                     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../scripting/fixswigimports.py ${CMAKE_CURRENT_BINARY_DIR}/pcbnew.py
                      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/pcbnew
-                     COMMENT "Fixing swig_import_helper"
+                     COMMENT "Fixing swig_import_helper in Kicad scripting"
                      )
 
 
@@ -443,9 +443,9 @@ endif(KICAD_SCRIPTING)
 
 if (KICAD_SCRIPTING_MODULES)
 	add_custom_target(FixSwigImportsModuleScripting ALL
-                     ${CMAKE_CURRENT_SOURCE_DIR}/../scripting/fixswigimports.py ${CMAKE_CURRENT_BINARY_DIR}/pcbnew.py
+                     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../scripting/fixswigimports.py ${CMAKE_CURRENT_BINARY_DIR}/pcbnew.py
                      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/_pcbnew
-                     COMMENT "Fixing swig_import_helper"
+                     COMMENT "Fixing swig_import_helper in Kicad scripting modules"
                      )
 
 

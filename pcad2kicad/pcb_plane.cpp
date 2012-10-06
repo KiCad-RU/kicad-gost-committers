@@ -47,13 +47,13 @@ PCB_PLANE::~PCB_PLANE()
 }
 
 
-bool PCB_PLANE::Parse( wxXmlNode*     aNode,
+bool PCB_PLANE::Parse( XNODE*         aNode,
                        int            aPCadLayer,
                        wxString       aDefaultMeasurementUnit,
                        wxString       aActualConversion,
                        wxStatusBar*   aStatusBar )
 {
-    wxXmlNode*      lNode;
+    XNODE*          lNode;
     wxString        pourType, str, propValue;
 
     // aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " Plane..." ) );

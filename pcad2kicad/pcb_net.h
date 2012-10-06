@@ -57,7 +57,7 @@ public:
     PCB_NET();
     ~PCB_NET();
 
-    void Parse( wxXmlNode* aNode );
+    void Parse( XNODE* aNode );
 };
 
 WX_DEFINE_ARRAY( PCB_NET*, PCB_NETS_ARRAY );

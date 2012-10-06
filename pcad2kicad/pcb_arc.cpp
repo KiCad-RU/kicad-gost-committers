@@ -52,12 +52,12 @@ PCB_ARC::~PCB_ARC()
 }
 
 
-void PCB_ARC::Parse( wxXmlNode* aNode,
+void PCB_ARC::Parse( XNODE*     aNode,
                      int        aLayer,
                      wxString   aDefaultMeasurementUnit,
                      wxString   aActualConversion )
 {
-    wxXmlNode*  lNode;
+    XNODE*      lNode;
     double      r = 0.0, a = 0.0;
     int         endPointX, endPointY;
 

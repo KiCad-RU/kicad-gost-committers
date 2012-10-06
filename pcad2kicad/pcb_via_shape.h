@@ -42,7 +42,7 @@ public:
     PCB_VIA_SHAPE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_VIA_SHAPE();
 
-    virtual void Parse( wxXmlNode*  aNode,
+    virtual void Parse( XNODE*      aNode,
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion );
 };

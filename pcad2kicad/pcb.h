@@ -31,6 +31,7 @@
 #define pcb_H_
 
 #include <wx/wx.h>
+#include <xnode.h>
 
 #include <pcb_module.h>
 #include <pcb_net.h>
@@ -64,19 +65,19 @@ private:
     int             m_timestamp_cnt;
     wxArrayString   m_layersStackup;
 
-    wxXmlNode*      FindCompDefName( wxXmlNode* aNode, wxString aName );
-    void            SetTextProperty( wxXmlNode*     aNode,
+    XNODE*          FindCompDefName( XNODE* aNode, wxString aName );
+    void            SetTextProperty( XNODE*         aNode,
                                      TTEXTVALUE*    aTextValue,
                                      wxString       aPatGraphRefName,
                                      wxString       aXmlName,
                                      wxString       aActualConversion );
-    void            DoPCBComponents( wxXmlNode*     aNode,
+    void            DoPCBComponents( XNODE*         aNode,
                                      wxXmlDocument* aXmlDoc,
                                      wxString       aActualConversion,
                                      wxStatusBar*   aStatusBar );
     void            ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName );
     int             FindLayer( wxString aLayerName );
-    void            MapLayer( wxXmlNode* aNode );
+    void            MapLayer( XNODE* aNode );
 };
 
 } // namespace PCAD2KICAD
