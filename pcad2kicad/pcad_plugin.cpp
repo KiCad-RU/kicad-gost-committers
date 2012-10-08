@@ -80,6 +80,8 @@ BOARD* PCAD_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe, PROPERT
     m_board = aAppendToMe ? aAppendToMe : new BOARD();
     PCB         pcb( m_board );
 
+    LOCALE_IO toggle;    // toggles on, then off, the C locale.
+
     LoadInputFile( aFileName, &xmlDoc );
     pcb.Parse( NULL, &xmlDoc, wxT( "PCB" ) );
     pcb.AddToBoard();

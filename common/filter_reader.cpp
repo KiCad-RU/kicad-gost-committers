@@ -27,9 +27,9 @@
 #include <richio.h>
 #include <filter_reader.h>
 
-size_t FILTER_READER::ReadLine() throw( IO_ERROR )
+unsigned FILTER_READER::ReadLine() throw( IO_ERROR )
 {
-    size_t ret;
+    unsigned ret;
 
     while( ( ret = reader.ReadLine() ) != 0 )
     {
