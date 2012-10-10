@@ -28,6 +28,13 @@
 
 #include <richio.h>
 
+
+// Fall back to getc() when getc_unlocked() is not available on the target platform.
+#if !defined( HAVE_GETC_UNLOCKED )
+#define getc_unlocked getc
+#endif
+
+
 // This file defines 3 classes useful for working with DSN text files and is named
 // "richio" after its author, Richard Hollenbeck, aka Dick Hollenbeck.
 
@@ -90,6 +97,11 @@ FILE_LINE_READER::FILE_LINE_READER( FILE* aFile, const wxString& aFileName,
     iOwn( doOwn ),
     fp( aFile )
 {
+    if( doOwn )
+    {
+        setvbuf( fp, NULL, _IOFBF, BUFSIZ * 8 );
+    }
+
     source  = aFileName;
     lineNum = aStartingLineNumber;
 }
@@ -101,27 +113,55 @@ FILE_LINE_READER::~FILE_LINE_READER()
         fclose( fp );
 }
 
+#if 0
+
+// The strlen() will trip on embedded nuls which can come in via bad data files.
+// Try an alternate technique below.
 
 unsigned FILE_LINE_READER::ReadLine() throw( IO_ERROR )
 {
     length  = 0;
+    line[0] = 0;
+
+    // fgets always puts a terminating nul at end of its read.
+    while( fgets( line + length, capacity - length, fp ) )
+    {
+        length += strlen( line + length );
+
+        if( length >= maxLineLength )
+            THROW_IO_ERROR( _("Line length exceeded") );
+
+        // a normal line breaks here, once through while loop
+        if( length+1 < capacity || line[length-1] == '\n' )
+            break;
+
+        expandCapacity( capacity * 2 );
+    }
+
+    // lineNum is incremented even if there was no line read, because this
+    // leads to better error reporting when we hit an end of file.
+    ++lineNum;
+
+    return length;
+}
+
+#else
+unsigned FILE_LINE_READER::ReadLine() throw( IO_ERROR )
+{
+    length = 0;
 
     for(;;)
     {
         if( length >= maxLineLength )
             THROW_IO_ERROR( _( "Maximum line length exceeded" ) );
 
-        if( length + 1 > capacity )
+        if( length >= capacity )
             expandCapacity( capacity * 2 );
 
-        int cc = fgetc( fp );
-
+        // faster, POSIX compatible fgetc(), no locking.
+        int cc = getc_unlocked( fp );
         if( cc == EOF )
             break;
-
-        // skip nulls
-        if( cc == '\0' )
-            continue;
 
         line[ length++ ] = (char) cc;
 
@@ -137,6 +177,7 @@ unsigned FILE_LINE_READER::ReadLine() throw( IO_ERROR )
 
     return length;
 }
+#endif
 
 
 STRING_LINE_READER::STRING_LINE_READER( const std::string& aString, const wxString& aSource ) :
