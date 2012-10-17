@@ -50,7 +50,7 @@ public:
     {
     }
 
-    size_t ReadLine() throw( IO_ERROR );
+    unsigned ReadLine() throw( IO_ERROR );
 
     const wxString& GetSource() const
     {
@@ -67,7 +67,7 @@ public:
         return reader.LineNumber();
     }
 
-    size_t Length() const
+    unsigned Length() const
     {
         return reader.Length();
     }

@@ -200,13 +200,13 @@ struct PARSE_ERROR : public IO_ERROR
 class LINE_READER
 {
 protected:
-    size_t      length;         ///< no. bytes in line before trailing nul.
+    unsigned    length;         ///< no. bytes in line before trailing nul.
     unsigned    lineNum;
 
     char*       line;           ///< the read line of UTF8 text
-    size_t      capacity;       ///< no. bytes allocated for line.
+    unsigned    capacity;       ///< no. bytes allocated for line.
 
-    size_t      maxLineLength;  ///< maximum allowed capacity using resizing.
+    unsigned    maxLineLength;  ///< maximum allowed capacity using resizing.
 
     wxString    source;         ///< origin of text lines, e.g. filename or "clipboard"
 
@@ -215,7 +215,7 @@ protected:
      * will expand the capacity of @a line up to maxLineLength but not greater, so
      * be careful about making assumptions of @a capacity after calling this.
      */
-    void        expandCapacity( size_t newsize );
+    void        expandCapacity( unsigned newsize );
 
 
 public:
@@ -225,7 +225,7 @@ public:
      * builds a line reader and fixes the length of the maximum supported
      * line length to @a aMaxLineLength.
      */
-    LINE_READER( size_t aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
+    LINE_READER( unsigned aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
 
     virtual ~LINE_READER()
     {
@@ -240,7 +240,7 @@ public:
      * @return unsigned - The number of bytes read, 0 at end of file.
      * @throw IO_ERROR when a line is too long.
      */
-    virtual size_t ReadLine() throw( IO_ERROR ) = 0;
+    virtual unsigned ReadLine() throw( IO_ERROR ) = 0;
 
     /**
      * Function GetSource
@@ -287,7 +287,7 @@ public:
      * Function Length
      * returns the number of bytes in the last line read from this LINE_READER.
      */
-    virtual size_t Length() const
+    virtual unsigned Length() const
     {
         return length;
     }
@@ -325,7 +325,7 @@ public:
      */
     FILE_LINE_READER( FILE* aFile, const wxString& aFileName, bool doOwn = true,
             unsigned aStartingLineNumber = 0,
-            size_t   aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
+            unsigned aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
 
     /**
      * Destructor
@@ -333,7 +333,7 @@ public:
      */
     ~FILE_LINE_READER();
 
-    size_t ReadLine() throw( IO_ERROR );   // see LINE_READER::ReadLine() description
+    unsigned ReadLine() throw( IO_ERROR );   // see LINE_READER::ReadLine() description
 
     /**
      * Function Rewind
@@ -380,7 +380,29 @@ public:
      */
     STRING_LINE_READER( const STRING_LINE_READER& aStartingPoint );
 
-    size_t ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
+    unsigned ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
+};
+
+
+/**
+ * Class INPUTSTREAM_LINE_READER
+ * is a LINE_READER that reads from a wxInputStream object.
+ */
+class INPUTSTREAM_LINE_READER : public LINE_READER
+{
+protected:
+    wxInputStream* m_stream;   //< The input stream to read.  No ownership of this pointer.
+
+public:
+
+    /**
+     * Constructor WXINPUTSTREAM_LINE_READER
+     *
+     * @param aStream A pointer to a wxInputStream object to read.
+     */
+    INPUTSTREAM_LINE_READER( wxInputStream* aStream );
+
+    unsigned ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
 };
 
 

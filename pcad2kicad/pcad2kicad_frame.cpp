@@ -59,6 +59,8 @@ void PCAD2KICAD_FRAME::OnPcb( wxCommandEvent& event )
     if( diag != wxID_OK )
         return;
 
+    LOCALE_IO toggle;    // toggles on, then off, the C locale.
+
     m_actualConversion = wxT( "PCB" );
     wxString fileName = fileDlg.GetPath();
     m_inputFileName->SetLabel( fileName );
@@ -88,6 +90,8 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
 
     if( diag != wxID_OK )
         return;
+
+    LOCALE_IO toggle;    // toggles on, then off, the C locale.
 
     m_actualConversion = wxT( "SCH" );
 

@@ -28,13 +28,20 @@
 
 #include <richio.h>
 
+
+// Fall back to getc() when getc_unlocked() is not available on the target platform.
+#if !defined( HAVE_GETC_UNLOCKED )
+#define getc_unlocked getc
+#endif
+
+
 // This file defines 3 classes useful for working with DSN text files and is named
 // "richio" after its author, Richard Hollenbeck, aka Dick Hollenbeck.
 
 
 //-----<LINE_READER>------------------------------------------------------
 
-LINE_READER::LINE_READER( size_t aMaxLineLength )
+LINE_READER::LINE_READER( unsigned aMaxLineLength )
 {
     lineNum = 0;
 
@@ -57,7 +64,7 @@ LINE_READER::LINE_READER( size_t aMaxLineLength )
 }
 
 
-void LINE_READER::expandCapacity( size_t newsize )
+void LINE_READER::expandCapacity( unsigned newsize )
 {
     // length can equal maxLineLength and nothing breaks, there's room for
     // the terminating nul. cannot go over this.
@@ -85,11 +92,16 @@ void LINE_READER::expandCapacity( size_t newsize )
 FILE_LINE_READER::FILE_LINE_READER( FILE* aFile, const wxString& aFileName,
                     bool doOwn,
                     unsigned aStartingLineNumber,
-                    size_t   aMaxLineLength ) :
+                    unsigned aMaxLineLength ) :
     LINE_READER( aMaxLineLength ),
     iOwn( doOwn ),
     fp( aFile )
 {
+    if( doOwn )
+    {
+        setvbuf( fp, NULL, _IOFBF, BUFSIZ * 8 );
+    }
+
     source  = aFileName;
     lineNum = aStartingLineNumber;
 }
@@ -101,38 +113,29 @@ FILE_LINE_READER::~FILE_LINE_READER()
         fclose( fp );
 }
 
+#if 0
 
-size_t FILE_LINE_READER::ReadLine() throw( IO_ERROR )
+// The strlen() will trip on embedded nuls which can come in via bad data files.
+// Try an alternate technique below.
+
+unsigned FILE_LINE_READER::ReadLine() throw( IO_ERROR )
 {
-    char* str_ptr;
-    ssize_t actual_len;
-    ssize_t null_pos;
-
     length  = 0;
     line[0] = 0;
 
-    // if the preallocated buffer space is not enough, getline reallocates the buffer by itself
-    // getline always puts a terminating null at the end of its read.
-    if( ( actual_len = getline( &line, &capacity, fp ) ) > 0 )
+    // fgets always puts a terminating nul at end of its read.
+    while( fgets( line + length, capacity - length, fp ) )
     {
-        if( actual_len >= (ssize_t)maxLineLength )
+        length += strlen( line + length );
+
+        if( length >= maxLineLength )
             THROW_IO_ERROR( _("Line length exceeded") );
 
-        // remove all nulls inside a string (e.g. ACCEL/P-Cad ASCII files often contain nulls)
-        while( (ssize_t)strlen( line ) < actual_len )
-        {
-            str_ptr = strchr( line, '\0' );
-            null_pos = str_ptr - line;
-            if( str_ptr )
-            {
-                // left shift the substring starting right after the fake null position
-                // and ending at the real useful null position
-                memmove( str_ptr, str_ptr + 1, actual_len - null_pos );
-                actual_len--;
-            }
-        }
+        // a normal line breaks here, once through while loop
+        if( length+1 < capacity || line[length-1] == '\n' )
+            break;
 
-        length = strlen( line );
+        expandCapacity( capacity * 2 );
     }
 
     // lineNum is incremented even if there was no line read, because this
@@ -141,6 +144,40 @@ size_t FILE_LINE_READER::ReadLine() throw( IO_ERROR )
 
     return length;
 }
+
+#else
+unsigned FILE_LINE_READER::ReadLine() throw( IO_ERROR )
+{
+    length = 0;
+
+    for(;;)
+    {
+        if( length >= maxLineLength )
+            THROW_IO_ERROR( _( "Maximum line length exceeded" ) );
+
+        if( length >= capacity )
+            expandCapacity( capacity * 2 );
+
+        // faster, POSIX compatible fgetc(), no locking.
+        int cc = getc_unlocked( fp );
+        if( cc == EOF )
+            break;
+
+        line[ length++ ] = (char) cc;
+
+        if( cc == '\n' )
+            break;
+    }
+
+    line[ length ] = 0;
+
+    // lineNum is incremented even if there was no line read, because this
+    // leads to better error reporting when we hit an end of file.
+    ++lineNum;
+
+    return length;
+}
+#endif
 
 
 STRING_LINE_READER::STRING_LINE_READER( const std::string& aString, const wxString& aSource ) :
@@ -166,7 +203,7 @@ STRING_LINE_READER::STRING_LINE_READER( const STRING_LINE_READER& aStartingPoint
     lineNum = aStartingPoint.lineNum;
 }
 
-size_t STRING_LINE_READER::ReadLine() throw( IO_ERROR )
+unsigned STRING_LINE_READER::ReadLine() throw( IO_ERROR )
 {
     size_t  nlOffset = lines.find( '\n', ndx );
 
@@ -193,6 +230,47 @@ size_t STRING_LINE_READER::ReadLine() throw( IO_ERROR )
     ++lineNum;      // this gets incremented even if no bytes were read
 
     line[length] = 0;
+
+    return length;
+}
+
+
+INPUTSTREAM_LINE_READER::INPUTSTREAM_LINE_READER( wxInputStream* aStream ) :
+    LINE_READER( LINE_READER_LINE_DEFAULT_MAX ),
+    m_stream( aStream )
+{
+}
+
+
+unsigned INPUTSTREAM_LINE_READER::ReadLine() throw( IO_ERROR )
+{
+    length  = 0;
+
+    for(;;)
+    {
+        if( length >= maxLineLength )
+            THROW_IO_ERROR( _( "Maximum line length exceeded" ) );
+
+        if( length + 1 > capacity )
+            expandCapacity( capacity * 2 );
+
+        // this read may fail, docs say to test LastRead() before trusting cc.
+        char cc = m_stream->GetC();
+
+        if( !m_stream->LastRead() )
+            break;
+
+        line[ length++ ] = cc;
+
+        if( cc == '\n' )
+            break;
+    }
+
+    line[ length ] = 0;
+
+    // lineNum is incremented even if there was no line read, because this
+    // leads to better error reporting when we hit an end of file.
+    ++lineNum;
 
     return length;
 }
