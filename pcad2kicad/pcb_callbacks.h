@@ -32,13 +32,28 @@
 
 #include <wx/wx.h>
 
+enum LAYER_TYPE_T
+{
+    LAYER_TYPE_SIGNAL,
+    LAYER_TYPE_NONSIGNAL,
+    LAYER_TYPE_PLANE
+};
+
+typedef struct _TLAYER
+{
+    int           KiCadLayer;
+    LAYER_TYPE_T  layerType;
+} TLAYER;
+
 namespace PCAD2KICAD
 {
+
     class PCB_CALLBACKS
     {
     public:
-        virtual int GetKiCadLayer( int aPCadLayer ) = 0;
-        virtual int GetNewTimestamp() = 0;
+        virtual int           GetKiCadLayer( int aPCadLayer ) = 0;
+        virtual LAYER_TYPE_T  GetLayerType( int aPCadLayer ) = 0;
+        virtual int           GetNewTimestamp() = 0;
     };
 }
 

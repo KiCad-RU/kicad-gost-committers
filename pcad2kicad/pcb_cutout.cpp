@@ -34,8 +34,8 @@
 
 namespace PCAD2KICAD {
 
-PCB_CUTOUT::PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_POLYGON( aCallbacks,
-                                                                                  aBoard )
+PCB_CUTOUT::PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard, int aPCadLayer ) :
+    PCB_POLYGON( aCallbacks, aBoard, aPCadLayer )
 {
     m_objType = wxT( 'C' );
 }
@@ -48,13 +48,9 @@ PCB_CUTOUT::~PCB_CUTOUT()
 
 // It seems that the same cutouts (with the same vertices) are inside of copper pour objects
 void PCB_CUTOUT::Parse( XNODE*      aNode,
-                        int         aPCadLayer,
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion )
 {
-    m_PCadLayer     = aPCadLayer;
-    m_KiCadLayer    = GetKiCadLayer();
-
     // retrieve cutout outline
     FormPolygon( aNode, &m_outline, aDefaultMeasurementUnit, aActualConversion );
 

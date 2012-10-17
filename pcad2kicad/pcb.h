@@ -44,7 +44,7 @@ public:
     PCB_COMPONENTS_ARRAY    m_pcbComponents;    // PCB Modules,Lines,Routes,Texts, .... and so on
     PCB_NETS_ARRAY          m_pcbNetlist;       // net objects collection
     wxString                m_defaultMeasurementUnit;
-    int m_layersMap[NB_LAYERS];                 // flexible layers mapping
+    TLAYER                  m_layersMap[NB_LAYERS];    // flexible layers mapping
     int m_sizeX;
     int m_sizeY;
 
@@ -52,6 +52,7 @@ public:
     ~PCB();
 
     int             GetKiCadLayer( int aPCadLayer );
+    LAYER_TYPE_T    GetLayerType( int aPCadLayer );
     int             GetNewTimestamp();
 
     void            Parse( wxStatusBar* aStatusBar,
@@ -78,6 +79,9 @@ private:
     void            ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName );
     int             FindLayer( wxString aLayerName );
     void            MapLayer( XNODE* aNode );
+    int             FindOutlinePoint( VERTICES_ARRAY* aOutline, wxRealPoint aPoint );
+    double          GetDistance( wxRealPoint* aPoint1, wxRealPoint* aPoint2 );
+    void            GetBoardOutline( wxXmlDocument* aXmlDoc, wxString aActualConversion );
 };
 
 } // namespace PCAD2KICAD

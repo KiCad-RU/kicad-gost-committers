@@ -37,7 +37,9 @@
 namespace PCAD2KICAD {
 
 PCB_COPPER_POUR::PCB_COPPER_POUR( PCB_CALLBACKS*    aCallbacks,
-                                  BOARD*            aBoard ) : PCB_POLYGON( aCallbacks, aBoard )
+                                  BOARD*            aBoard,
+                                  int               aPCadLayer ) :
+    PCB_POLYGON( aCallbacks, aBoard, aPCadLayer )
 {
 }
 
@@ -48,7 +50,6 @@ PCB_COPPER_POUR::~PCB_COPPER_POUR()
 
 
 bool PCB_COPPER_POUR::Parse( XNODE*         aNode,
-                             int            aPCadLayer,
                              wxString       aDefaultMeasurementUnit,
                              wxString       aActualConversion,
                              wxStatusBar*   aStatusBar )
@@ -59,9 +60,6 @@ bool PCB_COPPER_POUR::Parse( XNODE*         aNode,
     VERTICES_ARRAY* island, * cutout;
 
     // aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " CooperPour..." ) );
-    m_PCadLayer     = aPCadLayer;
-    m_KiCadLayer    = GetKiCadLayer();
-    m_timestamp     = GetNewTimestamp();
 
     //str = FindNode( aNode, wxT( "pourType" ) )->GetNodeContent();
     //str.Trim( false );

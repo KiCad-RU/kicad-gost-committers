@@ -36,7 +36,7 @@
 
 namespace PCAD2KICAD {
 
-WX_DEFINE_ARRAY( wxRealPoint*, VERTICES_ARRAY );
+//WX_DEFINE_ARRAY( wxRealPoint*, VERTICES_ARRAY );
 WX_DEFINE_ARRAY( VERTICES_ARRAY*, ISLANDS_ARRAY );
 
 class PCB_POLYGON : public PCB_COMPONENT
@@ -48,11 +48,10 @@ public:
     ISLANDS_ARRAY   m_islands;
     ISLANDS_ARRAY   m_cutouts;
 
-    PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
+    PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard, int aPCadLayer );
     ~PCB_POLYGON();
 
     virtual bool Parse( XNODE*          aNode,
-                        int             aPCadLayer,
                         wxString        aDefaultMeasurementUnit,
                         wxString        aActualConversion,
                         wxStatusBar*    aStatusBar );
@@ -64,6 +63,8 @@ public:
     void            AddToBoard();
 
 // protected:
+    void            SetOutline( VERTICES_ARRAY* aOutline );
+
     void            FormPolygon( XNODE*   aNode, VERTICES_ARRAY* aPolygon,
                                  wxString aDefaultMeasurementUnit, wxString actualConversion );
 };

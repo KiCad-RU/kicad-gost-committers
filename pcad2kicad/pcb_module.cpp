@@ -239,7 +239,15 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
         FindNode( aNode, wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &num );
 
     PCadLayer   = (int) num;
-    lNode       = aNode->GetChildren();
+
+    if( m_callbacks->GetLayerType( PCadLayer ) == LAYER_TYPE_PLANE )
+    {
+        polygon = new PCB_POLYGON( m_callbacks, m_board, PCadLayer );
+        polygon->SetOutline( &m_boardOutline );
+        aList->Add( polygon );
+    }
+
+    lNode = aNode->GetChildren();
 
     while( lNode )
     {
@@ -298,11 +306,11 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
             aList->Add( arc );
         }
 
-        if( lNode->GetName() == wxT( "pcbPoly" ) )
+        if( lNode->GetName() == wxT( "pcbPoly" ) &&
+            m_callbacks->GetLayerType( PCadLayer ) != LAYER_TYPE_PLANE )
         {
-            polygon = new PCB_POLYGON( m_callbacks, m_board );
+            polygon = new PCB_POLYGON( m_callbacks, m_board, PCadLayer );
             polygon->Parse( lNode,
-                            PCadLayer,
                             aDefaultMeasurementUnit,
                             aActualConversion,
                             aStatusBar );
@@ -311,9 +319,9 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
 
         if( lNode->GetName() == wxT( "copperPour95" ) )
         {
-            copperPour = new PCB_COPPER_POUR( m_callbacks, m_board );
+            copperPour = new PCB_COPPER_POUR( m_callbacks, m_board, PCadLayer );
 
-            if( copperPour->Parse( lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion,
+            if( copperPour->Parse( lNode, aDefaultMeasurementUnit, aActualConversion,
                                    aStatusBar ) )
                 aList->Add( copperPour );
             else
@@ -330,17 +338,17 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
 
             if( tNode )
             {
-                cutout = new PCB_CUTOUT( m_callbacks, m_board );
-                cutout->Parse( tNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion );
+                cutout = new PCB_CUTOUT( m_callbacks, m_board, PCadLayer );
+                cutout->Parse( tNode, aDefaultMeasurementUnit, aActualConversion );
                 aList->Add( cutout );
             }
         }
 
         if( lNode->GetName() == wxT( "planeObj" ) )
         {
-            plane = new PCB_PLANE( m_callbacks, m_board );
+            plane = new PCB_PLANE( m_callbacks, m_board, PCadLayer );
 
-            if( plane->Parse( lNode, PCadLayer, aDefaultMeasurementUnit, aActualConversion,
+            if( plane->Parse( lNode, aDefaultMeasurementUnit, aActualConversion,
                               aStatusBar ) )
                 aList->Add( plane );
             else

@@ -39,11 +39,10 @@ class PCB_PLANE : public PCB_POLYGON
 {
 public:
 
-    PCB_PLANE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
+    PCB_PLANE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard, int aPCadLayer );
     ~PCB_PLANE();
 
     virtual bool Parse( XNODE*          aNode,
-                        int             aPCadLayer,
                         wxString        aDefaultMeasurementUnit,
                         wxString        aActualConversion,
                         wxStatusBar*    aStatusBar );

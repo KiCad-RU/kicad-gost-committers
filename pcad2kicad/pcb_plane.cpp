@@ -36,7 +36,9 @@
 namespace PCAD2KICAD {
 
 PCB_PLANE::PCB_PLANE( PCB_CALLBACKS*    aCallbacks,
-                      BOARD*            aBoard ) : PCB_POLYGON( aCallbacks, aBoard )
+                      BOARD*            aBoard,
+                      int               aPCadLayer ) :
+    PCB_POLYGON( aCallbacks, aBoard, aPCadLayer )
 {
     m_priority = 1;
 }
@@ -48,7 +50,6 @@ PCB_PLANE::~PCB_PLANE()
 
 
 bool PCB_PLANE::Parse( XNODE*         aNode,
-                       int            aPCadLayer,
                        wxString       aDefaultMeasurementUnit,
                        wxString       aActualConversion,
                        wxStatusBar*   aStatusBar )
@@ -57,9 +58,6 @@ bool PCB_PLANE::Parse( XNODE*         aNode,
     wxString        pourType, str, propValue;
 
     // aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " Plane..." ) );
-    m_PCadLayer     = aPCadLayer;
-    m_KiCadLayer    = GetKiCadLayer();
-    m_timestamp     = GetNewTimestamp();
 
     lNode = FindNode( aNode, wxT( "netNameRef" ) );
 

@@ -40,11 +40,10 @@ class PCB_COPPER_POUR : public PCB_POLYGON
 {
 public:
 
-    PCB_COPPER_POUR( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
+    PCB_COPPER_POUR( PCB_CALLBACKS* aCallbacks, BOARD* aBoard, int aPCadLayer );
     ~PCB_COPPER_POUR();
 
     virtual bool Parse( XNODE*          aNode,
-                        int             aPCadLayer,
                         wxString        aDefaultMeasurementUnit,
                         wxString        aActualConversion,
                         wxStatusBar*    aStatusBar );

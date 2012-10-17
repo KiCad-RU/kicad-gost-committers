@@ -40,11 +40,10 @@ class PCB_CUTOUT : public PCB_POLYGON
 {
 public:
 
-    PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
+    PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard, int aPCadLayer );
     ~PCB_CUTOUT();
 
     virtual void    Parse( XNODE*       aNode,
-                           int          aPCadLayer,
                            wxString     aDefaultMeasurementUnit,
                            wxString     actualConversion );
 

@@ -43,6 +43,7 @@ public:
     TTEXTVALUE              m_value;            // has reference (Name from parent) and value
     PCB_COMPONENTS_ARRAY    m_moduleObjects;    // set of objects like PCB_LINE, PCB_PAD, PCB_VIA,....
     int m_mirror;
+    VERTICES_ARRAY          m_boardOutline;
 
     PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard );
     ~PCB_MODULE();

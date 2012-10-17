@@ -36,12 +36,15 @@
 
 namespace PCAD2KICAD {
 
-PCB_POLYGON::PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks,
-                                                                                      aBoard )
+PCB_POLYGON::PCB_POLYGON( PCB_CALLBACKS* aCallbacks, BOARD* aBoard, int aPCadLayer ) :
+    PCB_COMPONENT( aCallbacks, aBoard )
 {
     m_width     = 0;
     m_priority  = 0;
     m_objType   = wxT( 'Z' );
+    m_PCadLayer = aPCadLayer;
+    m_KiCadLayer = GetKiCadLayer();
+    m_timestamp = GetNewTimestamp();
 }
 
 
@@ -75,6 +78,18 @@ PCB_POLYGON::~PCB_POLYGON()
     }
 }
 
+void PCB_POLYGON::SetOutline( VERTICES_ARRAY* aOutline )
+{
+    int i;
+
+    m_outline.Empty();
+
+    for( i = 0; i < (int) aOutline->GetCount(); i++ )
+        m_outline.Add( new wxRealPoint( (*aOutline)[i]->x, (*aOutline)[i]->y ) );
+
+    m_positionX = m_outline[0]->x;
+    m_positionY = m_outline[0]->y;
+}
 
 void PCB_POLYGON::FormPolygon( XNODE*   aNode, VERTICES_ARRAY* aPolygon,
                                wxString aDefaultMeasurementUnit, wxString aActualConversion )
@@ -99,7 +114,6 @@ void PCB_POLYGON::FormPolygon( XNODE*   aNode, VERTICES_ARRAY* aPolygon,
 
 
 bool PCB_POLYGON::Parse( XNODE*         aNode,
-                         int            aPCadLayer,
                          wxString       aDefaultMeasurementUnit,
                          wxString       aActualConversion,
                          wxStatusBar*   aStatusBar )
@@ -108,9 +122,6 @@ bool PCB_POLYGON::Parse( XNODE*         aNode,
     wxString    propValue;
 
     // aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " Polygon..." ) );
-    m_PCadLayer     = aPCadLayer;
-    m_KiCadLayer    = GetKiCadLayer();
-    m_timestamp     = GetNewTimestamp();
 
     lNode = FindNode( aNode, wxT( "netNameRef" ) );
 

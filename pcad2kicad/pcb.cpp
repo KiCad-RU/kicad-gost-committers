@@ -50,9 +50,14 @@ namespace PCAD2KICAD {
 int PCB::GetKiCadLayer( int aPCadLayer )
 {
     assert( aPCadLayer >= FIRST_COPPER_LAYER && aPCadLayer <= LAST_NO_COPPER_LAYER );
-    return m_layersMap[aPCadLayer];
+    return m_layersMap[aPCadLayer].KiCadLayer;
 }
 
+LAYER_TYPE_T PCB::GetLayerType( int aPCadLayer )
+{
+    assert( aPCadLayer >= FIRST_COPPER_LAYER && aPCadLayer <= LAST_NO_COPPER_LAYER );
+    return m_layersMap[aPCadLayer].layerType;
+}
 
 PCB::PCB( BOARD* aBoard ) : PCB_MODULE( this, aBoard )
 {
@@ -61,16 +66,23 @@ PCB::PCB( BOARD* aBoard ) : PCB_MODULE( this, aBoard )
     m_defaultMeasurementUnit = wxT( "mil" );
 
     for( i = 0; i < NB_LAYERS; i++ )
-        m_layersMap[i] = SOLDERMASK_N_FRONT; // default
+    {
+        m_layersMap[i].KiCadLayer = SOLDERMASK_N_FRONT; // default
+        m_layersMap[i].layerType = LAYER_TYPE_NONSIGNAL; // default
+    }
 
     m_sizeX = 0;
     m_sizeY = 0;
 
-    m_layersMap[1]  = LAST_COPPER_LAYER;
-    m_layersMap[2]  = FIRST_COPPER_LAYER;
-    m_layersMap[3]  = ECO2_N;
-    m_layersMap[6]  = SILKSCREEN_N_FRONT;
-    m_layersMap[7]  = SILKSCREEN_N_BACK;
+    m_layersMap[1].KiCadLayer  = LAST_COPPER_LAYER;
+    m_layersMap[1].layerType = LAYER_TYPE_SIGNAL;
+
+    m_layersMap[2].KiCadLayer  = FIRST_COPPER_LAYER;
+    m_layersMap[2].layerType = LAYER_TYPE_SIGNAL;
+
+    m_layersMap[3].KiCadLayer  = ECO2_N;
+    m_layersMap[6].KiCadLayer  = SILKSCREEN_N_FRONT;
+    m_layersMap[7].KiCadLayer  = SILKSCREEN_N_BACK;
     m_timestamp_cnt = 0x10000000;
 }
 
@@ -427,7 +439,7 @@ int PCB::FindLayer( wxString aLayerName )
  */
 void PCB::MapLayer( XNODE* aNode )
 {
-    wxString    lName;
+    wxString    lName, layerType;
     int         KiCadLayer;
     long        num = 0;
 
@@ -470,7 +482,136 @@ void PCB::MapLayer( XNODE* aNode )
         FindNode( aNode, wxT( "layerNum" ) )->GetNodeContent().ToLong( &num );
 
     assert( num >= FIRST_COPPER_LAYER && num <= LAST_NO_COPPER_LAYER );
-    m_layersMap[(int) num] = KiCadLayer;
+    m_layersMap[(int) num].KiCadLayer = KiCadLayer;
+
+    if( FindNode( aNode, wxT( "layerType" ) ) )
+    {
+        layerType = FindNode( aNode, wxT( "layerType" ) )->GetNodeContent().Trim( false );
+
+        if( layerType == "NonSignal" )
+            m_layersMap[(int) num].layerType = LAYER_TYPE_NONSIGNAL;
+        if( layerType == "Signal" )
+            m_layersMap[(int) num].layerType = LAYER_TYPE_SIGNAL;
+        if( layerType == "Plane" )
+            m_layersMap[(int) num].layerType = LAYER_TYPE_PLANE;
+    }
+}
+
+int PCB::FindOutlinePoint( VERTICES_ARRAY* aOutline, wxRealPoint aPoint )
+{
+    int i;
+
+    for( i = 0; i < (int) aOutline->GetCount(); i++ )
+        if( *((*aOutline)[i]) == aPoint )
+            return i;
+
+    return -1;
+}
+
+/*int cmpFunc( wxRealPoint **first, wxRealPoint **second )
+{
+    return sqrt( pow( (double) aPointA.x - (double) aPointB.x, 2 ) +
+                 pow( (double) aPointA.y - (double) aPointB.y, 2 ) );
+
+    return 0;
+}*/
+double PCB::GetDistance( wxRealPoint* aPoint1, wxRealPoint* aPoint2 )
+{
+    return sqrt(  ( aPoint1->x - aPoint2->x ) *
+                  ( aPoint1->x - aPoint2->x ) +
+                  ( aPoint1->y - aPoint2->y ) *
+                  ( aPoint1->y - aPoint2->y ) );
+}
+
+void PCB::GetBoardOutline( wxXmlDocument* aXmlDoc, wxString aActualConversion )
+{
+    XNODE*       iNode, *lNode, *pNode;
+    long         PCadLayer = 0;
+    int          x, y, i, j, targetInd;
+    wxRealPoint* xchgPoint;
+    double       minDistance, distance;
+
+    iNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
+
+    if( iNode )
+    {
+        // COMPONENTS AND OBJECTS
+        iNode = iNode->GetChildren();
+
+        while( iNode )
+        {
+            // objects
+            if( iNode->GetName() == wxT( "layerContents" ) )
+            {
+                if( FindNode( iNode, wxT( "layerNumRef" ) ) )
+                    FindNode( iNode, wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &PCadLayer );
+
+                if( GetKiCadLayer( PCadLayer ) == EDGE_N )
+                {
+                    lNode = iNode->GetChildren();
+                    while( lNode )
+                    {
+                        if( lNode->GetName() == wxT( "line" ) )
+                        {
+                            pNode = FindNode( lNode, wxT( "pt" ) );
+
+                            if( pNode )
+                            {
+                                SetPosition( pNode->GetNodeContent(), m_defaultMeasurementUnit,
+                                             &x, &y, aActualConversion );
+
+                                if( FindOutlinePoint( &m_boardOutline, wxRealPoint( x, y) ) == -1 )
+                                    m_boardOutline.Add( new wxRealPoint( x, y ) );
+                            }
+
+
+                            pNode = pNode->GetNext();
+
+                            if( pNode )
+                            {
+                                SetPosition( pNode->GetNodeContent(), m_defaultMeasurementUnit,
+                                             &x, &y, aActualConversion );
+
+                                if( FindOutlinePoint( &m_boardOutline, wxRealPoint( x, y) ) == -1 )
+                                    m_boardOutline.Add( new wxRealPoint( x, y ) );
+                            }
+                        }
+
+                        lNode = lNode->GetNext();
+                    }
+
+                    //m_boardOutline.Sort( cmpFunc );
+                    // sort vertices according to the distances between them
+                    if( m_boardOutline.GetCount() > 3 )
+                    {
+                        for( i = 0; i < (int) m_boardOutline.GetCount() - 1; i++ )
+                        {
+                            minDistance = GetDistance( m_boardOutline[i], m_boardOutline[i + 1] );
+                            targetInd = i + 1;
+
+                            for( j = i + 2; j < (int) m_boardOutline.GetCount(); j++ )
+                            {
+                                distance = GetDistance( m_boardOutline[i], m_boardOutline[j] );
+                                if( distance < minDistance )
+                                {
+                                    minDistance = distance;
+                                    targetInd = j;
+                                }
+                            }
+
+                            xchgPoint = m_boardOutline[i + 1];
+                            m_boardOutline[i + 1] = m_boardOutline[targetInd];
+                            m_boardOutline[targetInd] = xchgPoint;
+                        }
+                    }
+
+                    break;
+                }
+            }
+
+            iNode = iNode->GetNext();
+        }
+    }
 }
 
 void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
@@ -541,6 +682,8 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
             aNode = aNode->GetNext();
         }
     }
+
+    GetBoardOutline( aXmlDoc, aActualConversion );
 
     // NETLIST
     // aStatusBar->SetStatusText( wxT( "Loading NETLIST " ) );

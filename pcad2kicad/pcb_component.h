@@ -77,6 +77,7 @@ protected:
 };
 
 WX_DEFINE_ARRAY( PCB_COMPONENT*, PCB_COMPONENTS_ARRAY );
+WX_DEFINE_ARRAY( wxRealPoint*, VERTICES_ARRAY );
 
 } // namespace PCAD2KICAD
 
