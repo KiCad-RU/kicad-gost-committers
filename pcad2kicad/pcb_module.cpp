@@ -221,10 +221,11 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
                                          wxString               aActualConversion )
 {
     PCB_ARC*            arc;
-    PCB_POLYGON*        polygon;
+    PCB_POLYGON*        polygon, *plane_layer;
     PCB_COPPER_POUR*    copperPour;
     PCB_CUTOUT*         cutout;
     PCB_PLANE*          plane;
+    VERTICES_ARRAY*     plane_layer_polygon;
     PCB_LINE*           line;
     PCB_TEXT*           text;
     XNODE*              lNode, * tNode;
@@ -242,9 +243,12 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
 
     if( m_callbacks->GetLayerType( PCadLayer ) == LAYER_TYPE_PLANE )
     {
-        polygon = new PCB_POLYGON( m_callbacks, m_board, PCadLayer );
-        polygon->SetOutline( &m_boardOutline );
-        aList->Add( polygon );
+        plane_layer = new PCB_POLYGON( m_callbacks, m_board, PCadLayer );
+        plane_layer->SetOutline( &m_boardOutline );
+        aList->Add( plane_layer );
+
+        // fill the polygon with the same contour as its outline is
+        //plane_layer->AddIsland( &m_boardOutline );
     }
 
     lNode = aNode->GetChildren();
@@ -306,15 +310,23 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
             aList->Add( arc );
         }
 
-        if( lNode->GetName() == wxT( "pcbPoly" ) &&
-            m_callbacks->GetLayerType( PCadLayer ) != LAYER_TYPE_PLANE )
+        if( lNode->GetName() == wxT( "pcbPoly" ) )
         {
-            polygon = new PCB_POLYGON( m_callbacks, m_board, PCadLayer );
-            polygon->Parse( lNode,
-                            aDefaultMeasurementUnit,
-                            aActualConversion,
-                            aStatusBar );
-            aList->Add( polygon );
+            if( m_callbacks->GetLayerType( PCadLayer ) == LAYER_TYPE_PLANE )
+            {
+                plane_layer_polygon = new VERTICES_ARRAY;
+                plane_layer->FormPolygon( lNode, plane_layer_polygon, aDefaultMeasurementUnit, aActualConversion );
+                plane_layer->m_cutouts.Add( plane_layer_polygon );
+            }
+            else
+            {
+                polygon = new PCB_POLYGON( m_callbacks, m_board, PCadLayer );
+                polygon->Parse( lNode,
+                                aDefaultMeasurementUnit,
+                                aActualConversion,
+                                aStatusBar );
+                aList->Add( polygon );
+            }
         }
 
         if( lNode->GetName() == wxT( "copperPour95" ) )
