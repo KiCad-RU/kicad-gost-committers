@@ -65,7 +65,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
             {
                 cNode->AddAttribute( wxT( "Name" ), str.Trim( false ) );
             }
-            else
+            else if( str != wxEmptyString )
             {
                 cNode->AddChild( new XNODE( wxXML_TEXT_NODE, wxEmptyString, str ) );
             }
