@@ -615,13 +615,12 @@ void PCB_MODULE::AddToBoard()
     module->SetTimeStamp( 0 );
     module->SetLastEditTime( 0 );
 
-    module->SetLibRef( m_name.text );
+    module->SetLibRef( m_compRef );
 
     module->SetAttributes( MOD_DEFAULT | MOD_CMS );
 
     // reference text
-    TEXTE_MODULE* ref_text = new TEXTE_MODULE( module );
-    module->m_Drawings.PushBack( ref_text );
+    TEXTE_MODULE* ref_text = module->m_Reference;
 
     ref_text->SetText( m_name.text );
     ref_text->SetType( TEXT_is_REFERENCE );
@@ -642,8 +641,7 @@ void PCB_MODULE::AddToBoard()
     ref_text->SetDrawCoord();
 
     // value text
-    TEXTE_MODULE* val_text = new TEXTE_MODULE( module );
-    module->m_Drawings.PushBack( val_text );
+    TEXTE_MODULE* val_text = module->m_Value;
 
     val_text->SetText( m_value.text );
     val_text->SetType( TEXT_is_REFERENCE );
