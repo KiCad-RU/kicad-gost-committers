@@ -82,24 +82,28 @@ void PCB_VIA::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
 
     lNode = aNode;
 
-    while( lNode->GetName() != wxT( "www.lura.sk" ) )
+    while( lNode && lNode->GetName() != wxT( "www.lura.sk" ) )
         lNode = lNode->GetParent();
 
     lNode   = FindNode( lNode, wxT( "library" ) );
+
+    if ( !lNode )
+        THROW_IO_ERROR( wxT( "Unable to find library section" ) );
+
     lNode   = FindNode( lNode, wxT( "viaStyleDef" ) );
 
-    if( lNode )
+    while( lNode )
     {
-        while( lNode )
-        {
-            lNode->GetAttribute( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
 
-            if( propValue == m_name.text )
-                break;
+        if( propValue == m_name.text )
+            break;
 
-            lNode = lNode->GetNext();
-        }
+        lNode = lNode->GetNext();
     }
+
+    if ( !lNode )
+        THROW_IO_ERROR( wxString::Format( wxT( "Unable to find viaStyleDef " ) + m_name.text ) );
 
     if( lNode )
     {

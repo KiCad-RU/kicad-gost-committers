@@ -37,9 +37,10 @@ namespace PCAD2KICAD {
 
 PCB_PAD::PCB_PAD( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
-    m_objType   = wxT( 'P' );
-    m_number    = 0;
-    m_hole      = 0;
+    m_objType      = wxT( 'P' );
+    m_number       = 0;
+    m_hole         = 0;
+    m_isHolePlated = true;
 }
 
 
@@ -185,9 +186,9 @@ unsigned long PCB_PAD::KiCadLayerMask( unsigned long aMask, int aLayer )
 void PCB_PAD::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
                      wxString aActualConversion )
 {
-    XNODE*          lNode;
+    XNODE*          lNode, *cNode;
     long            num;
-    wxString        propValue, str;
+    wxString        propValue, str, emsg;
     PCB_PAD_SHAPE*  padShape;
 
     m_rotation = 0;
@@ -225,13 +226,16 @@ void PCB_PAD::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
 
     lNode = aNode;
 
-    while( lNode->GetName() != wxT( "www.lura.sk" ) )
+    while( lNode && lNode->GetName() != wxT( "www.lura.sk" ) )
         lNode = lNode->GetParent();
 
     lNode   = FindNode( lNode, wxT( "library" ) );
+    if ( !lNode )
+        THROW_IO_ERROR( wxT( "Unable to find library section" ) );
+
     lNode   = FindNode( lNode, wxT( "padStyleDef" ) );
 
-    while( true )
+    while( lNode )
     {
         lNode->GetAttribute( wxT( "Name" ), &propValue );
 
@@ -241,29 +245,34 @@ void PCB_PAD::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
         lNode = lNode->GetNext();
     }
 
-    lNode = FindNode( lNode, wxT( "holeDiam" ) );
+    if ( !lNode )
+        THROW_IO_ERROR( wxString::Format( wxT( "Unable to find padStyleDef " ) + m_name.text ) );
 
-    if( lNode )
-        SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_hole, aActualConversion );
+    cNode = FindNode( lNode, wxT( "holeDiam" ) );
 
-    lNode   = lNode->GetParent();
-    lNode   = FindNode( lNode, wxT( "padShape" ) );
+    if( cNode )
+        SetWidth( cNode->GetNodeContent(), aDefaultMeasurementUnit, &m_hole, aActualConversion );
 
-    while( lNode )
+    if( FindNodeGetContent( lNode, wxT( "isHolePlated" ) ) == wxT( "False" ) )
+        m_isHolePlated = false;
+
+    cNode   = FindNode( lNode, wxT( "padShape" ) );
+
+    while( cNode )
     {
-        if( lNode->GetName() == wxT( "padShape" ) )
+        if( cNode->GetName() == wxT( "padShape" ) )
         {
             // we support only Pads on specific layers......
             // we do not support pads on "Plane", "NonSignal" , "Signal" ... layerr
-            if( FindNode( lNode, wxT( "layerNumRef" ) ) )
+            if( FindNode( cNode, wxT( "layerNumRef" ) ) )
             {
                 padShape = new PCB_PAD_SHAPE( m_callbacks, m_board );
-                padShape->Parse( lNode, aDefaultMeasurementUnit, aActualConversion );
+                padShape->Parse( cNode, aDefaultMeasurementUnit, aActualConversion );
                 m_shapes.Add( padShape );
             }
         }
 
-        lNode = lNode->GetNext();
+        cNode = cNode->GetNext();
     }
 }
 
@@ -323,18 +332,43 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
     {
         padShape = m_shapes[i];
 
-        // maybe should not to be filtered ????
-        if( padShape->m_width > 0 || padShape->m_height > 0 )
+        if( !m_isHolePlated && m_hole > 0 )
         {
-            if( padShape->m_shape == wxT( "Oval" ) )
+            aFile->Write( wxT( "$PAD\n" ) );
+
+            // Name, Shape, Xsize Ysize Xdelta Ydelta Orientation
+            aFile->Write( wxT( "Sh \"" ) + m_name.text + wxT( "\" " ) + s +
+                          wxString::Format( wxT( " %d %d 0 0 %d\n" ),
+                                            padShape->m_width, padShape->m_height, m_rotation +
+                                            aRotation ) );
+
+            // Hole size , OffsetX, OffsetY
+            aFile->Write( wxString::Format( wxT( "Dr %d 0 0\n" ), m_hole ) );
+
+            layerMask = wxString::Format( wxT( "%8X" ), ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT );
+
+            // <Pad type> N <layer mask>
+            aFile->Write( wxT( "At HOLE N " ) + layerMask + wxT( "\n" ) );
+
+            // Reference
+            aFile->Write( wxT( "Ne 0 \"\"\n" ) );
+
+            // Position
+            aFile->Write( wxString::Format( wxT( "Po %d %d\n" ), m_positionX, m_positionY ) );
+            aFile->Write( wxT( "$EndPAD\n" ) );
+        }
+        // maybe should not to be filtered ????
+        else if( padShape->m_width > 0 || padShape->m_height > 0 )
+        {
+            if( padShape->m_shape == wxT( "Oval" )
+                || padShape->m_shape == wxT( "Ellipse" )
+                || padShape->m_shape == wxT( "MtHole" ) )
             {
                 if( padShape->m_width != padShape->m_height )
                     s = wxT( "O" );
                 else
                     s = wxT( "C" );
             }
-            else if( padShape->m_shape == wxT( "Ellipse" ) )
-                s = wxT( "O" );
             else if( padShape->m_shape == wxT( "Rect" )
                      || padShape->m_shape == wxT( "RndRect" ) )
                 s = wxT( "R" );
@@ -425,23 +459,44 @@ void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
     {
         padShape = m_shapes[i];
 
+        if( !m_isHolePlated && m_hole > 0 )
+        {
+            D_PAD* pad = new D_PAD( aModule );
+            aModule->m_Pads.PushBack( pad );
+
+            pad->SetShape( PAD_CIRCLE );
+            pad->SetAttribute( PAD_HOLE_NOT_PLATED );
+
+            pad->SetDrillShape( PAD_CIRCLE );
+            pad->SetDrillSize( wxSize( m_hole, m_hole ) );
+            pad->SetSize( wxSize( m_hole, m_hole ) );
+
+            // pad's "Position" is not relative to the module's,
+            // whereas Pos0 is relative to the module's but is the unrotated coordinate.
+            wxPoint padpos( m_positionX, m_positionY );
+            pad->SetPos0( padpos );
+            RotatePoint( &padpos, aModule->GetOrientation() );
+            pad->SetPosition( padpos + aModule->GetPosition() );
+
+            pad->SetLayerMask( ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT );
+        }
         // maybe should not to be filtered ????
-        if( padShape->m_width > 0 || padShape->m_height > 0 )
+        else if( padShape->m_width > 0 || padShape->m_height > 0 )
         {
             D_PAD* pad = new D_PAD( aModule );
             aModule->m_Pads.PushBack( pad );
 
             pad->SetPadName( m_name.text );
 
-            if( padShape->m_shape == wxT( "Oval" ) )
+            if( padShape->m_shape == wxT( "Oval" )
+                || padShape->m_shape == wxT( "Ellipse" )
+                || padShape->m_shape == wxT( "MtHole" ) )
             {
                 if( padShape->m_width != padShape->m_height )
                     pad->SetShape( PAD_OVAL );
                 else
                     pad->SetShape( PAD_CIRCLE );
             }
-            else if( padShape->m_shape == wxT( "Ellipse" ) )
-                pad->SetShape( PAD_OVAL );
             else if( padShape->m_shape == wxT( "Rect" )
                      || padShape->m_shape == wxT( "RndRect" ) )
                 pad->SetShape( PAD_RECT );

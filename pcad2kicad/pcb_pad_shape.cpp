@@ -81,6 +81,7 @@ void PCB_PAD_SHAPE::Parse( XNODE*       aNode,
     if( m_shape == wxT( "Oval" )
         || m_shape == wxT( "Rect" )
         || m_shape == wxT( "Ellipse" )
+        || m_shape == wxT( "MtHole" )
         || m_shape == wxT( "RndRect" ) )
     {
         lNode = FindNode( aNode, wxT( "shapeWidth" ) );
@@ -95,8 +96,7 @@ void PCB_PAD_SHAPE::Parse( XNODE*       aNode,
             SetWidth(
                 lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_height, aActualConversion );
     }
-
-    if( m_shape == wxT( "Polygon" ) )
+    else if( m_shape == wxT( "Polygon" ) )
     {
         // aproximation to simplier pad shape .....
         lNode = FindNode( aNode, wxT( "shapeOutline" ) );

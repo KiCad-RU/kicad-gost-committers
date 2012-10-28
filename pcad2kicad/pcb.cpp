@@ -488,11 +488,11 @@ void PCB::MapLayer( XNODE* aNode )
     {
         layerType = FindNode( aNode, wxT( "layerType" ) )->GetNodeContent().Trim( false );
 
-        if( layerType == "NonSignal" )
+        if( layerType == wxT( "NonSignal" ) )
             m_layersMap[(int) num].layerType = LAYER_TYPE_NONSIGNAL;
-        if( layerType == "Signal" )
+        if( layerType == wxT( "Signal" ) )
             m_layersMap[(int) num].layerType = LAYER_TYPE_SIGNAL;
-        if( layerType == "Plane" )
+        if( layerType == wxT( "Plane" ) )
             m_layersMap[(int) num].layerType = LAYER_TYPE_PLANE;
     }
 }

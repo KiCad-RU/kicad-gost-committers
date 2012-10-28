@@ -47,10 +47,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
     FILE* fp = wxFopen( aFileName, wxT( "rt" ) );
 
     if( !fp )
-    {
-        str.Printf( _( "Unable to open file '%s'" ), aFileName.GetData() );
-        THROW_IO_ERROR( str );
-    }
+        THROW_IO_ERROR( wxT( "Unable to open file: " ) + aFileName );
 
     // lexer now owns fp, will close on exception or return
     DSNLEXER lexer( empty_keywords, 0, fp,  aFileName );
@@ -82,7 +79,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
         {
             tok = lexer.NextTok();
             str = wxEmptyString;
-            cNode = new XNODE( wxXML_ELEMENT_NODE, lexer.CurText() );
+            cNode = new XNODE( wxXML_ELEMENT_NODE, FROM_UTF8( lexer.CurText() ) );
             iNode->AddChild( cNode );
             iNode = cNode;
             growing = true;
@@ -90,7 +87,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
         else
         {
             str += wxT( ' ' );
-            str += lexer.CurText();
+            str += FROM_UTF8( lexer.CurText() );
             if( tok == DSN_STRING )
                 attr = true;
         }
