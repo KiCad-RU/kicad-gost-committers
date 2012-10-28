@@ -30,6 +30,7 @@
 #include <wx/wx.h>
 #include <wx/config.h>
 #include <trigo.h>
+#include <stdint.h>
 
 #include <pcb_pad.h>
 
@@ -52,116 +53,6 @@ PCB_PAD::~PCB_PAD()
     {
         delete m_shapes[i];
     }
-}
-
-
-int PCB_PAD::ToInt( char aChar )
-{
-    if( aChar >= wxT( '0' ) && aChar <= wxT( '9' ) )
-        return aChar - wxT( '0' );
-    else
-        return aChar - wxT( 'A' ) + 10;
-}
-
-
-// The former mentioned here that the following implementation needs to be revised
-char PCB_PAD::OrMask( char aM1, char aM2 )
-{
-    wxString    s;
-    int         i;
-
-    if( aM1 == aM2 )
-        return aM1;
-
-    i   = ToInt( aM1 );
-    i   += ToInt( aM2 );
-    s   = wxString::Format( wxT( "%X" ), i );
-    return s[0];
-}
-
-
-/*
- *  0 Copper layer
- *  1 to 14   Inner layers
- *  15 Component layer
- *  16 Copper side adhesive layer    Technical layers
- *  17 Component side adhesive layer
- *  18 Copper side Solder paste layer
- *  19 Component Solder paste layer
- *  20 Copper side Silk screen layer
- *  21 Component Silk screen layer
- *  22 Copper side Solder mask layer
- *  23 Component Solder mask layer
- *  24 Draw layer (Used for general drawings)
- *  25 Comment layer (Other layer used for general drawings)
- *  26 ECO1 layer (Other layer used for general drawings)
- *  26 ECO2 layer (Other layer used for general drawings)
- *  27 Edge layer. Items on Edge layer are seen on all layers
- */
-
-wxString PCB_PAD::KiCadLayerMask( wxString aMask, int aLayer )
-{
-    wxString    newmask;
-    int         i;
-
-    /* Sometimes, a mask layer parameter is used.
-     *  It is a 32 bits mask used to indicate a layer group usage (0 up to 32 layers).
-     *  A mask layer parameter is given in hexadecimal form.
-     *  Bit 0 is the copper layer, bit 1 is the inner 1 layer,
-     *   and so on...(Bit 27 is the Edge layer).
-     *  Mask layer is the ORed mask of the used layers */
-
-    newmask = wxT( "00000000" );        // default
-
-    if( aLayer == 0 )
-        newmask = wxT( "00000001" );
-
-    if( aLayer == 15 )
-        newmask = wxT( "00008000" );
-
-    if( aLayer == 16 )
-        newmask = wxT( "00010000" );
-
-    if( aLayer == 17 )
-        newmask = wxT( "00020000" );
-
-    if( aLayer == 18 )
-        newmask = wxT( "00040000" );
-
-    if( aLayer == 19 )
-        newmask = wxT( "00080000" );
-
-    if( aLayer == 20 )
-        newmask = wxT( "00100000" );
-
-    if( aLayer == 21 )
-        newmask = wxT( "00200000" );
-
-    if( aLayer == 22 )
-        newmask = wxT( "00400000" );
-
-    if( aLayer == 23 )
-        newmask = wxT( "00800000" );
-
-    if( aLayer == 24 )
-        newmask = wxT( "01000000" );
-
-    if( aLayer == 25 )
-        newmask = wxT( "02000000" );
-
-    if( aLayer == 26 )
-        newmask = wxT( "04000000" );
-
-    if( aLayer == 27 )
-        newmask = wxT( "08000000" );
-
-    if( aLayer == 28 )
-        newmask = wxT( "10000000" );
-
-    for( i = 0; i < 8; i++ )
-        newmask[i] = OrMask( aMask[i], newmask[i] );
-
-    return newmask;
 }
 
 
@@ -280,124 +171,111 @@ void PCB_PAD::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
 void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
 {
     PCB_PAD_SHAPE*  padShape;
-    wxString        s, layerMask, padType;
-    int             i, lc, ls;
+    wxString        padShapeName = wxT( "Ellipse" );
+    wxString        s, padType;
+    uint32_t        layerMask;
+    int             i;
+    int             width = 0;
+    int             height = 0;
 
-    // Library
-    lc = 0; ls = 0;
-
-    // Is it SMD pad , or not ?
-    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    if( !m_isHolePlated && m_hole )
     {
-        padShape = m_shapes[i];
+        aFile->Write( wxT( "$PAD\n" ) );
 
-        if( padShape->m_width > 0 && padShape->m_height > 0 )
-        {
-            if( padShape->m_KiCadLayer == 15 )
-                lc++; // Component
+        // Name, Shape, Xsize Ysize Xdelta Ydelta Orientation
+        aFile->Write( wxT( "Sh \"" ) + m_name.text + wxT( "\" " ) + s +
+                      wxString::Format( wxT( " %d %d 0 0 %d\n" ),
+                                        m_hole, m_hole, m_rotation + aRotation ) );
 
-            if( padShape->m_KiCadLayer == 0 )
-                ls++; // Cooper
-        }
+        // Hole size , OffsetX, OffsetY
+        aFile->Write( wxString::Format( wxT( "Dr %d 0 0\n" ), m_hole ) );
+
+        layerMask = ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT;
+
+        // <Pad type> N <layer mask>
+        aFile->Write( wxT( "At HOLE N " ) + wxString::Format( wxT( "%8X" ), layerMask ) +
+                      wxT( "\n" ) );
+
+        // Reference
+        aFile->Write( wxT( "Ne 0 \"\"\n" ) );
+
+        // Position
+        aFile->Write( wxString::Format( wxT( "Po %d %d\n" ), m_positionX, m_positionY ) );
+        aFile->Write( wxT( "$EndPAD\n" ) );
     }
-
-    // And default layers mask
-    layerMask   = wxT( "00C08001" ); // Comp,Coop,SoldCmp,SoldCoop
-    padType     = wxT( "STD" );
-
-    if( lc == 0 || ls == 0 )
+    else
     {
-        if( m_hole == 0 )
+        ( m_hole ) ? padType = wxT( "STD" ) : padType = wxT( "SMD" );
+
+        // form layer mask
+        layerMask = 0;
+        for( i = 0; i < (int) m_shapes.GetCount(); i++ )
         {
-            padType = wxT( "SMD" );
+            padShape = m_shapes[i];
 
-            if( ls > 0 )
-                layerMask = wxT( "00440001" );
-
-            if( lc > 0 )
-                layerMask = wxT( "00888000" );
-        }
-        else
-        {
-            if( ls > 0 )
-                layerMask = wxT( "00400001" );
-
-            if( lc > 0 )
-                layerMask = wxT( "00808000" );
-        }
-    }
-
-    // Go out
-    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
-    {
-        padShape = m_shapes[i];
-
-        if( !m_isHolePlated && m_hole > 0 )
-        {
-            aFile->Write( wxT( "$PAD\n" ) );
-
-            // Name, Shape, Xsize Ysize Xdelta Ydelta Orientation
-            aFile->Write( wxT( "Sh \"" ) + m_name.text + wxT( "\" " ) + s +
-                          wxString::Format( wxT( " %d %d 0 0 %d\n" ),
-                                            padShape->m_width, padShape->m_height, m_rotation +
-                                            aRotation ) );
-
-            // Hole size , OffsetX, OffsetY
-            aFile->Write( wxString::Format( wxT( "Dr %d 0 0\n" ), m_hole ) );
-
-            layerMask = wxString::Format( wxT( "%8X" ), ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT );
-
-            // <Pad type> N <layer mask>
-            aFile->Write( wxT( "At HOLE N " ) + layerMask + wxT( "\n" ) );
-
-            // Reference
-            aFile->Write( wxT( "Ne 0 \"\"\n" ) );
-
-            // Position
-            aFile->Write( wxString::Format( wxT( "Po %d %d\n" ), m_positionX, m_positionY ) );
-            aFile->Write( wxT( "$EndPAD\n" ) );
-        }
-        // maybe should not to be filtered ????
-        else if( padShape->m_width > 0 || padShape->m_height > 0 )
-        {
-            if( padShape->m_shape == wxT( "Oval" )
-                || padShape->m_shape == wxT( "Ellipse" )
-                || padShape->m_shape == wxT( "MtHole" ) )
+            if( padShape->m_width > 0 && padShape->m_height > 0 )
             {
-                if( padShape->m_width != padShape->m_height )
-                    s = wxT( "O" );
-                else
-                    s = wxT( "C" );
+                if( padShape->m_KiCadLayer == LAYER_N_FRONT
+                    || padShape->m_KiCadLayer == LAYER_N_BACK )
+                {
+                    padShapeName = padShape->m_shape;
+                    width = padShape->m_width;
+                    height = padShape->m_height;
+
+                    // assume this is SMD pad
+                    if( padShape->m_KiCadLayer == LAYER_N_FRONT )
+                        layerMask = LAYER_FRONT | SOLDERPASTE_LAYER_FRONT | SOLDERMASK_LAYER_FRONT;
+                    else
+                        layerMask = LAYER_BACK | SOLDERPASTE_LAYER_BACK | SOLDERMASK_LAYER_BACK;
+
+                    break;
+                }
             }
-            else if( padShape->m_shape == wxT( "Rect" )
-                     || padShape->m_shape == wxT( "RndRect" ) )
-                s = wxT( "R" );
-            else if( padShape->m_shape == wxT( "Polygon" ) )
-                s = wxT( "R" ); // approximation.....
-
-            aFile->Write( wxT( "$PAD\n" ) );
-
-            // Name, Shape, Xsize Ysize Xdelta Ydelta Orientation
-            aFile->Write( wxT( "Sh \"" ) + m_name.text + wxT( "\" " ) + s +
-                          wxString::Format( wxT( " %d %d 0 0 %d\n" ),
-                                            padShape->m_width, padShape->m_height, m_rotation +
-                                            aRotation ) );
-
-            // Hole size , OffsetX, OffsetY
-            aFile->Write( wxString::Format( wxT( "Dr %d 0 0\n" ), m_hole ) );
-
-            layerMask = KiCadLayerMask( layerMask, padShape->m_KiCadLayer );
-
-            // <Pad type> N <layer mask>
-            aFile->Write( wxT( "At " ) + padType + wxT( " N " ) + layerMask + wxT( "\n" ) );
-
-            // Reference
-            aFile->Write( wxT( "Ne 0 \"" ) + m_net + wxT( "\"\n" ) );
-
-            // Position
-            aFile->Write( wxString::Format( wxT( "Po %d %d\n" ), m_positionX, m_positionY ) );
-            aFile->Write( wxT( "$EndPAD\n" ) );
         }
+
+        if( padType == wxT( "STD" ) )
+            // actually this is a thru-hole pad
+            layerMask = ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT;
+
+        if( width == 0 || height == 0 )
+            THROW_IO_ERROR( wxT( "pad with zero size" ) );
+
+
+        if( padShapeName == wxT( "Oval" )
+            || padShapeName == wxT( "Ellipse" )
+            || padShapeName == wxT( "MtHole" ) )
+        {
+            if( width != height )
+                s = wxT( "O" );
+            else
+                s = wxT( "C" );
+        }
+        else if( padShapeName == wxT( "Rect" )
+                 || padShapeName == wxT( "RndRect" ) )
+            s = wxT( "R" );
+        else if( padShapeName == wxT( "Polygon" ) )
+            s = wxT( "R" ); // approximation.....
+
+        aFile->Write( wxT( "$PAD\n" ) );
+
+        // Name, Shape, Xsize Ysize Xdelta Ydelta Orientation
+        aFile->Write( wxT( "Sh \"" ) + m_name.text + wxT( "\" " ) + s +
+                      wxString::Format( wxT( " %d %d 0 0 %d\n" ),
+                                        width, height, m_rotation + aRotation ) );
+
+        // Hole size , OffsetX, OffsetY
+        aFile->Write( wxString::Format( wxT( "Dr %d 0 0\n" ), m_hole ) );
+
+        // <Pad type> N <layer mask>
+        aFile->Write( wxT( "At " ) + padType + wxT( " N " ) +
+                          wxString::Format( wxT( "%8X" ), layerMask ) + wxT( "\n" ) );
+
+        // Reference
+        aFile->Write( wxT( "Ne 0 \"" ) + m_net + wxT( "\"\n" ) );
+
+        // Position
+        aFile->Write( wxString::Format( wxT( "Po %d %d\n" ), m_positionX, m_positionY ) );
+        aFile->Write( wxT( "$EndPAD\n" ) );
     }
 }
 
@@ -405,127 +283,111 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
 void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
 {
     PCB_PAD_SHAPE*  padShape;
-    wxString        s;
+    wxString        padShapeName = wxT( "Ellipse" );
     PAD_ATTR_T      padType;
-    unsigned long   layerMask;
-    int             i, lc, ls;
+    int             i;
+    int             width = 0;
+    int             height = 0;
 
-    // Library
-    lc = 0; ls = 0;
-
-    // Is it SMD pad , or not ?
-    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    if( !m_isHolePlated && m_hole )
     {
-        padShape = m_shapes[i];
+        // mechanical hole
+        D_PAD* pad = new D_PAD( aModule );
+        aModule->m_Pads.PushBack( pad );
 
-        if( padShape->m_width > 0 && padShape->m_height > 0 )
-        {
-            if( padShape->m_KiCadLayer == 15 )
-                lc++; // Component
+        pad->SetShape( PAD_CIRCLE );
+        pad->SetAttribute( PAD_HOLE_NOT_PLATED );
 
-            if( padShape->m_KiCadLayer == 0 )
-                ls++; // Cooper
-        }
+        pad->SetDrillShape( PAD_CIRCLE );
+        pad->SetDrillSize( wxSize( m_hole, m_hole ) );
+        pad->SetSize( wxSize( m_hole, m_hole ) );
+
+        // pad's "Position" is not relative to the module's,
+        // whereas Pos0 is relative to the module's but is the unrotated coordinate.
+        wxPoint padpos( m_positionX, m_positionY );
+        pad->SetPos0( padpos );
+        RotatePoint( &padpos, aModule->GetOrientation() );
+        pad->SetPosition( padpos + aModule->GetPosition() );
+
+        pad->SetLayerMask( ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT );
     }
-
-    // And default layers mask
-    layerMask   = 0x00C08001; // Comp,Coop,SoldCmp,SoldCoop
-    padType     = PAD_STANDARD;
-
-    if( lc == 0 || ls == 0 )
+    else
     {
-        if( m_hole == 0 )
+        D_PAD* pad = new D_PAD( aModule );
+        aModule->m_Pads.PushBack( pad );
+
+        ( m_hole ) ? padType = PAD_STANDARD : padType = PAD_SMD;
+
+        // form layer mask
+        for( i = 0; i < (int) m_shapes.GetCount(); i++ )
         {
-            padType = PAD_SMD;
+            padShape = m_shapes[i];
 
-            if( ls > 0 )
-                layerMask = 0x00440001;
-
-            if( lc > 0 )
-                layerMask = 0x00888000;
-        }
-        else
-        {
-            if( ls > 0 )
-                layerMask = 0x00400001;
-
-            if( lc > 0 )
-                layerMask = 0x00808000;
-        }
-    }
-
-    // Go out
-    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
-    {
-        padShape = m_shapes[i];
-
-        if( !m_isHolePlated && m_hole > 0 )
-        {
-            D_PAD* pad = new D_PAD( aModule );
-            aModule->m_Pads.PushBack( pad );
-
-            pad->SetShape( PAD_CIRCLE );
-            pad->SetAttribute( PAD_HOLE_NOT_PLATED );
-
-            pad->SetDrillShape( PAD_CIRCLE );
-            pad->SetDrillSize( wxSize( m_hole, m_hole ) );
-            pad->SetSize( wxSize( m_hole, m_hole ) );
-
-            // pad's "Position" is not relative to the module's,
-            // whereas Pos0 is relative to the module's but is the unrotated coordinate.
-            wxPoint padpos( m_positionX, m_positionY );
-            pad->SetPos0( padpos );
-            RotatePoint( &padpos, aModule->GetOrientation() );
-            pad->SetPosition( padpos + aModule->GetPosition() );
-
-            pad->SetLayerMask( ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT );
-        }
-        // maybe should not to be filtered ????
-        else if( padShape->m_width > 0 || padShape->m_height > 0 )
-        {
-            D_PAD* pad = new D_PAD( aModule );
-            aModule->m_Pads.PushBack( pad );
-
-            pad->SetPadName( m_name.text );
-
-            if( padShape->m_shape == wxT( "Oval" )
-                || padShape->m_shape == wxT( "Ellipse" )
-                || padShape->m_shape == wxT( "MtHole" ) )
+            if( padShape->m_width > 0 && padShape->m_height > 0 )
             {
-                if( padShape->m_width != padShape->m_height )
-                    pad->SetShape( PAD_OVAL );
-                else
-                    pad->SetShape( PAD_CIRCLE );
+                if( padShape->m_KiCadLayer == LAYER_N_FRONT
+                    || padShape->m_KiCadLayer == LAYER_N_BACK )
+                {
+                    padShapeName = padShape->m_shape;
+                    width = padShape->m_width;
+                    height = padShape->m_height;
+
+                    // assume this is SMD pad
+                    if( padShape->m_KiCadLayer == LAYER_N_FRONT )
+                        pad->SetLayerMask( LAYER_FRONT | SOLDERPASTE_LAYER_FRONT |
+                                           SOLDERMASK_LAYER_FRONT );
+                    else
+                        pad->SetLayerMask( LAYER_BACK | SOLDERPASTE_LAYER_BACK |
+                                           SOLDERMASK_LAYER_BACK );
+
+                    break;
+                }
             }
-            else if( padShape->m_shape == wxT( "Rect" )
-                     || padShape->m_shape == wxT( "RndRect" ) )
-                pad->SetShape( PAD_RECT );
-            else if( padShape->m_shape == wxT( "Polygon" ) )
-                pad->SetShape( PAD_RECT ); // approximation
-
-            pad->SetSize( wxSize( padShape->m_width, padShape->m_height ) );
-            pad->SetDelta( wxSize( 0, 0 ) );
-            pad->SetOrientation( m_rotation + aRotation );
-
-            pad->SetDrillShape( PAD_CIRCLE );
-            pad->SetOffset( wxPoint( 0, 0 ) );
-            pad->SetDrillSize( wxSize( m_hole, m_hole ) );
-
-            layerMask = KiCadLayerMask( layerMask, padShape->m_KiCadLayer );
-
-            pad->SetLayerMask( layerMask );
-            pad->SetAttribute( padType );
-
-            pad->SetNet( 0 );
-            pad->SetNetname( m_net );
-
-            // pad's "Position" is not relative to the module's,
-            // whereas Pos0 is relative to the module's but is the unrotated coordinate.
-            wxPoint padpos( m_positionX, m_positionY );
-            pad->SetPos0( padpos );
-            RotatePoint( &padpos, aModule->GetOrientation() );
-            pad->SetPosition( padpos + aModule->GetPosition() );
         }
+
+        if( padType == PAD_STANDARD )
+            // actually this is a thru-hole pad
+            pad->SetLayerMask( ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT );
+
+        if( width == 0 || height == 0 )
+            THROW_IO_ERROR( wxT( "pad with zero size" ) );
+
+        pad->SetPadName( m_name.text );
+
+        if( padShapeName == wxT( "Oval" )
+            || padShapeName == wxT( "Ellipse" )
+            || padShapeName == wxT( "MtHole" ) )
+        {
+            if( width != height )
+                pad->SetShape( PAD_OVAL );
+            else
+                pad->SetShape( PAD_CIRCLE );
+        }
+        else if( padShapeName == wxT( "Rect" )
+                 || padShapeName == wxT( "RndRect" ) )
+            pad->SetShape( PAD_RECT );
+        else if( padShapeName == wxT( "Polygon" ) )
+            pad->SetShape( PAD_RECT ); // approximation
+
+        pad->SetSize( wxSize( width, height ) );
+        pad->SetDelta( wxSize( 0, 0 ) );
+        pad->SetOrientation( m_rotation + aRotation );
+
+        pad->SetDrillShape( PAD_CIRCLE );
+        pad->SetOffset( wxPoint( 0, 0 ) );
+        pad->SetDrillSize( wxSize( m_hole, m_hole ) );
+
+        pad->SetAttribute( padType );
+
+        pad->SetNet( 0 );
+        pad->SetNetname( m_net );
+
+        // pad's "Position" is not relative to the module's,
+        // whereas Pos0 is relative to the module's but is the unrotated coordinate.
+        wxPoint padpos( m_positionX, m_positionY );
+        pad->SetPos0( padpos );
+        RotatePoint( &padpos, aModule->GetOrientation() );
+        pad->SetPosition( padpos + aModule->GetPosition() );
     }
 }
 
@@ -534,31 +396,47 @@ void PCB_PAD::AddToBoard()
 {
     PCB_PAD_SHAPE*  padShape;
     int             i;
+    int             width = 0;
+    int             height = 0;
 
+    // choose one of the shapes
     for( i = 0; i < (int) m_shapes.GetCount(); i++ )
     {
         padShape = m_shapes[i];
 
-        // maybe should not to be filtered ????
-        if( IsValidCopperLayerIndex( m_KiCadLayer )
-            && ( padShape->m_width > 0 || padShape->m_height > 0 ) )
+        if( padShape->m_width > 0 && padShape->m_height > 0 )
         {
-            SEGVIA* via = new SEGVIA( m_board );
-            m_board->m_Track.Append( via );
+            if( padShape->m_KiCadLayer == LAYER_N_FRONT
+                || padShape->m_KiCadLayer == LAYER_N_BACK )
+            {
+                width = padShape->m_width;
+                height = padShape->m_height;
 
-            via->SetTimeStamp( 0 );
-
-            via->SetPosition( wxPoint( m_positionX, m_positionY ) );
-            via->SetEnd( wxPoint( m_positionX, m_positionY ) );
-
-            via->SetWidth( padShape->m_height );
-            via->SetShape( VIA_THROUGH );
-            ( (SEGVIA*) via )->SetLayerPair( LAYER_N_FRONT, LAYER_N_BACK );
-            via->SetDrill( m_hole );
-
-            via->SetLayer( m_KiCadLayer );
-            via->SetNet( 0 );
+                break;
+            }
         }
+    }
+
+    if( width == 0 || height == 0 )
+        THROW_IO_ERROR( wxT( "pad or via with zero size" ) );
+
+    if( IsValidCopperLayerIndex( m_KiCadLayer ) )
+    {
+        SEGVIA* via = new SEGVIA( m_board );
+        m_board->m_Track.Append( via );
+
+        via->SetTimeStamp( 0 );
+
+        via->SetPosition( wxPoint( m_positionX, m_positionY ) );
+        via->SetEnd( wxPoint( m_positionX, m_positionY ) );
+
+        via->SetWidth( height );
+        via->SetShape( VIA_THROUGH );
+        ( (SEGVIA*) via )->SetLayerPair( LAYER_N_FRONT, LAYER_N_BACK );
+        via->SetDrill( m_hole );
+
+        via->SetLayer( m_KiCadLayer );
+        via->SetNet( 0 );
     }
 }
 
