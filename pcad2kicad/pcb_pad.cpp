@@ -56,24 +56,6 @@ PCB_PAD::~PCB_PAD()
 }
 
 
-unsigned long PCB_PAD::KiCadLayerMask( unsigned long aMask, int aLayer )
-{
-    unsigned long newMask;
-
-    newMask = 1 << aLayer;
-
-    if( !IsValidLayerIndex( aLayer ) )
-        newMask = 0;
-
-    if( aLayer == FIRST_COPPER_LAYER )
-        newMask = 1;
-
-    newMask |= aMask;
-
-    return newMask;
-}
-
-
 void PCB_PAD::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
                      wxString aActualConversion )
 {

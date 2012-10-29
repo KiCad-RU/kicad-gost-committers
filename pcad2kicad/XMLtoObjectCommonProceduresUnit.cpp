@@ -220,20 +220,9 @@ int StrToInt1Units( wxString aStr )
 
 wxString ValidateName( wxString aName )
 {
-    wxString    o;
-    int         i;
+    aName.Replace( wxT( " " ), wxT( "_" ) );
 
-    o = wxEmptyString;
-
-    for( i = 0; i < (int) aName.Len(); i++ )
-    {
-        if( aName[i] == wxT( ' ' ) )
-            o += wxT( '_' );
-        else
-            o += aName[i];
-    }
-
-    return o;
+    return aName;
 }
 
 

@@ -54,12 +54,6 @@ public:
     virtual void    WriteToFile( wxFile* aFile, char aFileType, int aRotation );
     void            AddToModule( MODULE* aModule, int aRotation );
     void            AddToBoard();
-
-private:
-    int             ToInt( char aChar );
-    char            OrMask( char aM1, char aM2 );
-    wxString        KiCadLayerMask( wxString aMask, int aLayer );
-    unsigned long   KiCadLayerMask( unsigned long aMask, int aLayer );
 };
 
 } // namespace PCAD2KICAD

@@ -122,7 +122,7 @@ XNODE* PCB::FindCompDefName( XNODE* aNode, wxString aName )
         {
             lNode->GetAttribute( wxT( "Name" ), &propValue );
 
-            if( ValidateName( propValue ) == aName )
+            if( propValue == aName )
             {
                 result  = lNode;
                 lNode   = NULL;
