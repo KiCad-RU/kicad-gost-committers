@@ -43,6 +43,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
     wxString  str;
     bool      growing = false;
     bool      attr = false;
+    wxCSConv  conv( wxT( "windows-1251" ) );
 
     FILE* fp = wxFopen( aFileName, wxT( "rt" ) );
 
@@ -79,7 +80,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
         {
             tok = lexer.NextTok();
             str = wxEmptyString;
-            cNode = new XNODE( wxXML_ELEMENT_NODE, FROM_UTF8( lexer.CurText() ) );
+            cNode = new XNODE( wxXML_ELEMENT_NODE, wxString( lexer.CurText(), conv ) );
             iNode->AddChild( cNode );
             iNode = cNode;
             growing = true;
@@ -87,7 +88,7 @@ void LoadInputFile( wxString aFileName, wxXmlDocument* aXmlDoc )
         else
         {
             str += wxT( ' ' );
-            str += FROM_UTF8( lexer.CurText() );
+            str += wxString( lexer.CurText(), conv );
             if( tok == DSN_STRING )
                 attr = true;
         }
