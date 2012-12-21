@@ -5,6 +5,7 @@
 #ifndef PCBPLOT_H_
 #define PCBPLOT_H_
 
+#include <wx/filename.h>
 #include <pad_shapes.h>
 #include <pcb_plot_params.h>
 
@@ -18,7 +19,6 @@ class PCB_TARGET;
 class TEXTE_MODULE;
 class ZONE_CONTAINER;
 class BOARD;
-
 
 // Shared Config keys for plot and print
 #define OPTKEY_LAYERBASE             wxT( "PlotLayer_%d" )
@@ -126,14 +126,14 @@ private:
      * the drill mark size depending on the current plot options
      */
     void plotOneDrillMark( PAD_SHAPE_T aDrillShape,
-                           const wxPoint &aDrillPos, wxSize aDrillSize,
-                           const wxSize &aPadSize,
+                           const wxPoint& aDrillPos, wxSize aDrillSize,
+                           const wxSize& aPadSize,
                            double aOrientation, int aSmallDrill );
 
 };
 
-PLOTTER *StartPlotBoard( BOARD *aBoard,
-                         PCB_PLOT_PARAMS *aPlotOpts,
+PLOTTER* StartPlotBoard( BOARD* aBoard,
+                         PCB_PLOT_PARAMS* aPlotOpts,
                          const wxString& aFullFileName,
                          const wxString& aSheetDesc );
 
@@ -147,7 +147,7 @@ PLOTTER *StartPlotBoard( BOARD *aBoard,
  * @param aLayer = the layer id to plot
  * @param aPlotOpt = the plot options (files, sketch). Has meaning for some formats only
  */
-void PlotOneBoardLayer( BOARD *aBoard, PLOTTER* aPlotter, int aLayer,
+void PlotOneBoardLayer( BOARD* aBoard, PLOTTER* aPlotter, int aLayer,
                         const PCB_PLOT_PARAMS& aPlotOpt );
 
 /**
@@ -171,7 +171,7 @@ void PlotOneBoardLayer( BOARD *aBoard, PLOTTER* aPlotter, int aLayer,
  *      SetDrillMarksType( DrillMarksType aVal ) controle the actual hole:
  *              no hole, small hole, actual hole
  */
-void PlotStandardLayer( BOARD *aBoard, PLOTTER* aPlotter, long aLayerMask,
+void PlotStandardLayer( BOARD* aBoard, PLOTTER* aPlotter, long aLayerMask,
                         const PCB_PLOT_PARAMS& aPlotOpt );
 
 /**
@@ -183,9 +183,39 @@ void PlotStandardLayer( BOARD *aBoard, PLOTTER* aPlotter, long aLayerMask,
  * @param aLayerMask = the mask to define the layers to plot (silkscreen Front and/or Back)
  * @param aPlotOpt = the plot options (files, sketch). Has meaning for some formats only
  */
-void PlotSilkScreen( BOARD *aBoard, PLOTTER* aPlotter, long aLayerMask,
+void PlotSilkScreen( BOARD* aBoard, PLOTTER* aPlotter, long aLayerMask,
                      const PCB_PLOT_PARAMS&  aPlotOpt );
 
+
+/**
+ * Function EnsureOutputDirectory (helper function)
+ * Fix the output directory pathname to absolute and ensure it exists
+ * (Creates it if not exists)
+ * @param aOutputDir = the wxFileName to modify
+ *          (contains the absolute or relative to the board path
+ * @param aBoardFilename = the board full filename
+ * @param aMessageBox = a wxMessageBox to show meesage (can be NULL)
+ */
+bool EnsureOutputDirectory( wxFileName* aOutputDir,
+                            const wxString& aBoardFilename,
+                            wxTextCtrl* aMessageBox );
+
+/**
+ * Function BuildPlotFileName (helper function)
+ * Complete a plot filename: forces the output directory,
+ * add a suffix to the name and sets the specified extension
+ * the suffix is usually the layer name
+ * replaces not allowed chars in suffix by '_'
+ * @param aFilename = the wxFileName to initialize
+ *                  Contians the base filename
+ * @param aOutputDir = the path
+ * @param aSuffix = the suffix to add to the base filename
+ * @param aExtension = the file extension
+ */
+void BuildPlotFileName( wxFileName* aFilename,
+                               const wxString& aOutputDir,
+                               const wxString& aSuffix,
+                               const wxString& aExtension );
 
 // PLOTGERB.CPP
 void SelectD_CODE_For_LineDraw( PLOTTER* plotter, int aSize );

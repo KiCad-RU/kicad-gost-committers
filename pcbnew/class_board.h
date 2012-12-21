@@ -19,8 +19,6 @@
 #include <class_zone_settings.h>
 #include <pcb_plot_params.h>
 
-#include <wx/hashmap.h>
-
 
 class PCB_BASE_FRAME;
 class PCB_EDIT_FRAME;
@@ -34,10 +32,9 @@ class MARKER_PCB;
 
 
 // non-owning container of item candidates when searching for items on the same track.
-typedef std::vector< TRACK* > TRACK_PTRS;
+typedef std::vector< TRACK* >   TRACK_PTRS;
 
-
-#define HISTORY_MAX_COUNT 8
+#define HISTORY_MAX_COUNT       8
 
 
 /**
@@ -101,22 +98,10 @@ public:
      */
     static LAYER_T     ParseType( const char* aType );
 
-    /**
-     * Function GetDefaultIndex
-     * returns the layer index of the layer \a aName.
-     *
-     * @param aName A reference to a wxString object containing the default layer name.
-     * @return The index of the layer \a aName if found otherwise #UNDEFINED_LAYER_INDEX.
-     */
-    static int         GetDefaultIndex( const wxString& aName );
-
 private:
-    bool m_visible;
-    int m_fixedListIndex;
+    bool    m_visible;
+    int     m_fixedListIndex;
 };
-
-
-WX_DECLARE_STRING_HASH_MAP( int, LAYER_INDEX_HASH_MAP );
 
 
 /**
@@ -1267,9 +1252,9 @@ public:
      * @param aTrace The segment within a list of trace segments to test.
      * @param aCount A pointer to an integer where to return the number of
      *               marked segments.
-     * @param aTraceLength A pointer to an integer where to return the length of the
+     * @param aTraceLength A pointer to an double where to return the length of the
      *                     trace.
-     * @param aDieLength A pointer to an integer where to return the extra lengths inside
+     * @param aInPackageLength A pointer to an double where to return the extra lengths inside
      *                   integrated circuits from the pads connected to this track to the
      *                   die (if any).
      * @param aReorder true for reorder the interesting segments (useful for
@@ -1279,8 +1264,8 @@ public:
      *                 track length in this case, flags are reset
      * @return TRACK* The first in the chain of interesting segments.
      */
-    TRACK* MarkTrace( TRACK* aTrace, int* aCount, int* aTraceLength,
-                      int* aDieLength, bool aReorder );
+    TRACK* MarkTrace( TRACK* aTrace, int* aCount, double* aTraceLength,
+                      double* aInPackageLength, bool aReorder );
 
     /**
      * Function GetFootprint

@@ -79,8 +79,10 @@ extern void CreateThermalReliefPadPolygon( std::vector<CPolyPt>& aCornerBuffer,
                                            int                   aCircleToSegmentsCount,
                                            double                aCorrectionFactor,
                                            int                   aThermalRot );
-static void AddPolygonCornersToKiPolygonList( std::vector <CPolyPt>& aCornersBuffer,
-                                              KI_POLYGON_SET&        aKiPolyList );
+
+// Exported function
+void AddPolygonCornersToKiPolygonList( std::vector <CPolyPt>& aCornersBuffer,
+                                       KI_POLYGON_SET&        aKiPolyList );
 
 // Local Variables:
 static int s_thermalRot = 450;  // angle of stubs in thermal reliefs for round pads
@@ -137,7 +139,7 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList( BOARD* aPcb )
      * For a circle the min radius is radius * cos( 2PI / s_CircleToSegmentsCount / 2)
      * s_Correction is 1 /cos( PI/s_CircleToSegmentsCount  )
      */
-    s_Correction = 1.0 / cos( 3.14159265 / s_CircleToSegmentsCount );
+    s_Correction = 1.0 / cos( M_PI / s_CircleToSegmentsCount );
 
     // This KI_POLYGON_SET is the area(s) to fill, with m_ZoneMinThickness/2
     KI_POLYGON_SET polyset_zone_solid_areas;
@@ -441,8 +443,9 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList( BOARD* aPcb )
     cornerBufferPolysToSubstract.clear();
 
     // Test thermal stubs connections and add polygons to remove unconnected stubs.
-    BuildUnconnectedThermalStubsPolygonList( cornerBufferPolysToSubstract, aPcb, this,
-                                             s_Correction, s_thermalRot );
+    if( GetNet() > 0 )
+        BuildUnconnectedThermalStubsPolygonList( cornerBufferPolysToSubstract, aPcb, this,
+                                                 s_Correction, s_thermalRot );
 
     // remove copper areas
     if( cornerBufferPolysToSubstract.size() )

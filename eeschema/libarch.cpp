@@ -41,8 +41,6 @@
 #include <class_library.h>
 #include <sch_component.h>
 
-#include <wx/wfstream.h>
-
 
 bool SCH_EDIT_FRAME::CreateArchiveLibrary( const wxString& aFileName )
 {
@@ -78,21 +76,21 @@ bool SCH_EDIT_FRAME::CreateArchiveLibrary( const wxString& aFileName )
         }
     }
 
-    wxFFileOutputStream os( aFileName, wxT( "wt" ) );
+    try
+    {
+        FILE_OUTPUTFORMATTER    formatter( aFileName );
 
-    if( !os.IsOk() )
+        if( !libCache->Save( formatter ) )
+        {
+            msg.Printf( _( "An error occurred attempting to save component library <%s>." ),
+                        GetChars( aFileName ) );
+            DisplayError( this, msg );
+            return false;
+        }
+    }
+    catch( ... /* IO_ERROR ioe */ )
     {
         msg = wxT( "Failed to create component library file " ) + aFileName;
-        DisplayError( this, msg );
-        return false;
-    }
-
-    STREAM_OUTPUTFORMATTER formatter( os );
-
-    if( !libCache->Save( formatter ) )
-    {
-        msg.Printf( _( "An error occurred attempting to save component \
-library <%s>." ), GetChars( aFileName ) );
         DisplayError( this, msg );
         return false;
     }

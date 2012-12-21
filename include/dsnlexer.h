@@ -117,7 +117,9 @@ protected:
     {
         if( reader )
         {
-            unsigned len = reader->ReadLine();
+            reader->ReadLine();
+
+            unsigned len = reader->Length();
 
             // start may have changed in ReadLine(), which can resize and
             // relocate reader's line buffer.
@@ -204,12 +206,14 @@ public:
      *
      * @param aKeywordTable is an array of KEYWORDS holding \a aKeywordCount.  This
      *  token table need not contain the lexer separators such as '(' ')', etc.
+     *
      * @param aKeywordCount is the count of tokens in aKeywordTable.
+     *
      * @param aLineReader is any subclassed instance of LINE_READER, such as
-     *  STRING_LINE_READER or FILE_LINE_READER.
+     *  STRING_LINE_READER or FILE_LINE_READER.  No ownership is taken.
      */
     DSNLEXER( const KEYWORD* aKeywordTable, unsigned aKeywordCount,
-              LINE_READER* aLineReader );
+              LINE_READER* aLineReader = NULL );
 
     virtual ~DSNLEXER();
 

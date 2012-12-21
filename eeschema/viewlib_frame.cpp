@@ -74,6 +74,7 @@ BEGIN_EVENT_TABLE( LIB_VIEW_FRAME, EDA_DRAW_FRAME )
     /* listbox events */
     EVT_LISTBOX( ID_LIBVIEW_LIB_LIST, LIB_VIEW_FRAME::ClickOnLibList )
     EVT_LISTBOX( ID_LIBVIEW_CMP_LIST, LIB_VIEW_FRAME::ClickOnCmpList )
+    EVT_LISTBOX_DCLICK( ID_LIBVIEW_CMP_LIST, LIB_VIEW_FRAME::DClickOnCmpList )
 
     EVT_MENU( ID_SET_RELATIVE_OFFSET, LIB_VIEW_FRAME::OnSetRelativeOffset )
 END_EVENT_TABLE()
@@ -99,10 +100,10 @@ static wxAcceleratorEntry accels[] =
 #define EXTRA_BORDER_SIZE 2
 #define LIB_VIEW_FRAME_NAME wxT( "ViewlibFrame" )
 
-LIB_VIEW_FRAME::LIB_VIEW_FRAME( wxWindow* father, CMP_LIBRARY* Library,
-                                wxSemaphore* semaphore, long style ) :
-    SCH_BASE_FRAME( father, VIEWER_FRAME_TYPE, _( "Library Browser" ),
-                    wxDefaultPosition, wxDefaultSize, style, GetLibViewerFrameName() )
+LIB_VIEW_FRAME::LIB_VIEW_FRAME( SCH_BASE_FRAME* aParent, CMP_LIBRARY* aLibrary,
+                                wxSemaphore* aSemaphore, long aStyle ) :
+    SCH_BASE_FRAME( aParent, VIEWER_FRAME_TYPE, _( "Library Browser" ),
+                    wxDefaultPosition, wxDefaultSize, aStyle, GetLibViewerFrameName() )
 {
     wxAcceleratorTable table( ACCEL_TABLE_CNT, accels );
 
@@ -120,7 +121,7 @@ LIB_VIEW_FRAME::LIB_VIEW_FRAME( wxWindow* father, CMP_LIBRARY* Library,
     m_LibList = NULL;
     m_LibListWindow = NULL;
     m_CmpListWindow = NULL;
-    m_Semaphore     = semaphore;
+    m_Semaphore     = aSemaphore;
     if( m_Semaphore )
         SetModalMode( true );
     m_exportToEeschemaCmpName.Empty();
@@ -145,7 +146,7 @@ LIB_VIEW_FRAME::LIB_VIEW_FRAME( wxWindow* father, CMP_LIBRARY* Library,
 
     wxPoint win_pos( 0, 0 );
 
-    if( Library == NULL )
+    if( aLibrary == NULL )
     {
         // Creates the libraries window display
         m_LibListWindow =
@@ -162,7 +163,7 @@ LIB_VIEW_FRAME::LIB_VIEW_FRAME( wxWindow* father, CMP_LIBRARY* Library,
     }
     else
     {
-        m_libraryName = Library->GetName();
+        m_libraryName = aLibrary->GetName();
         m_entryName.Clear();
         m_unit = 1;
         m_convert = 1;
@@ -312,12 +313,12 @@ void LIB_VIEW_FRAME::OnSashDrag( wxSashEvent& event )
         break;
 
     case ID_LIBVIEW_CMPWINDOW:
-    {
-        wxAuiPaneInfo& pane = m_auimgr.GetPane( m_CmpListWindow );
-        m_CmpListSize.x = event.GetDragRect().width;
-        pane.MinSize( m_CmpListSize );
-        m_auimgr.Update();
-    }
+        {
+            wxAuiPaneInfo& pane = m_auimgr.GetPane( m_CmpListWindow );
+            m_CmpListSize.x = event.GetDragRect().width;
+            pane.MinSize( m_CmpListSize );
+            m_auimgr.Update();
+        }
         break;
     }
 }
@@ -497,6 +498,18 @@ void LIB_VIEW_FRAME::ClickOnCmpList( wxCommandEvent& event )
     }
 }
 
+void LIB_VIEW_FRAME::DClickOnCmpList( wxCommandEvent& event )
+{
+    if( m_Semaphore )
+    {
+        ExportToSchematicLibraryPart( event );
+
+        // Prevent the double click from being as a single click in the parent
+        // window which would cause the part to be parked rather than staying
+        // in drag mode.
+        ((SCH_BASE_FRAME*) GetParent())->SkipNextLeftButtonReleaseEvent();
+    }
+}
 
 void LIB_VIEW_FRAME::ExportToSchematicLibraryPart( wxCommandEvent& event )
 {

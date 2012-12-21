@@ -22,13 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include <wx/filename.h>
 
 #include <io_mgr.h>
 #include <legacy_plugin.h>
 #include <kicad_plugin.h>
 #include <eagle_plugin.h>
 #include <pcad_plugin.h>
-
+#include <wildcards_and_files_ext.h>
 
 #define FMT_UNIMPLEMENTED   _( "Plugin '%s' does not implement the '%s' function." )
 #define FMT_NOTFOUND        _( "Plugin type '%s' is not found." )
@@ -83,19 +84,53 @@ void IO_MGR::PluginRelease( PLUGIN* aPlugin )
 }
 
 
-const wxString IO_MGR::ShowType( PCB_FILE_T aFileType )
+const wxString IO_MGR::ShowType( PCB_FILE_T aType )
 {
-    switch( aFileType )
+    // keep this function in sync with EnumFromStr() relative to the
+    // text spellings.  If you change the spellings, you will obsolete
+    // library tables, so don't do change, only additions are ok.
+
+    switch( aType )
     {
     default:
-        return wxString::Format( _( "Unknown PCB_FILE_T value: %d" ), aFileType );
+        return wxString::Format( _( "Unknown PCB_FILE_T value: %d" ), aType );
 
     case LEGACY:
-        return wxString( wxT( "KiCad Legacy" ) );
+        return wxString( wxT( "Legacy" ) );
 
     case KICAD:
         return wxString( wxT( "KiCad" ) );
+
+    case EAGLE:
+        return wxString( wxT( "Eagle" ) );
+
+    case PCAD:
+        return wxString( wxT( "P-Cad" ) );
     }
+}
+
+
+IO_MGR::PCB_FILE_T IO_MGR::EnumFromStr( const wxString& aType )
+{
+    // keep this function in sync with ShowType() relative to the
+    // text spellings.  If you change the spellings, you will obsolete
+    // library tables, so don't do change, only additions are ok.
+
+    if( aType == wxT( "KiCad" ) )
+        return KICAD;
+
+    if( aType == wxT( "Legacy" ) )
+        return LEGACY;
+
+    if( aType == wxT( "Eagle" ) )
+        return EAGLE;
+
+    if( aType == wxT( "P-Cad" ) )
+        return PCAD;
+
+    // wxASSERT( blow up here )
+
+    return PCB_FILE_T( -1 );
 }
 
 
@@ -111,6 +146,25 @@ const wxString IO_MGR::GetFileExtension( PCB_FILE_T aFileType )
     }
 
     return ext;
+}
+
+
+IO_MGR::PCB_FILE_T IO_MGR::GuessPluginTypeFromLibPath( const wxString& aLibPath )
+{
+    wxFileName  fn = aLibPath;
+    PCB_FILE_T  ret;
+
+    if( fn.GetExt() == LegacyFootprintLibPathExtension )
+        ret = LEGACY;
+    else
+    {
+        // Although KICAD PLUGIN uses libpaths with fixed extension of
+        // KiCadFootprintLibPathExtension, we don't make that assumption since
+        // a default choice is needed.
+        ret = KICAD;
+    }
+
+    return ret;
 }
 
 
@@ -194,7 +248,7 @@ void PLUGIN::FootprintLibCreate( const wxString& aLibraryPath, PROPERTIES* aProp
 }
 
 
-void PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties )
+bool PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties )
 {
     // not pure virtual so that plugins only have to implement subset of the PLUGIN interface.
     THROW_IO_ERROR( wxString::Format( FMT_UNIMPLEMENTED, PluginName().GetData() , __FUNCTION__ ) );

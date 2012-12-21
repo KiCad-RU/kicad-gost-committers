@@ -78,7 +78,6 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
 
     EVT_TOOL( ID_LOAD_FILE, PCB_EDIT_FRAME::Files_io )
     EVT_TOOL( ID_MENU_READ_LAST_SAVED_VERSION_BOARD, PCB_EDIT_FRAME::Files_io )
-    EVT_TOOL( ID_MENU_RECOVER_BOARD, PCB_EDIT_FRAME::Files_io )
     EVT_TOOL( ID_NEW_BOARD, PCB_EDIT_FRAME::Files_io )
     EVT_TOOL( ID_SAVE_BOARD, PCB_EDIT_FRAME::Files_io )
     EVT_TOOL( ID_OPEN_MODULE_EDITOR, PCB_EDIT_FRAME::Process_Special_Functions )
@@ -109,6 +108,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     // menu Config
     EVT_MENU( ID_PCB_DRAWINGS_WIDTHS_SETUP, PCB_EDIT_FRAME::OnConfigurePcbOptions )
     EVT_MENU( ID_CONFIG_REQ, PCB_EDIT_FRAME::Process_Config )
+    EVT_MENU( ID_PCB_LIB_TABLE_EDIT, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU( ID_CONFIG_SAVE, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU( ID_CONFIG_READ, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU_RANGE( ID_PREFERENCES_HOTKEY_START, ID_PREFERENCES_HOTKEY_END,
@@ -777,18 +777,18 @@ void PCB_EDIT_FRAME::UpdateTitle()
     wxString title;
     wxFileName fileName = GetBoard()->GetFileName();
 
+    title.Printf( wxT( "Pcbnew %s " ), GetChars( GetBuildVersion() ) );
+
     if( fileName.IsOk() && fileName.FileExists() )
     {
-        title.Printf( wxT( "Pcbnew %s %s" ), GetChars( GetBuildVersion() ),
-                      GetChars( fileName.GetFullPath() ) );
+        title << fileName.GetFullPath();
 
         if( !fileName.IsFileWritable() )
-            title += _( " [Read Only]" );
+            title << _( " [Read Only]" );
     }
     else
     {
-        title.Printf( wxT( "Pcbnew %s  " ), GetChars( GetBuildVersion() ) );
-        title << _( " [no file]" );
+        title << _( " [new file]" ) << wxT(" ") << fileName.GetFullPath();
     }
 
     SetTitle( title );

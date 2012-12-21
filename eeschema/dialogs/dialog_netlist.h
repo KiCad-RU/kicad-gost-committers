@@ -1,5 +1,5 @@
 /**
- * @file netlist_control.h
+ * @file eeschema/dialogs/dialog_netlist.h
  */
 
 /*
@@ -27,8 +27,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef _NETLIST_CONTROL_H_
-#define _NETLIST_CONTROL_H_
+#ifndef _DIALOG_NETLIST_H_
+#define _DIALOG_NETLIST_H_
 
 #include <dialogs/dialog_netlist_base.h>
 
@@ -59,7 +59,7 @@ enum panel_netlist_index {
                          * others use PANELCUSTOMBASE+1, PANELCUSTOMBASE+2.. */
 };
 
-// Values returned when the netlist dialog is demiss
+// Values returned when the netlist dialog is dismissed
 #define NET_PLUGIN_CHANGE 1
 // other values in use are wxID_OK and wxID_CANCEL
 
@@ -98,8 +98,9 @@ public:
      * function GetPageNetFmtName
      * @return the name of the netlist format for this page
      * This is usually the page label.
-     * For the pcbnew netlist, this is the page label when the "old" format is selected
-     * and "PcbnewAdvanced" when the advanced format is selected
+     * For the pcbnew netlist, this is "LegacyPcbnew"
+     * when the "old" format is selected
+     * and "PcbnewAdvanced" when the advanced format (S expr fmt)is selected
      */
     const wxString GetPageNetFmtName();
 
@@ -171,8 +172,8 @@ private:
      * returns the filename extension and the wildcard string for this curr
      * or a void name if there is no default name
      * @param aNetTypeId = the netlist type ( NET_TYPE_PCBNEW ... )
-     * @param aExt = a reference to a wxString to return the defaut  file ext.
-     * @param aWildCard =  reference to a wxString to return the defaut wildcard.
+     * @param aExt = a reference to a wxString to return the default  file ext.
+     * @param aWildCard =  reference to a wxString to return the default wildcard.
      * @return true for known netlist type, false for custom formats
      */
     bool ReturnFilenamePrms( NETLIST_TYPE_ID aNetTypeId,
@@ -204,4 +205,4 @@ private:
     void OnBrowsePlugins( wxCommandEvent& event );
 };
 
-#endif  /* _NETLIST_CONTROL_H_ */
+#endif  /* _DIALOG_NETLIST_H_ */

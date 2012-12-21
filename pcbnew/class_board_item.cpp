@@ -76,14 +76,13 @@ BOARD* BOARD_ITEM::GetBoard() const
 
 wxString BOARD_ITEM::GetLayerName() const
 {
-    wxString layerName;
-    BOARD* board = GetBoard();
+    BOARD*  board = GetBoard();
 
-    if( board != NULL )
+    if( board )
         return board->GetLayerName( m_Layer ).Trim();
 
-    // If no parent, return the default layer for the object.
-    return BOARD::GetDefaultLayerName( m_Layer, true );
+    // If no parent, return the untranslated layer name.
+    return BOARD::GetDefaultLayerName( m_Layer, false );
 }
 
 
@@ -116,13 +115,8 @@ std::string BOARD_ITEM::FormatInternalUnits( int aValue )
 std::string BOARD_ITEM::FormatAngle( double aAngle )
 {
     char temp[50];
-    int len;
 
-#if defined( USE_PCBNEW_SEXPR_FILE_FORMAT )
-    len = snprintf( temp, 49, "%.10g", aAngle / 10.0 );
-#else
-    len = snprintf( temp, 49, "%.10g", aAngle );
-#endif
+    int len = snprintf( temp, sizeof(temp), "%.10g", aAngle / 10.0 );
 
     return std::string( temp, len );
 }

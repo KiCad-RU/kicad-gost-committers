@@ -302,7 +302,6 @@ set( BMAPS_MID
     insert_module_board
     invert_module
     invisible_text
-    jigsaw
     kicad_icon_small
     label2glabel
     label2text
@@ -338,6 +337,7 @@ set( BMAPS_MID
     library_browse
     library_update
     library
+    library_table
     libview
     lines90
     load_module_board
@@ -395,6 +395,7 @@ set( BMAPS_MID
     new_library
     new_pcb
     new_project
+    new_project_with_template
     new_sch
     new_txt
     new
@@ -426,6 +427,7 @@ set( BMAPS_MID
     ortho
     pad_sketch
     pad
+    pad_dimensions
     pads_mask_layers
     palette
     part_properties

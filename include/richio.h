@@ -227,20 +227,17 @@ public:
      */
     LINE_READER( unsigned aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX );
 
-    virtual ~LINE_READER()
-    {
-        delete[] line;
-    }
+    virtual ~LINE_READER();
 
     /**
      * Function ReadLine
      * reads a line of text into the buffer and increments the line number
      * counter.  If the line is larger than aMaxLineLength passed to the
      * constructor, then an exception is thrown.  The line is nul terminated.
-     * @return unsigned - The number of bytes read, 0 at end of file.
+     * @return char* - The beginning of the read line, or NULL if EOF.
      * @throw IO_ERROR when a line is too long.
      */
-    virtual unsigned ReadLine() throw( IO_ERROR ) = 0;
+    virtual char* ReadLine() throw( IO_ERROR ) = 0;
 
     /**
      * Function GetSource
@@ -258,7 +255,7 @@ public:
      * Function Line
      * returns a pointer to the last line that was read in.
      */
-    virtual char* Line() const
+    char* Line() const
     {
         return line;
     }
@@ -287,7 +284,7 @@ public:
      * Function Length
      * returns the number of bytes in the last line read from this LINE_READER.
      */
-    virtual unsigned Length() const
+    unsigned Length() const
     {
         return length;
     }
@@ -307,6 +304,27 @@ protected:
     FILE*   fp;     ///< I may own this file, but might not.
 
 public:
+
+    /**
+     * Constructor FILE_LINE_READER
+     * takes @a aFileName and the size of the desired line buffer and opens
+     * the file and assumes the obligation to close it.
+     *
+     * @param aFileName is the name of the file to open and to use for error reporting purposes.
+     *
+     * @param aStartingLineNumber is the initial line number to report on error, and is
+     *  accessible here for the case where multiple DSNLEXERs are reading from the
+     *  same file in sequence, all from the same open file (with @a doOwn = false).
+     *  Internally it is incremented by one after each ReadLine(), so the first
+     *  reported line number will always be one greater than what is provided here.
+     *
+     * @param aMaxLineLength is the number of bytes to use in the line buffer.
+     *
+     * @throw IO_ERROR if @a aFileName cannot be opened.
+     */
+    FILE_LINE_READER( const wxString& aFileName,
+            unsigned aStartingLineNumber = 0,
+            unsigned aMaxLineLength = LINE_READER_LINE_DEFAULT_MAX ) throw( IO_ERROR );
 
     /**
      * Constructor FILE_LINE_READER
@@ -333,7 +351,7 @@ public:
      */
     ~FILE_LINE_READER();
 
-    unsigned ReadLine() throw( IO_ERROR );   // see LINE_READER::ReadLine() description
+    char* ReadLine() throw( IO_ERROR );   // see LINE_READER::ReadLine() description
 
     /**
      * Function Rewind
@@ -380,7 +398,7 @@ public:
      */
     STRING_LINE_READER( const STRING_LINE_READER& aStartingPoint );
 
-    unsigned ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
+    char* ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
 };
 
 
@@ -402,13 +420,15 @@ public:
      */
     INPUTSTREAM_LINE_READER( wxInputStream* aStream );
 
-    unsigned ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
+    char* ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
 };
 
 
+#define OUTPUTFMTBUFZ    500        ///< default buffer size for any OUTPUT_FORMATTER
+
 /**
  * Class OUTPUTFORMATTER
- * is an important interface (abstract) class used to output UTF8 text in
+ * is an important interface (abstract class) used to output 8 bit text in
  * a convenient way. The primary interface is "printf() - like" but
  * with support for indentation control.  The destination of the 8 bit
  * wide text is up to the implementer.
@@ -424,16 +444,19 @@ public:
  */
 class OUTPUTFORMATTER
 {
-    std::vector<char>       buffer;
+    std::vector<char>   buffer;
+    char                quoteChar[2];
 
     int sprint( const char* fmt, ... )  throw( IO_ERROR );
     int vprint( const char* fmt,  va_list ap )  throw( IO_ERROR );
 
 
 protected:
-    OUTPUTFORMATTER( int aReserve = 300 ) :
+    OUTPUTFORMATTER( int aReserve = OUTPUTFMTBUFZ, char aQuoteChar = '"' ) :
             buffer( aReserve, '\0' )
     {
+        quoteChar[0] = aQuoteChar;
+        quoteChar[1] = '\0';
     }
 
     virtual ~OUTPUTFORMATTER() {}
@@ -507,10 +530,7 @@ public:
      * @return const char* - the quote_char as a single character string, or ""
      *   if the wrapee does not need to be wrapped.
      */
-    virtual const char* GetQuoteChar( const char* wrapee )
-    {
-        return GetQuoteChar( wrapee, "\"" );
-    }
+    virtual const char* GetQuoteChar( const char* wrapee );
 
     /**
      * Function Quotes
@@ -550,8 +570,8 @@ public:
      * Constructor STRING_FORMATTER
      * reserves space in the buffer
      */
-    STRING_FORMATTER( int aReserve = 300 ) :
-        OUTPUTFORMATTER( aReserve )
+    STRING_FORMATTER( int aReserve = OUTPUTFMTBUFZ, char aQuoteChar = '"' ) :
+        OUTPUTFORMATTER( aReserve, aQuoteChar )
     {
     }
 
@@ -575,10 +595,45 @@ public:
         return mystring;
     }
 
-    //-----<OUTPUTFORMATTER>------------------------------------------------
 protected:
+    //-----<OUTPUTFORMATTER>------------------------------------------------
     void write( const char* aOutBuf, int aCount ) throw( IO_ERROR );
     //-----</OUTPUTFORMATTER>-----------------------------------------------
+};
+
+
+/**
+ * Class FILE_OUTPUTFORMATTER
+ * may be used for text file output.  It is about 8 times faster than
+ * STREAM_OUTPUTFORMATTER for file streams.
+ */
+class FILE_OUTPUTFORMATTER : public OUTPUTFORMATTER
+{
+public:
+
+    /**
+     * Constructor
+     * @param aFileName is the full filename to open and save to as a text file.
+     * @param aMode is what you would pass to wxFopen()'s mode, defaults to wxT( "wt" )
+     *      for text files that are to be created here and now.
+     * @param aQuoteChar is a char used for quoting problematic strings
+            (with whitespace or special characters in them).
+     * @throw IO_ERROR if the file cannot be opened.
+     */
+    FILE_OUTPUTFORMATTER(   const wxString& aFileName,
+                            const wxChar* aMode = wxT( "wt" ),
+                            char aQuoteChar = '"' )
+        throw( IO_ERROR );
+
+    ~FILE_OUTPUTFORMATTER();
+
+protected:
+    //-----<OUTPUTFORMATTER>------------------------------------------------
+    void write( const char* aOutBuf, int aCount ) throw( IO_ERROR );
+    //-----</OUTPUTFORMATTER>-----------------------------------------------
+
+    FILE*       m_fp;               ///< takes ownership
+    wxString    m_filename;
 };
 
 
@@ -590,7 +645,6 @@ protected:
 class STREAM_OUTPUTFORMATTER : public OUTPUTFORMATTER
 {
     wxOutputStream& os;
-    char            quoteChar[2];
 
 public:
     /**
@@ -599,18 +653,16 @@ public:
      * to a file, socket, or zip file.
      */
     STREAM_OUTPUTFORMATTER( wxOutputStream& aStream, char aQuoteChar = '"' ) :
+        OUTPUTFORMATTER( OUTPUTFMTBUFZ, aQuoteChar ),
         os( aStream )
     {
-        quoteChar[0] = aQuoteChar;
-        quoteChar[1] = 0;
     }
 
-    //-----<OUTPUTFORMATTER>------------------------------------------------
-    const char* GetQuoteChar( const char* wrapee );
-
 protected:
+    //-----<OUTPUTFORMATTER>------------------------------------------------
     void write( const char* aOutBuf, int aCount ) throw( IO_ERROR );
     //-----</OUTPUTFORMATTER>-----------------------------------------------
 };
+
 
 #endif // RICHIO_H_

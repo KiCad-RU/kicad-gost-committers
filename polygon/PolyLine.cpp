@@ -450,15 +450,15 @@ CPolyLine* CPolyLine::Fillet( unsigned int aRadius, unsigned int aSegments )
             double          lenb    = sqrt( (double) (xb * xb + yb * yb) );
             double          cosine  = ( xa * xb + ya * yb ) / ( lena * lenb );
 
-            unsigned int    radius  = aRadius;
+            double          radius  = aRadius;
             double          denom   = sqrt( 2.0 / ( 1 + cosine ) - 1 );
 
             // Limit rounding distance to one half of an edge
             if( 0.5 * lena * denom < radius )
-                radius = (unsigned int) (0.5 * lena * denom);
+                radius = 0.5 * lena * denom;
 
             if( 0.5 * lenb * denom < radius )
-                radius = (unsigned int) (0.5 * lenb * denom);
+                radius = 0.5 * lenb * denom;
 
             // Calculate fillet arc absolute center point (xc, yx)
             double  k       = radius / sqrt( .5 * ( 1 - cosine ) );
@@ -507,14 +507,11 @@ CPolyLine* CPolyLine::Fillet( unsigned int aRadius, unsigned int aSegments )
             else
                 newPoly->AppendCorner( (int) nx, (int) ny );
 
-            unsigned int nVertices = 0;
-
             for( unsigned int j = 0; j < segments; j++ )
             {
                 nx  = xc + cos( startAngle + (j + 1) * deltaAngle ) * radius + 0.5;
                 ny  = yc - sin( startAngle + (j + 1) * deltaAngle ) * radius + 0.5;
                 newPoly->AppendCorner( (int) nx, (int) ny );
-                nVertices++;
             }
         }
 
@@ -1321,12 +1318,12 @@ void ConvertPolysListWithHolesToOnePolygon( const std::vector<CPolyPt>&  aPolysL
             polysholes.push_back( poly_tmp );
         }
     }
-
     mainpoly -= polysholes;
 
     // copy polygon with no holes to destination
-    // We should have only one polygon in list
-    wxASSERT( mainpoly.size() != 1 );
+    // Because all holes are now linked to the main outline
+    // by overlapping segments, we should have only one polygon in list
+    wxASSERT( mainpoly.size() == 1 );
 
     KI_POLYGON& poly_nohole = mainpoly[0];
     CPolyPt   corner( 0, 0, false );

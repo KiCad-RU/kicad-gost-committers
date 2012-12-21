@@ -56,7 +56,6 @@
 #include <class_track.h>
 
 #include <specctra.h>
-#include <wx/wfstream.h>        // wxFFileOutputStream
 
 
 namespace DSN {
@@ -231,14 +230,9 @@ void SPECCTRA_DB::readTIME( time_t* time_stamp ) throw( IO_ERROR )
 
 void SPECCTRA_DB::LoadPCB( const wxString& filename ) throw( IO_ERROR )
 {
-    FILE*       fp = wxFopen( filename, wxT("r") );
+    FILE_LINE_READER    reader( filename );
 
-    if( !fp )
-    {
-        ThrowIOError( _("Unable to open file \"%s\""), GetChars(filename) );
-    }
-
-    PushReader( new FILE_LINE_READER( fp, filename ) );
+    PushReader( &reader );
 
     if( NextTok() != T_LEFT )
         Expecting( T_LEFT );
@@ -249,21 +243,15 @@ void SPECCTRA_DB::LoadPCB( const wxString& filename ) throw( IO_ERROR )
     SetPCB( new PCB() );
 
     doPCB( pcb );
-
-    delete PopReader();     // close fp
+    PopReader();
 }
 
 
 void SPECCTRA_DB::LoadSESSION( const wxString& filename ) throw( IO_ERROR )
 {
-    FILE*       fp = wxFopen( filename, wxT("r") );
+    FILE_LINE_READER    reader( filename );
 
-    if( !fp )
-    {
-        ThrowIOError( _("Unable to open file \"%s\""), GetChars(filename) );
-    }
-
-    PushReader( new FILE_LINE_READER( fp, filename ) );
+    PushReader( &reader );
 
     if( NextTok() != T_LEFT )
         Expecting( T_LEFT );
@@ -275,7 +263,7 @@ void SPECCTRA_DB::LoadSESSION( const wxString& filename ) throw( IO_ERROR )
 
     doSESSION( session );
 
-    delete PopReader();      // close fp
+    PopReader();
 }
 
 
@@ -3437,19 +3425,12 @@ void SPECCTRA_DB::ExportPCB( wxString filename, bool aNameChange ) throw( IO_ERR
 {
     if( pcb )
     {
-        wxFFileOutputStream os( filename, wxT( "wt" ) );
-
-        if( !os.IsOk() )
-        {
-            ThrowIOError( _("Unable to open file \"%s\""), GetChars(filename) );
-        }
-
-        STREAM_OUTPUTFORMATTER  outputFormatter( os, quote_char[0] );
+        FILE_OUTPUTFORMATTER    formatter( filename, wxT( "wt" ), quote_char[0] );
 
         if( aNameChange )
-            pcb->pcbname = TO_UTF8(filename);
+            pcb->pcbname = TO_UTF8( filename );
 
-        pcb->Format( &outputFormatter, 0 );
+        pcb->Format( &formatter, 0 );
     }
 }
 
@@ -3458,16 +3439,9 @@ void SPECCTRA_DB::ExportSESSION( wxString filename )
 {
     if( session )
     {
-        wxFFileOutputStream os( filename, wxT( "wt" ) );
+        FILE_OUTPUTFORMATTER    formatter( filename, wxT( "wt" ), quote_char[0] );
 
-        if( !os.IsOk() )
-        {
-            ThrowIOError( _("Unable to open file \"%s\""), GetChars(filename) );
-        }
-
-        STREAM_OUTPUTFORMATTER  outputFormatter( os, quote_char[0] );
-
-        session->Format( &outputFormatter, 0 );
+        session->Format( &formatter, 0 );
     }
 }
 

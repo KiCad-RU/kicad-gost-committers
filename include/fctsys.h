@@ -4,38 +4,21 @@
 #ifndef FCTSYS_H_
 #define FCTSYS_H_
 
-// For compilers that support precompilation, includes "wx.h".
-#include <wx/wxprec.h>
-
-#ifdef __BORLANDC__
-#pragma hdrstop
-#endif
-
-// for all others, include the necessary headers (this file is usually all you
-// need because it includes almost all "standard" wxWindows headers
-#ifndef WX_PRECOMP
 #include <wx/wx.h>
-#endif
 
-/*
- * FIXME: This appears to already be included in the OSX build of wxWidgets.
- *        Will someone with OSX please remove this and see if it compiles.
+/**
+ * @note This appears to already be included in the OSX build of wxWidgets.
+ *       Will someone with OSX please remove this and see if it compiles?
  */
 #ifdef __WXMAC__
 #include <Carbon/Carbon.h>
 #endif
 
-#ifndef M_PI
-#define M_PI 3.141592653
-#endif
-
-#ifdef __WINDOWS__
-#define DIR_SEP        '\\'
-#define STRING_DIR_SEP wxT( "\\" )
-#else
-#define DIR_SEP        '/'
-#define STRING_DIR_SEP wxT( "/" )
-#endif
+/**
+ * @note Do we really need these defined?
+ */
+#define UNIX_STRING_DIR_SEP wxT( "/" )
+#define WIN_STRING_DIR_SEP  wxT( "\\" )
 
 #ifdef DEBUG
 #define D(x)        x
@@ -63,18 +46,14 @@ template <typename T> inline const T& Clamp( const T& lower, const T& value, con
     return value;
 }
 
-#define UNIX_STRING_DIR_SEP wxT( "/" )
-#define WIN_STRING_DIR_SEP  wxT( "\\" )
-
 #define USE_RESIZE_BORDER
 #if defined(__UNIX__) || defined(USE_RESIZE_BORDER)
-#define MAYBE_RESIZE_BORDER wxRESIZE_BORDER   // linux users like resizeable
-                                              // borders
+#define MAYBE_RESIZE_BORDER wxRESIZE_BORDER   // Linux users like resizeable borders
 #else
 #define MAYBE_RESIZE_BORDER 0                 // no resizeable border
 #endif
 
-// wxNullPtr is not defined prior to wxWidget 2.9.0.
+// wxNullPtr is not defined prior to wxWidgets 2.9.0.
 #if !wxCHECK_VERSION( 2, 9, 0 )
 #define wxNullPtr ((void *)NULL)
 #endif

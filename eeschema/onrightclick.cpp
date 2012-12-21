@@ -99,7 +99,8 @@ bool SCH_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         }
     }
 
-    // If Command in progress: add "cancel" and "end tool" menu
+    // If a command is in progress: add "cancel" and "end tool" menu
+    // If
     if( GetToolId() != ID_NO_TOOL_SELECTED )
     {
         if( item && item->GetFlags() )
@@ -114,6 +115,24 @@ bool SCH_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         }
 
         PopMenu->AppendSeparator();
+
+        switch( GetToolId() )
+        {
+            case ID_WIRE_BUTT:
+                AddMenusForWire( PopMenu, NULL, this );
+                if( item == NULL )
+                    PopMenu->AppendSeparator();
+                break;
+
+            case ID_BUS_BUTT:
+                AddMenusForBus( PopMenu, NULL, this );
+                if( item == NULL )
+                    PopMenu->AppendSeparator();
+                break;
+
+            default:
+                break;
+        }
     }
     else
     {
@@ -230,18 +249,38 @@ bool SCH_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
 
 void AddMenusForComponentField( wxMenu* PopMenu, SCH_FIELD* Field )
 {
-    wxString msg;
+    wxString msg, name;
+
+    name << wxT(" ");
+    switch( Field->GetId() )
+    {
+        case REFERENCE: name << _( "Reference" ); break;
+        case VALUE:     name << _( "Value" ); break;
+        case FOOTPRINT: name << _( "Footprint Field" ); break;
+        default:        name << _( "Field" ); break;
+    }
 
     if( !Field->GetFlags() )
     {
-        msg = AddHotkeyName( _( "Move Field" ), s_Schematic_Hokeys_Descr,
+        msg = AddHotkeyName( _( "Move" ) + name, s_Schematic_Hokeys_Descr,
                              HK_MOVE_COMPONENT_OR_ITEM );
         AddMenuItem( PopMenu, ID_SCH_MOVE_ITEM, msg, KiBitmap( move_text_xpm ) );
     }
 
-    msg = AddHotkeyName( _( "Rotate Field" ), s_Schematic_Hokeys_Descr, HK_ROTATE );
+    msg = AddHotkeyName( _( "Rotate" ) + name, s_Schematic_Hokeys_Descr,
+                         HK_ROTATE );
     AddMenuItem( PopMenu, ID_SCH_ROTATE_CLOCKWISE, msg, KiBitmap( rotate_field_xpm ) );
-    msg = AddHotkeyName( _( "Edit Field" ), s_Schematic_Hokeys_Descr, HK_EDIT );
+
+    // Ref, value and footprint have specific hotkeys. Show the specific hotkey:
+    hotkey_id_commnand id;
+    switch( Field->GetId() )
+    {
+        case REFERENCE: id = HK_EDIT_COMPONENT_REFERENCE; break;
+        case VALUE:     id = HK_EDIT_COMPONENT_VALUE; break;
+        case FOOTPRINT: id = HK_EDIT_COMPONENT_FOOTPRINT; break;
+        default:        id = HK_EDIT; break;
+    }
+    msg = AddHotkeyName( _( "Edit" ) + name, s_Schematic_Hokeys_Descr, id );
     AddMenuItem( PopMenu, ID_SCH_EDIT_ITEM, msg, KiBitmap( edit_text_xpm ) );
 }
 
@@ -294,13 +333,17 @@ void AddMenusForComponent( wxMenu* PopMenu, SCH_COMPONENT* Component )
 
     if( libComponent && libComponent->IsNormal() )
     {
-        msg = AddHotkeyName( _( "Value " ), s_Schematic_Hokeys_Descr, HK_EDIT_COMPONENT_VALUE );
-        AddMenuItem( editmenu, ID_SCH_EDIT_COMPONENT_VALUE, msg, KiBitmap( edit_comp_value_xpm ) );
+        msg = AddHotkeyName( _( "Value" ), s_Schematic_Hokeys_Descr,
+                             HK_EDIT_COMPONENT_VALUE );
+        AddMenuItem( editmenu, ID_SCH_EDIT_COMPONENT_VALUE, msg,
+                     KiBitmap( edit_comp_value_xpm ) );
 
-        AddMenuItem( editmenu, ID_SCH_EDIT_COMPONENT_REFERENCE, _( "Reference" ),
+        msg = AddHotkeyName( _( "Reference" ), s_Schematic_Hokeys_Descr,
+                             HK_EDIT_COMPONENT_REFERENCE );
+        AddMenuItem( editmenu, ID_SCH_EDIT_COMPONENT_REFERENCE, msg,
                      KiBitmap( edit_comp_ref_xpm ) );
 
-        msg = AddHotkeyName( _( "Footprint " ), s_Schematic_Hokeys_Descr,
+        msg = AddHotkeyName( _( "Footprint" ), s_Schematic_Hokeys_Descr,
                              HK_EDIT_COMPONENT_FOOTPRINT );
         AddMenuItem( editmenu, ID_SCH_EDIT_COMPONENT_FOOTPRINT, msg,
                      KiBitmap( edit_comp_footprint_xpm ) );
@@ -533,14 +576,22 @@ void SCH_EDIT_FRAME::addJunctionMenuEntries( wxMenu* aMenu, SCH_JUNCTION* aJunct
 
 void AddMenusForWire( wxMenu* PopMenu, SCH_LINE* Wire, SCH_EDIT_FRAME* frame )
 {
-    bool     is_new = Wire->IsNew();
     SCH_SCREEN* screen = frame->GetScreen();
     wxPoint  pos    = screen->GetCrossHairPosition();
     wxString msg;
 
+    if( Wire == NULL )
+    {
+        msg = AddHotkeyName( _( "Begin Wire" ), s_Schematic_Hokeys_Descr, HK_BEGIN_WIRE );
+        AddMenuItem( PopMenu, ID_POPUP_SCH_BEGIN_WIRE, msg, KiBitmap( add_line_xpm ) );
+        return;
+    }
+
+    bool is_new = Wire->IsNew();
     if( is_new )
     {
-        AddMenuItem( PopMenu, ID_POPUP_END_LINE, _( "Wire End" ), KiBitmap( apply_xpm ) );
+        msg = AddHotkeyName( _( "Wire End" ), s_Schematic_Hokeys_Descr, HK_END_CURR_LINEWIREBUS );
+        AddMenuItem( PopMenu, ID_POPUP_END_LINE, msg, KiBitmap( apply_xpm ) );
         return;
     }
 
@@ -576,13 +627,21 @@ void AddMenusForWire( wxMenu* PopMenu, SCH_LINE* Wire, SCH_EDIT_FRAME* frame )
 
 void AddMenusForBus( wxMenu* PopMenu, SCH_LINE* Bus, SCH_EDIT_FRAME* frame )
 {
-    bool    is_new = Bus->IsNew();
     wxPoint pos    = frame->GetScreen()->GetCrossHairPosition();
     wxString msg;
 
+    if( Bus == NULL )
+    {
+        msg = AddHotkeyName( _( "Begin Bus" ), s_Schematic_Hokeys_Descr, HK_BEGIN_BUS );
+        AddMenuItem( PopMenu, ID_POPUP_SCH_BEGIN_BUS, msg, KiBitmap( add_bus_xpm ) );
+        return;
+    }
+
+    bool    is_new = Bus->IsNew();
     if( is_new )
     {
-        AddMenuItem( PopMenu, ID_POPUP_END_LINE, _( "Bus End" ), KiBitmap( apply_xpm ) );
+        msg = AddHotkeyName( _( "Bus End" ), s_Schematic_Hokeys_Descr, HK_END_CURR_LINEWIREBUS );
+        AddMenuItem( PopMenu, ID_POPUP_END_LINE, msg, KiBitmap( apply_xpm ) );
         return;
     }
 

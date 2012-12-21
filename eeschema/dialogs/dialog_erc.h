@@ -32,32 +32,29 @@ class DIALOG_ERC : public DIALOG_ERC_BASE
     DECLARE_EVENT_TABLE()
 
 private:
-    SCH_EDIT_FRAME* m_Parent;
-    wxBitmapButton* m_ButtonList[PIN_NMAX][PIN_NMAX];
-    bool            m_Initialized;
+    SCH_EDIT_FRAME* m_parent;
+    wxBitmapButton* m_buttonList[PIN_NMAX][PIN_NMAX];
+    bool            m_initialized;
+    const SCH_MARKER* m_lastMarkerFound;
     static bool     m_writeErcFile;
 
 public:
-
-    /// Constructors
     DIALOG_ERC( SCH_EDIT_FRAME* parent );
+    ~DIALOG_ERC();
 
+private:
     void Init();
 
-    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_ERC_CMP
+    // from DIALOG_ERC_BASE:
+	void OnCloseErcDialog( wxCloseEvent& event );
     void OnErcCmpClick( wxCommandEvent& event );
-
-    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_ERASE_DRC_MARKERS
     void OnEraseDrcMarkersClick( wxCommandEvent& event );
-
-    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for wxID_CANCEL
-    void OnCancelClick( wxCommandEvent& event );
-
-    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_RESET_MATRIX
+    void OnButtonCloseClick( wxCommandEvent& event );
     void OnResetMatrixClick( wxCommandEvent& event );
+    void OnLeftClickMarkersList( wxCommandEvent& event );
 
     // Double click on a marker info:
-    void OnLeftDClickMarkersList( wxCommandEvent& event );
+    void OnLeftDblClickMarkersList( wxCommandEvent& event );
 
     void TestErc( wxArrayString* aMessagesList );
     void DisplayERC_MarkersList();

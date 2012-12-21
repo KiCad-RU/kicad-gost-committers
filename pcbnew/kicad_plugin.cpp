@@ -74,27 +74,26 @@ static const wxString traceFootprintLibrary( wxT( "KicadFootprintLib" ) );
  */
 class FP_CACHE_ITEM
 {
-    wxFileName         m_file_name; /// The the full file name and path of the footprint to cache.
-    bool               m_writable;  /// Writability status of the footprint file.
-    wxDateTime         m_mod_time;  /// The last file modified time stamp.
-    auto_ptr< MODULE > m_module;
+    wxFileName              m_file_name; ///< The the full file name and path of the footprint to cache.
+    bool                    m_writable;  ///< Writability status of the footprint file.
+    wxDateTime              m_mod_time;  ///< The last file modified time stamp.
+    auto_ptr< MODULE >      m_module;
 
 public:
     FP_CACHE_ITEM( MODULE* aModule, const wxFileName& aFileName );
 
-    wxString GetName() const { return m_file_name.GetDirs().Last(); }
-    wxFileName GetFileName() const { return m_file_name; }
-    bool IsModified() const;
-    MODULE* GetModule() const { return m_module.get(); }
-    void UpdateModificationTime() { m_mod_time = m_file_name.GetModificationTime(); }
+    wxString    GetName() const { return m_file_name.GetDirs().Last(); }
+    wxFileName  GetFileName() const { return m_file_name; }
+    bool        IsModified() const;
+    MODULE*     GetModule() const { return m_module.get(); }
+    void        UpdateModificationTime() { m_mod_time = m_file_name.GetModificationTime(); }
 };
 
 
-FP_CACHE_ITEM::FP_CACHE_ITEM( MODULE* aModule, const wxFileName& aFileName )
+FP_CACHE_ITEM::FP_CACHE_ITEM( MODULE* aModule, const wxFileName& aFileName ) :
+    m_module( aModule )
 {
     m_file_name = aFileName;
-    auto_ptr< MODULE > tmp( aModule );
-    m_module = tmp;
     m_mod_time.Now();
 }
 
@@ -181,21 +180,13 @@ void FP_CACHE::Save()
         // Allow file output stream to go out of scope to close the file stream before
         // renaming the file.
         {
-        wxLogTrace( traceFootprintLibrary, wxT( "Creating temporary library file %s" ),
-                    GetChars( tempFileName ) );
+            wxLogTrace( traceFootprintLibrary, wxT( "Creating temporary library file %s" ),
+                        GetChars( tempFileName ) );
 
-        wxFFileOutputStream os( tempFileName );
+            FILE_OUTPUTFORMATTER formatter( tempFileName );
 
-        if( !os.IsOk() )
-        {
-            THROW_IO_ERROR( wxString::Format( _( "cannot save footprint library file '%s'" ),
-                                              tempFileName.GetData() ) );
-        }
-
-        STREAM_OUTPUTFORMATTER formatter( os );
-
-        m_owner->SetOutputFormatter( &formatter );
-        m_owner->Format( (BOARD_ITEM*) it->second->GetModule() );
+            m_owner->SetOutputFormatter( &formatter );
+            m_owner->Format( (BOARD_ITEM*) it->second->GetModule() );
         }
 
         wxRemove( fn.GetFullPath() );     // it is not an error if this does not exist
@@ -224,27 +215,21 @@ void FP_CACHE::Load()
     }
 
     wxString fpFileName;
-    wxString wildcard = wxT( "*." ) + FootprintFileExtension;
+    wxString wildcard = wxT( "*." ) + KiCadFootprintFileExtension;
 
     if( !dir.GetFirst( &fpFileName, wildcard, wxDIR_FILES ) )
         return;
 
     do
     {
-        FILE* fp = wxFopen( fpFileName, wxT( "r" ) );
-
-        if( !fp )
-        {
-            THROW_IO_ERROR( wxString::Format( _( "cannot open footprint library file '%s'" ),
-                                              fpFileName.GetData() ) );
-        }
-
         // reader now owns fp, will close on exception or return
-        PCB_PARSER parser( new FILE_LINE_READER( fp, fpFileName ) );
+        FILE_LINE_READER    reader( fpFileName );
+
+        m_owner->m_parser->SetLineReader( &reader );
 
         std::string name = TO_UTF8( fpFileName );
 
-        m_modules.insert( name, new FP_CACHE_ITEM( (MODULE*) parser.Parse(), fpFileName ) );
+        m_modules.insert( name, new FP_CACHE_ITEM( (MODULE*) m_owner->m_parser->Parse(), fpFileName ) );
 
     } while( dir.GetNext( &fpFileName ) );
 
@@ -307,19 +292,11 @@ bool FP_CACHE::IsModified()
 
 void PCB_IO::Save( const wxString& aFileName, BOARD* aBoard, PROPERTIES* aProperties )
 {
-    LOCALE_IO toggle;     // toggles on, then off, the C locale.
+    LOCALE_IO   toggle;     // toggles on, then off, the C locale.
 
     m_board = aBoard;
 
-    wxFileOutputStream fs( aFileName );
-
-    if( !fs.IsOk() )
-    {
-        m_error.Printf( _( "cannot open file '%s'" ), aFileName.GetData() );
-        THROW_IO_ERROR( m_error );
-    }
-
-    STREAM_OUTPUTFORMATTER formatter( fs );
+    FILE_OUTPUTFORMATTER    formatter( aFileName );
 
     m_out = &formatter;     // no ownership
 
@@ -332,9 +309,23 @@ void PCB_IO::Save( const wxString& aFileName, BOARD* aBoard, PROPERTIES* aProper
 }
 
 
+BOARD_ITEM* PCB_IO::Parse( const wxString& aClipboardSourceInput ) throw( PARSE_ERROR, IO_ERROR )
+{
+    std::string input = TO_UTF8( aClipboardSourceInput );
+
+    STRING_LINE_READER  reader( input, wxT( "clipboard" ) );
+
+    m_parser->SetLineReader( &reader );
+
+    return m_parser->Parse();
+}
+
+
 void PCB_IO::Format( BOARD_ITEM* aItem, int aNestLevel ) const
     throw( IO_ERROR )
 {
+    LOCALE_IO   toggle;     // public API function, perform anything convenient for caller
+
     switch( aItem->Type() )
     {
     case PCB_T:
@@ -390,7 +381,15 @@ void PCB_IO::Format( BOARD_ITEM* aItem, int aNestLevel ) const
 
 void PCB_IO::formatLayer( const BOARD_ITEM* aItem ) const
 {
-    m_out->Print( 0, " (layer %s)", m_out->Quotew( aItem->GetLayerName() ).c_str() );
+    if( m_ctl & CTL_UNTRANSLATED_LAYERS )
+    {
+        int layer = aItem->GetLayer();
+
+        // English layer names should never need quoting.
+        m_out->Print( 0, " (layer %s)", TO_UTF8( BOARD::GetDefaultLayerName( layer, false ) ) );
+    }
+    else
+        m_out->Print( 0, " (layer %s)", m_out->Quotew( aItem->GetLayerName() ).c_str() );
 }
 
 
@@ -551,6 +550,10 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
     m_out->Print( aNestLevel+1, "(pad_to_mask_clearance %s)\n",
                   FMTIU( aBoard->GetDesignSettings().m_SolderMaskMargin ).c_str() );
 
+    if( aBoard->GetDesignSettings().m_SolderMaskMinWidth )
+        m_out->Print( aNestLevel+1, "(solder_mask_min_width %s)\n",
+                      FMTIU( aBoard->GetDesignSettings().m_SolderMaskMinWidth ).c_str() );
+
     if( aBoard->GetDesignSettings().m_SolderPasteMargin != 0 )
         m_out->Print( aNestLevel+1, "(pad_to_paste_clearance %s)\n",
                       FMTIU( aBoard->GetDesignSettings().m_SolderPasteMargin ).c_str() );
@@ -603,8 +606,8 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
     for( BOARD_ITEM* item = aBoard->m_Drawings;  item;  item = item->Next() )
         Format( item, aNestLevel );
 
-    m_out->Print( 0, "\n" );
-    m_out->Print( 0, "\n" );
+    if( aBoard->m_Drawings.GetCount() )
+        m_out->Print( 0, "\n" );
 
     // Do not save MARKER_PCBs, they can be regenerated easily.
 
@@ -612,10 +615,11 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
     for( TRACK* track = aBoard->m_Track;  track; track = track->Next() )
         Format( track, aNestLevel );
 
+    if( aBoard->m_Track.GetCount() )
+        m_out->Print( 0, "\n" );
+
     /// @todo Add warning here that the old segment filed zones are no longer supported and
     ///       will not be saved.
-
-    m_out->Print( 0, "\n" );
 
     // Save the polygon (which are the newer technology) zones.
     for( int i=0;  i < aBoard->GetAreaCount();  ++i )
@@ -640,46 +644,46 @@ void PCB_IO::format( DIMENSION* aDimension, int aNestLevel ) const
     Format( (TEXTE_PCB*) &aDimension->m_Text, aNestLevel+1 );
 
     m_out->Print( aNestLevel+1, "(feature1 (pts (xy %s %s) (xy %s %s)))\n",
-                  FMT_IU( aDimension->m_featureLineDOx ).c_str(),
-                  FMT_IU( aDimension->m_featureLineDOy ).c_str(),
-                  FMT_IU( aDimension->m_featureLineDFx ).c_str(),
-                  FMT_IU( aDimension->m_featureLineDFy ).c_str() );
+                  FMT_IU( aDimension->m_featureLineDO.x ).c_str(),
+                  FMT_IU( aDimension->m_featureLineDO.y ).c_str(),
+                  FMT_IU( aDimension->m_featureLineDF.x ).c_str(),
+                  FMT_IU( aDimension->m_featureLineDF.y ).c_str() );
 
     m_out->Print( aNestLevel+1, "(feature2 (pts (xy %s %s) (xy %s %s)))\n",
-                  FMT_IU( aDimension->m_featureLineGOx ).c_str(),
-                  FMT_IU( aDimension->m_featureLineGOy ).c_str(),
-                  FMT_IU( aDimension->m_featureLineGFx ).c_str(),
-                  FMT_IU( aDimension->m_featureLineGFy ).c_str() );
+                  FMT_IU( aDimension->m_featureLineGO.x ).c_str(),
+                  FMT_IU( aDimension->m_featureLineGO.y ).c_str(),
+                  FMT_IU( aDimension->m_featureLineGF.x ).c_str(),
+                  FMT_IU( aDimension->m_featureLineGF.y ).c_str() );
 
     m_out->Print( aNestLevel+1, "(crossbar (pts (xy %s %s) (xy %s %s)))\n",
-                  FMT_IU( aDimension->m_crossBarOx ).c_str(),
-                  FMT_IU( aDimension->m_crossBarOy ).c_str(),
-                  FMT_IU( aDimension->m_crossBarFx ).c_str(),
-                  FMT_IU( aDimension->m_crossBarFy ).c_str() );
+                  FMT_IU( aDimension->m_crossBarO.x ).c_str(),
+                  FMT_IU( aDimension->m_crossBarO.y ).c_str(),
+                  FMT_IU( aDimension->m_crossBarF.x ).c_str(),
+                  FMT_IU( aDimension->m_crossBarF.y ).c_str() );
 
     m_out->Print( aNestLevel+1, "(arrow1a (pts (xy %s %s) (xy %s %s)))\n",
-                  FMT_IU( aDimension->m_arrowD1Ox ).c_str(),
-                  FMT_IU( aDimension->m_arrowD1Oy ).c_str(),
-                  FMT_IU( aDimension->m_arrowD1Fx ).c_str(),
-                  FMT_IU( aDimension->m_arrowD1Fy ).c_str() );
+                  FMT_IU( aDimension->m_arrowD1O.x ).c_str(),
+                  FMT_IU( aDimension->m_arrowD1O.y ).c_str(),
+                  FMT_IU( aDimension->m_arrowD1F.x ).c_str(),
+                  FMT_IU( aDimension->m_arrowD1F.y ).c_str() );
 
     m_out->Print( aNestLevel+1, "(arrow1b (pts (xy %s %s) (xy %s %s)))\n",
-                  FMT_IU( aDimension->m_arrowD2Ox ).c_str(),
-                  FMT_IU( aDimension->m_arrowD2Oy ).c_str(),
-                  FMT_IU( aDimension->m_arrowD2Fx ).c_str(),
-                  FMT_IU( aDimension->m_arrowD2Fy ).c_str() );
+                  FMT_IU( aDimension->m_arrowD2O.x ).c_str(),
+                  FMT_IU( aDimension->m_arrowD2O.y ).c_str(),
+                  FMT_IU( aDimension->m_arrowD2F.x ).c_str(),
+                  FMT_IU( aDimension->m_arrowD2F.y ).c_str() );
 
     m_out->Print( aNestLevel+1, "(arrow2a (pts (xy %s %s) (xy %s %s)))\n",
-                  FMT_IU( aDimension->m_arrowG1Ox ).c_str(),
-                  FMT_IU( aDimension->m_arrowG1Oy ).c_str(),
-                  FMT_IU( aDimension->m_arrowG1Fx ).c_str(),
-                  FMT_IU( aDimension->m_arrowG1Fy ).c_str() );
+                  FMT_IU( aDimension->m_arrowG1O.x ).c_str(),
+                  FMT_IU( aDimension->m_arrowG1O.y ).c_str(),
+                  FMT_IU( aDimension->m_arrowG1F.x ).c_str(),
+                  FMT_IU( aDimension->m_arrowG1F.y ).c_str() );
 
     m_out->Print( aNestLevel+1, "(arrow2b (pts (xy %s %s) (xy %s %s)))\n",
-                  FMT_IU( aDimension->m_arrowG2Ox ).c_str(),
-                  FMT_IU( aDimension->m_arrowG2Oy ).c_str(),
-                  FMT_IU( aDimension->m_arrowG2Fx ).c_str(),
-                  FMT_IU( aDimension->m_arrowG2Fy ).c_str() );
+                  FMT_IU( aDimension->m_arrowG2O.x ).c_str(),
+                  FMT_IU( aDimension->m_arrowG2O.y ).c_str(),
+                  FMT_IU( aDimension->m_arrowG2F.x ).c_str(),
+                  FMT_IU( aDimension->m_arrowG2F.y ).c_str() );
 
     m_out->Print( aNestLevel, ")\n" );
 }
@@ -812,11 +816,14 @@ void PCB_IO::format( EDGE_MODULE* aModuleDrawing, int aNestLevel ) const
     if( aModuleDrawing->GetWidth() != 0 )
         m_out->Print( 0, " (width %s)", FMT_IU( aModuleDrawing->GetWidth() ).c_str() );
 
+    /*  11-Nov-2021 remove if no one whines after a couple of months.  Simple graphic items
+        perhaps do not need these.
     if( aModuleDrawing->GetTimeStamp() )
         m_out->Print( 0, " (tstamp %lX)", aModuleDrawing->GetTimeStamp() );
 
     if( aModuleDrawing->GetStatus() )
         m_out->Print( 0, " (status %X)", aModuleDrawing->GetStatus() );
+    */
 
     m_out->Print( 0, ")\n" );
 }
@@ -855,8 +862,13 @@ void PCB_IO::format( MODULE* aModule, int aNestLevel ) const
 
     formatLayer( aModule );
 
-    m_out->Print( 0, " (tedit %lX) (tstamp %lX)\n",
+    if( !( m_ctl & CTL_OMIT_TSTAMPS ) )
+    {
+        m_out->Print( 0, " (tedit %lX) (tstamp %lX)\n",
                        aModule->GetLastEditTime(), aModule->GetTimeStamp() );
+    }
+    else
+        m_out->Print( 0, "\n" );
 
     m_out->Print( aNestLevel+1, "(at %s", FMT_IU( aModule->m_Pos ).c_str() );
 
@@ -966,23 +978,97 @@ void PCB_IO::format( MODULE* aModule, int aNestLevel ) const
 }
 
 
+void PCB_IO::formatLayers( int aLayerMask, int aNestLevel ) const
+    throw( IO_ERROR )
+{
+    m_out->Print( aNestLevel, "(layers" );
+
+    int cuMask = ALL_CU_LAYERS;
+
+    if( m_board )
+        cuMask &= m_board->GetEnabledLayers();
+
+    // output copper layers first, then non copper
+
+    if( ( aLayerMask & cuMask ) == cuMask )
+    {
+        m_out->Print( 0, " *.Cu" );
+        aLayerMask &= ~ALL_CU_LAYERS;       // clear bits, so they are not output again below
+    }
+    else if( ( aLayerMask & cuMask ) == (LAYER_BACK | LAYER_FRONT) )
+    {
+        m_out->Print( 0, " F&B.Cu" );
+        aLayerMask &= ~(LAYER_BACK | LAYER_FRONT);
+    }
+
+    if( ( aLayerMask & (ADHESIVE_LAYER_BACK | ADHESIVE_LAYER_FRONT)) == (ADHESIVE_LAYER_BACK | ADHESIVE_LAYER_FRONT) )
+    {
+        m_out->Print( 0, " *.Adhes" );
+        aLayerMask &= ~(ADHESIVE_LAYER_BACK | ADHESIVE_LAYER_FRONT);
+    }
+
+    if( ( aLayerMask & (SOLDERPASTE_LAYER_BACK | SOLDERPASTE_LAYER_FRONT)) == (SOLDERPASTE_LAYER_BACK | SOLDERPASTE_LAYER_FRONT) )
+    {
+        m_out->Print( 0, " *.Paste" );
+        aLayerMask &= ~(SOLDERPASTE_LAYER_BACK | SOLDERPASTE_LAYER_FRONT);
+    }
+
+    if( ( aLayerMask & (SILKSCREEN_LAYER_BACK | SILKSCREEN_LAYER_FRONT)) == (SILKSCREEN_LAYER_BACK | SILKSCREEN_LAYER_FRONT) )
+    {
+        m_out->Print( 0, " *.SilkS" );
+        aLayerMask &= ~(SILKSCREEN_LAYER_BACK | SILKSCREEN_LAYER_FRONT);
+    }
+
+    if( ( aLayerMask & (SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT)) == (SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT) )
+    {
+        m_out->Print( 0, " *.Mask" );
+        aLayerMask &= ~(SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT);
+    }
+
+    // output any individual layers not handled in wildcard combos above
+
+    unsigned layerMask = aLayerMask;
+
+    if( m_board )
+        layerMask &= m_board->GetEnabledLayers();
+
+    wxString layerName;
+
+    for( int layer = 0;  layerMask;  ++layer, layerMask >>= 1 )
+    {
+        if( layerMask & 1 )
+        {
+            if( m_board && !(m_ctl & CTL_UNTRANSLATED_LAYERS) )
+                layerName = m_board->GetLayerName( layer );
+
+            else    // I am being called from FootprintSave()
+                layerName = BOARD::GetDefaultLayerName( layer, false );
+
+            m_out->Print( 0, " %s", m_out->Quotew( layerName ).c_str() );
+        }
+    }
+
+    m_out->Print( 0, ")\n" );
+}
+
+
 void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
     throw( IO_ERROR )
 {
-    std::string shape;
+    const char* shape;
 
     switch( aPad->GetShape() )
     {
-    case PAD_CIRCLE:    shape = "circle";     break;
-    case PAD_RECT:      shape = "rect";  break;
-    case PAD_OVAL:      shape = "oval";       break;
-    case PAD_TRAPEZOID: shape = "trapezoid";  break;
+    case PAD_CIRCLE:    shape = "circle";       break;
+    case PAD_RECT:      shape = "rect";         break;
+    case PAD_OVAL:      shape = "oval";         break;
+    case PAD_TRAPEZOID: shape = "trapezoid";    break;
 
     default:
         THROW_IO_ERROR( wxString::Format( _( "unknown pad type: %d"), aPad->GetShape() ) );
     }
 
-    std::string type;
+    const char* type;
 
     switch( aPad->GetAttribute() )
     {
@@ -998,7 +1084,7 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
 
     m_out->Print( aNestLevel, "(pad %s %s %s",
                   m_out->Quotew( aPad->GetPadName() ).c_str(),
-                  type.c_str(), shape.c_str() );
+                  type, shape );
     m_out->Print( 0, " (at %s", FMT_IU( aPad->GetPos0() ).c_str() );
 
     if( aPad->GetOrientation() != 0.0 )
@@ -1033,40 +1119,18 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
 
     m_out->Print( 0, "\n" );
 
-    m_out->Print( aNestLevel+1, "(layers" );
-
-    unsigned layerMask =  aPad->GetLayerMask();
-
-    if( m_board )
-        layerMask &= m_board->GetEnabledLayers();
-
-    for( int layer = 0;  layerMask;  ++layer, layerMask >>= 1 )
-    {
-        if( layerMask & 1 )
-        {
-            wxString layerName;
-
-            if( m_board )
-                layerName = m_board->GetLayerName( layer );
-            else
-                layerName = BOARD::GetDefaultLayerName( layer, true );
-
-            m_out->Print( 0, " %s", m_out->Quotew(layerName ).c_str() );
-        }
-    }
-
-    m_out->Print( 0, ")\n" );
+    formatLayers( aPad->GetLayerMask(), aNestLevel+1 );
 
     // Unconnected pad is default net so don't save it.
-    if( aPad->GetNet() != 0 )
+    if( !(m_ctl & CTL_OMIT_NETS) && aPad->GetNet() != 0 )
     {
         m_out->Print( aNestLevel+1, "(net %d %s)\n",
                       aPad->GetNet(), m_out->Quotew( aPad->GetNetname() ).c_str() );
     }
 
-    if( aPad->GetDieLength() != 0 )
+    if( aPad->GetPadToDieLength() != 0 )
         m_out->Print( aNestLevel+1, "(die_length %s)\n",
-                      FMT_IU( aPad->GetDieLength() ).c_str() );
+                      FMT_IU( aPad->GetPadToDieLength() ).c_str() );
 
     if( aPad->GetLocalSolderMaskMargin() != 0 )
         m_out->Print( aNestLevel+1, "(solder_mask_margin %s)\n",
@@ -1452,8 +1516,21 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
 
 
 PCB_IO::PCB_IO() :
-    m_cache( 0 )
+    m_cache( 0 ),
+    m_ctl( 0 ),
+    m_parser( new PCB_PARSER() )
 {
+    init( 0 );
+    m_out = &m_sf;
+}
+
+
+PCB_IO::PCB_IO( int aControlFlags ) :
+    m_cache( 0 ),
+    m_ctl( aControlFlags ),
+    m_parser( new PCB_PARSER() )
+{
+    init( 0 );
     m_out = &m_sf;
 }
 
@@ -1461,23 +1538,18 @@ PCB_IO::PCB_IO() :
 PCB_IO::~PCB_IO()
 {
     delete m_cache;
+    delete m_parser;
 }
 
 
 BOARD* PCB_IO::Load( const wxString& aFileName, BOARD* aAppendToMe, PROPERTIES* aProperties )
 {
-    wxFFile file( aFileName, wxT("r") );
+    FILE_LINE_READER    reader( aFileName );
 
-    if( !file.IsOpened() )
-    {
-        wxString msg;
-        msg.Printf( _( "Unable to read file \"%s\"" ), GetChars( aFileName ) );
-        THROW_IO_ERROR( msg );
-    }
+    m_parser->SetLineReader( &reader );
+    m_parser->SetBoard( aAppendToMe );
 
-    PCB_PARSER parser( new FILE_LINE_READER( file.fp(), aFileName ), aAppendToMe );
-
-    BOARD* board = dynamic_cast<BOARD*>( parser.Parse() );
+    BOARD* board = dynamic_cast<BOARD*>( m_parser->Parse() );
     wxASSERT( board );
 
     // Give the filename to the board if it's new
@@ -1509,7 +1581,7 @@ void PCB_IO::cacheLib( const wxString& aLibraryPath )
 
 wxArrayString PCB_IO::FootprintEnumerate( const wxString& aLibraryPath, PROPERTIES* aProperties )
 {
-    LOCALE_IO toggle;     // toggles on, then off, the C locale.
+    LOCALE_IO   toggle;     // toggles on, then off, the C locale.
 
     init( aProperties );
 
@@ -1531,7 +1603,7 @@ wxArrayString PCB_IO::FootprintEnumerate( const wxString& aLibraryPath, PROPERTI
 MODULE* PCB_IO::FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName,
                                PROPERTIES* aProperties )
 {
-    LOCALE_IO toggle;     // toggles on, then off, the C locale.
+    LOCALE_IO   toggle;     // toggles on, then off, the C locale.
 
     init( aProperties );
 
@@ -1554,9 +1626,13 @@ MODULE* PCB_IO::FootprintLoad( const wxString& aLibraryPath, const wxString& aFo
 void PCB_IO::FootprintSave( const wxString& aLibraryPath, const MODULE* aFootprint,
                             PROPERTIES* aProperties )
 {
-    LOCALE_IO toggle;     // toggles on, then off, the C locale.
+    LOCALE_IO   toggle;     // toggles on, then off, the C locale.
 
     init( aProperties );
+
+    // In this public PLUGIN API function, we can safely assume it was
+    // called for saving into a library path.
+    m_ctl = CTL_FOR_LIBRARY;
 
     cacheLib( aLibraryPath );
 
@@ -1571,7 +1647,7 @@ void PCB_IO::FootprintSave( const wxString& aLibraryPath, const MODULE* aFootpri
     MODULE_MAP& mods = m_cache->GetModules();
 
     // Quietly overwrite module and delete module file from path for any by same name.
-    wxFileName fn( aLibraryPath, aFootprint->GetLibRef(), FootprintFileExtension );
+    wxFileName fn( aLibraryPath, aFootprint->GetLibRef(), KiCadFootprintFileExtension );
 
     if( !fn.IsOk() )
     {
@@ -1640,7 +1716,7 @@ void PCB_IO::FootprintLibCreate( const wxString& aLibraryPath, PROPERTIES* aProp
                                           aLibraryPath.GetData() ) );
     }
 
-    LOCALE_IO toggle;
+    LOCALE_IO   toggle;
 
     init( aProperties );
 
@@ -1650,14 +1726,14 @@ void PCB_IO::FootprintLibCreate( const wxString& aLibraryPath, PROPERTIES* aProp
 }
 
 
-void PCB_IO::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties )
+bool PCB_IO::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties )
 {
     wxFileName fn;
     fn.SetPath( aLibraryPath );
 
     // Return if there is no library path to delete.
     if( !fn.DirExists() )
-        return;
+        return false;
 
     if( !fn.IsDirWritable() )
     {
@@ -1686,7 +1762,7 @@ void PCB_IO::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProp
         {
             tmp = files[i];
 
-            if( tmp.GetExt() != FootprintFileExtension )
+            if( tmp.GetExt() != KiCadFootprintFileExtension )
             {
                 THROW_IO_ERROR( wxString::Format( _( "unexpected file '%s' has found in library path '%'" ),
                                                   files[i].GetData(), aLibraryPath.GetData() ) );
@@ -1722,6 +1798,8 @@ void PCB_IO::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProp
         delete m_cache;
         m_cache = NULL;
     }
+
+    return true;
 }
 
 

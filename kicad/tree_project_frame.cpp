@@ -45,8 +45,6 @@
 #include <wx/imaglist.h>
 #include <menus_helpers.h>
 
-// TODO: use the wxString defined in wildcards_and_files_ext.h, when exists
-const wxString PcbSexpFileExtension( wxT("kicad_brd") );
 
 /* Note about the tree project build process:
  * Building the tree project can be *very* long if there are a lot of subdirectories
@@ -67,7 +65,7 @@ static const wxChar* s_allowedExtensionsToList[] =
     wxT( "^.*\\.pro$" ),
     wxT( "^.*\\.pdf$" ),
     wxT( "^[^$].*\\.brd$" ),        // Legacy Pcbnew files
-    wxT( "^[^$].*\\.kicad_brd$" ),  // S format Pcbnew files
+    wxT( "^[^$].*\\.kicad_pcb$" ),  // S format Pcbnew files
     wxT( "^.*\\.net$" ),
     wxT( "^.*\\.txt$" ),
     wxT( "^.*\\.pho$" ),            // Gerber file (Kicad extension)
@@ -419,11 +417,11 @@ wxString TREE_PROJECT_FRAME::GetFileExt( TreeFileType type )
         break;
 
     case TREE_LEGACY_PCB:
-        ext = PcbFileExtension;
+        ext = LegacyPcbFileExtension;
         break;
 
     case TREE_SEXP_PCB:
-        ext = PcbSexpFileExtension;
+        ext = KiCadPcbFileExtension;
         break;
 
     case TREE_GERBER:

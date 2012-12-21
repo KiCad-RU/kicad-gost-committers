@@ -96,8 +96,6 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "&Append Board" ),
                  _( "Append another Pcbnew board to the current loaded board" ),
                  KiBitmap( import_xpm ) );
-
-    // Separator
     filesMenu->AppendSeparator();
 
     // Save
@@ -117,14 +115,8 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     AddMenuItem( filesMenu, ID_MENU_READ_LAST_SAVED_VERSION_BOARD,
                  _( "Revert" ),
                  _( "Clear board and get previous saved version of board" ),
-                 KiBitmap( jigsaw_xpm ) );
-
-    // Rescue
-    AddMenuItem( filesMenu, ID_MENU_RECOVER_BOARD, _( "Rescue" ),
-                 _( "Clear old board and get last rescue file" ),
-                 KiBitmap( hammer_xpm ) );
+                 KiBitmap( help_xpm ) );
     filesMenu->AppendSeparator();
-
 
     /* Fabrication Outputs submenu */
     wxMenu* fabricationOutputsMenu = new wxMenu;
@@ -248,7 +240,7 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "Archive or add footprints in a library file" ),
                  KiBitmap( library_xpm ) );
 
-    /* Quit */
+    // Quit
     filesMenu->AppendSeparator();
     AddMenuItem( filesMenu, wxID_EXIT, _( "&Quit" ), _( "Quit Pcbnew" ),
                  KiBitmap( exit_xpm ) );
@@ -428,6 +420,10 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "Li&brary" ), _( "Setting libraries, directories and others..." ),
                  KiBitmap( library_xpm ) );
 
+    AddMenuItem( configmenu, ID_PCB_LIB_TABLE_EDIT,
+                _( "Li&brary Tables" ), _( "Setup footprint libraries" ),
+                KiBitmap( library_table_xpm ) );
+
     // Colors and Visibility are also handled by the layers manager toolbar
     AddMenuItem( configmenu, ID_MENU_PCB_SHOW_HIDE_LAYERS_MANAGER_DIALOG,
                  m_show_layer_manager_tools ?
@@ -450,7 +446,7 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "Select how items (pads, tracks texts ... ) are displayed" ),
                  KiBitmap( display_options_xpm ) );
 
-    // Create Dimensions submenu
+    // Create sizes and dimensions submenu
     wxMenu* dimensionsMenu = new wxMenu;
 
     // Grid
@@ -467,7 +463,7 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     // Pads
     AddMenuItem( dimensionsMenu, ID_PCB_PAD_SETUP,
                  _( "&Pads" ),  _( "Adjust default pad characteristics" ),
-                 KiBitmap( pad_xpm ) );
+                 KiBitmap( pad_dimensions_xpm ) );
 
     // Pads Mask Clearance
     AddMenuItem( dimensionsMenu, ID_PCB_MASK_CLEARANCE,
@@ -481,11 +477,6 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "&Save" ), _( "Save dimension preferences" ),
                  KiBitmap( save_xpm ) );
 
-    // Append dimension menu to config menu
-    AddMenuItem( configmenu, dimensionsMenu,
-                 -1, _( "Di&mensions" ),
-                 _( "Global dimensions preferences" ),
-                 KiBitmap( add_dimension_xpm ) );
 
     // Language submenu
     wxGetApp().AddMenuLanguageList( configmenu );
@@ -609,6 +600,7 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     menuBar->Append( viewMenu, _( "&View" ) );
     menuBar->Append( placeMenu, _( "&Place" ) );
     menuBar->Append( configmenu, _( "P&references" ) );
+    menuBar->Append( dimensionsMenu, _( "D&imensions" ) );
     menuBar->Append( toolsMenu, _( "&Tools" ) );
     menuBar->Append( designRulesMenu, _( "&Design Rules" ) );
     menuBar->Append( helpMenu, _( "&Help" ) );

@@ -652,12 +652,25 @@ static void PushTrack( EDA_DRAW_PANEL* panel )
 }
 
 
+//Helpre function: Draws Via circle and Via Clearence circle.
+inline void DrawViaCirclesWhenEditingNewTrack( EDA_RECT* aPanelClipBox,
+                                               wxDC* aDC, const wxPoint& aPos,
+                                               int aViaRadius,
+                                               int aViaRadiusWithClearence,
+                                               EDA_COLOR_T aColor)
+{
+    //Current viasize clearence circle
+    GRCircle( aPanelClipBox, aDC, aPos.x, aPos.y, aViaRadiusWithClearence, aColor );
+    //Current viasize circle
+    GRCircle( aPanelClipBox, aDC, aPos.x, aPos.y, aViaRadius, aColor );
+}
+
 /* Redraw the current track being created when the mouse cursor is moved
  */
 void ShowNewTrackWhenMovingCursor( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosition,
                                    bool aErase )
 {
-    D( g_CurrentTrackList.VerifyListIntegrity(); );
+//    D( g_CurrentTrackList.VerifyListIntegrity(); );
 
     PCB_SCREEN*     screen = (PCB_SCREEN*) aPanel->GetScreen();
     PCB_BASE_FRAME* frame  = (PCB_BASE_FRAME*) aPanel->GetParent();
@@ -674,6 +687,11 @@ void ShowNewTrackWhenMovingCursor( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPo
     if( showTrackClearanceMode != DO_NOT_SHOW_CLEARANCE )
         DisplayOpt.ShowTrackClearanceMode = SHOW_CLEARANCE_ALWAYS;
 
+    // Values to Via circle
+    int boardViaRadius = frame->GetBoard()->GetCurrentViaSize()/2;
+    int viaRadiusWithClearence = boardViaRadius+netclass->GetClearance();
+    EDA_RECT* panelClipBox=aPanel->GetClipBox();
+
 #ifndef USE_WX_OVERLAY
     // Erase old track
     if( aErase )
@@ -685,11 +703,8 @@ void ShowNewTrackWhenMovingCursor( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPo
         if( showTrackClearanceMode >= SHOW_CLEARANCE_NEW_TRACKS_AND_VIA_AREAS )
         {
             EDA_COLOR_T color = g_ColorsSettings.GetLayerColor( g_CurrentTrackSegment->GetLayer() );
-
-            GRCircle( aPanel->GetClipBox(), aDC, g_CurrentTrackSegment->m_End.x,
-                      g_CurrentTrackSegment->m_End.y,
-                      ( netclass->GetViaDiameter() / 2 ) + netclass->GetClearance(),
-                      color );
+            DrawViaCirclesWhenEditingNewTrack( panelClipBox, aDC, g_CurrentTrackSegment->m_End,
+                                               boardViaRadius, viaRadiusWithClearence, color);
         }
     }
 #endif
@@ -754,16 +769,16 @@ void ShowNewTrackWhenMovingCursor( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPo
     {
         EDA_COLOR_T color = g_ColorsSettings.GetLayerColor(g_CurrentTrackSegment->GetLayer());
 
-        GRCircle( aPanel->GetClipBox(), aDC, g_CurrentTrackSegment->m_End.x,
-                  g_CurrentTrackSegment->m_End.y,
-                  ( netclass->GetViaDiameter() / 2 ) + netclass->GetClearance(),
-                  color );
+        //Via diameter must have taken what we are using, rather than netclass value.
+        DrawViaCirclesWhenEditingNewTrack( panelClipBox, aDC, g_CurrentTrackSegment->m_End,
+                                           boardViaRadius, viaRadiusWithClearence, color);
+
     }
 
     /* Display info about current segment and the full new track:
      *  Choose the interesting segment: because we are using a 2 segments step,
      *  the last segment can be null, and the previous segment can be the
-     * interesting segment.
+     *  interesting segment.
      */
     TRACK* isegm = g_CurrentTrackSegment;
 
@@ -776,14 +791,14 @@ void ShowNewTrackWhenMovingCursor( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPo
     // Display current track length (on board) and the the actual track len
     // if there is an extra len due to the len die on the starting pad (if any)
     double   trackLen = 0.0;
-    double   lenDie = 0.0;
+    double   lenPadToDie = 0.0;
     wxString msg;
 
     // If the starting point is on a pad, add current track length+ length die
     if( g_FirstTrackSegment->GetState( BEGIN_ONPAD ) )
     {
         D_PAD * pad = (D_PAD *) g_FirstTrackSegment->start;
-        lenDie = (double) pad->GetDieLength();
+        lenPadToDie = (double) pad->GetPadToDieLength();
     }
 
     // calculate track len on board:
@@ -793,11 +808,11 @@ void ShowNewTrackWhenMovingCursor( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPo
     msg = frame->LengthDoubleToString( trackLen );
     frame->AppendMsgPanel( _( "Track Len" ), msg, DARKCYAN );
 
-    if( lenDie != 0 )      // display the track len on board and the actual track len
+    if( lenPadToDie != 0 )      // display the track len on board and the actual track len
     {
         frame->AppendMsgPanel( _( "Full Len" ), msg, DARKCYAN );
-        msg = frame->LengthDoubleToString( trackLen+lenDie );
-        frame->AppendMsgPanel( _( "On Die" ), msg, DARKCYAN );
+        msg = frame->LengthDoubleToString( trackLen+lenPadToDie );
+        frame->AppendMsgPanel( _( "Pad to die" ), msg, DARKCYAN );
     }
 
     // Add current segments count (number of segments in this new track):

@@ -49,7 +49,34 @@
 #include <zones.h>
 #include <pcb_parser.h>
 
+
 using namespace std;
+
+
+void PCB_PARSER::init()
+{
+    m_layerIndices.clear();
+    m_layerMasks.clear();
+
+    // Add untranslated default (i.e. english) layernames.
+    // Some may be overridden later if parsing a board rather than a footprint.
+    // The english name will survive if parsing only a footprint.
+    for( int layerNdx = 0;  layerNdx < NB_LAYERS;  ++layerNdx )
+    {
+        std::string untranslated = TO_UTF8( BOARD::GetDefaultLayerName( layerNdx, false ) );
+
+        m_layerIndices[ untranslated ] = layerNdx;
+        m_layerMasks[ untranslated ]   = 1 << layerNdx;
+    }
+
+    m_layerMasks[ "*.Cu" ]      = ALL_CU_LAYERS;
+    m_layerMasks[ "F&B.Cu" ]    = LAYER_BACK | LAYER_FRONT;
+    m_layerMasks[ "*.Adhes" ]   = ADHESIVE_LAYER_BACK | ADHESIVE_LAYER_FRONT;
+    m_layerMasks[ "*.Paste" ]   = SOLDERPASTE_LAYER_BACK | SOLDERPASTE_LAYER_FRONT;
+    m_layerMasks[ "*.Mask" ]    = SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT;
+    m_layerMasks[ "*.SilkS" ]   = SILKSCREEN_LAYER_BACK | SILKSCREEN_LAYER_FRONT;
+}
+
 
 double PCB_PARSER::parseDouble() throw( IO_ERROR )
 {
@@ -585,38 +612,38 @@ void PCB_PARSER::parseTITLE_BLOCK() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_comment:
-        {
-            int commentNumber = parseInt( "comment" );
-
-            switch( commentNumber )
             {
-            case 1:
-                NextTok();
-                titleBlock.SetComment1( FromUTF8() );
+                int commentNumber = parseInt( "comment" );
+
+                switch( commentNumber )
+                {
+                case 1:
+                    NextTok();
+                    titleBlock.SetComment1( FromUTF8() );
+                    break;
+
+                case 2:
+                    NextTok();
+                    titleBlock.SetComment2( FromUTF8() );
+                    break;
+
+                case 3:
+                    NextTok();
+                    titleBlock.SetComment3( FromUTF8() );
+                    break;
+
+                case 4:
+                    NextTok();
+                    titleBlock.SetComment4( FromUTF8() );
+                    break;
+
+                default:
+                    wxString err;
+                    err.Printf( wxT( "%d is not a valid title block comment number" ), commentNumber );
+                    THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
+                }
+
                 break;
-
-            case 2:
-                NextTok();
-                titleBlock.SetComment2( FromUTF8() );
-                break;
-
-            case 3:
-                NextTok();
-                titleBlock.SetComment3( FromUTF8() );
-                break;
-
-            case 4:
-                NextTok();
-                titleBlock.SetComment4( FromUTF8() );
-                break;
-
-            default:
-                wxString err;
-                err.Printf( wxT( "%d is not a valid title block comment number" ), commentNumber );
-                THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
-            }
-
-            break;
             }
 
         default:
@@ -635,14 +662,14 @@ void PCB_PARSER::parseLayers() throw( IO_ERROR, PARSE_ERROR )
     wxCHECK_RET( CurTok() == T_layers,
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as layers." ) );
 
-    T token;
-    wxString name;
-    wxString type;
-    int layerIndex;
-    bool isVisible = true;
-    int visibleLayers = 0;
-    int enabledLayers = 0;
-    int copperLayerCount = 0;
+    T           token;
+    std::string name;
+    std::string type;
+    int         layerIndex;
+    bool        isVisible = true;
+    int         visibleLayers = 0;
+    int         enabledLayers = 0;
+    int         copperLayerCount = 0;
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
@@ -652,9 +679,10 @@ void PCB_PARSER::parseLayers() throw( IO_ERROR, PARSE_ERROR )
         layerIndex = parseInt( "layer index" );
 
         NeedSYMBOL();
-        name = FromUTF8();
+        name = CurText();
+
         NeedSYMBOL();
-        type = FromUTF8();
+        type = CurText();
 
         token = NextTok();
 
@@ -677,13 +705,17 @@ void PCB_PARSER::parseLayers() throw( IO_ERROR, PARSE_ERROR )
         if( isVisible )
             visibleLayers |= 1 << layerIndex;
 
-        enum LAYER_T layerType = LAYER::ParseType( TO_UTF8( type ) );
-        LAYER layer( name, layerType, isVisible );
+        m_layerIndices[ name ] = layerIndex;
+        m_layerMasks[ name ]   = 1 << layerIndex;
+
+        wxString        wname = FROM_UTF8( name.c_str() );
+        enum LAYER_T    layerType = LAYER::ParseType( type.c_str() );
+        LAYER           layer( wname, layerType, isVisible );
+
         layer.SetFixedListIndex( layerIndex );
         m_board->SetLayer( layerIndex, layer );
-        m_layerMap[ name ] = layerIndex;
-        wxLogDebug( wxT( "Mapping layer %s index index %d" ),
-                    GetChars( name ), layerIndex );
+
+        wxLogDebug( wxT( "Mapping layer %s to index %d" ),  GetChars( wname ), layerIndex );
 
         if( layerType != LT_UNDEFINED )
             copperLayerCount++;
@@ -692,8 +724,9 @@ void PCB_PARSER::parseLayers() throw( IO_ERROR, PARSE_ERROR )
     // We need at least 2 copper layers and there must be an even number of them.
     if( (copperLayerCount < 2) || ((copperLayerCount % 2) != 0) )
     {
-        wxString err;
-        err.Printf( _( "%d is not a valid layer count" ), copperLayerCount );
+        wxString err = wxString::Format(
+            _( "%d is not a valid layer count" ), copperLayerCount );
+
         THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
     }
 
@@ -703,20 +736,31 @@ void PCB_PARSER::parseLayers() throw( IO_ERROR, PARSE_ERROR )
 }
 
 
-int PCB_PARSER::lookUpLayer() throw( PARSE_ERROR, IO_ERROR )
+int PCB_PARSER::lookUpLayer( const LAYER_MAP& aMap ) throw( PARSE_ERROR, IO_ERROR )
 {
-    wxString name = FromUTF8();
-    const LAYER_HASH_MAP::iterator it = m_layerMap.find( name );
+    // avoid constructing another std::string, use lexer's directly
+    LAYER_MAP::const_iterator it = aMap.find( curText );
 
-    if( it == m_layerMap.end() )
+    if( it == aMap.end() )
     {
-        wxString error;
-        error.Printf( wxT( "Layer '%s' in file <%s> at line %d, position %d was not defined in the layers section" ),
-                      GetChars( name ), GetChars( CurSource() ), CurLineNumber(), CurOffset() );
+#if 1 && defined(DEBUG)
+        // dump the whole darn table, there's something wrong with it.
+        for( it = aMap.begin();  it != aMap.end();  ++it )
+        {
+            printf( &aMap == &m_layerIndices ? "lm[%s] = %d\n" : "lm[%s] = %08X\n",
+                it->first.c_str(), it->second );
+        }
+#endif
+
+        wxString error = wxString::Format(
+            _( "Layer '%s' in file <%s> at line %d, position %d, was not defined in the layers section" ),
+            GetChars( FROM_UTF8( CurText() ) ), GetChars( CurSource() ),
+            CurLineNumber(), CurOffset() );
+
         THROW_IO_ERROR( error );
     }
 
-    return m_layerMap[ name ];
+    return it->second;
 }
 
 
@@ -727,7 +771,7 @@ int PCB_PARSER::parseBoardItemLayer() throw( PARSE_ERROR, IO_ERROR )
 
     NextTok();
 
-    int layerIndex = lookUpLayer();
+    int layerIndex = lookUpLayer( m_layerIndices );
 
     // Handle closing ) in object parser.
 
@@ -741,14 +785,12 @@ int PCB_PARSER::parseBoardItemLayersAsMask() throw( PARSE_ERROR, IO_ERROR )
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) +
                  wxT( " as item layer mask." ) );
 
-    int layerIndex;
     int layerMask = 0;
-    T token;
 
-    for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
+    for( T token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
-        layerIndex = lookUpLayer();
-        layerMask |= ( 1 << layerIndex );
+        int mask = lookUpLayer( m_layerMasks );
+        layerMask |= mask;
     }
 
     return layerMask;
@@ -914,7 +956,12 @@ void PCB_PARSER::parseSetup() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_pad_to_mask_clearance:
-            designSettings.m_SolderMaskMargin = parseBoardUnits( T_pad_to_mask_clearance );
+             designSettings.m_SolderMaskMargin = parseBoardUnits( T_pad_to_mask_clearance );
+            NeedRIGHT();
+            break;
+
+        case T_solder_mask_min_width:
+            designSettings.m_SolderMaskMinWidth = parseBoardUnits( T_solder_mask_min_width );
             NeedRIGHT();
             break;
 
@@ -1017,7 +1064,8 @@ void PCB_PARSER::parseNETCLASS() throw( IO_ERROR, PARSE_ERROR )
 
     auto_ptr<NETCLASS> nc( new NETCLASS( m_board, wxEmptyString ) );
 
-    NeedSYMBOL();
+    // Read netclass name (can be a name or just a number like track width)
+    NeedSYMBOLorNUMBER();
     nc->SetName( FromUTF8() );
     NeedSYMBOL();
     nc->SetDescription( FromUTF8() );
@@ -1358,6 +1406,7 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
         {
             TEXTE_PCB* text = parseTEXTE_PCB();
             dimension->m_Text = *text;
+            dimension->SetPosition( text->GetPosition() );
             delete text;
             break;
         }
@@ -1369,8 +1418,8 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
             if( token != T_pts )
                 Expecting( T_pts );
 
-            parseXY( &dimension->m_featureLineDOx, &dimension->m_featureLineDOy );
-            parseXY( &dimension->m_featureLineDFx, &dimension->m_featureLineDFy );
+            parseXY( &dimension->m_featureLineDO.x, &dimension->m_featureLineDO.y );
+            parseXY( &dimension->m_featureLineDF.x, &dimension->m_featureLineDF.y );
             NeedRIGHT();
             NeedRIGHT();
             break;
@@ -1382,8 +1431,8 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
             if( token != T_pts )
                 Expecting( T_pts );
 
-            parseXY( &dimension->m_featureLineGOx, &dimension->m_featureLineGOy );
-            parseXY( &dimension->m_featureLineGFx, &dimension->m_featureLineGFy );
+            parseXY( &dimension->m_featureLineGO.x, &dimension->m_featureLineGO.y );
+            parseXY( &dimension->m_featureLineGF.x, &dimension->m_featureLineGF.y );
             NeedRIGHT();
             NeedRIGHT();
             break;
@@ -1396,8 +1445,8 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
             if( token != T_pts )
                 Expecting( T_pts );
 
-            parseXY( &dimension->m_crossBarOx, &dimension->m_crossBarOy );
-            parseXY( &dimension->m_crossBarFx, &dimension->m_crossBarFy );
+            parseXY( &dimension->m_crossBarO.x, &dimension->m_crossBarO.y );
+            parseXY( &dimension->m_crossBarF.x, &dimension->m_crossBarF.y );
             NeedRIGHT();
             NeedRIGHT();
             break;
@@ -1409,8 +1458,8 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
             if( token != T_pts )
                 Expecting( T_pts );
 
-            parseXY( &dimension->m_arrowD1Ox, &dimension->m_arrowD1Oy );
-            parseXY( &dimension->m_arrowD1Fx, &dimension->m_arrowD1Fy );
+            parseXY( &dimension->m_arrowD1O.x, &dimension->m_arrowD1O.y );
+            parseXY( &dimension->m_arrowD1F.x, &dimension->m_arrowD1F.y );
             NeedRIGHT();
             NeedRIGHT();
             break;
@@ -1422,8 +1471,8 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
             if( token != T_pts )
                 Expecting( T_pts );
 
-            parseXY( &dimension->m_arrowD2Ox, &dimension->m_arrowD2Oy );
-            parseXY( &dimension->m_arrowD2Fx, &dimension->m_arrowD2Fy );
+            parseXY( &dimension->m_arrowD2O.x, &dimension->m_arrowD2O.y );
+            parseXY( &dimension->m_arrowD2F.x, &dimension->m_arrowD2F.y );
             NeedRIGHT();
             NeedRIGHT();
             break;
@@ -1435,8 +1484,8 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
             if( token != T_pts )
                 Expecting( T_pts );
 
-            parseXY( &dimension->m_arrowG1Ox, &dimension->m_arrowG1Oy );
-            parseXY( &dimension->m_arrowG1Fx, &dimension->m_arrowG1Fy );
+            parseXY( &dimension->m_arrowG1O.x, &dimension->m_arrowG1O.y );
+            parseXY( &dimension->m_arrowG1F.x, &dimension->m_arrowG1F.y );
             NeedRIGHT();
             NeedRIGHT();
             break;
@@ -1448,8 +1497,8 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
             if( token != T_pts )
                 Expecting( T_pts );
 
-            parseXY( &dimension->m_arrowG2Ox, &dimension->m_arrowG2Oy );
-            parseXY( &dimension->m_arrowG2Fx, &dimension->m_arrowG2Fy );
+            parseXY( &dimension->m_arrowG2O.x, &dimension->m_arrowG2O.y );
+            parseXY( &dimension->m_arrowG2F.x, &dimension->m_arrowG2F.y );
             NeedRIGHT();
             NeedRIGHT();
             break;
@@ -1470,11 +1519,11 @@ MODULE* PCB_PARSER::parseMODULE() throw( IO_ERROR, PARSE_ERROR )
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as MODULE." ) );
 
     wxPoint pt;
-    T token;
+    T       token;
 
     auto_ptr< MODULE > module( new MODULE( m_board ) );
 
-    NeedSYMBOL();
+    NeedSYMBOLorNUMBER();
     module->SetLibRef( FromUTF8() );
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
@@ -1673,6 +1722,8 @@ MODULE* PCB_PARSER::parseMODULE() throw( IO_ERROR, PARSE_ERROR )
         }
     }
 
+    module->CalculateBoundingBox();
+
     return module.release();
 }
 
@@ -1803,7 +1854,7 @@ EDGE_MODULE* PCB_PARSER::parseEDGE_MODULE() throw( IO_ERROR, PARSE_ERROR )
         if( token != T_angle )
             Expecting( T_angle );
 
-        segment->SetAngle( parseDouble( "segment angle" ) );
+        segment->SetAngle( parseDouble( "segment angle" ) * 10.0 );
         NeedRIGHT();
         break;
 
@@ -1919,7 +1970,7 @@ EDGE_MODULE* PCB_PARSER::parseEDGE_MODULE() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         default:
-            Expecting( "layer, width, tstamp, or status" );
+            Expecting( "layer or width" );
         }
 
         NeedRIGHT();
@@ -2068,8 +2119,9 @@ D_PAD* PCB_PARSER::parseD_PAD() throw( IO_ERROR, PARSE_ERROR )
                 }
 
                 case T_offset:
-                    pad->SetOffset( wxPoint( parseBoardUnits( "drill offset x" ),
-                                             parseBoardUnits( "drill offset y" ) ) );
+                    pt.x = parseBoardUnits( "drill offset x" );
+                    pt.y = parseBoardUnits( "drill offset y" );
+                    pad->SetOffset( pt );
                     NeedRIGHT();
                     break;
 
@@ -2083,18 +2135,20 @@ D_PAD* PCB_PARSER::parseD_PAD() throw( IO_ERROR, PARSE_ERROR )
         }
 
         case T_layers:
-        {
-            int layerMask = parseBoardItemLayersAsMask();
+            {
+                int layerMask = parseBoardItemLayersAsMask();
 
-            // Only the layers that are used are saved so we need to enable all the copper
-            // layers to prevent any problems with the current design.  At some point in
-            // the future, the layer handling should be improved.
-            if( pad->GetAttribute() == PAD_STANDARD )
-                layerMask |= ALL_CU_LAYERS;
+                // 15-Nov-2012 before today, only the cu layers that were used were
+                // saved.  After wildcard *.Cu support went into effect, this is no
+                // longer an issue, but in order to load the interrim s-expression files,
+                // turn on all Cu layers for thru hole pads.  New files will not need this
+                // and eventually this code can be removed.
+                if( pad->GetAttribute() == PAD_STANDARD )
+                    layerMask |= ALL_CU_LAYERS;
 
-            pad->SetLayerMask( layerMask );
+                pad->SetLayerMask( layerMask );
+            }
             break;
-        }
 
         case T_net:
             pad->SetNet( parseInt( "net number" ) );
@@ -2104,7 +2158,7 @@ D_PAD* PCB_PARSER::parseD_PAD() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_die_length:
-            pad->SetDieLength( parseBoardUnits( T_die_length ) );
+            pad->SetPadToDieLength( parseBoardUnits( T_die_length ) );
             NeedRIGHT();
             break;
 
@@ -2260,15 +2314,15 @@ SEGVIA* PCB_PARSER::parseSEGVIA() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_layers:
-        {
-            int layer1, layer2;
-            NextTok();
-            layer1 = lookUpLayer();
-            NextTok();
-            layer2 = lookUpLayer();
-            via->SetLayerPair( layer1, layer2 );
-            NeedRIGHT();
-        }
+            {
+                int layer1, layer2;
+                NextTok();
+                layer1 = lookUpLayer( m_layerIndices );
+                NextTok();
+                layer2 = lookUpLayer( m_layerIndices );
+                via->SetLayerPair( layer1, layer2 );
+                NeedRIGHT();
+            }
             break;
 
         case T_net:

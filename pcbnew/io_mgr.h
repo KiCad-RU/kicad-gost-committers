@@ -89,6 +89,12 @@ public:
     static const wxString ShowType( PCB_FILE_T aFileType );
 
     /**
+     * Function EnumFromStr
+     * returns the PCB_FILE_T from the corresponding plugin type name: "kicad", "legacy", etc.
+     */
+    static PCB_FILE_T EnumFromStr( const wxString& aFileType );
+
+    /**
      * Function GetFileExtension
      * returns the file extension for \a aFileType.
      *
@@ -97,6 +103,12 @@ public:
      *         string if \a aFileType is invalid.
      */
     static const wxString GetFileExtension( PCB_FILE_T aFileType );
+
+    /**
+     * Function GuessPluginTypeFromLibPath
+     * returns a plugin type given a footprint library's libPath.
+     */
+    static PCB_FILE_T GuessPluginTypeFromLibPath( const wxString& aLibPath );
 
     /**
      * Function Load
@@ -242,6 +254,8 @@ public:
     virtual void Save( const wxString& aFileName, BOARD* aBoard,
                        PROPERTIES* aProperties = NULL );
 
+    //-----<Footprint Stuff>-----------------------------
+
     /**
      * Function FootprintEnumerate
      * returns a list of footprint names contained within the library at @a aLibraryPath.
@@ -342,8 +356,9 @@ public:
 
     /**
      * Function FootprintLibDelete
-     * deletes an existing footprint library, or complains if it cannot delete it
-     * or if it does not exist.
+     * deletes an existing footprint library and returns true, or if library does not
+     * exist returns false, or throws an exception if library exists but is read only or
+     * cannot be deleted for some other reason.
      *
      * @param aLibraryPath is a locator for the "library", usually a directory
      *   or file which will contain footprints.
@@ -354,14 +369,18 @@ public:
      *  known to support. The caller continues to own this object (plugin may
      *  not delete it), and plugins should expect it to be optionally NULL.
      *
-     * @throw IO_ERROR if there is a problem finding the library or deleting it.
+     * @return bool - true if library deleted, false if library did not exist.
+     *
+     * @throw IO_ERROR if there is a problem deleting an existing library.
      */
-    virtual void FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties = NULL );
+    virtual bool FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties = NULL );
 
     /**
      * Function IsFootprintLibWritable
      * returns true iff the library at @a aLibraryPath is writable.  (Often
      * system libraries are read only because of where they are installed.)
+     *
+     * @throw IO_ERROR if no library at aLibraryPath exists.
      */
     virtual bool IsFootprintLibWritable( const wxString& aLibraryPath );
 

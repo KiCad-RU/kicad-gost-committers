@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2009-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2009-2012 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,7 +32,6 @@
 #include <kicad.h>
 #include <menus_helpers.h>
 
-
 /* Menubar and toolbar event table */
 BEGIN_EVENT_TABLE( KICAD_MANAGER_FRAME, EDA_BASE_FRAME )
     /* Window events */
@@ -44,6 +43,7 @@ BEGIN_EVENT_TABLE( KICAD_MANAGER_FRAME, EDA_BASE_FRAME )
 
     /* Toolbar events */
     EVT_TOOL( ID_NEW_PROJECT, KICAD_MANAGER_FRAME::OnLoadProject )
+    EVT_TOOL( ID_NEW_PROJECT_FROM_TEMPLATE, KICAD_MANAGER_FRAME::OnLoadProject )
     EVT_TOOL( ID_LOAD_PROJECT, KICAD_MANAGER_FRAME::OnLoadProject )
     EVT_TOOL( ID_SAVE_PROJECT, KICAD_MANAGER_FRAME::OnSaveProject )
     EVT_TOOL( ID_SAVE_AND_ZIP_FILES, KICAD_MANAGER_FRAME::OnArchiveFiles )
@@ -90,6 +90,9 @@ END_EVENT_TABLE()
  */
 void KICAD_MANAGER_FRAME::ReCreateMenuBar()
 {
+    static wxMenu* openRecentMenu;  // Open Recent submenu,
+                                    // static to remember this menu
+
     // Create and try to get the current  menubar
     wxMenuItem* item;
     wxMenuBar*  menuBar = GetMenuBar();
@@ -101,6 +104,12 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
     // This allows language changes of the menu text on the fly.
     menuBar->Freeze();
 
+    // Before deleting, remove the menus managed by m_fileHistory
+    // (the file history will be updated when adding/removing files in history)
+    if( openRecentMenu )
+        wxGetApp().GetFileHistory().RemoveMenu( openRecentMenu );
+
+    // Delete all existing menus
     while( menuBar->GetMenuCount() )
         delete menuBar->Remove( 0 );
 
@@ -116,14 +125,7 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
                  _( "Open an existing project" ),
                  KiBitmap( open_project_xpm ) );
 
-    // Open Recent submenu
-    static wxMenu* openRecentMenu;
-
-    // Add this menu to list menu managed by m_fileHistory
-    // (the file history will be updated when adding/removing files in history
-    if( openRecentMenu )
-        wxGetApp().GetFileHistory().RemoveMenu( openRecentMenu );
-
+    // File history
     openRecentMenu = new wxMenu();
     wxGetApp().GetFileHistory().UseMenu( openRecentMenu );
     wxGetApp().GetFileHistory().AddFilesToMenu( );
@@ -134,8 +136,20 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
                  KiBitmap( open_project_xpm ) );
 
     // New
-    AddMenuItem( fileMenu, ID_NEW_PROJECT,
-                 _( "&New\tCtrl+N" ),
+    wxMenu* newMenu = new wxMenu();
+    AddMenuItem( newMenu, ID_NEW_PROJECT,
+                 _( "&Blank\tCtrl+N" ),
+                 _( "Start a blank project" ),
+                 KiBitmap( new_project_xpm ) );
+
+    AddMenuItem( newMenu, ID_NEW_PROJECT_FROM_TEMPLATE,
+                 _( "New from &Template\tCtrl+T" ),
+                 _( "Start a new project from a template" ),
+                 KiBitmap( new_project_with_template_xpm ) );
+
+    AddMenuItem( fileMenu, newMenu,
+                 wxID_ANY,
+                 _( "New" ),
                  _( "Start a new project" ),
                  KiBitmap( new_project_xpm ) );
 
@@ -308,6 +322,10 @@ void KICAD_MANAGER_FRAME::RecreateBaseHToolbar()
     m_mainToolBar->AddTool( ID_NEW_PROJECT, wxEmptyString,
                             KiBitmap( new_project_xpm ),
                             _( "Start a new project" ) );
+
+    m_mainToolBar->AddTool( ID_NEW_PROJECT_FROM_TEMPLATE, wxEmptyString,
+                            KiBitmap( new_project_with_template_xpm ),
+                            _( "Start a new project from a template" ) );
 
     // Load
     m_mainToolBar->AddTool( ID_LOAD_PROJECT, wxEmptyString,

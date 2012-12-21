@@ -130,14 +130,17 @@ static EDA_HOTKEY HkRedo( wxT( "Redo" ), HK_REDO, GR_KB_SHIFT + GR_KB_CTRL + 'Z'
 #endif
 
 // Schematic editor
+static EDA_HOTKEY HkBeginWire( wxT( "Begin Wire" ), HK_BEGIN_WIRE, 'W', ID_WIRE_BUTT );
+static EDA_HOTKEY HkBeginBus( wxT( "Begin Bus" ), HK_BEGIN_BUS, 'B', ID_BUS_BUTT );
+static EDA_HOTKEY HkEndLineWireBus( wxT( "End Line Wire Bus" ), HK_END_CURR_LINEWIREBUS, 'K',
+                                  ID_POPUP_END_LINE );
+
 static EDA_HOTKEY HkAddLabel( wxT( "Add Label" ), HK_ADD_LABEL, 'L', ID_LABEL_BUTT );
 static EDA_HOTKEY HkAddHierarchicalLabel( wxT( "Add Hierarchical Label" ), HK_ADD_HLABEL, 'H',
                                           ID_HIERLABEL_BUTT );
 static EDA_HOTKEY HkAddGlobalLabel( wxT( "Add Global Label" ), HK_ADD_GLABEL, GR_KB_CTRL + 'L',
                                     ID_GLABEL_BUTT );
 static EDA_HOTKEY HkAddJunction( wxT( "Add Junction" ), HK_ADD_JUNCTION, 'J', ID_JUNCTION_BUTT );
-static EDA_HOTKEY HkBeginWire( wxT( "Draw Wire" ), HK_BEGIN_WIRE, 'W', ID_WIRE_BUTT );
-static EDA_HOTKEY HkBeginBus( wxT( "Draw Bus" ), HK_BEGIN_BUS, 'B', ID_BUS_BUTT );
 static EDA_HOTKEY HkAddComponent( wxT( "Add Component" ), HK_ADD_NEW_COMPONENT, 'A',
                                   ID_SCH_PLACE_COMPONENT );
 static EDA_HOTKEY HkAddPower( wxT( "Add Power" ), HK_ADD_NEW_POWER, 'P',
@@ -165,6 +168,9 @@ static EDA_HOTKEY HkEdit( wxT( "Edit Schematic Item" ), HK_EDIT, 'E', ID_SCH_EDI
 static EDA_HOTKEY HkEditComponentValue( wxT( "Edit Component Value" ),
                                         HK_EDIT_COMPONENT_VALUE, 'V',
                                         ID_SCH_EDIT_COMPONENT_VALUE );
+static EDA_HOTKEY HkEditComponentReference( wxT( "Edit Component Reference" ),
+                                        HK_EDIT_COMPONENT_REFERENCE, 'U',
+                                        ID_SCH_EDIT_COMPONENT_REFERENCE );
 static EDA_HOTKEY HkEditComponentFootprint( wxT( "Edit Component Footprint" ),
                                             HK_EDIT_COMPONENT_FOOTPRINT, 'F',
                                             ID_SCH_EDIT_COMPONENT_FOOTPRINT );
@@ -237,9 +243,11 @@ EDA_HOTKEY* s_Schematic_Hotkey_List[] =
     &HkOrientNormalComponent,
     &HkEdit,
     &HkEditComponentValue,
+    &HkEditComponentReference,
     &HkEditComponentFootprint,
     &HkBeginWire,
     &HkBeginBus,
+    &HkEndLineWireBus,
     &HkAddLabel,
     &HkAddHierarchicalLabel,
     &HkAddGlobalLabel,
@@ -373,13 +381,21 @@ void SCH_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
     case HK_DELETE:
         if( notBusy )
             DeleteItemAtCrossHair( aDC );
-
         break;
 
     case HK_REPEAT_LAST:
         if( notBusy && m_itemToRepeat && ( m_itemToRepeat->GetFlags() == 0 ) )
             RepeatDrawItem( aDC );
+        break;
 
+    case HK_END_CURR_LINEWIREBUS:
+        // this key terminates a new line/bus/wire in progress
+        if( aItem && aItem->IsNew() &&
+            aItem->Type() == SCH_LINE_T )
+        {
+            cmd.SetId( hotKey->m_IdMenuEvent );
+            GetEventHandler()->ProcessEvent( cmd );
+        }
         break;
 
     case HK_UNDO:
@@ -390,7 +406,6 @@ void SCH_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
             cmd.SetId( hotKey->m_IdMenuEvent );
             GetEventHandler()->ProcessEvent( cmd );
         }
-
         break;
 
     case HK_FIND_NEXT_ITEM:
@@ -479,8 +494,14 @@ void SCH_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
     case HK_MOVE_COMPONENT_OR_ITEM:         // Start move schematic item.
     case HK_EDIT:                           // Edit schematic item.
     case HK_EDIT_COMPONENT_VALUE:           // Edit component value field.
+    case HK_EDIT_COMPONENT_REFERENCE:       // Edit component value reference.
     case HK_EDIT_COMPONENT_FOOTPRINT:       // Edit component footprint field.
         {
+            // force a new item search on hot keys at current position,
+            // if there is no currently edited item,
+            // to avoid using a previously selected item
+            if( ! itemInEdit )
+                screen->SetCurItem( NULL );
             EDA_HOTKEY_CLIENT_DATA data( aPosition );
             cmd.SetInt( hotKey->m_Idcommand );
             cmd.SetClientObject( &data );

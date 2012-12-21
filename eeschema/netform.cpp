@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2009 jean-pierre.charras@gipsa-lab.inpg.fr
- * Copyright (C) 2010 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2010 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2012 jp.charras at wanadoo.fr
+ * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 1992-2012 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,8 +37,7 @@
 
 #include <general.h>
 #include <netlist.h>
-#include <netlist_control.h>
-#include <protos.h>
+#include <dialog_netlist.h>
 #include <class_library.h>
 #include <lib_pin.h>
 #include <sch_component.h>
@@ -1055,7 +1054,6 @@ XNODE* NETLIST_EXPORT_TOOL::makeGenericComponents()
     return xcomps;
 }
 
-#include <wx/wfstream.h>        // wxFFileOutputStream
 
 bool NETLIST_EXPORT_TOOL::WriteKiCadNetList( const wxString& aOutFileName )
 {
@@ -1063,35 +1061,21 @@ bool NETLIST_EXPORT_TOOL::WriteKiCadNetList( const wxString& aOutFileName )
     for( unsigned ii = 0; ii < g_NetObjectslist.size(); ii++ )
         g_NetObjectslist[ii]->m_Flag = 0;
 
-    bool rc = false;
-    wxFFileOutputStream os( aOutFileName, wxT( "wt" ) );
+    std::auto_ptr<XNODE>    xroot( makeGenericRoot() );
 
-    if( !os.IsOk() )
+    try
     {
-    L_error:
-        wxString msg = _( "Failed to create file " ) + aOutFileName;
-        DisplayError( NULL, msg );
+        FILE_OUTPUTFORMATTER    formatter( aOutFileName );
+
+        xroot->Format( &formatter, 0 );
     }
-    else
+    catch( IO_ERROR ioe )
     {
-        XNODE*  xroot = makeGenericRoot();
-
-        try
-        {
-            STREAM_OUTPUTFORMATTER  outputFormatter( os );
-            xroot->Format( &outputFormatter, 0 );
-        }
-        catch( IO_ERROR ioe )
-        {
-            delete xroot;
-            goto L_error;
-        }
-
-        delete xroot;
-        rc = true;
+        DisplayError( NULL, ioe.errorText );
+        return false;
     }
 
-    return rc;
+    return true;
 }
 
 bool NETLIST_EXPORT_TOOL::WriteGENERICNetList( const wxString& aOutFileName )

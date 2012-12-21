@@ -68,6 +68,8 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_CANCEL_CURRENT_COMMAND:
     case ID_POPUP_SCH_ENTRY_SELECT_SLASH:
     case ID_POPUP_SCH_ENTRY_SELECT_ANTISLASH:
+    case ID_POPUP_SCH_BEGIN_WIRE:
+    case ID_POPUP_SCH_BEGIN_BUS:
     case ID_POPUP_END_LINE:
     case ID_POPUP_SCH_SET_SHAPE_TEXT:
     case ID_POPUP_SCH_CLEANUP_SHEET:
@@ -161,8 +163,17 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         EndSegment( &dc );
         break;
 
-    case ID_POPUP_SCH_SET_SHAPE_TEXT:
+    case ID_POPUP_SCH_BEGIN_WIRE:
+        m_canvas->MoveCursorToCrossHair();
+        OnLeftClick( &dc, screen->GetCrossHairPosition() );
+        break;
 
+    case ID_POPUP_SCH_BEGIN_BUS:
+        m_canvas->MoveCursorToCrossHair();
+        OnLeftClick( &dc, screen->GetCrossHairPosition() );
+        break;
+
+    case ID_POPUP_SCH_SET_SHAPE_TEXT:
         // Not used
         break;
 
@@ -796,8 +807,36 @@ void SCH_EDIT_FRAME::OnEditItem( wxCommandEvent& aEvent )
 
         wxCHECK_RET( data != NULL, wxT( "Invalid hot key client object." ) );
 
-        item = LocateAndShowItem( data->GetPosition(), SCH_COLLECTOR::EditableItems,
+        // Set the locat filter, according to the edit command
+        const KICAD_T* filterList = SCH_COLLECTOR::EditableItems;
+        const KICAD_T* filterListAux = NULL;
+        switch( aEvent.GetId() )
+        {
+        case ID_SCH_EDIT_COMPONENT_REFERENCE:
+            filterList = SCH_COLLECTOR::CmpFieldReferenceOnly;
+            filterListAux = SCH_COLLECTOR::ComponentsOnly;
+            break;
+
+        case ID_SCH_EDIT_COMPONENT_VALUE:
+            filterList = SCH_COLLECTOR::CmpFieldValueOnly;
+            filterListAux = SCH_COLLECTOR::ComponentsOnly;
+            break;
+
+        case ID_SCH_EDIT_COMPONENT_FOOTPRINT:
+            filterList = SCH_COLLECTOR::CmpFieldFootprintOnly;
+            filterListAux = SCH_COLLECTOR::ComponentsOnly;
+            break;
+
+        default:
+            break;
+        }
+        item = LocateAndShowItem( data->GetPosition(), filterList,
                                   aEvent.GetInt() );
+
+        // If no item found, and if an auxiliary filter exists, try to use it
+        if( !item && filterListAux )
+            item = LocateAndShowItem( data->GetPosition(), filterListAux,
+                                      aEvent.GetInt() );
 
         // Exit if no item found at the current location or the item is already being edited.
         if( (item == NULL) || (item->GetFlags() != 0) )
@@ -902,6 +941,7 @@ void SCH_EDIT_FRAME::OnDragItem( wxCommandEvent& aEvent )
 
         // Fall thru if item is not on bus layer.
     case SCH_COMPONENT_T:
+    case SCH_LABEL_T:
     case SCH_GLOBAL_LABEL_T:
     case SCH_HIERARCHICAL_LABEL_T:
     case SCH_SHEET_T:

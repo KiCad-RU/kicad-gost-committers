@@ -105,11 +105,13 @@ bool EDA_APP::OnInit()
 {
     wxFileName      fn;
     PCB_EDIT_FRAME* frame = NULL;
+    wxString msg;
 
 #ifdef KICAD_SCRIPTING
     if ( !pcbnewInitPythonScripting() )
     {
-         return false;
+        wxMessageBox( wxT( "pcbnewInitPythonScripting() fails" ) );
+        return false;
     }
 #endif
 
@@ -129,11 +131,13 @@ bool EDA_APP::OnInit()
     {
         fn = argv[1];
 
-        if( fn.GetExt() != PcbFileExtension )
+        if( fn.GetExt() != PcbFileExtension && fn.GetExt() != LegacyPcbFileExtension )
         {
-            wxLogDebug( wxT( "Pcbnew file <%s> has the wrong extension.  \
-Changing extension to .brd." ), GetChars( fn.GetFullPath() ) );
+            msg.Printf( _( "Pcbnew file <%s> has a wrong extension.\n\
+Changing extension to .%s." ), GetChars( fn.GetFullPath() ),
+                               GetChars( PcbFileExtension ) );
             fn.SetExt( PcbFileExtension );
+            wxMessageBox( msg );
         }
 
         if( fn.IsOk() && fn.DirExists() )
@@ -173,25 +177,65 @@ Changing extension to .brd." ), GetChars( fn.GetFullPath() ) );
     {
         /* Note the first time Pcbnew is called after creating a new project
          * the board file may not exist so we load settings only.
+         * However, because legacy board files are named *.brd,
+         * and new files are named *.kicad_pcb,
+         * for all previous projects ( before 2012, december 14 ),
+         * because KiCad manager ask to load a .kicad_pcb file
+         * if this file does not exist, it is certainly useful
+         * to test if a legacy file is existing,
+         * under the same name, and therefore if the user want to load it
          */
+        bool file_exists = false;
+
         if( fn.FileExists() )
         {
+            file_exists = true;
             frame->LoadOnePcbFile( fn.GetFullPath() );
         }
-        else
+        else if( fn.GetExt() == KiCadPcbFileExtension )
+        {
+            // Try to find a legacy file with the same name:
+            wxFileName fn_legacy = fn;
+            fn_legacy.SetExt( LegacyPcbFileExtension );
+            if( fn_legacy.FileExists() )
+            {
+                msg.Printf( _( "File <%s> does not exist.\n\
+However a legacy file <%s> exists.\nDo you want to load it?\n\
+It will be saved under the new file format" ),
+                            GetChars( fn.GetFullPath() ),
+                            GetChars( fn_legacy.GetFullPath() ) );
+                if( IsOK( frame, msg ) )
+                {
+                    file_exists = true;
+                    frame->LoadOnePcbFile( fn_legacy.GetFullPath() );
+                    wxString filename = fn.GetFullPath();
+                    filename.Replace( WIN_STRING_DIR_SEP, UNIX_STRING_DIR_SEP );
+                    frame->GetBoard()->SetFileName( filename );
+                    frame->UpdateTitle();
+                    frame->OnModify();  // Ready to save theboard inder the new fmt
+                }
+            }
+        }
+
+        if( ! file_exists )
         {   // File does not exists: prepare an empty board
-            wxSetWorkingDirectory( fn.GetPath() );
+            if( ! fn.GetPath().IsEmpty() )
+                wxSetWorkingDirectory( fn.GetPath() );
             frame->GetBoard()->SetFileName( fn.GetFullPath( wxPATH_UNIX ) );
             frame->UpdateTitle();
             frame->UpdateFileHistory( frame->GetBoard()->GetFileName() );
             frame->OnModify();          // Ready to save the new empty board
 
-            wxString msg;
             msg.Printf( _( "File <%s> does not exist.\nThis is normal for a new project" ),
                         GetChars( frame->GetBoard()->GetFileName() ) );
             wxMessageBox( msg );
         }
     }
+
+    else
+        // No file to open: initialize a new empty board
+        // using default values for design settings:
+        frame->Clear_Pcb( false );
 
     // update the layer names in the listbox
     frame->ReCreateLayerBox( NULL );

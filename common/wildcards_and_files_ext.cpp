@@ -41,21 +41,26 @@ const wxString VrmlFileExtension( wxT( "wrl" ) );
 const wxString ProjectFileExtension( wxT( "pro" ) );
 const wxString SchematicFileExtension( wxT( "sch" ) );
 const wxString NetlistFileExtension( wxT( "net" ) );
-const wxString FootprintLibFileExtension( wxT( "mod" ) );
+const wxString LegacyFootprintLibPathExtension( wxT( "mod" ) );
 const wxString ComponentFileExtension( wxT( "cmp" ) );
 const wxString GerberFileExtension( wxT( "pho" ) );
-const wxString PcbFileExtension( wxT( "brd" ) );
+
+const wxString LegacyPcbFileExtension( wxT( "brd" ) );
+const wxString KiCadPcbFileExtension( wxT( "kicad_pcb" ) );
+
 const wxString PdfFileExtension( wxT( "pdf" ) );
 const wxString MacrosFileExtension( wxT( "mcr" ) );
 const wxString DrillFileExtension( wxT( "drl" ) );
 const wxString SVGFileExtension( wxT( "svg" ) );
 const wxString ReportFileExtension( wxT( "rpt" ) );
 const wxString FootprintPlaceFileExtension( wxT( "pos" ) );
-const wxString FootprintFileExtension( wxT( "kicad_mod" ) );
+
+const wxString KiCadFootprintLibPathExtension( wxT( "pretty" ) );    ///< KICAD PLUGIN libpath
+const wxString KiCadFootprintFileExtension( wxT( "kicad_mod" ) );
 
 // These strings are wildcards for file selection dialogs.
-// Because thes are static, one should explicitely call wxGetTranslation
-// to display them translated.
+// Because these are static, one should explicitly call wxGetTranslation
+// to display them as translated.
 const wxString SchematicSymbolFileWildcard( _( "KiCad drawing symbol file (*.sym)|*.sym" ) );
 const wxString SchematicLibraryFileWildcard( _( "KiCad component library file (*.lib)|*.lib" ) );
 const wxString ProjectFileWildcard( _( "KiCad project files (*.pro)|*.pro" ) );
@@ -66,10 +71,12 @@ const wxString LegacyPcbFileWildcard( _( "KiCad printed circuit board files (*.b
 const wxString EaglePcbFileWildcard( _( "Eagle ver. 6.x XML PCB files (*.brd)|*.brd" ) );
 const wxString PCadPcbFileWildcard( _( "P-Cad 2002/2004 ASCII PCB files (*.pcb)|*.pcb" ) );
 const wxString PcbFileWildcard( _( "KiCad s-expr printed circuit board files (*.kicad_pcb)|*.kicad_pcb" ) );
-const wxString FootprintLibFileWildcard( _( "KiCad footprint s-expre library file (*.kicad_mod)|*.kicad_mod" ) );
-const wxString LegacyFootprintLibFileWildcard( _( "KiCad footprint library file (*.mod)|*.mod" ) );
-const wxString PdfFileWildcard( _( "Portable document format files (*.pdf)|*.pdf" ) );
+const wxString KiCadFootprintLibFileWildcard( _( "KiCad footprint s-expre library file (*.kicad_mod)|*.kicad_mod" ) );
+const wxString KiCadFootprintLibPathWildcard( _( "KiCad footprint s-expre library path (*.pretty)|*.pretty" ) );
+const wxString LegacyFootprintLibPathWildcard( _( "Legacy footprint library file (*.mod)|*.mod" ) );
 const wxString MacrosFileWildcard( _( "KiCad recorded macros (*.mcr)|*.mcr" ) );
+
+// generic:
 const wxString AllFilesWildcard( _( "All files (*)|*" ) );
 
 // Wildcard for cvpcb component to footprint link file
@@ -78,6 +85,8 @@ const wxString ComponentFileWildcard( _( "KiCad cmp/footprint link files (*.cmp)
 // Wildcard for reports and fabrication documents
 const wxString DrillFileWildcard( _( "Drill files (*.drl)|*.drl;*.DRL" ) );
 const wxString SVGFileWildcard( _( "SVG files (*.svg)|*.svg;*.SVG" ) );
+const wxString PdfFileWildcard( _( "Portable document format files (*.pdf)|*.pdf" ) );
+const wxString PSFileWildcard( _( "PostScript files (.ps)|*.ps" ) );
 const wxString ReportFileWildcard = _( "Report files (*.rpt)|*.rpt" );
 const wxString FootprintPlaceFileWildcard = _( "Footprint place files (*.pos)|*.pos" );
 const wxString VrmlFileWildcard( _( "Vrml files (*.wrl)|*.wrl" ) );

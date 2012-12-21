@@ -45,6 +45,7 @@
 #include <class_board.h>
 #include <class_module.h>
 #include <polygon_test_point_inside.h>
+#include <convert_from_iu.h>
 
 
 int D_PAD::m_PadSketchModePenSize = 0;      // Pen size used to draw pads in sketch mode
@@ -57,7 +58,7 @@ D_PAD::D_PAD( MODULE* parent ) :
 
     m_Size.x = m_Size.y = 500;          // give it a reasonable size
     m_Orient = 0;                       // Pad rotation in 1/10 degrees
-    m_LengthDie = 0;
+    m_LengthPadToDie = 0;
 
     if( m_Parent  &&  m_Parent->Type() == PCB_MODULE_T )
     {
@@ -165,14 +166,23 @@ void D_PAD::Flip( int aTranslationY )
 
 void D_PAD::AppendConfigs( PARAM_CFG_ARRAY* aResult )
 {
-    aResult->push_back( new PARAM_CFG_INT( wxT( "PadDrlX" ), &m_Drill.x,
-                                                      320, 0, 0x7FFF ) );
+    aResult->push_back( new PARAM_CFG_INT_WITH_SCALE( wxT( "PadDrill" ),
+                            &m_Drill.x,
+                            Millimeter2iu( 0.6 ),
+                            Millimeter2iu( 0.1 ), Millimeter2iu( 10.0 ),
+                            NULL, MM_PER_IU ) );
 
-    aResult->push_back( new PARAM_CFG_INT( wxT( "PadDimH" ), &m_Size.x,
-                                                      550, 0, 0x7FFF ) );
+    aResult->push_back( new PARAM_CFG_INT_WITH_SCALE( wxT( "PadSizeH" ),
+                            &m_Size.x,
+                            Millimeter2iu( 1.4 ),
+                            Millimeter2iu( 0.1 ), Millimeter2iu( 20.0 ),
+                            NULL, MM_PER_IU ) );
 
-    aResult->push_back( new PARAM_CFG_INT( wxT( "PadDimV" ), &m_Size.y,
-                                                      550, 0, 0x7FFF ) );
+    aResult->push_back( new PARAM_CFG_INT_WITH_SCALE( wxT( "PadSizeV" ),
+                            &m_Size.y,
+                            Millimeter2iu( 1.4 ),
+                            Millimeter2iu( 0.1 ), Millimeter2iu( 20.0 ),
+                            NULL, MM_PER_IU ) );
 }
 
 
@@ -303,7 +313,7 @@ void D_PAD::Copy( D_PAD* source )
     m_PadShape = source->m_PadShape;
     m_Attribute = source->m_Attribute;
     m_Orient   = source->m_Orient;
-    m_LengthDie = source->m_LengthDie;
+    m_LengthPadToDie = source->m_LengthPadToDie;
     m_LocalClearance = source->m_LocalClearance;
     m_LocalSolderMaskMargin  = source->m_LocalSolderMaskMargin;
     m_LocalSolderPasteMargin = source->m_LocalSolderPasteMargin;
@@ -630,8 +640,8 @@ void D_PAD::DisplayInfo( EDA_DRAW_FRAME* frame )
     {
         Line = frame->CoordinateToString( (unsigned) m_Drill.x );
         wxString msg;
-        Line = frame->CoordinateToString( (unsigned) m_Drill.y );
-        Line += wxT( " / " ) + msg;
+        msg = frame->CoordinateToString( (unsigned) m_Drill.y );
+        Line += wxT( "/" ) + msg;
         frame->AppendMsgPanel( _( "Drill X / Y" ), Line, RED );
     }
 
@@ -639,10 +649,10 @@ void D_PAD::DisplayInfo( EDA_DRAW_FRAME* frame )
 
     if( module_orient )
         Line.Printf( wxT( "%3.1f(+%3.1f)" ),
-                     (float) ( m_Orient - module_orient ) / 10,
-                     (float) module_orient / 10 );
+                     (double) ( m_Orient - module_orient ) / 10,
+                     (double) module_orient / 10 );
     else
-        Line.Printf( wxT( "%3.1f" ), (float) m_Orient / 10 );
+        Line.Printf( wxT( "%3.1f" ), (double) m_Orient / 10 );
 
     frame->AppendMsgPanel( _( "Orient" ), Line, LIGHTBLUE );
 
@@ -652,10 +662,10 @@ void D_PAD::DisplayInfo( EDA_DRAW_FRAME* frame )
     Line = frame->CoordinateToString( m_Pos.y );
     frame->AppendMsgPanel( _( "Y pos" ), Line, LIGHTBLUE );
 
-    if( GetDieLength() )
+    if( GetPadToDieLength() )
     {
-        Line = frame->CoordinateToString( GetDieLength() );
-        frame->AppendMsgPanel( _( "Length on die" ), Line, CYAN );
+        Line = frame->CoordinateToString( GetPadToDieLength() );
+        frame->AppendMsgPanel( _( "Length in package" ), Line, CYAN );
     }
 }
 

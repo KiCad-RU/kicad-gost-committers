@@ -13,7 +13,7 @@
    version="1.1"
    viewBox="0 0 48 48"
    id="svg2"
-   inkscape:version="0.47 r22583"
+   inkscape:version="0.48.1 "
    sodipodi:docname="new_project.svg">
   <metadata
      id="metadata153">
@@ -36,14 +36,14 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1280"
-     inkscape:window-height="949"
+     inkscape:window-height="968"
      id="namedview151"
      showgrid="false"
-     inkscape:zoom="4.9166667"
+     inkscape:zoom="12.783333"
      inkscape:cx="24"
      inkscape:cy="23.59322"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
+     inkscape:window-x="-4"
+     inkscape:window-y="-4"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
   <defs
@@ -545,22 +545,25 @@
     </g>
   </g>
   <g
-     transform="matrix(4.1228166,0,0,4.0916513,-12.598545,25.226531)"
+     transform="matrix(4.1228166,0,0,4.0916513,-14.945351,27.182202)"
      id="g78">
     <path
        style="fill:#afaf00"
        d="M 12,5.5 9.4826,4.1505 6.9438,5.4592 7.4494,2.648 5.4202,0.6379 8.25,0.25 9.5347,-2.301 10.778,0.2704 13.601,0.70392 11.54,2.68102 z"
        transform="matrix(0.86499,0,0,0.86499,3.3638,-4.5167)"
-       id="path80" />
+       id="path80"
+       inkscape:connector-curvature="0" />
     <path
        style="fill:#ebeb00"
        d="M 12,5.5 9.4826,4.1505 6.9438,5.4592 7.4494,2.648 5.4202,0.6379 8.25,0.25 9.5347,-2.301 10.778,0.2704 13.601,0.70392 11.54,2.68102 z"
        transform="matrix(0.61624,0,0,0.61624,5.7296,-4.1188)"
-       id="path82" />
+       id="path82"
+       inkscape:connector-curvature="0" />
     <path
        style="fill:#ffff00"
        d="M 12,5.5 9.4826,4.1505 6.9438,5.4592 7.4494,2.648 5.4202,0.6379 8.25,0.25 9.5347,-2.301 10.778,0.2704 13.601,0.70392 11.54,2.68102 z"
        transform="matrix(0.3815,0,0,0.3815,7.9622,-3.7434)"
-       id="path84" />
+       id="path84"
+       inkscape:connector-curvature="0" />
   </g>
 </svg>

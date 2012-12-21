@@ -99,24 +99,24 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
                  KiBitmap( open_document_xpm ) );
     fileMenu->AppendSeparator();
 
-#ifdef USE_PCBNEW_SEXPR_FOOTPRINT_LIBS
     // Save the currently loaded legacy library as an s-expression library.
-    AddMenuItem( fileMenu, ID_MODEDIT_SAVE_LIBRARY_AS, _( "Save Library In S-Expression Format" ),
-                 _( "Save currently loaded legacy library as an s-expression library." ),
+    AddMenuItem( fileMenu, ID_MODEDIT_SAVE_LIBRARY_AS,
+                 _( "Save Current Library as Other" ),
+                 _( "Save entire current library as new library." ),
                  wxNullBitmap );
-#endif
 
     // Save module
     text = AddHotkeyName( _( "&Save Module in Active Library" ),
                           g_Module_Editor_Hokeys_Descr, HK_SAVE_MODULE );
+
     AddMenuItem( fileMenu, ID_MODEDIT_SAVE_LIBMODULE, text,
                  _( "Save module in active library" ),
                  KiBitmap( save_library_xpm ) );
 
     // Save module in new lib
     AddMenuItem( fileMenu, ID_MODEDIT_CREATE_NEW_LIB_AND_SAVE_CURRENT_PART,
-                 _( "S&ave Module in a New Library" ),
-                 _( "Create new library and save current module" ),
+                 _( "S&ave Module into a New Library" ),
+                 _( "Create a new library and save current module into it" ),
                  KiBitmap( new_library_xpm ) );
 
     // Export module
@@ -182,19 +182,12 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     // Pad settings
     AddMenuItem( dimensions_Submenu, ID_MODEDIT_PAD_SETTINGS,
                  _( "&Pad Settings" ), _( "Edit the settings for new pads" ),
-                 KiBitmap( options_pad_xpm ) );
+                 KiBitmap( pad_dimensions_xpm ) );
 
     // User grid size
     AddMenuItem( dimensions_Submenu, ID_PCB_USER_GRID_SETUP,
                  _( "&User Grid Size" ), _( "Adjust user grid" ),
                  KiBitmap( grid_xpm ) );
-
-    // Append dimensions_Submenu to editMenu
-    AddMenuItem( editMenu,
-                 dimensions_Submenu, -1,
-                 _( "Di&mensions" ),
-                 _( "Edit dimensions preferences" ),
-                 KiBitmap( add_dimension_xpm ) );
 
     // View menu
     wxMenu* viewMenu = new wxMenu;
@@ -294,6 +287,8 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     // Append menus to the menubar
     menuBar->Append( fileMenu, _( "&File" ) );
     menuBar->Append( editMenu, _( "&Edit" ) );
+    menuBar->Append( dimensions_Submenu, _( "Di&mensions" ) );
+
     menuBar->Append( viewMenu, _( "&View" ) );
     menuBar->Append( placeMenu, _( "&Place" ) );
     menuBar->Append( helpMenu, _( "&Help" ) );

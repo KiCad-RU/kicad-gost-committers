@@ -30,11 +30,9 @@
 #define _PCBNEW_PARSER_H_
 
 #include <pcb_lexer.h>
+#include <hashtables.h>
 
-#include <wx/hashmap.h>
-
-
-using namespace PCB;
+using namespace PCB_KEYS_T;
 
 
 class BOARD;
@@ -47,13 +45,10 @@ class TEXTE_MODULE;
 class TEXTE_PCB;
 class MODULE;
 class PCB_TARGET;
-class PROPERTIES;
 class S3D_MASTER;
 class ZONE_CONTAINER;
 class FPL_CACHE;
 
-
-WX_DECLARE_STRING_HASH_MAP( int, LAYER_HASH_MAP );
 
 
 /**
@@ -63,8 +58,20 @@ WX_DECLARE_STRING_HASH_MAP( int, LAYER_HASH_MAP );
  */
 class PCB_PARSER : public PCB_LEXER
 {
+    typedef KEYWORD_MAP     LAYER_MAP;
+
     BOARD*          m_board;
-    LAYER_HASH_MAP  m_layerMap;  //< Map layer name to it's index saved in BOARD::m_Layer.
+    LAYER_MAP       m_layerIndices;     ///< map layer name to it's index
+    LAYER_MAP       m_layerMasks;       ///< map layer names to their masks
+
+
+    /**
+     * Function init
+     * clears and re-establishes m_layerMap with the default layer names.
+     * m_layerMap will have some of its entries overwritten whenever a (new) board
+     * is encountered.
+     */
+    void init();
 
     void parseHeader() throw( IO_ERROR, PARSE_ERROR );
     void parseGeneralSection() throw( IO_ERROR, PARSE_ERROR );
@@ -92,11 +99,13 @@ class PCB_PARSER : public PCB_LEXER
      * Function lookUpLayer
      * parses the current token for the layer definition of a #BOARD_ITEM object.
      *
+     * @param aMap is the LAYER_MAP to use for the lookup.
+     *
      * @throw IO_ERROR if the layer is not valid.
      * @throw PARSE_ERROR if the layer syntax is incorrect.
-     * @return The index the parsed #BOARD_ITEM layer.
+     * @return int - The result of the parsed #BOARD_ITEM layer or set designator.
      */
-    int lookUpLayer() throw( PARSE_ERROR, IO_ERROR );
+    int lookUpLayer( const LAYER_MAP& aMap ) throw( PARSE_ERROR, IO_ERROR );
 
     /**
      * Function parseBoardItemLayer
@@ -204,11 +213,35 @@ class PCB_PARSER : public PCB_LEXER
 
     bool parseBool() throw( PARSE_ERROR );
 
+
 public:
-    PCB_PARSER( LINE_READER* aReader, BOARD* aBoard = NULL ) :
+
+    PCB_PARSER( LINE_READER* aReader = NULL ) :
         PCB_LEXER( aReader ),
-        m_board( aBoard )
+        m_board( 0 )
     {
+        init();
+    }
+
+    // ~PCB_PARSER() {}
+
+    /**
+     * Function SetLineReader
+     * sets @a aLineReader into the parser, and returns the previous one, if any.
+     * @param aReader is what to read from for tokens, no ownership is received.
+     * @return LINE_READER* - previous LINE_READER or NULL if none.
+     */
+    LINE_READER* SetLineReader( LINE_READER* aReader )
+    {
+        LINE_READER* ret = PopReader();
+        PushReader( aReader );
+        return ret;
+    }
+
+    void SetBoard( BOARD* aBoard )
+    {
+        init();
+        m_board = aBoard;
     }
 
     BOARD_ITEM* Parse() throw( IO_ERROR, PARSE_ERROR );

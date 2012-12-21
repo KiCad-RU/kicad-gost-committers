@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar 19 2012)
+// C++ code generated with wxFormBuilder (version Apr 10 2012)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -48,22 +48,22 @@ class DIALOG_PAD_PROPERTIES_BASE : public DIALOG_SHIM
 			wxID_PADNETNAMECTRL
 		};
 		
-		wxNotebook* m_notebook1;
-		wxPanel* m_panel2;
+		wxNotebook* m_notebook;
+		wxPanel* m_panelGeneral;
 		wxStaticText* m_PadNumText;
 		wxTextCtrl* m_PadNumCtrl;
 		wxStaticText* m_PadNameText;
 		wxTextCtrl* m_PadNetNameCtrl;
 		wxStaticText* m_staticText44;
 		wxChoice* m_PadType;
+		wxStaticText* m_staticText45;
+		wxChoice* m_PadShape;
 		wxStaticText* m_staticText4;
 		wxTextCtrl* m_PadPosition_X_Ctrl;
 		wxStaticText* m_PadPosX_Unit;
 		wxStaticText* m_staticText41;
 		wxTextCtrl* m_PadPosition_Y_Ctrl;
 		wxStaticText* m_PadPosY_Unit;
-		wxStaticText* m_staticText45;
-		wxChoice* m_PadShape;
 		wxStaticText* m_staticText12;
 		wxTextCtrl* m_ShapeSize_X_Ctrl;
 		wxStaticText* m_PadShapeSizeX_Unit;
@@ -83,7 +83,7 @@ class DIALOG_PAD_PROPERTIES_BASE : public DIALOG_SHIM
 		wxTextCtrl* m_ShapeOffset_Y_Ctrl;
 		wxStaticText* m_PadShapeOffsetY_Unit;
 		wxStaticText* m_staticText38;
-		wxTextCtrl* m_LengthDieCtrl;
+		wxTextCtrl* m_LengthPadToDieCtrl;
 		wxStaticText* m_PadLengthDie_Unit;
 		wxStaticText* m_staticText21;
 		wxTextCtrl* m_ShapeDelta_Ctrl;
@@ -95,7 +95,6 @@ class DIALOG_PAD_PROPERTIES_BASE : public DIALOG_SHIM
 		wxStaticText* m_staticModuleRotValue;
 		wxStaticText* m_staticTitleModuleSide;
 		wxStaticText* m_staticModuleSideValue;
-		wxStaticText* m_staticTextWarningPadFlipped;
 		wxStaticText* m_staticText47;
 		wxChoice* m_DrillShapeCtrl;
 		wxStaticText* m_staticText51;
@@ -118,7 +117,6 @@ class DIALOG_PAD_PROPERTIES_BASE : public DIALOG_SHIM
 		wxCheckBox* m_PadLayerDraft;
 		wxCheckBox* m_PadLayerECO1;
 		wxCheckBox* m_PadLayerECO2;
-		wxPanel* m_panelShowPad;
 		wxPanel* m_localSettingsPanel;
 		wxStaticText* m_staticTextNetClearance;
 		wxTextCtrl* m_NetClearanceValueCtrl;
@@ -134,7 +132,6 @@ class DIALOG_PAD_PROPERTIES_BASE : public DIALOG_SHIM
 		wxStaticText* m_SolderPasteRatioMarginUnits;
 		wxStaticText* m_staticText40;
 		wxChoice* m_ZoneConnectionChoice;
-		wxStaticText* m_staticText43;
 		wxStaticText* m_staticText49;
 		wxTextCtrl* m_ThermalWidthCtrl;
 		wxStaticText* m_ThermalWidthUnits;
@@ -142,6 +139,8 @@ class DIALOG_PAD_PROPERTIES_BASE : public DIALOG_SHIM
 		wxTextCtrl* m_ThermalGapCtrl;
 		wxStaticText* m_ThermalGapUnits;
 		wxStaticText* m_staticTextWarning;
+		wxPanel* m_panelShowPad;
+		wxStaticText* m_staticTextWarningPadFlipped;
 		wxStdDialogButtonSizer* m_sdbSizer1;
 		wxButton* m_sdbSizer1OK;
 		wxButton* m_sdbSizer1Cancel;
@@ -160,7 +159,7 @@ class DIALOG_PAD_PROPERTIES_BASE : public DIALOG_SHIM
 	
 	public:
 		
-		DIALOG_PAD_PROPERTIES_BASE( wxWindow* parent, wxWindowID id = wxID_DIALOG_EDIT_PAD, const wxString& title = _("Pad Properties"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 857,618 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER|wxSUNKEN_BORDER ); 
+		DIALOG_PAD_PROPERTIES_BASE( wxWindow* parent, wxWindowID id = wxID_DIALOG_EDIT_PAD, const wxString& title = _("Pad Properties"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 857,630 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER|wxSUNKEN_BORDER ); 
 		~DIALOG_PAD_PROPERTIES_BASE();
 	
 };

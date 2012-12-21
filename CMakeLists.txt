@@ -16,18 +16,12 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
 # KiCad build options should be added below.
 #
 # If you add a new build option, please add it's state to the CopyVersionInfoToClipboard()
-# function in common/basicframe.cpp so that build option settings can be includeed in bug
+# function in common/basicframe.cpp so that build option settings can be included in bug
 # reports.
 #
 
-option(USE_PCBNEW_SEXPR_FILE_FORMAT
-       "Use Pcbnew s-expression file format support (default OFF)." )
-
 option(USE_PCBNEW_NANOMETRES
-       "Use nanometers for Pcbnew internal units instead of deci-mils (default OFF).")
-
-option(USE_PCBNEW_SEXPR_FOOTPRINT_LIBS
-       "Use Pcbnew s-expression footprint library format (default OFF).")
+       "Use nanometers for Pcbnew internal units instead of deci-mils (default ON)." ON)
 
 # Russian GOST patch
 option(wxUSE_UNICODE "enable/disable building unicode (default OFF)")
@@ -93,41 +87,63 @@ else (KICAD_STABLE_VERSION )
     endif(KICAD_TESTING_VERSION )
 endif(KICAD_STABLE_VERSION )
 
-# Nanometers must be enabled when USE_PCBNEW_SEXPR_FILE_FORMAT=ON.
-if( USE_PCBNEW_SEXPR_FILE_FORMAT AND NOT USE_PCBNEW_NANOMETRES )
-    set( TMP "The Pcbnew s-expression file format requires nano-meter internal units to be " )
-    set( TMP "${TMP} enabled using -DUSE_PCBNEW_NANOMETRES=ON." )
-    message( FATAL_ERROR ${TMP} )
-endif( USE_PCBNEW_SEXPR_FILE_FORMAT AND NOT USE_PCBNEW_NANOMETRES )
 
 #================================================
 # Set flags for GCC.
 #================================================
 
 if(CMAKE_COMPILER_IS_GNUCXX)
+    set(KICAD_GCC_RELEASE_BUILD_FLAGS "-O2")
+    set(KICAD_GCC_RELEASE_DEBUG_FLAGS "")
+
+    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
+        OUTPUT_VARIABLE GCC_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
     # Added -Wno-narrowing on 10/7/12 to prevent a huge number of warnings when
     # compiling with GCC 4.7.  This appears to be caused by and int to unsigned
     # conversion in the Boost polygon library.  At some point in the future when
     # Boost is updated to the next version, -Wno-narrowing should be removed to
     # see if the problem has been resolved.  Wayne.
+    #
+    # Also note the optimization level is -O1 instead of the usual -O2 level
+    # because boost::polygon has a function (inflate polygon) broken by
+    # the -O2 level with GCC 4.7 (works fine with  with GCC 4.6).
+    # This lower optimization level does not have a significant change on the speed.
+    #
+    # As newer versions of GCC and/or Boost are released, this code needs reviewed to
+    # determine if the problems above have been fixed either in Boost or GCC.
+    if(GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7)
+        set(KICAD_GCC_RELEASE_BUILD_FLAGS "-Wno-narrowing -O1")
+        set(KICAD_GCC_DEBUG_BUILD_FLAGS "-Wno-narrowing")
+    endif()
+
+    if(CMAKE_BUILD_TYPE STREQUAL Debug)
+        message(STATUS
+                "Setting GCC version ${GCC_VERSION} build flags \"${KICAD_GCC_DEBUG_BUILD_FLAGS}\"")
+    else(CMAKE_BUILD_TYPE STREQUAL Debug)
+        message(STATUS
+                "Setting GCC version ${GCC_VERSION} build flags \"${KICAD_GCC_RELEASE_BUILD_FLAGS}\"")
+    endif(CMAKE_BUILD_TYPE STREQUAL Debug)
+
     if(WIN32)   # under Windows/mingw,  -fPIC option is enabled by default
         # Set default flags for Release build.
-        set(CMAKE_C_FLAGS_RELEASE "-Wall -Wno-narrowing -O2 -DNDEBUG")
-        set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wno-narrowing -O2 -DNDEBUG")
+        set(CMAKE_C_FLAGS_RELEASE "-Wall ${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG")
+        set(CMAKE_CXX_FLAGS_RELEASE "-Wall ${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG")
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
 
         # Set default flags for Debug build.
-        set(CMAKE_C_FLAGS_DEBUG "-Wall -Wno-narrowing -g3 -ggdb3 -DDEBUG")
-        set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-narrowing -g3 -ggdb3 -DDEBUG")
+        set(CMAKE_C_FLAGS_DEBUG "-Wall ${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG")
+        set(CMAKE_CXX_FLAGS_DEBUG "-Wall ${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG")
     else(WIN32)
         # Set default flags for Release build.
-        set(CMAKE_C_FLAGS_RELEASE "-Wall -O2 -DNDEBUG -fPIC")
-        set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -DNDEBUG -fPIC")
+        set(CMAKE_C_FLAGS_RELEASE "-Wall ${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG -fPIC")
+        set(CMAKE_CXX_FLAGS_RELEASE "-Wall ${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG -fPIC")
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
 
         # Set default flags for Debug build.
-        set(CMAKE_C_FLAGS_DEBUG "-Wall -Wno-narrowing -g3 -ggdb3 -DDEBUG -fPIC")
-        set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-narrowing -g3 -ggdb3 -DDEBUG -fPIC")
+        set(CMAKE_C_FLAGS_DEBUG "-Wall  ${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG -fPIC")
+        set(CMAKE_CXX_FLAGS_DEBUG "-Wall  ${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG -fPIC")
     endif(WIN32)
 
 endif(CMAKE_COMPILER_IS_GNUCXX)
@@ -162,8 +178,6 @@ endif(KICAD_SCRIPTING_MODULES)
 
 if(KICAD_SCRIPTING_WXPYTHON)
     add_definitions(-DKICAD_SCRIPTING_WXPYTHON)
-
-
 endif(KICAD_SCRIPTING_WXPYTHON)
 
 if(USE_WX_GRAPHICS_CONTEXT)
@@ -171,7 +185,7 @@ if(USE_WX_GRAPHICS_CONTEXT)
 endif(USE_WX_GRAPHICS_CONTEXT)
 
 # Allow user to override the default settings for adding images to menu items.  By default
-# images in menu items are enabled on all plaforms except OSX.  This can be over ridden by
+# images in menu items are enabled on all platforms except OSX.  This can be over ridden by
 # defining -DUSE_IMAGES_IN_MENUS=ON/OFF to force the preferred behavior.
 if(NOT DEFINED USE_IMAGES_IN_MENUS)
     if(NOT APPLE)

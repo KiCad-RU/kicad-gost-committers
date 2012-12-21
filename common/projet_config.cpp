@@ -298,7 +298,8 @@ bool EDA_APP::ReadProjectConfig( const wxString&  local_config_filename,
     else
     {
         if( wxPathOnly( g_Prj_Config_LocalFilename ).IsEmpty() )
-            m_CurrentOptionFile = wxGetCwd() + STRING_DIR_SEP + g_Prj_Config_LocalFilename;
+            m_CurrentOptionFile = wxGetCwd() + wxFileName::GetPathSeparator()
+                                  + g_Prj_Config_LocalFilename;
         else
             m_CurrentOptionFile = g_Prj_Config_LocalFilename;
     }
@@ -352,7 +353,8 @@ bool EDA_APP::ReadProjectConfig( const wxString&  local_config_filename,
     else
     {
         if( wxPathOnly( g_Prj_Config_LocalFilename ).IsEmpty() )
-            m_CurrentOptionFile = wxGetCwd() + STRING_DIR_SEP + g_Prj_Config_LocalFilename;
+            m_CurrentOptionFile = wxGetCwd() + wxFileName::GetPathSeparator()
+                                  + g_Prj_Config_LocalFilename;
         else
             m_CurrentOptionFile = g_Prj_Config_LocalFilename;
     }
@@ -460,6 +462,53 @@ void PARAM_CFG_INT::SaveParam( wxConfigBase* aConfig ) const
         return;
 
     aConfig->Write( m_Ident, *m_Pt_param );
+}
+
+
+PARAM_CFG_INT_WITH_SCALE::PARAM_CFG_INT_WITH_SCALE( const wxChar* ident, int* ptparam,
+                              int default_val, int min, int max,
+                              const wxChar* group, double aBiu2cfgunit ) :
+    PARAM_CFG_INT( ident, ptparam, default_val, min, max, group )
+{
+    m_Type = PARAM_INT_WITH_SCALE;
+    m_BIU_to_cfgunit = aBiu2cfgunit;
+}
+
+
+PARAM_CFG_INT_WITH_SCALE::PARAM_CFG_INT_WITH_SCALE( bool Insetup,
+                              const wxChar* ident, int* ptparam,
+                              int default_val, int min, int max,
+                              const wxChar* group, double aBiu2cfgunit ) :
+    PARAM_CFG_INT( Insetup, ident, ptparam, default_val, min, max, group )
+{
+    m_Type = PARAM_INT_WITH_SCALE;
+    m_BIU_to_cfgunit = aBiu2cfgunit;
+}
+
+
+void PARAM_CFG_INT_WITH_SCALE::ReadParam( wxConfigBase* aConfig ) const
+{
+    if( m_Pt_param == NULL || aConfig == NULL )
+        return;
+
+    double default_value = m_Default * m_BIU_to_cfgunit;
+    double dtmp = aConfig->Read( m_Ident, default_value );
+
+    int itmp = KiROUND( dtmp / m_BIU_to_cfgunit );
+
+    if( (itmp < m_Min) || (itmp > m_Max) )
+        itmp = m_Default;
+
+    *m_Pt_param = itmp;
+}
+
+
+void PARAM_CFG_INT_WITH_SCALE::SaveParam( wxConfigBase* aConfig ) const
+{
+    if( m_Pt_param == NULL || aConfig == NULL )
+        return;
+
+    aConfig->Write( m_Ident, *m_Pt_param * m_BIU_to_cfgunit );
 }
 
 

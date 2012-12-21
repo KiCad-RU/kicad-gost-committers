@@ -5,7 +5,6 @@
  * Copyright (C) 2007-2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2004 Jean-Pierre Charras, jp.charras@wanadoo.fr
  * Copyright (C) 1992-2012 KiCad Developers, see change_log.txt for contributors.
-
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -63,6 +62,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <wx/ffile.h>
 
 #include <legacy_plugin.h>   // implement this here
 
@@ -84,8 +84,7 @@
 #include <drawtxt.h>
 #include <convert_to_biu.h>
 #include <trigo.h>
-
-#include <wx/ffile.h>
+#include <build_version.h>
 
 
 typedef LEGACY_PLUGIN::BIU      BIU;
@@ -128,9 +127,9 @@ static bool inline isSpace( int c ) { return strchr( delims, c ) != 0; }
 /// The function and macro which follow comprise a shim which can be a
 /// monitor on lines of text read in from the input file.
 /// And it can be used as a trap.
-static inline unsigned ReadLine( LINE_READER* rdr, const char* caller )
+static inline char* ReadLine( LINE_READER* rdr, const char* caller )
 {
-    unsigned ret = rdr->ReadLine();
+    char* ret = rdr->ReadLine();
 
     const char* line = rdr->Line();
     printf( "%-6u %s: %s", rdr->LineNumber(), caller, line );
@@ -239,15 +238,7 @@ BOARD* LEGACY_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe, PROPE
     // delete on exception, iff I own m_board, according to aAppendToMe
     auto_ptr<BOARD> deleter( aAppendToMe ? NULL : m_board );
 
-    FILE* fp = wxFopen( aFileName, wxT( "r" ) );
-    if( !fp )
-    {
-        m_error.Printf( _( "Unable to open file '%s'" ), aFileName.GetData() );
-        THROW_IO_ERROR( m_error );
-    }
-
-    // reader now owns fp, will close on exception or return
-    FILE_LINE_READER    reader( fp, aFileName );
+    FILE_LINE_READER    reader( aFileName );
 
     m_reader = &reader;          // member function accessibility
 
@@ -269,11 +260,10 @@ void LEGACY_PLUGIN::loadAllSections( bool doAppend )
     // $SETUP section is next
 
     // Then follows $EQUIPOT and all the rest
+    char* line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
-        char* line = m_reader->Line();
-
         // put the more frequent ones at the top, but realize TRACKs are loaded as a group
 
         if( TESTLINE( "$MODULE" ) )
@@ -345,10 +335,9 @@ void LEGACY_PLUGIN::loadAllSections( bool doAppend )
             }
             else
             {
-                while( READLINE( m_reader ) )
+                while( ( line = READLINE( m_reader ) ) != NULL )
                 {
-                    line = m_reader->Line();     // gobble until $EndSetup
-
+                    // gobble until $EndSetup
                     if( TESTLINE( "$EndSETUP" ) )
                         break;
                 }
@@ -391,14 +380,16 @@ void LEGACY_PLUGIN::checkVersion()
 #endif
 
     m_loading_format_version = ver;
+    m_board->SetFileFormatVersionAtLoad( m_loading_format_version );
 }
 
 
 void LEGACY_PLUGIN::loadGENERAL()
 {
-    while( READLINE( m_reader ) )
+    char*   line;
+
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
-        char*       line = m_reader->Line();
         const char* data;
 
         if( TESTLINE( "Units" ) )
@@ -517,11 +508,10 @@ void LEGACY_PLUGIN::loadSHEET()
 {
     char        buf[260];
     TITLE_BLOCK tb;
+    char*       line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
-        char* line = m_reader->Line();
-
         if( TESTLINE( "Sheet" ) )
         {
             // e.g. "Sheet A3 16535 11700"
@@ -629,14 +619,14 @@ void LEGACY_PLUGIN::loadSHEET()
 
 void LEGACY_PLUGIN::loadSETUP()
 {
-    NETCLASS* netclass_default  = m_board->m_NetClasses.GetDefault();
+    NETCLASS*               netclass_default  = m_board->m_NetClasses.GetDefault();
     BOARD_DESIGN_SETTINGS   bds = m_board->GetDesignSettings();
     ZONE_SETTINGS           zs  = m_board->GetZoneSettings();
+    char*                   line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         const char* data;
-        char* line = m_reader->Line();
 
         if( TESTLINE( "PcbPlotParams" ) )
         {
@@ -836,6 +826,12 @@ void LEGACY_PLUGIN::loadSETUP()
             bds.m_SolderMaskMargin = tmp;
         }
 
+        else if( TESTLINE( "SolderMaskMinWidth" ) )
+        {
+            BIU tmp = biuParse( line + SZ( "SolderMaskMinWidth" ) );
+            bds.m_SolderMaskMinWidth = tmp;
+        }
+
         else if( TESTLINE( "Pad2PasteClearance" ) )
         {
             BIU tmp = biuParse( line + SZ( "Pad2PasteClearance" ) );
@@ -923,12 +919,11 @@ void LEGACY_PLUGIN::loadSETUP()
 
 MODULE* LEGACY_PLUGIN::LoadMODULE()
 {
-    auto_ptr<MODULE> module( new MODULE( m_board ) );
+    auto_ptr<MODULE>    module( new MODULE( m_board ) );
+    char*               line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
-        char* line = m_reader->Line();
-
         const char* data;
 
         // most frequently encountered ones at the top
@@ -1134,11 +1129,11 @@ MODULE* LEGACY_PLUGIN::LoadMODULE()
 void LEGACY_PLUGIN::loadPAD( MODULE* aModule )
 {
     auto_ptr<D_PAD> pad( new D_PAD( aModule ) );
+    char*           line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         const char* data;
-        char* line = m_reader->Line();
 
         if( TESTLINE( "Sh" ) )              // (Sh)ape and padname
         {
@@ -1294,7 +1289,7 @@ void LEGACY_PLUGIN::loadPAD( MODULE* aModule )
         else if( TESTLINE( "Le" ) )
         {
             BIU tmp = biuParse( line + SZ( "Le" ) );
-            pad->SetDieLength( tmp );
+            pad->SetPadToDieLength( tmp );
         }
 
         else if( TESTLINE( ".SolderMask" ) )
@@ -1445,12 +1440,10 @@ void LEGACY_PLUGIN::loadMODULE_EDGE( MODULE* aModule )
 
             for( int ii = 0;  ii<ptCount;  ++ii )
             {
-                if( !READLINE( m_reader ) )
+                if( ( line = READLINE( m_reader ) ) == NULL )
                 {
                     THROW_IO_ERROR( "S_POLGON point count mismatch." );
                 }
-
-                line = m_reader->Line();
 
                 // e.g. "Dl 23 44\n"
 
@@ -1620,10 +1613,9 @@ void LEGACY_PLUGIN::load3D( MODULE* aModule )
         t3D = n3D;
     }
 
-    while( READLINE( m_reader ) )
+    char*   line;
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
-        char* line = m_reader->Line();
-
         if( TESTLINE( "Na" ) )     // Shape File Name
         {
             char    buf[512];
@@ -1672,12 +1664,12 @@ void LEGACY_PLUGIN::loadPCB_LINE()
         $EndDRAWSEGMENT
     */
 
-    auto_ptr<DRAWSEGMENT> dseg( new DRAWSEGMENT( m_board ) );
+    auto_ptr<DRAWSEGMENT>   dseg( new DRAWSEGMENT( m_board ) );
+    char*                   line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         const char* data;
-        char* line  = m_reader->Line();
 
         if( TESTLINE( "Po" ) )
         {
@@ -1778,12 +1770,12 @@ void LEGACY_PLUGIN::loadNETINFO_ITEM()
 {
     char  buf[1024];
 
-    NETINFO_ITEM* net = new NETINFO_ITEM( m_board );
+    NETINFO_ITEM*   net = new NETINFO_ITEM( m_board );
+    char*           line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         const char* data;
-        char* line = m_reader->Line();
 
         if( TESTLINE( "Na" ) )
         {
@@ -1837,13 +1829,14 @@ void LEGACY_PLUGIN::loadPCB_TEXT()
     char    text[1024];
 
     // maybe someday a constructor that takes all this data in one call?
-    TEXTE_PCB* pcbtxt = new TEXTE_PCB( m_board );
+    TEXTE_PCB*  pcbtxt = new TEXTE_PCB( m_board );
     m_board->Add( pcbtxt, ADD_APPEND );
 
-    while( READLINE( m_reader ) )
+    char*       line;
+
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         const char* data;
-        char* line = m_reader->Line();
 
         if( TESTLINE( "Te" ) )          // Text line (or first line for multi line texts)
         {
@@ -1942,7 +1935,9 @@ void LEGACY_PLUGIN::loadPCB_TEXT()
 
 void LEGACY_PLUGIN::loadTrackList( int aStructType )
 {
-    while( READLINE( m_reader ) )
+    char*   line;
+
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         // read two lines per loop iteration, each loop is one TRACK or VIA
         // example first line:
@@ -1950,7 +1945,6 @@ void LEGACY_PLUGIN::loadTrackList( int aStructType )
         // e.g. "Po 3 21086 17586 21086 17586 180 -1"  for a via (uses sames start and end)
 
         const char* data;
-        char* line = m_reader->Line();
 
         if( line[0] == '$' )    // $EndTRACK
             return;             // preferred exit
@@ -2060,6 +2054,7 @@ void LEGACY_PLUGIN::loadNETCLASS()
 {
     char        buf[1024];
     wxString    netname;
+    char*       line;
 
     // create an empty NETCLASS without a name, but do not add it to the BOARD
     // yet since that would bypass duplicate netclass name checking within the BOARD.
@@ -2067,10 +2062,8 @@ void LEGACY_PLUGIN::loadNETCLASS()
     // just before returning.
     auto_ptr<NETCLASS> nc( new NETCLASS( m_board, wxEmptyString ) );
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
-        char* line = m_reader->Line();
-
         if( TESTLINE( "AddNet" ) )      // most frequent type of line
         {
             // e.g. "AddNet "V3.3D"\n"
@@ -2159,11 +2152,11 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
     CPolyLine::HATCH_STYLE outline_hatch = CPolyLine::NO_HATCH;
     bool    sawCorner = false;
     char    buf[1024];
+    char*   line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         const char* data;
-        char* line = m_reader->Line();
 
         if( TESTLINE( "ZCorner" ) )         // new corner found
         {
@@ -2344,10 +2337,8 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
             // Read the PolysList (polygons used for fill areas in the zone)
             std::vector<CPolyPt> polysList;
 
-            while( READLINE( m_reader ) )
+            while( ( line = READLINE( m_reader ) ) != NULL )
             {
-                line = m_reader->Line();
-
                 if( TESTLINE( "$endPOLYSCORNERS" ) )
                     break;
 
@@ -2365,10 +2356,8 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
 
         else if( TESTLINE( "$FILLSEGMENTS" ) )
         {
-            while( READLINE( m_reader ) )
+            while( ( line = READLINE( m_reader ) ) != NULL )
             {
-                line = m_reader->Line();
-
                 if( TESTLINE( "$endFILLSEGMENTS" ) )
                     break;
 
@@ -2417,11 +2406,11 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
 void LEGACY_PLUGIN::loadDIMENSION()
 {
     auto_ptr<DIMENSION> dim( new DIMENSION( m_board ) );
+    char*               line;
 
-    while( READLINE( m_reader ) )
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         const char*  data;
-        char* line = m_reader->Line();
 
         if( TESTLINE( "$endCOTATION" ) )
         {
@@ -2497,10 +2486,10 @@ void LEGACY_PLUGIN::loadDIMENSION()
             BIU crossBarFy = biuParse( data, &data );
             BIU width      = biuParse( data );
 
-            dim->m_crossBarOx = crossBarOx;
-            dim->m_crossBarOy = crossBarOy;
-            dim->m_crossBarFx = crossBarFx;
-            dim->m_crossBarFy = crossBarFy;
+            dim->m_crossBarO.x = crossBarOx;
+            dim->m_crossBarO.y = crossBarOy;
+            dim->m_crossBarF.x = crossBarFx;
+            dim->m_crossBarF.y = crossBarFy;
             dim->m_Width = width;
             (void) ignore;
         }
@@ -2515,10 +2504,10 @@ void LEGACY_PLUGIN::loadDIMENSION()
             BIU featureLineDFx = biuParse( data, &data );
             BIU featureLineDFy = biuParse( data );
 
-            dim->m_featureLineDOx = featureLineDOx;
-            dim->m_featureLineDOy = featureLineDOy;
-            dim->m_featureLineDFx = featureLineDFx;
-            dim->m_featureLineDFy = featureLineDFy;
+            dim->m_featureLineDO.x = featureLineDOx;
+            dim->m_featureLineDO.y = featureLineDOy;
+            dim->m_featureLineDF.x = featureLineDFx;
+            dim->m_featureLineDF.y = featureLineDFy;
             (void) ignore;
         }
 
@@ -2532,10 +2521,10 @@ void LEGACY_PLUGIN::loadDIMENSION()
             BIU featureLineGFx = biuParse( data, &data );
             BIU featureLineGFy = biuParse( data );
 
-            dim->m_featureLineGOx = featureLineGOx;
-            dim->m_featureLineGOy = featureLineGOy;
-            dim->m_featureLineGFx = featureLineGFx;
-            dim->m_featureLineGFy = featureLineGFy;
+            dim->m_featureLineGO.x = featureLineGOx;
+            dim->m_featureLineGO.y = featureLineGOy;
+            dim->m_featureLineGF.x = featureLineGFx;
+            dim->m_featureLineGF.y = featureLineGFy;
             (void) ignore;
         }
 
@@ -2549,10 +2538,10 @@ void LEGACY_PLUGIN::loadDIMENSION()
             BIU arrowD1Fx   = biuParse( data, &data );
             BIU arrowD1Fy   = biuParse( data );
 
-            dim->m_arrowD1Ox = arrowD10x;
-            dim->m_arrowD1Oy = arrowD10y;
-            dim->m_arrowD1Fx = arrowD1Fx;
-            dim->m_arrowD1Fy = arrowD1Fy;
+            dim->m_arrowD1O.x = arrowD10x;
+            dim->m_arrowD1O.y = arrowD10y;
+            dim->m_arrowD1F.x = arrowD1Fx;
+            dim->m_arrowD1F.y = arrowD1Fy;
             (void) ignore;
         }
 
@@ -2566,10 +2555,10 @@ void LEGACY_PLUGIN::loadDIMENSION()
             BIU arrowD2Fx = biuParse( data, &data );
             BIU arrowD2Fy = biuParse( data, &data );
 
-            dim->m_arrowD2Ox = arrowD2Ox;
-            dim->m_arrowD2Oy = arrowD2Oy;
-            dim->m_arrowD2Fx = arrowD2Fx;
-            dim->m_arrowD2Fy = arrowD2Fy;
+            dim->m_arrowD2O.x = arrowD2Ox;
+            dim->m_arrowD2O.y = arrowD2Oy;
+            dim->m_arrowD2F.x = arrowD2Fx;
+            dim->m_arrowD2F.y = arrowD2Fy;
             (void) ignore;
         }
 
@@ -2582,10 +2571,10 @@ void LEGACY_PLUGIN::loadDIMENSION()
             BIU arrowG1Fx = biuParse( data, &data );
             BIU arrowG1Fy = biuParse( data, &data );
 
-            dim->m_arrowG1Ox = arrowG1Ox;
-            dim->m_arrowG1Oy = arrowG1Oy;
-            dim->m_arrowG1Fx = arrowG1Fx;
-            dim->m_arrowG1Fy = arrowG1Fy;
+            dim->m_arrowG1O.x = arrowG1Ox;
+            dim->m_arrowG1O.y = arrowG1Oy;
+            dim->m_arrowG1F.x = arrowG1Fx;
+            dim->m_arrowG1F.y = arrowG1Fy;
             (void) ignore;
         }
 
@@ -2598,10 +2587,10 @@ void LEGACY_PLUGIN::loadDIMENSION()
             BIU arrowG2Fx = biuParse( data, &data );
             BIU arrowG2Fy = biuParse( data, &data );
 
-            dim->m_arrowG2Ox = arrowG2Ox;
-            dim->m_arrowG2Oy = arrowG2Oy;
-            dim->m_arrowG2Fx = arrowG2Fx;
-            dim->m_arrowG2Fy = arrowG2Fy;
+            dim->m_arrowG2O.x = arrowG2Ox;
+            dim->m_arrowG2O.y = arrowG2Oy;
+            dim->m_arrowG2F.x = arrowG2Fx;
+            dim->m_arrowG2F.y = arrowG2Fy;
             (void) ignore;
         }
     }
@@ -2612,10 +2601,11 @@ void LEGACY_PLUGIN::loadDIMENSION()
 
 void LEGACY_PLUGIN::loadPCB_TARGET()
 {
-    while( READLINE( m_reader ) )
+    char* line;
+
+    while( ( line = READLINE( m_reader ) ) != NULL )
     {
         const char* data;
-        char* line = m_reader->Line();
 
         if( TESTLINE( "$EndPCB_TARGET" ) || TESTLINE( "$EndMIREPCB" ) )
         {
@@ -2834,13 +2824,25 @@ void LEGACY_PLUGIN::Save( const wxString& aFileName, BOARD* aBoard, PROPERTIES* 
 
     m_fp = fp;          // member function accessibility
 
+#if 0   // old school, property "header" was not used by any other plugin.
     if( m_props )
     {
-        // @todo move the header production into this source file.
         wxString header = (*m_props)["header"];
+
         // save a file header, if caller provided one (with trailing \n hopefully).
         fprintf( m_fp, "%s", TO_UTF8( header ) );
     }
+
+#else
+
+    wxString header = wxString::Format(
+        wxT( "PCBNEW-BOARD Version %d date %s\n\n# Created by Pcbnew%s\n\n" ),
+        LEGACY_BOARD_FILE_VERSION, DateAndTime().GetData(),
+        GetBuildVersion().GetData() );
+
+    // save a file header, if caller provided one (with trailing \n hopefully).
+    fprintf( m_fp, "%s", TO_UTF8( header ) );
+#endif
 
     SaveBOARD( aBoard );
 }
@@ -3022,6 +3024,7 @@ void LEGACY_PLUGIN::saveSETUP( const BOARD* aBoard ) const
     fprintf( m_fp, "PadDrill %s\n", fmtBIU( bds.m_Pad_Master.GetDrillSize().x ).c_str() );
 
     fprintf( m_fp, "Pad2MaskClearance %s\n", fmtBIU( bds.m_SolderMaskMargin ).c_str() );
+    fprintf( m_fp, "SolderMaskMinWidth %s\n", fmtBIU( bds.m_SolderMaskMinWidth ).c_str() );
 
     if( bds.m_SolderPasteMargin != 0 )
         fprintf( m_fp, "Pad2PasteClearance %s\n", fmtBIU( bds.m_SolderPasteMargin ).c_str() );
@@ -3341,8 +3344,8 @@ void LEGACY_PLUGIN::savePAD( const D_PAD* me ) const
 
     fprintf( m_fp, "Po %s\n", fmtBIUPoint( me->GetPos0() ).c_str() );
 
-    if( me->GetDieLength() != 0 )
-        fprintf( m_fp, "Le %s\n", fmtBIU( me->GetDieLength() ).c_str() );
+    if( me->GetPadToDieLength() != 0 )
+        fprintf( m_fp, "Le %s\n", fmtBIU( me->GetPadToDieLength() ).c_str() );
 
     if( me->GetLocalSolderMaskMargin() != 0 )
         fprintf( m_fp, ".SolderMask %s\n", fmtBIU( me->GetLocalSolderMaskMargin() ).c_str() );
@@ -3361,10 +3364,10 @@ void LEGACY_PLUGIN::savePAD( const D_PAD* me ) const
         fprintf( m_fp, ".ZoneConnection %d\n", me->GetZoneConnection() );
 
     if( me->GetThermalWidth() != 0 )
-        fprintf( m_fp, ".ThermalWidth %d\n", me->GetThermalWidth() );
+        fprintf( m_fp, ".ThermalWidth %s\n", fmtBIU( me->GetThermalWidth() ).c_str() );
 
     if( me->GetThermalGap() != 0 )
-        fprintf( m_fp, ".ThermalGap %d\n", me->GetThermalGap() );
+        fprintf( m_fp, ".ThermalGap %s\n", fmtBIU( me->GetThermalGap() ).c_str() );
 
     fprintf( m_fp, "$EndPAD\n" );
 
@@ -3424,10 +3427,10 @@ void LEGACY_PLUGIN::SaveMODULE( const MODULE* me ) const
         fprintf( m_fp, ".ZoneConnection %d\n", me->GetZoneConnection() );
 
     if( me->GetThermalWidth() != 0 )
-        fprintf( m_fp, ".ThermalWidth %d\n", me->GetThermalWidth() );
+        fprintf( m_fp, ".ThermalWidth %s\n", fmtBIU( me->GetThermalWidth() ).c_str() );
 
     if( me->GetThermalGap() != 0 )
-        fprintf( m_fp, ".ThermalGap %d\n", me->GetThermalGap() );
+        fprintf( m_fp, ".ThermalGap %s\n", fmtBIU( me->GetThermalGap() ).c_str() );
 
     // attributes
     if( me->GetAttributes() != MOD_DEFAULT )
@@ -3741,38 +3744,38 @@ void LEGACY_PLUGIN::saveDIMENTION( const DIMENSION* me ) const
                     );
 
     fprintf( m_fp,  "Sb %d %s %s %s\n", S_SEGMENT,
-                    fmtBIUPair( me->m_crossBarOx, me->m_crossBarOy ).c_str(),
-                    fmtBIUPair( me->m_crossBarFx, me->m_crossBarFy ).c_str(),
+                    fmtBIUPair( me->m_crossBarO.x, me->m_crossBarO.y ).c_str(),
+                    fmtBIUPair( me->m_crossBarF.x, me->m_crossBarF.y ).c_str(),
                     fmtBIU( me->GetWidth() ).c_str() );
 
     fprintf( m_fp,  "Sd %d %s %s %s\n", S_SEGMENT,
-                    fmtBIUPair( me->m_featureLineDOx, me->m_featureLineDOy ).c_str(),
-                    fmtBIUPair( me->m_featureLineDFx, me->m_featureLineDFy ).c_str(),
+                    fmtBIUPair( me->m_featureLineDO.x, me->m_featureLineDO.y ).c_str(),
+                    fmtBIUPair( me->m_featureLineDF.x, me->m_featureLineDF.y ).c_str(),
                     fmtBIU( me->GetWidth() ).c_str() );
 
     fprintf( m_fp,  "Sg %d %s %s %s\n", S_SEGMENT,
-                    fmtBIUPair( me->m_featureLineGOx, me->m_featureLineGOy ).c_str(),
-                    fmtBIUPair( me->m_featureLineGFx, me->m_featureLineGFy ).c_str(),
+                    fmtBIUPair( me->m_featureLineGO.x, me->m_featureLineGO.y ).c_str(),
+                    fmtBIUPair( me->m_featureLineGF.x, me->m_featureLineGF.y ).c_str(),
                     fmtBIU( me->GetWidth() ).c_str() );
 
     fprintf( m_fp,  "S1 %d %s %s %s\n", S_SEGMENT,
-                    fmtBIUPair( me->m_arrowD1Ox, me->m_arrowD1Oy ).c_str(),
-                    fmtBIUPair( me->m_arrowD1Fx, me->m_arrowD1Fy ).c_str(),
+                    fmtBIUPair( me->m_arrowD1O.x, me->m_arrowD1O.y ).c_str(),
+                    fmtBIUPair( me->m_arrowD1F.x, me->m_arrowD1F.y ).c_str(),
                     fmtBIU( me->GetWidth() ).c_str() );
 
     fprintf( m_fp,  "S2 %d %s %s %s\n", S_SEGMENT,
-                    fmtBIUPair( me->m_arrowD2Ox, me->m_arrowD2Oy ).c_str(),
-                    fmtBIUPair( me->m_arrowD2Fx, me->m_arrowD2Fy ).c_str(),
+                    fmtBIUPair( me->m_arrowD2O.x, me->m_arrowD2O.y ).c_str(),
+                    fmtBIUPair( me->m_arrowD2F.x, me->m_arrowD2F.y ).c_str(),
                     fmtBIU( me->GetWidth() ).c_str() );
 
     fprintf( m_fp,  "S3 %d %s %s %s\n", S_SEGMENT,
-                    fmtBIUPair( me->m_arrowG1Ox, me->m_arrowG1Oy ).c_str(),
-                    fmtBIUPair( me->m_arrowG1Fx, me->m_arrowG1Fy ).c_str(),
+                    fmtBIUPair( me->m_arrowG1O.x, me->m_arrowG1O.y ).c_str(),
+                    fmtBIUPair( me->m_arrowG1F.x, me->m_arrowG1F.y ).c_str(),
                     fmtBIU( me->GetWidth() ).c_str() );
 
     fprintf( m_fp,  "S4 %d %s %s %s\n", S_SEGMENT,
-                    fmtBIUPair( me->m_arrowG2Ox, me->m_arrowG2Oy ).c_str(),
-                    fmtBIUPair( me->m_arrowG2Fx, me->m_arrowG2Fy ).c_str(),
+                    fmtBIUPair( me->m_arrowG2O.x, me->m_arrowG2O.y ).c_str(),
+                    fmtBIUPair( me->m_arrowG2F.x, me->m_arrowG2F.y ).c_str(),
                     fmtBIU( me->GetWidth() ).c_str() );
 
     fprintf( m_fp, "$endCOTATION\n" );
@@ -3922,15 +3925,7 @@ wxDateTime FPL_CACHE::GetLibModificationTime()
 
 void FPL_CACHE::Load()
 {
-    FILE* fp = wxFopen( m_lib_name, wxT( "r" ) );
-    if( !fp )
-    {
-        THROW_IO_ERROR( wxString::Format(
-            _( "Unable to open legacy library file '%s'" ), m_lib_name.GetData() ) );
-    }
-
-    // reader now owns fp, will close on exception or return
-    FILE_LINE_READER    reader( fp, m_lib_name );
+    FILE_LINE_READER    reader( m_lib_name );
 
     ReadAndVerifyHeader( &reader );
     SkipIndex( &reader );
@@ -3945,18 +3940,16 @@ void FPL_CACHE::Load()
 
 void FPL_CACHE::ReadAndVerifyHeader( LINE_READER* aReader )
 {
-    char* line;
+    char* line = aReader->ReadLine();
 
-    if( !aReader->ReadLine() )
+    if( !line )
         goto L_bad_library;
 
-    line = aReader->Line();
     if( !TESTLINE( "PCBNEW-LibModule-V1" ) )
         goto L_bad_library;
 
-    while( aReader->ReadLine() )
+    while( ( line = aReader->ReadLine() ) != NULL )
     {
-        line = aReader->Line();
         if( TESTLINE( "Units" ) )
         {
             const char* units = strtok( line + SZ( "Units" ), delims );
@@ -3986,20 +3979,17 @@ void FPL_CACHE::SkipIndex( LINE_READER* aReader )
     // Some broken INDEX sections have more than one section, due to prior bugs.
     // So we must read the next line after $EndINDEX tag,
     // to see if this is not a new $INDEX tag.
-    bool exit = false;
+    bool    exit = false;
+    char*   line = aReader->Line();
 
     do
     {
-        char* line = aReader->Line();
-
         if( TESTLINE( "$INDEX" ) )
         {
             exit = false;
 
-            while( aReader->ReadLine() )
+            while( ( line = aReader->ReadLine() ) != NULL )
             {
-                line = aReader->Line();
-
                 if( TESTLINE( "$EndINDEX" ) )
                 {
                     exit = true;
@@ -4009,7 +3999,7 @@ void FPL_CACHE::SkipIndex( LINE_READER* aReader )
         }
         else if( exit )
             break;
-    } while( aReader->ReadLine() );
+    } while( ( line = aReader->ReadLine() ) != NULL );
 }
 
 
@@ -4017,11 +4007,11 @@ void FPL_CACHE::LoadModules( LINE_READER* aReader )
 {
     m_owner->SetReader( aReader );
 
+    char*   line = aReader->Line();
+
     do
     {
         // test first for the $MODULE, even before reading because of INDEX bug.
-        char* line = aReader->Line();
-
         if( TESTLINE( "$MODULE" ) )
         {
             MODULE* m = m_owner->LoadMODULE();
@@ -4083,7 +4073,7 @@ void FPL_CACHE::LoadModules( LINE_READER* aReader )
             }
         }
 
-    } while( aReader->ReadLine() );
+    } while( ( line = aReader->ReadLine() ) != NULL );
 }
 
 
@@ -4130,6 +4120,10 @@ void FPL_CACHE::Save()
     // the temporary file to m_lib_name.
 
     wxRemove( m_lib_name );     // it is not an error if this does not exist
+
+    // Even on linux you can see an _intermittent_ error when calling wxRename(),
+    // and it is fully inexplicable.  See if this dodges the error.
+    wxMilliSleep( 250L );
 
     if( wxRename( tempFileName, m_lib_name ) )
     {
@@ -4332,16 +4326,12 @@ void LEGACY_PLUGIN::FootprintLibCreate( const wxString& aLibraryPath, PROPERTIES
 }
 
 
-void LEGACY_PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties )
+bool LEGACY_PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties )
 {
     wxFileName fn = aLibraryPath;
 
     if( !fn.FileExists() )
-    {
-        THROW_IO_ERROR( wxString::Format(
-            _( "library '%s' does not exist, cannot be deleted" ),
-            aLibraryPath.GetData() ) );
-    }
+        return false;
 
     // Some of the more elaborate wxRemoveFile() crap puts up its own wxLog dialog
     // we don't want that.  we want bare metal portability with no UI here.
@@ -4357,6 +4347,8 @@ void LEGACY_PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES
         delete m_cache;
         m_cache = 0;
     }
+
+    return true;
 }
 
 

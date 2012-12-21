@@ -30,14 +30,26 @@
 class BOARD;
 class BOARD_ITEM;
 class FP_CACHE;
+class PCB_PARSER;
 
 
-/** Current s-expression file format version.  2 was the last legacy format version. */
-#define SEXPR_BOARD_FILE_VERSION   3
+/// Current s-expression file format version.  2 was the last legacy format version.
+#define SEXPR_BOARD_FILE_VERSION    3
 
-/** Format output for the clipboard instead of a file. */
-#define CTL_CLIPBOARD              (1 << 0)
+/// Use English default layer names
+#define CTL_UNTRANSLATED_LAYERS     (1 << 0)
 
+#define CTL_OMIT_NETS               (1 << 1)
+
+#define CTL_OMIT_TSTAMPS            (1 << 2)
+
+// common combinations of the above:
+
+/// Format output for the clipboard instead of footprint library or BOARD
+#define CTL_FOR_CLIPBOARD           (CTL_UNTRANSLATED_LAYERS|CTL_OMIT_NETS)
+
+/// Format output for a footprint library instead of clipboard or BOARD
+#define CTL_FOR_LIBRARY             (CTL_UNTRANSLATED_LAYERS|CTL_OMIT_NETS|CTL_OMIT_TSTAMPS)
 
 /**
  * Class PCB_IO
@@ -47,6 +59,7 @@ class FP_CACHE;
  */
 class PCB_IO : public PLUGIN
 {
+    friend class FP_CACHE;
 
 public:
 
@@ -60,6 +73,10 @@ public:
 
     const wxString& GetFileExtension() const
     {
+        // Would have used wildcards_and_files_ext.cpp's KiCadPcbFileExtension,
+        // but to be pure, a plugin should not assume that it will always be linked
+        // with the core of the pcbnew code. (Might someday be a DLL/DSO.)  Besides,
+        // file extension policy should be controlled by the plugin.
         static const wxString extension = wxT( "kicad_pcb" );
         return extension;
     }
@@ -81,13 +98,15 @@ public:
 
     void FootprintLibCreate( const wxString& aLibraryPath, PROPERTIES* aProperties = NULL);
 
-    void FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties = NULL );
+    bool FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties = NULL );
 
     bool IsFootprintLibWritable( const wxString& aLibraryPath );
 
     //-----</PLUGIN API>--------------------------------------------------------
 
     PCB_IO();
+
+    PCB_IO( int aControlFlags );
 
     ~PCB_IO();
 
@@ -113,6 +132,9 @@ public:
 
     void SetOutputFormatter( OUTPUTFORMATTER* aFormatter ) { m_out = aFormatter; }
 
+    BOARD_ITEM* Parse( const wxString& aClipboardSourceInput )
+        throw( PARSE_ERROR, IO_ERROR );
+
 protected:
 
     wxString        m_error;        ///< for throwing exceptions
@@ -123,11 +145,12 @@ protected:
     LINE_READER*    m_reader;       ///< no ownership here.
     wxString        m_filename;     ///< for saves only, name is in m_reader for loads
 
-    int             m_loading_format_version; ///< which #BOARD_FORMAT_VERSION should be Load()ed?
+    int             m_loading_format_version; ///< which #SEXPR_BOARD_FILE_VERSION should be Load()ed?
 
     STRING_FORMATTER    m_sf;
     OUTPUTFORMATTER*    m_out;      ///< output any Format()s to this, no ownership
     int                 m_ctl;
+    PCB_PARSER*         m_parser;
 
 
 private:
@@ -165,6 +188,9 @@ private:
         throw( IO_ERROR );
 
     void formatLayer( const BOARD_ITEM* aItem ) const;
+
+    void formatLayers( int aLayerMask, int aNestLevel = 0 ) const
+        throw( IO_ERROR );
 
     /// we only cache one footprint library for now, this determines which one.
     void cacheLib( const wxString& aLibraryPath );
