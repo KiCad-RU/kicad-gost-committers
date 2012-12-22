@@ -96,7 +96,7 @@ void PCB_VIA::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
     {
         lNode->GetAttribute( wxT( "Name" ), &propValue );
 
-        if( propValue == m_name.text )
+        if( propValue.IsSameAs( m_name.text, false ) )
             break;
 
         lNode = lNode->GetNext();
