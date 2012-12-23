@@ -53,6 +53,7 @@ public:
 
     int             GetKiCadLayer( int aPCadLayer );
     LAYER_TYPE_T    GetLayerType( int aPCadLayer );
+    wxString        GetLayerNetNameRef( int aPCadLayer );
     int             GetNewTimestamp();
     int             GetNetCode( wxString aNetName );
 

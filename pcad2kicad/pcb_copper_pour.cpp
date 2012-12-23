@@ -73,6 +73,7 @@ bool PCB_COPPER_POUR::Parse( XNODE*         aNode,
         propValue.Trim( false );
         propValue.Trim( true );
         m_net = propValue;
+        m_netCode = GetNetCode( m_net );
     }
 
     if( FindNode( aNode, wxT( "width" ) ) )

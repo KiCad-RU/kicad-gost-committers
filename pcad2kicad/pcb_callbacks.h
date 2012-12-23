@@ -43,6 +43,7 @@ typedef struct _TLAYER
 {
     int           KiCadLayer;
     LAYER_TYPE_T  layerType;
+    wxString      netNameRef;
 } TLAYER;
 
 namespace PCAD2KICAD
@@ -53,6 +54,7 @@ namespace PCAD2KICAD
     public:
         virtual int           GetKiCadLayer( int aPCadLayer ) = 0;
         virtual LAYER_TYPE_T  GetLayerType( int aPCadLayer ) = 0;
+        virtual wxString      GetLayerNetNameRef( int aPCadLayer ) = 0;
         virtual int           GetNewTimestamp() = 0;
         virtual int           GetNetCode( wxString netName ) = 0;
     };

@@ -59,6 +59,12 @@ LAYER_TYPE_T PCB::GetLayerType( int aPCadLayer )
     return m_layersMap[aPCadLayer].layerType;
 }
 
+wxString PCB::GetLayerNetNameRef( int aPCadLayer )
+{
+    assert( aPCadLayer >= FIRST_COPPER_LAYER && aPCadLayer <= LAST_NO_COPPER_LAYER );
+    return m_layersMap[aPCadLayer].netNameRef;
+}
+
 PCB::PCB( BOARD* aBoard ) : PCB_MODULE( this, aBoard )
 {
     int i;
@@ -69,6 +75,7 @@ PCB::PCB( BOARD* aBoard ) : PCB_MODULE( this, aBoard )
     {
         m_layersMap[i].KiCadLayer = SOLDERMASK_N_FRONT; // default
         m_layersMap[i].layerType = LAYER_TYPE_NONSIGNAL; // default
+        m_layersMap[i].netNameRef = wxT( "" ); // default
     }
 
     m_sizeX = 0;
@@ -510,6 +517,12 @@ void PCB::MapLayer( XNODE* aNode )
             m_layersMap[(int) num].layerType = LAYER_TYPE_SIGNAL;
         if( layerType == wxT( "Plane" ) )
             m_layersMap[(int) num].layerType = LAYER_TYPE_PLANE;
+    }
+
+    if( FindNode( aNode, wxT( "netNameRef" ) ) )
+    {
+        FindNode( aNode, wxT( "netNameRef" ) )->GetAttribute( wxT( "Name" ),
+                                                              &m_layersMap[(int) num].netNameRef );
     }
 }
 

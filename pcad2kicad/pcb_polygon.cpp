@@ -78,6 +78,12 @@ PCB_POLYGON::~PCB_POLYGON()
     }
 }
 
+void PCB_POLYGON::AssignNet( wxString aNetName )
+{
+    m_net = aNetName;
+    m_netCode = GetNetCode( m_net );
+}
+
 void PCB_POLYGON::SetOutline( VERTICES_ARRAY* aOutline )
 {
     int i;

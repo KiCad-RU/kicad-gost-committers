@@ -239,11 +239,12 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
     if( FindNode( aNode, wxT( "layerNumRef" ) ) )
         FindNode( aNode, wxT( "layerNumRef" ) )->GetNodeContent().ToLong( &num );
 
-    PCadLayer   = (int) num;
+    PCadLayer = (int) num;
 
     if( m_callbacks->GetLayerType( PCadLayer ) == LAYER_TYPE_PLANE )
     {
         plane_layer = new PCB_POLYGON( m_callbacks, m_board, PCadLayer );
+        plane_layer->AssignNet( m_callbacks->GetLayerNetNameRef( PCadLayer ) );
         plane_layer->SetOutline( &m_boardOutline );
         aList->Add( plane_layer );
 

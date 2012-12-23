@@ -63,6 +63,7 @@ public:
     void            AddToBoard();
 
 // protected:
+    void            AssignNet( wxString aNetName );
     void            SetOutline( VERTICES_ARRAY* aOutline );
 
     void            FormPolygon( XNODE*   aNode, VERTICES_ARRAY* aPolygon,

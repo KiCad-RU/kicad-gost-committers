@@ -67,6 +67,7 @@ bool PCB_PLANE::Parse( XNODE*         aNode,
         propValue.Trim( false );
         propValue.Trim( true );
         m_net = propValue;
+        m_netCode = GetNetCode( m_net );
     }
 
     if( FindNode( aNode, wxT( "width" ) ) )
