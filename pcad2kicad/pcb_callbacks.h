@@ -54,6 +54,7 @@ namespace PCAD2KICAD
         virtual int           GetKiCadLayer( int aPCadLayer ) = 0;
         virtual LAYER_TYPE_T  GetLayerType( int aPCadLayer ) = 0;
         virtual int           GetNewTimestamp() = 0;
+        virtual int           GetNetCode( wxString netName ) = 0;
     };
 }
 

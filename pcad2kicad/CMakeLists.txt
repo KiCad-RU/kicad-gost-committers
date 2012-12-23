@@ -39,7 +39,7 @@ set(PCAD2KICAD_SRCS
     sch_sheet.cpp
     sch_symbol.cpp
     sch_text.cpp
-    XMLtoObjectCommonProceduresUnit.cpp
+    pcad2kicad_common.cpp
     dialogs/pcad2kicad_frame_base.cpp
     )
 

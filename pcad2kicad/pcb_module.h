@@ -32,7 +32,7 @@
 
 #include <wx/wx.h>
 
-#include <XMLtoObjectCommonProceduresUnit.h>
+#include <pcad2kicad_common.h>
 #include <pcb_component.h>
 
 namespace PCAD2KICAD {

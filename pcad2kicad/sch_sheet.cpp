@@ -32,7 +32,7 @@
 #include <wx/xml/xml.h>
 #include <wx/filename.h>
 
-#include <XMLtoObjectCommonProceduresUnit.h>
+#include <pcad2kicad_common.h>
 #include <common.h>
 
 #include <sch_sheet.h>

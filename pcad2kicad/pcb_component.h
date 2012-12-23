@@ -33,7 +33,7 @@
 #include <wx/wx.h>
 #include <wx/file.h>
 
-#include <XMLtoObjectCommonProceduresUnit.h>
+#include <pcad2kicad_common.h>
 #include <pcb_callbacks.h>
 #include <class_board.h>
 #include <class_module.h>
@@ -58,6 +58,7 @@ public:
     int         m_rotation;
     TTEXTVALUE  m_name;             // name has also privete positions, rotations nand so on....
     wxString    m_net;
+    int         m_netCode;
     wxString    m_compRef;          // internal ussage for XL parsing
     wxString    m_patGraphRefName;  // internal ussage for XL parsing
 
@@ -71,6 +72,7 @@ public:
 
     int GetKiCadLayer() { return m_callbacks->GetKiCadLayer( m_PCadLayer ); }
     int GetNewTimestamp() { return m_callbacks->GetNewTimestamp(); }
+    int GetNetCode( wxString aNetName ) { return m_callbacks->GetNetCode( aNetName ); }
 protected:
     PCB_CALLBACKS*  m_callbacks;
     BOARD*          m_board;

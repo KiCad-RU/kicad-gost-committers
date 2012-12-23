@@ -33,7 +33,7 @@
 #include <wx/wx.h>
 
 #include <sch_component.h>
-#include <XMLtoObjectCommonProceduresUnit.h>
+#include <pcad2kicad_common.h>
 
 namespace PCAD2KICAD {
 

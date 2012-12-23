@@ -24,7 +24,7 @@
  */
 
 /**
- * @file XMLtoObjectCommonProceduresUnit.cpp
+ * @file pcad2kicad_common.cpp
  */
 
 #include <wx/wx.h>
@@ -32,7 +32,7 @@
 
 #include <common.h>
 
-#include <XMLtoObjectCommonProceduresUnit.h>
+#include <pcad2kicad_common.h>
 
 namespace PCAD2KICAD {
 

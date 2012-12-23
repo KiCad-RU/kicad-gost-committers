@@ -50,6 +50,7 @@ PCB_COMPONENT::PCB_COMPONENT( PCB_CALLBACKS*    aCallbacks,
     m_rotation      = 0;
     InitTTextValue( &m_name );
     m_net       = wxEmptyString;
+    m_netCode   = 0;
     m_compRef   = wxEmptyString;
     m_patGraphRefName = wxEmptyString;
 }

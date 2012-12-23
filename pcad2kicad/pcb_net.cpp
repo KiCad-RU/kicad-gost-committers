@@ -46,7 +46,7 @@ PCB_NET_NODE::~PCB_NET_NODE()
 }
 
 
-PCB_NET::PCB_NET()
+PCB_NET::PCB_NET( int aNetCode ) : m_netCode( aNetCode )
 {
     m_name = wxEmptyString;
 }

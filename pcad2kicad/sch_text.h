@@ -30,7 +30,7 @@
 #define SCH_TEXT_H_
 
 #include <wx/wx.h>
-#include <XMLtoObjectCommonProceduresUnit.h>
+#include <pcad2kicad_common.h>
 
 #include <sch_component.h>
 

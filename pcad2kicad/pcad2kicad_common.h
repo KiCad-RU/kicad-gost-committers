@@ -24,11 +24,11 @@
  */
 
 /**
- * @file XMLtoObjectCommonProceduresUnit.h
+ * @file pcad2kicad_common.h
  */
 
-#ifndef XMLTOOBJECTCOMMONPROCEDURESUNIT_H_
-#define XMLTOOBJECTCOMMONPROCEDURESUNIT_H_
+#ifndef PCAD2KICAD_COMMON_H_
+#define PCAD2KICAD_COMMON_H_
 
 #include <wx/wx.h>
 #include <wx/xml/xml.h>
@@ -85,4 +85,4 @@ extern void         InitTTextValue( TTEXTVALUE* aTextValue );
 
 } // namespace PCAD2KICAD
 
-#endif    // XMLTOOBJECTCOMMONPROCEDURESUNIT_H_
+#endif    // PCAD2KICAD_COMMON_H_

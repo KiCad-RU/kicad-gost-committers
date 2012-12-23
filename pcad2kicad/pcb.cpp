@@ -108,6 +108,22 @@ int PCB::GetNewTimestamp()
     return m_timestamp_cnt++;
 }
 
+int PCB::GetNetCode( wxString aNetName )
+{
+    PCB_NET* net;
+
+    for( int i = 0; i < (int) m_pcbNetlist.GetCount(); i++ )
+    {
+        net = m_pcbNetlist[i];
+
+        if( net->m_name == aNetName )
+        {
+            return net->m_netCode;
+        }
+    }
+
+    return 0;
+}
 
 XNODE* PCB::FindCompDefName( XNODE* aNode, wxString aName )
 {
@@ -380,7 +396,7 @@ void PCB::DoPCBComponents( XNODE*           aNode,
 }
 
 
-void PCB::ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName )
+void PCB::ConnectPinToNet( wxString aCompRef, wxString aPinRef, wxString aNetName )
 {
     PCB_MODULE* module;
     PCB_PAD*    cp;
@@ -390,7 +406,7 @@ void PCB::ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName )
     {
         module = (PCB_MODULE*) m_pcbComponents[i];
 
-        if( module->m_objType == wxT( 'M' ) && module->m_name.text == aCr )
+        if( module->m_objType == wxT( 'M' ) && module->m_name.text == aCompRef )
         {
             for( j = 0; j < (int) module->m_moduleObjects.GetCount(); j++ )
             {
@@ -398,7 +414,7 @@ void PCB::ConnectPinToNet( wxString aCr, wxString aPr, wxString aNetName )
                 {
                     cp = (PCB_PAD*) module->m_moduleObjects[j];
 
-                    if( cp->m_name.text == aPr )
+                    if( cp->m_name.text == aPinRef )
                         cp->m_net = aNetName;
                 }
             }
@@ -620,8 +636,8 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     PCB_NET*        net;
     PCB_COMPONENT*  comp;
     PCB_MODULE*     module;
-    wxString        cr, pr, layerName;
-    int             i, j;
+    wxString        compRef, pinRef, layerName;
+    int             i, j, netCode;
 
     // Defaut measurement units
     aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
@@ -694,9 +710,11 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     {
         aNode = FindNode( aNode, wxT( "net" ) );
 
+        netCode = 1;
+
         while( aNode )
         {
-            net = new PCB_NET;
+            net = new PCB_NET( netCode++ );
             net->Parse( aNode );
             m_pcbNetlist.Add( net );
 
@@ -737,13 +755,13 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
 
             for( j = 0; j < (int) net->m_netNodes.GetCount(); j++ )
             {
-                cr = net->m_netNodes[j]->m_compRef;
-                cr.Trim( false );
-                cr.Trim( true );
-                pr = net->m_netNodes[j]->m_pinRef;
-                pr.Trim( false );
-                pr.Trim( true );
-                ConnectPinToNet( cr, pr, net->m_name );
+                compRef = net->m_netNodes[j]->m_compRef;
+                compRef.Trim( false );
+                compRef.Trim( true );
+                pinRef = net->m_netNodes[j]->m_pinRef;
+                pinRef.Trim( false );
+                pinRef.Trim( true );
+                ConnectPinToNet( compRef, pinRef, net->m_name );
             }
         }
 
@@ -869,10 +887,18 @@ void PCB::WriteToFile( wxString aFileName )
 void PCB::AddToBoard()
 {
     int i;
+    PCB_NET* net;
 
     for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
     {
         m_pcbComponents[i]->AddToBoard();
+    }
+
+    for( i = 0; i < (int) m_pcbNetlist.GetCount(); i++ )
+    {
+        net = m_pcbNetlist[i];
+
+        m_board->AppendNet( new NETINFO_ITEM( m_board, net->m_name, net->m_netCode ) );
     }
 }
 

@@ -32,7 +32,7 @@
 
 #include <wx/wx.h>
 
-#include <XMLtoObjectCommonProceduresUnit.h>
+#include <pcad2kicad_common.h>
 
 namespace PCAD2KICAD {
 
@@ -52,9 +52,10 @@ class PCB_NET : public wxObject
 {
 public:
     wxString            m_name;
+    int                 m_netCode;
     PCB_NET_NODES_ARRAY m_netNodes;
 
-    PCB_NET();
+    PCB_NET( int aNetCode );
     ~PCB_NET();
 
     void Parse( XNODE* aNode );

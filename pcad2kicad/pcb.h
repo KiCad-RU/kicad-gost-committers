@@ -54,6 +54,7 @@ public:
     int             GetKiCadLayer( int aPCadLayer );
     LAYER_TYPE_T    GetLayerType( int aPCadLayer );
     int             GetNewTimestamp();
+    int             GetNetCode( wxString aNetName );
 
     void            Parse( wxStatusBar* aStatusBar,
                            wxXmlDocument* aXmlDoc,

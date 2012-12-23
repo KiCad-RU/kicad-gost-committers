@@ -91,7 +91,7 @@ set(PCB_COMMON_SRCS
     convert_basic_shapes_to_polygon.cpp
     pcbcommon.cpp
     footprint_info.cpp
-    ../pcad2kicad/XMLtoObjectCommonProceduresUnit.cpp
+    ../pcad2kicad/pcad2kicad_common.cpp
     ../pcad2kicad/pcad_plugin.cpp
     ../pcad2kicad/pcb.cpp
     ../pcad2kicad/pcb_arc.cpp

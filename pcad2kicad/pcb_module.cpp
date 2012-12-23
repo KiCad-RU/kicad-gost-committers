@@ -51,7 +51,7 @@ PCB_MODULE::PCB_MODULE( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONE
     InitTTextValue( &m_value );
     m_mirror = 0;
     m_objType = wxT( 'M' );    // MODULE
-    m_KiCadLayer = 21;  // default
+    m_KiCadLayer = SILKSCREEN_N_FRONT;  // default
 }
 
 

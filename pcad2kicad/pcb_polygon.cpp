@@ -131,6 +131,7 @@ bool PCB_POLYGON::Parse( XNODE*         aNode,
         propValue.Trim( false );
         propValue.Trim( true );
         m_net = propValue;
+        m_netCode = GetNetCode( m_net );
     }
 
     // retrieve polygon outline
@@ -173,6 +174,7 @@ void PCB_POLYGON::AddToBoard()
 
         zone->SetTimeStamp( m_timestamp );
         zone->SetLayer( m_KiCadLayer );
+        zone->SetNet( m_netCode );
         zone->SetNetName( m_net );
 
         // add outline
