@@ -98,6 +98,7 @@ set(PCB_COMMON_SRCS
     ../pcad2kicad/pcb_component.cpp
     ../pcad2kicad/pcb_copper_pour.cpp
     ../pcad2kicad/pcb_cutout.cpp
+    ../pcad2kicad/pcb_keepout.cpp
     ../pcad2kicad/pcb_line.cpp
     ../pcad2kicad/pcb_module.cpp
     ../pcad2kicad/pcb_net.cpp

@@ -78,6 +78,7 @@ void PCB_VIA::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
         propValue.Trim( false );
         propValue.Trim( true );
         m_net = propValue;
+        m_netCode = GetNetCode( m_net );
     }
 
     lNode = aNode;

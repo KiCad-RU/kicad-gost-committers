@@ -36,6 +36,7 @@
 #include <pcb_arc.h>
 #include <pcb_copper_pour.h>
 #include <pcb_cutout.h>
+#include <pcb_keepout.h>
 #include <pcb_line.h>
 #include <pcb_module.h>
 #include <pcb_pad_shape.h>
@@ -234,11 +235,12 @@ void PCB::DoPCBComponents( XNODE*           aNode,
                            wxString         aActualConversion,
                            wxStatusBar*     aStatusBar )
 {
-    XNODE*      lNode, * tNode, * mNode;
-    PCB_MODULE* mc;
-    PCB_PAD*    pad;
-    PCB_VIA*    via;
-    wxString    cn, str, propValue;
+    XNODE*        lNode, * tNode, * mNode;
+    PCB_MODULE*   mc;
+    PCB_PAD*      pad;
+    PCB_VIA*      via;
+    PCB_KEEPOUT*  keepOut;
+    wxString      cn, str, propValue;
 
     lNode = aNode->GetChildren();
 
@@ -396,6 +398,15 @@ void PCB::DoPCBComponents( XNODE*           aNode,
             via = new PCB_VIA( this, m_board );
             via->Parse( lNode, m_defaultMeasurementUnit, aActualConversion );
             m_pcbComponents.Add( via );
+        }
+        else if( lNode->GetName() == wxT( "polyKeepOut" ) )
+        {
+            keepOut = new PCB_KEEPOUT( m_callbacks, m_board, 0 );
+
+            if( keepOut->Parse( lNode, m_defaultMeasurementUnit, aActualConversion ) )
+                m_pcbComponents.Add( keepOut );
+            else
+                delete keepOut;
         }
 
         lNode = lNode->GetNext();

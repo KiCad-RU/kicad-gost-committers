@@ -418,7 +418,7 @@ void PCB_PAD::AddToBoard()
         via->SetDrill( m_hole );
 
         via->SetLayer( m_KiCadLayer );
-        via->SetNet( 0 );
+        via->SetNet( m_netCode );
     }
 }
 

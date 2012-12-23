@@ -91,6 +91,7 @@ void PCB_LINE::Parse( XNODE*        aNode,
         propValue.Trim( false );
         propValue.Trim( true );
         m_net = propValue;
+        m_netCode = GetNetCode( m_net );
     }
 }
 
@@ -147,7 +148,7 @@ void PCB_LINE::AddToBoard()
         track->SetWidth( m_width );
 
         track->SetLayer( m_KiCadLayer );
-        track->SetNet( 0 );
+        track->SetNet( m_netCode );
     }
     else
     {

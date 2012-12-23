@@ -217,6 +217,14 @@ void PCB_POLYGON::AddToBoard()
                                 Mils2iu( zone->m_Poly->GetDefaultHatchPitchMils() ),
                                 true );
 
+        if (m_objType == wxT( 'K' ) )
+        {
+            zone->SetIsKeepout( true );
+            zone->SetDoNotAllowTracks( true );
+            zone->SetDoNotAllowVias( true );
+            zone->SetDoNotAllowCopperPour( true );
+        }
+
         //zone->BuildFilledPolysListData( m_board );
     }
 }
