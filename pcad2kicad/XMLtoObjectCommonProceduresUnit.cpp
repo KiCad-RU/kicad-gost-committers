@@ -98,19 +98,12 @@ XNODE* FindPinMap( XNODE* aNode )
 double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConversion )
 {
     wxString    ls;
-    double      i, precision;
+    double      i;
     char        u;
 
     ls = aStr;
     ls.Trim( true );
     ls.Trim( false );
-    precision = 1.0;
-
-    if( aActualConversion == wxT( "PCB" ) )
-        precision = 10.0;
-
-    if( aActualConversion == wxT( "SCH" ) )
-        precision = 1.0;
 
     if( ls.Len() > 0 )
     {
@@ -134,21 +127,19 @@ double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConv
             ls = ls.Mid( 1 );
         }
 
-        // TODO: Is the following commented string necessary?
-        // if (pos(',',ls) > 0) DecimalSeparator:=',' else DecimalSeparator:='.';
         if( u == wxT( 'm' ) )
         {
             ls.ToDouble( &i );
 #ifdef PCAD2KICAD_SCALE_SCH_TO_INCH_GRID
-            i = i * precision / 0.025;
-#else
-            i = i * precision / 0.0254;
+            if( aActualConversion == wxT( "SCH" ) )
+                i = i * (0.0254 / 0.025);
 #endif
+            i = Millimeter2iu( i );
         }
         else
         {
             ls.ToDouble( &i );
-            i = i * precision;
+            i = Mils2iu( i );
         }
     }
     else
@@ -158,7 +149,7 @@ double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConv
         && aAxe == wxT( 'Y' ) )
         return -i;
     else
-        return i; // Y axe is mirrored in compare with PCAD
+        return i; // Y axe is mirrored compared to P-Cad
 }
 
 
