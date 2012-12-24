@@ -656,11 +656,11 @@ void PCB::GetBoardOutline( wxXmlDocument* aXmlDoc, wxString aActualConversion )
 
 void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
 {
-    XNODE*          aNode, *aaNode;
+    XNODE*          aNode;//, *aaNode;
     PCB_NET*        net;
     PCB_COMPONENT*  comp;
     PCB_MODULE*     module;
-    wxString        compRef, pinRef, layerName;
+    wxString        compRef, pinRef, layerName, layerType;
     int             i, j, netCode;
 
     // Defaut measurement units
@@ -681,7 +681,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     // Determine layers stackup
     aNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "pcbDesign" ) );
 
-    if( aNode )
+    /*if( aNode )
     {
         aNode = FindNode( aNode, wxT( "layersStackup" ) );
 
@@ -704,6 +704,32 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
 
                 aNode = aNode->GetNext();
             }
+        }
+    }*/
+
+    if( aNode )
+    {
+        aNode = FindNode( aNode, wxT( "layerDef" ) );
+
+        while( aNode )
+        {
+            if( aNode->GetName() == wxT( "layerDef" ) )
+            {
+                if( FindNode( aNode, wxT( "layerType" ) ) )
+                {
+                    layerType = FindNode( aNode,
+                                          wxT( "layerType" ) )->GetNodeContent().Trim( false );
+
+                    if( layerType == wxT( "Signal" ) || layerType == wxT( "Plane" ) )
+                    {
+                        aNode->GetAttribute( wxT( "Name" ), &layerName );
+                        layerName = layerName.MakeUpper();
+                        m_layersStackup.Add( layerName );
+                    }
+                }
+            }
+
+            aNode = aNode->GetNext();
         }
     }
 
