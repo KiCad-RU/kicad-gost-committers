@@ -939,6 +939,8 @@ void PCB::AddToBoard()
     int i;
     PCB_NET* net;
 
+    m_board->SetCopperLayerCount( m_layersStackup.GetCount() );
+
     for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )
     {
         m_pcbComponents[i]->AddToBoard();
