@@ -43,12 +43,9 @@ public:
     PCB_CUTOUT( PCB_CALLBACKS* aCallbacks, BOARD* aBoard, int aPCadLayer );
     ~PCB_CUTOUT();
 
-    virtual void    Parse( XNODE*       aNode,
+    virtual bool    Parse( XNODE*       aNode,
                            wxString     aDefaultMeasurementUnit,
                            wxString     actualConversion );
-
-    virtual void    WriteToFile( wxFile* aFile, char aFileType );
-    void            AddToBoard();
 };
 
 } // namespace PCAD2KICAD

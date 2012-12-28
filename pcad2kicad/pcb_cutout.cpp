@@ -46,30 +46,29 @@ PCB_CUTOUT::~PCB_CUTOUT()
 }
 
 
-// It seems that the same cutouts (with the same vertices) are inside of copper pour objects
-void PCB_CUTOUT::Parse( XNODE*      aNode,
+bool PCB_CUTOUT::Parse( XNODE*      aNode,
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion )
 {
-    // retrieve cutout outline
-    FormPolygon( aNode, &m_outline, aDefaultMeasurementUnit, aActualConversion );
+    XNODE*          lNode;
 
-    m_positionX = m_outline[0]->x;
-    m_positionY = m_outline[0]->y;
+    lNode = FindNode( aNode, wxT( "pcbPoly" ) );
+
+    if( lNode )
+    {
+        // retrieve cutout outline
+        FormPolygon( lNode, &m_outline, aDefaultMeasurementUnit, aActualConversion );
+
+        m_positionX = m_outline[0]->x;
+        m_positionY = m_outline[0]->y;
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
 }
 
-
-void PCB_CUTOUT::WriteToFile( wxFile* aFile, char aFileType )
-{
-    // no operation
-    // (It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
-}
-
-
-void PCB_CUTOUT::AddToBoard()
-{
-    // no operation
-    // (It seems that the same cutouts (with the same vertices) are inside of copper pour objects)
-}
 
 } // namespace PCAD2KICAD

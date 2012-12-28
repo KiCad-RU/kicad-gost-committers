@@ -322,11 +322,13 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
             else
             {
                 polygon = new PCB_POLYGON( m_callbacks, m_board, PCadLayer );
-                polygon->Parse( lNode,
-                                aDefaultMeasurementUnit,
-                                aActualConversion,
-                                aStatusBar );
-                aList->Add( polygon );
+                if( polygon->Parse( lNode,
+                                    aDefaultMeasurementUnit,
+                                    aActualConversion,
+                                    aStatusBar ) )
+                    aList->Add( polygon );
+                else
+                    delete polygon;
             }
         }
 
@@ -343,18 +345,12 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
 
         if( lNode->GetName() == wxT( "polyCutOut" ) )
         {
-            // It seems that the same cutouts (with the same vertices) are inside of copper pour objects
+            cutout = new PCB_CUTOUT( m_callbacks, m_board, PCadLayer );
 
-            // list of polygons....
-            tNode   = lNode;
-            tNode   = FindNode( tNode, wxT( "pcbPoly" ) );
-
-            if( tNode )
-            {
-                cutout = new PCB_CUTOUT( m_callbacks, m_board, PCadLayer );
-                cutout->Parse( tNode, aDefaultMeasurementUnit, aActualConversion );
+            if( cutout->Parse( lNode, aDefaultMeasurementUnit, aActualConversion ) )
                 aList->Add( cutout );
-            }
+            else
+                delete cutout;
         }
 
         if( lNode->GetName() == wxT( "planeObj" ) )

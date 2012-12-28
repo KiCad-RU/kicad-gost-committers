@@ -171,7 +171,7 @@ void PCB_POLYGON::AddToModule( MODULE* aModule )
 
 void PCB_POLYGON::AddToBoard()
 {
-    int i = 0, island = 0;
+    int i = 0;
 
     if( m_outline.GetCount() > 0 )
     {
@@ -197,18 +197,6 @@ void PCB_POLYGON::AddToBoard()
 
         zone->m_Poly->CloseLastContour();
 
-        // add cutouts
-        for( island = 0; island < (int) m_cutouts.GetCount(); island++ )
-        {
-            for( i = 0; i < (int) m_cutouts[island]->GetCount(); i++ )
-            {
-                zone->AppendCorner( wxPoint( KiROUND( (*m_cutouts[island])[i]->x ),
-                                             KiROUND( (*m_cutouts[island])[i]->y ) ) );
-            }
-
-            zone->m_Poly->CloseLastContour();
-        }
-
         zone->SetZoneClearance( m_width );
 
         zone->SetPriority( m_priority );
@@ -217,11 +205,17 @@ void PCB_POLYGON::AddToBoard()
                                 Mils2iu( zone->m_Poly->GetDefaultHatchPitchMils() ),
                                 true );
 
-        if (m_objType == wxT( 'K' ) )
+        if ( m_objType == wxT( 'K' ) )
         {
             zone->SetIsKeepout( true );
             zone->SetDoNotAllowTracks( true );
             zone->SetDoNotAllowVias( true );
+            zone->SetDoNotAllowCopperPour( true );
+        }
+        else if( m_objType == wxT( 'C' ) )
+        {
+            // convert cutouts to keepouts because standalone cutouts are not supported in KiCad
+            zone->SetIsKeepout( true );
             zone->SetDoNotAllowCopperPour( true );
         }
 

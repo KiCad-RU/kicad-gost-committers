@@ -54,10 +54,9 @@ bool PCB_COPPER_POUR::Parse( XNODE*         aNode,
                              wxString       aActualConversion,
                              wxStatusBar*   aStatusBar )
 {
-    XNODE*          lNode, * tNode, * cNode;
+    XNODE*          lNode;
     wxString        pourType, str, propValue;
     int             pourSpacing, thermalWidth;
-    VERTICES_ARRAY* island, * cutout;
 
     // aStatusBar->SetStatusText( aStatusBar->GetStatusText() + wxT( " CooperPour..." ) );
 
@@ -97,45 +96,6 @@ bool PCB_COPPER_POUR::Parse( XNODE*         aNode,
 
         m_positionX = m_outline[0]->x;
         m_positionY = m_outline[0]->y;
-
-        lNode = FindNode( aNode, wxT( "island" ) );
-
-        while( lNode )
-        {
-            tNode = FindNode( lNode, wxT( "islandOutline" ) );
-
-            if( tNode )
-            {
-                island = new VERTICES_ARRAY;
-                FormPolygon( tNode, island, aDefaultMeasurementUnit, aActualConversion );
-                m_islands.Add( island );
-                tNode = FindNode( lNode, wxT( "cutout" ) );
-
-                while( tNode )
-                {
-                    cNode = FindNode( tNode, wxT( "cutoutOutline" ) );
-
-                    if( cNode )
-                    {
-                        cutout = new VERTICES_ARRAY;
-                        FormPolygon( cNode, cutout, aDefaultMeasurementUnit, aActualConversion );
-                        m_cutouts.Add( cutout );
-                    }
-
-                    tNode = tNode->GetNext();
-                }
-            }
-
-            /*tNode:=lNode.ChildNodes.FindNode('thermal');
-             *  while  Assigned(tNode) do
-             *  begin
-             *   DrawThermal(tNode, componentCopperPour.fill_lines, PCADlayer, thermalWidth,
-             *               componentCopperPour.timestamp);
-             *   tNode := tNode.NextSibling;
-             *  end;*/
-
-            lNode = lNode->GetNext();
-        }
     }
     else
     {

@@ -78,7 +78,12 @@ BOARD* PCAD_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe, PROPERT
     m_props = aProperties;
 
     m_board = aAppendToMe ? aAppendToMe : new BOARD();
-    PCB         pcb( m_board );
+
+    // Give the filename to the board if it's new
+    if( !aAppendToMe )
+        m_board->SetFileName( aFileName );
+
+    PCB pcb( m_board );
 
     LOCALE_IO toggle;    // toggles on, then off, the C locale.
 
