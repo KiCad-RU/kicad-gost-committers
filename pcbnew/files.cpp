@@ -51,6 +51,7 @@
 
 
 static const wxString backupFileExtensionSuffix( wxT( "-bak" ) );
+static const wxString autosaveFilePrefix( wxT( "_autosave-" ) );
 
 void PCB_EDIT_FRAME::OnFileHistory( wxCommandEvent& event )
 {
@@ -85,12 +86,21 @@ void PCB_EDIT_FRAME::Files_io( wxCommandEvent& event )
         LoadOnePcbFile( GetBoard()->GetFileName(), false, true );
         break;
 
-    case ID_MENU_READ_LAST_SAVED_VERSION_BOARD:
+    case ID_MENU_READ_BOARD_BACKUP_FILE:
+    case ID_MENU_RECOVER_BOARD_AUTOSAVE:
         {
-            wxFileName fn;
-            fn = GetBoard()->GetFileName();
-            wxString backup_ext = fn.GetExt()+ backupFileExtensionSuffix;
-            fn.SetExt( backup_ext );
+            wxFileName currfn = GetBoard()->GetFileName();
+            wxFileName fn = currfn;
+            if( id == ID_MENU_RECOVER_BOARD_AUTOSAVE )
+            {
+                wxString rec_name = autosaveFilePrefix + fn.GetName();
+                fn.SetName( rec_name );
+            }
+            else
+            {
+                wxString backup_ext = fn.GetExt()+ backupFileExtensionSuffix;
+                fn.SetExt( backup_ext );
+            }
 
             if( !fn.FileExists() )
             {
@@ -99,19 +109,18 @@ void PCB_EDIT_FRAME::Files_io( wxCommandEvent& event )
                 DisplayInfoMessage( this, msg );
                 break;
             }
-            else
-            {
-                msg.Printf( _( "OK to load recovery file <%s>" ), GetChars(fn.GetFullPath() ) );
 
-                if( !IsOK( this, msg ) )
-                    break;
-            }
+            msg.Printf( _( "OK to load recovery or backup file <%s>" ),
+                            GetChars(fn.GetFullPath() ) );
 
+            if( !IsOK( this, msg ) )
+                break;
+
+            GetScreen()->ClrModify();    // do not prompt the user for changes
             LoadOnePcbFile( fn.GetFullPath(), false );
-            fn.SetExt( PcbFileExtension );
 
-            // Re-set the name since extension changed
-            GetBoard()->SetFileName( fn.GetFullPath() );
+            // Re-set the name since name or extension was changed
+            GetBoard()->SetFileName( currfn.GetFullPath() );
             UpdateTitle();
         }
         break;
@@ -525,7 +534,13 @@ bool PCB_EDIT_FRAME::SavePcbFile( const wxString& aFileName, bool aCreateBackupF
     {
         GetBoard()->SetFileName( pcbFileName.GetFullPath() );
         UpdateTitle();
-        UpdateFileHistory( GetBoard()->GetFileName() );
+
+        // Put the saved file in File History, unless aCreateBackupFile
+        // is false.
+        // aCreateBackupFile == false is mainly used to write autosave files
+        // and not need to have an autosave file in file history
+        if( aCreateBackupFile )
+            UpdateFileHistory( GetBoard()->GetFileName() );
     }
 
     // Display the file names:
@@ -535,7 +550,7 @@ bool PCB_EDIT_FRAME::SavePcbFile( const wxString& aFileName, bool aCreateBackupF
     {
         // Delete auto save file on successful save.
         wxFileName autoSaveFileName = pcbFileName;
-        autoSaveFileName.SetName( wxT( "$" ) + pcbFileName.GetName() );
+        autoSaveFileName.SetName( autosaveFilePrefix + pcbFileName.GetName() );
 
         if( autoSaveFileName.FileExists() )
             wxRemoveFile( autoSaveFileName.GetFullPath() );
@@ -564,8 +579,9 @@ bool PCB_EDIT_FRAME::doAutoSave()
     wxFileName tmpFileName = GetBoard()->GetFileName();
     wxFileName fn = tmpFileName;
 
-    // Auto save file name is the normal file name prepended with $.
-    fn.SetName( wxT( "$" ) + fn.GetName() );
+    // Auto save file name is the normal file name prepended with
+    // autosaveFilePrefix string.
+    fn.SetName( autosaveFilePrefix + fn.GetName() );
 
     wxLogTrace( traceAutoSave,
                 wxT( "Creating auto save file <" + fn.GetFullPath() ) + wxT( ">" ) );
