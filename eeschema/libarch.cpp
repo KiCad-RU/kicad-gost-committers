@@ -40,6 +40,18 @@
 #include <protos.h>
 #include <class_library.h>
 #include <sch_component.h>
+#include <sch_sheet.h>
+#include <wildcards_and_files_ext.h>
+
+
+bool SCH_EDIT_FRAME::CreateArchiveLibraryCacheFile()
+{
+    wxFileName fn = GetScreen()->GetFileName();
+    fn.SetName( fn.GetName() + wxT( "-cache" ) );
+    fn.SetExt( SchematicLibraryFileExtension );
+
+    return CreateArchiveLibrary( fn.GetFullPath() );
+}
 
 
 bool SCH_EDIT_FRAME::CreateArchiveLibrary( const wxString& aFileName )

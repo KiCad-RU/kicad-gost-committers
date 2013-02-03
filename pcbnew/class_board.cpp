@@ -38,6 +38,7 @@
 #include <kicad_string.h>
 #include <pcbcommon.h>
 #include <wxBasePcbFrame.h>
+#include <msgpanel.h>
 
 #include <pcbnew.h>
 #include <colors_selection.h>
@@ -66,8 +67,8 @@ BOARD::BOARD() :
 
     m_Status_Pcb    = 0;                    // Status word: bit 1 = calculate.
     SetColorsSettings( &g_ColorsSettings );
-    m_NbNodes     = 0;                      // Number of connected pads.
-    m_NbNoconnect = 0;                      // Number of unconnected nets.
+    m_nodeCount     = 0;                    // Number of connected pads.
+    m_unconnectedNetCount   = 0;            // Number of unconnected nets.
 
     m_CurrentZoneContour = NULL;            // This ZONE_CONTAINER handle the
                                             // zone contour currently in progress
@@ -86,8 +87,8 @@ BOARD::BOARD() :
 
     m_NetClasses.GetDefault()->SetDescription( _( "This is the default net class." ) );
 
-    m_ViaSizeSelector    = 0;
-    m_TrackWidthSelector = 0;
+    m_viaSizeIndex    = 0;
+    m_trackWidthIndex = 0;
 
     /*  Dick 5-Feb-2012: this seems unnecessary.  I don't believe the comment
         near line 70 of class_netclass.cpp.  I stepped through with debugger.
@@ -213,13 +214,13 @@ void BOARD::chainMarkedSegments( wxPoint aPosition, int aLayerMask, TRACK_PTRS* 
              */
             aLayerMask = candidate->ReturnMaskLayer();
 
-            if( aPosition == candidate->m_Start )
+            if( aPosition == candidate->GetStart() )
             {
-                aPosition = candidate->m_End;
+                aPosition = candidate->GetEnd();
             }
             else
             {
-                aPosition = candidate->m_Start;
+                aPosition = candidate->GetStart();
             }
 
             segment = m_Track; /* restart list of tracks to analyze */
@@ -258,7 +259,7 @@ bool BOARD::SetCurrentNetClass( const wxString& aNetClassName )
     if( netClass == NULL )
         netClass = m_NetClasses.GetDefault();
 
-    m_CurrentNetClassName = netClass->GetName();
+    m_currentNetClassName = netClass->GetName();
 
     // Initialize others values:
     if( m_ViasDimensionsList.size() == 0 )
@@ -287,11 +288,11 @@ bool BOARD::SetCurrentNetClass( const wxString& aNetClassName )
 
     m_TrackWidthList[0] = netClass->GetTrackWidth();
 
-    if( m_ViaSizeSelector >= m_ViasDimensionsList.size() )
-        m_ViaSizeSelector = m_ViasDimensionsList.size();
+    if( m_viaSizeIndex >= m_ViasDimensionsList.size() )
+        m_viaSizeIndex = m_ViasDimensionsList.size();
 
-    if( m_TrackWidthSelector >= m_TrackWidthList.size() )
-        m_TrackWidthSelector = m_TrackWidthList.size();
+    if( m_trackWidthIndex >= m_TrackWidthList.size() )
+        m_trackWidthIndex = m_TrackWidthList.size();
 
     return lists_sizes_modified;
 }
@@ -329,7 +330,7 @@ int BOARD::GetSmallestClearanceValue()
 
 int BOARD::GetCurrentMicroViaSize()
 {
-    NETCLASS* netclass = m_NetClasses.Find( m_CurrentNetClassName );
+    NETCLASS* netclass = m_NetClasses.Find( m_currentNetClassName );
 
     return netclass->GetuViaDiameter();
 }
@@ -337,7 +338,7 @@ int BOARD::GetCurrentMicroViaSize()
 
 int BOARD::GetCurrentMicroViaDrill()
 {
-    NETCLASS* netclass = m_NetClasses.Find( m_CurrentNetClassName );
+    NETCLASS* netclass = m_NetClasses.Find( m_currentNetClassName );
 
     return netclass->GetuViaDrill();
 }
@@ -925,15 +926,9 @@ int BOARD::GetNumSegmZone() const
 }
 
 
-unsigned BOARD::GetNoconnectCount() const
-{
-    return m_NbNoconnect;
-}
-
-
 unsigned BOARD::GetNodesCount() const
 {
-    return m_NbNodes;
+    return m_nodeCount;
 }
 
 
@@ -1013,14 +1008,11 @@ EDA_RECT BOARD::ComputeBoundingBox( bool aBoardEdgesOnly )
 
 
 // virtual, see pcbstruct.h
-void BOARD::DisplayInfo( EDA_DRAW_FRAME* frame )
+void BOARD::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 {
     wxString txt;
-
-    frame->ClearMsgPanel();
-
-    int viasCount = 0;
-    int trackSegmentsCount = 0;
+    int      viasCount = 0;
+    int      trackSegmentsCount = 0;
 
     for( BOARD_ITEM* item = m_Track; item; item = item->Next() )
     {
@@ -1031,19 +1023,19 @@ void BOARD::DisplayInfo( EDA_DRAW_FRAME* frame )
     }
 
     txt.Printf( wxT( "%d" ), GetPadCount() );
-    frame->AppendMsgPanel( _( "Pads" ), txt, DARKGREEN );
+    aList.push_back( MSG_PANEL_ITEM( _( "Pads" ), txt, DARKGREEN ) );
 
     txt.Printf( wxT( "%d" ), viasCount );
-    frame->AppendMsgPanel( _( "Vias" ), txt, DARKGREEN );
+    aList.push_back( MSG_PANEL_ITEM( _( "Vias" ), txt, DARKGREEN ) );
 
     txt.Printf( wxT( "%d" ), trackSegmentsCount );
-    frame->AppendMsgPanel( _( "trackSegm" ), txt, DARKGREEN );
+    aList.push_back( MSG_PANEL_ITEM( _( "trackSegm" ), txt, DARKGREEN ) );
 
     txt.Printf( wxT( "%d" ), GetNodesCount() );
-    frame->AppendMsgPanel( _( "Nodes" ), txt, DARKCYAN );
+    aList.push_back( MSG_PANEL_ITEM( _( "Nodes" ), txt, DARKCYAN ) );
 
     txt.Printf( wxT( "%d" ), m_NetInfo.GetNetCount() );
-    frame->AppendMsgPanel( _( "Nets" ), txt, RED );
+    aList.push_back( MSG_PANEL_ITEM( _( "Nets" ), txt, RED ) );
 
     /* These parameters are known only if the full ratsnest is available,
      *  so, display them only if this is the case
@@ -1051,13 +1043,13 @@ void BOARD::DisplayInfo( EDA_DRAW_FRAME* frame )
     if( (m_Status_Pcb & NET_CODES_OK) )
     {
         txt.Printf( wxT( "%d" ), GetRatsnestsCount() );
-        frame->AppendMsgPanel( _( "Links" ), txt, DARKGREEN );
+        aList.push_back( MSG_PANEL_ITEM( _( "Links" ), txt, DARKGREEN ) );
 
-        txt.Printf( wxT( "%d" ), GetRatsnestsCount() - GetNoconnectCount() );
-        frame->AppendMsgPanel( _( "Connect" ), txt, DARKGREEN );
+        txt.Printf( wxT( "%d" ), GetRatsnestsCount() - GetUnconnectedNetCount() );
+        aList.push_back( MSG_PANEL_ITEM( _( "Connect" ), txt, DARKGREEN ) );
 
-        txt.Printf( wxT( "%d" ), GetNoconnectCount() );
-        frame->AppendMsgPanel( _( "Unconnected" ), txt, BLUE );
+        txt.Printf( wxT( "%d" ), GetUnconnectedNetCount() );
+        aList.push_back( MSG_PANEL_ITEM( _( "Unconnected" ), txt, BLUE ) );
     }
 }
 
@@ -1594,7 +1586,7 @@ TRACK* BOARD::GetViaByPosition( const wxPoint& aPosition, int aLayerMask )
         if( track->Type() != PCB_VIA_T )
             continue;
 
-        if( track->m_Start != aPosition )
+        if( track->GetStart() != aPosition )
             continue;
 
         if( track->GetState( BUSY | IS_DELETED ) )
@@ -1636,11 +1628,11 @@ D_PAD* BOARD::GetPad( TRACK* aTrace, int aEndPoint )
 
     if( aEndPoint == FLG_START )
     {
-        aPosition = aTrace->m_Start;
+        aPosition = aTrace->GetStart();
     }
     else
     {
-        aPosition = aTrace->m_End;
+        aPosition = aTrace->GetEnd();
     }
 
     for( MODULE* module = m_Modules;  module;  module = module->Next() )
@@ -1860,16 +1852,16 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
     if( aTrace->Type() == PCB_VIA_T )
     {
         TRACK* Segm1, * Segm2 = NULL, * Segm3 = NULL;
-        Segm1 = ::GetTrace( m_Track, NULL, aTrace->m_Start, layerMask );
+        Segm1 = ::GetTrace( m_Track, NULL, aTrace->GetStart(), layerMask );
 
         if( Segm1 )
         {
-            Segm2 = ::GetTrace( Segm1->Next(), NULL, aTrace->m_Start, layerMask );
+            Segm2 = ::GetTrace( Segm1->Next(), NULL, aTrace->GetStart(), layerMask );
         }
 
         if( Segm2 )
         {
-            Segm3 = ::GetTrace( Segm2->Next(), NULL, aTrace->m_Start, layerMask );
+            Segm3 = ::GetTrace( Segm2->Next(), NULL, aTrace->GetStart(), layerMask );
         }
 
         if( Segm3 ) // More than 2 segments are connected to this via. the track" is only this via
@@ -1883,19 +1875,19 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
         if( Segm1 ) // search for others segments connected to the initial segment start point
         {
             layerMask = Segm1->ReturnMaskLayer();
-            chainMarkedSegments( aTrace->m_Start, layerMask, &trackList );
+            chainMarkedSegments( aTrace->GetStart(), layerMask, &trackList );
         }
 
         if( Segm2 ) // search for others segments connected to the initial segment end point
         {
             layerMask = Segm2->ReturnMaskLayer();
-            chainMarkedSegments( aTrace->m_Start, layerMask, &trackList );
+            chainMarkedSegments( aTrace->GetStart(), layerMask, &trackList );
         }
     }
     else    // mark the chain using both ends of the initial segment
     {
-        chainMarkedSegments( aTrace->m_Start, layerMask, &trackList );
-        chainMarkedSegments( aTrace->m_End, layerMask, &trackList );
+        chainMarkedSegments( aTrace->GetStart(), layerMask, &trackList );
+        chainMarkedSegments( aTrace->GetEnd(), layerMask, &trackList );
     }
 
     // Now examine selected vias and flag them if they are on the track
@@ -1917,7 +1909,7 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
 
         layerMask = via->ReturnMaskLayer();
 
-        TRACK* track = ::GetTrace( m_Track, NULL, via->m_Start, layerMask );
+        TRACK* track = ::GetTrace( m_Track, NULL, via->GetStart(), layerMask );
 
         // GetTrace does not consider tracks flagged BUSY.
         // So if no connected track found, this via is on the current track
@@ -1939,7 +1931,7 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
          */
         int layer = track->GetLayer();
 
-        while( ( track = ::GetTrace( track->Next(), NULL, via->m_Start, layerMask ) ) != NULL )
+        while( ( track = ::GetTrace( track->Next(), NULL, via->GetStart(), layerMask ) ) != NULL )
         {
             if( layer != track->GetLayer() )
             {
@@ -2167,21 +2159,21 @@ TRACK* BOARD::CreateLockPoint( wxPoint& aPosition, TRACK* aSegment, PICKED_ITEMS
      * The new segment starts from aPosition and ends at the end point of
      * aSegment. The original segment now ends at aPosition.
      */
-    if( aSegment->m_Start == aPosition || aSegment->m_End == aPosition )
+    if( aSegment->GetStart() == aPosition || aSegment->GetEnd() == aPosition )
         return NULL;
 
     /* A via is a good lock point */
     if( aSegment->Type() == PCB_VIA_T )
     {
-        aPosition = aSegment->m_Start;
+        aPosition = aSegment->GetStart();
         return aSegment;
     }
 
     // Calculation coordinate of intermediate point relative to the start point of aSegment
-     wxPoint delta = aSegment->m_End - aSegment->m_Start;
+     wxPoint delta = aSegment->GetEnd() - aSegment->GetStart();
 
-    // calculate coordinates of aPosition relative to aSegment->m_Start
-    wxPoint lockPoint = aPosition - aSegment->m_Start;
+    // calculate coordinates of aPosition relative to aSegment->GetStart()
+    wxPoint lockPoint = aPosition - aSegment->GetStart();
 
     // lockPoint must be on aSegment:
     // Ensure lockPoint.y/lockPoint.y = delta.y/delta.x
@@ -2193,11 +2185,11 @@ TRACK* BOARD::CreateLockPoint( wxPoint& aPosition, TRACK* aSegment, PICKED_ITEMS
     /* Create the intermediate point (that is to say creation of a new
      * segment, beginning at the intermediate point.
      */
-    lockPoint += aSegment->m_Start;
+    lockPoint += aSegment->GetStart();
 
     TRACK* newTrack = (TRACK*)aSegment->Clone();
     // The new segment begins at the new point,
-    newTrack->m_Start = lockPoint;
+    newTrack->SetStart(lockPoint);
     newTrack->start = aSegment;
     newTrack->SetState( BEGIN_ONPAD, OFF );
 
@@ -2219,7 +2211,7 @@ TRACK* BOARD::CreateLockPoint( wxPoint& aPosition, TRACK* aSegment, PICKED_ITEMS
     }
 
     // Old track segment now ends at new point.
-    aSegment->m_End = lockPoint;
+    aSegment->SetEnd(lockPoint);
     aSegment->end = newTrack;
     aSegment->SetState( END_ONPAD, OFF );
 
@@ -2235,6 +2227,24 @@ TRACK* BOARD::CreateLockPoint( wxPoint& aPosition, TRACK* aSegment, PICKED_ITEMS
 
     aPosition = lockPoint;
     return newTrack;
+}
+
+
+void BOARD::SetViaSizeIndex( unsigned aIndex )
+{
+    if( aIndex >= m_ViasDimensionsList.size() )
+        m_viaSizeIndex = m_ViasDimensionsList.size();
+    else
+        m_viaSizeIndex = aIndex;
+}
+
+
+void BOARD::SetTrackWidthIndex( unsigned aIndex )
+{
+    if( m_trackWidthIndex >= m_TrackWidthList.size() )
+        m_trackWidthIndex = m_TrackWidthList.size();
+    else
+        m_trackWidthIndex = aIndex;
 }
 
 

@@ -35,6 +35,7 @@
 #include <confirm.h>
 #include <wxEeschemaStruct.h>
 #include <kicad_device_context.h>
+#include <msgpanel.h>
 
 #include <general.h>
 #include <protos.h>
@@ -119,8 +120,8 @@ wxString SCH_BASE_FRAME::SelectComponentFromLibrary( const wxString& aLibname,
     /* Ask for a component name or key words */
     msg.Printf( _( "component selection (%d items loaded):" ), CmpCount );
 
-    DIALOG_GET_COMPONENT dlg( this, GetComponentDialogPosition(), aHistoryList,
-                              msg, aUseLibBrowser );
+    DIALOG_GET_COMPONENT dlg( this, aHistoryList, msg, aUseLibBrowser );
+
     if( aHistoryList.GetCount() )
         dlg.SetComponentName( aHistoryList[0] );
 
@@ -257,10 +258,13 @@ SCH_COMPONENT* SCH_EDIT_FRAME::Load_Component( wxDC*           aDC,
 
     // Set the component value that can differ from component name in lib, for aliases
     component->GetField( VALUE )->m_Text = Name;
-    component->DisplayInfo( this );
-    component->Draw( m_canvas, aDC, wxPoint( 0, 0 ), g_XorMode, g_GhostColor );
-    component->SetFlags( IS_NEW );
 
+    MSG_PANEL_ITEMS items;
+    component->SetCurrentSheetPath( &GetCurrentSheet() );
+    component->GetMsgPanelInfo( items );
+    SetMsgPanel( items );
+    component->Draw( m_canvas, aDC, wxPoint( 0, 0 ), g_XorMode );
+    component->SetFlags( IS_NEW );
     MoveItem( (SCH_ITEM*) component, aDC );
 
     return component;

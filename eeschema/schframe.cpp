@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2009 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,6 +33,7 @@
 #include <gestfich.h>
 #include <confirm.h>
 #include <base_units.h>
+#include <msgpanel.h>
 
 #include <general.h>
 #include <eeschema_id.h>
@@ -73,6 +74,8 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_MENU( ID_LOAD_PROJECT, SCH_EDIT_FRAME::OnLoadProject )
 
     EVT_MENU_RANGE( wxID_FILE1, wxID_FILE9, SCH_EDIT_FRAME::OnLoadFile )
+
+    EVT_MENU( ID_APPEND_PROJECT, SCH_EDIT_FRAME::OnAppendProject )
 
     EVT_TOOL( ID_NEW_PROJECT, SCH_EDIT_FRAME::OnNewProject )
     EVT_TOOL( ID_LOAD_PROJECT, SCH_EDIT_FRAME::OnLoadProject )
@@ -118,7 +121,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( ID_GET_TOOLS, SCH_EDIT_FRAME::OnCreateBillOfMaterials )
     EVT_TOOL( ID_FIND_ITEMS, SCH_EDIT_FRAME::OnFindItems )
     EVT_TOOL( wxID_REPLACE, SCH_EDIT_FRAME::OnFindItems )
-    EVT_TOOL( ID_BACKANNO_ITEMS, SCH_EDIT_FRAME::OnLoadStuffFile )
+    EVT_TOOL( ID_BACKANNO_ITEMS, SCH_EDIT_FRAME::OnLoadCmpToFootprintLinkFile )
     EVT_TOOL( ID_SCH_MOVE_ITEM, SCH_EDIT_FRAME::OnMoveItem )
     EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
@@ -511,7 +514,7 @@ double SCH_EDIT_FRAME::BestZoom()
 
 wxString SCH_EDIT_FRAME::GetUniqueFilenameForCurrentSheet()
 {
-    wxFileName fn = g_RootSheet->GetFileName();
+    wxFileName fn = GetScreen()->GetFileName();
 
 #ifndef KICAD_GOST
     wxString filename = fn.GetName();
@@ -715,9 +718,9 @@ void SCH_EDIT_FRAME::OnLoadFile( wxCommandEvent& event )
 }
 
 
-void SCH_EDIT_FRAME::OnLoadStuffFile( wxCommandEvent& event )
+void SCH_EDIT_FRAME::OnLoadCmpToFootprintLinkFile( wxCommandEvent& event )
 {
-    ReadInputStuffFile();
+    LoadCmpToFootprintLinkFile();
     m_canvas->Refresh();
 }
 

@@ -223,7 +223,9 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::OnOKButtonClick( wxCommandEvent& event 
     }
 
     // save old cmp in undo list if not already in edit, or moving ...
-    if( m_Cmp->m_Flags == 0 )
+    // or the component to be edited is part of a block
+    if( m_Cmp->m_Flags == 0 ||
+        m_Parent->GetScreen()->m_BlockLocate.GetState() != STATE_NO_BLOCK )
         m_Parent->SaveCopyInUndoList( m_Cmp, UR_CHANGED );
 
     copyPanelToOptions();
@@ -538,6 +540,15 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::InitBuffers( SCH_COMPONENT* aComponent 
 #endif
 
     copyOptionsToPanel();
+
+    // disable some options inside the edit dialog
+    // which can cause problems while dragging
+    if( m_Cmp->IsDragging() )
+    {
+        orientationRadioBox->Disable();
+        mirrorRadioBox->Disable();
+        chipnameTextCtrl->Disable();
+    }
 
     // put focus on the list ctrl
     fieldListCtrl->SetFocus();

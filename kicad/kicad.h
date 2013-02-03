@@ -1,6 +1,31 @@
-/***********/
-/* kicad.h */
-/***********/
+/**
+ * @file kicad/kicad.h
+ * @brief KICAD_MANAGER_FRAME is the KiCad main frame.
+ */
+
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2013 CERN (www.cern.ch)
+ * Copyright (C) 2013 KiCad Developers, see CHANGELOG.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
 
 #ifndef KICAD_H
 #define KICAD_H
@@ -10,10 +35,17 @@
 #include <wx/treectrl.h>
 #include <wx/dragimag.h>
 #include <wx/filename.h>
+#include <wx/process.h>
 
 #include <id.h>
 #include <wxstruct.h>
 #include <appl_wxstruct.h>
+
+// With a recent wxWidget, we can use the wxFileSystemWatcherEvent
+// to monitor files add/remove/rename in tree project
+#if wxCHECK_VERSION( 2, 9, 4  )
+#define KICAD_USE_FILES_WATCHER
+#endif
 
 extern const wxString g_KicadPrjFilenameExtension;
 
@@ -77,7 +109,8 @@ enum id_kicad_frm {
     ID_SELECT_PREFERED_PDF_BROWSER,
     ID_SELECT_DEFAULT_PDF_BROWSER,
     ID_SAVE_AND_ZIP_FILES,
-    ID_READ_ZIP_ARCHIVE
+    ID_READ_ZIP_ARCHIVE,
+    ID_INIT_WATCHED_PATHS
 };
 
 
@@ -174,6 +207,38 @@ public: KICAD_MANAGER_FRAME( wxWindow* parent, const wxString& title,
      * settings will not get saved.
      */
     void SaveSettings();
+
+    /**
+     * Function Execute
+     * opens another KiCad application and logs a message.
+     * @param frame = owner frame.
+     * @param execFile = name of the executable file.
+     * @param param = parameters to be passed to the executable.
+     */
+    void Execute( wxWindow* frame, const wxString& execFile,
+                  const wxString& param = wxEmptyString );
+
+    class PROCESS_TERMINATE_EVENT_HANDLER : public wxProcess
+    {
+    private:
+        wxString appName;
+
+    public:
+        PROCESS_TERMINATE_EVENT_HANDLER( const wxString& appName ) :
+            appName(appName)
+        {
+        }
+
+        void OnTerminate( int pid, int status );
+    };
+
+#ifdef KICAD_USE_FILES_WATCHER
+    /**
+     * Called by sending a event with id = ID_INIT_WATCHED_PATHS
+     * rebuild the list of wahtched paths
+     */
+    void OnChangeWatchedPaths(wxCommandEvent& aEvent );
+#endif
 
     DECLARE_EVENT_TABLE()
 };

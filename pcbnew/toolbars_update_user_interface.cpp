@@ -55,13 +55,13 @@ void PCB_EDIT_FRAME::OnUpdateSelectTrackWidth( wxUpdateUIEvent& aEvent )
 {
     if( aEvent.GetId() == ID_AUX_TOOLBAR_PCB_TRACK_WIDTH )
     {
-        if( m_SelTrackWidthBox->GetSelection() != (int) GetBoard()->m_TrackWidthSelector )
-            m_SelTrackWidthBox->SetSelection( GetBoard()->m_TrackWidthSelector );
+        if( m_SelTrackWidthBox->GetSelection() != (int) GetBoard()->GetTrackWidthIndex() )
+            m_SelTrackWidthBox->SetSelection( GetBoard()->GetTrackWidthIndex() );
     }
     else
     {
         bool check = ( ( ( ID_POPUP_PCB_SELECT_WIDTH1 +
-                           (int) GetBoard()->m_TrackWidthSelector ) == aEvent.GetId() ) &&
+                           (int) GetBoard()->GetTrackWidthIndex() ) == aEvent.GetId() ) &&
                        !GetDesignSettings().m_UseConnectedTrackWidth );
         aEvent.Check( check );
     }
@@ -80,13 +80,13 @@ void PCB_EDIT_FRAME::OnUpdateSelectViaSize( wxUpdateUIEvent& aEvent )
 
     if( aEvent.GetId() == ID_AUX_TOOLBAR_PCB_VIA_SIZE )
     {
-        if( m_SelViaSizeBox->GetSelection() != (int) GetBoard()->m_ViaSizeSelector )
-            m_SelViaSizeBox->SetSelection( GetBoard()->m_ViaSizeSelector );
+        if( m_SelViaSizeBox->GetSelection() != (int) GetBoard()->GetViaSizeIndex() )
+            m_SelViaSizeBox->SetSelection( GetBoard()->GetViaSizeIndex() );
     }
     else
     {
         bool check = ( ( ( ID_POPUP_PCB_SELECT_VIASIZE1 +
-                           (int) GetBoard()->m_ViaSizeSelector ) == aEvent.GetId() ) &&
+                           (int) GetBoard()->GetViaSizeIndex() ) == aEvent.GetId() ) &&
                        !GetDesignSettings().m_UseConnectedTrackWidth );
 
         aEvent.Check( check );
@@ -113,7 +113,8 @@ void PCB_EDIT_FRAME::OnUpdateZoneDisplayStyle( wxUpdateUIEvent& aEvent )
 
 void PCB_EDIT_FRAME::OnUpdateDrcEnable( wxUpdateUIEvent& aEvent )
 {
-    aEvent.Check( !Drc_On );
+    bool state = !Drc_On;
+    aEvent.Check( state );
     m_optionsToolBar->SetToolShortHelp( ID_TB_OPTIONS_DRC_OFF,
                                         Drc_On ?
                                         _( "Disable design rule checking" ) :
@@ -206,15 +207,11 @@ void PCB_EDIT_FRAME::OnUpdateVerticalToolbar( wxUpdateUIEvent& aEvent )
 
 void PCB_EDIT_FRAME::OnUpdateAutoPlaceTracksMode( wxUpdateUIEvent& aEvent )
 {
-    // Automatic placement of modules and tracks is a mutually exclusive operation so
-    // clear the other tool if one of the two is selected.
-    aEvent.Check( m_autoPlaceModeId == ID_TOOLBARH_PCB_MODE_TRACKS );
+    //Nothing to do.
 }
 
 
 void PCB_EDIT_FRAME::OnUpdateAutoPlaceModulesMode( wxUpdateUIEvent& aEvent )
 {
-    // Automatic placement of modules and tracks is a mutually exclusive operation so
-    // clear the other tool if one of the two is selected.
-    aEvent.Check( m_autoPlaceModeId == ID_TOOLBARH_PCB_MODE_MODULE );
+    //Nothing to do.
 }

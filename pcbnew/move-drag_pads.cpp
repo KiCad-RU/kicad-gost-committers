@@ -98,7 +98,7 @@ void PCB_BASE_FRAME::StartMovePad( D_PAD* aPad, wxDC* aDC, bool aDragConnectedTr
 
     Pad_OldPos = aPad->GetPosition();
 
-    aPad->DisplayInfo( this );
+    SetMsgPanel( aPad );
     m_canvas->SetMouseCapture( Show_Pad_Move, Abort_Move_Pad );
 
     // Draw the pad, in SKETCH mode
@@ -139,10 +139,10 @@ void PCB_BASE_FRAME::PlacePad( D_PAD* aPad, wxDC* DC )
 
         // Set the old state
         if( g_DragSegmentList[ii].m_Pad_Start )
-            Track->m_Start = Pad_OldPos;
+            Track->SetStart( Pad_OldPos );
 
         if( g_DragSegmentList[ii].m_Pad_End )
-            Track->m_End = Pad_OldPos;
+            Track->SetEnd( Pad_OldPos );
 
         picker.SetItem( Track );
         pickList.PushItem( picker );
@@ -172,10 +172,10 @@ void PCB_BASE_FRAME::PlacePad( D_PAD* aPad, wxDC* DC )
 
         // Set the new state
         if( g_DragSegmentList[ii].m_Pad_Start )
-            Track->m_Start = aPad->GetPosition();
+            Track->SetStart( aPad->GetPosition() );
 
         if( g_DragSegmentList[ii].m_Pad_End )
-            Track->m_End = aPad->GetPosition();
+            Track->SetEnd( aPad->GetPosition() );
 
         Track->SetState( IN_EDIT, OFF );
 

@@ -1,8 +1,29 @@
 /**
  *  @file libedit_onrightclick.cpp
+ *  @brief Library editor: create the pop menus when clicking on mouse right button
  */
 
-/* , In library editor, create the pop menu when clicking on mouse right button
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2004-2013 KiCad Developers, see change_log.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
 #include <fctsys.h>
@@ -11,6 +32,7 @@
 #include <hotkeys.h>
 #include <class_drawpanel.h>
 #include <class_sch_screen.h>
+#include <msgpanel.h>
 
 #include <general.h>
 #include <libeditframe.h>
@@ -41,7 +63,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         return true;
 
     //  If Command in progress, put menu "cancel"
-    if( item && item->GetFlags() )
+    if( item && item->InEditMode() )
     {
         AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_CANCEL_EDITING, _( "Cancel" ),
                      KiBitmap( cancel_xpm ) );
@@ -68,11 +90,18 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
     }
 
     if( item )
-        item->DisplayInfo( this );
+    {
+        MSG_PANEL_ITEMS items;
+        item->GetMsgPanelInfo( items );
+        SetMsgPanel( items );
+    }
     else
+    {
         return true;
+    }
 
     m_drawItem = item;
+    bool not_edited = !item->InEditMode();
     wxString msg;
 
     switch( item->Type() )
@@ -82,7 +111,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         break;
 
     case LIB_ARC_T:
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Move Arc" ), s_Libedit_Hokeys_Descr,
                                  HK_LIBEDIT_MOVE_GRAPHIC_ITEM );
@@ -95,7 +124,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         msg = AddHotkeyName( _( "Edit Arc Options" ), s_Libedit_Hokeys_Descr, HK_EDIT );
         AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_BODY_EDIT_ITEM, msg, KiBitmap( options_arc_xpm ) );
 
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Delete Arc" ), s_Libedit_Hokeys_Descr, HK_DELETE );
             AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_DELETE_ITEM, msg, KiBitmap( delete_arc_xpm ) );
@@ -103,16 +132,12 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         break;
 
     case LIB_CIRCLE_T:
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Move Circle" ), s_Libedit_Hokeys_Descr,
                                  HK_LIBEDIT_MOVE_GRAPHIC_ITEM );
             AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_MOVE_ITEM_REQUEST, msg,
                          KiBitmap( move_circle_xpm ) );
-        }
-
-        if( item->GetFlags() == 0 )
-        {
             msg = AddHotkeyName( _( "Drag Circle Outline" ), s_Libedit_Hokeys_Descr, HK_DRAG );
             AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_MODIFY_ITEM, msg,
                          KiBitmap( move_rectangle_xpm ) );
@@ -122,7 +147,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_BODY_EDIT_ITEM, msg,
                      KiBitmap( options_circle_xpm ) );
 
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Delete Circle" ), s_Libedit_Hokeys_Descr, HK_DELETE );
             AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_DELETE_ITEM, msg,
@@ -131,7 +156,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         break;
 
     case LIB_RECTANGLE_T:
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Move Rectangle" ), s_Libedit_Hokeys_Descr,
                                  HK_LIBEDIT_MOVE_GRAPHIC_ITEM );
@@ -143,15 +168,11 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_BODY_EDIT_ITEM, msg,
                      KiBitmap( options_rectangle_xpm ) );
 
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Drag Rectangle Edge" ), s_Libedit_Hokeys_Descr, HK_DRAG );
             AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_MODIFY_ITEM, msg,
                          KiBitmap( move_rectangle_xpm ) );
-        }
-
-        if( item->GetFlags() == 0 )
-        {
             msg = AddHotkeyName( _( "Delete Rectangle" ), s_Libedit_Hokeys_Descr, HK_DELETE );
             AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_DELETE_ITEM, msg,
                          KiBitmap( delete_rectangle_xpm ) );
@@ -160,7 +181,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         break;
 
     case LIB_TEXT_T:
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Move Text" ), s_Libedit_Hokeys_Descr,
                                  HK_LIBEDIT_MOVE_GRAPHIC_ITEM );
@@ -174,7 +195,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         msg = AddHotkeyName( _( "Rotate Text" ), s_Libedit_Hokeys_Descr, HK_ROTATE );
         AddMenuItem( PopMenu, ID_LIBEDIT_ROTATE_ITEM, msg, KiBitmap( edit_text_xpm ) );
 
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Delete Text" ), s_Libedit_Hokeys_Descr, HK_DELETE );
             AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_DELETE_ITEM, msg, KiBitmap( delete_text_xpm ) );
@@ -182,7 +203,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         break;
 
     case LIB_POLYLINE_T:
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Move Line" ), s_Libedit_Hokeys_Descr,
                                  HK_LIBEDIT_MOVE_GRAPHIC_ITEM );
@@ -202,13 +223,14 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_BODY_EDIT_ITEM, msg,
                      KiBitmap( options_segment_xpm ) );
 
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Delete Line " ), s_Libedit_Hokeys_Descr, HK_DELETE );
             AddMenuItem( PopMenu, ID_POPUP_LIBEDIT_DELETE_ITEM, msg,
                          KiBitmap( delete_segment_xpm ) );
         }
-        else if( item->IsNew() )
+
+        if( item->IsNew() )
         {
             if( ( (LIB_POLYLINE*) item )->GetCornerCount() > 2 )
             {
@@ -221,7 +243,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
         break;
 
     case LIB_FIELD_T:
-        if( item->GetFlags() == 0 )
+        if( not_edited )
         {
             msg = AddHotkeyName( _( "Move Field" ), s_Libedit_Hokeys_Descr,
                                  HK_LIBEDIT_MOVE_GRAPHIC_ITEM );
@@ -247,7 +269,7 @@ bool LIB_EDIT_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu )
     return true;
 }
 
-
+// Add menu items for pin edition
 void AddMenusForPin( wxMenu* PopMenu, LIB_PIN* Pin, LIB_EDIT_FRAME* frame )
 {
     bool selected    = Pin->IsSelected();

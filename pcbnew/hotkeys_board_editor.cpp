@@ -170,8 +170,8 @@ void PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
         if( GetCanvas()->IsMouseCaptured() )
             GetCanvas()->CallMouseCapture( aDC, wxDefaultPosition, false );
 
-        GetBoard()->m_TrackWidthSelector = ( GetBoard()->m_TrackWidthSelector + 1 ) %
-                                           GetBoard()->m_TrackWidthList.size();
+        GetBoard()->SetTrackWidthIndex( ( GetBoard()->GetTrackWidthIndex() + 1 ) %
+                                        GetBoard()->m_TrackWidthList.size() );
 
         if( GetCanvas()->IsMouseCaptured() )
             GetCanvas()->CallMouseCapture( aDC, wxDefaultPosition, false );
@@ -182,10 +182,10 @@ void PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
         if( GetCanvas()->IsMouseCaptured() )
             GetCanvas()->CallMouseCapture( aDC, wxDefaultPosition, false );
 
-        if( GetBoard()->m_TrackWidthSelector == 0 )
-            GetBoard()->m_TrackWidthSelector = GetBoard()->m_TrackWidthList.size();
+        if( GetBoard()->GetTrackWidthIndex() == 0 )
+            GetBoard()->SetTrackWidthIndex( GetBoard()->m_TrackWidthList.size() );
 
-        GetBoard()->m_TrackWidthSelector--;
+        GetBoard()->SetTrackWidthIndex( GetBoard()->GetTrackWidthIndex() - 1 );
 
         if( GetCanvas()->IsMouseCaptured() )
             GetCanvas()->CallMouseCapture( aDC, wxDefaultPosition, false );
@@ -509,7 +509,7 @@ void PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
             SetCurItem( module );
             module->SetLocked( !module->IsLocked() );
             OnModify();
-            module->DisplayInfo( this );
+            SetMsgPanel( module );
         }
 
         break;
@@ -590,9 +590,6 @@ bool PCB_EDIT_FRAME::OnHotkeyDeleteItem( wxDC* aDC )
             if( module == NULL )
                 return false;
 
-            if( !IsOK( this, _( "Delete module?" ) ) )
-                return false;
-
             RemoveStruct( module, aDC );
         }
         else
@@ -605,9 +602,6 @@ bool PCB_EDIT_FRAME::OnHotkeyDeleteItem( wxDC* aDC )
             item = PcbGeneralLocateAndDisplay();
 
             if( item == NULL )
-                return false;
-
-            if( (item->Type() == PCB_MODULE_T) && !IsOK( this, _( "Delete module?" ) ) )
                 return false;
 
             RemoveStruct( item, aDC );

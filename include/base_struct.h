@@ -1,9 +1,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2008-2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2013 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -164,8 +165,8 @@ class wxFindReplaceData;
 class EDA_ITEM;
 class EDA_DRAW_FRAME;
 class EDA_RECT;
-class EDA_DRAW_PANEL;
 class DHEAD;
+class MSG_PANEL_ITEM;
 
 
 /**
@@ -494,14 +495,17 @@ public:
     void SetForceVisible( bool aEnable ) { m_forceVisible = aEnable; }
 
     /**
-     * Function DisplayInfo
-     * has knowledge about the frame and how and where to put status
-     * information about this object into the frame's message panel.
-     * @param frame A EDA_DRAW_FRAME in which to print status information.
+     * Function GetMsgPanelInfo
+     * populates \a aList of #MSG_PANEL_ITEM objects with it's internal state for display
+     * purposes.
+     *
+     * @note This method replaces DisplayInfo() so that KiCad objects no longer have any
+     *       knowledge of wxWidgets UI objects.
+     *
+     * @param aList is the list to populate.
      */
-    virtual void DisplayInfo( EDA_DRAW_FRAME* frame )
+    virtual void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     {
-        // derived classes may implement this
     }
 
     /**

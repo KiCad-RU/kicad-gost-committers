@@ -31,12 +31,6 @@
 #include <fctsys.h>
 #include <appl_wxstruct.h>
 
-#ifdef USE_SPLASH_IMAGE
-  #define SPLASH_IMAGE logo_kicad.png
-  #include "wx/splash.h"
-  #include "wx/mediactrl.h"
-#endif
-
 #include <kicad.h>
 #include <tree_project_frame.h>
 #include <wildcards_and_files_ext.h>
@@ -44,12 +38,6 @@
 #include <build_version.h>
 
 const wxString g_KicadPrjFilenameExtension( wxT( ".pro" ) );
-
-/* Import functions */
-char* GetFileName( char* FullPathName );
-void  ShowLogo( char* FonteFileName );
-
-/* Local functions */
 
 /************************************/
 /* Called to initialize the program */
@@ -109,69 +97,42 @@ bool EDA_APP::OnInit()
     bool reopenLastUsedDirectory = argc == 1;
     GetSettings( reopenLastUsedDirectory );
 
-    /* Make nameless project translatable */
-    wxFileName namelessProject( wxGetCwd(), NAMELESS_PROJECT, ProjectFileExtension );
-
     frame = new KICAD_MANAGER_FRAME( NULL, wxT( "KiCad" ),
-                                     wxPoint( 30, 20 ), wxSize( 600, 400 ) );
+                                     wxDefaultPosition, wxDefaultSize );
+    SetTopWindow( frame );
+
+    bool prjloaded = false;    // true when the project is loaded
 
     if( argc > 1 )
-    {
         frame->m_ProjectFileName = argv[1];
-    }
     else if( m_fileHistory.GetCount() )
     {
+        // Try to open the last opened project,
+        // if a project name is not given when starting Kicad
         frame->m_ProjectFileName = m_fileHistory.GetHistoryFile( 0 );
 
         if( !frame->m_ProjectFileName.FileExists() )
-        {
             m_fileHistory.RemoveFileFromHistory( 0 );
-        }
         else
         {
             wxCommandEvent cmd( 0, wxID_FILE1 );
             frame->OnFileHistory( cmd );
+            prjloaded = true;    // OnFileHistory() loads the project
         }
     }
 
     if( !frame->m_ProjectFileName.FileExists() )
     {
-        wxCommandEvent cmd( 0, wxID_ANY );
+        wxFileName namelessProject( wxGetCwd(), NAMELESS_PROJECT,
+                                    ProjectFileExtension );
         frame->m_ProjectFileName = namelessProject;
+    }
+
+    if( ! prjloaded )
+    {
+        wxCommandEvent cmd( 0, wxID_ANY );
         frame->OnLoadProject( cmd );
     }
-
-    wxString title = GetTitle() + wxT( " " ) + GetBuildVersion() +
-                     wxT( " " ) + frame->m_ProjectFileName.GetFullPath();
-
-    if( !namelessProject.IsDirWritable() )
-        title += _( " [Read Only]" );
-
-    frame->SetTitle( title );
-    frame->ReCreateMenuBar();
-    frame->RecreateBaseHToolbar();
-
-    frame->m_LeftWin->ReCreateTreePrj();
-    SetTopWindow( frame );
-
-    /* Splash screen logo */
-#ifdef USE_SPLASH_IMAGE
-    wxBitmap bmp;
-    wxString binDir = GetTraits()->GetStandardPaths().GetExecutablePath() +
-                      wxFileName::GetPathSeparator();
-
-    if( bmp.LoadFile( binDir + _T( "logokicad.png" ), wxBITMAP_TYPE_PNG ) )
-    {
-        wxSplashScreen* splash = new wxSplashScreen( splash_screen,
-                                                     wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT,
-                                                     3000,
-                                                     frame,
-                                                     wxID_ANY,
-                                                     wxDefaultPosition,
-                                                     wxDefaultSize,
-                                                     wxSIMPLE_BORDER | wxSTAY_ON_TOP );
-    }
-#endif /* USE_SPLASH_IMAGE */
 
     frame->Show( true );
     frame->Raise();

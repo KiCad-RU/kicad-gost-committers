@@ -443,15 +443,26 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList( BOARD* aPcb )
     cornerBufferPolysToSubstract.clear();
 
     // Test thermal stubs connections and add polygons to remove unconnected stubs.
+    // (this is a refinement for thermal relief shapes)
     if( GetNet() > 0 )
         BuildUnconnectedThermalStubsPolygonList( cornerBufferPolysToSubstract, aPcb, this,
                                                  s_Correction, s_thermalRot );
 
-    // remove copper areas
+    // remove copper areas corresponding to not connected stubs
     if( cornerBufferPolysToSubstract.size() )
     {
         KI_POLYGON_SET polyset_holes;
         AddPolygonCornersToKiPolygonList( cornerBufferPolysToSubstract, polyset_holes );
+        // In very rare cases, the next calculation crashes when Pcbnew is in nanometers.
+        // the crash is inside boost::polygon (tested with version 1.49 and 1.53,
+        // so this crash is nearly impossible to fix
+        // and a workaround is here to combine the polygons to substract, to modify
+        // the geometry of the polygons to substract, because
+        // the 2 known cases are related to 2 rectangular overlapping rect to substract
+        // with a given geometry
+        KI_POLYGON_SET dummy; polyset_holes += dummy;
+
+        // Remove unconnected stubs
         polyset_zone_solid_areas -= polyset_holes;
 
         // put these areas in m_FilledPolysList
@@ -560,6 +571,7 @@ void ZONE_CONTAINER::CopyPolygonsFromFilledPolysListToKiPolygonList( KI_POLYGON_
             }
 
             bpl::set_points( poly, cornerslist.begin(), cornerslist.end() );
+
             aKiPolyList.push_back( poly );
         }
     }

@@ -98,7 +98,7 @@ void MIN_SPAN_TREE_PADS::AddTreeToRatsnest( std::vector<RATSNEST_ITEM> &aRatsnes
 int MIN_SPAN_TREE_PADS::GetWeight( int aItem1, int aItem2 )
 {
     // NOTE: The distance (weight) between a node and itself should be 0
-    // so we add 1 to other distances th be sure we never have 0
+    // so we add 1 to other distances to be sure we never have 0
     // in cases other than a node and itself
 
     D_PAD* pad1 = (*m_PadsList)[aItem1];
@@ -169,7 +169,7 @@ void PCB_BASE_FRAME::Compile_Ratsnest( wxDC* aDC, bool aDisplayStatus )
         DrawGeneralRatsnest( aDC, 0 );
 
     if( aDisplayStatus )
-        m_Pcb->DisplayInfo( this );
+        SetMsgPanel( m_Pcb );
 }
 
 
@@ -201,7 +201,7 @@ void PCB_BASE_FRAME::Build_Board_Ratsnest()
     D_PAD* pad;
     int    noconn;
 
-    m_Pcb->m_NbNoconnect = 0;
+    m_Pcb->SetUnconnectedNetCount( 0 );
 
     m_Pcb->m_FullRatsnest.clear();
 
@@ -244,7 +244,7 @@ void PCB_BASE_FRAME::Build_Board_Ratsnest()
         net->m_RatsnestEndIdx = m_Pcb->GetRatsnestsCount();
     }
 
-    m_Pcb->m_NbNoconnect = noconn;
+    m_Pcb->SetUnconnectedNetCount( noconn );
     m_Pcb->m_Status_Pcb |= LISTE_RATSNEST_ITEM_OK;
 
     // Update the ratsnest display option (visible/invisible) flag
@@ -482,13 +482,17 @@ void PCB_BASE_FRAME::TestForActiveLinksInRatsnest( int aNetCode )
         }
     }
 
-    m_Pcb->m_NbNoconnect = 0;
+    m_Pcb->SetUnconnectedNetCount( 0 );
+
+    unsigned cnt = 0;
 
     for( unsigned ii = 0; ii < m_Pcb->GetRatsnestsCount(); ii++ )
     {
         if( m_Pcb->m_FullRatsnest[ii].IsActive() )
-            m_Pcb->m_NbNoconnect++;
+            cnt++;
     }
+
+    m_Pcb->SetUnconnectedNetCount( cnt );
 }
 
 
@@ -843,10 +847,10 @@ void PCB_BASE_FRAME::BuildAirWiresTargetsList( BOARD_CONNECTED_ITEM* aItemRef,
 
             if( !track->GetSubNet() || (track->GetSubNet() != subnet) )
             {
-                if( aPosition != track->m_Start )
-                    s_TargetsLocations.push_back( track->m_Start );
-                if( aPosition != track->m_End && track->m_Start != track->m_End )
-                    s_TargetsLocations.push_back( track->m_End );
+                if( aPosition != track->GetStart() )
+                    s_TargetsLocations.push_back( track->GetStart() );
+                if( aPosition != track->GetEnd() && track->GetStart() != track->GetEnd() )
+                    s_TargetsLocations.push_back( track->GetEnd() );
             }
         }
 

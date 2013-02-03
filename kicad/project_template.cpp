@@ -139,7 +139,13 @@ bool PROJECT_TEMPLATE::CreateProject( wxFileName& aNewProjectPath )
             destname += wxT(".") + destination.GetExt();
 
         wxString destpath = destination.GetPathWithSep();
-        destpath.Replace( destination.GetPathWithSep(), aNewProjectPath.GetPathWithSep() );
+        destpath.Replace( templateBasePath.GetPathWithSep(), aNewProjectPath.GetPathWithSep() );
+
+        // Check to see if the path already exists, if not attempt to create it here. Don't worry
+        // about error checking, if the path isn't created the file copy will fail anyway
+
+        if( !wxFileName::DirExists( destpath ) )
+            wxFileName::Mkdir( destpath, 0777, wxPATH_MKDIR_FULL );
 
         destination = destpath + destname;
         dstFiles.push_back( destination );
@@ -161,7 +167,8 @@ bool PROJECT_TEMPLATE::CreateProject( wxFileName& aNewProjectPath )
 wxString* PROJECT_TEMPLATE::GetTitle(void)
 {
     wxFileInputStream input( GetHtmlFile().GetFullPath() );
-    wxTextInputStream text( input, wxT( "\x9" ), wxConvUTF8 );
+    wxString separator( wxT( "\x9" ) );
+    wxTextInputStream text( input, separator, wxConvUTF8 );
 
     /* Open HTML file and get the text between the title tags */
     if( title == wxEmptyString )

@@ -77,10 +77,6 @@ class PCB_EDIT_FRAME : public PCB_BASE_FRAME
     int             m_RecordingMacros;
     MACROS_RECORDED m_Macros[10];
 
-    /// The command ID of the current auto place mode which will be set for either
-    /// automatic placement of tracks or modules.
-    int m_autoPlaceModeId;
-
     /// The auxiliary right vertical tool bar used to access the microwave tools.
     wxAuiToolBar* m_microWaveToolBar;
 
@@ -94,11 +90,13 @@ protected:
 
     PCB_LAYER_WIDGET* m_Layers;
 
-    DRC* m_drc;                              ///< the DRC controller, see drc.cpp
+    DRC* m_drc;                                 ///< the DRC controller, see drc.cpp
 
-    PARAM_CFG_ARRAY   m_configSettings;      ///< List of Pcbnew configuration settings.
+    PARAM_CFG_ARRAY   m_configSettings;          ///< List of Pcbnew configuration settings.
 
-    wxString          m_lastNetListRead;     ///< Last net list read with relative path.
+    wxString          m_lastNetListRead;        ///< Last net list read with relative path.
+    bool              m_useCmpFileForFpNames;   ///< is true, use the .cmp file from CvPcb, else use the netlist
+                                                // to know the footprint name of components.
 
     // we'll use lower case function names for private member functions.
     void createPopUpMenuForZones( ZONE_CONTAINER* edge_zone, wxMenu* aPopMenu );
@@ -395,6 +393,26 @@ public:
      * @param aNetListFile - The last net list file with full path successfully read.
      */
     void SetLastNetListRead( const wxString& aNetListFile );
+
+    /**
+     * @return true if the .cmp file created by CvPcb should be used to know the
+     * footprint associated to components, false to use the netlist file only
+     */
+    bool GetUseCmpFileForFpNames() { return m_useCmpFileForFpNames; }
+
+    /**
+     * Set the default option to use or not the .cmp file craeted by CvPcb
+     * should be used to know the footprints associated to components when
+     * reading a netlist
+     * When the .cmp netlist is not used, footprint names are read from the netlist.
+     * This imply the user has filled the footprint fields in schematic
+     * @param aUseCmpfile = true to use the .cmp file,
+     *                      false to use the netlist file only
+     */
+    void SetUseCmpFileForFpNames( bool aUseCmpfile)
+    {
+        m_useCmpFileForFpNames = aUseCmpfile;
+    }
 
     /**
      * Function Test_Duplicate_Missing_And_Extra_Footprints
@@ -888,13 +906,14 @@ public:
      * Function ExportVRML_File
      * Creates the file(s) exporting current BOARD to a VRML file.
      * @param aFullFileName = the full filename of the file to create
-     * @param aScale = the general scaling factor. 1.0 to export in inches
+     * @param aMMtoWRMLunit = the VRML scaling factor:
+     *      1.0 to export in mm. 0.001 for meters
      * @param aExport3DFiles = true to copy 3D shapes in the subir a3D_Subdir
      * @param a3D_Subdir = sub directory where 3D shapes files are copied
      * used only when aExport3DFiles == true
      * @return true if Ok.
      */
-    bool ExportVRML_File( const wxString & aFullFileName, double aScale,
+    bool ExportVRML_File( const wxString & aFullFileName, double aMMtoWRMLunit,
                           bool aExport3DFiles, const wxString & a3D_Subdir );
 
     /**
@@ -1396,7 +1415,7 @@ public:
      * Update connectivity info, references, values and "TIME STAMP"
      * @param aNetlistFullFilename = netlist file name (*.net)
      * @param aCmpFullFileName = cmp/footprint link file name (*.cmp).
-      *                         if not found, only the netlist will be used
+     *                         if not found or empty, only the netlist will be used
      * @param aMessageWindow = a reference to a wxTextCtrl where to display messages.
      *                  can be NULL
      * @param aChangeFootprint if true, footprints that have changed in netlist will be changed

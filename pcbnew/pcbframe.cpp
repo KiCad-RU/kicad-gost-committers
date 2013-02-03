@@ -39,6 +39,7 @@
 #include <build_version.h>
 #include <macros.h>
 #include <3d_viewer.h>
+#include <msgpanel.h>
 
 #include <pcbnew.h>
 #include <protos.h>
@@ -52,13 +53,14 @@
 #include <module_editor_frame.h>
 #include <dialog_SVG_print.h>
 #include <dialog_helpers.h>
+#include <convert_from_iu.h>
 
 #ifdef KICAD_SCRIPTING
 #include <python_scripting.h>
 #endif
 
 // Keys used in read/write config
-#define OPTKEY_DEFAULT_LINEWIDTH_VALUE  wxT( "PlotLineWidth" )
+#define OPTKEY_DEFAULT_LINEWIDTH_VALUE  wxT( "PlotLineWidth_mm" )
 #define PCB_SHOW_FULL_RATSNET_OPT   wxT( "PcbFulRatsnest" )
 #define PCB_MAGNETIC_PADS_OPT   wxT( "PcbMagPadOpt" )
 #define PCB_MAGNETIC_TRACKS_OPT wxT( "PcbMagTrackOpt" )
@@ -287,7 +289,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( wxWindow* parent, const wxString& title,
     m_hasAutoSave = true;
     m_RecordingMacros = -1;
     m_microWaveToolBar = NULL;
-    m_autoPlaceModeId = 0;
+    m_useCmpFileForFpNames = true;
 #ifdef KICAD_SCRIPTING_WXPYTHON
     m_pythonPanel = NULL;
 #endif
@@ -581,8 +583,14 @@ void PCB_EDIT_FRAME::LoadSettings()
 
     PCB_BASE_FRAME::LoadSettings();
 
+    double dtmp;
+    config->Read( OPTKEY_DEFAULT_LINEWIDTH_VALUE, &dtmp, 0.1 ); // stored in mm
+    if( dtmp < 0.01 )
+        dtmp = 0.01;
+    if( dtmp > 5.0 )
+        dtmp = 5.0;
+    g_DrawDefaultLineThickness = Millimeter2iu( dtmp );
     long tmp;
-    config->Read( OPTKEY_DEFAULT_LINEWIDTH_VALUE, &g_DrawDefaultLineThickness );
     config->Read( PCB_SHOW_FULL_RATSNET_OPT, &tmp );
     GetBoard()->SetElementVisibility(RATSNEST_VISIBLE, tmp);
     config->Read( PCB_MAGNETIC_PADS_OPT, &g_MagneticPadOption );
@@ -609,7 +617,9 @@ void PCB_EDIT_FRAME::SaveSettings()
 
     PCB_BASE_FRAME::SaveSettings();
 
-    config->Write( OPTKEY_DEFAULT_LINEWIDTH_VALUE, g_DrawDefaultLineThickness );
+    // This value is stored in mm )
+    config->Write( OPTKEY_DEFAULT_LINEWIDTH_VALUE,
+                   MM_PER_IU * g_DrawDefaultLineThickness );
     long tmp = GetBoard()->IsElementVisible(RATSNEST_VISIBLE);
     config->Write( PCB_SHOW_FULL_RATSNET_OPT, tmp );
     config->Write( PCB_MAGNETIC_PADS_OPT, (long) g_MagneticPadOption );
@@ -816,13 +826,27 @@ void PCB_EDIT_FRAME::ScriptingConsoleEnableDisable( wxCommandEvent& aEvent )
 
 void PCB_EDIT_FRAME::OnSelectAutoPlaceMode( wxCommandEvent& aEvent )
 {
-    if( aEvent.IsChecked() )
+    // Automatic placement of modules and tracks is a mutually exclusive operation so
+    // clear the other tool if one of the two is selected.
+    // Be careful: this event function is called both by the
+    // ID_TOOLBARH_PCB_MODE_MODULE and the ID_TOOLBARH_PCB_MODE_TRACKS tool
+    // Therefore we should avoid a race condition when deselecting one of these tools
+    // inside this function (seems happen on some Linux/wxWidgets versions)
+    // when the other tool is selected
+
+    switch( aEvent.GetId() )
     {
-        m_autoPlaceModeId = aEvent.GetId();
-    }
-    else
-    {
-        m_autoPlaceModeId = 0;
-    }
+        case ID_TOOLBARH_PCB_MODE_MODULE:
+            if( aEvent.IsChecked() &&
+                m_mainToolBar->GetToolToggled( ID_TOOLBARH_PCB_MODE_TRACKS ) )
+                m_mainToolBar->ToggleTool( ID_TOOLBARH_PCB_MODE_TRACKS, false );
+            break;
+
+        case ID_TOOLBARH_PCB_MODE_TRACKS:
+            if( aEvent.IsChecked() &&
+                m_mainToolBar->GetToolToggled( ID_TOOLBARH_PCB_MODE_MODULE ) )
+                m_mainToolBar->ToggleTool( ID_TOOLBARH_PCB_MODE_MODULE, false );
+            break;
+        }
 }
 

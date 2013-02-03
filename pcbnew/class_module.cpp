@@ -44,6 +44,7 @@
 #include <filter_reader.h>
 #include <macros.h>
 #include <3d_struct.h>
+#include <msgpanel.h>
 
 #include <drag.h>
 #include <class_board.h>
@@ -123,8 +124,6 @@ MODULE::MODULE( const MODULE& aModule ) :
     }
 
     // Copy auxiliary data: Drawings
-    // m_Drawings.DeleteAll();
-
     for( BOARD_ITEM* item = aModule.m_Drawings;  item;  item = item->Next() )
     {
         BOARD_ITEM* newItem;
@@ -145,8 +144,6 @@ MODULE::MODULE( const MODULE& aModule ) :
     }
 
     // Copy auxiliary data: 3D_Drawings info
-    // m_3D_Drawings.DeleteAll();
-
     for( S3D_MASTER* item = aModule.m_3D_Drawings;  item;  item = item->Next() )
     {
         if( item->m_Shape3DName.IsEmpty() )           // do not copy empty shapes.
@@ -165,6 +162,9 @@ MODULE::MODULE( const MODULE& aModule ) :
 
     m_Doc     = aModule.m_Doc;
     m_KeyWord = aModule.m_KeyWord;
+
+    // Ensure auxiliary data is up to date
+    CalculateBoundingBox();
 }
 
 
@@ -294,6 +294,9 @@ void MODULE::Copy( MODULE* aModule )
 
     m_Doc     = aModule->m_Doc;
     m_KeyWord = aModule->m_KeyWord;
+
+    // Ensure auxiliary data is up to date
+    CalculateBoundingBox();
 }
 
 
@@ -400,7 +403,7 @@ EDA_RECT MODULE::GetFootPrintRect() const
 
     area.SetOrigin( m_Pos );
     area.SetEnd( m_Pos );
-    area.Inflate( 50 );       // Give a min size
+    area.Inflate( Millimeter2iu( 0.25 ) );   // Give a min size to the area
 
     for( EDGE_MODULE* edge = (EDGE_MODULE*) m_Drawings.GetFirst(); edge; edge = edge->Next() )
         if( edge->Type() == PCB_MODULE_EDGE_T )
@@ -434,40 +437,30 @@ EDA_RECT MODULE::GetBoundingBox() const
 /* Virtual function, from EDA_ITEM.
  * display module info on MsgPanel
  */
-void MODULE::DisplayInfo( EDA_DRAW_FRAME* frame )
+void MODULE::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 {
     int      nbpad;
     char     bufcar[512], Line[512];
-    bool     flag = false;
     wxString msg;
     BOARD*   board = GetBoard();
 
-    frame->EraseMsgBox();
+    aList.push_back( MSG_PANEL_ITEM( m_Reference->m_Text, m_Value->m_Text, DARKCYAN ) );
 
-    if( frame->IsType( PCB_FRAME_TYPE ) )
-        flag = true;
+    // Display last date the component was edited (useful in Module Editor).
+    time_t edit_time = m_LastEdit_Time;
+    strcpy( Line, ctime( &edit_time ) );
+    strtok( Line, " \n\r" );
+    strcpy( bufcar, strtok( NULL, " \n\r" ) ); strcat( bufcar, " " );
+    strcat( bufcar, strtok( NULL, " \n\r" ) ); strcat( bufcar, ", " );
+    strtok( NULL, " \n\r" );
+    strcat( bufcar, strtok( NULL, " \n\r" ) );
+    msg = FROM_UTF8( bufcar );
+    aList.push_back( MSG_PANEL_ITEM( _( "Last Change" ), msg, BROWN ) );
 
-    frame->AppendMsgPanel( m_Reference->m_Text, m_Value->m_Text, DARKCYAN );
-
-    if( flag ) // Display last date the component was edited( useful in Module Editor)
-    {
-        time_t edit_time = m_LastEdit_Time;
-        strcpy( Line, ctime( &edit_time ) );
-        strtok( Line, " \n\r" );
-        strcpy( bufcar, strtok( NULL, " \n\r" ) ); strcat( bufcar, " " );
-        strcat( bufcar, strtok( NULL, " \n\r" ) ); strcat( bufcar, ", " );
-        strtok( NULL, " \n\r" );
-        strcat( bufcar, strtok( NULL, " \n\r" ) );
-        msg = FROM_UTF8( bufcar );
-        frame->AppendMsgPanel( _( "Last Change" ), msg, BROWN );
-    }
-    else    // display time stamp in schematic
-    {
-        msg.Printf( wxT( "%8.8lX" ), m_TimeStamp );
-        frame->AppendMsgPanel( _( "Netlist path" ), m_Path, BROWN );
-    }
-
-    frame->AppendMsgPanel( _( "Layer" ), board->GetLayerName( m_Layer ), RED );
+    // display time stamp in schematic
+    msg.Printf( wxT( "%8.8lX" ), m_TimeStamp );
+    aList.push_back( MSG_PANEL_ITEM( _( "Netlist path" ), m_Path, BROWN ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Layer" ), board->GetLayerName( m_Layer ), RED ) );
 
     EDA_ITEM* PtStruct = m_Pads;
     nbpad = 0;
@@ -479,7 +472,7 @@ void MODULE::DisplayInfo( EDA_DRAW_FRAME* frame )
     }
 
     msg.Printf( wxT( "%d" ), nbpad );
-    frame->AppendMsgPanel( _( "Pads" ), msg, BLUE );
+    aList.push_back( MSG_PANEL_ITEM( _( "Pads" ), msg, BLUE ) );
 
     msg = wxT( ".." );
 
@@ -489,10 +482,10 @@ void MODULE::DisplayInfo( EDA_DRAW_FRAME* frame )
     if( m_ModuleStatus & MODULE_is_PLACED )
         msg[1] = 'P';
 
-    frame->AppendMsgPanel( _( "Stat" ), msg, MAGENTA );
+    aList.push_back( MSG_PANEL_ITEM( _( "Stat" ), msg, MAGENTA ) );
 
     msg.Printf( wxT( "%.1f" ), (float) m_Orient / 10 );
-    frame->AppendMsgPanel( _( "Orient" ), msg, BROWN );
+    aList.push_back( MSG_PANEL_ITEM( _( "Orient" ), msg, BROWN ) );
 
     /* Controls on right side of the dialog */
     switch( m_Attributs & 255 )
@@ -513,20 +506,26 @@ void MODULE::DisplayInfo( EDA_DRAW_FRAME* frame )
         msg = wxT("???");
         break;
     }
-    frame->AppendMsgPanel( _( "Attrib" ), msg, BROWN );
 
-    frame->AppendMsgPanel( _( "Module" ), m_LibRef, BLUE );
+    aList.push_back( MSG_PANEL_ITEM( _( "Attrib" ), msg, BROWN ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Module" ), m_LibRef, BLUE ) );
 
-    if(  m_3D_Drawings != NULL )
-        msg = m_3D_Drawings->m_Shape3DName;
-    else
-        msg = _( "No 3D shape" );
+    msg = _( "No 3D shape" );
+    // Search the first active 3D shape in list
+    for( S3D_MASTER* struct3D = m_3D_Drawings; struct3D; struct3D = struct3D->Next() )
+    {
+        if( !struct3D->m_Shape3DName.IsEmpty() )
+        {
+            msg = struct3D->m_Shape3DName;
+            break;
+        }
+    }
 
-    frame->AppendMsgPanel( _( "3D-Shape" ), msg, RED );
+    aList.push_back( MSG_PANEL_ITEM( _( "3D-Shape" ), msg, RED ) );
 
     wxString doc     = _( "Doc:  " ) + m_Doc;
     wxString keyword = _( "KeyW: " ) + m_KeyWord;
-    frame->AppendMsgPanel( doc, keyword, BLACK );
+    aList.push_back( MSG_PANEL_ITEM( doc, keyword, BLACK ) );
 }
 
 

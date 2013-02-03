@@ -33,6 +33,7 @@
 #include <trigo.h>
 #include <class_drawpanel.h>
 #include <macros.h>
+#include <msgpanel.h>
 
 #include <gerbview.h>
 #include <class_gerber_draw_item.h>
@@ -330,7 +331,7 @@ void GERBER_DRAW_ITEM::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDra
     if( color & HIGHLIGHT_FLAG )
         color = ColorRefs[color & MASKCOLOR].m_LightColor;
 
-    alt_color = g_DrawBgColor;
+    alt_color = gerbFrame->GetNegativeItemsColor();
 
     /* isDark is true if flash is positive and should use a drawing
      *   color other than the background color, else use the background color
@@ -346,12 +347,12 @@ void GERBER_DRAW_ITEM::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDra
 
     GRSetDrawMode( aDC, aDrawMode );
 
-    isFilled = gerbFrame->m_DisplayOptions.m_DisplayLinesFill;
+    isFilled = gerbFrame->DisplayLinesSolidMode();
 
     switch( m_Shape )
     {
     case GBR_POLYGON:
-        isFilled = gerbFrame->m_DisplayOptions.m_DisplayPolygonsFill;
+        isFilled = gerbFrame->DisplayPolygonsSolidMode();
 
         if( !isDark )
             isFilled = true;
@@ -411,7 +412,7 @@ void GERBER_DRAW_ITEM::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDra
     case GBR_SPOT_OVAL:
     case GBR_SPOT_POLY:
     case GBR_SPOT_MACRO:
-        isFilled = gerbFrame->m_DisplayOptions.m_DisplayFlashedItemsFill;
+        isFilled = gerbFrame->DisplayFlashedItemsSolidMode();
         d_codeDescr->DrawFlashedShape( this, aPanel->GetClipBox(), aDC, color, alt_color,
                                        m_Start, isFilled );
         break;
@@ -540,42 +541,41 @@ void GERBER_DRAW_ITEM::DrawGbrPoly( EDA_RECT*      aClipBox,
 }
 
 
-void GERBER_DRAW_ITEM::DisplayInfo( EDA_DRAW_FRAME* frame )
+void GERBER_DRAW_ITEM::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 {
     wxString msg;
 
-    frame->ClearMsgPanel();
     msg = ShowGBRShape();
-    frame->AppendMsgPanel( _( "Type" ), msg, DARKCYAN );
+    aList.push_back( MSG_PANEL_ITEM( _( "Type" ), msg, DARKCYAN ) );
 
     // Display D_Code value:
     msg.Printf( wxT( "%d" ), m_DCode );
-    frame->AppendMsgPanel( _( "D Code" ), msg, RED );
+    aList.push_back( MSG_PANEL_ITEM( _( "D Code" ), msg, RED ) );
 
     // Display graphic layer number
     msg.Printf( wxT( "%d" ), GetLayer() + 1 );
-    frame->AppendMsgPanel( _( "Graphic layer" ), msg, BROWN );
+    aList.push_back( MSG_PANEL_ITEM( _( "Graphic layer" ), msg, BROWN ) );
 
     // Display item rotation
     // The full rotation is Image rotation + m_lyrRotation
     // but m_lyrRotation is specific to this object
     // so we display only this parameter
     msg.Printf( wxT( "%f" ), m_lyrRotation );
-    frame->AppendMsgPanel( _( "Rotation" ), msg, BLUE );
+    aList.push_back( MSG_PANEL_ITEM( _( "Rotation" ), msg, BLUE ) );
 
     // Display item polarity (item specific)
     msg = m_LayerNegative ? _("Clear") : _("Dark");
-    frame->AppendMsgPanel( _( "Polarity" ), msg, BLUE );
+    aList.push_back( MSG_PANEL_ITEM( _( "Polarity" ), msg, BLUE ) );
 
     // Display mirroring (item specific)
     msg.Printf( wxT( "A:%s B:%s" ),
                 m_mirrorA ? _("Yes") : _("No"),
                 m_mirrorB ? _("Yes") : _("No"));
-    frame->AppendMsgPanel( _( "Mirror" ), msg, DARKRED );
+    aList.push_back( MSG_PANEL_ITEM( _( "Mirror" ), msg, DARKRED ) );
 
     // Display AB axis swap (item specific)
     msg = m_swapAxis ? wxT( "A=Y B=X" ) : wxT( "A=X B=Y" );
-    frame->AppendMsgPanel( _( "AB axis" ), msg, DARKRED );
+    aList.push_back( MSG_PANEL_ITEM( _( "AB axis" ), msg, DARKRED ) );
 }
 
 

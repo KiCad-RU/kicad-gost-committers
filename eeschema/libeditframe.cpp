@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2013 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,6 +35,7 @@
 #include <eda_doc.h>
 #include <gr_basic.h>
 #include <wxEeschemaStruct.h>
+#include <msgpanel.h>
 
 #include <general.h>
 #include <protos.h>
@@ -804,8 +805,9 @@ void LIB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             break;
 
         SaveCopyInUndoList( m_component );
-        GlobalSetPins( &dc, (LIB_PIN*) m_drawItem, id );
+        GlobalSetPins( (LIB_PIN*) m_drawItem, id );
         m_canvas->MoveCursorToCrossHair();
+        m_canvas->Refresh();
         break;
 
     case ID_POPUP_ZOOM_BLOCK:
@@ -1184,9 +1186,15 @@ LIB_ITEM* LIB_EDIT_FRAME::locateItem( const wxPoint& aPosition, const KICAD_T aF
     }
 
     if( item )
-        item->DisplayInfo( this );
+    {
+        MSG_PANEL_ITEMS items;
+        item->GetMsgPanelInfo( items );
+        SetMsgPanel( items );
+    }
     else
+    {
         ClearMsgPanel();
+    }
 
     return item;
 }

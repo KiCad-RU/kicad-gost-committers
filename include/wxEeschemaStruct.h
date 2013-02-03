@@ -631,6 +631,14 @@ public:
     bool LoadOneEEProject( const wxString& aFileName, bool aIsNew );
 
     /**
+     * Function AppendOneEEProject
+     * read an entire project and loads it into the schematic editor *whitout* replacing the
+     * existing contents.
+     * @return True if the project was imported properly.
+     */
+    bool AppendOneEEProject();
+
+    /**
      * Function LoadOneEEFile
      * loads the schematic (.sch) file \a aFullFileName into \a aScreen.
      *
@@ -638,29 +646,40 @@ public:
      *                \a aFullFileName.
      * @param aFullFileName A reference to a wxString object containing the absolute path
      *                      and file name to load.
+     * @param append True if loaded file is being appended to the currently open file instead
+ *                   of replacing it.
      * @return True if \a aFullFileName has been loaded (at least partially.)
      */
-    bool LoadOneEEFile( SCH_SCREEN* aScreen, const wxString& aFullFileName );
+    bool LoadOneEEFile( SCH_SCREEN* aScreen, const wxString& aFullFileName, bool append = false );
 
-    bool ReadInputStuffFile();
+    /**
+     * Function ReadCmpToFootprintLinkFile
+     * Loads a .cmp file from CvPcb and update the footprin field
+     * of components
+     * Prepares parameters and calls ProcessCmpToFootprintLinkFile
+     * to actually read the file and update Fp fields
+     */
+    bool LoadCmpToFootprintLinkFile();
 
     /**
      * Function ProcessStuffFile
      * gets footprint info from each line in the Stuff File by Ref Desg
      *
-     * Read a "stuff" file created by CvPcb.
+     * Read a Cmp To Footprint Link file created by CvPcb (the .cmp file).
      * That file has lines like:
-     * comp = "C1" module = "CP6"
-     * comp = "C2" module = "C1"
-     * comp = "C3" module = "C1"
-     * "comp =" gives the component reference
-     * "module =" gives the footprint name
+     *  BeginCmp
+     *  TimeStamp = /32307DE2/AA450F67;
+     *  Reference = C1;
+     *  ValeurCmp = 47uF;
+     *  IdModule  = CP6;
+     *  EndCmp
      *
-     * @param aFilename The file to read from.
+     * @param aFullFilename = the full filename to read
      * @param aSetFieldsAttributeToVisible = true to set the footprint field flag to visible
-     * @return bool - true if success, else true.
+     * @return bool = true if success.
      */
-    bool ProcessStuffFile( FILE* aFilename, bool  aSetFieldsAttributeToVisible );
+    bool ProcessCmpToFootprintLinkFile( wxString& aFullFilename,
+                                        bool  aSetFieldsAttributeToVisible );
 
     /**
      * Function SaveEEFile
@@ -743,9 +762,10 @@ private:
     void OnFindReplace( wxFindDialogEvent& aEvent );
 
     void OnLoadFile( wxCommandEvent& event );
-    void OnLoadStuffFile( wxCommandEvent& event );
+    void OnLoadCmpToFootprintLinkFile( wxCommandEvent& event );
     void OnNewProject( wxCommandEvent& event );
     void OnLoadProject( wxCommandEvent& event );
+    void OnAppendProject( wxCommandEvent& event );
     void OnOpenPcbnew( wxCommandEvent& event );
     void OnOpenCvpcb( wxCommandEvent& event );
     void OnOpenLibraryEditor( wxCommandEvent& event );
@@ -874,6 +894,8 @@ private:
     void InstallHierarchyFrame( wxDC* DC, wxPoint& pos );
     SCH_SHEET* CreateSheet( wxDC* DC );
     void ReSizeSheet( SCH_SHEET* Sheet, wxDC* DC );
+    // Loads the cache library associated to the aFileName
+    bool LoadCacheLibrary( const wxString& aFileName );
 
 public:
     /**
@@ -1166,6 +1188,15 @@ public:
      * Clear all libraries currently loaded and load all of the project libraries.
      */
     void LoadLibraries( void );
+
+    /**
+     * Function CreateArchiveLibraryCacheFile
+     * creates a library file with the name of the root document plus the '-cache' suffix,
+     * That file will contain all components used in the current schematic.
+     *
+     * @return True if the file was written successfully.
+     */
+    bool CreateArchiveLibraryCacheFile( void );
 
     /**
      * Function CreateArchiveLibrary
