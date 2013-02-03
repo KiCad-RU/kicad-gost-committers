@@ -221,7 +221,8 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
                                          wxString               aActualConversion )
 {
     PCB_ARC*            arc;
-    PCB_POLYGON*        polygon, *plane_layer;
+    PCB_POLYGON*        polygon;
+    PCB_POLYGON         *plane_layer = NULL;
     PCB_COPPER_POUR*    copperPour;
     PCB_CUTOUT*         cutout;
     PCB_PLANE*          plane;
@@ -316,6 +317,7 @@ void PCB_MODULE::DoLayerContentsObjects( XNODE*                 aNode,
             if( m_callbacks->GetLayerType( PCadLayer ) == LAYER_TYPE_PLANE )
             {
                 plane_layer_polygon = new VERTICES_ARRAY;
+                wxASSERT( plane_layer );
                 plane_layer->FormPolygon( lNode, plane_layer_polygon, aDefaultMeasurementUnit, aActualConversion );
                 plane_layer->m_cutouts.Add( plane_layer_polygon );
             }

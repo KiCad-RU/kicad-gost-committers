@@ -6,6 +6,7 @@ include_directories(
     ../polygon
     ../pcbnew
     ../common
+    ../pcbnew/pcad2kicadpcb_plugin
     ${INC_AFTER}
     )
 
@@ -26,7 +27,7 @@ set(PCAD2KICAD_SRCS
 #    pcb_text.cpp
 #    pcb_via.cpp
 #    pcb_via_shape.cpp
-    s_expr_loader.cpp
+    ../pcbnew/pcad2kicadpcb_plugin/s_expr_loader.cpp
     sch.cpp
     sch_arc.cpp
     sch_bus.cpp
@@ -39,7 +40,7 @@ set(PCAD2KICAD_SRCS
     sch_sheet.cpp
     sch_symbol.cpp
     sch_text.cpp
-    pcad2kicad_common.cpp
+    ../pcbnew/pcad2kicadpcb_plugin/pcad2kicad_common.cpp
     dialogs/pcad2kicad_frame_base.cpp
     )
 

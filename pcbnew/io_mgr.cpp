@@ -28,7 +28,7 @@
 #include <legacy_plugin.h>
 #include <kicad_plugin.h>
 #include <eagle_plugin.h>
-#include <pcad_plugin.h>
+#include <pcad2kicadpcb_plugin/pcad_plugin.h>
 #include <gpcb_plugin.h>
 #include <wildcards_and_files_ext.h>
 

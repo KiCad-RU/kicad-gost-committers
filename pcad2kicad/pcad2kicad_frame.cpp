@@ -32,12 +32,13 @@
 
 #include <wx/filename.h>
 #include <wx/xml/xml.h>
+#include <common.h>
 
 #include <pcad2kicad.h>
 #include <bitmaps.h>
 
 #include <s_expr_loader.h>
-#include <pcb.h>
+//#include <pcb.h>
 #include <sch.h>
 
 using namespace PCAD2KICAD;

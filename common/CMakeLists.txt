@@ -5,7 +5,6 @@ include_directories(
     ./dialog_about
     ${Boost_INCLUDE_DIR}
     ../3d-viewer
-    ../pcad2kicad
     ../pcbnew
     ../polygon
     ${INC_AFTER}
@@ -91,25 +90,6 @@ set(PCB_COMMON_SRCS
     convert_basic_shapes_to_polygon.cpp
     pcbcommon.cpp
     footprint_info.cpp
-    ../pcad2kicad/pcad2kicad_common.cpp
-    ../pcad2kicad/pcad_plugin.cpp
-    ../pcad2kicad/pcb.cpp
-    ../pcad2kicad/pcb_arc.cpp
-    ../pcad2kicad/pcb_component.cpp
-    ../pcad2kicad/pcb_copper_pour.cpp
-    ../pcad2kicad/pcb_cutout.cpp
-    ../pcad2kicad/pcb_keepout.cpp
-    ../pcad2kicad/pcb_line.cpp
-    ../pcad2kicad/pcb_module.cpp
-    ../pcad2kicad/pcb_net.cpp
-    ../pcad2kicad/pcb_pad.cpp
-    ../pcad2kicad/pcb_pad_shape.cpp
-    ../pcad2kicad/pcb_plane.cpp
-    ../pcad2kicad/pcb_polygon.cpp
-    ../pcad2kicad/pcb_text.cpp
-    ../pcad2kicad/pcb_via.cpp
-    ../pcad2kicad/pcb_via_shape.cpp
-    ../pcad2kicad/s_expr_loader.cpp
     ../pcbnew/basepcbframe.cpp
     ../pcbnew/class_board.cpp
     ../pcbnew/class_board_connected_item.cpp
