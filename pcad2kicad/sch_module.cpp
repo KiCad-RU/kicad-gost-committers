@@ -42,8 +42,6 @@ namespace PCAD2KICAD {
 
 SCH_MODULE::SCH_MODULE()
 {
-    int i;
-
     InitTTextValue( &m_name );
     InitTTextValue( &m_reference );
     m_numParts = 0;
@@ -52,9 +50,6 @@ SCH_MODULE::SCH_MODULE()
     m_alias = wxEmptyString;
     m_pinNumVisibility = wxT( 'Y' );
     m_pinNameVisibility = wxT( 'N' );
-
-    for( i = 0; i < 10; i++ )
-        m_attachedSymbols[i] = wxEmptyString;
 }
 
 
@@ -120,9 +115,17 @@ void SCH_MODULE::Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
                     FindNode( tNode, wxT( "partNum" ) )->GetNodeContent().ToLong( &num );
 
                 if( FindNode( tNode, wxT( "symbolName" ) ) )
+                {
                     FindNode( tNode,
-                              wxT( "symbolName" ) )->GetAttribute( wxT( "Name" ),
-                                                                   &m_attachedSymbols[(int) num] );
+                              wxT( "symbolName" ) )->GetAttribute( wxT( "Name" ), &str );
+
+                    // if necessary grow m_attachedSymbols array
+                    if( num + 1 > (int)m_attachedSymbols.GetCount() )
+                        m_attachedSymbols.Add( wxEmptyString,
+                                               num + 1 - m_attachedSymbols.GetCount() );
+
+                    m_attachedSymbols[(int) num] = str;
+                }
             }
         }
 

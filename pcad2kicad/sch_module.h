@@ -49,7 +49,7 @@ private:
     TTEXTVALUE              m_reference;
     int                     m_numParts;
     wxString                m_attachedPattern;
-    wxString                m_attachedSymbols[10];
+    wxArrayString           m_attachedSymbols;
     char                    m_pinNumVisibility;
     char                    m_pinNameVisibility;
 
