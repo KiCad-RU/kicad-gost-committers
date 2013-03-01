@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
- * Copyright (C) 2007, 2008, 2012 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2007, 2008, 2012-2013 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -75,6 +75,46 @@ void PCB_COMPONENT::SetPosOffset( int aX_offs, int aY_offs )
 {
     m_positionX += aX_offs;
     m_positionY += aY_offs;
+}
+
+void PCB_COMPONENT::Flip()
+{
+    m_positionX = -m_positionX;
+}
+
+int PCB_COMPONENT::FlipLayers( int aLayer )
+{
+    int result = aLayer;    // dafault is no swap
+
+    // routed layers
+    if( aLayer == 0 )
+        result = 15;
+
+    if( aLayer == 15 )
+        result = 0;
+
+    // Silk
+    if( aLayer == 21 )
+        result = 20;
+
+    if( aLayer == 20 )
+        result = 21;
+
+    // Paste
+    if( aLayer == 19 )
+        result = 18;
+
+    if( aLayer == 18 )
+        result = 19;
+
+    // Mask
+    if( aLayer == 23 )
+        result = 22;
+
+    if( aLayer == 22 )
+        result = 23;
+
+    return result;
 }
 
 } // namespace PCAD2KICAD

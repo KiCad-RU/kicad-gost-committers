@@ -1,6 +1,6 @@
 PCadToKiCad - PCad ASCII to KiCad conversion utility
 
-This utility converts ASCII data file from PCad 2000 format to KiCad format.
+This utility converts ASCII data file from PCad 200x format to KiCad format.
 The supported files are:
  - PCB Libraries  ( *.lia ) converted to KiCad *.mod file
  - PCB Board      ( *.pcb ) converted to KiCad *.brd file

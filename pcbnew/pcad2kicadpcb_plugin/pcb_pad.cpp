@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
- * Copyright (C) 2007, 2008, 2012 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2007, 2008, 2012-2013 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -259,6 +259,20 @@ void PCB_PAD::WriteToFile( wxFile* aFile, char aFileType, int aRotation )
         aFile->Write( wxString::Format( wxT( "Po %d %d\n" ), m_positionX, m_positionY ) );
         aFile->Write( wxT( "$EndPAD\n" ) );
     }
+}
+
+
+void PCB_PAD::Flip()
+{
+    int i;
+
+    PCB_COMPONENT::Flip();
+
+    if( m_objType == wxT( 'P' ) )
+        m_rotation = -m_rotation;
+
+    for( i = 0; i < (int)m_shapes.GetCount(); i++ )
+        m_shapes[i]->m_KiCadLayer = FlipLayers( m_shapes[i]->m_KiCadLayer );
 }
 
 
