@@ -87,32 +87,32 @@ int PCB_COMPONENT::FlipLayers( int aLayer )
     int result = aLayer;    // dafault is no swap
 
     // routed layers
-    if( aLayer == 0 )
-        result = 15;
+    if( aLayer == LAYER_N_BACK )
+        result = LAYER_N_FRONT;
 
-    if( aLayer == 15 )
-        result = 0;
+    if( aLayer == LAYER_N_FRONT )
+        result = LAYER_N_BACK;
 
     // Silk
-    if( aLayer == 21 )
-        result = 20;
+    if( aLayer == SILKSCREEN_N_FRONT )
+        result = SILKSCREEN_N_BACK;
 
-    if( aLayer == 20 )
-        result = 21;
+    if( aLayer == SILKSCREEN_N_BACK )
+        result = SILKSCREEN_N_FRONT;
 
     // Paste
-    if( aLayer == 19 )
-        result = 18;
+    if( aLayer == SOLDERPASTE_N_FRONT )
+        result = SOLDERPASTE_N_BACK;
 
-    if( aLayer == 18 )
-        result = 19;
+    if( aLayer == SOLDERPASTE_N_BACK )
+        result = SOLDERPASTE_N_FRONT;
 
     // Mask
-    if( aLayer == 23 )
-        result = 22;
+    if( aLayer == SOLDERMASK_N_FRONT )
+        result = SOLDERMASK_N_BACK;
 
-    if( aLayer == 22 )
-        result = 23;
+    if( aLayer == SOLDERMASK_N_BACK )
+        result = SOLDERMASK_N_FRONT;
 
     return result;
 }
