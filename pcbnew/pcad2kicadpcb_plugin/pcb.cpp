@@ -173,7 +173,7 @@ void PCB::SetTextProperty( XNODE*   aNode, TTEXTVALUE* aTextValue,
     t1Node  = aNode;
     n = aXmlName;
 
-    // new file foramat version
+    // new file format version
     if( FindNode( tNode, wxT( "patternGraphicsNameRef" ) ) )
     {
         FindNode( tNode,
@@ -262,6 +262,11 @@ void PCB::DoPCBComponents( XNODE*           aNode,
                 if( tNode )
                 {
                     mc = new PCB_MODULE( this, m_board );
+
+                    mNode = FindNode( lNode, wxT( "patternGraphicsNameRef" ) );
+                    if( mNode )
+                        mNode->GetAttribute( wxT( "Name" ), &mc->m_patGraphRefName );
+
                     mc->Parse( tNode, aStatusBar, m_defaultMeasurementUnit, aActualConversion );
                 }
             }

@@ -154,26 +154,25 @@ XNODE* PCB_MODULE::FindPatternMultilayerSection( XNODE* aNode, wxString* aPatGra
     if( pNode )
         lNode = FindNode( pNode, wxT( "multiLayer" ) );  // Old file format
 
-    *aPatGraphRefName = wxEmptyString;                                  // default
-
     if( lNode )
+    {
+        *aPatGraphRefName = wxEmptyString; // default
         result = lNode;
+    }
     else
     {
         // New file format
-        if( FindNode( aNode, wxT( "patternGraphicsNameRef" ) ) )
+
+        if( *aPatGraphRefName == wxEmptyString ) // default
         {
-            FindNode( aNode,
-                      wxT( "patternGraphicsNameRef" ) )->GetAttribute( wxT( "Name" ),
-                                                                       aPatGraphRefName );
+            if( FindNode( aNode, wxT( "patternGraphicsNameRef" ) ) )
+            {
+                FindNode( aNode,
+                          wxT( "patternGraphicsNameRef" ) )->GetAttribute( wxT( "Name" ),
+                                                                           aPatGraphRefName );
+            }
         }
 
-// /////////////////////////////////////////////////////////////////////
-// lNode:=iNode.ChildNodes.FindNode('patternGraphicsDef');  before
-// Fixed 02/08, Sergeys input file format
-// Did it work before  ????
-// lNode:=pNode.ChildNodes.FindNode('patternGraphicsDef');  Nw for some files
-// ////////////////////////////////////////////////////////////////////
         if( FindNode( aNode, wxT( "patternGraphicsDef" ) ) )
             lNode = FindNode( aNode, wxT( "patternGraphicsDef" ) );
         else

@@ -220,8 +220,9 @@ void PCB_POLYGON::AddToBoard()
             zone->SetDoNotAllowCopperPour( true );
         }
 
-        if( m_filled )
-            zone->BuildFilledPolysListData( m_board );
+        //if( m_filled )
+        //    cvpcb is not linked
+        //    zone->BuildFilledPolysListData( m_board );
     }
 }
 
