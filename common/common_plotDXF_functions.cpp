@@ -171,30 +171,30 @@ bool DXF_PLOTTER::StartPlot()
         const char *name;
         int color;
     } dxf_layer[NBCOLOR] = {
-        { "Black",              250 },
-        { "Blue",               5 },
-        { "Green",              3 },
-        { "Cyan",               4 },
-        { "Red",                1 },
-        { "Magenta",            6 },
-        { "Brown",              54 },
-        { "LightGray",          9 },
-        { "DarkGray",           8 },
-        { "LightBlue",          171 },
-        { "LightGreen",         91 },
-        { "LightCyan",          131 },
-        { "LightRed",           11 },
-        { "LightMagenta",       221 },
-        { "Yellow",             2 },
-        { "White",              7 },
-        { "DarkDarkGray",       251 },
-        { "DarkBlue",           178 },
-        { "DarkGreen",          98 },
-        { "DarkCyan",           138 },
-        { "DarkRed",            18 },
-        { "DarkMagenta",        228 },
-        { "DarkBrown",          58 },
-        { "LightYellow",        51 },
+        { "BLACK",              250 },
+        { "BLUE",               5 },
+        { "GREEN",              3 },
+        { "CYAN",               4 },
+        { "RED",                1 },
+        { "MAGENTA",            6 },
+        { "BROWN",              54 },
+        { "LIGHTGRAY",          9 },
+        { "DARKGRAY",           8 },
+        { "LIGHTBLUE",          171 },
+        { "LIGHTGREEN",         91 },
+        { "LIGHTCYAN",          131 },
+        { "LIGHTRED",           11 },
+        { "LIGHTMAGENTA",       221 },
+        { "YELLOW",             2 },
+        { "WHITE",              7 },
+        { "DARKDARKGRAY",       251 },
+        { "DARKBLUE",           178 },
+        { "DARKGREEN",          98 },
+        { "DARKCYAN",           138 },
+        { "DARKRED",            18 },
+        { "DARKMAGENTA",        228 },
+        { "DARKBROWN",          58 },
+        { "LIGHTYELLOW",        51 },
     };
 
     for( int i = 0; i < NBCOLOR; i++ )
@@ -256,6 +256,8 @@ void DXF_PLOTTER::SetColor( EDA_COLOR_T color )
     {
         currentColor = color;
     }
+    else
+        currentColor = BLACK;
 }
 
 /**
@@ -528,6 +530,25 @@ void DXF_PLOTTER::FlashPadTrapez( const wxPoint& aPadPos, const wxPoint *aCorner
     FinishTo( coord[0] );
 }
 
+/**
+ * Checks if a given string contains non-ASCII characters.
+ * FIXME: the performance of this code is really poor, but in this case it can be
+ * acceptable because the plot operation is not called very often.
+ * @param string String to check
+ * @return true if it contains some non-ASCII character, false if all characters are
+ *         inside ASCII range (<=255).
+ */
+bool containsNonAsciiChars( const wxString& string )
+{
+    for( unsigned i = 0; i < string.length(); i++ )
+    {
+        wchar_t ch = string[i];
+        if( ch > 255 )
+            return true;
+    }
+    return false;
+}
+
 void DXF_PLOTTER::Text( const wxPoint&              aPos,
                         enum EDA_COLOR_T            aColor,
                         const wxString&             aText,
@@ -539,7 +560,8 @@ void DXF_PLOTTER::Text( const wxPoint&              aPos,
                         bool                        aItalic,
                         bool                        aBold )
 {
-    if( textAsLines )
+    if( textAsLines || containsNonAsciiChars( aText ) )
+        /* output text as graphics */
         PLOTTER::Text( aPos, aColor, aText, aOrient, aSize, aH_justify, aV_justify,
                 aWidth, aItalic, aBold );
     else
@@ -547,8 +569,7 @@ void DXF_PLOTTER::Text( const wxPoint&              aPos,
         /* Emit text as a text entity. This loses formatting and shape but it's
            more useful as a CAD object */
         DPOINT origin_dev = userToDeviceCoordinates( aPos );
-        if( aColor >= 0 )
-            currentColor = aColor;
+        SetColor( aColor );
         wxString cname = ColorRefs[currentColor].m_Name;
         DPOINT size_dev = userToDeviceSize( aSize );
         int h_code = 0, v_code = 0;
@@ -614,7 +635,7 @@ void DXF_PLOTTER::Text( const wxPoint&              aPos,
                 TO_UTF8( cname ),
                 origin_dev.x, origin_dev.x,
                 origin_dev.y, origin_dev.y,
-                size_dev.y, fabs( size_dev.y / size_dev.x ),
+                size_dev.y, fabs( size_dev.x / size_dev.y ),
                 aOrient / 10.0,
                 aItalic ? DXF_OBLIQUE_ANGLE : 0,
                 size_dev.x < 0 ? 2 : 0, // X mirror flag

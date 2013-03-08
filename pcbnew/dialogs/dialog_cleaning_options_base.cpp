@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Apr 10 2012)
+// C++ code generated with wxFormBuilder (version Oct  8 2012)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -24,7 +24,7 @@ DIALOG_CLEANING_OPTIONS_BASE::DIALOG_CLEANING_OPTIONS_BASE( wxWindow* parent, wx
 	
 	bSizerUpper->Add( m_cleanViasOpt, 0, wxALL, 5 );
 	
-	m_mergeSegmOpt = new wxCheckBox( this, wxID_ANY, _("Merge colinear segments"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_mergeSegmOpt = new wxCheckBox( this, wxID_ANY, _("Merge overlapping segments"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_mergeSegmOpt->SetToolTip( _("merge aligned track segments, and remove null segments") );
 	
 	bSizerUpper->Add( m_mergeSegmOpt, 0, wxALL, 5 );
@@ -47,7 +47,7 @@ DIALOG_CLEANING_OPTIONS_BASE::DIALOG_CLEANING_OPTIONS_BASE( wxWindow* parent, wx
 	m_sdbSizer->AddButton( m_sdbSizerCancel );
 	m_sdbSizer->Realize();
 	
-	bSizerMain->Add( m_sdbSizer, 0, wxALIGN_RIGHT|wxALL, 5 );
+	bSizerMain->Add( m_sdbSizer, 0, wxALL|wxEXPAND, 5 );
 	
 	
 	this->SetSizer( bSizerMain );
@@ -56,7 +56,6 @@ DIALOG_CLEANING_OPTIONS_BASE::DIALOG_CLEANING_OPTIONS_BASE( wxWindow* parent, wx
 	this->Centre( wxBOTH );
 	
 	// Connect Events
-	this->Connect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( DIALOG_CLEANING_OPTIONS_BASE::OnCloseWindow ) );
 	m_sdbSizerCancel->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_CLEANING_OPTIONS_BASE::OnCancelClick ), NULL, this );
 	m_sdbSizerOK->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_CLEANING_OPTIONS_BASE::OnOKClick ), NULL, this );
 }
@@ -64,7 +63,6 @@ DIALOG_CLEANING_OPTIONS_BASE::DIALOG_CLEANING_OPTIONS_BASE( wxWindow* parent, wx
 DIALOG_CLEANING_OPTIONS_BASE::~DIALOG_CLEANING_OPTIONS_BASE()
 {
 	// Disconnect Events
-	this->Disconnect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( DIALOG_CLEANING_OPTIONS_BASE::OnCloseWindow ) );
 	m_sdbSizerCancel->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_CLEANING_OPTIONS_BASE::OnCancelClick ), NULL, this );
 	m_sdbSizerOK->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_CLEANING_OPTIONS_BASE::OnOKClick ), NULL, this );
 	

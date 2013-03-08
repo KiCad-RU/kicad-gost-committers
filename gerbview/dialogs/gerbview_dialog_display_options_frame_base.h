@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Apr 10 2012)
+// C++ code generated with wxFormBuilder (version Oct  8 2012)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -11,6 +11,8 @@
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/intl.h>
+class DIALOG_SHIM;
+
 #include "dialog_shim.h"
 #include <wx/string.h>
 #include <wx/radiobox.h>
@@ -44,6 +46,7 @@ class DIALOG_DISPLAY_OPTIONS_BASE : public DIALOG_SHIM
 		wxRadioBox* m_OptDisplayFlashedItems;
 		wxRadioBox* m_OptDisplayPolygons;
 		wxRadioBox* m_ShowPageLimits;
+		wxCheckBox* m_OptZoomNoCenter;
 		wxCheckBox* m_OptMiddleButtonPan;
 		wxCheckBox* m_OptMiddleButtonPanLimited;
 		wxStaticLine* m_staticline1;
@@ -59,7 +62,7 @@ class DIALOG_DISPLAY_OPTIONS_BASE : public DIALOG_SHIM
 	
 	public:
 		
-		DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Gerbview Options"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 446,330 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+		DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Gerbview Options"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_DISPLAY_OPTIONS_BASE();
 	
 };

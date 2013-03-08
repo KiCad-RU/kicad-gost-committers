@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Apr 10 2012)
+// C++ code generated with wxFormBuilder (version Oct  8 2012)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -11,6 +11,9 @@
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/intl.h>
+class DIALOG_SHIM;
+
+#include "dialog_shim.h"
 #include <wx/string.h>
 #include <wx/stattext.h>
 #include <wx/gdicmn.h>
@@ -35,7 +38,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 /// Class DIALOG_EESCHEMA_OPTIONS_BASE
 ///////////////////////////////////////////////////////////////////////////////
-class DIALOG_EESCHEMA_OPTIONS_BASE : public wxDialog 
+class DIALOG_EESCHEMA_OPTIONS_BASE : public DIALOG_SHIM
 {
 	DECLARE_EVENT_TABLE()
 	private:
@@ -81,6 +84,7 @@ class DIALOG_EESCHEMA_OPTIONS_BASE : public wxDialog
 		wxStaticText* m_staticText23;
 		wxCheckBox* m_checkShowGrid;
 		wxCheckBox* m_checkShowHiddenPins;
+		wxCheckBox* m_checkEnableZoomNoCenter;
 		wxCheckBox* m_checkEnableMiddleButtonPan;
 		wxCheckBox* m_checkMiddleButtonPanLimited;
 		wxCheckBox* m_checkAutoPan;

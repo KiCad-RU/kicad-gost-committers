@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Apr 10 2012)
+// C++ code generated with wxFormBuilder (version Oct  8 2012)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -11,18 +11,20 @@
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/intl.h>
+class DIALOG_SHIM;
+
 #include "dialog_shim.h"
 #include <wx/string.h>
-#include <wx/textctrl.h>
+#include <wx/stattext.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
 #include <wx/settings.h>
+#include <wx/textctrl.h>
+#include <wx/button.h>
 #include <wx/sizer.h>
 #include <wx/statbox.h>
-#include <wx/button.h>
 #include <wx/radiobox.h>
-#include <wx/stattext.h>
 #include <wx/slider.h>
 #include <wx/statline.h>
 #include <wx/panel.h>
@@ -51,12 +53,17 @@ class DIALOG_MODULE_MODULE_EDITOR_BASE : public DIALOG_SHIM
 	protected:
 		wxNotebook* m_NoteBook;
 		wxPanel* m_PanelProperties;
+		wxStaticText* m_staticTextDoc;
 		wxTextCtrl* m_DocCtrl;
+		wxStaticText* m_staticTextKeywords;
 		wxTextCtrl* m_KeywordCtrl;
+		wxStaticText* m_staticTextRef;
 		wxTextCtrl* m_ReferenceCtrl;
 		wxButton* m_button4;
+		wxStaticText* m_staticTextVal;
 		wxTextCtrl* m_ValueCtrl;
 		wxButton* m_button5;
+		wxStaticText* m_staticTextFp;
 		wxTextCtrl* m_FootprintNameCtrl;
 		wxRadioBox* m_AttributsCtrl;
 		wxRadioBox* m_AutoPlaceCtrl;
@@ -102,7 +109,7 @@ class DIALOG_MODULE_MODULE_EDITOR_BASE : public DIALOG_SHIM
 	public:
 		wxStaticBoxSizer* m_Sizer3DValues;
 		
-		DIALOG_MODULE_MODULE_EDITOR_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Module properties"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 541,540 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+		DIALOG_MODULE_MODULE_EDITOR_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Module Properties"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 486,462 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_MODULE_MODULE_EDITOR_BASE();
 	
 };

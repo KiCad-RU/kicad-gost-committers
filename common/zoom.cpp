@@ -41,6 +41,7 @@
 #include <base_units.h>
 
 
+
 void EDA_DRAW_FRAME::RedrawScreen( const wxPoint& aCenterPoint, bool aWarpPointer )
 {
     AdjustScrollBars( aCenterPoint );
@@ -48,6 +49,18 @@ void EDA_DRAW_FRAME::RedrawScreen( const wxPoint& aCenterPoint, bool aWarpPointe
     // Move the mouse cursor to the on grid graphic cursor position
     if( aWarpPointer )
         m_canvas->MoveCursorToCrossHair();
+
+    m_canvas->Refresh();
+    m_canvas->Update();
+}
+
+void EDA_DRAW_FRAME::RedrawScreen2( const wxPoint& posBefore )
+{
+    wxPoint dPos = posBefore - m_canvas->GetClientSize() / 2; // relative screen position to center before zoom
+    wxPoint newScreenPos = m_canvas->ToDeviceXY( GetScreen()->GetCrossHairPosition() ); // screen position of crosshair after zoom
+    wxPoint newCenter = m_canvas->ToLogicalXY( newScreenPos - dPos );
+
+    AdjustScrollBars( newCenter );
 
     m_canvas->Refresh();
     m_canvas->Update();
@@ -111,6 +124,12 @@ void EDA_DRAW_FRAME::OnZoom( wxCommandEvent& event )
 
     switch( id )
     {
+    case ID_OFFCENTER_ZOOM_IN:
+        center = m_canvas->ToDeviceXY( screen->GetCrossHairPosition() );
+        if( screen->SetPreviousZoom() )
+            RedrawScreen2( center );
+        break;
+
     case ID_POPUP_ZOOM_IN:
         zoom_at_cursor = true;
         center = screen->GetCrossHairPosition();
@@ -119,6 +138,12 @@ void EDA_DRAW_FRAME::OnZoom( wxCommandEvent& event )
     case ID_ZOOM_IN:
         if( screen->SetPreviousZoom() )
             RedrawScreen( center, zoom_at_cursor );
+        break;
+
+    case ID_OFFCENTER_ZOOM_OUT:
+        center = m_canvas->ToDeviceXY( screen->GetCrossHairPosition() );
+        if( screen->SetNextZoom() )
+            RedrawScreen2( center );
         break;
 
     case ID_POPUP_ZOOM_OUT:
@@ -238,12 +263,12 @@ void EDA_DRAW_FRAME::AddMenuZoomAndGrid( wxMenu* MasterMenu )
                 switch( g_UserUnit )
                 {
                 case INCHES:
-                    msg.Printf( wxT( "%.1f mils, (%.3f mm)" ),
+                    msg.Printf( wxT( "%.1f mils, (%.4f mm)" ),
                                 gridValueInch * 1000, gridValue_mm );
                     break;
 
                 case MILLIMETRES:
-                    msg.Printf( wxT( "%.3f mm, (%.1f mils)" ),
+                    msg.Printf( wxT( "%.4f mm, (%.1f mils)" ),
                                 gridValue_mm, gridValueInch * 1000 );
                     break;
 

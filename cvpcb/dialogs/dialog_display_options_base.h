@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Apr 10 2012)
+// C++ code generated with wxFormBuilder (version Oct  8 2012)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -11,6 +11,8 @@
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/intl.h>
+class DIALOG_SHIM;
+
 #include "dialog_shim.h"
 #include <wx/string.h>
 #include <wx/radiobox.h>
@@ -43,6 +45,7 @@ class DIALOG_FOOTPRINTS_DISPLAY_OPTIONS_BASE : public DIALOG_SHIM
 		wxRadioBox* m_TextDisplayOption;
 		wxCheckBox* m_IsShowPadFill;
 		wxCheckBox* m_IsShowPadNum;
+		wxCheckBox* m_IsZoomNoCenter;
 		wxCheckBox* m_IsMiddleButtonPan;
 		wxCheckBox* m_IsMiddleButtonPanLimited;
 		wxStaticLine* m_staticline1;
@@ -60,7 +63,7 @@ class DIALOG_FOOTPRINTS_DISPLAY_OPTIONS_BASE : public DIALOG_SHIM
 	
 	public:
 		
-		DIALOG_FOOTPRINTS_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Display Options"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 362,251 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+		DIALOG_FOOTPRINTS_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Display Options"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_FOOTPRINTS_DISPLAY_OPTIONS_BASE();
 	
 };

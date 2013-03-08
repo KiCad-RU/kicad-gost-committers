@@ -120,9 +120,10 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
     case ID_MODEDIT_DELETE_TOOL:
         if( ! no_item_edited )    // Item in edit, cannot delete it
             break;
+
         item = ModeditLocateAndDisplay();
 
-        if( item->Type() != PCB_MODULE_T ) // Cannot delete the module itself
+        if( item && item->Type() != PCB_MODULE_T ) // Cannot delete the module itself
         {
             SaveCopyInUndoList( GetBoard()->m_Modules, UR_MODEDIT );
             RemoveStruct( item );
@@ -262,7 +263,7 @@ bool FOOTPRINT_EDIT_FRAME::OnRightClick( const wxPoint& MousePos, wxMenu* PopMen
             AddMenuItem( transform_choice, ID_MODEDIT_MODULE_MIRROR, _( "Mirror" ),
                          KiBitmap( mirror_h_xpm ) );
             msg = AddHotkeyName( _( "Edit Module" ), g_Module_Editor_Hokeys_Descr, HK_EDIT_ITEM );
-            AddMenuItem( PopMenu, ID_POPUP_PCB_EDIT_MODULE, msg, KiBitmap( edit_module_xpm ) );
+            AddMenuItem( PopMenu, ID_POPUP_PCB_EDIT_MODULE_PRMS, msg, KiBitmap( edit_module_xpm ) );
             AddMenuItem( PopMenu, transform_choice, ID_MODEDIT_TRANSFORM_MODULE,
                          _( "Transform Module" ), KiBitmap( edit_xpm ) );
             break;

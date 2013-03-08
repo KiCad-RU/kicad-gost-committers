@@ -106,27 +106,28 @@ private:
                                            TRACK* aCandidate, int aEndType );
 };
 
-/* Install the track operation dialog frame
+/* Install the cleanup dialog frame to know what should be cleaned
 */
-void PCB_EDIT_FRAME::Clean_Pcb( wxDC* DC )
+void PCB_EDIT_FRAME::Clean_Pcb()
 {
     DIALOG_CLEANING_OPTIONS dlg( this );
 
-    if( dlg.ShowModal() == wxID_OK )
+    if( dlg.ShowModal() != wxID_OK )
+        return;
+
+    wxBusyCursor( dummy );
+    TRACKS_CLEANER cleaner( GetBoard() );
+    cleaner.SetdeleteUnconnectedTracksOpt( dlg.deleteUnconnectedSegm );
+    cleaner.SetMergeSegmentsOpt( dlg.mergeSegments );
+    cleaner.SetCleanViasOpt( dlg.cleanVias );
+
+    if( cleaner.CleanupBoard() )
     {
-        wxBusyCursor( dummy );
-        TRACKS_CLEANER cleaner( GetBoard() );
-        cleaner.SetdeleteUnconnectedTracksOpt( dlg.deleteUnconnectedSegm );
-        cleaner.SetMergeSegmentsOpt( dlg.mergeSegments );
-        cleaner.SetCleanViasOpt( dlg.cleanVias );
-        if( cleaner.CleanupBoard() )
-        {
-            // Clear undo and redo lists to avoid inconsistencies between lists
-            GetScreen()->ClearUndoRedoList();
-            SetCurItem( NULL );
-            Compile_Ratsnest( NULL, true );
-            OnModify();
-        }
+        // Clear undo and redo lists to avoid inconsistencies between lists
+        GetScreen()->ClearUndoRedoList();
+        SetCurItem( NULL );
+        Compile_Ratsnest( NULL, true );
+        OnModify();
     }
 
     m_canvas->Refresh( true );

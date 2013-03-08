@@ -62,7 +62,6 @@ DIALOG_MODULE_MODULE_EDITOR::DIALOG_MODULE_MODULE_EDITOR( FOOTPRINT_EDIT_FRAME* 
 
     initModeditProperties();
     m_sdbSizerStdButtonsOK->SetDefault();
-    GetSizer()->Fit( this );
     GetSizer()->SetSizeHints( this );
     Centre();
 }
@@ -169,9 +168,9 @@ void DIALOG_MODULE_MODULE_EDITOR::initModeditProperties()
     m_Sizer3DValues->Add( BoxSizer, 0, wxGROW | wxALL, 5 );
 
     // Initialize dialog relative to masks clearances
-    m_NetClearanceUnits->SetLabel( GetUnitsLabel( g_UserUnit ) );
-    m_SolderMaskMarginUnits->SetLabel( GetUnitsLabel( g_UserUnit ) );
-    m_SolderPasteMarginUnits->SetLabel( GetUnitsLabel( g_UserUnit ) );
+    m_NetClearanceUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
+    m_SolderMaskMarginUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
+    m_SolderPasteMarginUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
 
     wxString  msg;
     PutValueInLocalUnits( *m_NetClearanceValueCtrl, m_currentModule->GetLocalClearance() );
@@ -208,6 +207,10 @@ void DIALOG_MODULE_MODULE_EDITOR::initModeditProperties()
         m_3D_ShapeNameListBox->SetSelection( m_lastSelected3DShapeIndex );
         Transfert3DValuesToDisplay( m_shapes3D_list[m_lastSelected3DShapeIndex] );
     }
+
+    // We have modified the UI, so call Fit() for m_Panel3D
+    // to be sure the m_Panel3D sizers are initialized before opening the dialog
+    m_Panel3D->GetSizer()->Fit( m_Panel3D );
 }
 
 

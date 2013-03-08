@@ -606,12 +606,6 @@ void PCB_BASE_FRAME::UpdateStatusBar()
     dXpos = To_User_Unit( g_UserUnit, screen->GetCrossHairPosition().x );
     dYpos = To_User_Unit( g_UserUnit, screen->GetCrossHairPosition().y );
 
-    if ( g_UserUnit == MILLIMETRES )
-    {
-        dXpos = RoundTo0( dXpos, 1000.0 );
-        dYpos = RoundTo0( dYpos, 1000.0 );
-    }
-
     // The following sadly is an if Eeschema/if Pcbnew
     wxString absformatter;
 
@@ -634,6 +628,8 @@ void PCB_BASE_FRAME::UpdateStatusBar()
         break;
 
     case MILLIMETRES:
+        dXpos = RoundTo0( dXpos, 1000.0 );
+        dYpos = RoundTo0( dYpos, 1000.0 );
         absformatter = wxT( "X %.3f  Y %.3f" );
         locformatter = wxT( "dx %.3f  dy %.3f  d %.3f" );
         break;
@@ -656,11 +652,13 @@ void PCB_BASE_FRAME::UpdateStatusBar()
         dXpos = To_User_Unit( g_UserUnit, dx );
         dYpos = To_User_Unit( g_UserUnit, dy );
 
+#ifndef USE_PCBNEW_NANOMETRES
         if ( g_UserUnit == MILLIMETRES )
         {
             dXpos = RoundTo0( dXpos, 1000.0 );
             dYpos = RoundTo0( dYpos, 1000.0 );
         }
+#endif
 
         // We already decided the formatter above
         line.Printf( locformatter, dXpos, dYpos, sqrt( dXpos * dXpos + dYpos * dYpos ) );
@@ -763,16 +761,13 @@ void PCB_BASE_FRAME::updateGridSelectBox()
     m_gridSelectBox->Clear();
 
     wxString msg;
-    wxString format = _( "Grid");
+    wxString format = _( "Grid:");
 
     switch( g_UserUnit )
     {
-    case INCHES:
-        format += wxT( " %.1f" );
-        break;
-
+    case INCHES:    // the grid size is displayed in mils
     case MILLIMETRES:
-        format += wxT( " %.3f" );
+        format += wxT( " %.6f" );
         break;
 
     case UNSCALED_UNITS:
@@ -784,20 +779,13 @@ void PCB_BASE_FRAME::updateGridSelectBox()
     {
         GRID_TYPE& grid = GetScreen()->GetGrid( i );
         double value = To_User_Unit( g_UserUnit, grid.m_Size.x );
+        if( g_UserUnit == INCHES )
+            value *= 1000;
 
         if( grid.m_Id != ID_POPUP_GRID_USER )
         {
-            switch( g_UserUnit )
-            {
-            case INCHES:
-                msg.Printf( format.GetData(), value * 1000 );
-                break;
-
-            case MILLIMETRES:
-            case UNSCALED_UNITS:
-                msg.Printf( format.GetData(), value );
-                break;
-            }
+            msg.Printf( format.GetData(), value );
+            StripTrailingZeros( msg );
         }
         else
             msg = _( "User Grid" );

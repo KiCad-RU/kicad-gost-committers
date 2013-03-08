@@ -347,7 +347,7 @@ static void compute_layer_Zs( BOARD* pcb ) //{{{
 
     /* To avoid rounding interference, we apply an epsilon to each
      * successive layer */
-    const double epsilon_z = 1 * IU_PER_MILS; // That's 1 mils, about 1/50 mm
+    const double epsilon_z = 0.02 * IU_PER_MM; // That's 1/50 mm
     layer_z[SOLDERPASTE_N_BACK]  = -half_thickness - epsilon_z * 4;
     layer_z[ADHESIVE_N_BACK]     = -half_thickness - epsilon_z * 3;
     layer_z[SILKSCREEN_N_BACK]   = -half_thickness - epsilon_z * 2;
@@ -1111,10 +1111,11 @@ static void export_vrml_module( BOARD* aPcb, MODULE* aModule,
             fprintf( aOutputFile, "  rotation %g %g %g %g\n", rot[0], rot[1], rot[2], rot[3] );
         }
 
-        // adjust 3D shape offset position
-        int offsetx = vrmlm->m_MatPosition.x;
-        int offsety = vrmlm->m_MatPosition.y;
-        double offsetz = vrmlm->m_MatPosition.z;
+        // adjust 3D shape local offset position
+        // they are given in inch, so they are converted in board IU.
+        double offsetx = vrmlm->m_MatPosition.x * IU_PER_MILS * 1000.0;
+        double offsety = vrmlm->m_MatPosition.y * IU_PER_MILS * 1000.0;
+        double offsetz = vrmlm->m_MatPosition.z * IU_PER_MILS * 1000.0;
 
         if ( isFlipped )
             NEGATE(offsetz);
@@ -1124,9 +1125,9 @@ static void export_vrml_module( BOARD* aPcb, MODULE* aModule,
         RotatePoint(&offsetx, &offsety, aModule->GetOrientation());
 
         fprintf( aOutputFile, "  translation %g %g %g\n",
-                 (double) (offsetx + aModule->m_Pos.x) * boardIU2WRML,
-                 - (double)(offsety + aModule->m_Pos.y) * boardIU2WRML,    // Y axis is reversed in Pcbnew
-                 offsetz + layer_z[aModule->GetLayer()] * boardIU2WRML);
+                 (offsetx + aModule->m_Pos.x) * boardIU2WRML,
+                 - (offsety + aModule->m_Pos.y) * boardIU2WRML,    // Y axis is reversed in Pcbnew
+                 (offsetz + layer_z[aModule->GetLayer()]) * boardIU2WRML);
 
         fprintf( aOutputFile, "  scale %g %g %g\n",
                  vrmlm->m_MatScale.x * aVRMLModelsToBiu,
