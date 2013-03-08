@@ -53,8 +53,11 @@ public:
                            wxString     aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType, int aRotation );
     virtual void    Flip();
-    void            AddToModule( MODULE* aModule, int aRotation );
+    void            AddToModule( MODULE* aModule, int aRotation, bool aEncapsulatedPad );
     void            AddToBoard();
+
+private:
+    wxString m_defaultPinDes;
 };
 
 } // namespace PCAD2KICAD

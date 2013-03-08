@@ -38,10 +38,11 @@ namespace PCAD2KICAD {
 
 PCB_PAD::PCB_PAD( PCB_CALLBACKS* aCallbacks, BOARD* aBoard ) : PCB_COMPONENT( aCallbacks, aBoard )
 {
-    m_objType      = wxT( 'P' );
-    m_number       = 0;
-    m_hole         = 0;
-    m_isHolePlated = true;
+    m_objType       = wxT( 'P' );
+    m_number        = 0;
+    m_hole          = 0;
+    m_isHolePlated  = true;
+    m_defaultPinDes = wxEmptyString;
 }
 
 
@@ -95,6 +96,26 @@ void PCB_PAD::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
         str = lNode->GetNodeContent();
         str.Trim( false );
         m_rotation = StrToInt1Units( str );
+    }
+
+    lNode = FindNode( aNode, wxT( "netNameRef" ) );
+
+    if( lNode )
+    {
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
+        m_net = propValue;
+        m_netCode = GetNetCode( m_net );
+    }
+
+    lNode = FindNode( aNode, wxT( "defaultPinDes" ) );
+
+    if( lNode )
+    {
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
+        //propValue.Trim( false );
+        m_defaultPinDes = propValue;
     }
 
     lNode = aNode;
@@ -276,7 +297,7 @@ void PCB_PAD::Flip()
 }
 
 
-void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
+void PCB_PAD::AddToModule( MODULE* aModule, int aRotation, bool aEncapsulatedPad )
 {
     PCB_PAD_SHAPE*  padShape;
     wxString        padShapeName = wxT( "Ellipse" );
@@ -285,12 +306,12 @@ void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
     int             width = 0;
     int             height = 0;
 
+    D_PAD* pad = new D_PAD( aModule );
+    aModule->m_Pads.PushBack( pad );
+
     if( !m_isHolePlated && m_hole )
     {
         // mechanical hole
-        D_PAD* pad = new D_PAD( aModule );
-        aModule->m_Pads.PushBack( pad );
-
         pad->SetShape( PAD_CIRCLE );
         pad->SetAttribute( PAD_HOLE_NOT_PLATED );
 
@@ -298,20 +319,10 @@ void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
         pad->SetDrillSize( wxSize( m_hole, m_hole ) );
         pad->SetSize( wxSize( m_hole, m_hole ) );
 
-        // pad's "Position" is not relative to the module's,
-        // whereas Pos0 is relative to the module's but is the unrotated coordinate.
-        wxPoint padpos( m_positionX, m_positionY );
-        pad->SetPos0( padpos );
-        RotatePoint( &padpos, aModule->GetOrientation() );
-        pad->SetPosition( padpos + aModule->GetPosition() );
-
         pad->SetLayerMask( ALL_CU_LAYERS  | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT );
     }
     else
     {
-        D_PAD* pad = new D_PAD( aModule );
-        aModule->m_Pads.PushBack( pad );
-
         ( m_hole ) ? padType = PAD_STANDARD : padType = PAD_SMD;
 
         // form layer mask
@@ -377,7 +388,10 @@ void PCB_PAD::AddToModule( MODULE* aModule, int aRotation )
 
         pad->SetNet( 0 );
         pad->SetNetname( m_net );
+    }
 
+    if( !aEncapsulatedPad )
+    {
         // pad's "Position" is not relative to the module's,
         // whereas Pos0 is relative to the module's but is the unrotated coordinate.
         wxPoint padpos( m_positionX, m_positionY );
@@ -395,44 +409,58 @@ void PCB_PAD::AddToBoard()
     int             width = 0;
     int             height = 0;
 
-    // choose one of the shapes
-    for( i = 0; i < (int) m_shapes.GetCount(); i++ )
+    if( m_objType == wxT( 'V' ) ) // via
     {
-        padShape = m_shapes[i];
-
-        if( padShape->m_width > 0 && padShape->m_height > 0 )
+        // choose one of the shapes
+        for( i = 0; i < (int) m_shapes.GetCount(); i++ )
         {
-            if( padShape->m_KiCadLayer == LAYER_N_FRONT
-                || padShape->m_KiCadLayer == LAYER_N_BACK )
-            {
-                width = padShape->m_width;
-                height = padShape->m_height;
+            padShape = m_shapes[i];
 
-                break;
+            if( padShape->m_width > 0 && padShape->m_height > 0 )
+            {
+                if( padShape->m_KiCadLayer == LAYER_N_FRONT
+                    || padShape->m_KiCadLayer == LAYER_N_BACK )
+                {
+                    width = padShape->m_width;
+                    height = padShape->m_height;
+
+                    break;
+                }
             }
         }
+
+        if( width == 0 || height == 0 )
+            THROW_IO_ERROR( wxT( "pad or via with zero size" ) );
+
+        if( IsValidCopperLayerIndex( m_KiCadLayer ) )
+        {
+            SEGVIA* via = new SEGVIA( m_board );
+            m_board->m_Track.Append( via );
+
+            via->SetTimeStamp( 0 );
+
+            via->SetPosition( wxPoint( m_positionX, m_positionY ) );
+            via->SetEnd( wxPoint( m_positionX, m_positionY ) );
+
+            via->SetWidth( height );
+            via->SetShape( VIA_THROUGH );
+            ( (SEGVIA*) via )->SetLayerPair( LAYER_N_FRONT, LAYER_N_BACK );
+            via->SetDrill( m_hole );
+
+            via->SetLayer( m_KiCadLayer );
+            via->SetNet( m_netCode );
+        }
     }
-
-    if( width == 0 || height == 0 )
-        THROW_IO_ERROR( wxT( "pad or via with zero size" ) );
-
-    if( IsValidCopperLayerIndex( m_KiCadLayer ) )
+    else // pad
     {
-        SEGVIA* via = new SEGVIA( m_board );
-        m_board->m_Track.Append( via );
+        MODULE* module = new MODULE( m_board );
+        m_board->Add( module, ADD_APPEND );
 
-        via->SetTimeStamp( 0 );
+        m_name.text = m_defaultPinDes;
 
-        via->SetPosition( wxPoint( m_positionX, m_positionY ) );
-        via->SetEnd( wxPoint( m_positionX, m_positionY ) );
+        module->SetPosition( wxPoint( m_positionX, m_positionY ) );
+        AddToModule( module, 0, true );
 
-        via->SetWidth( height );
-        via->SetShape( VIA_THROUGH );
-        ( (SEGVIA*) via )->SetLayerPair( LAYER_N_FRONT, LAYER_N_BACK );
-        via->SetDrill( m_hole );
-
-        via->SetLayer( m_KiCadLayer );
-        via->SetNet( m_netCode );
     }
 }
 

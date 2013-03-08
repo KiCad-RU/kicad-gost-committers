@@ -687,14 +687,14 @@ void PCB_MODULE::AddToBoard()
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
         if( m_moduleObjects[i]->m_objType == wxT( 'P' ) )
-            ( (PCB_PAD*) m_moduleObjects[i] )->AddToModule( module, m_rotation );
+            ( (PCB_PAD*) m_moduleObjects[i] )->AddToModule( module, m_rotation, false );
     }
 
     // VIAS
     for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
     {
         if( m_moduleObjects[i]->m_objType == wxT( 'V' ) )
-            ( (PCB_VIA*) m_moduleObjects[i] )->AddToModule( module, m_rotation );
+            ( (PCB_VIA*) m_moduleObjects[i] )->AddToModule( module, m_rotation, false );
     }
 
     module->CalculateBoundingBox();
