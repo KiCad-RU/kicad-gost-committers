@@ -114,16 +114,6 @@ void PCB_LINE::Flip()
 }
 
 
-void PCB_LINE::WriteToFile( wxFile* aFile, char aFileType )
-{
-    if( aFileType == wxT( 'L' ) )    // Library
-    {
-        aFile->Write( wxString::Format( wxT( "DS %d %d %d %d %d %d\n" ), m_positionX, m_positionY,
-                                        m_toX, m_toY, m_width, m_KiCadLayer ) );    // Position
-    }
-}
-
-
 void PCB_LINE::AddToModule( MODULE* aModule )
 {
     if( IsValidNonCopperLayerIndex( m_KiCadLayer ) )

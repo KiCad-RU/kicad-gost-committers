@@ -51,7 +51,6 @@ public:
     virtual void    Parse( XNODE*       aNode,
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );
-    virtual void    WriteToFile( wxFile* aFile, char aFileType, int aRotation );
     virtual void    Flip();
     void            AddToModule( MODULE* aModule, int aRotation, bool aEncapsulatedPad );
     void            AddToBoard();

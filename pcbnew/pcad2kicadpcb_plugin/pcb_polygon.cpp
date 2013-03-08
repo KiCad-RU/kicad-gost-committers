@@ -155,16 +155,6 @@ bool PCB_POLYGON::Parse( XNODE*         aNode,
 }
 
 
-void PCB_POLYGON::WriteToFile( wxFile* aFile, char aFileType )
-{
-}
-
-
-void PCB_POLYGON::WriteOutlineToFile( wxFile* aFile, char aFileType )
-{
-}
-
-
 void PCB_POLYGON::AddToModule( MODULE* aModule )
 {
 }
