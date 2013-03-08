@@ -31,18 +31,7 @@
 #include <gr_basic.h>
 #include <class_drawpanel.h>
 #include <wxEeschemaStruct.h>
-#include <base_units.h>
-
 #include <general.h>
-#include <class_library.h>
-#include <sch_bus_entry.h>
-#include <sch_component.h>
-#include <sch_junction.h>
-#include <sch_line.h>
-#include <sch_no_connect.h>
-#include <sch_polyline.h>
-#include <sch_sheet.h>
-#include <sch_sheet_path.h>
 
 
 void DrawDanglingSymbol( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& pos, EDA_COLOR_T Color )
@@ -72,7 +61,7 @@ void SCH_EDIT_FRAME::RedrawActiveWindow( wxDC* DC, bool EraseBg )
     GetScreen()->Draw( m_canvas, DC, GR_DEFAULT_DRAWMODE );
 
     TraceWorkSheet( DC, GetScreen(), GetDefaultLineThickness(), IU_PER_MILS,
-                    GetScreenDesc() );
+                    GetScreen()->GetFileName() );
 
 #ifdef USE_WX_OVERLAY
     if( IsShown() )

@@ -59,16 +59,9 @@ class PLOTTER
 public:
     static const int DEFAULT_LINE_WIDTH = -1;
 
-    PLOTTER( );
+    PLOTTER();
 
-    virtual ~PLOTTER()
-    {
-        // Emergency cleanup
-        if( outputFile )
-        {
-            fclose( outputFile );
-        }
-    }
+    virtual ~PLOTTER();
 
     /**
      * Returns the effective plot engine in use. It's not very OO but for
@@ -134,7 +127,7 @@ public:
      * 		transfers or some kind of film)
      */
     virtual void SetViewport( const wxPoint& aOffset, double aIusPerDecimil,
-	    double aScale, bool aMirror ) = 0;
+        double aScale, bool aMirror ) = 0;
 
     /**
      * Open or create the plot file aFullFilename
@@ -201,7 +194,7 @@ public:
      * @param aWidth = line width
      */
     virtual void PlotPoly( const std::vector< wxPoint >& aCornerList, FILL_T aFill,
-			   int aWidth = DEFAULT_LINE_WIDTH ) = 0;
+               int aWidth = DEFAULT_LINE_WIDTH ) = 0;
 
     /**
      * Function PlotImage
@@ -286,7 +279,7 @@ public:
      */
     virtual void SetTextMode( PlotTextMode mode )
     {
-	// NOP for most plotters
+    // NOP for most plotters
     }
 
 protected:
@@ -397,9 +390,9 @@ public:
     }
 
     virtual void SetViewport( const wxPoint& aOffset, double aIusPerDecimil,
-			      double aScale, bool aMirror );
+                  double aScale, bool aMirror );
     virtual void Rect( const wxPoint& p1, const wxPoint& p2, FILL_T fill,
-		       int width = DEFAULT_LINE_WIDTH );
+               int width = DEFAULT_LINE_WIDTH );
     virtual void Circle( const wxPoint& pos, int diametre, FILL_T fill,
                          int width = DEFAULT_LINE_WIDTH );
     virtual void PlotPoly( const std::vector< wxPoint >& aCornerList,
@@ -539,13 +532,13 @@ public:
     virtual void SetDash( bool dashed );
 
     virtual void SetViewport( const wxPoint& aOffset, double aIusPerDecimil,
-			      double aScale, bool aMirror );
+                  double aScale, bool aMirror );
     virtual void Rect( const wxPoint& p1, const wxPoint& p2, FILL_T fill,
                        int width = DEFAULT_LINE_WIDTH );
     virtual void Circle( const wxPoint& pos, int diametre, FILL_T fill,
                          int width = DEFAULT_LINE_WIDTH );
     virtual void Arc( const wxPoint& centre, int StAngle, int EndAngle,
-		      int rayon, FILL_T fill, int width = DEFAULT_LINE_WIDTH );
+              int rayon, FILL_T fill, int width = DEFAULT_LINE_WIDTH );
 
     virtual void PlotPoly( const std::vector< wxPoint >& aCornerList,
                            FILL_T aFill, int aWidth = DEFAULT_LINE_WIDTH );
@@ -606,13 +599,13 @@ public:
      * with the outputFile open (but not inside a page stream!) */
     virtual void SetPageSettings( const PAGE_INFO& aPageSettings );
     virtual void SetViewport( const wxPoint& aOffset, double aIusPerDecimil,
-			      double aScale, bool aMirror );
+                  double aScale, bool aMirror );
     virtual void Rect( const wxPoint& p1, const wxPoint& p2, FILL_T fill,
                        int width = DEFAULT_LINE_WIDTH );
     virtual void Circle( const wxPoint& pos, int diametre, FILL_T fill,
                          int width = DEFAULT_LINE_WIDTH );
     virtual void Arc( const wxPoint& centre, int StAngle, int EndAngle,
-		      int rayon, FILL_T fill, int width = DEFAULT_LINE_WIDTH );
+              int rayon, FILL_T fill, int width = DEFAULT_LINE_WIDTH );
 
     virtual void PlotPoly( const std::vector< wxPoint >& aCornerList,
                            FILL_T aFill, int aWidth = DEFAULT_LINE_WIDTH);
@@ -673,13 +666,13 @@ public:
     virtual void SetDash( bool dashed );
 
     virtual void SetViewport( const wxPoint& aOffset, double aIusPerDecimil,
-			      double aScale, bool aMirror );
+                  double aScale, bool aMirror );
     virtual void Rect( const wxPoint& p1, const wxPoint& p2, FILL_T fill,
                        int width = DEFAULT_LINE_WIDTH );
     virtual void Circle( const wxPoint& pos, int diametre, FILL_T fill,
                          int width = DEFAULT_LINE_WIDTH );
     virtual void Arc( const wxPoint& centre, int StAngle, int EndAngle,
-		      int rayon, FILL_T fill, int width = DEFAULT_LINE_WIDTH );
+              int rayon, FILL_T fill, int width = DEFAULT_LINE_WIDTH );
 
     virtual void PlotPoly( const std::vector< wxPoint >& aCornerList,
                            FILL_T aFill, int aWidth = DEFAULT_LINE_WIDTH );
@@ -782,7 +775,7 @@ public:
     virtual void SetDash( bool dashed ) {};
     virtual void SetColor( EDA_COLOR_T color ) {};
     virtual void SetViewport( const wxPoint& aOffset, double aIusPerDecimil,
-	                      double aScale, bool aMirror );
+                          double aScale, bool aMirror );
     virtual void Rect( const wxPoint& p1, const wxPoint& p2, FILL_T fill,
                        int width = DEFAULT_LINE_WIDTH );
     virtual void Circle( const wxPoint& pos, int diametre, FILL_T fill,
@@ -810,7 +803,7 @@ protected:
     void emitDcode( const DPOINT& pt, int dcode );
 
     std::vector<APERTURE>::iterator
-	getAperture( const wxSize& size, APERTURE::APERTURE_TYPE type );
+    getAperture( const wxSize& size, APERTURE::APERTURE_TYPE type );
 
     FILE* workFile;
     FILE* finalFile;
@@ -868,7 +861,7 @@ public:
     virtual void SetColor( EDA_COLOR_T color );
 
     virtual void SetViewport( const wxPoint& aOffset, double aIusPerDecimil,
-			      double aScale, bool aMirror );
+                  double aScale, bool aMirror );
     virtual void Rect( const wxPoint& p1, const wxPoint& p2, FILL_T fill,
                        int width = DEFAULT_LINE_WIDTH );
     virtual void Circle( const wxPoint& pos, int diametre, FILL_T fill,

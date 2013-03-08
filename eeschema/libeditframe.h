@@ -439,13 +439,24 @@ private:
     void SelectActiveLibrary( CMP_LIBRARY* aLibrary = NULL );
 
     /**
-     * Function SaveActiveLibrary
+     * Function OnSaveActiveLibrary
      * it the command event handler to save the changes to the current library.
      *
      * A backup file of the current library is saved with the .bak extension before the
      * changes made to the library are saved.
      */
-    void SaveActiveLibrary( wxCommandEvent& event );
+    void OnSaveActiveLibrary( wxCommandEvent& event );
+
+    /**
+     * Function SaveActiveLibrary
+     * saves the changes to the current library.
+     *
+     * A backup file of the current library is saved with the .bak extension before the
+     * changes made to the library are saved.
+     * @param newFile Ask for a new file name to save the library.
+     * @return True if the library was successfully saved.
+     */
+    bool SaveActiveLibrary( bool newFile );
 
     /**
      * Function LoadComponentFromCurrentLib
@@ -584,7 +595,12 @@ public:
      */
     virtual bool HandleBlockEnd( wxDC* DC );
 
-    void PlacePin( wxDC* DC );
+    /**
+     * Function PlacePin
+     * Place at cursor location the pin currently moved (i.e. pin pointed by m_drawItem)
+     * (and the linked pins, if any)
+     */
+    void PlacePin();
 
     /**
      * Function GlobalSetPins

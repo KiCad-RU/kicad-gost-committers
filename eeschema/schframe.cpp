@@ -652,8 +652,6 @@ void SCH_EDIT_FRAME::OnFindItems( wxCommandEvent& aEvent )
     wxCHECK_RET( m_findReplaceData != NULL,
                  wxT( "Forgot to create find/replace data.  Bad Programmer!" ) );
 
-    this->GetCanvas()->SetIgnoreMouseEvents( true );
-
     if( m_dlgFindReplace )
     {
         delete m_dlgFindReplace;
@@ -702,8 +700,6 @@ void SCH_EDIT_FRAME::OnFindDialogClose( wxFindDialogEvent& event )
         m_dlgFindReplace->Destroy();
         m_dlgFindReplace = NULL;
     }
-
-    m_canvas->SetIgnoreMouseEvents( false );
 }
 
 
@@ -856,7 +852,7 @@ void SCH_EDIT_FRAME::PrintPage( wxDC* aDC, int aPrintMask, bool aPrintMirrorMode
 {
     GetScreen()->Draw( m_canvas, aDC, GR_DEFAULT_DRAWMODE );
     TraceWorkSheet( aDC, GetScreen(), GetDefaultLineThickness(), IU_PER_MILS,
-                    GetScreenDesc() );
+                    GetScreen()->GetFileName() );
 }
 
 
