@@ -370,7 +370,7 @@ add_subdirectory(tools)
 #add_subdirectory(new)
 
 #if (USE_PCAD2KICAD)
-add_subdirectory(pcad2kicad)
+add_subdirectory(extra/pcad2kicadsch)
 #endif(USE_PCAD2KICAD)
 
 #############
