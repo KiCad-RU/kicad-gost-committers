@@ -58,7 +58,7 @@ IMPLEMENT_APP( EDA_APP )
 
 bool EDA_APP::OnInit()
 {
-    InitEDA_Appl( wxT( "PCadToKiCad - PCad 200x ASCII to KiCad conversion utility" ) );
+    InitEDA_Appl( wxT( "pcad2kicadsch" ) );
 
     wxFrame* frame = new PCAD2KICAD_FRAME( NULL );
     SetTopWindow( frame );

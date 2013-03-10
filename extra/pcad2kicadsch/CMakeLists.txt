@@ -9,23 +9,9 @@ include_directories(
     ${INC_AFTER}
     )
 
-set(PCAD2KICAD_SRCS
+set(PCAD2KICADSCH_SRCS
     pcad2kicad.cpp
     pcad2kicad_frame.cpp
-#    pcb.cpp
-#    pcb_arc.cpp
-#    pcb_component.cpp
-#    pcb_copper_pour.cpp
-#    pcb_cutout.cpp
-#    pcb_line.cpp
-#    pcb_module.cpp
-#    pcb_net.cpp
-#    pcb_pad.cpp
-#    pcb_pad_shape.cpp
-#    pcb_polygon.cpp
-#    pcb_text.cpp
-#    pcb_via.cpp
-#    pcb_via_shape.cpp
     ../../pcbnew/pcad2kicadpcb_plugin/s_expr_loader.cpp
     sch.cpp
     sch_arc.cpp
@@ -45,43 +31,43 @@ set(PCAD2KICAD_SRCS
 
 if(WIN32)
     if(MINGW)
-        # PCAD2KICAD_RESOURCES variable is set by the macro.
-        mingw_resource_compiler(pcad2kicad)
+        # PCAD2KICADSCH_RESOURCES variable is set by the macro.
+        mingw_resource_compiler(pcad2kicadsch)
     else(MINGW)
-        set(PCAD2KICAD_RESOURCES pcad2kicad.rc)
+        set(PCAD2KICADSCH_RESOURCES pcad2kicad.rc)
     endif(MINGW)
 endif(WIN32)
 
 
 if(APPLE)
-    set(PCAD2KICAD_RESOURCES pcad2kicad.icns)
-    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/pcad2kicad.icns"
+    set(PCAD2KICADSCH_RESOURCES pcad2kicadsch.icns)
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/pcad2kicadsch.icns"
                                 PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-    set(MACOSX_BUNDLE_ICON_FILE pcad2kicad.icns)
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.pcad2kicad)
+    set(MACOSX_BUNDLE_ICON_FILE pcad2kicadsch.icns)
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.pcad2kicadsch)
     set(MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
 endif(APPLE)
 
 
-add_executable(pcad2kicad WIN32 MACOSX_BUNDLE
-    ${PCAD2KICAD_SRCS}
-    ${PCAD2KICAD_RESOURCES}
+add_executable(pcad2kicadsch WIN32 MACOSX_BUNDLE
+    ${PCAD2KICADSCH_SRCS}
+    ${PCAD2KICADSCH_RESOURCES}
     )
 
 
 if(APPLE)
-    set_target_properties(pcad2kicad PROPERTIES MACOSX_BUNDLE_INFO_PLIST
+    set_target_properties(pcad2kicadsch PROPERTIES MACOSX_BUNDLE_INFO_PLIST
         ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
 endif(APPLE)
 
-target_link_libraries(pcad2kicad
+target_link_libraries(pcad2kicadsch
     common
     bitmaps
     polygon
     ${wxWidgets_LIBRARIES}
     )
 
-install(TARGETS pcad2kicad
+install(TARGETS pcad2kicadsch
         DESTINATION ${KICAD_BIN}
         COMPONENT binary)
 

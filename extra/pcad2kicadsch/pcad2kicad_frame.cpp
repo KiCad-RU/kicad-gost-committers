@@ -39,6 +39,9 @@
 
 #include <s_expr_loader.h>
 #include <sch.h>
+#include <appl_wxstruct.h>
+#include <build_version.h>
+#include <wx/aboutdlg.h>
 
 using namespace PCAD2KICAD;
 
@@ -115,12 +118,19 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
 
 
 PCAD2KICAD_FRAME::PCAD2KICAD_FRAME( wxWindow* parent ) :
-    PCAD2KICAD_FRAME_BASE( parent )
+    PCAD2KICAD_FRAME_BASE( parent, wxID_ANY, wxGetApp().GetTitle() + wxT(" ") + GetBuildVersion() )
 {
     // Give an icon
     // wxIcon icon;
     // icon.CopyFromBitmap( KiBitmap( icon_pcad2kicad_xpm ) );
     // SetIcon( icon );
+
+    wxMenu *menu_help = new wxMenu;
+    menu_help->Append( wxID_ABOUT, wxT( "&About pcad2kicadsch ..." ) );
+    m_menubar->Append( menu_help, wxT( "&Help" ) );
+
+    Connect( wxID_ABOUT, wxEVT_COMMAND_MENU_SELECTED,
+             wxCommandEventHandler( PCAD2KICAD_FRAME::OnAbout ) );
 
     GetSizer()->SetSizeHints( this );
 
@@ -131,6 +141,35 @@ PCAD2KICAD_FRAME::PCAD2KICAD_FRAME( wxWindow* parent ) :
         Centre();
 }
 
+void PCAD2KICAD_FRAME::OnAbout( wxCommandEvent& event )
+{
+    wxAboutDialogInfo info;
+
+    wxString description;
+    description
+        << wxT( "An utility which allows schematic capture and schematic library file conversion "
+                "from P-CAD 200x ASCII to KiCad." );
+
+    wxString copyright;
+    copyright
+        << wxT( "(C) 2007, 2008 Lubo Racko <developer@lura.sk>\n" )
+        << wxT( "(C) 2007, 2008, 2012-2013 Alexander Lunev <al.lunev@yahoo.com>\n" )
+        << wxT( "(C) 1992-2013 KiCad Developers" );
+
+    wxString license;
+    license
+        << wxT( "GNU General Public License (GPL) version 2\n" )
+        << wxT( "http://www.gnu.org/licenses" );
+
+    info.SetVersion( GetBuildVersion() );
+    info.SetDescription( description );
+    info.SetCopyright( copyright );
+    info.SetLicense( license );
+
+    info.SetWebSite( wxT( "https://code.launchpad.net/~pcad2kicad-committers/kicad/pcad2kicad" ) );
+
+    wxAboutBox(info);
+}
 
 PCAD2KICAD_FRAME::~PCAD2KICAD_FRAME()
 {

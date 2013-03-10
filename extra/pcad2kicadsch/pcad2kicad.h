@@ -48,8 +48,9 @@ public:
 private:
 
     // Event handlers
-    void    OnLib( wxCommandEvent& event );
-    void    OnSch( wxCommandEvent& event );
+    void OnLib( wxCommandEvent& event );
+    void OnSch( wxCommandEvent& event );
+    void OnAbout( wxCommandEvent& event );
 };
 
 #endif    // PCAD2KICAD_H
