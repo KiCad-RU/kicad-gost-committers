@@ -34,7 +34,7 @@ if(WIN32)
         # PCAD2KICADSCH_RESOURCES variable is set by the macro.
         mingw_resource_compiler(pcad2kicadsch)
     else(MINGW)
-        set(PCAD2KICADSCH_RESOURCES pcad2kicad.rc)
+        set(PCAD2KICADSCH_RESOURCES pcad2kicadsch.rc)
     endif(MINGW)
 endif(WIN32)
 
