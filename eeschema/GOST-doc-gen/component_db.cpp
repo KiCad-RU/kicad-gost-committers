@@ -26,13 +26,15 @@
  * @file component_db.cpp
  */
 
+#include <wxEeschemaStruct.h>
+#include <math.h>
+#include <general.h>
+#include <sch_sheet.h>
+#include <template_fieldnames.h>
 
 #include <component_db.h>
 #include <oo_component_index.hxx>
 #include <oo_specification.hxx>
-#include <math.h>
-#include <sch_sheet.h>
-#include <template_fieldnames.h>
 
 namespace GOST_DOC_GEN {
 
@@ -193,10 +195,15 @@ void COMPONENT_DB::LoadFromKiCad()
     SCH_SHEET_LIST  sheetList;
     wxString        str;
     COMPONENT*      pComp;
+    SCH_FIELD*      pSch_field;
 
     sheetList.GetComponents( m_cmplist, false );
 
     unsigned int index = 0;
+
+    TITLE_BLOCK tb = g_RootSheet->GetScreen()->GetTitleBlock();
+    DesignName = tb.GetTitle();
+    Designation = tb.GetComment1();
 
     while( index < m_cmplist.GetCount() )
     {
@@ -209,11 +216,33 @@ void COMPONENT_DB::LoadFromKiCad()
         pComp->m_RefDes = m_cmplist[index].GetRef();
         pComp->m_SortingRefDes = str;
 
-        if( component->GetFieldCount() > FIELD1 )
-            pComp->m_KiCadAttrs[ATTR_NAME].value_of_attr = component->GetField( FIELD1 )->GetText();
-
         pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr  = component->GetLibName();
-        pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = component->GetField( VALUE )->GetText();
+
+        if( component->GetField( VALUE )->GetText() == wxT( "~" ) )
+            pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = wxEmptyString;
+        else
+            pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = component->GetField( VALUE )->GetText();
+
+        if ( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
+            pComp->m_KiCadAttrs[ATTR_NAME].value_of_attr = pSch_field->GetText();
+
+        if ( ( pSch_field = component->FindField( wxT( "Type" ) ) ) )
+            pComp->m_KiCadAttrs[ATTR_TYPE1].value_of_attr = pSch_field->GetText();
+
+        if ( ( pSch_field = component->FindField( wxT( "SType" ) ) ) )
+            pComp->m_KiCadAttrs[ATTR_SUBTYPE].value_of_attr = pSch_field->GetText();
+
+        if ( ( pSch_field = component->FindField( wxT( "Precision" ) ) ) )
+            pComp->m_KiCadAttrs[ATTR_PRECISION].value_of_attr = pSch_field->GetText();
+
+        if ( ( pSch_field = component->FindField( wxT( "Note" ) ) ) )
+            pComp->m_KiCadAttrs[ATTR_NOTE].value_of_attr = pSch_field->GetText();
+
+        if ( ( pSch_field = component->FindField( wxT( "Designation" ) ) ) )
+            pComp->m_KiCadAttrs[ATTR_DESIGNATION].value_of_attr = pSch_field->GetText();
+
+        if ( ( pSch_field = component->FindField( wxT( "Manufacturer" ) ) ) )
+            pComp->m_KiCadAttrs[ATTR_MANUFACTURER].value_of_attr = pSch_field->GetText();
 
         m_AllComponents.Add( pComp );
         index++;
