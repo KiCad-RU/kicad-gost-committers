@@ -745,6 +745,9 @@ private:
     void OnErc( wxCommandEvent& event );
     void OnCreateNetlist( wxCommandEvent& event );
     void OnCreateBillOfMaterials( wxCommandEvent& event );
+#if defined(USE_GOST_DOC_GEN)
+    void OnGOSTTools( wxCommandEvent& );
+#endif
     void OnFindItems( wxCommandEvent& event );
     void OnFindDialogClose( wxFindDialogEvent& event );
     void OnFindDrcMarker( wxFindDialogEvent& event );

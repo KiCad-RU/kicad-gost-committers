@@ -1,7 +1,6 @@
-/*
- * This program source code file is part of KiCad, a free EDA CAD application.
+/* This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2013 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2013 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -23,36 +22,28 @@
  */
 
 /**
- * @file dictionaries.h
+ * @file GOST_comp_lister.h
  */
 
-#ifndef DICTIONARIES_H
-#define DICTIONARIES_H
+#ifndef _GOST_COMP_LISTER_H_
+#define _GOST_COMP_LISTER_H_
 
-#include <wx/wx.h>
+#include <netlist.h>
 
 namespace GOST_DOC_GEN {
+    class COMPONENT_DB;
+}
 
-#define DICTIONARY_SIZE    16
-#define UNITS_MATRIX_SIZE  17
-
-typedef struct _TDICTIONARY_ITEM
+class GOST_COMP_LISTER
 {
-    wxString    singular_form;
-    wxString    plural_form;
-    wxString    singular_genetive_form;
-    wxString    plural_genetive_form;
-} TDICTIONARY_ITEM, * pTDICTIONARY_ITEM;
+private:
+    GOST_DOC_GEN::COMPONENT_DB* m_componentDB;
 
-typedef struct _TMEASURE_UNIT
-{
-    wxString    unit;
-    int         exp;
-} TMEASURE_UNIT, * pTMEASURE_UNIT;
+public:
+    GOST_COMP_LISTER();
+    ~GOST_COMP_LISTER();
 
-extern TDICTIONARY_ITEM dictionary[];
-extern TMEASURE_UNIT meas_units_matrix[];
+    void GetList();
+};
 
-} // namespace GOST_DOC_GEN
-
-#endif    // DICTIONARIES_H
+#endif    // _GOST_COMP_LISTER_H_

@@ -61,6 +61,9 @@
 #include <build_version.h>
 #include <wildcards_and_files_ext.h>
 
+#if defined(USE_GOST_DOC_GEN)
+#include <GOST-doc-gen/GOST_comp_lister.h>
+#endif
 
 
 BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
@@ -119,6 +122,9 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( ID_GET_ERC, SCH_EDIT_FRAME::OnErc )
     EVT_TOOL( ID_GET_NETLIST, SCH_EDIT_FRAME::OnCreateNetlist )
     EVT_TOOL( ID_GET_TOOLS, SCH_EDIT_FRAME::OnCreateBillOfMaterials )
+#if defined(USE_GOST_DOC_GEN)
+    EVT_TOOL( ID_GOST_TOOLS, SCH_EDIT_FRAME::OnGOSTTools )
+#endif
     EVT_TOOL( ID_FIND_ITEMS, SCH_EDIT_FRAME::OnFindItems )
     EVT_TOOL( wxID_REPLACE, SCH_EDIT_FRAME::OnFindItems )
     EVT_TOOL( ID_BACKANNO_ITEMS, SCH_EDIT_FRAME::OnLoadCmpToFootprintLinkFile )
@@ -646,6 +652,13 @@ void SCH_EDIT_FRAME::OnCreateBillOfMaterials( wxCommandEvent& )
     dlg->Destroy();
 }
 
+#if defined(USE_GOST_DOC_GEN)
+void SCH_EDIT_FRAME::OnGOSTTools( wxCommandEvent& )
+{
+    GOST_COMP_LISTER GOST_comp_lister;
+    GOST_comp_lister.GetList();
+}
+#endif
 
 void SCH_EDIT_FRAME::OnFindItems( wxCommandEvent& aEvent )
 {

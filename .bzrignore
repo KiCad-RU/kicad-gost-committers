@@ -37,3 +37,4 @@ bitmaps_png/png*
 bitmaps_png/tmp
 common/pcb_keywords.cpp
 include/pcb_lexer.h
+include/openoffice

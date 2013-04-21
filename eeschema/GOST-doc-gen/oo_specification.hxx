@@ -23,36 +23,14 @@
  */
 
 /**
- * @file dictionaries.h
+ * @file oo_specification.hxx
  */
 
-#ifndef DICTIONARIES_H
-#define DICTIONARIES_H
-
-#include <wx/wx.h>
+#ifndef OO_SPECIFICATION_HXX
+#define OO_SPECIFICATION_HXX
 
 namespace GOST_DOC_GEN {
+    extern bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB );
+}
 
-#define DICTIONARY_SIZE    16
-#define UNITS_MATRIX_SIZE  17
-
-typedef struct _TDICTIONARY_ITEM
-{
-    wxString    singular_form;
-    wxString    plural_form;
-    wxString    singular_genetive_form;
-    wxString    plural_genetive_form;
-} TDICTIONARY_ITEM, * pTDICTIONARY_ITEM;
-
-typedef struct _TMEASURE_UNIT
-{
-    wxString    unit;
-    int         exp;
-} TMEASURE_UNIT, * pTMEASURE_UNIT;
-
-extern TDICTIONARY_ITEM dictionary[];
-extern TMEASURE_UNIT meas_units_matrix[];
-
-} // namespace GOST_DOC_GEN
-
-#endif    // DICTIONARIES_H
+#endif    // OO_SPECIFICATION_HXX

@@ -222,6 +222,9 @@ enum main_id
 
     ID_GET_NETLIST,
     ID_GET_TOOLS,
+#if defined(USE_GOST_DOC_GEN)
+    ID_GOST_TOOLS,
+#endif
     ID_FIND_ITEMS,
 
     ID_EDA_SOCKET_EVENT_SERV,

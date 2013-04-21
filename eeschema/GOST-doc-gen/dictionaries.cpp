@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2007-2013 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -27,6 +27,8 @@
  */
 
 #include <dictionaries.h>
+
+namespace GOST_DOC_GEN {
 
 TDICTIONARY_ITEM dictionary[DICTIONARY_SIZE] =
 {
@@ -148,3 +150,5 @@ TMEASURE_UNIT meas_units_matrix[UNITS_MATRIX_SIZE] =
     { wxT( "н" ),    -9 },
     { wxT( "М" ),     6 }
 };
+
+} // namespace GOST_DOC_GEN

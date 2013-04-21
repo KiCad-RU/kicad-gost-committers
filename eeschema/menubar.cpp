@@ -494,6 +494,15 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                  HELP_GENERATE_BOM,
                  KiBitmap( bom_xpm ) );
 
+#if defined(USE_GOST_DOC_GEN)
+    // GOST tools
+    AddMenuItem( toolsMenu,
+                 ID_GOST_TOOLS,
+                 _( "GOST Tools" ),
+                 HELP_GOST_TOOLS,
+                 KiBitmap( bom_xpm ) );
+#endif
+
     // Separator
     toolsMenu->AppendSeparator();
 

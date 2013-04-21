@@ -26,6 +26,7 @@ option(USE_PCBNEW_NANOMETRES
 # Russian GOST patch
 option(wxUSE_UNICODE "enable/disable building unicode (default OFF)")
 option(KICAD_GOST "enable/disable building using GOST notation for multiple gates per package (default OFF)")
+option(USE_GOST_DOC_GEN "enable/disable building GOST document generator (default OFF)")
 
 #for those who bored with uppercase
 option(KICAD_KEEPCASE "turn-off automatic component name conversion to uppercase if selected")
@@ -163,6 +164,10 @@ endif()
 
 if(KICAD_GOST)
     add_definitions(-DKICAD_GOST)
+endif()
+
+if(USE_GOST_DOC_GEN)
+    add_definitions(-DUSE_GOST_DOC_GEN)
 endif()
 
 if(KICAD_KEEPCASE)

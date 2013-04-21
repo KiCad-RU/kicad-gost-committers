@@ -23,36 +23,32 @@
  */
 
 /**
- * @file dictionaries.h
+ * @file common_funcs.h
  */
 
-#ifndef DICTIONARIES_H
-#define DICTIONARIES_H
+#ifndef COMMONFUNCS_H
+#define COMMONFUNCS_H
 
 #include <wx/wx.h>
 
 namespace GOST_DOC_GEN {
 
-#define DICTIONARY_SIZE    16
-#define UNITS_MATRIX_SIZE  17
+#define SPLIT_COMMA_ENA 0x0001
+#define SPLIT_DOT_ENA   0x0002
 
-typedef struct _TDICTIONARY_ITEM
-{
-    wxString    singular_form;
-    wxString    plural_form;
-    wxString    singular_genetive_form;
-    wxString    plural_genetive_form;
-} TDICTIONARY_ITEM, * pTDICTIONARY_ITEM;
+WX_DEFINE_ARRAY_INT( int, INT_ARRAY );
 
-typedef struct _TMEASURE_UNIT
-{
-    wxString    unit;
-    int         exp;
-} TMEASURE_UNIT, * pTMEASURE_UNIT;
-
-extern TDICTIONARY_ITEM dictionary[];
-extern TMEASURE_UNIT meas_units_matrix[];
+int     FindOneOf( wxString aScannedStr, wxString aTokens );
+int     FindFrom( wxString aScannedStr, wxString aToken, int aStart_pos );
+bool    DefineRefDesPrefix( wxString aIn, wxString* aResult );
+long    RefDesPostfix( wxString aIn );
+void    SplitString( wxString aIn, wxArrayString* aResult, int aMax_len, int aSplit_ena );
+void    ExtractLetterDigitSets( wxString aIn_str, wxArrayString* aSets );
+bool    DoesStringExist( wxArrayString* aString_array, wxString aStr );
+void    FormRefDesFromStringArray( wxArrayString* aString_array, wxString* aResult );
+void    SortCByteArray( INT_ARRAY* aArr );
+void    StringInsert( wxString* aStr, wxString aIns, int aPos );
 
 } // namespace GOST_DOC_GEN
 
-#endif    // DICTIONARIES_H
+#endif    // COMMONFUNCS_H

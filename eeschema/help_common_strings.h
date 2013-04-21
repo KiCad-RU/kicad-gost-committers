@@ -53,6 +53,11 @@
 #define HELP_RUN_LIB_EDITOR _( "Library editor - Create and edit components" )
 #define HELP_RUN_LIB_VIEWER _( "Library browser - Browse components" )
 #define HELP_GENERATE_BOM _( "Generate bill of materials and/or cross references" )
+
+#if defined(USE_GOST_DOC_GEN)
+#define HELP_GOST_TOOLS _( "GOST tools" )
+#endif
+
 #define HELP_IMPORT_FOOTPRINTS \
     _( "Import the footprint selection from CvPcb (the .cmp file)\n\
 in component footprint fields" )

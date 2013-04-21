@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2013 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2013 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -23,36 +23,34 @@
  */
 
 /**
- * @file dictionaries.h
+ * @file GOST_comp_lister.cpp
  */
 
-#ifndef DICTIONARIES_H
-#define DICTIONARIES_H
+#include <GOST_comp_lister.h>
+#include <component_db.h>
 
-#include <wx/wx.h>
+using namespace GOST_DOC_GEN;
 
-namespace GOST_DOC_GEN {
-
-#define DICTIONARY_SIZE    16
-#define UNITS_MATRIX_SIZE  17
-
-typedef struct _TDICTIONARY_ITEM
+GOST_COMP_LISTER::GOST_COMP_LISTER()
 {
-    wxString    singular_form;
-    wxString    plural_form;
-    wxString    singular_genetive_form;
-    wxString    plural_genetive_form;
-} TDICTIONARY_ITEM, * pTDICTIONARY_ITEM;
+    m_componentDB = new COMPONENT_DB();
+}
 
-typedef struct _TMEASURE_UNIT
+
+GOST_COMP_LISTER::~GOST_COMP_LISTER()
 {
-    wxString    unit;
-    int         exp;
-} TMEASURE_UNIT, * pTMEASURE_UNIT;
+    delete m_componentDB;
+}
 
-extern TDICTIONARY_ITEM dictionary[];
-extern TMEASURE_UNIT meas_units_matrix[];
 
-} // namespace GOST_DOC_GEN
+void GOST_COMP_LISTER::GetList()
+{
+    m_componentDB->LoadFromKiCad();
 
-#endif    // DICTIONARIES_H
+    wxExecute( wxT(
+        "soffice -invisible -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
+                  ), wxEXEC_ASYNC );
+
+    m_componentDB->OO_GenerateComponentIndex();
+    m_componentDB->OO_GenerateSpecification();
+}

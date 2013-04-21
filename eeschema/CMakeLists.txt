@@ -214,10 +214,15 @@ if(APPLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
 endif(APPLE)
 
+if(USE_GOST_DOC_GEN)
+    set(GOST_DOC_GEN_LIB GOST-doc-gen -L${OOO_SDK_DIR}/lib -luno_cppuhelpergcc3 -luno_cppu -luno_salhelpergcc3 -luno_sal)
+endif(USE_GOST_DOC_GEN)
+
 target_link_libraries(eeschema
     common
     bitmaps
     polygon
+    ${GOST_DOC_GEN_LIB}
     ${wxWidgets_LIBRARIES}
     ${GDI_PLUS_LIBRARIES}
     )
@@ -227,3 +232,7 @@ install(TARGETS eeschema
         COMPONENT binary)
 
 add_subdirectory(plugins)
+
+if(USE_GOST_DOC_GEN)
+    add_subdirectory(GOST-doc-gen)
+endif(USE_GOST_DOC_GEN)
