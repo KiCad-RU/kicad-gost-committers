@@ -45,11 +45,21 @@ GOST_COMP_LISTER::~GOST_COMP_LISTER()
 
 void GOST_COMP_LISTER::GetList()
 {
+    wxString connection_str;
+
     m_componentDB->LoadFromKiCad();
 
-    wxExecute( wxT(
+#if defined(NEW_OO_CONNECT_MODE)
+    connection_str = wxT(
+        "soffice --invisible --accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
+                        );
+#else
+    connection_str = wxT(
         "soffice -invisible -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
-                  ), wxEXEC_ASYNC );
+                        );
+#endif
+
+    wxExecute( connection_str, wxEXEC_ASYNC );
 
     m_componentDB->OO_GenerateComponentIndex();
     m_componentDB->OO_GenerateSpecification();

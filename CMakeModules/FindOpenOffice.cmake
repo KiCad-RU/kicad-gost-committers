@@ -12,12 +12,21 @@
 #  UNOPKG_EXECUTABLE - Absolute path of unopkg tool
 #
 #  Copyright (c) 2010 Konstantin Tokarev <annulen@gmail.com>
+#  Copyright (c) 2013 Alexander Lunev <al.lunev@yahoo.com>
 #
 #  Redistribution and use is allowed according to the terms of the New
 #  BSD license.
 #  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 
 # TODO: Find Go-oo from Novell
+
+unset(OOO_PREFIX CACHE)
+unset(OOO_BASIS_DIR CACHE)
+unset(OOO_SDK_DIR CACHE)
+unset(OOO_PROGRAM_DIR CACHE)
+unset(UNOPKG_EXECUTABLE CACHE)
+unset(OOO_URE_DIR CACHE)
+unset(OOO_INCLUDE_DIR CACHE)
 
 if(UNIX)
   set(OOO_PATH_HINTS
@@ -28,6 +37,8 @@ if(UNIX)
     /usr/local/openoffice/*
     /opt/openoffice.org3/*
     /opt/ooo-dev3/*
+    /usr/lib/libreoffice
+    /usr/lib64/libreoffice
   )
 endif(UNIX)
 
@@ -51,7 +62,7 @@ if(NOT OOO_BASIS_DIR)
     message(FATAL_ERROR "Could not find OpenOffice.org SDK")
   endif(OpenOffice_FIND_REQUIRED)
 else(NOT OOO_BASIS_DIR)
-  set(OOO_PREFIX "${OOO_BASIS_DIR}/.." CACHE STRING "OpenOffice.org root directory")
+  set(OOO_PREFIX "${OOO_BASIS_DIR}" CACHE STRING "OpenOffice.org root directory")
   set(OOO_SDK_DIR "${OOO_BASIS_DIR}/sdk" CACHE STRING "OpenOffice.org SDK root directory")
   message(STATUS "Found OpenOffice.org SDK: ${OOO_SDK_DIR}")
 endif(NOT OOO_BASIS_DIR)
@@ -61,6 +72,7 @@ find_path(OOO_PROGRAM_DIR
     soffice
   HINTS
     "${OOO_PREFIX}/program"
+    "${OOO_PREFIX}/../program"
 )
 mark_as_advanced(OOO_PROGRAM_DIR)
 
@@ -77,6 +89,7 @@ find_file(UNOPKG_EXECUTABLE
     unopkg
   HINTS 
     "${OOO_PREFIX}/program"
+    "${OOO_PREFIX}/../program"
   NO_DEFAULT_PATH
 )
 mark_as_advanced(UNOPKG_EXECUTABLE)

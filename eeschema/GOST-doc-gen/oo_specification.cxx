@@ -154,6 +154,9 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
 
     OUString        sConnectionString( RTL_CONSTASCII_USTRINGPARAM( CONNECTION_STRING ) );
 
+#if defined(NEW_OO_CONNECT_MODE)
+    Reference< XComponentContext > xComponentContext(::cppu::defaultBootstrap_InitialComponentContext());
+#else
     // Creates a simple registry service instance.
     Reference<XSimpleRegistry> xSimpleRegistry( ::cppu::createSimpleRegistry() );
 
@@ -171,6 +174,7 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
      */
     Reference<XComponentContext> xComponentContext(
         ::cppu::bootstrap_InitialComponentContext( xSimpleRegistry ) );
+#endif
 
     /* Gets the service manager instance to be used (or null). This method has
      *  been added for convenience, because the service manager is a often used

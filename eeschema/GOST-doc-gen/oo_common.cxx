@@ -58,7 +58,7 @@ wxString GetResourceFile( wxString aFilename )
 
     subdirs.Add( wxT( "GOST-doc-gen" ) );
 
-    return wxGetApp().FindFileInSearchPaths( aFilename, &subdirs );
+    return wxT( "file://" ) + wxGetApp().FindFileInSearchPaths( aFilename, &subdirs );
 }
 
 
