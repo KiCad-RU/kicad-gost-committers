@@ -65,7 +65,7 @@ COMPONENT_DB::~COMPONENT_DB()
 void COMPONENT_DB::ZeroInserting( wxString* aStr )
 {
     int   i, pos, str_len, dig_subset_len, dig_subset_ofs;
-    char* temp_str;
+    wxString temp_str;
 
     dig_subset_ofs = 0;
 
@@ -76,8 +76,10 @@ void COMPONENT_DB::ZeroInserting( wxString* aStr )
         if( dig_subset_ofs >= str_len )
             break;
 
-        temp_str = strdup( *(aStr) );
-        pos = strcspn( temp_str + dig_subset_ofs, "0123456789" ) + dig_subset_ofs;
+        temp_str = *(aStr);
+        pos = FindOneOf( temp_str.Mid( dig_subset_ofs ), wxT( "0123456789" ) );
+        if( pos == wxNOT_FOUND ) pos = temp_str.Len() - dig_subset_ofs;
+        pos += dig_subset_ofs;
         dig_subset_len = 0;
         i = pos;
 
@@ -93,7 +95,6 @@ void COMPONENT_DB::ZeroInserting( wxString* aStr )
             StringInsert( aStr, wxT( '0' ), pos );
 
         dig_subset_ofs = pos + ZEROS_LENGTH_INS;
-        free( temp_str );
     }
 }
 

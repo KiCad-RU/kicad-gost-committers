@@ -62,6 +62,13 @@ wxString GetResourceFile( wxString aFilename )
 }
 
 
+OUString wx2OUString( wxString aStr )
+{
+    return OUString( aStr.mb_str(), strlen( aStr.mb_str() ),
+                     RTL_TEXTENCODING_UTF8, 0 );
+}
+
+
 int ConvertVariantToItemVarI( COMPONENT* aComponent, int aVariant )
 {
     if( aVariant==-1 )
@@ -98,7 +105,7 @@ void OO_PrintCompIndexDocCell( Reference<XTextTable>    aTable,
                                int                      aStyle )
 {
     Reference<XCell>        xCell =
-        aTable->getCellByName( OUString::createFromAscii( aCell_address ) );
+        aTable->getCellByName( wx2OUString( aCell_address ) );
     Reference<XText>        xText = Reference<XText>( xCell, UNO_QUERY );
     Reference<XTextCursor>  xTextCursor = xText->createTextCursor();
 
@@ -116,8 +123,7 @@ void OO_PrintCompIndexDocCell( Reference<XTextTable>    aTable,
                                                 makeAny( (short) 3 ) );
     }
 
-    xTextCursor->setString( OUString( aStr, strlen( aStr.mb_str() ),
-                                      RTL_TEXTENCODING_UTF8, 0 ) );
+    xTextCursor->setString( wx2OUString( aStr ) );
 }
 
 
@@ -156,7 +162,7 @@ void OO_PrintCompIndexDocRow( Reference<XTextDocument>  aTextDocument,
         Reference<XDocumentInsertable> xDocumentInsertable( xTextCursor, UNO_QUERY );
 
         xDocumentInsertable->insertDocumentFromURL(
-            OUString::createFromAscii( GetResourceFile(
+            wx2OUString( GetResourceFile(
                 wxT( "templates/CompsIndexMiddleSheet_template.odt" ) ) ),
             Sequence < :: com::sun::star::beans::PropertyValue>() );
 
@@ -462,7 +468,8 @@ void ProcessSingleVariant( COMPONENT_ARRAY*         aSingleVariantComponents,
             }
 
             // define number of positions and types in the title group
-            positions = 1; group_types.Clear();
+            positions = 1;
+            group_types.Clear();
             pBaseComponent = (COMPONENT*) title_group_components[0];
 
             for( i = 0; i < (int) title_group_components.GetCount(); i++ )
@@ -510,7 +517,7 @@ void OO_AttachNewSpecificationSheet( Reference<XTextDocument>   aTextDocument,
     Reference<XDocumentInsertable>  xDocumentInsertable( xTextCursor, UNO_QUERY );
 
     xDocumentInsertable->insertDocumentFromURL(
-        OUString::createFromAscii( GetResourceFile(
+        wx2OUString( GetResourceFile(
             wxT( "templates/SpecificationMiddleSheet_template.odt" ) ) ),
         Sequence < :: com::sun::star::beans::PropertyValue>() );
 

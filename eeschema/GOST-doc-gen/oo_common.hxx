@@ -104,6 +104,7 @@ extern int current_sheet;
 extern int specification_pos_field;
 
 extern wxString GetResourceFile( wxString aFilename );
+extern OUString wx2OUString( wxString aStr );
 
 extern void OO_PrintCompIndexDocCell( Reference<XTextTable>    aTable,
                                       wxString                 aCell_address,

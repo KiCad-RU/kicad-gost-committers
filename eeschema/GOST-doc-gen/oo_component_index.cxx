@@ -47,7 +47,7 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB )
 
     wxString filename = GetResourceFile( wxT( "GOST-doc-gen.rdb" ) );
     // Connects the registry to a persistent data source represented by an URL.
-    xSimpleRegistry->open( OUString::createFromAscii( filename ), sal_True, sal_False );
+    xSimpleRegistry->open( wx2OUString( filename ), sal_True, sal_False );
 
     /* Bootstraps an initial component context with service manager upon a given
      *  registry. This includes insertion of initial services:
@@ -79,7 +79,9 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB )
     }
     catch( Exception& e )
     {
-        wxMessageBox( OUStringToOString( e.Message, RTL_TEXTENCODING_ASCII_US ).getStr() );
+        wxMessageBox( wxString::FromUTF8(
+            OUStringToOString( e.Message, RTL_TEXTENCODING_ASCII_US ).getStr() ) );
+
         return FALSE;
     }
 
@@ -107,12 +109,17 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB )
         break;
     }
 
-    if( !connected)
+    if( !connected )
     {
-        str.Printf( "Error: cannot establish a connection using '%s':\n       %s\n",
-                    OUStringToOString( sConnectionString, RTL_TEXTENCODING_ASCII_US ).getStr(),
-                    OUStringToOString( last_err, RTL_TEXTENCODING_ASCII_US ).getStr() );
-        wxMessageBox( str );
+        wxMessageBox(
+            wxT( "Error: cannot establish a connection using '" ) +
+            wxString::FromUTF8( OUStringToOString( sConnectionString,
+                                                   RTL_TEXTENCODING_ASCII_US ).getStr() ) +
+            wxT( "':\n       " ) +
+            wxString::FromUTF8( OUStringToOString( last_err,
+                                                   RTL_TEXTENCODING_ASCII_US ).getStr() ) +
+            wxT( "\n" ) );
+
         return FALSE;
     }
 
@@ -141,7 +148,7 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB )
     args1[0].Value  <<= true;
 
     Reference<XComponent> xWriterComponent = xComponentLoader->loadComponentFromURL(
-        OUString::createFromAscii(
+        wx2OUString(
             GetResourceFile( wxT( "templates/CompsIndexFirstSheet_template.odt" ) ) ),
         OUString( RTL_CONSTASCII_USTRINGPARAM( "_blank" ) ), 0,
         args1 );
@@ -270,8 +277,7 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB )
     Reference<XDocumentInsertable>  xDocumentInsertable( xTextCursor, UNO_QUERY );
 
     xDocumentInsertable->insertDocumentFromURL(
-        OUString::createFromAscii( GetResourceFile(
-            wxT( "templates/CompsIndexLastSheet_template.odt" ) ) ),
+        wx2OUString( GetResourceFile( wxT( "templates/CompsIndexLastSheet_template.odt" ) ) ),
         Sequence < :: com::sun::star::beans::PropertyValue>() );
 
     current_sheet++;
