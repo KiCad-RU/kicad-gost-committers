@@ -334,7 +334,7 @@ void CVPCB_MAINFRAME::ToFirstNA( wxCommandEvent& event )
     int ii = 0;
     int selection;
 
-    if( m_components.empty() )
+    if( m_netlist.IsEmpty() )
         return;
 
     selection = m_ListCmp->GetSelection();
@@ -342,9 +342,9 @@ void CVPCB_MAINFRAME::ToFirstNA( wxCommandEvent& event )
     if( selection < 0 )
         selection = 0;
 
-    BOOST_FOREACH( COMPONENT_INFO & component, m_components )
+    for( unsigned jj = 0;  jj < m_netlist.GetCount();  jj++ )
     {
-        if( component.m_Footprint.IsEmpty() && ii > selection )
+        if( m_netlist.GetComponent( jj )->GetFootprintLibName().IsEmpty() && ii > selection )
         {
             m_ListCmp->SetSelection( ii );
             SendMessageToEESCHEMA();
@@ -363,7 +363,7 @@ void CVPCB_MAINFRAME::ToPreviousNA( wxCommandEvent& event )
     int ii;
     int selection;
 
-    if( m_components.empty() )
+    if( m_netlist.IsEmpty() )
         return;
 
     ii = m_ListCmp->GetCount() - 1;
@@ -372,9 +372,9 @@ void CVPCB_MAINFRAME::ToPreviousNA( wxCommandEvent& event )
     if( selection < 0 )
         selection = m_ListCmp->GetCount() - 1;
 
-    BOOST_REVERSE_FOREACH( COMPONENT_INFO & component, m_components )
+    for( unsigned kk = m_netlist.GetCount() - 1;  kk >= 0;  kk-- )
     {
-        if( component.m_Footprint.IsEmpty() && ii < selection )
+        if( m_netlist.GetComponent( kk )->GetFootprintLibName().IsEmpty() && ii < selection )
         {
             m_ListCmp->SetSelection( ii );
             SendMessageToEESCHEMA();
@@ -412,15 +412,15 @@ void CVPCB_MAINFRAME::DelAssociations( wxCommandEvent& event )
         m_skipComponentSelect = true;
         m_ListCmp->SetSelection( 0 );
 
-        BOOST_FOREACH( COMPONENT_INFO & component, m_components )
+        for( unsigned i = 0;  i < m_netlist.GetCount();  i++ )
         {
-            component.m_Footprint.Empty();
+            m_netlist.GetComponent( i )->SetFootprintLibName( wxEmptyString );
             SetNewPkg( wxEmptyString );
         }
 
         m_skipComponentSelect = false;
         m_ListCmp->SetSelection( 0 );
-        m_undefinedComponentCnt = m_components.size();
+        m_undefinedComponentCnt = m_netlist.GetCount();
     }
 
     DisplayStatus();
@@ -538,18 +538,18 @@ void CVPCB_MAINFRAME::OnSelectComponent( wxListEvent& event )
 
         else
         {
-            if( &m_components[ selection ] == NULL )
+            if( m_netlist.GetComponent( selection ) == NULL )
                 m_FootprintList->SetActiveFootprintList( SELECT_FULL_LIST, REDRAW_LIST );
             else
             {
                 if( m_mainToolBar->GetToolToggled( ID_CVPCB_FOOTPRINT_DISPLAY_PIN_FILTERED_LIST ) )
                 {
-                    m_FootprintList->SetFootprintFilteredByPinCount( &m_components[ selection ],
+                    m_FootprintList->SetFootprintFilteredByPinCount( m_netlist.GetComponent( selection ),
                                                                      m_footprints );
                 }
                 else
                 {
-                    m_FootprintList->SetFootprintFilteredList( &m_components[ selection ],
+                    m_FootprintList->SetFootprintFilteredList( m_netlist.GetComponent( selection ),
                                                                m_footprints );
                 }
             }
@@ -568,7 +568,7 @@ void CVPCB_MAINFRAME::OnSelectComponent( wxListEvent& event )
 
     if( FindFocus() ==  m_ListCmp )
     {
-        wxString module = *(&m_components[ selection ].m_Footprint);
+        wxString module = m_netlist.GetComponent( selection )->GetFootprintLibName();
 
         bool found = false;
         for( int ii = 0; ii < m_FootprintList->GetCount(); ii++ )
@@ -642,7 +642,8 @@ void CVPCB_MAINFRAME::DisplayStatus()
 {
     wxString msg;
 
-    msg.Printf( _( "Components: %d (free: %d)" ), (int) m_components.size(), m_undefinedComponentCnt );
+    msg.Printf( _( "Components: %d (free: %d)" ), (int) m_netlist.GetCount(),
+                m_undefinedComponentCnt );
     SetStatusText( msg, 0 );
 
     SetStatusText( wxEmptyString, 1 );
@@ -724,18 +725,14 @@ void CVPCB_MAINFRAME::UpdateTitle()
     SetTitle( title );
 }
 
-/**
- * Send a remote command to Eeschema via a socket,
- * Commands are
- * $PART: "reference"   put cursor on component anchor
- */
+
 void CVPCB_MAINFRAME::SendMessageToEESCHEMA()
 {
     char          cmd[1024];
     int           selection;
-    COMPONENT_INFO*    Component;
+    COMPONENT*    Component;
 
-    if( m_components.empty() )
+    if( m_netlist.IsEmpty() )
         return;
 
     selection = m_ListCmp->GetSelection();
@@ -743,13 +740,131 @@ void CVPCB_MAINFRAME::SendMessageToEESCHEMA()
     if ( selection < 0 )
         selection = 0;
 
-    if( &m_components[ selection ] == NULL )
+    if( m_netlist.GetComponent( selection ) == NULL )
         return;
 
-    Component = &m_components[ selection ];
+    Component = m_netlist.GetComponent( selection );
 
-    sprintf( cmd, "$PART: \"%s\"", TO_UTF8( Component->m_Reference ) );
+    sprintf( cmd, "$PART: \"%s\"", TO_UTF8( Component->GetReference() ) );
 
     SendCommand( MSG_TO_SCH, cmd );
 
+}
+
+
+int CVPCB_MAINFRAME::ReadSchematicNetlist()
+{
+    wxBusyCursor    dummy;           // Shows an hourglass while loading.
+    NETLIST_READER* netlistReader;
+    wxString        msg;
+    wxString        compFootprintLinkFileName;
+    wxFileName      fn = m_NetlistFileName;
+
+    // Load the footprint association file if it has already been created.
+    fn.SetExt( ComponentFileExtension );
+
+    if( fn.FileExists() && fn.IsFileReadable() )
+        compFootprintLinkFileName = fn.GetFullPath();
+
+    m_netlist.Clear();
+
+    try
+    {
+        netlistReader = NETLIST_READER::GetNetlistReader( &m_netlist,
+                                                          m_NetlistFileName.GetFullPath(),
+                                                          compFootprintLinkFileName );
+        std::auto_ptr< NETLIST_READER > nlr( netlistReader );
+        netlistReader->LoadNetlist();
+    }
+    catch( IO_ERROR& ioe )
+    {
+        msg = wxString::Format( _( "Error loading netlist.\n%s" ), ioe.errorText.GetData() );
+        wxMessageBox( msg, _( "Netlist Load Error" ), wxOK | wxICON_ERROR );
+        return 1;
+    }
+
+
+    // We also remove footprint name if it is "$noname" because this is a dummy name,
+    // not the actual name of the footprint.
+    for( unsigned ii = 0; ii < m_netlist.GetCount(); ii++ )
+    {
+        if( m_netlist.GetComponent( ii )->GetFootprintLibName() == wxT( "$noname" ) )
+            m_netlist.GetComponent( ii )->SetFootprintLibName( wxEmptyString );
+    }
+
+    // Sort components by reference:
+    m_netlist.SortByReference();
+
+    return 0;
+}
+
+
+/* File header. */
+static char HeaderLinkFile[] = { "Cmp-Mod V01" };
+
+
+bool CVPCB_MAINFRAME::WriteComponentLinkFile( const wxString& aFullFileName )
+{
+    COMPONENT*  component;
+    FILE*       outputFile;
+    wxFileName  fn( aFullFileName );
+    wxString    Title = wxGetApp().GetTitle() + wxT( " " ) + GetBuildVersion();
+
+    outputFile = wxFopen( fn.GetFullPath(), wxT( "wt" ) );
+
+    if( outputFile == NULL )
+        return false;
+
+    int retval = 0;
+
+    /*
+     * The header is:
+     * Cmp-Mod V01 Created by CvPcb (2012-02-08 BZR 3403)-testing date = 10/02/2012 20:45:59
+     * and write block per component like:
+     * BeginCmp
+     * TimeStamp = /322D3011;
+     * Reference = BUS1;
+     * ValeurCmp = BUSPC;
+     * IdModule  = BUS_PC;
+     * EndCmp
+     */
+    retval |= fprintf( outputFile, "%s", HeaderLinkFile );
+    retval |= fprintf( outputFile, " Created by %s", TO_UTF8( Title ) );
+    retval |= fprintf( outputFile, " date = %s\n", TO_UTF8( DateAndTime() ) );
+
+    for( unsigned i = 0;  i < m_netlist.GetCount();  i++ )
+    {
+        component = m_netlist.GetComponent( i );
+        retval |= fprintf( outputFile, "\nBeginCmp\n" );
+        retval |= fprintf( outputFile, "TimeStamp = %s;\n", TO_UTF8( component->GetTimeStamp() ) );
+        retval |= fprintf( outputFile, "Reference = %s;\n", TO_UTF8( component->GetReference() ) );
+        retval |= fprintf( outputFile, "ValeurCmp = %s;\n", TO_UTF8( component->GetValue() ) );
+        retval |= fprintf( outputFile, "IdModule  = %s;\n",
+                           TO_UTF8( component->GetFootprintLibName() ) );
+        retval |= fprintf( outputFile, "EndCmp\n" );
+    }
+
+    retval |= fprintf( outputFile, "\nEndListe\n" );
+    fclose( outputFile );
+    return retval >= 0;
+}
+
+
+void CVPCB_MAINFRAME::CreateScreenCmp()
+{
+    if( m_DisplayFootprintFrame == NULL )
+    {
+        m_DisplayFootprintFrame = new DISPLAY_FOOTPRINTS_FRAME( this, _( "Module" ),
+                                                                wxPoint( 0, 0 ),
+                                                                wxSize( 600, 400 ),
+                                                                KICAD_DEFAULT_DRAWFRAME_STYLE );
+        m_DisplayFootprintFrame->Show( true );
+    }
+    else
+    {
+        if( m_DisplayFootprintFrame->IsIconized() )
+             m_DisplayFootprintFrame->Iconize( false );
+    }
+
+    m_DisplayFootprintFrame->InitDisplay();
 }
