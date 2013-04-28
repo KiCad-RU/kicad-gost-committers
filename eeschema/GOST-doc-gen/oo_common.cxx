@@ -44,9 +44,10 @@ int current_row;
 int current_sheet;
 int specification_pos_field;
 
-wxString GetResourceFile( wxString aFilename )
+wxString GetResourceFile( wxString aFileName )
 {
     wxArrayString subdirs;
+    wxString res;
 
     subdirs.Add( wxT( "share" ) );
 #ifndef __WXMSW__
@@ -58,7 +59,17 @@ wxString GetResourceFile( wxString aFilename )
 
     subdirs.Add( wxT( "GOST-doc-gen" ) );
 
-    return wxT( "file://" ) + wxGetApp().FindFileInSearchPaths( aFilename, &subdirs );
+    res = wxGetApp().FindFileInSearchPaths( aFileName, &subdirs );
+
+    if( res == wxEmptyString )
+    {
+        wxMessageBox( wxT( "Unable to open file: " ) + aFileName,
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return res;
+    }
+
+    return wxT( "file://" ) + res;
 }
 
 
@@ -161,10 +172,21 @@ void OO_PrintCompIndexDocRow( Reference<XTextDocument>  aTextDocument,
         Reference<XTextCursor> xTextCursor = xText->createTextCursorByRange( xTextRange );
         Reference<XDocumentInsertable> xDocumentInsertable( xTextCursor, UNO_QUERY );
 
-        xDocumentInsertable->insertDocumentFromURL(
-            wx2OUString( GetResourceFile(
-                wxT( "templates/CompsIndexMiddleSheet_template.odt" ) ) ),
-            Sequence < :: com::sun::star::beans::PropertyValue>() );
+        try
+        {
+            xDocumentInsertable->insertDocumentFromURL(
+                wx2OUString( GetResourceFile(
+                    wxT( "templates/CompsIndexMiddleSheet_template.odt" ) ) ),
+                Sequence < :: com::sun::star::beans::PropertyValue>() );
+        }
+        catch( Exception& e )
+        {
+            wxMessageBox( wxString::FromUTF8(
+                OUStringToOString( e.Message, RTL_TEXTENCODING_UTF8 ).getStr() ),
+                          wxEmptyString, wxOK | wxICON_ERROR );
+
+            return;
+        }
 
         Reference<XTextTable> xTable1( aIndexedTables->getByIndex( current_sheet ), UNO_QUERY );
 
@@ -516,10 +538,21 @@ void OO_AttachNewSpecificationSheet( Reference<XTextDocument>   aTextDocument,
     Reference<XTextCursor> xTextCursor = xText->createTextCursorByRange( xTextRange );
     Reference<XDocumentInsertable>  xDocumentInsertable( xTextCursor, UNO_QUERY );
 
-    xDocumentInsertable->insertDocumentFromURL(
-        wx2OUString( GetResourceFile(
-            wxT( "templates/SpecificationMiddleSheet_template.odt" ) ) ),
-        Sequence < :: com::sun::star::beans::PropertyValue>() );
+    try
+    {
+        xDocumentInsertable->insertDocumentFromURL(
+            wx2OUString( GetResourceFile(
+                wxT( "templates/SpecificationMiddleSheet_template.odt" ) ) ),
+            Sequence < :: com::sun::star::beans::PropertyValue>() );
+    }
+    catch( Exception& e )
+    {
+        wxMessageBox( wxString::FromUTF8(
+            OUStringToOString( e.Message, RTL_TEXTENCODING_UTF8 ).getStr() ),
+                      wxEmptyString, wxOK | wxICON_ERROR );
+
+        return;
+    }
 
     Reference<XTextTable> xTable1( aIndexedTables->getByIndex( current_sheet ), UNO_QUERY );
 

@@ -161,8 +161,22 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
     Reference<XSimpleRegistry> xSimpleRegistry( ::cppu::createSimpleRegistry() );
 
     wxString filename = GetResourceFile( wxT( "GOST-doc-gen.rdb" ) );
-    // Connects the registry to a persistent data source represented by an URL.
-    xSimpleRegistry->open( wx2OUString( filename ), sal_True, sal_False );
+    if( filename == wxEmptyString )
+        return FALSE;
+
+    try
+    {
+        // Connects the registry to a persistent data source represented by an URL.
+        xSimpleRegistry->open( wx2OUString( filename ), sal_True, sal_False );
+    }
+    catch( Exception& e )
+    {
+        wxMessageBox( wxString::FromUTF8(
+            OUStringToOString( e.Message, RTL_TEXTENCODING_UTF8 ).getStr() ),
+                      wxEmptyString, wxOK | wxICON_ERROR );
+
+        return FALSE;
+    }
 
     /* Bootstraps an initial component context with service manager upon a given
      *  registry. This includes insertion of initial services:
@@ -196,7 +210,8 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
     catch( Exception& e )
     {
         wxMessageBox( wxString::FromUTF8(
-            OUStringToOString( e.Message, RTL_TEXTENCODING_ASCII_US ).getStr() ) );
+            OUStringToOString( e.Message, RTL_TEXTENCODING_UTF8 ).getStr() ),
+                      wxEmptyString, wxOK | wxICON_ERROR );
 
         return FALSE;
     }
@@ -217,7 +232,7 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
         catch( Exception& e )
         {
             last_err = e.Message;
-            wxMilliSleep( 500 );
+            wxMilliSleep( 1000 );
             continue;
         }
 
@@ -230,11 +245,12 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
         wxMessageBox(
             wxT( "Error: cannot establish a connection using '" ) +
             wxString::FromUTF8( OUStringToOString( sConnectionString,
-                                                   RTL_TEXTENCODING_ASCII_US ).getStr() ) +
+                                                   RTL_TEXTENCODING_UTF8 ).getStr() ) +
             wxT( "':\n       " ) +
             wxString::FromUTF8( OUStringToOString( last_err,
-                                                   RTL_TEXTENCODING_ASCII_US ).getStr() ) +
-            wxT( "\n" ) );
+                                                   RTL_TEXTENCODING_UTF8 ).getStr() ) +
+            wxT( "\n" ),
+            wxEmptyString, wxOK | wxICON_ERROR );
 
         return FALSE;
     }
@@ -263,11 +279,24 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
     args1[0].Name   = OUString::createFromAscii( "AsTemplate" );
     args1[0].Value  <<= true;
 
-    Reference<XComponent> xWriterComponent = xComponentLoader->loadComponentFromURL(
-        wx2OUString( GetResourceFile(
-            wxT( "templates/SpecificationFirstSheet_template.odt" ) ) ),
-        OUString( RTL_CONSTASCII_USTRINGPARAM( "_blank" ) ), 0,
-        args1 );
+    Reference<XComponent> xWriterComponent;
+
+    try
+    {
+        xWriterComponent = xComponentLoader->loadComponentFromURL(
+            wx2OUString( GetResourceFile(
+                wxT( "templates/SpecificationFirstSheet_template.odt" ) ) ),
+            OUString( RTL_CONSTASCII_USTRINGPARAM( "_blank" ) ), 0,
+            args1 );
+    }
+    catch( Exception& e )
+    {
+        wxMessageBox( wxString::FromUTF8(
+            OUStringToOString( e.Message, RTL_TEXTENCODING_UTF8 ).getStr() ),
+                      wxEmptyString, wxOK | wxICON_ERROR );
+
+        return FALSE;
+    }
 
     Reference<XTextDocument> xTextDocument( xWriterComponent, UNO_QUERY );
 
@@ -625,10 +654,21 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
     Reference<XTextCursor>          xTextCursor = xText->createTextCursorByRange( xTextRange );
     Reference<XDocumentInsertable>  xDocumentInsertable( xTextCursor, UNO_QUERY );
 
-    xDocumentInsertable->insertDocumentFromURL(
-        wx2OUString( GetResourceFile(
-            wxT( "templates/CompsIndexLastSheet_template.odt" ) ) ),
-        Sequence < :: com::sun::star::beans::PropertyValue>() );
+    try
+    {
+        xDocumentInsertable->insertDocumentFromURL(
+            wx2OUString( GetResourceFile(
+                wxT( "templates/CompsIndexLastSheet_template.odt" ) ) ),
+            Sequence < :: com::sun::star::beans::PropertyValue>() );
+    }
+    catch( Exception& e )
+    {
+        wxMessageBox( wxString::FromUTF8(
+            OUStringToOString( e.Message, RTL_TEXTENCODING_UTF8 ).getStr() ),
+                      wxEmptyString, wxOK | wxICON_ERROR );
+
+        return FALSE;
+    }
 
     current_sheet++;
     Reference<XTextTable> xTable( xIndexedTables->getByIndex( current_sheet ), UNO_QUERY );

@@ -59,7 +59,14 @@ void GOST_COMP_LISTER::GetList()
                         );
 #endif
 
-    wxExecute( connection_str, wxEXEC_ASYNC );
+    if( !wxExecute( connection_str, wxEXEC_ASYNC ) )
+        // for some reason this check does not work
+        wxMessageBox( wxT( "Unable to launch the process: " ) + connection_str
+                      + wxT( ".\nPlease make sure that OpenOffice / LibreOffice is installed." ),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        // continue anyway in order to allow a user to run soffice from command shell
+
 
     m_componentDB->OO_GenerateComponentIndex();
     m_componentDB->OO_GenerateSpecification();
