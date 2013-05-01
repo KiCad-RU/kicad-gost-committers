@@ -1,5 +1,8 @@
 add_definitions(-DEESCHEMA)
 
+if(USE_GOST_DOC_GEN)
+    find_package(OpenOffice REQUIRED)
+endif(USE_GOST_DOC_GEN)
 
 include_directories(BEFORE ${INC_BEFORE})
 include_directories(
@@ -215,7 +218,13 @@ if(APPLE)
 endif(APPLE)
 
 if(USE_GOST_DOC_GEN)
-    set(GOST_DOC_GEN_LIB GOST-doc-gen -L${OOO_SDK_DIR}/lib -luno_cppuhelpergcc3 -luno_cppu -luno_salhelpergcc3 -luno_sal)
+    set(GOST_DOC_GEN_LIB GOST-doc-gen
+        -L${OOO_SDK_DIR}/lib
+        -luno_cppuhelpergcc3
+        -luno_cppu
+        -luno_salhelpergcc3
+        -luno_sal
+        )
 endif(USE_GOST_DOC_GEN)
 
 target_link_libraries(eeschema

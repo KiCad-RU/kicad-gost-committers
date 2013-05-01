@@ -1,6 +1,3 @@
-
-find_package(OpenOffice REQUIRED)
-
 if(${OpenOffice_VERSION} GREATER 340 OR ${OpenOffice_VERSION} EQUAL 340)
     set(NEW_OO_CONNECT_MODE TRUE)
     add_definitions(-DNEW_OO_CONNECT_MODE)
