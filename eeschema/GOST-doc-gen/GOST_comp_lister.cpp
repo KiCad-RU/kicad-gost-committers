@@ -49,14 +49,24 @@ void GOST_COMP_LISTER::GetList()
 
     m_componentDB->LoadFromKiCad();
 
-#if defined(NEW_OO_CONNECT_MODE)
-    connection_str = wxT(
-        "soffice --invisible --accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
-                        );
+#if defined (__WXMSW__)
+    connection_str = wxT( "C:\\Program Files (x86)\\OpenOffice.org 3\\program\\soffice.exe" );
 #else
-    connection_str = wxT(
-        "soffice -invisible -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
-                        );
+    connection_str = wxT( "soffice" );
+#endif
+
+#if defined(__WXMSW__)
+    connection_str += wxT(
+         " -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
+                         );
+#elif defined(NEW_OO_CONNECT_MODE)
+    connection_str += wxT(
+        " --invisible --accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
+                         );
+#else
+    connection_str += wxT(
+         " -invisible -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
+                         );
 #endif
 
     if( !wxExecute( connection_str, wxEXEC_ASYNC ) )
@@ -66,7 +76,6 @@ void GOST_COMP_LISTER::GetList()
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         // continue anyway in order to allow a user to run soffice from command shell
-
 
     m_componentDB->OO_GenerateComponentIndex();
     m_componentDB->OO_GenerateSpecification();

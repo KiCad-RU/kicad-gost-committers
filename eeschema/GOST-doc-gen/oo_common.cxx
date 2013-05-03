@@ -26,7 +26,6 @@
  * @file oo_common.cxx
  */
 
-#include <oo_common.hxx>
 
 #include <component_db.h>
 #include <component.h>
@@ -37,6 +36,8 @@
 
 #include <wx/stdpaths.h>
 #include <appl_wxstruct.h>
+
+#include <oo_common.hxx>
 
 namespace GOST_DOC_GEN {
 
@@ -50,8 +51,8 @@ wxString GetResourceFile( wxString aFileName )
     wxString res;
 
     subdirs.Add( wxT( "share" ) );
-#ifndef __WXMSW__
 
+#ifndef __WXMSW__
     /* Up on level relative to binary path with "share/kicad" appended for
      * all other platforms. */
     subdirs.Add( wxT( "kicad" ) );
@@ -69,13 +70,17 @@ wxString GetResourceFile( wxString aFileName )
         return res;
     }
 
+#ifdef __WXMSW__
+    return wxT( "file:///" ) + res;
+#else
     return wxT( "file://" ) + res;
+#endif
 }
 
 
 OUString wx2OUString( wxString aStr )
 {
-    return OUString( aStr.mb_str(), strlen( aStr.mb_str() ),
+    return OUString( TO_UTF8( aStr ) /*aStr.mb_str()*/, strlen( TO_UTF8( aStr ) /*aStr.mb_str()*/ ),
                      RTL_TEXTENCODING_UTF8, 0 );
 }
 

@@ -155,7 +155,8 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB )
     OUString        sConnectionString( RTL_CONSTASCII_USTRINGPARAM( CONNECTION_STRING ) );
 
 #if defined(NEW_OO_CONNECT_MODE)
-    Reference< XComponentContext > xComponentContext(::cppu::defaultBootstrap_InitialComponentContext());
+    Reference< XComponentContext > xComponentContext(
+        ::cppu::defaultBootstrap_InitialComponentContext() );
 #else
     // Creates a simple registry service instance.
     Reference<XSimpleRegistry> xSimpleRegistry( ::cppu::createSimpleRegistry() );

@@ -218,13 +218,22 @@ if(APPLE)
 endif(APPLE)
 
 if(USE_GOST_DOC_GEN)
-    set(GOST_DOC_GEN_LIB GOST-doc-gen
-        -L${OOO_SDK_DIR}/lib
-        -luno_cppuhelpergcc3
-        -luno_cppu
-        -luno_salhelpergcc3
-        -luno_sal
-        )
+    if(WIN32)
+        set(GOST_DOC_GEN_LIB GOST-doc-gen
+            "${OOO_SDK_DIR}\\lib\\icppuhelper.lib"
+            "${OOO_SDK_DIR}\\lib\\icppu.lib"
+            "${OOO_SDK_DIR}\\lib\\isalhelper.lib"
+            "${OOO_SDK_DIR}\\lib\\isal.lib"
+            )
+    else(WIN32)
+        set(GOST_DOC_GEN_LIB GOST-doc-gen
+            -L${OOO_SDK_DIR}/lib
+            -luno_cppuhelpergcc3
+            -luno_cppu
+            -luno_salhelpergcc3
+            -luno_sal
+            )
+    endif(WIN32)
 endif(USE_GOST_DOC_GEN)
 
 target_link_libraries(eeschema

@@ -43,7 +43,8 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB )
     OUString        sConnectionString( RTL_CONSTASCII_USTRINGPARAM( CONNECTION_STRING ) );
 
 #if defined(NEW_OO_CONNECT_MODE)
-    Reference< XComponentContext > xComponentContext(::cppu::defaultBootstrap_InitialComponentContext());
+    Reference< XComponentContext > xComponentContext(
+        ::cppu::defaultBootstrap_InitialComponentContext() );
 #else
     // Creates a simple registry service instance.
     Reference<XSimpleRegistry> xSimpleRegistry( ::cppu::createSimpleRegistry() );
@@ -206,7 +207,7 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB )
     OO_PrintCompIndexDocCell( xFirstTable, wxT( "B28" ), wxT( "\n" ) + aComponentDB->DesignName, 0 );
     // fill 'designation' field
     OO_PrintCompIndexDocCell( xFirstTable, wxT( "B27" ),
-                              wxT( "\n" ) + aComponentDB->Designation + wxT( "ПЭ3" ), 0 );
+                              wxT( "\n" ) + aComponentDB->Designation + /*wxT(*/ FROM_UTF8("ПЭ3" ), 0 );
     // fill 'first use' field
     OO_PrintCompIndexDocCell( xFirstTable, wxT( "B2" ), aComponentDB->Designation, 0 );
 

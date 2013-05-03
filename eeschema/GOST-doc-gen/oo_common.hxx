@@ -29,10 +29,22 @@
 #ifndef OO_COMMON_HXX
 #define OO_COMMON_HXX
 
+#include <wx/wx.h>
+#include <component_db.h>
 
-#define SAL_UNX
-#define UNX
-#define CPPU_ENV gcc3
+#ifdef __WINDOWS__
+    #define WNT
+
+    #ifdef __MSVC__
+        #define CPPU_ENV msci
+    #else
+        #define CPPU_ENV gcc3
+    #endif
+#else
+    #define SAL_UNX
+    #define UNX
+    #define CPPU_ENV gcc3
+#endif
 
 #include <cppuhelper/bootstrap.hxx>
 
@@ -73,9 +85,6 @@ using namespace com::sun::star::awt::FontUnderline;
 // using namespace com::sun::star::style::ParagraphProperties;
 using namespace com::sun::star::document;
 using namespace com::sun::star::sheet;
-
-#include <wx/wx.h>
-#include <component_db.h>
 
 namespace GOST_DOC_GEN {
 

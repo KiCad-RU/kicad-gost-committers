@@ -40,6 +40,24 @@ if(UNIX)
     /usr/lib/libreoffice
     /usr/lib64/libreoffice
   )
+elseif(WIN32)
+  set(OOO_PATH_HINTS
+    "C:\\Program Files (x86)\\OpenOffice.org 3"
+    "C:\\Program Files\\OpenOffice.org 3"
+    "C:\\Program Files (x86)\\LibreOffice*"
+    "C:\\Program Files\\LibreOffice*"
+  )
+
+  set(OOO_SDK_PATH_HINTS
+    "C:\\Program Files\\OpenOffice*SDK\\sdk"
+    "C:\\Program Files (x86)\\OpenOffice*SDK\\sdk"
+    "C:\\Program Files\\OpenOffice.org 3\\Basis\\sdk"
+    "C:\\Program Files (x86)\\OpenOffice.org 3\\Basis\\sdk"
+    "C:\\Program Files\\LibreOffice*SDK\\sdk"
+    "C:\\Program Files (x86)\\LibreOffice*SDK\\sdk"
+  )
+
+  set(EXE_EXT ".exe")
 endif(UNIX)
 
 if(OOO_PREFIX)
@@ -49,12 +67,21 @@ if(OOO_PREFIX)
 )
 endif(OOO_PREFIX)
 
-find_path(OOO_BASIS_DIR
-  NAMES
-    sdk/bin/idlc
-  HINTS
-    ${OOO_PATH_HINTS}  
+if(WIN32)
+  find_path(OOO_BASIS_DIR
+    NAMES
+      Basis/program/offapi.rdb
+    HINTS
+      ${OOO_PATH_HINTS}  
 )
+else(WIN32)
+  find_path(OOO_BASIS_DIR
+    NAMES
+      sdk/bin/idlc
+    HINTS
+      ${OOO_PATH_HINTS}  
+)
+endif(WIN32)
 mark_as_advanced(OOO_BASIS_DIR)
 
 if(NOT OOO_BASIS_DIR)
@@ -63,13 +90,25 @@ if(NOT OOO_BASIS_DIR)
   endif(OpenOffice_FIND_REQUIRED)
 else(NOT OOO_BASIS_DIR)
   set(OOO_PREFIX "${OOO_BASIS_DIR}" CACHE STRING "OpenOffice.org root directory")
-  set(OOO_SDK_DIR "${OOO_BASIS_DIR}/sdk" CACHE STRING "OpenOffice.org SDK root directory")
+
+  if(WIN32)
+    find_path(OOO_SDK_DIR
+      NAMES
+        bin/idlc.exe
+      HINTS
+        ${OOO_SDK_PATH_HINTS}  
+    )
+    mark_as_advanced(OOO_SDK_DIR)
+  else(WIN32)
+    set(OOO_SDK_DIR "${OOO_BASIS_DIR}/sdk" CACHE STRING "OpenOffice.org SDK root directory")
+  endif(WIN32)
+
   message(STATUS "Found OpenOffice.org SDK: ${OOO_SDK_DIR}")
 endif(NOT OOO_BASIS_DIR)
 
 find_path(OOO_PROGRAM_DIR
   NAMES
-    soffice
+    soffice${EXE_EXT}
   HINTS
     "${OOO_PREFIX}/program"
     "${OOO_PREFIX}/../program"
@@ -86,7 +125,7 @@ endif(NOT OOO_PROGRAM_DIR)
 
 find_file(UNOPKG_EXECUTABLE
   NAMES
-    unopkg
+    unopkg${EXE_EXT}
   HINTS 
     "${OOO_PREFIX}/program"
     "${OOO_PREFIX}/../program"
@@ -106,6 +145,7 @@ endif(NOT UNOPKG_EXECUTABLE)
 find_path(OOO_URE_DIR
   NAMES
     share/java/java_uno.jar
+    java/java_uno.jar
   HINTS
     "${OOO_BASIS_DIR}/*"
 )
@@ -139,7 +179,13 @@ endif(NOT OOO_INCLUDE_DIR)
 
 if(OOO_PROGRAM_DIR AND OOO_SDK_DIR AND OOO_URE_DIR AND UNOPKG_EXECUTABLE AND OOO_INCLUDE_DIR)
   set(OpenOffice_FOUND 1)
-  file(READ "${OOO_PROGRAM_DIR}/versionrc" _VERSION_RC_CONTENTS)
+
+  if(WIN32)
+    file(READ "${OOO_PROGRAM_DIR}/version.ini" _VERSION_RC_CONTENTS)
+  else(WIN32)
+    file(READ "${OOO_PROGRAM_DIR}/versionrc" _VERSION_RC_CONTENTS)
+  endif(WIN32)
+
   string(REGEX REPLACE ".*ProductMajor=([0-9]+).*" "\\1" OpenOffice_VERSION "${_VERSION_RC_CONTENTS}")
 else(OOO_PROGRAM_DIR AND OOO_SDK_DIR AND OOO_URE_DIR AND UNOPKG_EXECUTABLE AND OOO_INCLUDE_DIR)
   set(OpenOffice_FOUND 0)
