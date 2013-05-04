@@ -23,12 +23,12 @@
  */
 
 /**
- * @file oo_specification.cxx
+ * @file doc_specification.cpp
  */
 
 #include <common_doc_iface.h>
-#include <oo_common.hxx>
-#include <oo_specification.hxx>
+#include <doc_common.h>
+#include <doc_specification.h>
 
 namespace GOST_DOC_GEN {
 
@@ -145,8 +145,8 @@ void Specification_GeneratePosList( COMPONENT_ARRAY* aAll_components,
 
 
 // returns false if error
-bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
-                                   COMMON_DOC_IFACE* aDocIface )
+bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
+                                COMMON_DOC_IFACE* aDocIface )
 {
     COMPONENT_ARRAY singleVariantComponents, AllVariantsComponents;
     int             variant;
@@ -506,7 +506,7 @@ bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
     // print the last sheet
     if ( !aDocIface->AppendDocument(
-        GetResourceFile( wxT( "templates/CompsIndexLastSheet_template.odt" ) ) ) )
+        GetResourceFile( wxT( "templates/CompIndexLastSheet_template.odt" ) ) ) )
         return false;
 
     current_sheet++;

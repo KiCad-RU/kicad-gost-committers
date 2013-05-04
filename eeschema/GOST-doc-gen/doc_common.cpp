@@ -23,7 +23,7 @@
  */
 
 /**
- * @file oo_common.cxx
+ * @file doc_common.cpp
  */
 
 
@@ -32,7 +32,7 @@
 #include <common_funcs.h>
 #include <dictionaries.h>
 #include <common_doc_iface.h>
-#include <oo_common.hxx>
+#include <doc_common.h>
 
 namespace GOST_DOC_GEN {
 
@@ -100,7 +100,7 @@ void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
         current_row = 2;
 
         if ( !aDocIface->AppendDocument(
-            GetResourceFile( wxT( "templates/CompsIndexMiddleSheet_template.odt" ) ) ) )
+            GetResourceFile( wxT( "templates/CompIndexMiddleSheet_template.odt" ) ) ) )
             return;
 
         aDocIface->SelectTable( current_sheet );
@@ -954,7 +954,7 @@ void Specification_PrintTypeGroup( COMMON_DOC_IFACE* aDocIface,
                 str += wxT( "@" ) + note;    // go to the next string
             }
 
-            if( pComponent->ExcludeCompsIndex )
+            if( pComponent->ExcludeFromCompIndex )
                 ref_des_group = wxT( "" );
             else
                 aComponentDB->FormRefDes( aType_group_components,

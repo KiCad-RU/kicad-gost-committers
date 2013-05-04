@@ -35,8 +35,8 @@
 #include <component_db.h>
 #include <common_doc_iface.h>
 #include <oo_iface.hxx>
-#include <oo_component_index.hxx>
-#include <oo_specification.hxx>
+#include <doc_component_index.h>
+#include <doc_specification.h>
 
 namespace GOST_DOC_GEN {
 
@@ -132,21 +132,21 @@ void COMPONENT_DB::SortComponents()
 }
 
 
-void COMPONENT_DB::OO_GenerateComponentIndex()
+void COMPONENT_DB::GenerateComponentIndexDoc()
 {
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
 
-    OO_CreateNewCompIndexDoc( this, docIface );
+    CreateNewCompIndexDoc( this, docIface );
 
     delete docIface;
 }
 
 
-void COMPONENT_DB::OO_GenerateSpecification()
+void COMPONENT_DB::GenerateSpecificationDoc()
 {
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
 
-    OO_CreateNewSpecificationDoc( this, docIface );
+    CreateNewSpecificationDoc( this, docIface );
 
     delete docIface;
 }
@@ -494,7 +494,7 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
                      && ( pComponent->ComponentType==wxT( "Goods" ) ) ) )
                 add_ena = false;
         }
-        else if( pComponent->ExcludeCompsIndex )
+        else if( pComponent->ExcludeFromCompIndex )
             add_ena = false;
 
         if( aPart_type & PARTTYPE_A_SET )

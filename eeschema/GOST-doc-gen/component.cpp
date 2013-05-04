@@ -40,7 +40,7 @@ COMPONENT::COMPONENT()
         m_KiCadAttrs[i].value_of_attr = wxT( "" );
     }
 
-    ExcludeCompsIndex = false;
+    ExcludeFromCompIndex = false;
     ComponentType = wxT( "" );
     fmt = wxT( "" );
 }

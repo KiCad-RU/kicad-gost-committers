@@ -23,18 +23,18 @@
  */
 
 /**
- * @file oo_component_index.cxx
+ * @file doc_component_index.cpp
  */
 
 #include <common_doc_iface.h>
-#include <oo_common.hxx>
-#include <oo_component_index.hxx>
+#include <doc_common.h>
+#include <doc_component_index.h>
 
 namespace GOST_DOC_GEN {
 
 // returns false if error
-bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
-                               COMMON_DOC_IFACE* aDocIface )
+bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
+                            COMMON_DOC_IFACE* aDocIface )
 {
     COMPONENT_ARRAY singleVariantComponents;
     int             variant;
@@ -46,7 +46,7 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
         return false;
 
     if ( !aDocIface->LoadDocument(
-        GetResourceFile( wxT( "templates/CompsIndexFirstSheet_template.odt" ) ) ) )
+        GetResourceFile( wxT( "templates/CompIndexFirstSheet_template.odt" ) ) ) )
         return false;
 
     aDocIface->SelectTable( 0 );
@@ -155,7 +155,7 @@ bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
     // print the last sheet
     if ( !aDocIface->AppendDocument(
-        GetResourceFile( wxT( "templates/CompsIndexLastSheet_template.odt" ) ) ) )
+        GetResourceFile( wxT( "templates/CompIndexLastSheet_template.odt" ) ) ) )
         return false;
 
     current_sheet++;

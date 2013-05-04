@@ -74,7 +74,7 @@ public:
     wxString                m_RefDes;
     wxString                m_SortingRefDes;
     int                     m_Variants_State;
-    bool                    ExcludeCompsIndex;
+    bool                    ExcludeFromCompIndex;
     wxString                ComponentType;
     wxString                fmt;
 

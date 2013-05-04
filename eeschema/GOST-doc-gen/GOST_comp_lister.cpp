@@ -47,6 +47,6 @@ void GOST_COMP_LISTER::GetList()
 {
     m_componentDB->LoadFromKiCad();
 
-    m_componentDB->OO_GenerateComponentIndex();
-    m_componentDB->OO_GenerateSpecification();
+    m_componentDB->GenerateComponentIndexDoc();
+    m_componentDB->GenerateSpecificationDoc();
 }

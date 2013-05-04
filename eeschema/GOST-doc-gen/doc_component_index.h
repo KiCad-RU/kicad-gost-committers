@@ -23,15 +23,15 @@
  */
 
 /**
- * @file oo_component_index.hxx
+ * @file doc_component_index.h
  */
 
-#ifndef OO_COMPONENT_INDEX_HXX
-#define OO_COMPONENT_INDEX_HXX
+#ifndef DOC_COMPONENT_INDEX_H
+#define DOC_COMPONENT_INDEX_H
 
 namespace GOST_DOC_GEN {
-    extern bool OO_CreateNewCompIndexDoc( COMPONENT_DB* aCmponentDB,
-                                          COMMON_DOC_IFACE* aDocIface );
+    extern bool CreateNewCompIndexDoc( COMPONENT_DB* aCmponentDB,
+                                       COMMON_DOC_IFACE* aDocIface );
 }
 
-#endif    // OO_COMPONENT_INDEX_HXX
+#endif    // DOC_COMPONENT_INDEX_H

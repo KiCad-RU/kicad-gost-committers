@@ -75,11 +75,11 @@ set(GOST_DOC_GEN_SRCS
     component.cpp
     component_db.cpp
     dictionaries.cpp
+    doc_common.cpp
+    doc_component_index.cpp
+    doc_specification.cpp
     GOST_comp_lister.cpp
-    oo_common.cxx
-    oo_component_index.cxx
     oo_iface.cxx
-    oo_specification.cxx
     )
 
 add_library(GOST-doc-gen STATIC ${GOST_DOC_GEN_SRCS})

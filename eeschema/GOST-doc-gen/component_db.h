@@ -89,8 +89,8 @@ public:
                                                int              aPart_type,
                                                int              aVariant,
                                                wxString         aSet_prefix );
-    virtual void    OO_GenerateComponentIndex();
-    virtual void    OO_GenerateSpecification();
+    virtual void    GenerateComponentIndexDoc();
+    virtual void    GenerateSpecificationDoc();
 
 protected:
     virtual void    ZeroInserting( wxString* aStr );

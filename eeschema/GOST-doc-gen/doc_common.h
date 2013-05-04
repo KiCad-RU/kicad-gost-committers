@@ -23,11 +23,11 @@
  */
 
 /**
- * @file oo_common.hxx
+ * @file doc_common.h
  */
 
-#ifndef OO_COMMON_HXX
-#define OO_COMMON_HXX
+#ifndef DOC_COMMON_H
+#define DOC_COMMON_H
 
 #include <wx/wx.h>
 #include <component_db.h>
@@ -94,4 +94,4 @@ extern bool Form_a_set( COMMON_DOC_IFACE* aDocIface,
 
 } // namespace GOST_DOC_GEN
 
-#endif    // OO_COMMON_HXX
+#endif    // DOC_COMMON_H

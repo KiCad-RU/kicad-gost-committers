@@ -23,15 +23,15 @@
  */
 
 /**
- * @file oo_specification.hxx
+ * @file doc_specification.h
  */
 
-#ifndef OO_SPECIFICATION_HXX
-#define OO_SPECIFICATION_HXX
+#ifndef DOC_SPECIFICATION_H
+#define DOC_SPECIFICATION_H
 
 namespace GOST_DOC_GEN {
-    extern bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
-                                              COMMON_DOC_IFACE* aDocIface );
+    extern bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
+                                           COMMON_DOC_IFACE* aDocIface );
 }
 
-#endif    // OO_SPECIFICATION_HXX
+#endif    // DOC_SPECIFICATION_H
