@@ -156,7 +156,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
 
     if ( !aDocIface->Connect() )
-        return FALSE;
+        return false;
 
     aDocIface->LoadDocument(
         GetResourceFile( wxT( "templates/SpecificationFirstSheet_template.odt" ) ) );

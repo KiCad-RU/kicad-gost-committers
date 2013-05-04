@@ -1,8 +1,8 @@
 add_definitions(-DEESCHEMA)
 
-if(USE_GOST_DOC_GEN)
+if(USE_GOST_DOC_GEN AND USE_OPENOFFICE_SDK)
     find_package(OpenOffice REQUIRED)
-endif(USE_GOST_DOC_GEN)
+endif(USE_GOST_DOC_GEN AND USE_OPENOFFICE_SDK)
 
 include_directories(BEFORE ${INC_BEFORE})
 include_directories(
@@ -218,24 +218,26 @@ if(APPLE)
 endif(APPLE)
 
 if(USE_GOST_DOC_GEN)
-    if(WIN32)
-        set(GOST_DOC_GEN_LIB GOST-doc-gen
-            "${OOO_SDK_DIR}\\lib\\icppuhelper.lib"
-            "${OOO_SDK_DIR}\\lib\\icppu.lib"
-            "${OOO_SDK_DIR}\\lib\\isalhelper.lib"
-            "${OOO_SDK_DIR}\\lib\\isal.lib"
-            )
-    else(WIN32)
-        set(GOST_DOC_GEN_LIB GOST-doc-gen
-            -L${OOO_SDK_DIR}/lib
-            -luno_cppuhelpergcc3
-            -luno_cppu
-            -luno_salhelpergcc3
-            -luno_sal
-            )
-    endif(WIN32)
+    set(GOST_DOC_GEN_LIB GOST-doc-gen -lpython2.6)
 
-    #set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB} -lpython2.6)
+    if(USE_OPENOFFICE_SDK)
+        if(WIN32)
+            set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB}
+                "${OOO_SDK_DIR}\\lib\\icppuhelper.lib"
+                "${OOO_SDK_DIR}\\lib\\icppu.lib"
+                "${OOO_SDK_DIR}\\lib\\isalhelper.lib"
+                "${OOO_SDK_DIR}\\lib\\isal.lib"
+                )
+        else(WIN32)
+            set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB}
+                -L${OOO_SDK_DIR}/lib
+                -luno_cppuhelpergcc3
+                -luno_cppu
+                -luno_salhelpergcc3
+                -luno_sal
+                )
+        endif(WIN32)
+    endif(USE_OPENOFFICE_SDK)
 endif(USE_GOST_DOC_GEN)
 
 target_link_libraries(eeschema

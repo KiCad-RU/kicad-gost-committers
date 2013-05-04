@@ -27,7 +27,6 @@
  */
 
 #include <wxEeschemaStruct.h>
-#include <math.h>
 #include <general.h>
 #include <sch_sheet.h>
 #include <template_fieldnames.h>
@@ -35,6 +34,7 @@
 #include <component_db.h>
 #include <common_doc_iface.h>
 #include <oo_iface.hxx>
+#include <oo_python_uno_iface.h>
 #include <doc_component_index.h>
 #include <doc_specification.h>
 
@@ -134,7 +134,11 @@ void COMPONENT_DB::SortComponents()
 
 void COMPONENT_DB::GenerateComponentIndexDoc()
 {
+#ifdef USE_OPENOFFICE_SDK
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
+#else
+    COMMON_DOC_IFACE* docIface = new OO_PYTHON_UNO_IFACE();
+#endif
 
     CreateNewCompIndexDoc( this, docIface );
 
@@ -144,7 +148,11 @@ void COMPONENT_DB::GenerateComponentIndexDoc()
 
 void COMPONENT_DB::GenerateSpecificationDoc()
 {
+#ifdef USE_OPENOFFICE_SDK
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
+#else
+    COMMON_DOC_IFACE* docIface = new OO_PYTHON_UNO_IFACE();
+#endif
 
     CreateNewSpecificationDoc( this, docIface );
 

@@ -49,6 +49,7 @@ void     FormRefDesFromStringArray( wxArrayString* aString_array, wxString* aRes
 void     SortCByteArray( INT_ARRAY* aArr );
 void     StringInsert( wxString* aStr, wxString aIns, int aPos );
 wxString GetResourceFile( wxString aFileName );
+wxString AddUrlPrefix( wxString aFileName );
 
 } // namespace GOST_DOC_GEN
 

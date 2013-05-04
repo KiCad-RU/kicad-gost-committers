@@ -325,13 +325,18 @@ wxString GetResourceFile( wxString aFileName )
         wxMessageBox( wxT( "Unable to open file: " ) + aFileName,
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
-        return res;
     }
 
+    return res;
+}
+
+
+wxString AddUrlPrefix( wxString aFileName )
+{
 #ifdef __WXMSW__
-    return wxT( "file:///" ) + res;
+    return wxT( "file:///" ) + aFileName;
 #else
-    return wxT( "file://" ) + res;
+    return wxT( "file://" ) + aFileName;
 #endif
 }
 

@@ -27,6 +27,7 @@ option(USE_PCBNEW_NANOMETRES
 option(wxUSE_UNICODE "enable/disable building unicode (default OFF)")
 option(KICAD_GOST "enable/disable building using GOST notation for multiple gates per package (default OFF)")
 option(USE_GOST_DOC_GEN "enable/disable building GOST document generator (default OFF)")
+option(USE_OPENOFFICE_SDK "enable/disable building GOST document generator with use of OpenOffice/LibreOffice SDK (default OFF)")
 
 #for those who bored with uppercase
 option(KICAD_KEEPCASE "turn-off automatic component name conversion to uppercase if selected")
@@ -168,6 +169,10 @@ endif()
 
 if(USE_GOST_DOC_GEN)
     add_definitions(-DUSE_GOST_DOC_GEN)
+endif()
+
+if(USE_OPENOFFICE_SDK)
+    add_definitions(-DUSE_OPENOFFICE_SDK)
 endif()
 
 if(KICAD_KEEPCASE)

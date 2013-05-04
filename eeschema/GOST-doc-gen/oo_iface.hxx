@@ -89,8 +89,6 @@ namespace GOST_DOC_GEN {
 
 #define CONNECTION_STRING   "uno:socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
 
-extern OUString wx2OUString( wxString aStr );
-
 class OO_IFACE : public COMMON_DOC_IFACE
 {
 public:
@@ -111,6 +109,8 @@ private:
     Reference<XTextDocument>          m_xTextDocument;
     Reference<XIndexAccess>           m_xIndexedTables;
     Reference<XTextTable>             m_xCurTable;
+
+    OUString wx2OUString( wxString aStr );
 };
 
 } // namespace GOST_DOC_GEN

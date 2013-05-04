@@ -34,14 +34,6 @@
 
 namespace GOST_DOC_GEN {
 
-OUString wx2OUString( wxString aStr )
-{
-    return OUString( TO_UTF8( aStr ),
-                     strlen( TO_UTF8( aStr ) ),
-                     RTL_TEXTENCODING_UTF8, 0 );
-}
-
-
 OO_IFACE::OO_IFACE()
 {
 }
@@ -98,6 +90,8 @@ bool OO_IFACE::Connect()
     wxString filename = GetResourceFile( wxT( "GOST-doc-gen.rdb" ) );
     if( filename == wxEmptyString )
         return false;
+
+    filename = AddUrlPrefix( filename );
 
     try
     {
@@ -213,6 +207,8 @@ bool OO_IFACE::Connect()
 
 bool OO_IFACE::LoadDocument( wxString aUrl )
 {
+    aUrl = AddUrlPrefix( aUrl );
+
     /* Loads a component specified by an URL into the specified new or existing
      *  frame.
      */
@@ -256,6 +252,8 @@ bool OO_IFACE::LoadDocument( wxString aUrl )
 
 bool OO_IFACE::AppendDocument( wxString aUrl )
 {
+    aUrl = AddUrlPrefix( aUrl );
+
     Reference<XText>                xText = m_xTextDocument->getText();
     Reference<XTextRange>           xTextRange  = xText->getEnd();
     Reference<XTextCursor>          xTextCursor = xText->createTextCursorByRange( xTextRange );
@@ -309,6 +307,14 @@ void OO_IFACE::PutCell( wxString aCellAddr,
     }
 
     xTextCursor->setString( wx2OUString( aStr ) );
+}
+
+
+OUString OO_IFACE::wx2OUString( wxString aStr )
+{
+    return OUString( TO_UTF8( aStr ),
+                     strlen( TO_UTF8( aStr ) ),
+                     RTL_TEXTENCODING_UTF8, 0 );
 }
 
 } // namespace GOST_DOC_GEN
