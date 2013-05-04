@@ -26,6 +26,7 @@
  * @file common_funcs.cpp
  */
 
+#include <appl_wxstruct.h>
 #include <common_funcs.h>
 
 namespace GOST_DOC_GEN {
@@ -73,11 +74,11 @@ bool DefineRefDesPrefix( wxString aIn, wxString* aResult )
     if( pos==wxNOT_FOUND )
     {
         *aResult = wxT( "" );
-        return FALSE;
+        return false;
     }
 
     *aResult = aIn.Left( pos );
-    return TRUE;
+    return true;
 }
 
 
@@ -115,7 +116,7 @@ void SplitString( wxString aIn, wxArrayString* aResult, int aMax_len, int aSplit
 
     while( aIn != wxT( "" ) )
     {
-        next_str = FALSE;
+        next_str = false;
         i = FindOneOf( aIn, split_ena_str );
 
         if( i==wxNOT_FOUND )
@@ -140,7 +141,7 @@ void SplitString( wxString aIn, wxArrayString* aResult, int aMax_len, int aSplit
                 separator_len = 1;
             else    // '@'
             {
-                next_str = TRUE;
+                next_str = true;
                 separator_len = 0;
                 aIn.Remove( i, 1 );
             }
@@ -214,9 +215,9 @@ bool DoesStringExist( wxArrayString* aString_array, wxString aStr )
 
     for( i = 0; i<(*aString_array).GetCount(); i++ )
         if( (*aString_array)[i] == aStr )
-            return TRUE;
+            return true;
 
-    return FALSE;
+    return false;
 }
 
 
@@ -299,6 +300,39 @@ void SortCByteArray( INT_ARRAY* aArr )
             }
         }
     }
+}
+
+
+wxString GetResourceFile( wxString aFileName )
+{
+    wxArrayString subdirs;
+    wxString res;
+
+    subdirs.Add( wxT( "share" ) );
+
+#ifndef __WXMSW__
+    /* Up on level relative to binary path with "share/kicad" appended for
+     * all other platforms. */
+    subdirs.Add( wxT( "kicad" ) );
+#endif
+
+    subdirs.Add( wxT( "GOST-doc-gen" ) );
+
+    res = wxGetApp().FindFileInSearchPaths( aFileName, &subdirs );
+
+    if( res == wxEmptyString )
+    {
+        wxMessageBox( wxT( "Unable to open file: " ) + aFileName,
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return res;
+    }
+
+#ifdef __WXMSW__
+    return wxT( "file:///" ) + res;
+#else
+    return wxT( "file://" ) + res;
+#endif
 }
 
 } // namespace GOST_DOC_GEN

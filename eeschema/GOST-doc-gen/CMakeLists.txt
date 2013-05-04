@@ -78,6 +78,7 @@ set(GOST_DOC_GEN_SRCS
     GOST_comp_lister.cpp
     oo_common.cxx
     oo_component_index.cxx
+    oo_iface.cxx
     oo_specification.cxx
     )
 

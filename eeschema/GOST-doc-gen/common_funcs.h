@@ -38,16 +38,17 @@ namespace GOST_DOC_GEN {
 
 WX_DEFINE_ARRAY_INT( int, INT_ARRAY );
 
-int     FindOneOf( wxString aScannedStr, wxString aTokens );
-int     FindFrom( wxString aScannedStr, wxString aToken, int aStart_pos );
-bool    DefineRefDesPrefix( wxString aIn, wxString* aResult );
-long    RefDesPostfix( wxString aIn );
-void    SplitString( wxString aIn, wxArrayString* aResult, int aMax_len, int aSplit_ena );
-void    ExtractLetterDigitSets( wxString aIn_str, wxArrayString* aSets );
-bool    DoesStringExist( wxArrayString* aString_array, wxString aStr );
-void    FormRefDesFromStringArray( wxArrayString* aString_array, wxString* aResult );
-void    SortCByteArray( INT_ARRAY* aArr );
-void    StringInsert( wxString* aStr, wxString aIns, int aPos );
+int      FindOneOf( wxString aScannedStr, wxString aTokens );
+int      FindFrom( wxString aScannedStr, wxString aToken, int aStart_pos );
+bool     DefineRefDesPrefix( wxString aIn, wxString* aResult );
+long     RefDesPostfix( wxString aIn );
+void     SplitString( wxString aIn, wxArrayString* aResult, int aMax_len, int aSplit_ena );
+void     ExtractLetterDigitSets( wxString aIn_str, wxArrayString* aSets );
+bool     DoesStringExist( wxArrayString* aString_array, wxString aStr );
+void     FormRefDesFromStringArray( wxArrayString* aString_array, wxString* aResult );
+void     SortCByteArray( INT_ARRAY* aArr );
+void     StringInsert( wxString* aStr, wxString aIns, int aPos );
+wxString GetResourceFile( wxString aFileName );
 
 } // namespace GOST_DOC_GEN
 

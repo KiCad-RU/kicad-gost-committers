@@ -32,63 +32,8 @@
 #include <wx/wx.h>
 #include <component_db.h>
 
-#ifdef __WINDOWS__
-    #define WNT
-
-    #ifdef __MSVC__
-        #define CPPU_ENV msci
-    #else
-        #define CPPU_ENV gcc3
-    #endif
-#else
-    #define SAL_UNX
-    #define UNX
-    #define CPPU_ENV gcc3
-#endif
-
-#include <cppuhelper/bootstrap.hxx>
-
-#include <osl/file.hxx>
-#include <osl/process.h>
-
-#include <com/sun/star/bridge/XUnoUrlResolver.hpp>
-#include <com/sun/star/frame/XComponentLoader.hpp>
-#include <com/sun/star/beans/XPropertySet.hpp>
-#include <com/sun/star/text/XText.hpp>
-#include <com/sun/star/text/XTextDocument.hpp>
-#include <com/sun/star/lang/XMultiServiceFactory.hpp>
-#include <com/sun/star/text/XTextTable.hpp>
-#include <com/sun/star/text/XTextTablesSupplier.hpp>
-#include <com/sun/star/container/XNameAccess.hpp>
-#include <com/sun/star/table/XCell.hpp>
-#include <com/sun/star/awt/CharSet.hpp>
-#include <com/sun/star/awt/FontUnderline.hpp>
-// #include <com/sun/star/style/ParagraphProperties.hpp>
-#include <com/sun/star/document/XDocumentInsertable.hpp>
-#include <com/sun/star/sheet/XSpreadsheetDocument.hpp>
-#include <com/sun/star/sheet/XSpreadsheet.hpp>
-#include <com/sun/star/registry/XSimpleRegistry.hpp>
-#include <com/sun/star/lang/XMultiComponentFactory.hpp>
-
-using namespace rtl;
-using namespace com::sun::star::uno;
-using namespace com::sun::star::lang;
-using namespace com::sun::star::beans;
-using namespace com::sun::star::bridge;
-using namespace com::sun::star::frame;
-using namespace com::sun::star::registry;
-using namespace com::sun::star::text;
-using namespace com::sun::star::container;
-using namespace com::sun::star::table;
-using namespace com::sun::star::awt::CharSet;
-using namespace com::sun::star::awt::FontUnderline;
-// using namespace com::sun::star::style::ParagraphProperties;
-using namespace com::sun::star::document;
-using namespace com::sun::star::sheet;
 
 namespace GOST_DOC_GEN {
-
-#define CONNECTION_STRING   "uno:socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
 
 #define NOTE_LENGTH_MAX             28
 
@@ -97,9 +42,6 @@ namespace GOST_DOC_GEN {
 
 #define FIRST_SHEET_LAST_STR_I      26
 #define SECOND_SHEET_LAST_STR_I     29
-
-#define TEXT_UNDERLINED             0x0001
-#define TEXT_CENTERED               0x0002
 
 #define WORDFORM_PLURAL             1
 #define WORDFORM_SINGULAR_GENITIVE  2
@@ -112,56 +54,43 @@ extern int current_row;
 extern int current_sheet;
 extern int specification_pos_field;
 
-extern wxString GetResourceFile( wxString aFileName );
-extern OUString wx2OUString( wxString aStr );
+extern void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
+                                     wxString          aRef_des,
+                                     wxString          aName,
+                                     int               aQty,
+                                     wxString          aNote,
+                                     int               aStyle,
+                                     int               aReserve_strings,
+                                     COMPONENT_DB*     aComponentDB );
 
-extern void OO_PrintCompIndexDocCell( Reference<XTextTable>    aTable,
-                                      wxString                 aCell_address,
-                                      wxString                 aStr,
-                                      int                      aStyle );
+extern void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
+                                  COMPONENT_ARRAY*  aSingleVariantComponents,
+                                  int               aVariant,
+                                  COMPONENT_DB*     aComponentDB );
 
-extern void OO_PrintCompIndexDocRow( Reference<XTextDocument>  aTextDocument,
-                                     Reference<XIndexAccess>   aIndexedTables,
-                                     wxString                  aRef_des,
-                                     wxString                  aName,
-                                     int                       aQty,
-                                     wxString                  aNote,
-                                     int                       aStyle,
-                                     int                       aReserve_strings,
-                                     COMPONENT_DB*             aComponentDB );
+extern void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
+                                         wxString          aFormat,
+                                         int               aPos,
+                                         wxString          aDesignation,
+                                         wxString          aName,
+                                         wxString          aQty,
+                                         wxString          aNote,
+                                         int               aStyle,
+                                         int               aReserve_strings,
+                                         COMPONENT_DB*     aComponentDB );
 
-extern void ProcessSingleVariant( COMPONENT_ARRAY*         aSingleVariantComponents,
-                                  int                      aVariant,
-                                  Reference<XTextDocument> aTextDocument,
-                                  Reference<XIndexAccess>  aIndexedTables,
-                                  COMPONENT_DB*            aComponentDB );
+extern void Specification_ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
+                                                wxArrayPtrVoid*   aSingleVariantComponents,
+                                                int               aVariant,
+                                                COMPONENT_DB*     aComponentDB,
+                                                wxArrayString*    aSpecification_positions,
+                                                int               aMode );
 
-extern void OO_PrintSpecificationDocRow( Reference<XTextDocument>  aTextDocument,
-                                         Reference<XIndexAccess>   aIndexedTables,
-                                         wxString                  aFormat,
-                                         int                       aPos,
-                                         wxString                  aDesignation,
-                                         wxString                  aName,
-                                         wxString                  aQty,
-                                         wxString                  aNote,
-                                         int                       aStyle,
-                                         int                       aReserve_strings,
-                                         COMPONENT_DB*             aComponentDB );
-
-extern void Specification_ProcessSingleVariant( wxArrayPtrVoid*            aSingleVariantComponents,
-                                                int                        aVariant,
-                                                Reference<XTextDocument>   aTextDocument,
-                                                Reference<XIndexAccess>    aIndexedTables,
-                                                COMPONENT_DB*              aComponentDB,
-                                                wxArrayString*             aSpecification_positions,
-                                                int                        aMode );
-
-extern bool Form_a_set( COMPONENT_DB*              aComponentDB,
-                        int                        aPart_type,
-                        int                        aVariant,
-                        wxArrayString*             aSpecification_positions,
-                        Reference<XTextDocument>   aTextDocument,
-                        Reference<XIndexAccess>    aIndexedTables );
+extern bool Form_a_set( COMMON_DOC_IFACE* aDocIface,
+                        COMPONENT_DB*     aComponentDB,
+                        int               aPart_type,
+                        int               aVariant,
+                        wxArrayString*    aSpecification_positions );
 
 } // namespace GOST_DOC_GEN
 

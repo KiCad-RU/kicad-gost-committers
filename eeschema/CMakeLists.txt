@@ -234,6 +234,8 @@ if(USE_GOST_DOC_GEN)
             -luno_sal
             )
     endif(WIN32)
+
+    #set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB} -lpython2.6)
 endif(USE_GOST_DOC_GEN)
 
 target_link_libraries(eeschema

@@ -33,6 +33,8 @@
 #include <template_fieldnames.h>
 
 #include <component_db.h>
+#include <common_doc_iface.h>
+#include <oo_iface.hxx>
 #include <oo_component_index.hxx>
 #include <oo_specification.hxx>
 
@@ -132,17 +134,25 @@ void COMPONENT_DB::SortComponents()
 
 void COMPONENT_DB::OO_GenerateComponentIndex()
 {
-    OO_CreateNewCompIndexDoc( this );
+    COMMON_DOC_IFACE* docIface = new OO_IFACE();
+
+    OO_CreateNewCompIndexDoc( this, docIface );
+
+    delete docIface;
 }
 
 
 void COMPONENT_DB::OO_GenerateSpecification()
 {
-    OO_CreateNewSpecificationDoc( this );
+    COMMON_DOC_IFACE* docIface = new OO_IFACE();
+
+    OO_CreateNewSpecificationDoc( this, docIface );
+
+    delete docIface;
 }
 
 
-// returns FALSE if given variant is not found
+// returns false if given variant is not found
 bool COMPONENT_DB::FindVariant( int aVariant )
 {
     size_t i;
@@ -150,10 +160,10 @@ bool COMPONENT_DB::FindVariant( int aVariant )
     for( i = 0; i < VariantsIndexes.GetCount(); i++ )
     {
         if( VariantsIndexes[i] == aVariant )
-            return TRUE;
+            return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 
@@ -362,7 +372,7 @@ void COMPONENT_DB::FindSets( COMPONENT_ARRAY*   aComponents,
     {
         pComponent = (COMPONENT*) (*aComponents)[i];
 
-        analysis_ena = TRUE;
+        analysis_ena = true;
 
         if( aPart_type & PARTTYPE_VAR )
         {
@@ -374,18 +384,18 @@ void COMPONENT_DB::FindSets( COMPONENT_ARRAY*   aComponents,
                 || ( PARTTYPE_SPECIFICATION
                      && ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i] )->attrs[ATTR_NOTE]
                      ==wxT( "Не устанавливается" ) ) )
-                analysis_ena = FALSE;
+                analysis_ena = false;
         }
         else
         {
             if( pComponent->m_Variants_State!=COMP_IN_CONST_PART
                 || ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0] )->attrs[ATTR_NAME]==wxT( "" ) )
-                analysis_ena = FALSE;
+                analysis_ena = false;
 
             if( PARTTYPE_SPECIFICATION
                 && ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0] )->attrs[ATTR_NOTE]==
                 wxT( "Не устанавливается" ) )
-                analysis_ena = FALSE;
+                analysis_ena = false;
         }
 
         if( analysis_ena )
@@ -428,7 +438,7 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
         pComponent = (COMPONENT*) m_AllComponents[i];
         ExtractLetterDigitSets( pComponent->m_RefDes, &letter_digit_sets );
 
-        add_ena = TRUE;
+        add_ena = true;
 
         if( aPart_type & PARTTYPE_VAR )
         {
@@ -440,18 +450,18 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
                 || ( (aPart_type & PARTTYPE_SPECIFICATION)
                      && ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i] )->attrs[ATTR_NOTE]
                      ==wxT( "Не устанавливается" ) ) )
-                add_ena = FALSE;
+                add_ena = false;
         }
         else
         {
             if( pComponent->m_Variants_State!=COMP_IN_CONST_PART
                 || ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0] )->attrs[ATTR_NAME]==wxT( "" ) )
-                add_ena = FALSE;
+                add_ena = false;
 
             if( (aPart_type & PARTTYPE_SPECIFICATION)
                 && ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0] )->attrs[ATTR_NOTE]==
                 wxT( "Не устанавливается" ) )
-                add_ena = FALSE;
+                add_ena = false;
         }
 
         if( aPart_type & PARTTYPE_SPECIFICATION )
@@ -460,42 +470,42 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
                   && ( pComponent->ComponentType!=wxT( "Documentation" ) ) )
                 || ( ( !(aPart_type & PARTTYPE_DOCUMENTATION) )
                      && ( pComponent->ComponentType==wxT( "Documentation" ) ) ) )
-                add_ena = FALSE;
+                add_ena = false;
 
             if( ( (aPart_type & PARTTYPE_STANDARD_DETAILS)
                   && ( pComponent->ComponentType!=wxT( "StandardDetail" ) ) )
                 || ( ( !(aPart_type & PARTTYPE_STANDARD_DETAILS) )
                      && ( pComponent->ComponentType==wxT( "StandardDetail" ) ) ) )
-                add_ena = FALSE;
+                add_ena = false;
 
             if( ( (aPart_type & PARTTYPE_DETAILS) && ( pComponent->ComponentType!=wxT( "Detail" ) ) )
                 || ( ( !(aPart_type & PARTTYPE_DETAILS) )
                      && ( pComponent->ComponentType==wxT( "Detail" ) ) ) )
-                add_ena = FALSE;
+                add_ena = false;
 
             if( ( (aPart_type & PARTTYPE_ASSEMBLY_UNITS)
                   && ( pComponent->ComponentType!=wxT( "AssemblyUnit" ) ) )
                 || ( ( !(aPart_type & PARTTYPE_ASSEMBLY_UNITS) )
                      && ( pComponent->ComponentType==wxT( "AssemblyUnit" ) ) ) )
-                add_ena = FALSE;
+                add_ena = false;
 
             if( ( (aPart_type & PARTTYPE_GOODS) && ( pComponent->ComponentType!=wxT( "Goods" ) ) )
                 || ( ( !(aPart_type & PARTTYPE_GOODS) )
                      && ( pComponent->ComponentType==wxT( "Goods" ) ) ) )
-                add_ena = FALSE;
+                add_ena = false;
         }
         else if( pComponent->ExcludeCompsIndex )
-            add_ena = FALSE;
+            add_ena = false;
 
         if( aPart_type & PARTTYPE_A_SET )
         {
             if( letter_digit_sets.GetCount() <= 1 || letter_digit_sets[0] != aSet_prefix )
-                add_ena = FALSE;
+                add_ena = false;
         }
         else
         {
             if( letter_digit_sets.GetCount() != 1 )
-                add_ena = FALSE;
+                add_ena = false;
         }
 
         if( add_ena )

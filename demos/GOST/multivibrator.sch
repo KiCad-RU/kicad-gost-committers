@@ -1,4 +1,4 @@
-EESchema Schematic File Version 2  date Sun 21 Apr 2013 01:52:40 PM MSK
+EESchema Schematic File Version 2  date Sat 04 May 2013 02:49:54 PM MSK
 LIBS:power
 LIBS:device
 LIBS:transistors
@@ -37,11 +37,11 @@ Sheet 1 1
 Title "Мультивибратор"
 Date "21 apr 2013"
 Rev ""
-Comp ""
+Comp "ООО \"XXXXX\""
 Comment1 "АБВГ.000000.001"
-Comment2 ""
-Comment3 ""
-Comment4 ""
+Comment2 "Лунев"
+Comment3 "Барановский"
+Comment4 "Викулов"
 $EndDescr
 $Comp
 L PN2222A VT1

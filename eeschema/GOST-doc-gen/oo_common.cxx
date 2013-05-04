@@ -29,14 +29,9 @@
 
 #include <component_db.h>
 #include <component.h>
-#include <math.h>
-#include <wx/progdlg.h>
 #include <common_funcs.h>
 #include <dictionaries.h>
-
-#include <wx/stdpaths.h>
-#include <appl_wxstruct.h>
-
+#include <common_doc_iface.h>
 #include <oo_common.hxx>
 
 namespace GOST_DOC_GEN {
@@ -44,45 +39,6 @@ namespace GOST_DOC_GEN {
 int current_row;
 int current_sheet;
 int specification_pos_field;
-
-wxString GetResourceFile( wxString aFileName )
-{
-    wxArrayString subdirs;
-    wxString res;
-
-    subdirs.Add( wxT( "share" ) );
-
-#ifndef __WXMSW__
-    /* Up on level relative to binary path with "share/kicad" appended for
-     * all other platforms. */
-    subdirs.Add( wxT( "kicad" ) );
-#endif
-
-    subdirs.Add( wxT( "GOST-doc-gen" ) );
-
-    res = wxGetApp().FindFileInSearchPaths( aFileName, &subdirs );
-
-    if( res == wxEmptyString )
-    {
-        wxMessageBox( wxT( "Unable to open file: " ) + aFileName,
-                      wxEmptyString,
-                      wxOK | wxICON_ERROR );
-        return res;
-    }
-
-#ifdef __WXMSW__
-    return wxT( "file:///" ) + res;
-#else
-    return wxT( "file://" ) + res;
-#endif
-}
-
-
-OUString wx2OUString( wxString aStr )
-{
-    return OUString( TO_UTF8( aStr ) /*aStr.mb_str()*/, strlen( TO_UTF8( aStr ) /*aStr.mb_str()*/ ),
-                     RTL_TEXTENCODING_UTF8, 0 );
-}
 
 
 int ConvertVariantToItemVarI( COMPONENT* aComponent, int aVariant )
@@ -94,7 +50,7 @@ int ConvertVariantToItemVarI( COMPONENT* aComponent, int aVariant )
 }
 
 
-// returns TRUE if both components have identical attributes except ref des
+// returns true if both components have identical attributes except ref des
 bool CompareComps( COMPONENT* aComp1, COMPONENT* aComp2, int aVariant )
 {
     int comp1_var_i = ConvertVariantToItemVarI( aComp1, aVariant );
@@ -108,50 +64,21 @@ bool CompareComps( COMPONENT* aComp1, COMPONENT* aComp2, int aVariant )
 
         if( ( (pTCOMPONENT_ATTRS) aComp1->m_comp_attr_variants[comp1_var_i] )->attrs[i]!=
             ( (pTCOMPONENT_ATTRS) aComp2->m_comp_attr_variants[comp2_var_i] )->attrs[i] )
-            return FALSE;
+            return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 
-void OO_PrintCompIndexDocCell( Reference<XTextTable>    aTable,
-                               wxString                 aCell_address,
-                               wxString                 aStr,
-                               int                      aStyle )
-{
-    Reference<XCell>        xCell =
-        aTable->getCellByName( wx2OUString( aCell_address ) );
-    Reference<XText>        xText = Reference<XText>( xCell, UNO_QUERY );
-    Reference<XTextCursor>  xTextCursor = xText->createTextCursor();
-
-    if( aStyle )
-    {
-        Reference<XPropertySet> CursorProperties( xTextCursor, UNO_QUERY );
-
-        if( aStyle & TEXT_UNDERLINED )
-            CursorProperties->setPropertyValue( OUString::createFromAscii(
-                                                    "CharUnderline" ),
-                                                makeAny( (short) SINGLE ) );
-
-        if( aStyle & TEXT_CENTERED )
-            CursorProperties->setPropertyValue( OUString::createFromAscii( "ParaAdjust" ),
-                                                makeAny( (short) 3 ) );
-    }
-
-    xTextCursor->setString( wx2OUString( aStr ) );
-}
-
-
-void OO_PrintCompIndexDocRow( Reference<XTextDocument>  aTextDocument,
-                              Reference<XIndexAccess>   aIndexedTables,
-                              wxString                  aRef_des,
-                              wxString                  aName,
-                              int                       aQty,
-                              wxString                  aNote,
-                              int                       aStyle,
-                              int                       aReserve_strings,
-                              COMPONENT_DB*             aComponentDB )
+void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
+                              wxString          aRef_des,
+                              wxString          aName,
+                              int               aQty,
+                              wxString          aNote,
+                              int               aStyle,
+                              int               aReserve_strings,
+                              COMPONENT_DB*     aComponentDB )
 {
     int             i, row_step;
     wxString        cell_address;
@@ -172,69 +99,51 @@ void OO_PrintCompIndexDocRow( Reference<XTextDocument>  aTextDocument,
         current_sheet++;
         current_row = 2;
 
-        Reference<XText> xText = aTextDocument->getText();
-        Reference<XTextRange> xTextRange  = xText->getEnd();
-        Reference<XTextCursor> xTextCursor = xText->createTextCursorByRange( xTextRange );
-        Reference<XDocumentInsertable> xDocumentInsertable( xTextCursor, UNO_QUERY );
-
-        try
-        {
-            xDocumentInsertable->insertDocumentFromURL(
-                wx2OUString( GetResourceFile(
-                    wxT( "templates/CompsIndexMiddleSheet_template.odt" ) ) ),
-                Sequence < :: com::sun::star::beans::PropertyValue>() );
-        }
-        catch( Exception& e )
-        {
-            wxMessageBox( wxString::FromUTF8(
-                OUStringToOString( e.Message, RTL_TEXTENCODING_UTF8 ).getStr() ),
-                          wxEmptyString, wxOK | wxICON_ERROR );
-
+        if ( !aDocIface->AppendDocument(
+            GetResourceFile( wxT( "templates/CompsIndexMiddleSheet_template.odt" ) ) ) )
             return;
-        }
 
-        Reference<XTextTable> xTable1( aIndexedTables->getByIndex( current_sheet ), UNO_QUERY );
+        aDocIface->SelectTable( current_sheet );
 
         // fill 'sheet number' field
-        OO_PrintCompIndexDocCell( xTable1, wxT( "C30.1.2" ),
-                                  wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
-                                  0 );
+        aDocIface->PutCell( wxT( "C30.1.2" ),
+                            wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
+                            0 );
 
         // fill 'designation' field
-        OO_PrintCompIndexDocCell( xTable1, wxT( "B30" ),
-                                  wxT( "\n" ) + aComponentDB->Designation + wxT( "ПЭ3" ), 0 );
+        aDocIface->PutCell( wxT( "B30" ),
+                            wxT( "\n" ) + aComponentDB->Designation + wxT( "ПЭ3" ), 0 );
     }
 
-    Reference<XTextTable> xTable( aIndexedTables->getByIndex( current_sheet ), UNO_QUERY );
-
+    aDocIface->SelectTable( current_sheet );
 
     // ref des
     // for (i=0;i<(int)string_array.GetCount();i++)
     // {
-    cell_address    = wxT( "A" );
-    cell_address    += wxString::Format( wxT( "%d" ), current_row /* + i*/ );
-    OO_PrintCompIndexDocCell( xTable, cell_address, wxT( " " ) + /*string_array[i]*/ aRef_des, 0 );
+    cell_address = wxT( "A" );
+    cell_address += wxString::Format( wxT( "%d" ), current_row /* + i*/ );
+    aDocIface->PutCell( cell_address, wxT( " " ) + /*string_array[i]*/ aRef_des, 0 );
     // }
 
     // name
-    cell_address    = wxT( "B" );
-    cell_address    += wxString::Format( wxT( "%d" ), current_row );
-    OO_PrintCompIndexDocCell( xTable, cell_address, wxT( " " ) + aName, aStyle );
+    cell_address = wxT( "B" );
+    cell_address += wxString::Format( wxT( "%d" ), current_row );
+    aDocIface->PutCell( cell_address, wxT( " " ) + aName, aStyle );
 
     // qty
     if( aQty > 0 )
     {
-        cell_address    = wxT( "C" );
-        cell_address    += wxString::Format( wxT( "%d" ), current_row );
-        OO_PrintCompIndexDocCell( xTable, cell_address, wxString::Format( wxT( "%d" ), aQty ), 0 );
+        cell_address = wxT( "C" );
+        cell_address += wxString::Format( wxT( "%d" ), current_row );
+        aDocIface->PutCell( cell_address, wxString::Format( wxT( "%d" ), aQty ), 0 );
     }
 
     // note
     for( i = 0; i < (int)string_array.GetCount(); i++ )
     {
-        cell_address    = wxT( "D" );
-        cell_address    += wxString::Format( wxT( "%d" ), current_row + i );
-        OO_PrintCompIndexDocCell( xTable, cell_address, wxT( " " ) + string_array[i], 0 );
+        cell_address = wxT( "D" );
+        cell_address += wxString::Format( wxT( "%d" ), current_row + i );
+        aDocIface->PutCell( cell_address, wxT( " " ) + string_array[i], 0 );
     }
 
     current_row += row_step;
@@ -244,7 +153,7 @@ void OO_PrintCompIndexDocRow( Reference<XTextDocument>  aTextDocument,
 void ChangeWordForm( wxString* aStr, int aType )
 {
     int     i;
-    bool    title_found = FALSE;
+    bool    title_found = false;
 
     for( i = 0; i < DICTIONARY_SIZE; i++ )
     {
@@ -257,7 +166,7 @@ void ChangeWordForm( wxString* aStr, int aType )
             else if( aType==WORDFORM_PLURAL_GENITIVE )
                 *aStr = dictionary[i].plural_genetive_form;
 
-            title_found = TRUE;
+            title_found = true;
             break;
         }
     }
@@ -274,21 +183,21 @@ void ChangeWordForm( wxString* aStr, int aType )
 }
 
 
-void PrintTitleGroup( COMPONENT_ARRAY*          aTitle_group_components,
-                      int                       aPositions,
-                      wxArrayString*            aGroup_types,
-                      wxString                  aBase_title,
-                      int                       aVariant,
-                      Reference<XTextDocument>  aTextDocument,
-                      Reference<XIndexAccess>   aIndexedTables,
-                      COMPONENT_DB*             aComponentDB )
+void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
+                      COMPONENT_ARRAY*  aTitle_group_components,
+                      int               aPositions,
+                      wxArrayString*    aGroup_types,
+                      wxString          aBase_title,
+                      int               aVariant,
+                      COMPONENT_DB*     aComponentDB )
 {
     wxString    note, ref_des_group, str;
     COMPONENT*  pComponent, * pBaseComponent;
     int         ref_des_base_i, qty, i, item_var_i, title_group_end, base_refdes_postfix,
                 next_refdes_postfix;
 
-    OO_PrintCompIndexDocRow( aTextDocument, aIndexedTables, wxT( "" ), wxT( "" ), 0,
+    OO_PrintCompIndexDocRow( aDocIface,
+                             wxT( "" ), wxT( "" ), 0,
                              wxT( "" ), 0, 1, aComponentDB );
 
     if( aPositions > 1 )
@@ -309,7 +218,7 @@ void PrintTitleGroup( COMPONENT_ARRAY*          aTitle_group_components,
                     StringInsert( &(*aGroup_types)[i], wxT( "танталовые" ), pos );
                 }
 
-                OO_PrintCompIndexDocRow( aTextDocument, aIndexedTables,
+                OO_PrintCompIndexDocRow( aDocIface,
                                          wxT( "" ), aBase_title + wxT( " " ) +
                                                     (*aGroup_types)[i], 0, wxT( "" ), 0, 1,
                                          aComponentDB );
@@ -317,7 +226,8 @@ void PrintTitleGroup( COMPONENT_ARRAY*          aTitle_group_components,
         }
         else
         {
-            OO_PrintCompIndexDocRow( aTextDocument, aIndexedTables, wxT( "" ), aBase_title, 0,
+            OO_PrintCompIndexDocRow( aDocIface,
+                                     wxT( "" ), aBase_title, 0,
                                      wxT( "" ), 0, 1,
                                      aComponentDB );
         }
@@ -407,8 +317,7 @@ void PrintTitleGroup( COMPONENT_ARRAY*          aTitle_group_components,
                 ( (COMPONENT*) (*aTitle_group_components)[ref_des_base_i + qty - 1] )->m_RefDes;
         }
 
-        OO_PrintCompIndexDocRow( aTextDocument,
-                                 aIndexedTables,
+        OO_PrintCompIndexDocRow( aDocIface,
                                  ref_des_group,
                                  str,
                                  qty,
@@ -422,11 +331,10 @@ void PrintTitleGroup( COMPONENT_ARRAY*          aTitle_group_components,
 }
 
 
-void ProcessSingleVariant( COMPONENT_ARRAY*         aSingleVariantComponents,
-                           int                      aVariant,
-                           Reference<XTextDocument> aTextDocument,
-                           Reference<XIndexAccess>  aIndexedTables,
-                           COMPONENT_DB*            aComponentDB )
+void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
+                           COMPONENT_ARRAY*  aSingleVariantComponents,
+                           int               aVariant,
+                           COMPONENT_DB*     aComponentDB )
 {
     COMPONENT_ARRAY title_group_components;
     wxArrayString   group_titles;
@@ -519,8 +427,9 @@ void ProcessSingleVariant( COMPONENT_ARRAY*         aSingleVariantComponents,
             }
 
             // print the title group
-            PrintTitleGroup( &title_group_components, positions, &group_types, base_title,
-                             aVariant, aTextDocument, aIndexedTables, aComponentDB );
+            PrintTitleGroup( aDocIface, &title_group_components,
+                             positions, &group_types, base_title,
+                             aVariant, aComponentDB );
         }
     } while( offset < (int) aSingleVariantComponents->GetCount() );
 }
@@ -531,56 +440,37 @@ void ProcessSingleVariant( COMPONENT_ARRAY*         aSingleVariantComponents,
 // #define FIRST_SHEET_LAST_STR_I       26
 // #define SECOND_SHEET_LAST_STR_I      29
 
-void OO_AttachNewSpecificationSheet( Reference<XTextDocument>   aTextDocument,
-                                     Reference<XIndexAccess>    aIndexedTables,
-                                     COMPONENT_DB*              aComponentDB )
+void OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
+                                     COMPONENT_DB*     aComponentDB )
 {
     current_sheet++;
     current_row = 2;
 
-    Reference<XText> xText = aTextDocument->getText();
-    Reference<XTextRange> xTextRange  = xText->getEnd();
-    Reference<XTextCursor> xTextCursor = xText->createTextCursorByRange( xTextRange );
-    Reference<XDocumentInsertable>  xDocumentInsertable( xTextCursor, UNO_QUERY );
-
-    try
-    {
-        xDocumentInsertable->insertDocumentFromURL(
-            wx2OUString( GetResourceFile(
-                wxT( "templates/SpecificationMiddleSheet_template.odt" ) ) ),
-            Sequence < :: com::sun::star::beans::PropertyValue>() );
-    }
-    catch( Exception& e )
-    {
-        wxMessageBox( wxString::FromUTF8(
-            OUStringToOString( e.Message, RTL_TEXTENCODING_UTF8 ).getStr() ),
-                      wxEmptyString, wxOK | wxICON_ERROR );
-
+    if ( !aDocIface->AppendDocument(
+        GetResourceFile( wxT( "templates/SpecificationMiddleSheet_template.odt" ) ) ) )
         return;
-    }
 
-    Reference<XTextTable> xTable1( aIndexedTables->getByIndex( current_sheet ), UNO_QUERY );
+    aDocIface->SelectTable( current_sheet );
 
     // fill 'sheet number' field
-    OO_PrintCompIndexDocCell( xTable1, wxT( "C30.1.2" ),
-                              wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
-                              0 );
+    aDocIface->PutCell( wxT( "C30.1.2" ),
+                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
+                        0 );
     // fill 'designation' field
-    OO_PrintCompIndexDocCell( xTable1, wxT( "B30" ), wxT( "\n" ) + aComponentDB->Designation, 0 );
+    aDocIface->PutCell( wxT( "B30" ), wxT( "\n" ) + aComponentDB->Designation, 0 );
 }
 
 
-void OO_PrintSpecificationDocRow( Reference<XTextDocument>  aTextDocument,
-                                  Reference<XIndexAccess>   aIndexedTables,
-                                  wxString                  aFormat,
-                                  int                       aPos,
-                                  wxString                  aDesignation,
-                                  wxString                  aName,
-                                  wxString                  aQty,
-                                  wxString                  aNote,
-                                  int                       aStyle,
-                                  int                       aReserve_strings,
-                                  COMPONENT_DB*             aComponentDB )
+void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
+                                  wxString          aFormat,
+                                  int               aPos,
+                                  wxString          aDesignation,
+                                  wxString          aName,
+                                  wxString          aQty,
+                                  wxString          aNote,
+                                  int               aStyle,
+                                  int               aReserve_strings,
+                                  COMPONENT_DB*     aComponentDB )
 {
     int             i, note_i, row_step;
     wxString        cell_address;
@@ -600,43 +490,43 @@ void OO_PrintSpecificationDocRow( Reference<XTextDocument>  aTextDocument,
 
     if( ( (current_sheet==0) && (current_row + aReserve_strings - 1 > FIRST_SHEET_LAST_STR_I) )
         || ( (current_sheet>0) && (current_row + aReserve_strings - 1 > SECOND_SHEET_LAST_STR_I) ) )
-        OO_AttachNewSpecificationSheet( aTextDocument, aIndexedTables, aComponentDB );
+        OO_AttachNewSpecificationSheet( aDocIface, aComponentDB );
 
-    Reference<XTextTable> xTable( aIndexedTables->getByIndex( current_sheet ), UNO_QUERY );
+    aDocIface->SelectTable( current_sheet );
 
     // format field
-    cell_address    = wxT( "A" );
-    cell_address    += wxString::Format( wxT( "%d" ), current_row );
-    OO_PrintCompIndexDocCell( xTable, cell_address, aFormat, 0 );
+    cell_address = wxT( "A" );
+    cell_address += wxString::Format( wxT( "%d" ), current_row );
+    aDocIface->PutCell( cell_address, aFormat, 0 );
 
     // position field
     if( aPos > 0 )
     {
-        cell_address    = wxT( "C" );
-        cell_address    += wxString::Format( wxT( "%d" ), current_row );
+        cell_address = wxT( "C" );
+        cell_address += wxString::Format( wxT( "%d" ), current_row );
         // 'position' field
-        OO_PrintCompIndexDocCell( xTable, cell_address, wxString::Format( wxT( "%d" ), aPos ), 0 );
+        aDocIface->PutCell( cell_address, wxString::Format( wxT( "%d" ), aPos ), 0 );
     }
 
     // designation field
-    cell_address    = wxT( "D" );
-    cell_address    += wxString::Format( wxT( "%d" ), current_row );
-    OO_PrintCompIndexDocCell( xTable, cell_address, aDesignation, 0 );
+    cell_address = wxT( "D" );
+    cell_address += wxString::Format( wxT( "%d" ), current_row );
+    aDocIface->PutCell( cell_address, aDesignation, 0 );
 
     // name field
     for( i = 0; i<(int) name_string_array.GetCount(); i++ )
     {
-        cell_address    = wxT( "E" );
-        cell_address    += wxString::Format( wxT( "%d" ), current_row + i);
-        OO_PrintCompIndexDocCell( xTable, cell_address, wxT( " " ) + name_string_array[i], aStyle );
+        cell_address = wxT( "E" );
+        cell_address += wxString::Format( wxT( "%d" ), current_row + i);
+        aDocIface->PutCell( cell_address, wxT( " " ) + name_string_array[i], aStyle );
     }
 
     // qty field
     if( aQty != wxT( "" ) )
     {
-        cell_address    = wxT( "F" );
-        cell_address    += wxString::Format( wxT( "%d" ), current_row );
-        OO_PrintCompIndexDocCell( xTable, cell_address, aQty, 0 );
+        cell_address = wxT( "F" );
+        cell_address += wxString::Format( wxT( "%d" ), current_row );
+        aDocIface->PutCell( cell_address, aQty, 0 );
     }
 
     // note field
@@ -644,19 +534,18 @@ void OO_PrintSpecificationDocRow( Reference<XTextDocument>  aTextDocument,
 
     for( i = 0; i<(int) note_string_array.GetCount(); i++ )
     {
-        cell_address    = wxT( "G" );
-        cell_address    += wxString::Format( wxT( "%d" ), current_row + note_i );
-        OO_PrintCompIndexDocCell( xTable, cell_address, wxT( " " ) + note_string_array[i], 0 );
+        cell_address = wxT( "G" );
+        cell_address += wxString::Format( wxT( "%d" ), current_row + note_i );
+        aDocIface->PutCell( cell_address, wxT( " " ) + note_string_array[i], 0 );
 
         if( ( (current_sheet==0) && (current_row + note_i >= FIRST_SHEET_LAST_STR_I) )
             || ( (current_sheet>0) && (current_row + note_i >= SECOND_SHEET_LAST_STR_I) ) )
         {
-            OO_AttachNewSpecificationSheet( aTextDocument, aIndexedTables, aComponentDB );
-            Reference<XTextTable> xTable2( aIndexedTables->getByIndex( current_sheet ), UNO_QUERY );
-            xTable = xTable2;
+            OO_AttachNewSpecificationSheet( aDocIface, aComponentDB );
+            aDocIface->SelectTable( current_sheet );
 
-            row_step    = note_string_array.GetCount() - note_i;
-            note_i      = 0;
+            row_step = note_string_array.GetCount() - note_i;
+            note_i   = 0;
         }
         else
             note_i++;
@@ -745,22 +634,22 @@ double ExtractAbsoluteValue( wxString aValue )
 }
 
 
-// returns TRUE if comp_pos1 value is greater than value of comp_pos2
+// returns true if comp_pos1 value is greater than value of comp_pos2
 bool CompareTwoCompPositionsValues( TCOMPONENT_ATTRS* aComp_pos1, TCOMPONENT_ATTRS* aComp_pos2 )
 {
     double absvalue1, absvalue2;
 
     if( ( absvalue1 = ExtractAbsoluteValue( aComp_pos1->attrs[ATTR_VALUE] ) )==-1.0 )
-        return FALSE;
+        return false;
 
     if( ( absvalue2 = ExtractAbsoluteValue( aComp_pos2->attrs[ATTR_VALUE] ) )==-1.0 )
-        return FALSE;
+        return false;
 
     return absvalue1 > absvalue2;
 }
 
 
-// returns TRUE if component1 value is greater than value of component2
+// returns true if component1 value is greater than value of component2
 bool CompareTwoComponentsValues( COMPONENT* aComponent1, COMPONENT* aComponent2, int variant )
 {
     int comp1_var_i = ConvertVariantToItemVarI( aComponent1, variant );
@@ -979,22 +868,21 @@ int GetSpecificationPos( wxArrayString* aSpecification_positions, TCOMPONENT_ATT
 }
 
 
-void Specification_PrintTypeGroup( COMPONENT_ARRAY*         aType_group_components,
-                                   int                      aPositions,
-                                   wxString                 aBase_type,
-                                   wxString                 aBase_title,
-                                   int                      aVariant,
-                                   Reference<XTextDocument> aTextDocument,
-                                   Reference<XIndexAccess>  aIndexedTables,
-                                   COMPONENT_DB*            aComponentDB,
-                                   wxArrayString*           aSpecification_positions )
+void Specification_PrintTypeGroup( COMMON_DOC_IFACE* aDocIface,
+                                   COMPONENT_ARRAY*  aType_group_components,
+                                   int               aPositions,
+                                   wxString          aBase_type,
+                                   wxString          aBase_title,
+                                   int               aVariant,
+                                   COMPONENT_DB*     aComponentDB,
+                                   wxArrayString*    aSpecification_positions )
 {
     wxString            note, manufacturer, ref_des_group, str, qty_str;
     COMPONENT*          pComponent;
     pTCOMPONENT_ATTRS   componentAttrs;
     int     ref_des_base, qty, i, item_var_i, type_group_end, spec_pos;
 
-    OO_PrintSpecificationDocRow( aTextDocument, aIndexedTables, wxT( "" ), 0, wxT( "" ),
+    OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
                                  wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
 
     if( aPositions > 1 )
@@ -1010,7 +898,7 @@ void Specification_PrintTypeGroup( COMPONENT_ARRAY*         aType_group_componen
             StringInsert( &aBase_type, wxT( "танталовые" ), pos );
         }
 
-        OO_PrintSpecificationDocRow( aTextDocument, aIndexedTables, wxT( "" ), 0,
+        OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0,
                                      wxT( "" ), aBase_title + wxT( " " ) + aBase_type, wxT( "" ),
                                      wxT( "" ), 0, 1,
                                      aComponentDB );
@@ -1085,8 +973,7 @@ void Specification_PrintTypeGroup( COMPONENT_ARRAY*         aType_group_componen
                 spec_pos = GetSpecificationPos( aSpecification_positions, componentAttrs );
 
             if( pComponent->ComponentType==wxT( "AssemblyUnit" ) )
-                OO_PrintSpecificationDocRow( aTextDocument,
-                                             aIndexedTables,
+                OO_PrintSpecificationDocRow( aDocIface,
                                              pComponent->fmt,
                                              spec_pos,
                                              componentAttrs->attrs[ATTR_DESIGNATION],
@@ -1097,15 +984,14 @@ void Specification_PrintTypeGroup( COMPONENT_ARRAY*         aType_group_componen
                                              1,
                                              aComponentDB );
             else if( pComponent->ComponentType==wxT( "Goods" ) )
-                OO_PrintSpecificationDocRow( aTextDocument, aIndexedTables,
+                OO_PrintSpecificationDocRow( aDocIface,
                                              wxT( "" ), spec_pos,
                                              componentAttrs->attrs[ATTR_DESIGNATION],
                                              str, pComponent->fmt,
                                              componentAttrs->attrs[ATTR_NOTE],
                                              0, 1, aComponentDB );
             else
-                OO_PrintSpecificationDocRow( aTextDocument,
-                                             aIndexedTables,
+                OO_PrintSpecificationDocRow( aDocIface,
                                              pComponent->fmt,
                                              spec_pos,
                                              componentAttrs->attrs[ATTR_DESIGNATION],
@@ -1126,13 +1012,12 @@ void Specification_PrintTypeGroup( COMPONENT_ARRAY*         aType_group_componen
 }
 
 
-void Specification_ProcessSingleVariant( wxArrayPtrVoid*            aSingleVariantComponents,
-                                         int                        aVariant,
-                                         Reference<XTextDocument>   aTextDocument,
-                                         Reference<XIndexAccess>    aIndexedTables,
-                                         COMPONENT_DB*              aComponentDB,
-                                         wxArrayString*             aSpecification_positions,
-                                         int                        aMode )
+void Specification_ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
+                                         wxArrayPtrVoid*   aSingleVariantComponents,
+                                         int               aVariant,
+                                         COMPONENT_DB*     aComponentDB,
+                                         wxArrayString*    aSpecification_positions,
+                                         int               aMode )
 {
     wxArrayPtrVoid      title_group_components, type_group_components;
     wxArrayString       group_titles, group_types;
@@ -1303,9 +1188,10 @@ void Specification_ProcessSingleVariant( wxArrayPtrVoid*            aSingleVaria
 
 
                 // print the type group
-                Specification_PrintTypeGroup( (COMPONENT_ARRAY*) &type_group_components, positions,
+                Specification_PrintTypeGroup( aDocIface,
+                                              (COMPONENT_ARRAY*) &type_group_components, positions,
                                               base_type, base_title,
-                                              aVariant, aTextDocument, aIndexedTables, aComponentDB,
+                                              aVariant, aComponentDB,
                                               aSpecification_positions );
             }
         }
@@ -1313,13 +1199,12 @@ void Specification_ProcessSingleVariant( wxArrayPtrVoid*            aSingleVaria
 }
 
 
-// returns FALSE if no component presents. else TRUE
-bool Form_a_set( COMPONENT_DB*              aComponentDB,
-                 int                        aPart_type,
-                 int                        aVariant,
-                 wxArrayString*             aSpecification_positions,
-                 Reference<XTextDocument>   aTextDocument,
-                 Reference<XIndexAccess>    aIndexedTables )
+// returns false if no component presents. else true
+bool Form_a_set( COMMON_DOC_IFACE* aDocIface,
+                 COMPONENT_DB*     aComponentDB,
+                 int               aPart_type,
+                 int               aVariant,
+                 wxArrayString*    aSpecification_positions )
 {
     int             i, set_type_i;
     COMPONENT*      pComponent;
@@ -1327,7 +1212,7 @@ bool Form_a_set( COMPONENT_DB*              aComponentDB,
     wxArrayString*  pSetsOfType;
     wxString        str, refdes_prefix_reserved;
     COMPONENT_ARRAY singleVariantComponents;
-    bool            result = FALSE;
+    bool            result = false;
 
     if( !(aPart_type & PARTTYPE_VAR) )
         aVariant = -1;
@@ -1336,7 +1221,7 @@ bool Form_a_set( COMPONENT_DB*              aComponentDB,
                             &setsByTypes,
                             aPart_type,
                             aVariant,
-                            FALSE );
+                            false );
 
     for( set_type_i = 0; set_type_i<(int) setsByTypes.GetCount(); set_type_i++ )
     {
@@ -1348,7 +1233,7 @@ bool Form_a_set( COMPONENT_DB*              aComponentDB,
                                                  refdes_prefix_reserved );
 
         if( singleVariantComponents.GetCount() > 0 )
-            result = TRUE;
+            result = true;
 
         // delete prefix of components refdes
         for( i = 0; i<(int) singleVariantComponents.GetCount(); i++ )
@@ -1363,33 +1248,32 @@ bool Form_a_set( COMPONENT_DB*              aComponentDB,
 
             if( aPart_type & PARTTYPE_SPECIFICATION )
             {
-                OO_PrintSpecificationDocRow( aTextDocument, aIndexedTables, wxT( "" ), 0,
+                OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0,
                                              wxT( "" ), wxT( "" ), wxT( "" ),
                                              wxT( "" ), 0, 5, aComponentDB );
-                OO_PrintSpecificationDocRow( aTextDocument, aIndexedTables, wxT( "" ), 0,
+                OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0,
                                              wxT( "" ), wxT( "Абонентский комплект" ),
                                              wxT( "" ), str, TEXT_UNDERLINED | TEXT_CENTERED, 1,
                                              aComponentDB );
 
-                Specification_ProcessSingleVariant( (wxArrayPtrVoid*) &singleVariantComponents,
-                                                    aVariant, aTextDocument, aIndexedTables,
-                                                    aComponentDB, aSpecification_positions,
-                                                    0 );
+                Specification_ProcessSingleVariant( aDocIface,
+                                                    (wxArrayPtrVoid*) &singleVariantComponents,
+                                                    aVariant, aComponentDB,
+                                                    aSpecification_positions, 0 );
             }
             else
             {
-                OO_PrintCompIndexDocRow( aTextDocument, aIndexedTables, wxT( "" ),
+                OO_PrintCompIndexDocRow( aDocIface, wxT( "" ),
                                          wxT( "" ), 0, wxT( "" ), 0, 5, aComponentDB );
-                OO_PrintCompIndexDocRow( aTextDocument, aIndexedTables, str,
+                OO_PrintCompIndexDocRow( aDocIface, str,
                                          wxT( "Абонентский комплект" ),
                                          pSetsOfType->GetCount(), wxT( "" ),
                                          TEXT_UNDERLINED | TEXT_CENTERED, 1,
                                          aComponentDB );
 
-                ProcessSingleVariant( &singleVariantComponents,
+                ProcessSingleVariant( aDocIface,
+                                      &singleVariantComponents,
                                       aVariant,
-                                      aTextDocument,
-                                      aIndexedTables,
                                       aComponentDB );
             }
         }

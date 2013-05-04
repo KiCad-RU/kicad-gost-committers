@@ -30,7 +30,8 @@
 #define OO_SPECIFICATION_HXX
 
 namespace GOST_DOC_GEN {
-    extern bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB );
+    extern bool OO_CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
+                                              COMMON_DOC_IFACE* aDocIface );
 }
 
 #endif    // OO_SPECIFICATION_HXX

@@ -36,11 +36,11 @@ COMPONENT::COMPONENT()
 
     for( int i = 0; i < ATTR_QTY; i++ )
     {
-        m_KiCadAttrs[i].attr_changed  = FALSE;
+        m_KiCadAttrs[i].attr_changed  = false;
         m_KiCadAttrs[i].value_of_attr = wxT( "" );
     }
 
-    ExcludeCompsIndex = FALSE;
+    ExcludeCompsIndex = false;
     ComponentType = wxT( "" );
     fmt = wxT( "" );
 }
@@ -149,7 +149,7 @@ int COMPONENT::ReadVariantsInStr( wxString aStr, int aComp_attr, bool aInit )
         do
         {
             if( ( tag_start_pos =
-                      FindVariantTagInStr( aStr, pos, FALSE, &tag, &open_tag_end_pos ) )==-1 )
+                      FindVariantTagInStr( aStr, pos, false, &tag, &open_tag_end_pos ) )==-1 )
                 return attr_variantsQty;
 
             if( open_tag_end_pos >= str_len - 1 )
@@ -160,7 +160,7 @@ int COMPONENT::ReadVariantsInStr( wxString aStr, int aComp_attr, bool aInit )
         } while( open_variant==-1 );
 
         if( ( tag_start_pos =
-                  FindVariantTagInStr( aStr, pos, TRUE, &tag, &close_tag_end_pos ) )==-1 )
+                  FindVariantTagInStr( aStr, pos, true, &tag, &close_tag_end_pos ) )==-1 )
             return -1;
 
         close_variant = DetermineVariant( tag );
@@ -235,7 +235,7 @@ void COMPONENT::Update()
 }
 
 
-// returns FALSE if KiCad attributes have incorrect format
+// returns false if KiCad attributes have incorrect format
 bool COMPONENT::ReadVariants()
 {
     wxString            str, Type;
@@ -248,10 +248,10 @@ bool COMPONENT::ReadVariants()
     else
         Type = m_KiCadAttrs[ATTR_TYPE1].value_of_attr;
 
-    err = ReadVariantsInStr( m_KiCadAttrs[ATTR_NAME].value_of_attr, ATTR_NAME, TRUE );
+    err = ReadVariantsInStr( m_KiCadAttrs[ATTR_NAME].value_of_attr, ATTR_NAME, true );
 
     if( err==-1 )
-        return FALSE;
+        return false;
     else if( err==0 )
     {
         component_attrs = new TCOMPONENT_ATTRS;
@@ -263,15 +263,15 @@ bool COMPONENT::ReadVariants()
         component_attrs->variant        = -1;
         m_comp_attr_variants.Add( component_attrs );
         m_Variants_State = COMP_IN_CONST_PART;
-        return TRUE;
+        return true;
     }
 
     m_Variants_State = COMP_IN_VAR_PART;
 
-    err = ReadVariantsInStr( Type, ATTR_TYPE, FALSE );
+    err = ReadVariantsInStr( Type, ATTR_TYPE, false );
 
     if( err==-1 )
-        return FALSE;
+        return false;
     else if( err==0 )
         for( i = 0; i<m_comp_attr_variants.GetCount(); i++ )
             ( (pTCOMPONENT_ATTRS) m_comp_attr_variants[i] )->attrs[ATTR_TYPE] = Type;
@@ -279,10 +279,10 @@ bool COMPONENT::ReadVariants()
 
     for( int attr = ATTR_SUBTYPE; attr <= ATTR_MANUFACTURER; attr++ )
     {
-        err = ReadVariantsInStr( m_KiCadAttrs[attr].value_of_attr, attr, FALSE );
+        err = ReadVariantsInStr( m_KiCadAttrs[attr].value_of_attr, attr, false );
 
         if( err==-1 )
-            return FALSE;
+            return false;
         else if( err==0 )
             for( i = 0; i<m_comp_attr_variants.GetCount(); i++ )
                 ( (pTCOMPONENT_ATTRS) m_comp_attr_variants[i] )->attrs[attr] =
@@ -291,7 +291,7 @@ bool COMPONENT::ReadVariants()
 
     Update();
 
-    return TRUE;
+    return true;
 }
 
 
@@ -345,8 +345,8 @@ int COMPONENT::WriteVariants()
     wxString         variant_str;
     size_t           i;
     int              attr;
-    bool             same_attrs[ATTR_QTY] = { FALSE };
-    bool             some_changes_done = FALSE;
+    bool             same_attrs[ATTR_QTY] = { false };
+    bool             some_changes_done = false;
 
     if( m_Variants_State==COMP_IN_CONST_PART )
     {
@@ -357,14 +357,14 @@ int COMPONENT::WriteVariants()
     else
     {
         for( attr = 0; attr < ATTR_QTY; attr++)
-            same_attrs[attr] = TRUE;
+            same_attrs[attr] = true;
 
         for( i = 0; i < m_comp_attr_variants.GetCount(); i++ )
         {
             for( attr = ATTR_TYPE; attr < ATTR_QTY; attr++ )
                 if( ( (pTCOMPONENT_ATTRS) m_comp_attr_variants[0] )->attrs[attr]!=
                     ( (pTCOMPONENT_ATTRS) m_comp_attr_variants[i] )->attrs[attr] )
-                    same_attrs[attr] = FALSE;
+                    same_attrs[attr] = false;
         }
 
         for( attr = 0; attr < ATTR_QTY; attr++ )
@@ -401,31 +401,31 @@ int COMPONENT::WriteVariants()
     if( m_KiCadAttrs[ATTR_NAME].value_of_attr!=component_attrs.attrs[ATTR_NAME] )
     {
         m_KiCadAttrs[ATTR_NAME].value_of_attr = component_attrs.attrs[ATTR_NAME];
-        m_KiCadAttrs[ATTR_NAME].attr_changed  = TRUE;
-        some_changes_done = TRUE;
+        m_KiCadAttrs[ATTR_NAME].attr_changed  = true;
+        some_changes_done = true;
     }
 
     if( m_KiCadAttrs[ATTR_TYPE].value_of_attr==component_attrs.attrs[ATTR_TYPE]
         && m_KiCadAttrs[ATTR_TYPE1].value_of_attr != wxT( "" ) )
     {
         m_KiCadAttrs[ATTR_TYPE1].value_of_attr = wxT( "" );
-        m_KiCadAttrs[ATTR_TYPE1].attr_changed  = TRUE;
-        some_changes_done = TRUE;
+        m_KiCadAttrs[ATTR_TYPE1].attr_changed  = true;
+        some_changes_done = true;
     }
     else if( m_KiCadAttrs[ATTR_TYPE].value_of_attr!=component_attrs.attrs[ATTR_TYPE]
              && m_KiCadAttrs[ATTR_TYPE1].value_of_attr!=component_attrs.attrs[ATTR_TYPE] )
     {
         m_KiCadAttrs[ATTR_TYPE1].value_of_attr = component_attrs.attrs[ATTR_TYPE];
-        m_KiCadAttrs[ATTR_TYPE1].attr_changed  = TRUE;
-        some_changes_done = TRUE;
+        m_KiCadAttrs[ATTR_TYPE1].attr_changed  = true;
+        some_changes_done = true;
     }
 
     for( attr = ATTR_SUBTYPE; attr < ATTR_QTY; attr++ )
         if( m_KiCadAttrs[attr].value_of_attr!=component_attrs.attrs[attr] )
         {
             m_KiCadAttrs[attr].value_of_attr = component_attrs.attrs[attr];
-            m_KiCadAttrs[attr].attr_changed = TRUE;
-            some_changes_done = TRUE;
+            m_KiCadAttrs[attr].attr_changed = true;
+            some_changes_done = true;
         }
 
     return some_changes_done ? 1 : 0;
