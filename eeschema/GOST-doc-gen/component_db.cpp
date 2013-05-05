@@ -33,7 +33,11 @@
 
 #include <component_db.h>
 #include <common_doc_iface.h>
+
+#ifdef USE_OPENOFFICE_SDK
 #include <oo_iface.hxx>
+#endif
+
 #include <oo_python_uno_iface.h>
 #include <doc_component_index.h>
 #include <doc_specification.h>

@@ -306,7 +306,7 @@ if(MINGW AND USE_WX_GRAPHICS_CONTEXT)
 endif()
 
 # Find Python and other scripting resources
-if(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES)
+if(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_GOST_DOC_GEN)
     set(PythonInterp_FIND_VERSION)
     find_package(PythonInterp)
     check_find_package_result(PYTHONINTERP_FOUND "Python Interpreter")
@@ -330,7 +330,7 @@ if(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES)
     find_package(PythonLibs)
     include_directories(${PYTHON_INCLUDE_PATH}
                         ./scripting)
-endif(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES)
+endif(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_GOST_DOC_GEN)
 
 
 
