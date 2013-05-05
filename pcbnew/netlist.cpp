@@ -73,7 +73,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     }
     catch( IO_ERROR& ioe )
     {
-        msg = wxString::Format( _( "Error loading netlist.\n%s" ), ioe.errorText.GetData() );
+        msg.Printf( _( "Error loading netlist.\n%s" ), ioe.errorText.GetData() );
         wxMessageBox( msg, _( "Netlist Load Error" ), wxOK | wxICON_ERROR );
         return;
     }
@@ -160,15 +160,17 @@ MODULE* PCB_EDIT_FRAME::ListAndSelectModuleName()
 void PCB_EDIT_FRAME::loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
     throw( IO_ERROR, PARSE_ERROR )
 {
+    bool       loadFootprint;
     wxString   msg;
     wxString   lastFootprintLibName;
     COMPONENT* component;
-    MODULE*    module;
+    MODULE*    module = 0;
+    MODULE*    fpOnBoard;
 
     if( aNetlist.IsEmpty() )
         return;
 
-    aNetlist.SortByFootprintLibName();
+    aNetlist.SortByFootprintName();
 
     wxString   libPath;
     wxFileName fn;
@@ -179,8 +181,17 @@ void PCB_EDIT_FRAME::loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
     {
         component = aNetlist.GetComponent( ii );
 
-        // @todo Check if component is already on BOARD and only load footprint if it's needed.
-        if( ii == 0 || component->GetFootprintLibName() != lastFootprintLibName )
+        // Check if component footprint is already on BOARD and only load the footprint from
+        // the library if it's needed.
+        if( aNetlist.IsFindByTimeStamp() )
+            fpOnBoard = m_Pcb->FindModule( aNetlist.GetComponent( ii )->GetTimeStamp(), true );
+        else
+            fpOnBoard = m_Pcb->FindModule( aNetlist.GetComponent( ii )->GetReference() );
+
+        loadFootprint = (fpOnBoard == NULL) ||
+                        (fpOnBoard->GetPath() != component->GetFootprintName());
+
+        if( loadFootprint && (component->GetFootprintName() != lastFootprintLibName) )
         {
             module = NULL;
 
@@ -192,13 +203,23 @@ void PCB_EDIT_FRAME::loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
                 libPath = wxGetApp().FindLibraryPath( fn );
 
                 if( !libPath )
-                    continue;
+                {
+                    if( aReporter )
+                    {
+                        msg.Printf( _( "*** Warning: Cannot find footprint library file \"%s\" "
+                                       "in any of the standard KiCad library search paths. ***\n" ),
+                                    GetChars( fn.GetFullPath() ) );
+                        aReporter->Report( msg );
+                    }
 
-                module = pi->FootprintLoad( libPath, component->GetFootprintLibName() );
+                    continue;
+                }
+
+                module = pi->FootprintLoad( libPath, component->GetFootprintName() );
 
                 if( module )
                 {
-                    lastFootprintLibName = component->GetFootprintLibName();
+                    lastFootprintLibName = component->GetFootprintName();
                     break;
                 }
             }
@@ -211,7 +232,7 @@ void PCB_EDIT_FRAME::loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
                     msg.Printf( _( "*** Warning: component `%s` footprint <%s> was not found in "
                                    "any libraries. ***\n" ),
                                 GetChars( component->GetReference() ),
-                                GetChars( component->GetFootprintLibName() ) );
+                                GetChars( component->GetFootprintName() ) );
                     aReporter->Report( msg );
                 }
 
@@ -227,7 +248,7 @@ void PCB_EDIT_FRAME::loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
             module = new MODULE( *module );
         }
 
-        wxASSERT( module != NULL );
-        component->SetModule( module );
+        if( loadFootprint && module != NULL )
+            component->SetModule( module );
     }
 }

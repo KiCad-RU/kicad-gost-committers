@@ -112,7 +112,7 @@ void TEXTE_PCB::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 {
     wxString    msg;
 
-#if defined(DEBUG)
+#if defined(__WXDEBUG__)
     BOARD_ITEM* parent = (BOARD_ITEM*) m_Parent;
     wxASSERT( parent );
 
@@ -136,7 +136,7 @@ void TEXTE_PCB::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     else
         aList.push_back( MSG_PANEL_ITEM( _( "Mirror" ), _( "Yes" ), DARKGREEN ) );
 
-    msg.Printf( wxT( "%.1f" ), (float) m_Orient / 10 );
+    msg.Printf( wxT( "%.1f" ), m_Orient / 10.0 );
     aList.push_back( MSG_PANEL_ITEM( _( "Orientation" ), msg, DARKGREEN ) );
 
     msg = ::CoordinateToString( m_Thickness );

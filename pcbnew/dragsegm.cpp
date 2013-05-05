@@ -34,6 +34,7 @@
 #include <gr_basic.h>
 #include <class_drawpanel.h>
 #include <wxBasePcbFrame.h>
+#include <macros.h>
 
 #include <drag.h>
 #include <pcbnew.h>
@@ -359,7 +360,7 @@ void Collect_TrackSegmentsToDrag( BOARD* aPcb, const wxPoint& aRefPos, LAYER_MSK
 
             if( std::abs( delta.x ) <= maxdist && std::abs( delta.y ) <= maxdist )
             {
-                int dist = (int) hypot( (double) delta.x, (double) delta.y );
+                int dist = KiROUND( EuclideanNorm( delta ) );
 
                 if( dist <= maxdist )
                 {
@@ -377,7 +378,7 @@ void Collect_TrackSegmentsToDrag( BOARD* aPcb, const wxPoint& aRefPos, LAYER_MSK
 
             if( std::abs( delta.x ) <= maxdist && std::abs( delta.y ) <= maxdist )
             {
-                int dist = (int) hypot( (double) delta.x, (double) delta.y );
+                int dist = KiROUND( EuclideanNorm( delta ) );
 
                 if( dist <= maxdist )
                     flag |= ENDPOINT;

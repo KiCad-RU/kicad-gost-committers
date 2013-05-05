@@ -362,7 +362,7 @@ bool DRC::doTrackDrc( TRACK* aRefSeg, TRACK* aStart, bool testPads )
             if( track->Type() == PCB_VIA_T )
             {
                 // Test distance between two vias, i.e. two circles, trivial case
-                if( (int) hypot( segStartPoint.x, segStartPoint.y ) < w_dist )
+                if( EuclideanNorm( segStartPoint ) < w_dist )
                 {
                     m_currentMarker = fillMarker( aRefSeg, track,
                                                   DRCE_VIA_NEAR_VIA, m_currentMarker );
@@ -527,7 +527,7 @@ bool DRC::doTrackDrc( TRACK* aRefSeg, TRACK* aStart, bool testPads )
                     segEndPoint   = track->GetEnd();
                     delta = segEndPoint - segStartPoint;
 
-                    /* Compute the segment orientation (angle) en 0,1 degre */
+                    // Compute the segment orientation (angle) en 0,1 degre
                     int angle = ArcTangente( delta.y, delta.x );
 
                     // Compute the segment lenght: delta.x = lenght after rotation
@@ -580,7 +580,7 @@ bool DRC::checkClearancePadToPad( D_PAD* aRefPad, D_PAD* aPad )
     // relativePadPos is the aPad shape position relative to the aRefPad shape position
     wxPoint relativePadPos = aPad->ReturnShapePos() - aRefPad->ReturnShapePos();
 
-    dist = (int) hypot( relativePadPos.x, relativePadPos.y );
+    dist = KiROUND( EuclideanNorm( relativePadPos ) );
 
     // Quick test: Clearance is OK if the bounding circles are further away than "dist_min"
     if( (dist - aRefPad->GetBoundingRadius() - aPad->GetBoundingRadius()) >= dist_min )
@@ -868,10 +868,7 @@ bool DRC::checkClearanceSegmToPad( const D_PAD* aPad, int aSegmentWidth, int aMi
         if( padHalfsize.x > padHalfsize.y )
         {
             EXCHG( padHalfsize.x, padHalfsize.y );
-            orient += 900;
-
-            if( orient >= 3600 )
-                orient -= 3600;
+            orient = AddAngles( orient, 900 );
         }
 
         deltay = padHalfsize.y - padHalfsize.x;
@@ -1017,7 +1014,7 @@ bool DRC::checkMarginToCircle( wxPoint aCentre, int aRadius, int aLength )
         if( aCentre.x > aLength )   // aCentre is after the ending point
             aCentre.x -= aLength;   // move aCentre to the starting point of the segment
 
-        if( hypot( aCentre.x, aCentre.y ) < aRadius )
+        if( EuclideanNorm( aCentre ) < aRadius )
             // distance between aCentre and the starting point or the ending point is < aRadius
             return false;
     }
@@ -1031,7 +1028,7 @@ static inline int USCALE( unsigned arg, unsigned num, unsigned den )
 {
     int ii;
 
-    ii = (int) ( ( (double) arg * num ) / den );
+    ii = KiROUND( ( (double) arg * num ) / den );
     return ii;
 }
 
