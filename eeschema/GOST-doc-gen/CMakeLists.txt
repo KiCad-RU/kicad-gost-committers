@@ -75,7 +75,8 @@ if(USE_OPENOFFICE_SDK)
 endif(USE_OPENOFFICE_SDK)
 
 set(GOST_DOC_GEN_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/../template_fieldnames_keywords.cpp
+    ../template_fieldnames_keywords.cpp
+    ../../scripting/python_scripting.cpp
     common_funcs.cpp
     component.cpp
     component_db.cpp

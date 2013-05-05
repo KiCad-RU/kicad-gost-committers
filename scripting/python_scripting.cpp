@@ -96,6 +96,8 @@ static void swigAddBuiltin()
 }
 
 
+#if defined(KICAD_SCRIPTING) || defined(KICAD_SCRIPTING_MODULES)
+
 /* Function swigAddModules
  * adds the internal modules we offer to the python scripting, so they will be
  * available to the scripts we run.
@@ -175,6 +177,7 @@ bool pcbnewInitPythonScripting()
 
     return true;
 }
+#endif // defined(KICAD_SCRIPTING) || defined(KICAD_SCRIPTING_MODULES)
 
 
 void pcbnewFinishPythonScripting()

@@ -218,7 +218,7 @@ if(APPLE)
 endif(APPLE)
 
 if(USE_GOST_DOC_GEN)
-    set(GOST_DOC_GEN_LIB GOST-doc-gen -lpython2.6)
+    set(GOST_DOC_GEN_LIB GOST-doc-gen ${PYTHON_LIBRARIES})
 
     if(USE_OPENOFFICE_SDK)
         if(WIN32)

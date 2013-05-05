@@ -61,45 +61,73 @@ bool OO_PYTHON_UNO_IFACE::Connect()
     connection_str += wxT(
          " -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
                          );
-#elif defined(NEW_OO_CONNECT_MODE)
-    connection_str += wxT(
-        " --invisible --accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
-                         );
-#else
-    connection_str += wxT(
-         " -invisible -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
-                         );
-#endif
 
     if( !wxExecute( connection_str, wxEXEC_ASYNC ) )
-        // for some reason this check does not work
+        // for some reason this check does not work in Linux, however it works in Windows
         wxMessageBox( wxT( "Unable to launch the process: " ) + connection_str
                       + wxT( ".\nPlease make sure that OpenOffice / LibreOffice is installed." ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         // continue anyway in order to allow a user to run soffice from command shell
+#else
+    // TODO: determine OpenOffice / LibreOffice version at runtime
+    // old OpenOffice command line format
+    connection_str += wxT(
+         " -invisible -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
+                         );
+    wxExecute( connection_str, wxEXEC_ASYNC );
 
+    // new LibreOffice command line format
+    connection_str += wxT(
+        " --invisible --accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
+                         );
+    wxExecute( connection_str, wxEXEC_ASYNC );
+#endif
 
     wxString path = GetResourceFile( wxT( "uno_iface.py" ) );
     if( path == wxEmptyString )
         return false;
 
     // remove filename from the full path
-    path.Replace( wxT( "uno_iface.py" ), wxEmptyString );
+#if defined (__WXMSW__)
+    path.Replace( wxT( "\\uno_iface.py" ), wxEmptyString );
+#else
+    path.Replace( wxT( "/uno_iface.py" ), wxEmptyString );
+#endif
 
-    PyRun_SimpleString( "import sys\n"
-                        "sys.path.append('" + path + "')" );
+    path = wxT( "import sys\nsys.path.append('" ) + path + wxT( "')" );
+    if( PyRun_SimpleString( TO_UTF8( path ) ) == -1 )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
 
     PyObject* pyModuleString = PyString_FromString( (char*)"uno_iface" );
     PyObject* pyModule = PyImport_Import( pyModuleString );
-    m_pyUNO_iface_inst = PyObject_GetAttrString( pyModule, (char*)"uno_iface_inst" );
+    if( !pyModule )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
 
+    m_pyUNO_iface_inst = PyObject_GetAttrString( pyModule, (char*)"uno_iface_inst" );
 
     PyObject* pyResult = PyObject_CallMethodObjArgs( m_pyUNO_iface_inst,
                                                      PyString_FromString( (char*)"Connect" ),
                                                      NULL );
+    if( !pyResult )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
 
-    return ( pyResult != NULL );
+    return true;
 }
 
 
@@ -109,10 +137,17 @@ bool OO_PYTHON_UNO_IFACE::LoadDocument( wxString aUrl )
 
     PyObject* pyResult = PyObject_CallMethodObjArgs( m_pyUNO_iface_inst,
                                                      PyString_FromString( (char*)"LoadDocument" ),
-                                                     PyString_FromString( aUrl ),
+                                                     PyString_FromString( TO_UTF8( aUrl ) ),
                                                      NULL );
+    if( !pyResult )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
 
-    return ( pyResult != NULL );
+    return true;
 }
 
 
@@ -122,10 +157,18 @@ bool OO_PYTHON_UNO_IFACE::AppendDocument( wxString aUrl )
 
     PyObject* pyResult = PyObject_CallMethodObjArgs( m_pyUNO_iface_inst,
                                                      PyString_FromString( (char*)"AppendDocument" ),
-                                                     PyString_FromString( aUrl ),
+                                                     PyString_FromString( TO_UTF8( aUrl ) ),
                                                      NULL );
 
-    return ( pyResult != NULL );
+    if( !pyResult )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -136,9 +179,9 @@ void OO_PYTHON_UNO_IFACE::SelectTable( int aIndex )
                                                      PyInt_FromLong( aIndex ),
                                                      NULL );
 
-    if( pyResult == NULL )
+    if( !pyResult )
     {
-        wxMessageBox( wxT( "OO_PYTHON_UNO_IFACE: Unable to select table" ),
+        wxMessageBox( PyErrStringWithTraceback(),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
     }
@@ -151,14 +194,14 @@ void OO_PYTHON_UNO_IFACE::PutCell( wxString aCellAddr,
 {
     PyObject* pyResult = PyObject_CallMethodObjArgs( m_pyUNO_iface_inst,
                                                      PyString_FromString( (char*)"PutCell" ),
-                                                     PyString_FromString( aCellAddr ),
-                                                     PyString_FromString( aStr ),
+                                                     PyString_FromString( TO_UTF8( aCellAddr ) ),
+                                                     PyString_FromString( TO_UTF8( aStr ) ),
                                                      PyInt_FromLong( aStyle ),
                                                      NULL );
 
-    if( pyResult == NULL )
+    if( !pyResult )
     {
-        wxMessageBox( wxT( "OO_PYTHON_UNO_IFACE: Unable to put cell" ),
+        wxMessageBox( PyErrStringWithTraceback(),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
     }
