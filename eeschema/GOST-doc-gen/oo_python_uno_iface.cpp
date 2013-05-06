@@ -31,6 +31,7 @@
 #include <common_funcs.h>
 
 #include <oo_python_uno_iface.h>
+#include <wx_python_helpers.h>
 
 namespace GOST_DOC_GEN {
 
@@ -62,13 +63,14 @@ bool OO_PYTHON_UNO_IFACE::Connect()
          " -accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager"
                          );
 
-    if( !wxExecute( connection_str, wxEXEC_ASYNC ) )
+    /*if( !wxExecute( connection_str, wxEXEC_ASYNC ) )
         // for some reason this check does not work in Linux, however it works in Windows
         wxMessageBox( wxT( "Unable to launch the process: " ) + connection_str
                       + wxT( ".\nPlease make sure that OpenOffice / LibreOffice is installed." ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         // continue anyway in order to allow a user to run soffice from command shell
+    */
 #else
     // TODO: determine OpenOffice / LibreOffice version at runtime
     // old OpenOffice command line format
@@ -137,7 +139,7 @@ bool OO_PYTHON_UNO_IFACE::LoadDocument( wxString aUrl )
 
     PyObject* pyResult = PyObject_CallMethodObjArgs( m_pyUNO_iface_inst,
                                                      PyString_FromString( (char*)"LoadDocument" ),
-                                                     PyString_FromString( TO_UTF8( aUrl ) ),
+                                                     wx2PyString( aUrl ),
                                                      NULL );
     if( !pyResult )
     {
@@ -157,7 +159,7 @@ bool OO_PYTHON_UNO_IFACE::AppendDocument( wxString aUrl )
 
     PyObject* pyResult = PyObject_CallMethodObjArgs( m_pyUNO_iface_inst,
                                                      PyString_FromString( (char*)"AppendDocument" ),
-                                                     PyString_FromString( TO_UTF8( aUrl ) ),
+                                                     wx2PyString( aUrl ),
                                                      NULL );
 
     if( !pyResult )
@@ -194,8 +196,8 @@ void OO_PYTHON_UNO_IFACE::PutCell( wxString aCellAddr,
 {
     PyObject* pyResult = PyObject_CallMethodObjArgs( m_pyUNO_iface_inst,
                                                      PyString_FromString( (char*)"PutCell" ),
-                                                     PyString_FromString( TO_UTF8( aCellAddr ) ),
-                                                     PyString_FromString( TO_UTF8( aStr ) ),
+                                                     wx2PyString( aCellAddr ),
+                                                     wx2PyString( aStr ),
                                                      PyInt_FromLong( aStyle ),
                                                      NULL );
 
