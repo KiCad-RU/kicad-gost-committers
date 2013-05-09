@@ -74,6 +74,14 @@ if(USE_OPENOFFICE_SDK)
     set(OO_SDK_SRCS oo_iface.cxx)
 endif(USE_OPENOFFICE_SDK)
 
+if(USE_RPC_DOC_SERVER)
+    set(RPC_DOC_SERVER_SRCS rpc_doc_iface.cpp)
+endif(USE_RPC_DOC_SERVER)
+
+if(NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK)
+    set(OO_PYTHON_UNO_IFACE_SRCS oo_python_uno_iface.cpp)
+endif()
+
 set(GOST_DOC_GEN_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../template_fieldnames_keywords.cpp
     ../../scripting/python_scripting.cpp
@@ -86,8 +94,9 @@ set(GOST_DOC_GEN_SRCS
     doc_component_index.cpp
     doc_specification.cpp
     GOST_comp_lister.cpp
+    ${OO_PYTHON_UNO_IFACE_SRCS}
     ${OO_SDK_SRCS}
-    oo_python_uno_iface.cpp
+    ${RPC_DOC_SERVER_SRCS}
     )
 
 add_library(GOST-doc-gen STATIC ${GOST_DOC_GEN_SRCS})
@@ -96,12 +105,14 @@ if(USE_OPENOFFICE_SDK AND NOT NEW_OO_CONNECT_MODE)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/../GOST-doc-gen.rdb
             DESTINATION ${KICAD_DATA}/GOST-doc-gen
             COMPONENT resources)
-endif(USE_OPENOFFICE_SDK AND NOT NEW_OO_CONNECT_MODE)
+endif()
 
-install(FILES uno_iface.py
+if(NOT USE_OPENOFFICE_SDK)
+    install(FILES uno_iface.py
+            DESTINATION ${KICAD_DATA}/GOST-doc-gen
+            COMPONENT resources)
+endif()
+
+install(DIRECTORY templates
         DESTINATION ${KICAD_DATA}/GOST-doc-gen
         COMPONENT resources)
-
-install( DIRECTORY templates
-        DESTINATION ${KICAD_DATA}/GOST-doc-gen
-        COMPONENT resources )

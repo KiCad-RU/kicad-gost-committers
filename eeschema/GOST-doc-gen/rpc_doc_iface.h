@@ -22,32 +22,44 @@
  */
 
 /**
- * @file common_doc_iface.h
+ * @file rpc_doc_iface.h
  */
 
-#ifndef _COMMON_DOC_IFACE_H_
-#define _COMMON_DOC_IFACE_H_
+#ifndef _RPC_DOC_IFACE_H_
+#define _RPC_DOC_IFACE_H_
 
-#include <wx/wx.h>
+#include <wx/socket.h>
+
+#include <common_doc_iface.h>
 
 namespace GOST_DOC_GEN {
 
-#define TEXT_UNDERLINED    0x0001
-#define TEXT_CENTERED      0x0002
+#define HOSTNAME                           wxT( "localhost" )
+#define RPC_DOC_IFACE_PORT_SERVICE_NUMBER  8101
 
-class COMMON_DOC_IFACE
+#define RECV_MSG_SIZE                      8
+
+
+class RPC_DOC_IFACE : public COMMON_DOC_IFACE
 {
 public:
-    virtual bool Connect() = 0;
-    virtual void Disconnect() = 0;
-    virtual bool LoadDocument( wxString aUrl ) = 0;
-    virtual bool AppendDocument( wxString aUrl ) = 0;
-    virtual void SelectTable( int aIndex ) = 0;
-    virtual void PutCell( wxString aCellAddr,
-                          wxString aStr,
-                          int      aStyle ) = 0;
+    RPC_DOC_IFACE();
+    ~RPC_DOC_IFACE();
+
+    bool Connect();
+    void Disconnect();
+    bool LoadDocument( wxString aUrl );
+    bool AppendDocument( wxString aUrl );
+    void SelectTable( int aIndex );
+    void PutCell( wxString aCellAddr,
+                  wxString aStr,
+                  int      aStyle );
+
+private:
+    wxSocketClient* m_sock;
+    char            m_buffer[RECV_MSG_SIZE+1];
 };
 
 } // namespace GOST_DOC_GEN
 
-#endif    // _COMMON_DOC_IFACE_H_
+#endif    // _RPC_DOC_IFACE_H_

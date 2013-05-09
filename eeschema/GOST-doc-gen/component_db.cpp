@@ -34,11 +34,14 @@
 #include <component_db.h>
 #include <common_doc_iface.h>
 
-#ifdef USE_OPENOFFICE_SDK
+#if defined(USE_RPC_DOC_SERVER)
+#include <rpc_doc_iface.h>
+#elif defined(USE_OPENOFFICE_SDK)
 #include <oo_iface.hxx>
+#else
+#include <oo_python_uno_iface.h>
 #endif
 
-#include <oo_python_uno_iface.h>
 #include <doc_component_index.h>
 #include <doc_specification.h>
 
@@ -138,7 +141,9 @@ void COMPONENT_DB::SortComponents()
 
 void COMPONENT_DB::GenerateComponentIndexDoc()
 {
-#ifdef USE_OPENOFFICE_SDK
+#if defined(USE_RPC_DOC_SERVER)
+    COMMON_DOC_IFACE* docIface = new RPC_DOC_IFACE();
+#elif defined(USE_OPENOFFICE_SDK)
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
 #else
     COMMON_DOC_IFACE* docIface = new OO_PYTHON_UNO_IFACE();
@@ -152,7 +157,9 @@ void COMPONENT_DB::GenerateComponentIndexDoc()
 
 void COMPONENT_DB::GenerateSpecificationDoc()
 {
-#ifdef USE_OPENOFFICE_SDK
+#if defined(USE_RPC_DOC_SERVER)
+    COMMON_DOC_IFACE* docIface = new RPC_DOC_IFACE();
+#elif defined(USE_OPENOFFICE_SDK)
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
 #else
     COMMON_DOC_IFACE* docIface = new OO_PYTHON_UNO_IFACE();

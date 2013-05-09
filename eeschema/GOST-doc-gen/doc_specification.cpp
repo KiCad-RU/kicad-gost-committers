@@ -158,8 +158,12 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     if ( !aDocIface->Connect() )
         return false;
 
-    aDocIface->LoadDocument(
-        GetResourceFile( wxT( "templates/SpecificationFirstSheet_template.odt" ) ) );
+    if( !aDocIface->LoadDocument(
+            GetResourceFile( wxT( "templates/SpecificationFirstSheet_template.odt" ) ) ) )
+    {
+        aDocIface->Disconnect();
+        return false;
+    }
 
 
     current_row = 4;
@@ -507,7 +511,10 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     // print the last sheet
     if ( !aDocIface->AppendDocument(
         GetResourceFile( wxT( "templates/CompIndexLastSheet_template.odt" ) ) ) )
+    {
+        aDocIface->Disconnect();
         return false;
+    }
 
     current_sheet++;
     aDocIface->SelectTable( current_sheet );
@@ -525,6 +532,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     aDocIface->PutCell( wxT( "C28.5.2" ),
                         wxString::Format( wxT( "%d" ), current_sheet + 1 ),
                         0 );
+
+    aDocIface->Disconnect();
 
     return true;
 }

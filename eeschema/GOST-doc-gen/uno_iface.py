@@ -24,6 +24,8 @@
 
 
 import uno, time
+import socket
+import re
 
 class UNO_IFACE():
 
@@ -46,35 +48,121 @@ class UNO_IFACE():
                 time.sleep( 1 )
 
         if( not connected ):
-            return
+            return False
 
         self.desktop = context.ServiceManager.createInstanceWithContext( "com.sun.star.frame.Desktop", context )
 
+        return True
+
 
     def LoadDocument( self, aUrl ):
-        self.document = self.desktop.loadComponentFromURL( aUrl, "_blank", 0, () )
-        self.SelectTable( 0 )
+        try:
+            self.document = self.desktop.loadComponentFromURL( aUrl, "_blank", 0, () )
+            self.SelectTable( 0 )
+            return True
+        except:
+            return False
 
 
     def AppendDocument( self, aUrl ):
-        textRange = self.document.Text.End
-        cursor = self.document.Text.createTextCursorByRange( textRange )
-        cursor.insertDocumentFromURL( aUrl, () )
+        try:
+            textRange = self.document.Text.End
+            cursor = self.document.Text.createTextCursorByRange( textRange )
+            cursor.insertDocumentFromURL( aUrl, () )
+            return True
+        except:
+            return False
 
 
     def SelectTable( self, aIndex ):
-        self.curTable = self.document.TextTables.getByIndex( aIndex )
+        try:
+            self.curTable = self.document.TextTables.getByIndex( aIndex )
+            return True
+        except:
+            return False
 
 
     def PutCell( self, aCellAddress, aStr, aStyle ):
-        cell = self.curTable.getCellByName( aCellAddress )
-        cursor = cell.createTextCursor()
+        try:
+            cell = self.curTable.getCellByName( aCellAddress )
+            cursor = cell.createTextCursor()
 
-        if( aStyle != 0 ):
-            cursor.setPropertyValue( "CharUnderline", 1 )
-            cursor.setPropertyValue( "ParaAdjust", 3 )
+            if( aStyle != 0 ):
+                cursor.setPropertyValue( "CharUnderline", 1 )
+                cursor.setPropertyValue( "ParaAdjust", 3 )
 
-        cursor.setString( aStr )
+            cursor.setString( aStr )
+            return True
+        except:
+            return False
 
 
 uno_iface_inst = UNO_IFACE()
+
+host = 'localhost'
+port = 8101
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind((host, port))
+s.listen(1)
+sock, addr = s.accept()
+#print 'Connected with', addr
+
+while True:
+    buf = sock.recv(1024)
+
+    # "Exit"
+    args = re.findall('^Exit', buf)
+    if( args != [] ):
+        sock.send( "BYE_____" )
+        break
+
+    # "Connect"
+    args = re.findall('^Connect', buf)
+    if( args != [] ):
+        if( uno_iface_inst.Connect() ):
+            sock.send( "OK______" )
+        else:
+            sock.send( "FAILED__" )
+        continue
+
+    # "LoadDocument {arg}"
+    args = re.findall('^LoadDocument {(.*)}', buf)
+    if( args != [] ):
+        if( uno_iface_inst.LoadDocument( args[0] ) ):
+            sock.send( "OK______" )
+        else:
+            sock.send( "FAILED__" )
+        continue
+
+    # "AppendDocument {arg}"
+    args = re.findall('^AppendDocument {(.*)}', buf)
+    if( args != [] ):
+        if( uno_iface_inst.AppendDocument( args[0] ) ):
+            sock.send( "OK______" )
+        else:
+            sock.send( "FAILED__" )
+        continue
+
+    # "SelectTable {arg}"
+    args = re.findall('^SelectTable {(.*)}', buf)
+    if( args != [] ):
+        if( uno_iface_inst.SelectTable( int( args[0] ) ) ):
+            sock.send( "OK______" )
+        else:
+            sock.send( "FAILED__" )
+        continue
+
+    # "PutCell {arg} {arg} {arg}"
+    args = re.findall('^PutCell {(.*)} {(.*)} {(.*)}', buf, re.DOTALL )
+    if( args != [] and args[0] != [] ):
+        if( uno_iface_inst.PutCell( args[0][0], args[0][1], int( args[0][2] ) ) ):
+            sock.send( "OK______" )
+        else:
+            sock.send( "FAILED__" )
+        continue
+
+    sock.send( "UNKWNCMD" )
+
+sock.close()
+s.close()

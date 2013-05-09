@@ -51,6 +51,10 @@ void     StringInsert( wxString* aStr, wxString aIns, int aPos );
 wxString GetResourceFile( wxString aFileName );
 wxString AddUrlPrefix( wxString aFileName );
 
+#ifdef __WXMSW__
+wxString FindWindowsOOInstallationPath();
+#endif
+
 } // namespace GOST_DOC_GEN
 
 #endif    // COMMONFUNCS_H

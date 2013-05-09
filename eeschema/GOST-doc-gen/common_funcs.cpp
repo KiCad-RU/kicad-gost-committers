@@ -340,4 +340,44 @@ wxString AddUrlPrefix( wxString aFileName )
 #endif
 }
 
+#ifdef __WXMSW__
+wxString FindWindowsOOInstallationPath()
+{
+    wxString fullPath;
+    wxString sofficeExe( wxT( "soffice.exe" ) );
+
+    for( char letter = 'C'; letter <= 'H'; letter++ )
+    {
+        for( char ver = '2'; ver <= '4'; ver++ )
+        {
+            fullPath = wxString( letter ) + wxT( ":\\Program Files (x86)\\OpenOffice.org " ) +
+                       wxString( ver ) + wxT( "\\program\\" );
+            if( wxFileExists( fullPath + sofficeExe ) )
+                return fullPath;
+
+            fullPath = wxString( letter ) + wxT( ":\\Program Files\\OpenOffice.org " ) +
+                       wxString( ver ) + wxT( "\\program\\" );
+            if( wxFileExists( fullPath + sofficeExe ) )
+                return fullPath;
+
+            fullPath = wxString( letter ) + wxT( ":\\Program Files (x86)\\LibreOffice " ) +
+                       wxString( ver ) + wxT( "\\program\\" );
+            if( wxFileExists( fullPath + sofficeExe ) )
+                return fullPath;
+
+            fullPath = wxString( letter ) + wxT( ":\\Program Files\\LibreOffice " ) +
+                       wxString( ver ) + wxT( "\\program\\" );
+            if( wxFileExists( fullPath + sofficeExe ) )
+                return fullPath;
+        }
+    }
+
+    wxMessageBox( wxT( "Unable to find OpenOffice or LibreOffice installation path" ),
+                  wxEmptyString,
+                  wxOK | wxICON_ERROR );
+
+    return wxEmptyString;
+}
+#endif  // __WXMSW__
+
 } // namespace GOST_DOC_GEN
