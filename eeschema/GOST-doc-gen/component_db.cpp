@@ -49,12 +49,15 @@ namespace GOST_DOC_GEN {
 
 COMPONENT_DB::COMPONENT_DB()
 {
-    DesignName = wxT( "" );
-    Designation = wxT( "" );
-    SpecFirstUse = wxT( "" );
-    PCBDesignation = wxT( "" );
-    CircuitDrawingFmt   = wxT( "" );
-    AssemblyDrawingFmt  = wxT( "" );
+    m_designName = wxT( "" );
+    m_designation = wxT( "" );
+    m_specFirstUse = wxT( "" );
+    m_PCBDesignation = wxT( "" );
+    m_circuitDrawingFmt   = wxT( "" );
+    m_assemblyDrawingFmt  = wxT( "" );
+    m_developerField = wxT( "" );
+    m_verifierField = wxT( "" );
+    m_approverField = wxT( "" );
 }
 
 
@@ -176,9 +179,9 @@ bool COMPONENT_DB::FindVariant( int aVariant )
 {
     size_t i;
 
-    for( i = 0; i < VariantsIndexes.GetCount(); i++ )
+    for( i = 0; i < m_variantIndexes.GetCount(); i++ )
     {
-        if( VariantsIndexes[i] == aVariant )
+        if( m_variantIndexes[i] == aVariant )
             return true;
     }
 
@@ -204,19 +207,19 @@ void COMPONENT_DB::ReadVariants()
                 variant = ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[var_i] )->variant;
 
                 if( variant!=-1 && !FindVariant( variant ) )
-                    VariantsIndexes.Add( variant );
+                    m_variantIndexes.Add( variant );
             }
         }
     }
 
-    SortCByteArray( &VariantsIndexes );
+    SortCByteArray( &m_variantIndexes );
 }
 
 
 void COMPONENT_DB::AddNewVariant( int aVariant )
 {
-    VariantsIndexes.Add( aVariant );
-    SortCByteArray( &VariantsIndexes );
+    m_variantIndexes.Add( aVariant );
+    SortCByteArray( &m_variantIndexes );
 }
 
 
@@ -231,9 +234,12 @@ void COMPONENT_DB::LoadFromKiCad()
 
     unsigned int index = 0;
 
-    TITLE_BLOCK tb = g_RootSheet->GetScreen()->GetTitleBlock();
-    DesignName = tb.GetTitle();
-    Designation = tb.GetComment1();
+    TITLE_BLOCK tb   = g_RootSheet->GetScreen()->GetTitleBlock();
+    m_designName       = tb.GetTitle();
+    m_designation      = tb.GetComment1();
+    m_developerField = tb.GetComment2();
+    m_verifierField  = tb.GetComment3();
+    m_approverField  = tb.GetComment4();
 
     while( index < m_cmplist.GetCount() )
     {

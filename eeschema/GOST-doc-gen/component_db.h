@@ -62,14 +62,17 @@ public:
     COMPONENT_DB();
     COMPONENT_ARRAY m_AllComponents;
 
-    wxString        DesignName;
-    wxString        Designation;
-    wxString        SpecFirstUse;
-    wxString        PCBDesignation;
-    wxString        CircuitDrawingFmt;
-    wxString        AssemblyDrawingFmt;
+    wxString        m_designName;
+    wxString        m_designation;
+    wxString        m_specFirstUse;
+    wxString        m_PCBDesignation;
+    wxString        m_circuitDrawingFmt;
+    wxString        m_assemblyDrawingFmt;
+    wxString        m_developerField;
+    wxString        m_verifierField;
+    wxString        m_approverField;
 
-    INT_ARRAY       VariantsIndexes;
+    INT_ARRAY       m_variantIndexes;
 
     virtual         ~COMPONENT_DB();
     virtual void    LoadFromKiCad();

@@ -58,12 +58,21 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
     current_sheet   = 0;
 
     // fill 'design name' field
-    aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->DesignName, 0 );
+    aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->m_designName, 0 );
     // fill 'designation' field
     aDocIface->PutCell( wxT( "B27" ),
-                        wxT( "\n" ) + aComponentDB->Designation + wxT( "ПЭ3" ), 0 );
+                        wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
     // fill 'first use' field
-    aDocIface->PutCell( wxT( "B2" ), aComponentDB->Designation, 0 );
+    aDocIface->PutCell( wxT( "B2" ), aComponentDB->m_designation, 0 );
+
+    // fill 'developer' field
+    aDocIface->PutCell( wxT( "A28.2.1" ), wxT( " " ) + aComponentDB->m_developerField, 0 );
+
+    // fill 'verifier' field
+    aDocIface->PutCell( wxT( "A28.2.2" ), wxT( " " ) + aComponentDB->m_verifierField, 0 );
+
+    // fill 'approver' field
+    aDocIface->PutCell( wxT( "A28.2.5" ), wxT( " " ) + aComponentDB->m_approverField, 0 );
 
     // form the constant part of components index (not a set)
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, 0, 0, wxT( "" ) );
@@ -78,7 +87,7 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
     Form_a_set( aDocIface, aComponentDB, PARTTYPE_A_SET, 0, NULL );
 
     // form the variable part of components index
-    if( aComponentDB->VariantsIndexes.GetCount() )
+    if( aComponentDB->m_variantIndexes.GetCount() )
     {
         OO_PrintCompIndexDocRow( aDocIface, wxT( "" ), wxT( "" ), 0,
                                  wxT( "" ), 0, 7, aComponentDB );
@@ -88,12 +97,12 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
                                  0, wxT( "" ), TEXT_UNDERLINED | TEXT_CENTERED, 1, aComponentDB );
     }
 
-    for( int var_i = 0; var_i < (int) aComponentDB->VariantsIndexes.GetCount(); var_i++ )
+    for( int var_i = 0; var_i < (int) aComponentDB->m_variantIndexes.GetCount(); var_i++ )
     {
         comps_absent = true;
         // not a set
-        variant = aComponentDB->VariantsIndexes[var_i];
-        str     = aComponentDB->Designation;
+        variant = aComponentDB->m_variantIndexes[var_i];
+        str     = aComponentDB->m_designation;
 
         if( variant > 0 )
         {
@@ -112,7 +121,7 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
         OO_PrintCompIndexDocRow( aDocIface, wxT( "" ), str, 0,
                                  wxT( "" ), TEXT_UNDERLINED | TEXT_CENTERED, 1, aComponentDB );
 
-        str = aComponentDB->DesignName;
+        str = aComponentDB->m_designName;
 
         if( variant > 0 )
         {
@@ -174,7 +183,7 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
     // fill 'designation' field
     aDocIface->PutCell( wxT( "B28" ),
-                        wxT( "\n" ) + aComponentDB->Designation + wxT( "ПЭ3" ), 0 );
+                        wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
 
     // fill 'sheets qty' field
     aDocIface->SelectTable( 0 );

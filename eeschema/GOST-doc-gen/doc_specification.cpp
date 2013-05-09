@@ -176,11 +176,20 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     aDocIface->SelectTable( 0 );
 
     // fill 'design name' field
-    aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->DesignName, 0 );
+    aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->m_designName, 0 );
     // fill 'designation' field
-    aDocIface->PutCell( wxT( "B27" ), wxT( "\n" ) + aComponentDB->Designation, 0 );
+    aDocIface->PutCell( wxT( "B27" ), wxT( "\n" ) + aComponentDB->m_designation, 0 );
     // fill 'first use' field
-    aDocIface->PutCell( wxT( "B2" ), aComponentDB->SpecFirstUse, 0 );
+    aDocIface->PutCell( wxT( "B2" ), aComponentDB->m_specFirstUse, 0 );
+
+    // fill 'developer' field
+    aDocIface->PutCell( wxT( "A28.2.1" ), wxT( " " ) + aComponentDB->m_developerField, 0 );
+
+    // fill 'verifier' field
+    aDocIface->PutCell( wxT( "A28.2.2" ), wxT( " " ) + aComponentDB->m_verifierField, 0 );
+
+    // fill 'approver' field
+    aDocIface->PutCell( wxT( "A28.2.5" ), wxT( " " ) + aComponentDB->m_approverField, 0 );
 
     OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
                                  wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
@@ -207,9 +216,9 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                      wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
 
         OO_PrintSpecificationDocRow( aDocIface,
-                                     aComponentDB->AssemblyDrawingFmt,
+                                     aComponentDB->m_assemblyDrawingFmt,
                                      0,
-                                     aComponentDB->Designation + wxT( " СБ" ),
+                                     aComponentDB->m_designation + wxT( " СБ" ),
                                      wxT( "Сборочный чертеж" ),
                                      wxT( "" ),
                                      wxT( "" ),
@@ -220,11 +229,11 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
         OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
                                      wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
 
-        if( aComponentDB->CircuitDrawingFmt.Len() <= 2 )
+        if( aComponentDB->m_circuitDrawingFmt.Len() <= 2 )
             OO_PrintSpecificationDocRow( aDocIface,
-                                         aComponentDB->CircuitDrawingFmt,
+                                         aComponentDB->m_circuitDrawingFmt,
                                          0,
-                                         aComponentDB->Designation + wxT( " Э3" ),
+                                         aComponentDB->m_designation + wxT( " Э3" ),
                                          wxT( "Схема электрическая принципиальная" ),
                                          wxT( "" ),
                                          wxT( "" ),
@@ -233,17 +242,17 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                          aComponentDB );
         else
             OO_PrintSpecificationDocRow( aDocIface, wxT( "*" ), 0,
-                                         aComponentDB->Designation + wxT( " Э3" ),
+                                         aComponentDB->m_designation + wxT( " Э3" ),
                                          wxT( "Схема электрическая принципиальная" ),
                                          wxT( "" ),
-                                         wxT( "*) " ) + aComponentDB->CircuitDrawingFmt, 0, 1,
+                                         wxT( "*) " ) + aComponentDB->m_circuitDrawingFmt, 0, 1,
                                          aComponentDB );
 
         OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
                                      wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
 
         OO_PrintSpecificationDocRow( aDocIface,
-                                     wxT( "A4" ), 0, aComponentDB->Designation + wxT( " ПЭ3" ),
+                                     wxT( "A4" ), 0, aComponentDB->m_designation + wxT( " ПЭ3" ),
                                      wxT( "Перечень элементов" ), wxT( "" ),
                                      wxT( "" ), 0, 1, aComponentDB );
     }
@@ -296,7 +305,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
         OO_PrintSpecificationDocRow( aDocIface,
                                      wxT( "" ), specification_pos_field++,
-                                     aComponentDB->PCBDesignation,
+                                     aComponentDB->m_PCBDesignation,
                                      wxT( "Плата печатная" ), wxT( "1" ), wxT(
                                          "" ), 0, 1, aComponentDB );
     }
@@ -369,7 +378,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
 
     // form the variable part of specification
-    if( aComponentDB->VariantsIndexes.GetCount() )
+    if( aComponentDB->m_variantIndexes.GetCount() )
     {
         OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
                                      wxT( "" ), wxT( "" ), wxT( "" ), 0, 10, aComponentDB );
@@ -379,12 +388,12 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                      wxT( "" ), TEXT_UNDERLINED | TEXT_CENTERED, 1, aComponentDB );
     }
 
-    for( int var_i = 0; var_i < (int) aComponentDB->VariantsIndexes.GetCount(); var_i++ )
+    for( int var_i = 0; var_i < (int) aComponentDB->m_variantIndexes.GetCount(); var_i++ )
     {
         comps_absent = true;
 
-        variant = aComponentDB->VariantsIndexes[var_i];
-        str     = aComponentDB->Designation;
+        variant = aComponentDB->m_variantIndexes[var_i];
+        str     = aComponentDB->m_designation;
 
         if( variant > 0 )
         {
@@ -404,7 +413,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                      wxT( "" ), str, wxT( "" ), wxT( "" ),
                                      TEXT_UNDERLINED | TEXT_CENTERED, 1, aComponentDB );
 
-        str = aComponentDB->DesignName;
+        str = aComponentDB->m_designName;
 
         if( variant > 0 )
         {
@@ -525,7 +534,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                         0 );
 
     // fill 'designation' field
-    aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->Designation, 0 );
+    aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->m_designation, 0 );
 
     // fill 'sheets qty' field
     aDocIface->SelectTable( 0 );
