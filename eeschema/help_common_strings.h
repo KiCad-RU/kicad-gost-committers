@@ -54,7 +54,7 @@
 #define HELP_RUN_LIB_VIEWER _( "Library browser - Browse components" )
 #define HELP_GENERATE_BOM _( "Generate bill of materials and/or cross references" )
 
-#if defined(USE_GOST_DOC_GEN)
+#if defined(KICAD_GOST)
 #define HELP_GOST_TOOLS _( "GOST tools" )
 #endif
 

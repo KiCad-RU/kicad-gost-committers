@@ -38,6 +38,8 @@ namespace GOST_DOC_GEN {
 class COMMON_DOC_IFACE
 {
 public:
+    virtual ~COMMON_DOC_IFACE() {}
+
     virtual bool Connect() = 0;
     virtual void Disconnect() = 0;
     virtual bool LoadDocument( wxString aUrl ) = 0;

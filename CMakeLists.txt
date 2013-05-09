@@ -26,7 +26,6 @@ option(USE_PCBNEW_NANOMETRES
 # Russian GOST patch
 option(wxUSE_UNICODE "enable/disable building unicode (default OFF)")
 option(KICAD_GOST "enable/disable building using GOST notation for multiple gates per package (default OFF)")
-option(USE_GOST_DOC_GEN "enable/disable building GOST document generator (default OFF)")
 option(USE_RPC_DOC_SERVER "enable/disable building GOST document generator using RPC document server (default ON)" ON)
 option(USE_OPENOFFICE_SDK "enable/disable building GOST document generator with use of OpenOffice/LibreOffice SDK (default OFF)")
 
@@ -168,10 +167,6 @@ if(KICAD_GOST)
     add_definitions(-DKICAD_GOST)
 endif()
 
-if(USE_GOST_DOC_GEN)
-    add_definitions(-DUSE_GOST_DOC_GEN)
-endif()
-
 if(USE_RPC_DOC_SERVER)
     add_definitions(-DUSE_RPC_DOC_SERVER)
 endif()
@@ -311,7 +306,8 @@ if(MINGW AND USE_WX_GRAPHICS_CONTEXT)
 endif()
 
 # Find Python and other scripting resources
-if(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_GOST_DOC_GEN)
+if(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR
+   (KICAD_GOST AND NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK))
     set(PythonInterp_FIND_VERSION)
     find_package(PythonInterp)
     check_find_package_result(PYTHONINTERP_FOUND "Python Interpreter")
@@ -335,7 +331,7 @@ if(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_GOST_DOC_GEN)
     find_package(PythonLibs)
     include_directories(${PYTHON_INCLUDE_PATH}
                         ./scripting)
-endif(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_GOST_DOC_GEN)
+endif()
 
 
 

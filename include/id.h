@@ -222,7 +222,7 @@ enum main_id
 
     ID_GET_NETLIST,
     ID_GET_TOOLS,
-#if defined(USE_GOST_DOC_GEN)
+#if defined(KICAD_GOST)
     ID_GOST_TOOLS,
 #endif
     ID_FIND_ITEMS,

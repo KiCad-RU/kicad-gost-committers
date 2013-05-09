@@ -1,8 +1,8 @@
 add_definitions(-DEESCHEMA)
 
-if(USE_GOST_DOC_GEN AND USE_OPENOFFICE_SDK)
+if(KICAD_GOST AND USE_OPENOFFICE_SDK)
     find_package(OpenOffice REQUIRED)
-endif(USE_GOST_DOC_GEN AND USE_OPENOFFICE_SDK)
+endif()
 
 include_directories(BEFORE ${INC_BEFORE})
 include_directories(
@@ -217,7 +217,7 @@ if(APPLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
 endif(APPLE)
 
-if(USE_GOST_DOC_GEN)
+if(KICAD_GOST)
     set(GOST_DOC_GEN_LIB GOST-doc-gen)
 
     if(NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK)
@@ -242,7 +242,7 @@ if(USE_GOST_DOC_GEN)
                 )
         endif(WIN32)
     endif(USE_OPENOFFICE_SDK)
-endif(USE_GOST_DOC_GEN)
+endif(KICAD_GOST)
 
 target_link_libraries(eeschema
     common
@@ -259,6 +259,6 @@ install(TARGETS eeschema
 
 add_subdirectory(plugins)
 
-if(USE_GOST_DOC_GEN)
+if(KICAD_GOST)
     add_subdirectory(GOST-doc-gen)
-endif(USE_GOST_DOC_GEN)
+endif(KICAD_GOST)

@@ -58,8 +58,8 @@ bool RPC_DOC_IFACE::Connect()
 #if defined (__WXMSW__)
     wxString windowsOOInstallationPath = FindWindowsOOInstallationPath();
     connection_str = windowsOOInstallationPath + wxT( "soffice.exe" );
-    pythonExecutable = windowsOOInstallationPath + wxT( "Python.exe" );
-    if ( wxFileExists( pythonExecutable ) )
+    pythonExecutable = windowsOOInstallationPath + wxT( "python.exe" );
+    if ( !wxFileExists( pythonExecutable ) )
     {
         wxMessageBox( wxT( "Unable to find OpenOffice or LibreOffice embedded Python" ),
                       wxEmptyString,
@@ -98,12 +98,11 @@ bool RPC_DOC_IFACE::Connect()
     wxExecute( connection_str, wxEXEC_ASYNC );
 #endif
 
-    wxString path = GetResourceFile( wxT( "uno_iface.py" ) );
-    if( path == wxEmptyString )
+    wxString pyFile = GetResourceFile( wxT( "uno_iface.py" ) );
+    if( pyFile == wxEmptyString )
         return false;
 
-
-    wxExecute( pythonExecutable + wxT( " " ) + path, wxEXEC_ASYNC );
+    wxExecute( pythonExecutable + wxT( " \"" ) + pyFile + wxT( "\"" ), wxEXEC_ASYNC );
 
     wxIPV4address addr;
     addr.Hostname( HOSTNAME );
@@ -133,9 +132,9 @@ bool RPC_DOC_IFACE::Connect()
 
     m_sock->SetFlags( wxSOCKET_WAITALL );
 
-    wxString connect( wxT( "Connect" ) );
+    const char* CONNECT = "Connect";
 
-    m_sock->Write( TO_UTF8( connect ), strlen( TO_UTF8( connect ) ) );
+    m_sock->Write( CONNECT, strlen( CONNECT ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 
@@ -179,7 +178,7 @@ bool RPC_DOC_IFACE::LoadDocument( wxString aUrl )
 
     wxString loadDocument( wxT( "LoadDocument {" ) + aUrl + wxT( "}" ) );
 
-    m_sock->Write( TO_UTF8( loadDocument ), strlen( TO_UTF8( loadDocument ) ) );
+    m_sock->Write( loadDocument.c_str(), strlen( loadDocument.c_str() ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 
@@ -201,7 +200,7 @@ bool RPC_DOC_IFACE::AppendDocument( wxString aUrl )
 
     wxString appendDocument( wxT( "AppendDocument {" ) + aUrl + wxT( "}" ) );
 
-    m_sock->Write( TO_UTF8( appendDocument ), strlen( TO_UTF8( appendDocument ) ) );
+    m_sock->Write( appendDocument.c_str(), strlen( appendDocument.c_str() ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 
@@ -221,7 +220,7 @@ void RPC_DOC_IFACE::SelectTable( int aIndex )
 {
     wxString selectTable = wxString::Format( wxT( "SelectTable {%d}" ), aIndex );
 
-    m_sock->Write( TO_UTF8( selectTable ), strlen( TO_UTF8( selectTable ) ) );
+    m_sock->Write( selectTable.c_str(), strlen( selectTable.c_str() ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 
@@ -241,7 +240,7 @@ void RPC_DOC_IFACE::PutCell( wxString aCellAddr,
     wxString putCell = wxString::Format( wxT( "PutCell {%s} {%s} {%d}" ),
                                          aCellAddr, aStr, aStyle );
 
-    m_sock->Write( TO_UTF8( putCell ), strlen( TO_UTF8( putCell ) ) );
+    m_sock->Write( putCell.c_str(), strlen( putCell.c_str() ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 

@@ -745,7 +745,7 @@ private:
     void OnErc( wxCommandEvent& event );
     void OnCreateNetlist( wxCommandEvent& event );
     void OnCreateBillOfMaterials( wxCommandEvent& event );
-#if defined(USE_GOST_DOC_GEN)
+#if defined(KICAD_GOST)
     void OnGOSTTools( wxCommandEvent& );
 #endif
     void OnFindItems( wxCommandEvent& event );

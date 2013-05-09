@@ -361,12 +361,12 @@ wxString FindWindowsOOInstallationPath()
                 return fullPath;
 
             fullPath = wxString( letter ) + wxT( ":\\Program Files (x86)\\LibreOffice " ) +
-                       wxString( ver ) + wxT( "\\program\\" );
+                       wxString( ver ) + wxT( ".0\\program\\" );
             if( wxFileExists( fullPath + sofficeExe ) )
                 return fullPath;
 
             fullPath = wxString( letter ) + wxT( ":\\Program Files\\LibreOffice " ) +
-                       wxString( ver ) + wxT( "\\program\\" );
+                       wxString( ver ) + wxT( ".0\\program\\" );
             if( wxFileExists( fullPath + sofficeExe ) )
                 return fullPath;
         }

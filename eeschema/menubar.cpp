@@ -494,7 +494,7 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                  HELP_GENERATE_BOM,
                  KiBitmap( bom_xpm ) );
 
-#if defined(USE_GOST_DOC_GEN)
+#if defined(KICAD_GOST)
     // GOST tools
     AddMenuItem( toolsMenu,
                  ID_GOST_TOOLS,

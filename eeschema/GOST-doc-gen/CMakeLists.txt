@@ -79,13 +79,15 @@ if(USE_RPC_DOC_SERVER)
 endif(USE_RPC_DOC_SERVER)
 
 if(NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK)
-    set(OO_PYTHON_UNO_IFACE_SRCS oo_python_uno_iface.cpp)
+    set(OO_PYTHON_UNO_IFACE_SRCS
+        oo_python_uno_iface.cpp
+        ../../scripting/python_scripting.cpp
+        ../../scripting/wx_python_helpers.cpp
+        )
 endif()
 
 set(GOST_DOC_GEN_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../template_fieldnames_keywords.cpp
-    ../../scripting/python_scripting.cpp
-    ../../scripting/wx_python_helpers.cpp
     common_funcs.cpp
     component.cpp
     component_db.cpp
