@@ -291,7 +291,7 @@ public:
     MODULE* Create_1_Module( const wxString& aModuleName );
 
     void Edit_Module( MODULE* module, wxDC* DC );
-    void Rotate_Module( wxDC* DC, MODULE* module, int angle, bool incremental );
+    void Rotate_Module( wxDC* DC, MODULE* module, double angle, bool incremental );
 
     /**
      * Function PlaceModule
@@ -432,7 +432,7 @@ public:
                               bool aDisplayError );
 
     /**
-     * Function Select_1_Module_From_List
+     * Function SelectFootprint
      *  Display a list of modules found in active libraries or a given library
      *  @param aWindow = the current window ( parent window )
      *  @param aLibraryFullFilename = library to list (if aLibraryFullFilename
@@ -445,10 +445,10 @@ public:
      *
      *  @return wxEmptyString if abort or fails, or the selected module name if Ok
      */
-    wxString Select_1_Module_From_List( EDA_DRAW_FRAME* aWindow,
-                                        const wxString& aLibraryFullFilename,
-                                        const wxString& aMask,
-                                        const wxString& aKeyWord );
+    wxString SelectFootprint( EDA_DRAW_FRAME* aWindow,
+                              const wxString& aLibraryFullFilename,
+                              const wxString& aMask,
+                              const wxString& aKeyWord );
 
     /**
      * Function Load_Module_From_Library

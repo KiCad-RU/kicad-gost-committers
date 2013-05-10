@@ -449,7 +449,7 @@ public:
 
     int GetNumCorners( void ) const
     {
-        return m_Poly->GetNumCorners();
+        return m_Poly->GetCornersCount();
     }
 
     void RemoveAllContours( void )
@@ -551,7 +551,7 @@ public:
 
     void AddFilledPolygon( CPOLYGONS_LIST& aPolygon )
     {
-        m_FilledPolysList.insert( m_FilledPolysList.end(), aPolygon.begin(), aPolygon.end() );
+        m_FilledPolysList.Append( aPolygon );
     }
 
     void AddFillSegments( std::vector< SEGMENT >& aSegments )
@@ -580,7 +580,7 @@ public:
 
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    virtual void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); }    // override
 #endif
 
 

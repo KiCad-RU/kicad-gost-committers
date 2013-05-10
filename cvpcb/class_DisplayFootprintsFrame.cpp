@@ -481,9 +481,8 @@ MODULE* DISPLAY_FOOTPRINTS_FRAME::Get_Module( const wxString& aFootprintName )
 
         for( unsigned i = 0; i < parent->m_ModuleLibNames.GetCount();  ++i )
         {
-            wxFileName fn = parent->m_ModuleLibNames[i];
-
-            fn.SetExt( LegacyFootprintLibPathExtension );
+            wxFileName fn( wxEmptyString, parent->m_ModuleLibNames[i],
+                           LegacyFootprintLibPathExtension );
 
             wxString libPath = wxGetApp().FindLibraryPath( fn );
 
@@ -534,9 +533,10 @@ void DISPLAY_FOOTPRINTS_FRAME::InitDisplay()
 
         const wxChar *libname;
         if( module_info )
-            libname = GetChars( module_info->m_LibName );
+            libname = GetChars( module_info->GetLibraryPath() );
         else
             libname = GetChars( wxT( "???" ) );
+
         msg.Printf( _( "Lib: %s" ), libname );
 
         SetStatusText( msg, 0 );

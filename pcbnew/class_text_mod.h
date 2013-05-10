@@ -98,7 +98,7 @@ public:
 
     int GetLength() const;        // text length
 
-    int GetDrawRotation() const;  // Return text rotation for drawings and plotting
+    double GetDrawRotation() const;  // Return text rotation for drawings and plotting
 
     /**
      * Function GetTextRect
@@ -150,7 +150,7 @@ public:
     EDA_ITEM* Clone() const;
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const;     // overload
+    virtual void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); }    // override
 #endif
 };
 

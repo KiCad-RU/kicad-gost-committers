@@ -67,7 +67,7 @@
 extern void BuildUnconnectedThermalStubsPolygonList( CPOLYGONS_LIST& aCornerBuffer,
                                                      BOARD* aPcb, ZONE_CONTAINER* aZone,
                                                      double aArcCorrection,
-                                                     int aRoundPadThermalRotation);
+                                                     double aRoundPadThermalRotation);
 
 extern void Test_For_Copper_Island_And_Remove( BOARD*          aPcb,
                                                ZONE_CONTAINER* aZone_container );
@@ -79,10 +79,10 @@ extern void CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
                                            int                   aMinThicknessValue,
                                            int                   aCircleToSegmentsCount,
                                            double                aCorrectionFactor,
-                                           int                   aThermalRot );
+                                           double                aThermalRot );
 
 // Local Variables:
-static int s_thermalRot = 450;  // angle of stubs in thermal reliefs for round pads
+static double s_thermalRot = 450;  // angle of stubs in thermal reliefs for round pads
 
 // how many segments are used to create a polygon from a circle:
 static int s_CircleToSegmentsCount = ARC_APPROX_SEGMENTS_COUNT_LOW_DEF;   /* default value. the real value will be changed to
@@ -414,10 +414,10 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList( BOARD* aPcb )
     // cornerBufferPolysToSubstract contains polygons to substract.
     // polyset_zone_solid_areas contains the main filled area
     // Calculate now actual solid areas
-    if( cornerBufferPolysToSubstract.size() > 0 )
+    if( cornerBufferPolysToSubstract.GetCornersCount() > 0 )
     {
         KI_POLYGON_SET polyset_holes;
-        AddPolygonCornersToKiPolygonList( cornerBufferPolysToSubstract, polyset_holes );
+        cornerBufferPolysToSubstract.ExportTo( polyset_holes );
         // Remove holes from initial area.:
         polyset_zone_solid_areas -= polyset_holes;
     }
@@ -440,10 +440,10 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList( BOARD* aPcb )
                                                  s_Correction, s_thermalRot );
 
     // remove copper areas corresponding to not connected stubs
-    if( cornerBufferPolysToSubstract.size() )
+    if( cornerBufferPolysToSubstract.GetCornersCount() )
     {
         KI_POLYGON_SET polyset_holes;
-        AddPolygonCornersToKiPolygonList( cornerBufferPolysToSubstract, polyset_holes );
+        cornerBufferPolysToSubstract.ExportTo( polyset_holes );
 
         // Remove unconnected stubs
         polyset_zone_solid_areas -= polyset_holes;
@@ -463,11 +463,11 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList( BOARD* aPcb )
 void ZONE_CONTAINER::CopyPolygonsFromKiPolygonListToFilledPolysList( KI_POLYGON_SET& aKiPolyList )
 {
     m_FilledPolysList.clear();
-    CopyPolygonsFromKiPolygonListToPolysList( aKiPolyList, m_FilledPolysList );
+    m_FilledPolysList.ImportFrom( aKiPolyList );
 }
 
 
 void ZONE_CONTAINER::CopyPolygonsFromFilledPolysListToKiPolygonList( KI_POLYGON_SET& aKiPolyList )
 {
-    AddPolygonCornersToKiPolygonList( m_FilledPolysList, aKiPolyList );
+    m_FilledPolysList.ExportTo( aKiPolyList );
 }

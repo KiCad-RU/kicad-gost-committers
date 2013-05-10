@@ -42,7 +42,7 @@ CPolyLine::~CPolyLine()
     int removed = 0;
 
     unsigned startcountour = 0;
-    for( unsigned icnt = 1; icnt < m_CornersList.size(); icnt ++ )
+    for( unsigned icnt = 1; icnt < m_CornersList.GetCornersCount(); icnt ++ )
     {
         unsigned last = icnt-1;
         if( m_CornersList[icnt].end_contour )
@@ -84,7 +84,7 @@ int CPolyLine::NormalizeAreaOutlines( std::vector<CPolyLine*>* aNewPolygonList )
     ClipperLib::Polygon raw_polygon;
     ClipperLib::Polygons normalized_polygons;
 
-    unsigned corners_count = m_CornersList.size();
+    unsigned corners_count = m_CornersList.GetCornersCount();
 
     KI_POLYGON_SET polysholes;
     KI_POLYGON_WITH_HOLES mainpoly;
@@ -111,7 +111,7 @@ int CPolyLine::NormalizeAreaOutlines( std::vector<CPolyLine*>* aNewPolygonList )
         ClipperLib::Polygon& polygon = normalized_polygons[ii];
         cornerslist.clear();
         for( unsigned jj = 0; jj < polygon.size(); jj++ )
-            cornerslist.push_back( KI_POLY_POINT( KiROUND( polygon[jj].X ), 
+            cornerslist.push_back( KI_POLY_POINT( KiROUND( polygon[jj].X ),
                                                   KiROUND( polygon[jj].Y ) ) );
         mainpoly.set( cornerslist.begin(), cornerslist.end() );
         all_contours.push_back(  mainpoly );
@@ -138,7 +138,7 @@ int CPolyLine::NormalizeAreaOutlines( std::vector<CPolyLine*>* aNewPolygonList )
                     ClipperLib::Polygon& polygon = normalized_polygons[ii];
                     cornerslist.clear();
                     for( unsigned jj = 0; jj < polygon.size(); jj++ )
-                        cornerslist.push_back( KI_POLY_POINT( KiROUND( polygon[jj].X ), 
+                        cornerslist.push_back( KI_POLY_POINT( KiROUND( polygon[jj].X ),
                                                               KiROUND( polygon[jj].Y ) ) );
                     bpl::set_points( poly_tmp, cornerslist.begin(), cornerslist.end() );
                     polysholes.push_back( poly_tmp );
@@ -216,7 +216,7 @@ void CPolyLine::Start( LAYER_NUM layer, int x, int y, int hatch )
     CPolyPt poly_pt( x, y );
     poly_pt.end_contour = false;
 
-    m_CornersList.push_back( poly_pt );
+    m_CornersList.Append( poly_pt );
 }
 
 
@@ -229,17 +229,8 @@ void CPolyLine::AppendCorner( int x, int y )
     poly_pt.end_contour = false;
 
     // add entries for new corner
-    m_CornersList.push_back( poly_pt );
+    m_CornersList.Append( poly_pt );
 }
-
-
-// close last polyline contour
-//
-void CPolyLine::CloseLastContour()
-{
-    m_CornersList[m_CornersList.size() - 1].end_contour = true;
-}
-
 
 // move corner of polyline
 //
@@ -264,12 +255,12 @@ void CPolyLine::DeleteCorner( int ic )
     if( !closed )
     {
         // open contour, must be last contour
-        m_CornersList.erase( m_CornersList.begin() + ic );
+        m_CornersList.DeleteCorner( ic );
     }
     else
     {
         // closed contour
-        m_CornersList.erase( m_CornersList.begin() + ic );
+        m_CornersList.DeleteCorner( ic );
 
         if( ic == iend )
             m_CornersList[ic - 1].end_contour = true;
@@ -304,17 +295,12 @@ void CPolyLine::RemoveContour( int icont )
         // remove the only contour
         wxASSERT( 0 );
     }
-    else if( icont == polycount - 1 )
-    {
-        // remove last contour
-        m_CornersList.erase( m_CornersList.begin() + istart, m_CornersList.end() );
-    }
     else
     {
         // remove closed contour
         for( int ic = iend; ic>=istart; ic-- )
         {
-            m_CornersList.erase( m_CornersList.begin() + ic );
+            m_CornersList.DeleteCorner( ic );
         }
     }
 
@@ -549,16 +535,16 @@ void CPolyLine::InsertCorner( int ic, int x, int y )
 {
     UnHatch();
 
-    if( (unsigned) (ic) >= m_CornersList.size() )
+    if( (unsigned) (ic) >= m_CornersList.GetCornersCount() )
     {
-        m_CornersList.push_back( CPolyPt( x, y ) );
+        m_CornersList.Append( CPolyPt( x, y ) );
     }
     else
     {
-        m_CornersList.insert( m_CornersList.begin() + ic + 1, CPolyPt( x, y ) );
+        m_CornersList.InsertCorner(ic, CPolyPt( x, y ) );
     }
 
-    if( (unsigned) (ic + 1) < m_CornersList.size() )
+    if( (unsigned) (ic + 1) < m_CornersList.GetCornersCount() )
     {
         if( m_CornersList[ic].end_contour )
         {
@@ -599,7 +585,7 @@ CRect CPolyLine::GetCornerBounds()
     r.left  = r.bottom = INT_MAX;
     r.right = r.top = INT_MIN;
 
-    for( unsigned i = 0; i<m_CornersList.size(); i++ )
+    for( unsigned i = 0; i< m_CornersList.GetCornersCount(); i++ )
     {
         r.left      = std::min( r.left, m_CornersList[i].x );
         r.right     = std::max( r.right, m_CornersList[i].x );
@@ -632,35 +618,18 @@ CRect CPolyLine::GetCornerBounds( int icont )
 }
 
 
-int CPolyLine::GetNumCorners()
-{
-    return m_CornersList.size();
-}
-
-
-int CPolyLine::GetNumSides()
-{
-    if( GetClosed() )
-        return m_CornersList.size();
-    else
-        return m_CornersList.size() - 1;
-}
-
-
 int CPolyLine::GetContoursCount()
 {
     int ncont = 0;
 
-    if( !m_CornersList.size() )
+    if( !m_CornersList.GetCornersCount() )
         return 0;
 
-    for( unsigned ic = 0; ic < m_CornersList.size(); ic++ )
+    for( unsigned ic = 0; ic < m_CornersList.GetCornersCount(); ic++ )
         if( m_CornersList[ic].end_contour )
             ncont++;
 
-
-
-    if( !m_CornersList[m_CornersList.size() - 1].end_contour )
+    if( !m_CornersList[m_CornersList.GetCornersCount() - 1].end_contour )
         ncont++;
 
     return ncont;
@@ -688,7 +657,7 @@ int CPolyLine::GetContourStart( int icont )
 
     int ncont = 0;
 
-    for( unsigned i = 0; i<m_CornersList.size(); i++ )
+    for( unsigned i = 0; i<m_CornersList.GetCornersCount(); i++ )
     {
         if( m_CornersList[i].end_contour )
         {
@@ -710,11 +679,11 @@ int CPolyLine::GetContourEnd( int icont )
         return 0;
 
     if( icont == GetContoursCount() - 1 )
-        return m_CornersList.size() - 1;
+        return m_CornersList.GetCornersCount() - 1;
 
     int ncont = 0;
 
-    for( unsigned i = 0; i<m_CornersList.size(); i++ )
+    for( unsigned i = 0; i<m_CornersList.GetCornersCount(); i++ )
     {
         if( m_CornersList[i].end_contour )
         {
@@ -738,10 +707,10 @@ int CPolyLine::GetContourSize( int icont )
 
 int CPolyLine::GetClosed()
 {
-    if( m_CornersList.size() == 0 )
+    if( m_CornersList.GetCornersCount() == 0 )
         return 0;
     else
-        return m_CornersList[m_CornersList.size() - 1].end_contour;
+        return m_CornersList[m_CornersList.GetCornersCount() - 1].end_contour;
 }
 
 
@@ -770,7 +739,7 @@ void CPolyLine::Hatch()
     int min_y   = m_CornersList[0].y;
     int max_y   = m_CornersList[0].y;
 
-    for( unsigned ic = 1; ic < m_CornersList.size(); ic++ )
+    for( unsigned ic = 1; ic < m_CornersList.GetCornersCount(); ic++ )
     {
         if( m_CornersList[ic].x < min_x )
             min_x = m_CornersList[ic].x;
@@ -821,7 +790,7 @@ void CPolyLine::Hatch()
     min_a += offset;
 
     // now calculate and draw hatch lines
-    int nc = m_CornersList.size();
+    int nc = m_CornersList.GetCornersCount();
 
     // loop through hatch lines
     #define MAXPTS 200      // Usually we store only few values per one hatch line
@@ -847,7 +816,8 @@ void CPolyLine::Hatch()
             double  x, y, x2, y2;
             int     ok;
 
-            if( m_CornersList[ic].end_contour || ( ic == (int) (m_CornersList.size() - 1) ) )
+            if( m_CornersList[ic].end_contour ||
+                ( ic == (int) (m_CornersList.GetCornersCount() - 1) ) )
             {
                 ok = FindLineSegmentIntersection( a, slope,
                                                   m_CornersList[ic].x, m_CornersList[ic].y,
@@ -958,8 +928,8 @@ bool CPolyLine::TestPointInside( int px, int py )
         int istart  = GetContourStart( icont );
         int iend    = GetContourEnd( icont );
 
-        // Test this polygon:
-        if( TestPointInsidePolygon( m_CornersList, istart, iend, px, py ) ) // test point inside the current polygon
+         // test point inside the current polygon
+        if( TestPointInsidePolygon( m_CornersList, istart, iend, px, py ) )
             inside = not inside;
     }
 
@@ -1000,35 +970,13 @@ void CPolyLine::MoveOrigin( int x_off, int y_off )
 {
     UnHatch();
 
-    for( int ic = 0; ic < GetNumCorners(); ic++ )
+    for( int ic = 0; ic < GetCornersCount(); ic++ )
     {
         SetX( ic, GetX( ic ) + x_off );
         SetY( ic, GetY( ic ) + y_off );
     }
 
     Hatch();
-}
-
-
-// Set various parameters:
-// the calling function should UnHatch() before calling them,
-// and Draw() after
-//
-void CPolyLine::SetX( int ic, int x )
-{
-    m_CornersList[ic].x = x;
-}
-
-
-void CPolyLine::SetY( int ic, int y )
-{
-    m_CornersList[ic].y = y;
-}
-
-
-void CPolyLine::SetEndContour( int ic, bool end_contour )
-{
-    m_CornersList[ic].end_contour = end_contour;
 }
 
 /*
@@ -1040,7 +988,7 @@ void CPolyLine::AppendArc( int xi, int yi, int xf, int yf, int xc, int yc, int n
     // get radius
     double  radius  = ::Distance( xi, yi, xf, yf );
 
-    // get angles of start and finish
+    // get angles of start pint and end point
     double  th_i    = atan2( (double) (yi - yc), (double) (xi - xc) );
     double  th_f    = atan2( (double) (yf - yc), (double) (xf - xc) );
     double  th_d    = (th_f - th_i) / (num - 1);
@@ -1199,17 +1147,13 @@ int CPolyLine::Distance( const wxPoint& aPoint )
 }
 
 
-/**
- * Function CopyPolysListToKiPolygonWithHole
- * converts the outline contours aPolysList to a KI_POLYGON_WITH_HOLES
- *
- * @param aPolysList = the list of corners of contours
- * @param aPolygoneWithHole = a KI_POLYGON_WITH_HOLES to populate
+/*
+ * Copy the contours to a KI_POLYGON_WITH_HOLES
+ * The first contour is the main outline, others are holes
  */
-void CopyPolysListToKiPolygonWithHole( const CPOLYGONS_LIST&  aPolysList,
-                                       KI_POLYGON_WITH_HOLES&       aPolygoneWithHole )
+void CPOLYGONS_LIST::ExportTo( KI_POLYGON_WITH_HOLES& aPolygoneWithHole )
 {
-    unsigned    corners_count = aPolysList.size();
+    unsigned    corners_count = m_cornersList.size();
 
     std::vector<KI_POLY_POINT> cornerslist;
     KI_POLYGON  poly;
@@ -1219,7 +1163,7 @@ void CopyPolysListToKiPolygonWithHole( const CPOLYGONS_LIST&  aPolysList,
 
     while( ic < corners_count )
     {
-        const CPolyPt& corner = aPolysList[ic++];
+        const CPolyPt& corner = GetCorner( ic++ );
         cornerslist.push_back( KI_POLY_POINT( corner.x, corner.y ) );
 
         if( corner.end_contour )
@@ -1239,10 +1183,9 @@ void CopyPolysListToKiPolygonWithHole( const CPOLYGONS_LIST&  aPolysList,
 
             while( ic < corners_count )
             {
-                const CPolyPt& corner = aPolysList[ic++];
-                cornerslist.push_back( KI_POLY_POINT( corner.x, corner.y ) );
+                cornerslist.push_back( KI_POLY_POINT( GetX( ic ), GetY( ic ) ) );
 
-                if( corner.end_contour )
+                if( IsEndContour( ic ) )
                     break;
             }
 
@@ -1253,6 +1196,74 @@ void CopyPolysListToKiPolygonWithHole( const CPOLYGONS_LIST&  aPolysList,
         aPolygoneWithHole.set_holes( holePolyList.begin(), holePolyList.end() );
     }
 }
+
+/**
+ * Copy all contours to a KI_POLYGON_SET aPolygons
+ * Each contour is copied into a KI_POLYGON, and each KI_POLYGON
+ * is append to aPolygons
+ */
+void CPOLYGONS_LIST::ExportTo( KI_POLYGON_SET& aPolygons )
+{
+    std::vector<KI_POLY_POINT> cornerslist;
+    unsigned    corners_count = GetCornersCount();
+
+    // Count the number of polygons in aCornersBuffer
+    int         polycount = 0;
+
+    for( unsigned ii = 0; ii < corners_count; ii++ )
+    {
+        if( IsEndContour( ii ) )
+            polycount++;
+    }
+
+    aPolygons.reserve( polycount );
+
+    for( unsigned icnt = 0; icnt < corners_count; )
+    {
+        KI_POLYGON  poly;
+        cornerslist.clear();
+
+        unsigned    ii;
+
+        for( ii = icnt; ii < corners_count; ii++ )
+        {
+            cornerslist.push_back( KI_POLY_POINT( GetX( ii ), GetY( ii ) ) );
+
+            if( IsEndContour( ii ) )
+                break;
+        }
+
+        bpl::set_points( poly, cornerslist.begin(), cornerslist.end() );
+        aPolygons.push_back( poly );
+        icnt = ii + 1;
+    }
+}
+
+
+/* Imports all polygons found in a KI_POLYGON_SET in list
+ */
+void CPOLYGONS_LIST::ImportFrom( KI_POLYGON_SET& aPolygons )
+{
+    CPolyPt corner;
+
+    for( unsigned ii = 0; ii < aPolygons.size(); ii++ )
+    {
+        KI_POLYGON& poly = aPolygons[ii];
+
+        for( unsigned jj = 0; jj < poly.size(); jj++ )
+        {
+            KI_POLY_POINT point = *(poly.begin() + jj);
+            corner.x    = point.x();
+            corner.y    = point.y();
+            corner.end_contour = false;
+            AddCorner( corner );
+        }
+
+        CloseLastContour();
+    }
+}
+
+
 
 /**
  * Function ConvertPolysListWithHolesToOnePolygon
@@ -1266,14 +1277,12 @@ void CopyPolysListToKiPolygonWithHole( const CPOLYGONS_LIST&  aPolysList,
 void ConvertPolysListWithHolesToOnePolygon( const CPOLYGONS_LIST& aPolysListWithHoles,
                                             CPOLYGONS_LIST&  aOnePolyList )
 {
-    unsigned corners_count = aPolysListWithHoles.size();
+    unsigned corners_count = aPolysListWithHoles.GetCornersCount();
 
     int      polycount = 0;
     for( unsigned ii = 0; ii < corners_count; ii++ )
     {
-        const CPolyPt& corner = aPolysListWithHoles[ii];
-
-        if( corner.end_contour )
+        if(  aPolysListWithHoles.IsEndContour( ii ) )
             polycount++;
     }
 
@@ -1289,13 +1298,13 @@ void ConvertPolysListWithHolesToOnePolygon( const CPOLYGONS_LIST& aPolysListWith
     KI_POLYGON_SET mainpoly;
     KI_POLYGON poly_tmp;
     std::vector<KI_POLY_POINT> cornerslist;
-    corners_count = aPolysListWithHoles.size();
+    corners_count = aPolysListWithHoles.GetCornersCount();
 
     unsigned ic    = 0;
     // enter main outline
     while( ic < corners_count )
     {
-        const CPolyPt& corner = aPolysListWithHoles[ic++];
+        const CPolyPt& corner = aPolysListWithHoles.GetCorner( ic++ );
         cornerslist.push_back( KI_POLY_POINT( corner.x, corner.y ) );
 
         if( corner.end_contour )
@@ -1310,7 +1319,7 @@ void ConvertPolysListWithHolesToOnePolygon( const CPOLYGONS_LIST& aPolysListWith
         {
             while( ic < corners_count )
             {
-                const CPolyPt& corner = aPolysListWithHoles[ic++];
+                const CPolyPt& corner = aPolysListWithHoles.GetCorner( ic++ );
                 cornerslist.push_back( KI_POLY_POINT( corner.x, corner.y ) );
 
                 if( corner.end_contour )
@@ -1337,10 +1346,10 @@ void ConvertPolysListWithHolesToOnePolygon( const CPOLYGONS_LIST& aPolysListWith
         corner.x = point.x();
         corner.y = point.y();
         corner.end_contour = false;
-        aOnePolyList.push_back( corner );
+        aOnePolyList.AddCorner( corner );
     }
 
-    aOnePolyList.back().end_contour = true;
+    aOnePolyList.CloseLastContour();
 }
 
 /**

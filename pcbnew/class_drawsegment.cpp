@@ -232,7 +232,7 @@ void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
         break;
 
     case S_ARC:
-        int StAngle, EndAngle;
+        double StAngle, EndAngle;
         radius   = KiROUND( Distance( ux0, uy0, dx, dy ) );
         StAngle  = ArcTangente( dy - uy0, dx - ux0 );
         EndAngle = StAngle + m_Angle;
@@ -543,25 +543,3 @@ EDA_ITEM* DRAWSEGMENT::Clone() const
     return new DRAWSEGMENT( *this );
 }
 
-
-#if defined(DEBUG)
-void DRAWSEGMENT::Show( int nestLevel, std::ostream& os ) const
-{
-    NestedSpace( nestLevel, os ) << '<' << GetClass().Lower().mb_str() <<
-
-    " shape=\"" << m_Shape << '"' <<
-/*
-    " layer=\"" << GetLayer() << '"' <<
-    " width=\"" << m_Width << '"' <<
-    " angle=\"" << m_Angle << '"' <<  // Used only for Arcs: Arc angle in 1/10 deg
-*/
-    '>' <<
-    "<start" << m_Start << "/>" <<
-    "<end"   << m_End << "/>"
-    "<GetStart" << GetStart() << "/>" <<
-    "<GetEnd"   << GetEnd() << "/>"
-    ;
-
-    os << "</" << GetClass().Lower().mb_str() << ">\n";
-}
-#endif

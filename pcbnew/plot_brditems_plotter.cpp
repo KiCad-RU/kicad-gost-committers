@@ -209,7 +209,8 @@ void BRDITEMS_PLOTTER::PlotTextModule( TEXTE_MODULE* pt_texte, EDA_COLOR_T aColo
 {
     wxSize  size;
     wxPoint pos;
-    int     orient, thickness;
+    double  orient;
+    int     thickness;
 
     if( aColor == WHITE )
         aColor = LIGHTGRAY;
@@ -447,7 +448,8 @@ void BRDITEMS_PLOTTER::Plot_1_EdgeModule( EDGE_MODULE* aEdge )
 // Plot a PCB Text, i;e. a text found on a copper or technical layer
 void BRDITEMS_PLOTTER::PlotTextePcb( TEXTE_PCB* pt_texte )
 {
-    int     orient, thickness;
+    double  orient;
+    int     thickness;
     wxPoint pos;
     wxSize  size;
 
@@ -507,7 +509,7 @@ void BRDITEMS_PLOTTER::PlotTextePcb( TEXTE_PCB* pt_texte )
 void BRDITEMS_PLOTTER::PlotFilledAreas( ZONE_CONTAINER* aZone )
 {
     const CPOLYGONS_LIST& polysList = aZone->GetFilledPolysList();
-    unsigned imax = polysList.size();
+    unsigned imax = polysList.GetCornersCount();
 
     if( imax == 0 )  // Nothing to draw
         return;
@@ -526,10 +528,10 @@ void BRDITEMS_PLOTTER::PlotFilledAreas( ZONE_CONTAINER* aZone )
      */
     for( unsigned ic = 0; ic < imax; ic++ )
     {
-        const CPolyPt& corner = polysList[ic];
-        cornerList.push_back( wxPoint( corner.x, corner.y) );
+        wxPoint pos = polysList.GetPos( ic );
+        cornerList.push_back( pos );
 
-        if( corner.end_contour )   // Plot the current filled area outline
+        if(  polysList.IsEndContour( ic ) )   // Plot the current filled area outline
         {
             // First, close the outline
             if( cornerList[0] != cornerList[cornerList.size() - 1] )
@@ -586,7 +588,8 @@ void BRDITEMS_PLOTTER::PlotFilledAreas( ZONE_CONTAINER* aZone )
 void BRDITEMS_PLOTTER::PlotDrawSegment(  DRAWSEGMENT* aSeg )
 {
     int     thickness;
-    int     radius = 0, StAngle = 0, EndAngle = 0;
+    int     radius = 0;
+    double  StAngle = 0, EndAngle = 0;
 
     if( (GetLayerMask( aSeg->GetLayer() ) & m_layerMask) == 0 )
         return;

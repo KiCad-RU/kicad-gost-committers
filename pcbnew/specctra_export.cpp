@@ -1502,7 +1502,7 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard ) throw( IO_ERROR )
 
             mainPolygon->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
 
-            int count = item->Outline()->m_CornersList.size();
+            int count = item->Outline()->m_CornersList.GetCornersCount();
             int ndx = 0;  // used in 2 for() loops below
             for( ; ndx<count; ++ndx )
             {
@@ -1579,7 +1579,7 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard ) throw( IO_ERROR )
 
             mainPolygon->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
 
-            int count = item->Outline()->m_CornersList.size();
+            int count = item->Outline()->m_CornersList.GetCornersCount();
             int ndx = 0;  // used in 2 for() loops below
             for( ; ndx<count; ++ndx )
             {
@@ -1851,7 +1851,7 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard ) throw( IO_ERROR )
                 wire->wire_type = T_protect;    // @todo, this should be configurable
 
                 LAYER_NUM kiLayer  = track->GetLayer();
-                LAYER_NUM pcbLayer = kicadLayer2pcb[kiLayer];
+                int pcbLayer = kicadLayer2pcb[kiLayer];
 
                 path = new PATH( wire );
 

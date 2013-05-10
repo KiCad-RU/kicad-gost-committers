@@ -32,84 +32,6 @@
 #include <common.h>
 #include <convert_basic_shapes_to_polygon.h>
 
-/* Helper functions:
- * We are using a lots polygons in calculations.
- * and we are using 2 descriptions,
- * one easy to use with boost::polygon (KI_POLYGON_SET)
- * one easy to use in zones and in draw functions (CPOLYGONS_LIST)
- * Copy polygons from a KI_POLYGON_SET set of polygons to
- * a CPOLYGONS_LIST polygon list
- * Therefore we need conversion functions between these 2 descriptions
- */
-void CopyPolygonsFromKiPolygonListToPolysList( KI_POLYGON_SET&  aKiPolyList,
-                                               CPOLYGONS_LIST&  aPolysList )
-{
-    for( unsigned ii = 0; ii < aKiPolyList.size(); ii++ )
-    {
-        KI_POLYGON& poly = aKiPolyList[ii];
-        CPolyPt     corner( 0, 0, false );
-
-        for( unsigned jj = 0; jj < poly.size(); jj++ )
-        {
-            KI_POLY_POINT point = *(poly.begin() + jj);
-            corner.x    = point.x();
-            corner.y    = point.y();
-            corner.end_contour = false;
-            aPolysList.push_back( corner );
-        }
-
-        corner.end_contour = true;
-        aPolysList.pop_back();
-        aPolysList.push_back( corner );
-    }
-}
-
-
-/**
- * Helper function AddPolygonCornersToKiPolygonList
- * This function adds a KI_POLYGON_SET description to a
- * CPOLYGONS_LIST description
- * @param aCornersBuffer = source (set of polygons using CPolyPt corners descr)
- * @param aPolysList = destination (set of polygons)
- */
-void AddPolygonCornersToKiPolygonList( CPOLYGONS_LIST&  aCornersBuffer,
-                                       KI_POLYGON_SET&  aKiPolyList )
-{
-    std::vector<KI_POLY_POINT> cornerslist;
-    unsigned    corners_count = aCornersBuffer.size();
-
-    // Count the number of polygons in aCornersBuffer
-    int         polycount = 0;
-
-    for( unsigned ii = 0; ii < corners_count; ii++ )
-    {
-        if( aCornersBuffer[ii].end_contour )
-            polycount++;
-    }
-
-    aKiPolyList.reserve( polycount );
-
-    for( unsigned icnt = 0; icnt < corners_count; )
-    {
-        KI_POLYGON  poly;
-        cornerslist.clear();
-
-        unsigned    ii;
-
-        for( ii = icnt; ii < aCornersBuffer.size(); ii++ )
-        {
-            cornerslist.push_back( KI_POLY_POINT( aCornersBuffer[ii].x, aCornersBuffer[ii].y ) );
-
-            if( aCornersBuffer[ii].end_contour )
-                break;
-        }
-
-        bpl::set_points( poly, cornerslist.begin(), cornerslist.end() );
-        aKiPolyList.push_back( poly );
-        icnt = ii + 1;
-    }
-}
-
 
 /**
  * Function TransformCircleToPolygon
@@ -137,10 +59,10 @@ void TransformCircleToPolygon( CPOLYGONS_LIST& aCornerBuffer,
         RotatePoint( &corner_position.x, &corner_position.y, angle );
         corner_position += aCenter;
         CPolyPt polypoint( corner_position.x, corner_position.y );
-        aCornerBuffer.push_back( polypoint );
+        aCornerBuffer.Append( polypoint );
     }
 
-    aCornerBuffer.back().end_contour = true;
+    aCornerBuffer.CloseLastContour();
 }
 
 
@@ -174,8 +96,8 @@ void TransformRoundedEndsSegmentToPolygon( CPOLYGONS_LIST& aCornerBuffer,
         startp  = aEnd;
     }
 
-    int delta_angle = ArcTangente( endp.y, endp.x );    // delta_angle is in 0.1 degrees
-    int seg_len     = KiROUND( EuclideanNorm( endp ) );
+    double delta_angle = ArcTangente( endp.y, endp.x ); // delta_angle is in 0.1 degrees
+    int seg_len        = KiROUND( EuclideanNorm( endp ) );
 
     int delta = 3600 / aCircleToSegmentsCount;    // rot angle in 0.1 degree
 
@@ -190,7 +112,7 @@ void TransformRoundedEndsSegmentToPolygon( CPOLYGONS_LIST& aCornerBuffer,
         corner += startp;
         polypoint.x = corner.x;
         polypoint.y = corner.y;
-        aCornerBuffer.push_back( polypoint );
+        aCornerBuffer.Append( polypoint );
     }
 
     // Finish arc:
@@ -199,7 +121,7 @@ void TransformRoundedEndsSegmentToPolygon( CPOLYGONS_LIST& aCornerBuffer,
     corner += startp;
     polypoint.x = corner.x;
     polypoint.y = corner.y;
-    aCornerBuffer.push_back( polypoint );
+    aCornerBuffer.Append( polypoint );
 
     // add left rounded end:
     for( int ii = 0; ii < 1800; ii += delta )
@@ -210,7 +132,7 @@ void TransformRoundedEndsSegmentToPolygon( CPOLYGONS_LIST& aCornerBuffer,
         corner += startp;
         polypoint.x = corner.x;
         polypoint.y = corner.y;
-        aCornerBuffer.push_back( polypoint );
+        aCornerBuffer.Append( polypoint );
     }
 
     // Finish arc:
@@ -219,9 +141,9 @@ void TransformRoundedEndsSegmentToPolygon( CPOLYGONS_LIST& aCornerBuffer,
     corner += startp;
     polypoint.x = corner.x;
     polypoint.y = corner.y;
-    aCornerBuffer.push_back( polypoint );
+    aCornerBuffer.Append( polypoint );
 
-    aCornerBuffer.back().end_contour = true;
+    aCornerBuffer.CloseLastContour();
 }
 
 
@@ -237,7 +159,7 @@ void TransformRoundedEndsSegmentToPolygon( CPOLYGONS_LIST& aCornerBuffer,
  * @param aWidth = width (thickness) of the line
  */
 void TransformArcToPolygon( CPOLYGONS_LIST& aCornerBuffer,
-                            wxPoint aCentre, wxPoint aStart, int aArcAngle,
+                            wxPoint aCentre, wxPoint aStart, double aArcAngle,
                             int aCircleToSegmentsCount, int aWidth )
 {
     wxPoint arc_start, arc_end;
@@ -307,13 +229,13 @@ void TransformRingToPolygon( CPOLYGONS_LIST& aCornerBuffer,
         curr_point      += aCentre;
         polycorner.x    = curr_point.x;
         polycorner.y    = curr_point.y;
-        aCornerBuffer.push_back( polycorner );
+        aCornerBuffer.Append( polycorner );
     }
 
     // Draw the last point of inner circle
     polycorner.x    = aCentre.x + inner_radius;
     polycorner.y    = aCentre.y;
-    aCornerBuffer.push_back( polycorner );
+    aCornerBuffer.Append( polycorner );
 
     // Draw the outer circle of the ring
     for( int ii = 0; ii < 3600; ii += delta )
@@ -324,16 +246,16 @@ void TransformRingToPolygon( CPOLYGONS_LIST& aCornerBuffer,
         curr_point      += aCentre;
         polycorner.x    = curr_point.x;
         polycorner.y    = curr_point.y;
-        aCornerBuffer.push_back( polycorner );
+        aCornerBuffer.Append( polycorner );
     }
 
     // Draw the last point of outer circle
     polycorner.x    = aCentre.x + outer_radius;
     polycorner.y    = aCentre.y;
-    aCornerBuffer.push_back( polycorner );
+    aCornerBuffer.Append( polycorner );
 
     // Close the polygon
     polycorner.x = aCentre.x + inner_radius;
     polycorner.end_contour = true;
-    aCornerBuffer.push_back( polycorner );
+    aCornerBuffer.Append( polycorner );
 }
