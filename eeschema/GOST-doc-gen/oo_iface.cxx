@@ -52,7 +52,7 @@ bool OO_IFACE::Connect()
     OUString sConnectionString( RTL_CONSTASCII_USTRINGPARAM( CONNECTION_STRING ) );
 
 #if defined (__WXMSW__)
-    connection_str = wxT( "C:\\Program Files (x86)\\OpenOffice.org 3\\program\\soffice.exe" );
+    connection_str = FindWindowsOOInstallationPath() + wxT( "soffice.exe" );
 #else
     connection_str = wxT( "soffice" );
 #endif

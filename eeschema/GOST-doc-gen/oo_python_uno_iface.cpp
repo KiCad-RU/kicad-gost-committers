@@ -53,7 +53,7 @@ bool OO_PYTHON_UNO_IFACE::Connect()
     wxString connection_str;
 
 #if defined (__WXMSW__)
-    connection_str = wxT( "C:\\Program Files (x86)\\OpenOffice.org 3\\program\\soffice.exe" );
+    connection_str = FindWindowsOOInstallationPath() + wxT( "soffice.exe" );
 #else
     connection_str = wxT( "soffice" );
 #endif

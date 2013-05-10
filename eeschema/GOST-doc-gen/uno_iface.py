@@ -109,60 +109,60 @@ sock, addr = s.accept()
 #print 'Connected with', addr
 
 while True:
-    buf = sock.recv(1024)
+    buf = sock.recv( 1024 )
 
     # "Exit"
-    args = re.findall('^Exit', buf)
+    args = re.findall( b'^Exit', buf )
     if( args != [] ):
-        sock.send( "BYE_____" )
+        sock.send( b'BYE_____' )
         break
 
     # "Connect"
-    args = re.findall('^Connect', buf)
+    args = re.findall( b'^Connect', buf )
     if( args != [] ):
         if( uno_iface_inst.Connect() ):
-            sock.send( "OK______" )
+            sock.send( b'OK______' )
         else:
-            sock.send( "FAILED__" )
+            sock.send( b'FAILED__' )
         continue
 
     # "LoadDocument {arg}"
-    args = re.findall('^LoadDocument {(.*)}', buf)
+    args = re.findall( b'^LoadDocument {(.*)}', buf )
     if( args != [] ):
         if( uno_iface_inst.LoadDocument( args[0] ) ):
-            sock.send( "OK______" )
+            sock.send( b'OK______' )
         else:
-            sock.send( "FAILED__" )
+            sock.send( b'FAILED__' )
         continue
 
     # "AppendDocument {arg}"
-    args = re.findall('^AppendDocument {(.*)}', buf)
+    args = re.findall( b'^AppendDocument {(.*)}', buf )
     if( args != [] ):
         if( uno_iface_inst.AppendDocument( args[0] ) ):
-            sock.send( "OK______" )
+            sock.send( b'OK______' )
         else:
-            sock.send( "FAILED__" )
+            sock.send( b'FAILED__' )
         continue
 
     # "SelectTable {arg}"
-    args = re.findall('^SelectTable {(.*)}', buf)
+    args = re.findall( b'^SelectTable {(.*)}', buf )
     if( args != [] ):
         if( uno_iface_inst.SelectTable( int( args[0] ) ) ):
-            sock.send( "OK______" )
+            sock.send( b'OK______' )
         else:
-            sock.send( "FAILED__" )
+            sock.send( b'FAILED__' )
         continue
 
     # "PutCell {arg} {arg} {arg}"
-    args = re.findall('^PutCell {(.*)} {(.*)} {(.*)}', buf, re.DOTALL )
+    args = re.findall( b'^PutCell {(.*)} {(.*)} {(.*)}', buf, re.DOTALL )
     if( args != [] and args[0] != [] ):
         if( uno_iface_inst.PutCell( args[0][0], args[0][1], int( args[0][2] ) ) ):
-            sock.send( "OK______" )
+            sock.send( b'OK______' )
         else:
-            sock.send( "FAILED__" )
+            sock.send( b'FAILED__' )
         continue
 
-    sock.send( "UNKWNCMD" )
+    sock.send( b'UNKWNCMD' )
 
 sock.close()
 s.close()
