@@ -109,16 +109,16 @@ sock, addr = s.accept()
 #print 'Connected with', addr
 
 while True:
-    buf = sock.recv( 1024 )
+    buf = sock.recv( 1024 ).decode( 'UTF-8' )
 
     # "Exit"
-    args = re.findall( b'^Exit', buf )
+    args = re.findall( u'^Exit', buf )
     if( args != [] ):
         sock.send( b'BYE_____' )
         break
 
     # "Connect"
-    args = re.findall( b'^Connect', buf )
+    args = re.findall( u'^Connect', buf )
     if( args != [] ):
         if( uno_iface_inst.Connect() ):
             sock.send( b'OK______' )
@@ -127,7 +127,7 @@ while True:
         continue
 
     # "LoadDocument {arg}"
-    args = re.findall( b'^LoadDocument {(.*)}', buf )
+    args = re.findall( u'^LoadDocument {(.*)}', buf )
     if( args != [] ):
         if( uno_iface_inst.LoadDocument( args[0] ) ):
             sock.send( b'OK______' )
@@ -136,7 +136,7 @@ while True:
         continue
 
     # "AppendDocument {arg}"
-    args = re.findall( b'^AppendDocument {(.*)}', buf )
+    args = re.findall( u'^AppendDocument {(.*)}', buf )
     if( args != [] ):
         if( uno_iface_inst.AppendDocument( args[0] ) ):
             sock.send( b'OK______' )
@@ -145,7 +145,7 @@ while True:
         continue
 
     # "SelectTable {arg}"
-    args = re.findall( b'^SelectTable {(.*)}', buf )
+    args = re.findall( u'^SelectTable {(.*)}', buf )
     if( args != [] ):
         if( uno_iface_inst.SelectTable( int( args[0] ) ) ):
             sock.send( b'OK______' )
@@ -154,7 +154,7 @@ while True:
         continue
 
     # "PutCell {arg} {arg} {arg}"
-    args = re.findall( b'^PutCell {(.*)} {(.*)} {(.*)}', buf, re.DOTALL )
+    args = re.findall( u'^PutCell {(.*)} {(.*)} {(.*)}', buf, re.DOTALL )
     if( args != [] and args[0] != [] ):
         if( uno_iface_inst.PutCell( args[0][0], args[0][1], int( args[0][2] ) ) ):
             sock.send( b'OK______' )

@@ -178,7 +178,7 @@ bool RPC_DOC_IFACE::LoadDocument( wxString aUrl )
 
     wxString loadDocument( wxT( "LoadDocument {" ) + aUrl + wxT( "}" ) );
 
-    m_sock->Write( loadDocument.c_str(), strlen( loadDocument.c_str() ) );
+    m_sock->Write( TO_UTF8( loadDocument ), strlen( TO_UTF8( loadDocument ) ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 
@@ -200,7 +200,7 @@ bool RPC_DOC_IFACE::AppendDocument( wxString aUrl )
 
     wxString appendDocument( wxT( "AppendDocument {" ) + aUrl + wxT( "}" ) );
 
-    m_sock->Write( appendDocument.c_str(), strlen( appendDocument.c_str() ) );
+    m_sock->Write( TO_UTF8( appendDocument ), strlen( TO_UTF8( appendDocument ) ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 
@@ -220,7 +220,7 @@ void RPC_DOC_IFACE::SelectTable( int aIndex )
 {
     wxString selectTable = wxString::Format( wxT( "SelectTable {%d}" ), aIndex );
 
-    m_sock->Write( selectTable.c_str(), strlen( selectTable.c_str() ) );
+    m_sock->Write( TO_UTF8( selectTable ), strlen( TO_UTF8( selectTable ) ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 
@@ -237,10 +237,11 @@ void RPC_DOC_IFACE::PutCell( wxString aCellAddr,
                              wxString aStr,
                              int      aStyle )
 {
-    wxString putCell = wxString::Format( wxT( "PutCell {%s} {%s} {%d}" ),
-                                         aCellAddr, aStr, aStyle );
+    wxString putCell = wxT( "PutCell {" ) + aCellAddr +
+                       wxT( "} {" ) + aStr +
+                       wxString::Format( wxT( "} {%d}" ), aStyle );
 
-    m_sock->Write( putCell.c_str(), strlen( putCell.c_str() ) );
+    m_sock->Write( TO_UTF8( putCell ), strlen( TO_UTF8( putCell ) ) );
     // wait for command completion
     m_sock->Read( m_buffer, RECV_MSG_SIZE );
 
