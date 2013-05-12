@@ -40,8 +40,8 @@ typedef struct _TDICTIONARY_ITEM
 {
     wxString    singular_form;
     wxString    plural_form;
-    wxString    singular_genetive_form;
-    wxString    plural_genetive_form;
+    wxString    singular_genitive_form;
+    wxString    plural_genitive_form;
 } TDICTIONARY_ITEM, * pTDICTIONARY_ITEM;
 
 typedef struct _TMEASURE_UNIT

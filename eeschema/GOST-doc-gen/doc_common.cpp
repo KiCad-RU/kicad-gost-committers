@@ -41,36 +41,6 @@ int current_sheet;
 int specification_pos_field;
 
 
-int ConvertVariantToItemVarI( COMPONENT* aComponent, int aVariant )
-{
-    if( aVariant==-1 )
-        return 0;
-    else
-        return aComponent->GetVariant( aVariant, NULL );
-}
-
-
-// returns true if both components have identical attributes except ref des
-bool CompareComps( COMPONENT* aComp1, COMPONENT* aComp2, int aVariant )
-{
-    int comp1_var_i = ConvertVariantToItemVarI( aComp1, aVariant );
-    int comp2_var_i = ConvertVariantToItemVarI( aComp2, aVariant );
-
-    for( int i = 0; i < ATTR_QTY; i++ )
-    {
-        // skip comparison of ATTR_TYPE1
-        if( i==ATTR_TYPE1)
-            continue;
-
-        if( ( (pTCOMPONENT_ATTRS) aComp1->m_comp_attr_variants[comp1_var_i] )->attrs[i]!=
-            ( (pTCOMPONENT_ATTRS) aComp2->m_comp_attr_variants[comp2_var_i] )->attrs[i] )
-            return false;
-    }
-
-    return true;
-}
-
-
 void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
                               wxString          aRef_des,
                               wxString          aName,
@@ -162,9 +132,9 @@ void ChangeWordForm( wxString* aStr, int aType )
             if( aType == WORDFORM_PLURAL )
                 *aStr = dictionary[i].plural_form;
             else if( aType==WORDFORM_SINGULAR_GENITIVE )
-                *aStr = dictionary[i].singular_genetive_form;
+                *aStr = dictionary[i].singular_genitive_form;
             else if( aType==WORDFORM_PLURAL_GENITIVE )
-                *aStr = dictionary[i].plural_genetive_form;
+                *aStr = dictionary[i].plural_genitive_form;
 
             title_found = true;
             break;
@@ -191,10 +161,11 @@ void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
                       int               aVariant,
                       COMPONENT_DB*     aComponentDB )
 {
-    wxString    note, ref_des_group, str;
-    COMPONENT*  pComponent, * pBaseComponent;
-    int         ref_des_base_i, qty, i, item_var_i, title_group_end, base_refdes_postfix,
-                next_refdes_postfix;
+    wxString           note, ref_des_group, str;
+    COMPONENT*         pComponent, * pBaseComponent;
+    pTCOMPONENT_ATTRS  comp_attrs, baseComp_attrs;
+    int                ref_des_base_i, qty, i, item_var_i, title_group_end, base_refdes_postfix,
+                       next_refdes_postfix;
 
     OO_PrintCompIndexDocRow( aDocIface,
                              wxT( "" ), wxT( "" ), 0,
@@ -243,8 +214,8 @@ void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
         qty = 1;
         pBaseComponent  = (COMPONENT*) (*aTitle_group_components)[ref_des_base_i];
         item_var_i      = ConvertVariantToItemVarI( pBaseComponent, aVariant );
-        note = ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-               )->attrs[ATTR_NOTE];
+        baseComp_attrs  = (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i];
+        note            = baseComp_attrs->attrs[ATTR_NOTE];
 
         if( ref_des_base_i < title_group_end )
         {
@@ -253,14 +224,21 @@ void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
                 pComponent = (COMPONENT*) (*aTitle_group_components)[i + 1];
                 next_refdes_postfix = RefDesPostfix( pComponent->m_RefDes );
 
-                if( (base_refdes_postfix!=next_refdes_postfix - 1)
-                    || ( !CompareComps( pBaseComponent, pComponent,
-                                        aVariant ) && ( note!=wxT( "Не устанавливается" ) ) )
-                    || ( ( note==wxT( "Не устанавливается" ) )
-                         && ( ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i] )
-                              ->attrs[ATTR_NOTE]!=wxT( "Не устанавливается" ) ) )
-                     )
+                if( ( base_refdes_postfix!=next_refdes_postfix - 1 )
+                    || ( !CompareComps( pBaseComponent, pComponent, aVariant )
+                         && note!=wxT( "Не устанавливается" ) && note!=wxT( "Not installed" ) ) )
+                {
                     break;
+                }
+
+                if( note==wxT( "Не устанавливается" ) || note==wxT( "Not installed" ) )
+                {
+                    comp_attrs = (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i];
+
+                    if( comp_attrs->attrs[ATTR_NOTE]!=wxT( "Не устанавливается" )
+                        && comp_attrs->attrs[ATTR_NOTE]!=wxT( "Not installed" ) )
+                        break;
+                }
 
                 base_refdes_postfix = next_refdes_postfix;
                 qty++;
@@ -272,35 +250,24 @@ void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
         else
             str = aBase_title + wxT( " " );
 
-        str += ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-               )->attrs[ATTR_TYPE];
-        str += ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-               )->attrs[ATTR_SUBTYPE];
-        str += wxT( " " ) +
-               ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-               )->attrs[ATTR_VALUE];
+        str += baseComp_attrs->attrs[ATTR_TYPE];
+        str += baseComp_attrs->attrs[ATTR_SUBTYPE];
+        str += wxT( " " ) + baseComp_attrs->attrs[ATTR_VALUE];
 
-        if( ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-            )->attrs[ATTR_PRECISION] != wxT( "" ) )
-            str += wxT( " ±" ) +
-                   ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-                   )->attrs[ATTR_PRECISION];
+        if( baseComp_attrs->attrs[ATTR_PRECISION] != wxT( "" ) )
+            str += wxT( " ±" ) + baseComp_attrs->attrs[ATTR_PRECISION];
 
-        str += ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-               )->attrs[ATTR_DESIGNATION];
+        str += baseComp_attrs->attrs[ATTR_DESIGNATION];
 
-        if( note==wxT( "Не устанавливается" ) )
+        if( note==wxT( "Не устанавливается" ) || note==wxT( "Not installed" ) )
         {
             str = wxT( "" );
 
             if( qty > 1 )
                 note = wxT( "Не устанавливаются" );
         }
-        else if( ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-                 )->attrs[ATTR_MANUFACTURER] != wxT( "" ) )
-            note += wxT( " \"" ) +
-                    ( (pTCOMPONENT_ATTRS) pBaseComponent->m_comp_attr_variants[item_var_i]
-                    )->attrs[ATTR_MANUFACTURER] + wxT( "\"" );
+        else if( baseComp_attrs->attrs[ATTR_MANUFACTURER] != wxT( "" ) )
+            note += wxT( " \"" ) + baseComp_attrs->attrs[ATTR_MANUFACTURER] + wxT( "\"" );
 
         note.Replace( wxT( " " ), wxT( "_" ) );
 
@@ -336,13 +303,14 @@ void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
                            int               aVariant,
                            COMPONENT_DB*     aComponentDB )
 {
-    COMPONENT_ARRAY title_group_components;
-    wxArrayString   group_titles;
-    wxArrayString   group_types;
-    wxString        str, base_title, base_ref_des_prefix;
-    int             i, ref_des_group_start, ref_des_group_end, title_group_i, positions,
-                    offset, item_var_i;
-    COMPONENT*      pComponent, * pBaseComponent;
+    COMPONENT_ARRAY    title_group_components;
+    wxArrayString      group_titles;
+    wxArrayString      group_types;
+    wxString           str, base_title, base_ref_des_prefix;
+    int                i, ref_des_group_start, ref_des_group_end, title_group_i, positions,
+                       offset, item_var_i;
+    COMPONENT*         pComponent, * pBaseComponent;
+    pTCOMPONENT_ATTRS  comp_attrs;
 
     if( aSingleVariantComponents->GetCount()==0 )
         return;
@@ -411,13 +379,15 @@ void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
             {
                 pComponent  = (COMPONENT*) title_group_components[i];
                 item_var_i  = ConvertVariantToItemVarI( pComponent, aVariant );
-                str = ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i]
-                      )->attrs[ATTR_TYPE];
+                comp_attrs = (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i];
+                str = comp_attrs->attrs[ATTR_TYPE];
 
                 if( !DoesStringExist( &group_types, str )
-                    && ( ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i]
-                         )->attrs[ATTR_NOTE] != wxT( "Не устанавливается" ) ) )
+                    && comp_attrs->attrs[ATTR_NOTE] != wxT( "Не устанавливается" )
+                    && comp_attrs->attrs[ATTR_NOTE] != wxT( "Not installed" ) )
+                {
                     group_types.Add( str );
+                }
 
                 if( !CompareComps( pBaseComponent, pComponent, aVariant ) )
                 {

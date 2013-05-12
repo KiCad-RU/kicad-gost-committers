@@ -64,14 +64,14 @@ void SpecPosList_ExtractPartOfDB( COMPONENT_ARRAY*          aAll_components,
     {
         pComponent = (COMPONENT*) (*aAll_components)[i];
 
-        if( (aType & PARTTYPE_ALL_DETAILS)
-            || ( (aType & PARTTYPE_ASSEMBLY_UNITS)
+        if( ( aType & PARTTYPE_ALL_DETAILS )
+            || ( ( aType & PARTTYPE_ASSEMBLY_UNITS )
                  && ( pComponent->ComponentType==wxT( "AssemblyUnit" ) ) )
-            || ( (aType & PARTTYPE_DETAILS) && ( pComponent->ComponentType==wxT( "Detail" ) ) )
+            || ( ( aType & PARTTYPE_DETAILS ) && ( pComponent->ComponentType==wxT( "Detail" ) ) )
             || ( (aType & PARTTYPE_STANDARD_DETAILS)
                  && ( pComponent->ComponentType==wxT( "StandardDetail" ) ) )
-            || ( (aType & PARTTYPE_GOODS) && ( pComponent->ComponentType==wxT( "Goods" ) ) )
-            || ( (!aType) && !( pComponent->ComponentType==wxT( "Documentation" ) )
+            || ( ( aType & PARTTYPE_GOODS ) && ( pComponent->ComponentType==wxT( "Goods" ) ) )
+            || ( ( !aType ) && !( pComponent->ComponentType==wxT( "Documentation" ) )
                  && !( pComponent->ComponentType==wxT( "AssemblyUnit" ) )
                  && !( pComponent->ComponentType==wxT( "StandardDetail" ) )
                  && !( pComponent->ComponentType==wxT( "Detail" ) )
@@ -84,7 +84,8 @@ void SpecPosList_ExtractPartOfDB( COMPONENT_ARRAY*          aAll_components,
                 componentAttrs = (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i];
 
                 if( componentAttrs->attrs[ATTR_NAME] != wxT( "" )
-                    && componentAttrs->attrs[ATTR_NOTE] != wxT( "Не устанавливается" ) )
+                    && componentAttrs->attrs[ATTR_NOTE] != wxT( "Не устанавливается" )
+                    && componentAttrs->attrs[ATTR_NOTE] != wxT( "Not installed" ) )
                 {
                     found = false;
 

@@ -31,6 +31,8 @@
 
 #include <wx/wx.h>
 
+class SCH_COMPONENT;
+
 namespace GOST_DOC_GEN {
 
 #define COMP_IN_CONST_PART      0
@@ -69,7 +71,7 @@ class COMPONENT : public wxObject
 {
 public:
     COMPONENT();
-    virtual ~COMPONENT();
+    ~COMPONENT();
 
     wxString                m_RefDes;
     wxString                m_SortingRefDes;
@@ -82,15 +84,20 @@ public:
 
     TKICAD_ATTR             m_KiCadAttrs[ATTR_QTY];
 
-    virtual void    Update();
-    virtual bool    ReadVariants();
-    virtual int     WriteVariants();
-    virtual int     GetVariant( int aVariant, TCOMPONENT_ATTRS* aVariant_attrs );
+    SCH_COMPONENT*          m_KiCadComponentPtr;
 
-protected:
-    virtual int     ReadVariantsInStr( wxString aStr, int aComp_attr, bool aInit );
-    virtual void    FormKiCadAttribute( wxString aVariant_str, wxString aValue, wxString* aDest_string );
+    void    Update();
+    bool    ReadVariants();
+    bool    WriteVariants();
+    int     GetVariant( int aVariant, TCOMPONENT_ATTRS* aVariant_attrs );
+
+private:
+    int     ReadVariantsInStr( wxString aStr, int aComp_attr, bool aInit );
+    void    FormKiCadAttribute( wxString aVariant_str, wxString aValue, wxString* aDest_string );
 };
+
+int  ConvertVariantToItemVarI( COMPONENT* aComponent, int aVariant );
+bool CompareComps( COMPONENT* aComp1, COMPONENT* aComp2, int aVariant );
 
 } // namespace GOST_DOC_GEN
 

@@ -62,7 +62,7 @@
 #include <wildcards_and_files_ext.h>
 
 #if defined(KICAD_GOST)
-#include <GOST-doc-gen/GOST_comp_lister.h>
+#include <GOST-doc-gen/GOST_comp_manager.h>
 #endif
 
 
@@ -659,8 +659,9 @@ void SCH_EDIT_FRAME::OnCreateBillOfMaterials( wxCommandEvent& )
 #if defined(KICAD_GOST)
 void SCH_EDIT_FRAME::OnGOSTTools( wxCommandEvent& )
 {
-    GOST_COMP_LISTER GOST_comp_lister;
-    GOST_comp_lister.GetList();
+    m_GOST_comp_manager = new GOST_COMP_MANAGER( this );
+
+    m_GOST_comp_manager->Show( true );
 }
 #endif
 

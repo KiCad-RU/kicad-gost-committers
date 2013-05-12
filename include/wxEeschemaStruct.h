@@ -64,7 +64,9 @@ class SCH_JUNCTION;
 class DIALOG_SCH_FIND;
 class wxFindDialogEvent;
 class wxFindReplaceData;
-
+#ifdef KICAD_GOST
+class GOST_COMP_MANAGER;
+#endif
 
 /* enum used in RotationMiroir() */
 enum COMPONENT_ORIENTATION_T {
@@ -147,7 +149,9 @@ private:
     bool                  m_forceHVLines;       ///< force H or V directions for wires, bus, line
     int                   m_defaultLabelSize;   ///< size of a new label
 
-
+#ifdef KICAD_GOST
+    GOST_COMP_MANAGER*    m_GOST_comp_manager;
+#endif
     /// An index to the last find item in the found items list #m_foundItems.
     int m_foundItemIndex;
 

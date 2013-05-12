@@ -202,7 +202,7 @@ void COMPONENT_DB::ReadVariants()
 
         if( pComponent->m_Variants_State!=COMP_IN_CONST_PART )
         {
-            for( var_i = 0; var_i<pComponent->m_comp_attr_variants.GetCount(); var_i++ )
+            for( var_i = 0; var_i < pComponent->m_comp_attr_variants.GetCount(); var_i++ )
             {
                 variant = ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[var_i] )->variant;
 
@@ -213,6 +213,22 @@ void COMPONENT_DB::ReadVariants()
     }
 
     SortCByteArray( &m_variantIndexes );
+}
+
+
+// returns true if some changes were done
+bool COMPONENT_DB::WriteVariants()
+{
+    size_t item;
+    bool some_changes_done = false;
+
+    for ( item = 0; item < m_AllComponents.GetCount(); item++ )
+    {
+        if ( ( (COMPONENT *)m_AllComponents[item] )->WriteVariants() )
+            some_changes_done = true;
+    }
+
+    return some_changes_done;
 }
 
 
@@ -235,8 +251,8 @@ void COMPONENT_DB::LoadFromKiCad()
     unsigned int index = 0;
 
     TITLE_BLOCK tb   = g_RootSheet->GetScreen()->GetTitleBlock();
-    m_designName       = tb.GetTitle();
-    m_designation      = tb.GetComment1();
+    m_designName     = tb.GetTitle();
+    m_designation    = tb.GetComment1();
     m_developerField = tb.GetComment2();
     m_verifierField  = tb.GetComment3();
     m_approverField  = tb.GetComment4();
@@ -249,6 +265,7 @@ void COMPONENT_DB::LoadFromKiCad()
         ZeroInserting( &str );
 
         pComp = new COMPONENT();
+        pComp->m_KiCadComponentPtr = component;
         pComp->m_RefDes = m_cmplist[index].GetRef();
         pComp->m_SortingRefDes = str;
 
@@ -287,6 +304,59 @@ void COMPONENT_DB::LoadFromKiCad()
     SortComponents();
 
     ReadVariants();
+}
+
+
+void COMPONENT_DB::WriteAttributeBackToKiCad( COMPONENT* aComp,
+                                              int aAttrIndex,
+                                              wxString aAttrName )
+{
+    SCH_FIELD*  pSch_field;
+
+    if( aComp->m_KiCadAttrs[aAttrIndex].attr_changed )
+    {
+        if ( ( pSch_field = aComp->m_KiCadComponentPtr->FindField( aAttrName ) ) )
+            pSch_field->SetText( aComp->m_KiCadAttrs[aAttrIndex].value_of_attr );
+        else
+        {
+            // the field does not exist then create it
+            SCH_FIELD field( wxPoint( 0, 0 ),
+                             -1, // field id is not relavant for user defined fields
+                             aComp->m_KiCadComponentPtr,
+                             aAttrName );
+
+            field.SetText( aComp->m_KiCadAttrs[aAttrIndex].value_of_attr );
+            aComp->m_KiCadComponentPtr->AddField( field );
+        }
+    }
+}
+
+
+void COMPONENT_DB::WriteBackToKiCad()
+{
+    size_t      item;
+    COMPONENT*  pComp;
+
+    WriteVariants();
+
+    for( item = 0; item < m_AllComponents.GetCount(); item++ )
+    {
+        pComp = m_AllComponents[item];
+
+        // Save Value attribute
+        if( pComp->m_KiCadAttrs[ATTR_VALUE].attr_changed )
+            pComp->m_KiCadComponentPtr->GetField( VALUE )->SetText(
+                pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr );
+
+        // Save the other attributes
+        WriteAttributeBackToKiCad( pComp, ATTR_NAME,         wxT( "Title" ) );
+        WriteAttributeBackToKiCad( pComp, ATTR_TYPE1,        wxT( "Type" ) );
+        WriteAttributeBackToKiCad( pComp, ATTR_SUBTYPE,      wxT( "SType" ) );
+        WriteAttributeBackToKiCad( pComp, ATTR_PRECISION,    wxT( "Precision" ) );
+        WriteAttributeBackToKiCad( pComp, ATTR_NOTE,         wxT( "Note" ) );
+        WriteAttributeBackToKiCad( pComp, ATTR_DESIGNATION,  wxT( "Designation" ) );
+        WriteAttributeBackToKiCad( pComp, ATTR_MANUFACTURER, wxT( "Manufacturer" ) );
+    }
 }
 
 
@@ -384,11 +454,12 @@ void COMPONENT_DB::FindSets( COMPONENT_ARRAY*   aComponents,
                              int                aVariant,
                              bool               aAppend )
 {
-    COMPONENT*      pComponent;
-    wxArrayString   letter_digit_sets;
-    size_t          i;
-    int             set_type_i, item_var_i;
-    bool            analysis_ena;
+    COMPONENT*         pComponent;
+    pTCOMPONENT_ATTRS  comp_attrs;
+    wxArrayString      letter_digit_sets;
+    size_t             i;
+    int                set_type_i, item_var_i;
+    bool               analysis_ena;
 
     if( !aAppend )
         aResult->Clear();
@@ -403,24 +474,40 @@ void COMPONENT_DB::FindSets( COMPONENT_ARRAY*   aComponents,
         {
             item_var_i = pComponent->GetVariant( aVariant, NULL );
 
-            if( pComponent->m_Variants_State==COMP_IN_CONST_PART || item_var_i==-1
-                || ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i] )->attrs[ATTR_NAME]==
-                     wxT( "" )
-                || ( PARTTYPE_SPECIFICATION
-                     && ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i] )->attrs[ATTR_NOTE]
-                     ==wxT( "Не устанавливается" ) ) )
+            if( pComponent->m_Variants_State==COMP_IN_CONST_PART || item_var_i==-1 )
                 analysis_ena = false;
+            else
+            {
+                comp_attrs = (pTCOMPONENT_ATTRS)pComponent->m_comp_attr_variants[item_var_i];
+
+                if( comp_attrs->attrs[ATTR_NAME]==wxT( "" )
+                    || ( ( aPart_type & PARTTYPE_SPECIFICATION )
+                         && ( comp_attrs->attrs[ATTR_NOTE]==wxT( "Не устанавливается" )
+                              || comp_attrs->attrs[ATTR_NOTE]==wxT( "Not installed" )
+                            ) ) )
+                {
+                    analysis_ena = false;
+                }
+            }
         }
         else
         {
-            if( pComponent->m_Variants_State!=COMP_IN_CONST_PART
-                || ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0] )->attrs[ATTR_NAME]==wxT( "" ) )
+            if( pComponent->m_Variants_State!=COMP_IN_CONST_PART )
                 analysis_ena = false;
+            else
+            {
+                comp_attrs = (pTCOMPONENT_ATTRS)pComponent->m_comp_attr_variants[0];
 
-            if( PARTTYPE_SPECIFICATION
-                && ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0] )->attrs[ATTR_NOTE]==
-                wxT( "Не устанавливается" ) )
-                analysis_ena = false;
+                if( comp_attrs->attrs[ATTR_NAME]==wxT( "" ) )
+                    analysis_ena = false;
+
+                if( ( aPart_type & PARTTYPE_SPECIFICATION )
+                    && ( comp_attrs->attrs[ATTR_NOTE]==wxT( "Не устанавливается" )
+                         || comp_attrs->attrs[ATTR_NOTE]==wxT( "Not installed" ) ) )
+                {
+                    analysis_ena = false;
+                }
+            }
         }
 
         if( analysis_ena )
@@ -450,11 +537,12 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
                                               int               aVariant,
                                               wxString          aSet_prefix )
 {
-    size_t          i;
-    int             item_var_i;
-    COMPONENT*      pComponent;
-    wxArrayString   letter_digit_sets;
-    bool            add_ena;
+    size_t             i;
+    int                item_var_i;
+    COMPONENT*         pComponent;
+    pTCOMPONENT_ATTRS  comp_attrs;
+    wxArrayString      letter_digit_sets;
+    bool               add_ena;
 
     aResult->Clear();
 
@@ -469,24 +557,40 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
         {
             item_var_i = pComponent->GetVariant( aVariant, NULL );
 
-            if( pComponent->m_Variants_State==COMP_IN_CONST_PART || item_var_i==-1
-                || ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i] )->attrs[ATTR_NAME]==
-                     wxT( "" )
-                || ( (aPart_type & PARTTYPE_SPECIFICATION)
-                     && ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i] )->attrs[ATTR_NOTE]
-                     ==wxT( "Не устанавливается" ) ) )
+            if( pComponent->m_Variants_State==COMP_IN_CONST_PART || item_var_i==-1 )
                 add_ena = false;
+            else
+            {
+                comp_attrs = (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i];
+
+                if( comp_attrs->attrs[ATTR_NAME]==wxT( "" )
+                    || ( (aPart_type & PARTTYPE_SPECIFICATION)
+                         && ( comp_attrs->attrs[ATTR_NOTE]==wxT( "Не устанавливается" )
+                              || comp_attrs->attrs[ATTR_NOTE]==wxT( "Not installed" )
+                            ) ) )
+                {
+                    add_ena = false;
+                }
+            }
         }
         else
         {
-            if( pComponent->m_Variants_State!=COMP_IN_CONST_PART
-                || ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0] )->attrs[ATTR_NAME]==wxT( "" ) )
+            if( pComponent->m_Variants_State!=COMP_IN_CONST_PART )
                 add_ena = false;
+            else
+            {
+                comp_attrs = (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0];
 
-            if( (aPart_type & PARTTYPE_SPECIFICATION)
-                && ( (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[0] )->attrs[ATTR_NOTE]==
-                wxT( "Не устанавливается" ) )
-                add_ena = false;
+                if( comp_attrs->attrs[ATTR_NAME]==wxT( "" ) )
+                    add_ena = false;
+
+                if( (aPart_type & PARTTYPE_SPECIFICATION)
+                    && ( comp_attrs->attrs[ATTR_NOTE]==wxT( "Не устанавливается" )
+                         || comp_attrs->attrs[ATTR_NOTE]==wxT( "Not installed" ) ) )
+                {
+                    add_ena = false;
+                }
+            }
         }
 
         if( aPart_type & PARTTYPE_SPECIFICATION )

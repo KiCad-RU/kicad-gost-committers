@@ -74,33 +74,37 @@ public:
 
     INT_ARRAY       m_variantIndexes;
 
-    virtual         ~COMPONENT_DB();
-    virtual void    LoadFromKiCad();
-    virtual void    SortComponents();
-    virtual void    AddNewVariant( int aVariant );
-    virtual void    FormRefDes( COMPONENT_ARRAY*    aTitle_group_components,
+                    ~COMPONENT_DB();
+    void            LoadFromKiCad();
+    void            WriteBackToKiCad();
+    void            SortComponents();
+    void            AddNewVariant( int aVariant );
+    void            FormRefDes( COMPONENT_ARRAY*    aTitle_group_components,
                                 int                 aStart_item,
                                 int                 aEnd_item,
                                 wxString*           aResult );
-    virtual int     FindSetType( STRING_2D_ARRAY* aAll_set_types_array, wxString aIn_setrefdes );
-    virtual void    FindSets( COMPONENT_ARRAY*  aComponents,
+    int             FindSetType( STRING_2D_ARRAY* aAll_set_types_array, wxString aIn_setrefdes );
+    void            FindSets( COMPONENT_ARRAY*  aComponents,
                               STRING_2D_ARRAY*  aResult,
                               int               aPart_type,
                               int               aVariant,
                               bool              aAppend );
-    virtual void    ExtractPartOfComponentsDB( COMPONENT_ARRAY* aResult,
+    void            ExtractPartOfComponentsDB( COMPONENT_ARRAY* aResult,
                                                int              aPart_type,
                                                int              aVariant,
                                                wxString         aSet_prefix );
-    virtual void    GenerateComponentIndexDoc();
-    virtual void    GenerateSpecificationDoc();
-
-protected:
-    virtual void    ZeroInserting( wxString* aStr );
-    virtual bool    FindVariant( int aVariant );
-    virtual void    ReadVariants();
+    void            GenerateComponentIndexDoc();
+    void            GenerateSpecificationDoc();
 
 private:
+    void            ZeroInserting( wxString* aStr );
+    bool            FindVariant( int aVariant );
+    void            ReadVariants();
+    bool            WriteVariants();
+    void            WriteAttributeBackToKiCad( COMPONENT* aComp,
+                                               int aAttrIndex,
+                                               wxString aAttrName );
+
     SCH_REFERENCE_LIST m_cmplist;              // a flat list of components in the full hierarchy
 };
 

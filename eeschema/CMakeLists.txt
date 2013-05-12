@@ -4,9 +4,14 @@ if(KICAD_GOST AND USE_OPENOFFICE_SDK)
     find_package(OpenOffice REQUIRED)
 endif()
 
+if(KICAD_GOST)
+    set(GOST_DOC_GEN_INCLUDE_DIR ./GOST-doc-gen)
+endif()
+
 include_directories(BEFORE ${INC_BEFORE})
 include_directories(
     ./dialogs
+    ${GOST_DOC_GEN_INCLUDE_DIR}
     ../common
     ../common/dialogs
     ${Boost_INCLUDE_DIR}

@@ -91,11 +91,12 @@ set(GOST_DOC_GEN_SRCS
     common_funcs.cpp
     component.cpp
     component_db.cpp
+    dialogs/frame_GOST_doc_gen_base.cpp
     dictionaries.cpp
     doc_common.cpp
     doc_component_index.cpp
     doc_specification.cpp
-    GOST_comp_lister.cpp
+    GOST_comp_manager.cpp
     ${OO_PYTHON_UNO_IFACE_SRCS}
     ${OO_SDK_SRCS}
     ${RPC_DOC_SERVER_SRCS}

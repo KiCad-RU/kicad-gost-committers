@@ -43,6 +43,7 @@ COMPONENT::COMPONENT()
     ExcludeFromCompIndex = false;
     ComponentType = wxT( "" );
     fmt = wxT( "" );
+    m_KiCadComponentPtr = NULL;
 }
 
 
@@ -337,9 +338,8 @@ void COMPONENT::FormKiCadAttribute( wxString aVariant_str, wxString aValue, wxSt
 }
 
 
-// returns 1 if some changes were done
-// returns 0 if no changes were done
-int COMPONENT::WriteVariants()
+// returns true if some changes were done
+bool COMPONENT::WriteVariants()
 {
     TCOMPONENT_ATTRS component_attrs;
     wxString         variant_str;
@@ -428,7 +428,37 @@ int COMPONENT::WriteVariants()
             some_changes_done = true;
         }
 
-    return some_changes_done ? 1 : 0;
+    return some_changes_done;
+}
+
+
+int ConvertVariantToItemVarI( COMPONENT* aComponent, int aVariant )
+{
+    if( aVariant==-1 )
+        return 0;
+    else
+        return aComponent->GetVariant( aVariant, NULL );
+}
+
+
+// returns true if both components have identical attributes except ref des
+bool CompareComps( COMPONENT* aComp1, COMPONENT* aComp2, int aVariant )
+{
+    int comp1_var_i = ConvertVariantToItemVarI( aComp1, aVariant );
+    int comp2_var_i = ConvertVariantToItemVarI( aComp2, aVariant );
+
+    for( int i = 0; i < ATTR_QTY; i++ )
+    {
+        // skip comparison of ATTR_TYPE1
+        if( i==ATTR_TYPE1)
+            continue;
+
+        if( ( (pTCOMPONENT_ATTRS) aComp1->m_comp_attr_variants[comp1_var_i] )->attrs[i]!=
+            ( (pTCOMPONENT_ATTRS) aComp2->m_comp_attr_variants[comp2_var_i] )->attrs[i] )
+            return false;
+    }
+
+    return true;
 }
 
 } // namespace GOST_DOC_GEN
