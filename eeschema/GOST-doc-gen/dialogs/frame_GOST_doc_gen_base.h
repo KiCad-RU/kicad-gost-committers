@@ -69,6 +69,7 @@ class FRAME_GOST_DOC_GEN_BASE : public wxFrame
 		wxListCtrl* m_listCtrl;
 		
 		// Virtual event handlers, overide them in your derived class
+		virtual void OnActivate( wxActivateEvent& event ) { event.Skip(); }
 		virtual void OnCloseWindow( wxCloseEvent& event ) { event.Skip(); }
 		virtual void OnSize( wxSizeEvent& event ) { event.Skip(); }
 		virtual void OnFileGenerateComponentIndex( wxCommandEvent& event ) { event.Skip(); }
@@ -93,7 +94,7 @@ class FRAME_GOST_DOC_GEN_BASE : public wxFrame
 	
 	public:
 		
-		FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("GOST Component Manager"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxDEFAULT_FRAME_STYLE|wxFRAME_FLOAT_ON_PARENT|wxMAXIMIZE|wxTAB_TRAVERSAL );
+		FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("GOST Component Manager"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxDEFAULT_FRAME_STYLE|wxMAXIMIZE|wxTAB_TRAVERSAL );
 		~FRAME_GOST_DOC_GEN_BASE();
 	
 };

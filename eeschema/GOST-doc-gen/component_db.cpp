@@ -332,12 +332,12 @@ void COMPONENT_DB::WriteAttributeBackToKiCad( COMPONENT* aComp,
 }
 
 
-void COMPONENT_DB::WriteBackToKiCad()
+bool COMPONENT_DB::WriteBackToKiCad()
 {
     size_t      item;
     COMPONENT*  pComp;
 
-    WriteVariants();
+    bool modified = WriteVariants();
 
     for( item = 0; item < m_AllComponents.GetCount(); item++ )
     {
@@ -357,6 +357,8 @@ void COMPONENT_DB::WriteBackToKiCad()
         WriteAttributeBackToKiCad( pComp, ATTR_DESIGNATION,  wxT( "Designation" ) );
         WriteAttributeBackToKiCad( pComp, ATTR_MANUFACTURER, wxT( "Manufacturer" ) );
     }
+
+    return modified;
 }
 
 

@@ -34,6 +34,7 @@ using namespace GOST_DOC_GEN;
 GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
     FRAME_GOST_DOC_GEN_BASE( parent )
 {
+    m_schEditFrame = (SCH_EDIT_FRAME *)parent;
     m_onEditChangeComboBoxLock = false;
     m_onItemChangedCheckListCtrlLock = false;
 
@@ -243,7 +244,7 @@ void GOST_COMP_MANAGER::OnItemChangedCheckListCtrl( wxCommandEvent& event )
     variant = m_componentDB->m_variantIndexes[sel_variant_ind];
 
     sel_list_item = m_listCtrl->GetNextItem( -1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED );
-    while( sel_list_item > 0 )
+    while( sel_list_item >= 0 )
     {
         sel_DBitem = m_listCtrl->GetItemData( sel_list_item );
 
@@ -679,7 +680,7 @@ void GOST_COMP_MANAGER::EditAttribute( int aComp_attr, wxString aStr )
     }
 
     list_str_ind = m_listCtrl->GetNextItem( -1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED );
-    while( list_str_ind > 0 )
+    while( list_str_ind >= 0 )
     {
         item = m_listCtrl->GetItemData( list_str_ind );
 
@@ -833,9 +834,41 @@ void GOST_COMP_MANAGER::OnSettingsAddaNewVariant( wxCommandEvent& event )
 }
 
 
-void GOST_COMP_MANAGER::OnCloseWindow(wxCloseEvent& event)
+void GOST_COMP_MANAGER::OnActivate( wxActivateEvent& event )
 {
-    m_componentDB->WriteBackToKiCad();
+    if( event.GetActive() )
+    {
+        // focus acquired
+        m_componentDB = new COMPONENT_DB();
+
+        m_componentDB->LoadFromKiCad();
+
+        FormVariantList();
+        DisableComboBoxes();
+
+        wxCommandEvent dummyEvent;
+        OnRadioFullList( dummyEvent );
+    }
+    else
+    {
+        // focus lost
+        if( m_componentDB->WriteBackToKiCad() )
+            // let eeschema know to save changes on closing it
+            m_schEditFrame->GetScreen()->SetModify();
+
+        delete m_componentDB;
+        m_componentDB = NULL;
+    }
+
+    event.Skip();
+}
+
+
+void GOST_COMP_MANAGER::OnCloseWindow( wxCloseEvent& event )
+{
+    if( m_componentDB->WriteBackToKiCad() )
+        // let eeschema know to save changes on closing it
+        m_schEditFrame->GetScreen()->SetModify();
 
     Destroy();
 }

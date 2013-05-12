@@ -38,7 +38,7 @@
             <property name="name">FRAME_GOST_DOC_GEN_BASE</property>
             <property name="pos"></property>
             <property name="size">-1,-1</property>
-            <property name="style">wxDEFAULT_FRAME_STYLE|wxFRAME_FLOAT_ON_PARENT|wxMAXIMIZE</property>
+            <property name="style">wxDEFAULT_FRAME_STYLE|wxMAXIMIZE</property>
             <property name="subclass"></property>
             <property name="title">GOST Component Manager</property>
             <property name="tooltip"></property>
@@ -50,7 +50,7 @@
             <property name="window_name"></property>
             <property name="window_style">wxTAB_TRAVERSAL</property>
             <property name="xrc_skip_sizer">1</property>
-            <event name="OnActivate"></event>
+            <event name="OnActivate">OnActivate</event>
             <event name="OnActivateApp"></event>
             <event name="OnChar"></event>
             <event name="OnClose">OnCloseWindow</event>

@@ -190,6 +190,7 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 	this->Centre( wxBOTH );
 	
 	// Connect Events
+	this->Connect( wxEVT_ACTIVATE, wxActivateEventHandler( FRAME_GOST_DOC_GEN_BASE::OnActivate ) );
 	this->Connect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( FRAME_GOST_DOC_GEN_BASE::OnCloseWindow ) );
 	this->Connect( wxEVT_SIZE, wxSizeEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSize ) );
 	this->Connect( m_menuFileGenerateComponentIndex->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnFileGenerateComponentIndex ) );
@@ -215,6 +216,7 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 FRAME_GOST_DOC_GEN_BASE::~FRAME_GOST_DOC_GEN_BASE()
 {
 	// Disconnect Events
+	this->Disconnect( wxEVT_ACTIVATE, wxActivateEventHandler( FRAME_GOST_DOC_GEN_BASE::OnActivate ) );
 	this->Disconnect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( FRAME_GOST_DOC_GEN_BASE::OnCloseWindow ) );
 	this->Disconnect( wxEVT_SIZE, wxSizeEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSize ) );
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnFileGenerateComponentIndex ) );

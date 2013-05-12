@@ -76,7 +76,7 @@ public:
 
                     ~COMPONENT_DB();
     void            LoadFromKiCad();
-    void            WriteBackToKiCad();
+    bool            WriteBackToKiCad();
     void            SortComponents();
     void            AddNewVariant( int aVariant );
     void            FormRefDes( COMPONENT_ARRAY*    aTitle_group_components,

@@ -29,6 +29,7 @@
 #define _GOST_COMP_MANAGER_H_
 
 #include <netlist.h>
+#include <wxEeschemaStruct.h>
 #include <dialogs/frame_GOST_doc_gen_base.h>
 
 #define TABLE_REFDES_COL       0
@@ -43,6 +44,7 @@ namespace GOST_DOC_GEN {
 class GOST_COMP_MANAGER : public FRAME_GOST_DOC_GEN_BASE
 {
 private:
+    SCH_EDIT_FRAME* m_schEditFrame;
     GOST_DOC_GEN::COMPONENT_DB* m_componentDB;
     bool m_onEditChangeComboBoxLock;
     bool m_onItemChangedCheckListCtrlLock;
@@ -72,6 +74,7 @@ private:
     void OnFileGenerateComponentIndex( wxCommandEvent& event );
     void OnFileGenerateSpecification( wxCommandEvent& event );
 
+    void OnActivate( wxActivateEvent& event );
     void OnCloseWindow( wxCloseEvent& event );
     void OnSize( wxSizeEvent & event );
 
