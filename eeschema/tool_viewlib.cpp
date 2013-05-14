@@ -173,7 +173,11 @@ void LIB_VIEW_FRAME::ReCreateHToolbar()
     for( ii = 0; ii < parts_count; ii++ )
     {
         wxString msg;
+#if defined(KICAD_GOST)
+        msg.Printf( _( "Part %d" ), ii + 1 );
+#else
         msg.Printf( _( "Part %c" ), 'A' + ii );
+#endif
         SelpartBox->Append( msg );
     }
 

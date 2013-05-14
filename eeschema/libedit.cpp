@@ -338,7 +338,7 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
     {
         fn = wxFileName( m_library->GetFullFileName() );
 
-        msg.Printf( _( "Modify library file <%s> ?" ), 
+        msg.Printf( _( "Modify library file <%s> ?" ),
                     GetChars( fn.GetFullPath() ) );
 
         if( !IsOK( this, msg ) )
@@ -386,7 +386,7 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
     catch( ... /* IO_ERROR ioe */ )
     {
         libFileName.MakeAbsolute();
-        msg.Printf( _( "Failed to create component library file <%s>" ), 
+        msg.Printf( _( "Failed to create component library file <%s>" ),
                     GetChars( libFileName.GetFullPath() ) );
         DisplayError( this, msg );
         return false;
@@ -468,8 +468,12 @@ void LIB_EDIT_FRAME::DisplayCmpDoc()
 
     AppendMsgPanel( _( "Alias" ), msg, RED, 8 );
 
+#if defined(KICAD_GOST)
+    msg.Printf( wxT( "%d" ) , m_unit );
+#else
     static wxChar UnitLetter[] = wxT( "?ABCDEFGHIJKLMNOPQRSTUVWXYZ" );
     msg = UnitLetter[m_unit];
+#endif
 
     AppendMsgPanel( _( "Unit" ), msg, BROWN, 8 );
 

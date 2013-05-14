@@ -662,7 +662,11 @@ void LIB_EDIT_FRAME::OnCheckComponent( wxCommandEvent& event )
 
         if( m_component->GetPartCount() > 1 )
         {
+#if defined(KICAD_GOST)
+            aux_msg.Printf( _( " in part %d" ), curr_pin->GetUnit() );
+#else
             aux_msg.Printf( _( " in part %c" ), 'A' + curr_pin->GetUnit() );
+#endif
             msg += aux_msg;
         }
 
@@ -701,7 +705,11 @@ void LIB_EDIT_FRAME::OnCheckComponent( wxCommandEvent& event )
 
         if( m_component->GetPartCount() > 1 )
         {
+#if defined(KICAD_GOST)
+            aux_msg.Printf( _( " in part %d" ), Pin->GetUnit() );
+#else
             aux_msg.Printf( _( " in part %c" ), 'A' + Pin->GetUnit() );
+#endif
             msg += aux_msg;
         }
 

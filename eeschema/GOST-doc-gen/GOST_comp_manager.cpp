@@ -132,7 +132,7 @@ void GOST_COMP_MANAGER::FormCheckListBoxContent( int aDBitem )
                 str += wxT( " " ) + pVariant_attrs->attrs[ATTR_VALUE];
                 str += wxT( " " ) + pVariant_attrs->attrs[ATTR_PRECISION];
                 str += wxT( " " ) + pVariant_attrs->attrs[ATTR_DESIGNATION];
-                str += " " + pVariant_attrs->attrs[ATTR_MANUFACTURER];
+                str += wxT( " " ) + pVariant_attrs->attrs[ATTR_MANUFACTURER];
 
                 if( pVariant_attrs->attrs[ATTR_NOTE] != wxT( "" ) )
                     str += _( " note: " ) + pVariant_attrs->attrs[ATTR_NOTE];
