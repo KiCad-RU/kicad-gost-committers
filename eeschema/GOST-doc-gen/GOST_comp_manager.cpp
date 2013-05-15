@@ -836,9 +836,11 @@ void GOST_COMP_MANAGER::OnSettingsAddaNewVariant( wxCommandEvent& event )
 
 void GOST_COMP_MANAGER::OnActivate( wxActivateEvent& event )
 {
-    if( event.GetActive() )
+    // does not work
+
+    /*if( event.GetActive() )
     {
-        // focus acquired
+        // focus reacquired
         m_componentDB = new COMPONENT_DB();
 
         m_componentDB->LoadFromKiCad();
@@ -855,10 +857,11 @@ void GOST_COMP_MANAGER::OnActivate( wxActivateEvent& event )
         if( m_componentDB->WriteBackToKiCad() )
             // let eeschema know to save changes on closing it
             m_schEditFrame->GetScreen()->SetModify();
+        }
 
         delete m_componentDB;
         m_componentDB = NULL;
-    }
+    }*/
 
     event.Skip();
 }
