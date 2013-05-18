@@ -751,6 +751,7 @@ private:
     void OnCreateBillOfMaterials( wxCommandEvent& event );
 #if defined(KICAD_GOST)
     void OnGOSTTools( wxCommandEvent& );
+    void OnPCad2KiCadSch( wxCommandEvent& );
 #endif
     void OnFindItems( wxCommandEvent& event );
     void OnFindDialogClose( wxFindDialogEvent& event );

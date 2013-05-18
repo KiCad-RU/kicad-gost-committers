@@ -56,6 +56,7 @@
 
 #if defined(KICAD_GOST)
 #define HELP_GOST_TOOLS _( "GOST tools" )
+#define HELP_PCAD2KICADSCH _( "pcad2kicadsch converter" )
 #endif
 
 #define HELP_IMPORT_FOOTPRINTS \

@@ -224,6 +224,7 @@ enum main_id
     ID_GET_TOOLS,
 #if defined(KICAD_GOST)
     ID_GOST_TOOLS,
+    ID_PCAD2KICADSCH,
 #endif
     ID_FIND_ITEMS,
 

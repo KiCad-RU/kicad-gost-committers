@@ -501,6 +501,13 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                  _( "GOST Tools" ),
                  HELP_GOST_TOOLS,
                  KiBitmap( bom_xpm ) );
+
+    // Run pcad2kicadsch converter
+    AddMenuItem( toolsMenu,
+                 ID_PCAD2KICADSCH,
+                 _( "Run pcad2kicadsch converter" ),
+                 HELP_PCAD2KICADSCH,
+                 KiBitmap( import_xpm ) );
 #endif
 
     // Separator

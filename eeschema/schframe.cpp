@@ -124,6 +124,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( ID_GET_TOOLS, SCH_EDIT_FRAME::OnCreateBillOfMaterials )
 #if defined(KICAD_GOST)
     EVT_TOOL( ID_GOST_TOOLS, SCH_EDIT_FRAME::OnGOSTTools )
+    EVT_TOOL( ID_PCAD2KICADSCH, SCH_EDIT_FRAME::OnPCad2KiCadSch )
 #endif
     EVT_TOOL( ID_FIND_ITEMS, SCH_EDIT_FRAME::OnFindItems )
     EVT_TOOL( wxID_REPLACE, SCH_EDIT_FRAME::OnFindItems )
@@ -662,6 +663,11 @@ void SCH_EDIT_FRAME::OnGOSTTools( wxCommandEvent& )
     m_GOST_comp_manager = new GOST_COMP_MANAGER( this );
 
     m_GOST_comp_manager->Show( true );
+}
+
+void SCH_EDIT_FRAME::OnPCad2KiCadSch( wxCommandEvent& )
+{
+    ExecuteFile( this, PCAD2KICADSCH_EXE );
 }
 #endif
 

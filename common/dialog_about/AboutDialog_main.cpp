@@ -152,6 +152,9 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
     description << wxT( "<li>" ) <<
     HtmlHyperlink( wxT( "http://www.kicadlib.org" ),
                   _( "Repository with additional component libraries" ) ) << wxT( "</li>" );
+    description << wxT( "<li>" ) <<
+    HtmlHyperlink( wxT( "http://electronix.ru/forum/index.php?showforum=210" ),
+                  _( "The Internet forum dedicated to KiCad Russian support, including GOST support" ) ) << wxT( "</li>" );
     description << wxT( "</ul>" );
 
     description << wxT( "</p>" );

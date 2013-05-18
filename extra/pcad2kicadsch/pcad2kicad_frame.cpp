@@ -166,7 +166,7 @@ void PCAD2KICAD_FRAME::OnAbout( wxCommandEvent& event )
     info.SetCopyright( copyright );
     info.SetLicense( license );
 
-    info.SetWebSite( wxT( "https://code.launchpad.net/~pcad2kicad-committers/kicad/pcad2kicad" ) );
+    info.SetWebSite( wxT( "https://code.launchpad.net/~kicad-gost-committers/kicad/kicad" ) );
 
     wxAboutBox(info);
 }
