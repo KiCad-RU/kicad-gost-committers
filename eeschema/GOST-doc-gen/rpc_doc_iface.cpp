@@ -55,10 +55,13 @@ bool RPC_DOC_IFACE::Connect()
     wxString connection_str;
     wxString pythonExecutable;
 
+    wxString OOInstallationPath = FindOOInstallationPath();
+
 #if defined (__WXMSW__)
-    wxString windowsOOInstallationPath = FindWindowsOOInstallationPath();
-    connection_str = windowsOOInstallationPath + wxT( "soffice.exe" );
-    pythonExecutable = windowsOOInstallationPath + wxT( "python.exe" );
+    connection_str = OOInstallationPath + wxT( "soffice.exe" );
+
+    // use the embedded-to-OpenOffice/LibreOffice Python
+    pythonExecutable = OOInstallationPath + wxT( "python.exe" );
     if ( !wxFileExists( pythonExecutable ) )
     {
         wxMessageBox( wxT( "Unable to find OpenOffice or LibreOffice embedded Python" ),
@@ -67,8 +70,28 @@ bool RPC_DOC_IFACE::Connect()
         return false;
     }
 #else
-    connection_str = wxT( "soffice" );
-    pythonExecutable = wxT( "python" );
+
+    if( OOInstallationPath != wxEmptyString )
+    {
+        connection_str = OOInstallationPath + wxT( "soffice" );
+
+        // use the embedded-to-OpenOffice/LibreOffice Python
+        pythonExecutable = OOInstallationPath + wxT( "python" );
+        if ( !wxFileExists( pythonExecutable ) )
+        {
+            wxMessageBox( wxT( "Unable to find OpenOffice or LibreOffice embedded Python" ),
+                          wxEmptyString,
+                          wxOK | wxICON_ERROR );
+            return false;
+        }
+    }
+    else
+    {
+        connection_str = wxT( "soffice" );
+
+        // use the system Python
+        pythonExecutable = wxT( "python" );
+    }
 #endif
 
 #if defined(__WXMSW__)

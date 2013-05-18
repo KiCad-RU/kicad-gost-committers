@@ -340,33 +340,39 @@ wxString AddUrlPrefix( wxString aFileName )
 #endif
 }
 
-#ifdef __WXMSW__
-wxString FindWindowsOOInstallationPath()
+wxString FindOOInstallationPath()
 {
     wxString fullPath;
+    char ver_str[2] = { 0, 0 };
+
+#ifdef __WXMSW__
+    char letter_str[2] = { 0, 0 };
     wxString sofficeExe( wxT( "soffice.exe" ) );
 
     for( char letter = 'C'; letter <= 'H'; letter++ )
     {
         for( char ver = '2'; ver <= '4'; ver++ )
         {
-            fullPath = wxString( letter ) + wxT( ":\\Program Files (x86)\\OpenOffice.org " ) +
-                       wxString( ver ) + wxT( "\\program\\" );
+            letter_str[0] = letter;
+            ver_str[0] = ver;
+
+            fullPath = wxString( letter_str ) + wxT( ":\\Program Files (x86)\\OpenOffice.org " ) +
+                       wxString( ver_str ) + wxT( "\\program\\" );
             if( wxFileExists( fullPath + sofficeExe ) )
                 return fullPath;
 
-            fullPath = wxString( letter ) + wxT( ":\\Program Files\\OpenOffice.org " ) +
-                       wxString( ver ) + wxT( "\\program\\" );
+            fullPath = wxString( letter_str ) + wxT( ":\\Program Files\\OpenOffice.org " ) +
+                       wxString( ver_str ) + wxT( "\\program\\" );
             if( wxFileExists( fullPath + sofficeExe ) )
                 return fullPath;
 
-            fullPath = wxString( letter ) + wxT( ":\\Program Files (x86)\\LibreOffice " ) +
-                       wxString( ver ) + wxT( ".0\\program\\" );
+            fullPath = wxString( letter_str ) + wxT( ":\\Program Files (x86)\\LibreOffice " ) +
+                       wxString( ver_str ) + wxT( ".0\\program\\" );
             if( wxFileExists( fullPath + sofficeExe ) )
                 return fullPath;
 
-            fullPath = wxString( letter ) + wxT( ":\\Program Files\\LibreOffice " ) +
-                       wxString( ver ) + wxT( ".0\\program\\" );
+            fullPath = wxString( letter_str ) + wxT( ":\\Program Files\\LibreOffice " ) +
+                       wxString( ver_str ) + wxT( ".0\\program\\" );
             if( wxFileExists( fullPath + sofficeExe ) )
                 return fullPath;
         }
@@ -376,8 +382,26 @@ wxString FindWindowsOOInstallationPath()
                   wxEmptyString,
                   wxOK | wxICON_ERROR );
 
+#else
+    wxString sofficeExe( wxT( "soffice" ) );
+
+    for( char ver = '2'; ver <= '4'; ver++ )
+    {
+        ver_str[0] = ver;
+
+        fullPath = wxT( "/opt/openoffice.org" )
+                 + wxString::FromUTF8( ver_str ) + wxT( "/program/" );
+        if( wxFileExists( fullPath + sofficeExe ) )
+            return fullPath;
+
+        fullPath = wxT( "/opt/libreoffice" )
+                 + wxString::FromUTF8( ver_str ) + wxT( ".0/program/" );
+        if( wxFileExists( fullPath + sofficeExe ) )
+            return fullPath;
+    }
+#endif  // __WXMSW__
+
     return wxEmptyString;
 }
-#endif  // __WXMSW__
 
 } // namespace GOST_DOC_GEN
