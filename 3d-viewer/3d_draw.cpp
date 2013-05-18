@@ -182,9 +182,9 @@ void EDA_3D_CANVAS::BuildBoard3DView()
         if( !g_Parm_3D_Visu.m_BoardSettings->IsLayerVisible( layer ) )
             continue;
 
-        bufferPolys.clear();
-        bufferZonesPolys.clear();
-        currLayerHoles.clear();
+        bufferPolys.RemoveAllContours();
+        bufferZonesPolys.RemoveAllContours();
+        currLayerHoles.RemoveAllContours();
 
         // Draw tracks:
         for( TRACK* track = pcb->m_Track; track != NULL; track = track->Next() )
@@ -308,7 +308,7 @@ void EDA_3D_CANVAS::BuildBoard3DView()
         SetGLColor( color );
         glNormal3f( 0.0, 0.0, Get3DLayer_Z_Orientation( layer ) );
 
-        bufferPolys.clear();
+        bufferPolys.RemoveAllContours();
         bufferPolys.ImportFrom( currLayerPolyset );
         Draw3D_SolidHorizontalPolyPolygons( bufferPolys, zpos,
                                             thickness,
@@ -346,7 +346,7 @@ void EDA_3D_CANVAS::BuildBoard3DView()
         if( !g_Parm_3D_Visu.m_BoardSettings->IsLayerVisible( layer ) )
             continue;
 
-        bufferPolys.clear();
+        bufferPolys.RemoveAllContours();
 
         for( BOARD_ITEM* item = pcb->m_Drawings; item; item = item->Next() )
         {
@@ -429,7 +429,7 @@ void EDA_3D_CANVAS::BuildBoard3DView()
         SetGLColor( color );
         glNormal3f( 0.0, 0.0, Get3DLayer_Z_Orientation( layer ) );
 
-        bufferPolys.clear();
+        bufferPolys.RemoveAllContours();
         bufferPolys.ImportFrom( currLayerPolyset );
         Draw3D_SolidHorizontalPolyPolygons( bufferPolys, zpos,
                                             thickness, g_Parm_3D_Visu.m_BiuTo3Dunits );
@@ -480,7 +480,7 @@ GLuint EDA_3D_CANVAS::CreateDrawGL_List()
                   0.0F );
 
     // Draw Board:
-// For testing purpose only display calculation time to generate 3D data
+// For testing purpose only, display calculation time to generate 3D data
 // #define PRINT_CALCULATION_TIME
 
 #ifdef PRINT_CALCULATION_TIME
@@ -768,20 +768,34 @@ bool Is3DLayerEnabled( LAYER_NUM aLayer )
     // check the flags
     switch( aLayer )
     {
-    case DRAW_N:
-        flg = g_Parm_3D_Visu.FL_DRAWINGS;
+    case ADHESIVE_N_BACK:
+    case ADHESIVE_N_FRONT:
+        flg = g_Parm_3D_Visu.FL_ADHESIVE;
         break;
 
+    case SOLDERPASTE_N_BACK:
+    case SOLDERPASTE_N_FRONT:
+        flg = g_Parm_3D_Visu.FL_SOLDERPASTE;
+        break;
+
+    case SILKSCREEN_N_BACK:
+    case SILKSCREEN_N_FRONT:
+        flg = g_Parm_3D_Visu.FL_SILKSCREEN;
+        break;
+
+    case SOLDERMASK_N_BACK:
+    case SOLDERMASK_N_FRONT:
+        flg = g_Parm_3D_Visu.FL_SOLDERMASK;
+        break;
+
+    case DRAW_N:
     case COMMENT_N:
         flg = g_Parm_3D_Visu.FL_COMMENTS;
         break;
 
     case ECO1_N:
-        flg = g_Parm_3D_Visu.FL_ECO1;
-        break;
-
     case ECO2_N:
-        flg = g_Parm_3D_Visu.FL_ECO2;
+        flg = g_Parm_3D_Visu.FL_ECO;
         break;
 
     default:
