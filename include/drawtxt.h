@@ -10,6 +10,20 @@
 #include <base_struct.h>
 #include <eda_text.h>               // EDA_TEXT_HJUSTIFY_T and EDA_TEXT_VJUSTIFY_T
 
+/* Minimum dimension in pixel for drawing/no drawing a text
+ * used in Pcbnew to decide to draw (or not) some texts
+ * ( like net names on pads/tracks )
+ * When a text height is smaller than MIN_TEXT_SIZE,
+ * it is not drawn by Pcbnew
+ */
+#define MIN_TEXT_SIZE   5
+
+/* Absolute minimum dimension in pixel to draw a text as text or a line
+ * When a text height is smaller than MIN_DRAWABLE_TEXT_SIZE,
+ * it is drawn, but like a line by the draw text function
+*/
+#define MIN_DRAWABLE_TEXT_SIZE 3
+
 class EDA_DRAW_PANEL;
 class PLOTTER;
 
@@ -48,6 +62,12 @@ int ReturnGraphicTextWidth( const wxString& aText, int size_h, bool italic, bool
 int NegableTextLength( const wxString& aText );
 
 /**
+ * Helper function for texts with over bar, can be used as strut value
+ * for multiline text (add interline spacing)
+ */
+int OverbarPositionY( int size_v );
+
+/**
  * Function DrawGraphicText
  * Draw a graphic text (like module texts)
  *  @param aPanel = the current DrawPanel. NULL if draw within a 3D GL Canvas
@@ -74,7 +94,7 @@ void DrawGraphicText( EDA_DRAW_PANEL * aPanel,
                       const wxPoint &aPos,
                       enum EDA_COLOR_T aColor,
                       const wxString &aText,
-                      int aOrient,
+                      double aOrient,
                       const wxSize &aSize,
                       enum EDA_TEXT_HJUSTIFY_T aH_justify,
                       enum EDA_TEXT_VJUSTIFY_T aV_justify,
@@ -84,5 +104,28 @@ void DrawGraphicText( EDA_DRAW_PANEL * aPanel,
                       void (*aCallback)( int x0, int y0, int xf, int yf ) = NULL,
                       PLOTTER * aPlotter = NULL );
 
+
+/**
+ * Draw graphic text with a border, so that it can be read on different
+ * backgrounds. See DrawGraphicText for most of the parameters.
+ * If aBgColor is a dark color text is drawn in aColor2 with aColor1
+ * border; otherwise colors are swapped.
+ */
+void DrawGraphicHaloText( EDA_DRAW_PANEL * aPanel,
+                          wxDC * aDC,
+                          const wxPoint &aPos,
+                          enum EDA_COLOR_T aBgColor,
+                          enum EDA_COLOR_T aColor1,
+                          enum EDA_COLOR_T aColor2,
+                          const wxString &aText,
+                          double aOrient,
+                          const wxSize &aSize,
+                          enum EDA_TEXT_HJUSTIFY_T aH_justify,
+                          enum EDA_TEXT_VJUSTIFY_T aV_justify,
+                          int aWidth,
+                          bool aItalic,
+                          bool aBold,
+                          void (*aCallback)( int x0, int y0, int xf, int yf ) = NULL,
+                          PLOTTER * aPlotter = NULL );
 
 #endif /* __INCLUDE__DRAWTXT_H__ */

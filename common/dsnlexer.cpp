@@ -2,7 +2,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2008 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2007-2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2007 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -29,7 +29,8 @@
 #include <cstdlib>         // bsearch()
 #include <cctype>
 
-
+#include <macros.h>
+#include <fctsys.h>
 #include <dsnlexer.h>
 
 //#include "fctsys.h"
@@ -280,24 +281,25 @@ bool DSNLEXER::IsSymbol( int aTok )
 
 void DSNLEXER::Expecting( int aTok ) throw( IO_ERROR )
 {
-    wxString    errText( _("Expecting") );
-    errText << wxT(" ") << GetTokenString( aTok );
+    wxString errText;
+    errText.Printf( _("Expecting '%s'"), GetChars( GetTokenString( aTok ) ) );
     THROW_PARSE_ERROR( errText, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
 }
 
 
 void DSNLEXER::Expecting( const char* text ) throw( IO_ERROR )
 {
-    wxString    errText( _("Expecting") );
-    errText << wxT(" '") << wxString::FromUTF8( text ) << wxT("'");
+    wxString errText;
+    errText.Printf( _("Expecting '%s'"),
+            GetChars( wxString::FromUTF8( text ) ) );
     THROW_PARSE_ERROR( errText, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
 }
 
 
 void DSNLEXER::Unexpected( int aTok ) throw( IO_ERROR )
 {
-    wxString    errText( _("Unexpected") );
-    errText << wxT(" ") << GetTokenString( aTok );
+    wxString errText;
+    errText.Printf( _("Unexpected '%s'"), GetChars( GetTokenString( aTok ) ) );
     THROW_PARSE_ERROR( errText, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
 }
 
@@ -312,8 +314,9 @@ void DSNLEXER::Duplicate( int aTok ) throw( IO_ERROR )
 
 void DSNLEXER::Unexpected( const char* text ) throw( IO_ERROR )
 {
-    wxString    errText( _("Unexpected") );
-    errText << wxT(" '") << wxString::FromUTF8( text ) << wxT("'");
+    wxString errText;
+    errText.Printf( _("Unexpected '%s'"),
+            GetChars( wxString::FromUTF8( text ) ) );
     THROW_PARSE_ERROR( errText, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
 }
 

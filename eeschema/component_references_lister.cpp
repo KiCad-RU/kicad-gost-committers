@@ -155,7 +155,11 @@ static bool engStrToDouble( wxString aStr, double* aDouble )
     aStr.Append( wxT( "R" ) );
 
     // Regular expression for a value string, e.g., 47k2
+#if defined(KICAD_GOST)
+    static wxRegEx valueRegEx( wxT( "^([0-9]+)(мк|[pnumRkKMGT.,кнМГ])([0-9]*)(мк*|[pnumRkKMGTкнМГ]*)" ) );
+#else
     static wxRegEx valueRegEx( wxT( "^([0-9]+)([pnumRkKMGT.,])([0-9]*)([pnumRkKMGT]*)" ) );
+#endif
 
     if( !valueRegEx.Matches( aStr ) )
         return false;
@@ -164,7 +168,31 @@ static bool engStrToDouble( wxString aStr, double* aDouble )
                                   + wxT( "." )
                                   + valueRegEx.GetMatch( aStr, 3 ) );
     wxString multiplierString = valueRegEx.GetMatch( aStr, 2 );
+#if defined(KICAD_GOST)
+    if ( multiplierString == wxT( "мк" ) )
+        multiplierString = wxT( "u" );
+    else if ( multiplierString == wxT( "к" ) )
+        multiplierString = wxT( "k" );
+    else if ( multiplierString == wxT( "н" ) )
+        multiplierString = wxT( "n" );
+    else if ( multiplierString == wxT( "М" ) )
+        multiplierString = wxT( "M" );
+    else if ( multiplierString == wxT( "Г" ) )
+        multiplierString = wxT( "G" );
+#endif
     wxString post_multiplierString = valueRegEx.GetMatch( aStr, 4 );
+#if defined(KICAD_GOST)
+    if ( post_multiplierString == wxT( "мк" ) )
+        multiplierString = wxT( "u" );
+    else if ( post_multiplierString == wxT( "к" ) )
+        multiplierString = wxT( "k" );
+    else if ( post_multiplierString == wxT( "н" ) )
+        multiplierString = wxT( "n" );
+    else if ( post_multiplierString == wxT( "М" ) )
+        multiplierString = wxT( "M" );
+    else if ( post_multiplierString == wxT( "Г" ) )
+        multiplierString = wxT( "G" );
+#endif
     double multiplier;
 
     switch( (wxChar)multiplierString[0] )
@@ -195,8 +223,8 @@ static bool engStrToDouble( wxString aStr, double* aDouble )
         multiplier = 1e12;
         break;
     case 'R':
-    case '.':       // floatting point separator
-    case ',':       // floatting point separator (some languages)
+    case '.':       // floating point separator
+    case ',':       // floating point separator (some languages)
     default:
         multiplier = 1;
         break;
@@ -234,7 +262,7 @@ static bool engStrToDouble( wxString aStr, double* aDouble )
         break;
     }
 
-    LOCALE_IO dummy;    // set to C floatting point standard
+    LOCALE_IO dummy;    // set to C floating point standard
     valueStr.ToDouble( aDouble );
     *aDouble *= multiplier;
 
@@ -329,15 +357,12 @@ bool SCH_REFERENCE_LIST::sortByReferenceOnly( const SCH_REFERENCE& item1,
                                               const SCH_REFERENCE& item2 )
 {
     int             ii;
-    const wxString* Text1, * Text2;
 
     ii = RefDesStringCompare( item1.GetRef(), item2.GetRef() );
 
     if( ii == 0 )
     {
-        Text1 = &( item1.m_RootCmp->GetField( VALUE )->m_Text );
-        Text2 = &( item2.m_RootCmp->GetField( VALUE )->m_Text );
-        ii    = Text1->CmpNoCase( *Text2 );
+        ii = item1.m_RootCmp->GetField( VALUE )->GetText().CmpNoCase( item2.m_RootCmp->GetField( VALUE )->GetText() );
     }
 
     if( ii == 0 )
@@ -683,14 +708,20 @@ int SCH_REFERENCE_LIST::CheckAnnotation( wxArrayString* aMessageList )
             else
                 tmp = wxT( "?" );
 
-            msg.Printf( _( "Item not annotated: %s%s" ),
-                        GetChars( componentFlatList[ii].GetRef() ), GetChars( tmp ) );
 
             if(  ( componentFlatList[ii].m_Unit > 0 )
               && ( componentFlatList[ii].m_Unit < 0x7FFFFFFF )  )
             {
-                tmp.Printf( _( " (unit %d)" ), componentFlatList[ii].m_Unit );
-                msg << tmp;
+                msg.Printf( _( "Item not annotated: %s%s (unit %d)\n" ),
+                            GetChars( componentFlatList[ii].GetRef() ), 
+                            GetChars( tmp ),
+                            componentFlatList[ii].m_Unit );
+            }
+            else
+            {
+                msg.Printf( _( "Item not annotated: %s%s\n" ),
+                            GetChars( componentFlatList[ii].GetRef() ), 
+                            GetChars( tmp ) );
             }
 
             if( aMessageList )
@@ -711,16 +742,14 @@ int SCH_REFERENCE_LIST::CheckAnnotation( wxArrayString* aMessageList )
             else
                 tmp = wxT( "?" );
 
-            msg.Printf( _( "Error item %s%s" ), GetChars( componentFlatList[ii].GetRef() ),
-                        GetChars( tmp ) );
-
-            tmp.Printf( _( " unit %d and no more than %d parts" ),
+            msg.Printf( _( "Error item %s%s unit %d and no more than %d parts\n" ),
+                        GetChars( componentFlatList[ii].GetRef() ),
+                        GetChars( tmp ),
                         componentFlatList[ii].m_Unit,
                         componentFlatList[ii].GetLibComponent()->GetPartCount() );
-            msg << tmp;
 
             if( aMessageList )
-                aMessageList->Add( msg + wxT( "\n" ) );
+                aMessageList->Add( msg );
 
             error++;
             break;
@@ -750,18 +779,23 @@ int SCH_REFERENCE_LIST::CheckAnnotation( wxArrayString* aMessageList )
             else
                 tmp = wxT( "?" );
 
-            msg.Printf( _( "Multiple item %s%s" ),
-                        GetChars( componentFlatList[ii].GetRef() ), GetChars( tmp ) );
-
-            if(  ( componentFlatList[ii].m_Unit > 0 )
-              && ( componentFlatList[ii].m_Unit < 0x7FFFFFFF )  )
+            if( ( componentFlatList[ii].m_Unit > 0 )
+             && ( componentFlatList[ii].m_Unit < 0x7FFFFFFF ) )
             {
-                tmp.Printf( _( " (unit %d)" ), componentFlatList[ii].m_Unit );
-                msg << tmp;
+                msg.Printf( _( "Multiple item %s%s (unit %d)\n" ), 
+                            GetChars( componentFlatList[ii].GetRef() ), 
+                            GetChars( tmp ),
+                            componentFlatList[ii].m_Unit );
+            }
+            else
+            {
+                msg.Printf( _( "Multiple item %s%s\n" ),
+                            GetChars( componentFlatList[ii].GetRef() ), 
+                            GetChars( tmp ) );
             }
 
             if( aMessageList )
-                aMessageList->Add( msg + wxT( "\n" ) );
+                aMessageList->Add( msg );
 
             error++;
             continue;
@@ -777,18 +811,23 @@ int SCH_REFERENCE_LIST::CheckAnnotation( wxArrayString* aMessageList )
             else
                 tmp = wxT( "?" );
 
-            msg.Printf( _( "Multiple item %s%s" ),
-                        GetChars( componentFlatList[ii].GetRef() ), GetChars( tmp ) );
-
-            if(  ( componentFlatList[ii].m_Unit > 0 )
-              && ( componentFlatList[ii].m_Unit < 0x7FFFFFFF )  )
+            if( ( componentFlatList[ii].m_Unit > 0 )
+             && ( componentFlatList[ii].m_Unit < 0x7FFFFFFF ) )
             {
-                tmp.Printf( _( " (unit %d)" ), componentFlatList[ii].m_Unit );
-                msg << tmp;
+                msg.Printf( _( "Multiple item %s%s (unit %d)\n" ), 
+                            GetChars( componentFlatList[ii].GetRef() ), 
+                            GetChars( tmp ),
+                            componentFlatList[ii].m_Unit );
+            }
+            else
+            {
+                msg.Printf( _( "Multiple item %s%s\n" ),
+                            GetChars( componentFlatList[ii].GetRef() ), 
+                            GetChars( tmp ) );
             }
 
             if( aMessageList )
-                aMessageList->Add( msg + wxT( "\n" ));
+                aMessageList->Add( msg );
 
             error++;
         }
@@ -803,21 +842,21 @@ int SCH_REFERENCE_LIST::CheckAnnotation( wxArrayString* aMessageList )
                         GetChars( componentFlatList[ii].GetRef() ),
                         componentFlatList[ii].m_NumRef,
                         componentFlatList[ii].m_Unit,
-                        GetChars( *componentFlatList[ii].m_Value ),
+                        GetChars( componentFlatList[ii].m_Value->GetText() ),
                         GetChars( componentFlatList[next].GetRef() ),
                         componentFlatList[next].m_NumRef,
                         componentFlatList[next].m_Unit,
-                        componentFlatList[next].m_Value->GetData() );
+                        componentFlatList[next].m_Value->GetText().GetData() );
 #else
             msg.Printf( _( "Different values for %s%d%c (%s) and %s%d%c (%s)" ),
                         GetChars( componentFlatList[ii].GetRef() ),
                         componentFlatList[ii].m_NumRef,
                         componentFlatList[ii].m_Unit + 'A' - 1,
-                        GetChars( *componentFlatList[ii].m_Value ),
+                        GetChars( componentFlatList[ii].m_Value->GetText() ),
                         GetChars( componentFlatList[next].GetRef() ),
                         componentFlatList[next].m_NumRef,
                         componentFlatList[next].m_Unit + 'A' - 1,
-                        GetChars( *componentFlatList[next].m_Value ) );
+                        GetChars( componentFlatList[next].m_Value->GetText() ) );
 #endif
 
             if( aMessageList )
@@ -884,7 +923,7 @@ SCH_REFERENCE::SCH_REFERENCE( SCH_COMPONENT* aComponent, LIB_COMPONENT* aLibComp
     if( aComponent->GetField( VALUE )->GetText().IsEmpty() )
         aComponent->GetField( VALUE )->SetText( wxT( "~" ) );
 
-    m_Value = &aComponent->GetField( VALUE )->m_Text;
+    m_Value = aComponent->GetField( VALUE );
 }
 
 

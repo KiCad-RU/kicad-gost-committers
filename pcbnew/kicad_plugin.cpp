@@ -158,13 +158,13 @@ void FP_CACHE::Save()
 {
     if( !m_lib_path.DirExists() && !m_lib_path.Mkdir() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "Cannot create footprint library path '%s'." ),
+        THROW_IO_ERROR( wxString::Format( _( "Cannot create footprint library path <%s>" ),
                                           m_lib_path.GetPath().GetData() ) );
     }
 
     if( !m_lib_path.IsDirWritable() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "Footprint library path '%s' is read only" ),
+        THROW_IO_ERROR( wxString::Format( _( "Footprint library path <%s> is read only" ),
                                           GetChars( m_lib_path.GetPath() ) ) );
     }
 
@@ -193,7 +193,7 @@ void FP_CACHE::Save()
 
         if( wxRename( tempFileName, fn.GetFullPath() ) )
         {
-            THROW_IO_ERROR( wxString::Format( _( "cannot rename temporary file '%s' to footprint library file '%s'" ),
+            THROW_IO_ERROR( wxString::Format( _( "Cannot rename temporary file <%s> to footprint library file <%s>" ),
                                               tempFileName.GetData(),
                                               fn.GetFullPath().GetData() ) );
         }
@@ -210,7 +210,7 @@ void FP_CACHE::Load()
 
     if( !dir.IsOpened() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "footprint library path '%s' does not exist" ),
+        THROW_IO_ERROR( wxString::Format( _( "Footprint library path <%s> does not exist" ),
                                           m_lib_path.GetPath().GetData() ) );
     }
 
@@ -249,7 +249,7 @@ void FP_CACHE::Remove( const wxString& aFootprintName )
 
     if( it == m_modules.end() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "library '%s' has no footprint '%s' to delete" ),
+        THROW_IO_ERROR( wxString::Format( _( "library <%s> has no footprint '%s' to delete" ),
                                           m_lib_path.GetPath().GetData(),
                                           aFootprintName.GetData() ) );
     }
@@ -381,12 +381,12 @@ void PCB_IO::Format( BOARD_ITEM* aItem, int aNestLevel ) const
 
 void PCB_IO::formatLayer( const BOARD_ITEM* aItem ) const
 {
-    if( m_ctl & CTL_UNTRANSLATED_LAYERS )
+    if( m_ctl & CTL_STD_LAYER_NAMES )
     {
-        int layer = aItem->GetLayer();
+        LAYER_NUM layer = aItem->GetLayer();
 
         // English layer names should never need quoting.
-        m_out->Print( 0, " (layer %s)", TO_UTF8( BOARD::GetDefaultLayerName( layer, false ) ) );
+        m_out->Print( 0, " (layer %s)", TO_UTF8( BOARD::GetStandardLayerName( layer ) ) );
     }
     else
         m_out->Print( 0, " (layer %s)", m_out->Quotew( aItem->GetLayerName() ).c_str() );
@@ -424,12 +424,10 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
     // Layers.
     m_out->Print( aNestLevel, "(layers\n" );
 
-    unsigned mask = LAYER_FRONT;
-    unsigned layer = LAYER_N_FRONT;
-
     // Save only the used copper layers from front to back.
-    while( mask != 0 )
+    for( LAYER_NUM layer = LAST_COPPER_LAYER; layer >= FIRST_COPPER_LAYER; --layer)
     {
+        LAYER_MSK mask = GetLayerMask( layer );
         if( mask & aBoard->GetEnabledLayers() )
         {
             m_out->Print( aNestLevel+1, "(%d %s %s", layer,
@@ -441,17 +439,12 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
 
             m_out->Print( 0, ")\n" );
         }
-
-        mask >>= 1;
-        layer--;
     }
 
-    mask = ADHESIVE_LAYER_BACK;
-    layer = ADHESIVE_N_BACK;
-
     // Save used non-copper layers in the order they are defined.
-    while( layer < LAYER_COUNT )
+    for( LAYER_NUM layer = FIRST_NON_COPPER_LAYER; layer <= LAST_NON_COPPER_LAYER; ++layer)
     {
+        LAYER_MSK mask = GetLayerMask( layer );
         if( mask & aBoard->GetEnabledLayers() )
         {
             m_out->Print( aNestLevel+1, "(%d %s user", layer,
@@ -462,9 +455,6 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
 
             m_out->Print( 0, ")\n" );
         }
-
-        mask <<= 1;
-        layer++;
     }
 
     m_out->Print( aNestLevel, ")\n\n" );
@@ -573,13 +563,15 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
 
     m_out->Print( aNestLevel, ")\n\n" );
 
-
     int netcount = aBoard->GetNetCount();
 
     for( int i = 0;  i < netcount;  ++i )
+    {
+        NETINFO_ITEM*   net = aBoard->FindNet( i );
         m_out->Print( aNestLevel, "(net %d %s)\n",
-                      aBoard->FindNet( i )->GetNet(),
-                      m_out->Quotew( aBoard->FindNet( i )->GetNetname() ).c_str() );
+                      net->GetNet(),
+                      m_out->Quotew( net->GetNetname() ).c_str() );
+    }
 
     m_out->Print( 0, "\n" );
 
@@ -940,15 +932,15 @@ void PCB_IO::format( MODULE* aModule, int aNestLevel ) const
     Format( (BOARD_ITEM*) &aModule->Value(), aNestLevel+1 );
 
     // Save drawing elements.
-    for( BOARD_ITEM* gr = aModule->m_Drawings;  gr;  gr = gr->Next() )
+    for( BOARD_ITEM* gr = aModule->GraphicalItems();  gr;  gr = gr->Next() )
         Format( gr, aNestLevel+1 );
 
     // Save pads.
-    for( D_PAD* pad = aModule->m_Pads;  pad;  pad = pad->Next() )
+    for( D_PAD* pad = aModule->Pads();  pad;  pad = pad->Next() )
         Format( pad, aNestLevel+1 );
 
     // Save 3D info.
-    for( S3D_MASTER* t3D = aModule->m_3D_Drawings;  t3D;  t3D = t3D->Next() )
+    for( S3D_MASTER* t3D = aModule->Models();  t3D;  t3D = t3D->Next() )
     {
         if( !t3D->m_Shape3DName.IsEmpty() )
         {
@@ -978,12 +970,12 @@ void PCB_IO::format( MODULE* aModule, int aNestLevel ) const
 }
 
 
-void PCB_IO::formatLayers( int aLayerMask, int aNestLevel ) const
+void PCB_IO::formatLayers( LAYER_MSK aLayerMask, int aNestLevel ) const
     throw( IO_ERROR )
 {
     m_out->Print( aNestLevel, "(layers" );
 
-    int cuMask = ALL_CU_LAYERS;
+    LAYER_MSK cuMask = ALL_CU_LAYERS;
 
     if( m_board )
         cuMask &= m_board->GetEnabledLayers();
@@ -1027,22 +1019,20 @@ void PCB_IO::formatLayers( int aLayerMask, int aNestLevel ) const
 
     // output any individual layers not handled in wildcard combos above
 
-    unsigned layerMask = aLayerMask;
-
     if( m_board )
-        layerMask &= m_board->GetEnabledLayers();
+        aLayerMask &= m_board->GetEnabledLayers();
 
     wxString layerName;
 
-    for( int layer = 0;  layerMask;  ++layer, layerMask >>= 1 )
+    for( LAYER_NUM layer = FIRST_LAYER; layer < NB_PCB_LAYERS; ++layer )
     {
-        if( layerMask & 1 )
+        if( aLayerMask & GetLayerMask( layer ) )
         {
-            if( m_board && !(m_ctl & CTL_UNTRANSLATED_LAYERS) )
+            if( m_board && !(m_ctl & CTL_STD_LAYER_NAMES) )
                 layerName = m_board->GetLayerName( layer );
 
             else    // I am being called from FootprintSave()
-                layerName = BOARD::GetDefaultLayerName( layer, false );
+                layerName = BOARD::GetStandardLayerName( layer );
 
             m_out->Print( 0, " %s", m_out->Quotew( layerName ).c_str() );
         }
@@ -1097,8 +1087,10 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
         m_out->Print( 0, " (rect_delta %s )", FMT_IU( aPad->GetDelta() ).c_str() );
 
     wxSize sz = aPad->GetDrillSize();
+    wxPoint shapeoffset = aPad->GetOffset();
 
-    if( (sz.GetWidth() > 0) || (sz.GetHeight() > 0) )
+    if( (sz.GetWidth() > 0) || (sz.GetHeight() > 0) ||
+        (shapeoffset.x > 0) || (shapeoffset.y > 0) )
     {
         m_out->Print( 0, " (drill" );
 
@@ -1111,7 +1103,7 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
         if( sz.GetHeight() > 0  && sz.GetWidth() != sz.GetHeight() )
             m_out->Print( 0,  " %s", FMT_IU( sz.GetHeight() ).c_str() );
 
-        if( (aPad->GetOffset().x != 0) || (aPad->GetOffset().y != 0) )
+        if( (shapeoffset.x != 0) || (shapeoffset.y != 0) )
             m_out->Print( 0, " (offset %s)", FMT_IU( aPad->GetOffset() ).c_str() );
 
         m_out->Print( 0, ")" );
@@ -1168,7 +1160,7 @@ void PCB_IO::format( TEXTE_PCB* aText, int aNestLevel ) const
 {
     m_out->Print( aNestLevel, "(gr_text %s (at %s",
                   m_out->Quotew( aText->GetText() ).c_str(),
-                  FMT_IU( aText->GetPosition() ).c_str() );
+                  FMT_IU( aText->GetTextPosition() ).c_str() );
 
     if( aText->GetOrientation() != 0.0 )
         m_out->Print( 0, " %s", FMT_ANGLE( aText->GetOrientation() ).c_str() );
@@ -1197,9 +1189,9 @@ void PCB_IO::format( TEXTE_MODULE* aText, int aNestLevel ) const
 
     switch( aText->GetType() )
     {
-    case 0:      type = wxT( "reference" );     break;
-    case 1:      type = wxT( "value" );         break;
-    default:     type = wxT( "user" );
+    case TEXTE_MODULE::TEXT_is_REFERENCE: type = wxT( "reference" );     break;
+    case TEXTE_MODULE::TEXT_is_VALUE:     type = wxT( "value" );         break;
+    default:                              type = wxT( "user" );
     }
 
     // Due to the Pcbnew history, m_Orient is saved in screen value
@@ -1234,7 +1226,7 @@ void PCB_IO::format( TRACK* aTrack, int aNestLevel ) const
 {
     if( aTrack->Type() == PCB_VIA_T )
     {
-        int layer1, layer2;
+        LAYER_NUM layer1, layer2;
 
         SEGVIA* via = (SEGVIA*) aTrack;
         BOARD* board = (BOARD*) via->GetParent();
@@ -1321,7 +1313,7 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
     }
 
     m_out->Print( 0, " (hatch %s %s)\n", hatch.c_str(),
-                  FMT_IU( aZone->m_Poly->GetHatchPitch() ).c_str() );
+                  FMT_IU( aZone->Outline()->GetHatchPitch() ).c_str() );
 
     if( aZone->GetPriority() > 0 )
         m_out->Print( aNestLevel+1, "(priority %d)\n", aZone->GetPriority() );
@@ -1372,7 +1364,7 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
         m_out->Print( 0, " (mode segment)" );
 
     m_out->Print( 0, " (arc_segments %d) (thermal_gap %s) (thermal_bridge_width %s)",
-                  aZone->GetArcSegCount(),
+                  aZone->GetArcSegmentCount(),
                   FMT_IU( aZone->GetThermalReliefGap() ).c_str(),
                   FMT_IU( aZone->GetThermalReliefCopperBridge() ).c_str() );
 
@@ -1403,22 +1395,22 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
 
     m_out->Print( 0, ")\n" );
 
-    const std::vector< CPolyPt >& cv = aZone->m_Poly->m_CornersList;
+    const CPOLYGONS_LIST& cv = aZone->Outline()->m_CornersList;
     int newLine = 0;
 
-    if( cv.size() )
+    if( cv.GetCornersCount() )
     {
         m_out->Print( aNestLevel+1, "(polygon\n");
         m_out->Print( aNestLevel+2, "(pts\n" );
 
-        for( std::vector< CPolyPt >::const_iterator it = cv.begin();  it != cv.end();  ++it )
+        for( unsigned it = 0; it < cv.GetCornersCount(); ++it )
         {
             if( newLine == 0 )
                 m_out->Print( aNestLevel+3, "(xy %s %s)",
-                              FMT_IU( it->x ).c_str(), FMT_IU( it->y ).c_str() );
+                              FMT_IU( cv.GetX( it ) ).c_str(), FMT_IU( cv.GetY( it ) ).c_str() );
             else
                 m_out->Print( 0, " (xy %s %s)",
-                              FMT_IU( it->x ).c_str(), FMT_IU( it->y ).c_str() );
+                              FMT_IU( cv.GetX( it ) ).c_str(), FMT_IU( cv.GetY( it ) ).c_str() );
 
             if( newLine < 4 )
             {
@@ -1430,14 +1422,14 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
                 m_out->Print( 0, "\n" );
             }
 
-            if( it->end_contour )
+            if( cv.IsEndContour( it ) )
             {
                 if( newLine != 0 )
                     m_out->Print( 0, "\n" );
 
                 m_out->Print( aNestLevel+2, ")\n" );
 
-                if( it+1 != cv.end() )
+                if( it+1 != cv.GetCornersCount() )
                 {
                     newLine = 0;
                     m_out->Print( aNestLevel+1, ")\n" );
@@ -1451,22 +1443,22 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
     }
 
     // Save the PolysList
-    const std::vector< CPolyPt >& fv = aZone->GetFilledPolysList();
+    const CPOLYGONS_LIST& fv = aZone->GetFilledPolysList();
     newLine = 0;
 
-    if( fv.size() )
+    if( fv.GetCornersCount() )
     {
         m_out->Print( aNestLevel+1, "(filled_polygon\n" );
         m_out->Print( aNestLevel+2, "(pts\n" );
 
-        for( std::vector< CPolyPt >::const_iterator it = fv.begin();  it != fv.end();  ++it )
+        for( unsigned it = 0; it < fv.GetCornersCount();  ++it )
         {
             if( newLine == 0 )
                 m_out->Print( aNestLevel+3, "(xy %s %s)",
-                              FMT_IU( it->x ).c_str(), FMT_IU( it->y ).c_str() );
+                              FMT_IU( fv.GetX( it ) ).c_str(), FMT_IU( fv.GetY( it ) ).c_str() );
             else
                 m_out->Print( 0, " (xy %s %s)",
-                              FMT_IU( it->x ).c_str(), FMT_IU( it->y ).c_str() );
+                              FMT_IU( fv.GetX( it ) ).c_str(), FMT_IU( fv.GetY( it ) ).c_str() );
 
             if( newLine < 4 )
             {
@@ -1478,14 +1470,14 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
                 m_out->Print( 0, "\n" );
             }
 
-            if( it->end_contour )
+            if( fv.IsEndContour( it ) )
             {
                 if( newLine != 0 )
                     m_out->Print( 0, "\n" );
 
                 m_out->Print( aNestLevel+2, ")\n" );
 
-                if( it+1 != fv.end() )
+                if( it+1 != fv.GetCornersCount() )
                 {
                     newLine = 0;
                     m_out->Print( aNestLevel+1, ")\n" );
@@ -1499,7 +1491,7 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
     }
 
     // Save the filling segments list
-    const std::vector< SEGMENT >& segs = aZone->m_FillSegmList;
+    const std::vector< SEGMENT >& segs = aZone->FillSegments();
 
     if( segs.size() )
     {
@@ -1642,7 +1634,7 @@ void PCB_IO::FootprintSave( const wxString& aLibraryPath, const MODULE* aFootpri
 
     if( !m_cache->IsWritable() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "Library '%s' is read only" ),
+        THROW_IO_ERROR( wxString::Format( _( "Library <%s> is read only" ),
                                           aLibraryPath.GetData() ) );
     }
 
@@ -1655,13 +1647,13 @@ void PCB_IO::FootprintSave( const wxString& aLibraryPath, const MODULE* aFootpri
 
     if( !fn.IsOk() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "Footprint file name '%s' is not valid." ),
+        THROW_IO_ERROR( wxString::Format( _( "Footprint file name <%s> is not valid." ),
                                           GetChars( fn.GetFullPath() ) ) );
     }
 
     if( fn.FileExists() && !fn.IsFileWritable() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "user does not have write permission to delete file '%s' " ),
+        THROW_IO_ERROR( wxString::Format( _( "user does not have write permission to delete file <%s> " ),
                                           GetChars( fn.GetFullPath() ) ) );
     }
 
@@ -1704,7 +1696,7 @@ void PCB_IO::FootprintDelete( const wxString& aLibraryPath, const wxString& aFoo
 
     if( !m_cache->IsWritable() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "Library '%s' is read only" ),
+        THROW_IO_ERROR( wxString::Format( _( "Library <%s> is read only" ),
                                           aLibraryPath.GetData() ) );
     }
 
@@ -1716,7 +1708,7 @@ void PCB_IO::FootprintLibCreate( const wxString& aLibraryPath, PROPERTIES* aProp
 {
     if( wxDir::Exists( aLibraryPath ) )
     {
-        THROW_IO_ERROR( wxString::Format( _( "cannot overwrite library path '%s'" ),
+        THROW_IO_ERROR( wxString::Format( _( "cannot overwrite library path <%s>" ),
                                           aLibraryPath.GetData() ) );
     }
 
@@ -1741,7 +1733,7 @@ bool PCB_IO::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProp
 
     if( !fn.IsDirWritable() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "user does not have permission to delete directory '%s'" ),
+        THROW_IO_ERROR( wxString::Format( _( "user does not have permission to delete directory <%s>" ),
                                           aLibraryPath.GetData() ) );
     }
 
@@ -1749,7 +1741,7 @@ bool PCB_IO::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProp
 
     if( dir.HasSubDirs() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "library directory '%s' has unexpected sub-directories" ),
+        THROW_IO_ERROR( wxString::Format( _( "library directory <%s> has unexpected sub-directories" ),
                                           aLibraryPath.GetData() ) );
     }
 
@@ -1768,7 +1760,7 @@ bool PCB_IO::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProp
 
             if( tmp.GetExt() != KiCadFootprintFileExtension )
             {
-                THROW_IO_ERROR( wxString::Format( _( "unexpected file '%s' has found in library path '%'" ),
+                THROW_IO_ERROR( wxString::Format( _( "unexpected file <%s> was found in library path '%s'" ),
                                                   files[i].GetData(), aLibraryPath.GetData() ) );
             }
         }
@@ -1786,7 +1778,7 @@ bool PCB_IO::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProp
     // we don't want that.  we want bare metal portability with no UI here.
     if( !wxRmdir( aLibraryPath ) )
     {
-        THROW_IO_ERROR( wxString::Format( _( "footprint library '%s' cannot be deleted" ),
+        THROW_IO_ERROR( wxString::Format( _( "footprint library <%s> cannot be deleted" ),
                                           aLibraryPath.GetData() ) );
     }
 

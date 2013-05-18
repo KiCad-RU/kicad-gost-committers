@@ -32,6 +32,7 @@
 #include <wxPcbStruct.h>
 #include <pcbplot.h>
 #include <gendrill_Excellon_writer.h>
+#include <macros.h>
 
 #include <class_board.h>
 #include <class_track.h>
@@ -154,7 +155,7 @@ void DIALOG_GENDRILL::InitDisplayParams()
 
     for( MODULE* module = m_parent->GetBoard()->m_Modules;  module;  module = module->Next() )
     {
-        for( D_PAD* pad = module->m_Pads; pad != NULL; pad = pad->Next() )
+        for( D_PAD* pad = module->Pads(); pad != NULL; pad = pad->Next() )
         {
             if( pad->GetDrillShape() == PAD_CIRCLE )
             {
@@ -440,9 +441,10 @@ void DIALOG_GENDRILL::GenDrillAndMapFiles(bool aGenDrill, bool aGenMap)
                 if( choice >= m_Choice_Drill_Map->GetCount() )
                     choice = 1;
 
-                fn.SetExt( wxEmptyString ); // Will be modified by GenDrillMap
+                fn.SetExt( wxEmptyString ); // Will be added by GenDrillMap
+                wxString fullfilename = fn.GetFullPath() + wxT( "-drl_map" );
 
-                GenDrillMap( fn.GetFullPath(), excellonWriter, filefmt[choice] );
+                GenDrillMap( fullfilename, excellonWriter, filefmt[choice] );
             }
         }
 
@@ -523,14 +525,14 @@ void DIALOG_GENDRILL::OnGenReportFile( wxCommandEvent& event )
     }
     else
     {
-        msg.Printf( _( "Create report file %s\n" ), GetChars( dlg.GetPath() ) );
+        msg.Printf( _( "Report file %s created\n" ), GetChars( dlg.GetPath() ) );
         m_messagesBox->AppendText( msg );
     }
 }
 
 
 // Generate the drill map of the board
-void DIALOG_GENDRILL::GenDrillMap( const wxString aFileName,
+void DIALOG_GENDRILL::GenDrillMap( const wxString aFullFileNameWithoutExt,
                                    EXCELLON_WRITER& aExcellonWriter,
                                    PlotFormat     format )
 {
@@ -574,11 +576,9 @@ void DIALOG_GENDRILL::GenDrillMap( const wxString aFileName,
         return;
     }
 
-    /* Init file name */
-    wxFileName fn = aFileName;
-    fn.SetName( fn.GetName() + wxT( "-drl_map" ) );
-    fn.SetExt( ext );
-    wxString fullFilename = fn.GetFullPath();
+    // Add file name extension
+    wxString fullFilename = aFullFileNameWithoutExt;
+    fullFilename << wxT(".") << ext;
 
     bool success = aExcellonWriter.GenDrillMapFile( fullFilename,
                                                    m_parent->GetPageSettings(),

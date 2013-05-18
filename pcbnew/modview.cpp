@@ -1,5 +1,29 @@
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2012 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2004-2012 KiCad Developers, see change_log.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
 /**
- * @file viewlibs.cpp
+ * @file modview.cpp
  */
 
 #include <fctsys.h>
@@ -84,8 +108,20 @@ void FOOTPRINT_VIEWER_FRAME::SelectCurrentLibrary( wxCommandEvent& event )
     if( g_LibraryNames.GetCount() == 0 )
         return;
 
+    wxArrayString headers;
+    headers.Add( wxT( "Library" ) );
+    std::vector<wxArrayString> itemsToDisplay;
+
+    // Conversion from wxArrayString to vector of ArrayString
+    for( unsigned i = 0; i < g_LibraryNames.GetCount(); i++ )
+    {
+        wxArrayString item;
+        item.Add( g_LibraryNames[i] );
+        itemsToDisplay.push_back( item );
+    }
+
     EDA_LIST_DIALOG dlg( this, _( "Select Current Library:" ),
-                         g_LibraryNames, m_libraryName );
+                         headers, itemsToDisplay, m_libraryName );
 
     if( dlg.ShowModal() != wxID_OK )
         return;
@@ -99,38 +135,45 @@ void FOOTPRINT_VIEWER_FRAME::SelectCurrentLibrary( wxCommandEvent& event )
     ReCreateFootprintList();
 
     int id = m_LibList->FindString( m_libraryName );
+
     if( id >= 0 )
         m_LibList->SetSelection( id );
 }
 
-/**
- * Function SelectCurrentFootprint
- * Selects the current footprint name and display it
- */
+
 void FOOTPRINT_VIEWER_FRAME::SelectCurrentFootprint( wxCommandEvent& event )
 {
-    wxString libname = m_libraryName + wxT(".") + LegacyFootprintLibPathExtension;
+    wxString libname = m_libraryName + wxT( "." ) + LegacyFootprintLibPathExtension;
     MODULE* oldmodule = GetBoard()->m_Modules;
     MODULE * module = Load_Module_From_Library( libname, false );
+
     if( module )
     {
         module->SetPosition( wxPoint( 0, 0 ) );
 
-        // Only one fotprint allowed: remove the previous footprint (if exists)
+        // Only one footprint allowed: remove the previous footprint (if exists)
         if( oldmodule )
         {
             GetBoard()->Remove( oldmodule );
             delete oldmodule;
         }
+
         m_footprintName = module->GetLibRef();
         module->ClearFlags();
         SetCurItem( NULL );
 
         Zoom_Automatique( false );
-        m_canvas->Refresh( );
+        m_canvas->Refresh();
         Update3D_Frame();
         m_FootprintList->SetStringSelection( m_footprintName );
    }
+}
+
+
+const wxString FOOTPRINT_VIEWER_FRAME::GetSelectedLibraryFullName( void )
+{
+    wxString fullname = m_libraryName + wxT( "." ) + LegacyFootprintLibPathExtension;
+    return fullname;
 }
 
 
@@ -160,8 +203,7 @@ void FOOTPRINT_VIEWER_FRAME::SelectAndViewFootprint( int aMode )
         SetCurItem( NULL );
         // Delete the current footprint
         GetBoard()->m_Modules.DeleteAll();
-        GetModuleLibrary( m_libraryName + wxT(".") + LegacyFootprintLibPathExtension,
-                          m_footprintName, true );
+        GetModuleLibrary( GetSelectedLibraryFullName(), m_footprintName, true );
         Update3D_Frame();
     }
 
@@ -171,11 +213,6 @@ void FOOTPRINT_VIEWER_FRAME::SelectAndViewFootprint( int aMode )
 }
 
 
-/**
- * Function RedrawActiveWindow
- * Display the current selected component.
- * If the component is an alias, the ROOT component is displayed
-*/
 void FOOTPRINT_VIEWER_FRAME::RedrawActiveWindow( wxDC* DC, bool EraseBg )
 {
     if( !GetBoard() )

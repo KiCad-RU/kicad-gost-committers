@@ -2,6 +2,28 @@
  * @file print_board_functions.cpp
  * @brief Functions to print boards.
  */
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+  * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
 
 #include <fctsys.h>
 #include <class_drawpanel.h>
@@ -23,11 +45,11 @@
 
 
 static void Print_Module( EDA_DRAW_PANEL* aPanel, wxDC* aDC, MODULE* aModule,
-                          GR_DRAWMODE aDraw_mode, int aMasklayer,
+                          GR_DRAWMODE aDraw_mode, LAYER_MSK aMasklayer,
                           PRINT_PARAMETERS::DrillShapeOptT aDrillShapeOpt );
 
 void FOOTPRINT_EDIT_FRAME::PrintPage( wxDC* aDC,
-                                      int   aPrintMaskLayer,
+                                      LAYER_MSK aPrintMaskLayer,
                                       bool  aPrintMirrorMode,
                                       void * aData)
 {
@@ -53,12 +75,10 @@ void FOOTPRINT_EDIT_FRAME::PrintPage( wxDC* aDC,
     m_DisplayPadNum = DisplayOpt.DisplayPadNum = false;
     bool nctmp = GetBoard()->IsElementVisible(NO_CONNECTS_VISIBLE);
     GetBoard()->SetElementVisibility(NO_CONNECTS_VISIBLE, false);
-    bool anchorsTmp = GetBoard()->IsElementVisible( ANCHOR_VISIBLE );
-    GetBoard()->SetElementVisibility( ANCHOR_VISIBLE, false );
     DisplayOpt.DisplayPadIsol    = false;
     DisplayOpt.DisplayModEdge    = FILLED;
     DisplayOpt.DisplayModText    = FILLED;
-    m_DisplayPcbTrackFill = DisplayOpt.DisplayPcbTrackFill = FILLED;
+    m_DisplayPcbTrackFill = DisplayOpt.DisplayPcbTrackFill = true;
     DisplayOpt.ShowTrackClearanceMode = DO_NOT_SHOW_CLEARANCE;
     DisplayOpt.DisplayDrawItems    = FILLED;
     DisplayOpt.DisplayZonesMode    = 0;
@@ -98,7 +118,6 @@ void FOOTPRINT_EDIT_FRAME::PrintPage( wxDC* aDC,
     m_DisplayViaFill = DisplayOpt.DisplayViaFill;
     m_DisplayPadNum  = DisplayOpt.DisplayPadNum;
     GetBoard()->SetElementVisibility( NO_CONNECTS_VISIBLE, nctmp );
-    GetBoard()->SetElementVisibility(ANCHOR_VISIBLE, anchorsTmp);
 }
 
 
@@ -112,7 +131,7 @@ void FOOTPRINT_EDIT_FRAME::PrintPage( wxDC* aDC,
  * @param aData = a pointer to an optional data (NULL if not used)
  */
 void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
-                                int   aPrintMaskLayer,
+                                LAYER_MSK aPrintMaskLayer,
                                 bool  aPrintMirrorMode,
                                 void* aData)
 {
@@ -137,7 +156,7 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
     }
 
     save_opt = DisplayOpt;
-    int activeLayer = GetScreen()->m_Active_Layer;
+    LAYER_NUM activeLayer = GetScreen()->m_Active_Layer;
 
     DisplayOpt.ContrastModeDisplay = false;
     DisplayOpt.DisplayPadFill = true;
@@ -153,11 +172,11 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
             DisplayOpt.DisplayPadFill = true;
 
             // Calculate the active layer number to print from its mask layer:
-            GetScreen()->m_Active_Layer = 0;
+            GetScreen()->m_Active_Layer = FIRST_LAYER;
 
-            for(int kk = 0; kk < 32; kk ++ )
+            for( LAYER_NUM kk = FIRST_LAYER; kk < NB_LAYERS; ++kk )
             {
-                if( ((1 << kk) & aPrintMaskLayer) != 0 )
+                if( GetLayerMask( kk ) & aPrintMaskLayer )
                 {
                     GetScreen()->m_Active_Layer = kk;
                     break;
@@ -182,10 +201,12 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
     m_DisplayPadNum = DisplayOpt.DisplayPadNum = false;
     bool nctmp = GetBoard()->IsElementVisible( NO_CONNECTS_VISIBLE );
     GetBoard()->SetElementVisibility( NO_CONNECTS_VISIBLE, false );
-    DisplayOpt.DisplayPadIsol    = false;
+    bool anchorsTmp = GetBoard()->IsElementVisible( ANCHOR_VISIBLE );
+    GetBoard()->SetElementVisibility( ANCHOR_VISIBLE, false );
+    DisplayOpt.DisplayPadIsol = false;
     m_DisplayModEdge = DisplayOpt.DisplayModEdge    = FILLED;
     m_DisplayModText = DisplayOpt.DisplayModText    = FILLED;
-    m_DisplayPcbTrackFill = DisplayOpt.DisplayPcbTrackFill = FILLED;
+    m_DisplayPcbTrackFill = DisplayOpt.DisplayPcbTrackFill = true;
     DisplayOpt.ShowTrackClearanceMode = DO_NOT_SHOW_CLEARANCE;
     DisplayOpt.DisplayDrawItems    = FILLED;
     DisplayOpt.DisplayZonesMode    = 0;
@@ -211,10 +232,8 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
         case PCB_DIMENSION_T:
         case PCB_TEXT_T:
         case PCB_TARGET_T:
-            if( ( ( 1 << item->GetLayer() ) & aPrintMaskLayer ) == 0 )
-                break;
-
-            item->Draw( m_canvas, aDC, drawmode );
+            if( GetLayerMask( item->GetLayer() ) & aPrintMaskLayer )
+                item->Draw( m_canvas, aDC, drawmode );
             break;
 
         case PCB_MARKER_T:
@@ -224,38 +243,35 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
     }
 
     // Print tracks
-    TRACK * pt_trace = Pcb->m_Track;
-
-    for( ; pt_trace != NULL; pt_trace = pt_trace->Next() )
+    for( TRACK * track = Pcb->m_Track; track; track = track->Next() )
     {
-        if( ( aPrintMaskLayer & pt_trace->ReturnMaskLayer() ) == 0 )
+        if( !( aPrintMaskLayer & track->GetLayerMask() ) )
             continue;
 
-        if( pt_trace->Type() == PCB_VIA_T ) // VIA encountered.
+        if( track->Type() == PCB_VIA_T ) // VIA encountered.
         {
-            int radius = pt_trace->GetWidth() >> 1;
-            EDA_COLOR_T color = g_ColorsSettings.GetItemColor( VIAS_VISIBLE + pt_trace->GetShape() );
+            int radius = track->GetWidth() >> 1;
+            EDA_COLOR_T color = g_ColorsSettings.GetItemColor( VIAS_VISIBLE + track->GetShape() );
             GRSetDrawMode( aDC, drawmode );
             GRFilledCircle( m_canvas->GetClipBox(), aDC,
-                            pt_trace->GetStart().x,
-                            pt_trace->GetStart().y,
+                            track->GetStart().x,
+                            track->GetStart().y,
                             radius,
                             0, color, color );
         }
         else
         {
-            pt_trace->Draw( m_canvas, aDC, drawmode );
+            track->Draw( m_canvas, aDC, drawmode );
         }
     }
 
     // Outdated: only for compatibility to old boards
-    pt_trace = Pcb->m_Zone;
-    for( ; pt_trace != NULL; pt_trace = pt_trace->Next() )
+    for( TRACK * track = Pcb->m_Zone; track != NULL; track = track->Next() )
     {
-        if( ( aPrintMaskLayer & pt_trace->ReturnMaskLayer() ) == 0 )
+        if( !( aPrintMaskLayer & track->GetLayerMask() ) )
             continue;
 
-        pt_trace->Draw( m_canvas, aDC, drawmode );
+        track->Draw( m_canvas, aDC, drawmode );
     }
 
     // Draw filled areas (i.e. zones)
@@ -263,10 +279,8 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
     {
         ZONE_CONTAINER* zone = Pcb->GetArea( ii );
 
-        if( ( aPrintMaskLayer & ( 1 << zone->GetLayer() ) ) == 0 )
-            continue;
-
-        zone->DrawFilledArea( m_canvas, aDC, drawmode );
+        if( aPrintMaskLayer & GetLayerMask( zone->GetLayer() ) )
+            zone->DrawFilledArea( m_canvas, aDC, drawmode );
     }
 
     // Draw footprints, this is done at last in order to print the pad holes in
@@ -286,28 +300,28 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
      * vias */
     if( drillShapeOpt != PRINT_PARAMETERS::NO_DRILL_SHAPE )
     {
-        pt_trace = Pcb->m_Track;
+        TRACK * track = Pcb->m_Track;
         EDA_COLOR_T color = g_DrawBgColor;
         bool blackpenstate = GetGRForceBlackPenState();
         GRForceBlackPen( false );
         GRSetDrawMode( aDC, GR_COPY );
 
-        for( ; pt_trace != NULL; pt_trace = pt_trace->Next() )
+        for( ; track != NULL; track = track->Next() )
         {
-            if( ( aPrintMaskLayer & pt_trace->ReturnMaskLayer() ) == 0 )
+            if( !( aPrintMaskLayer & track->GetLayerMask() ) )
                 continue;
 
-            if( pt_trace->Type() == PCB_VIA_T ) // VIA encountered.
+            if( track->Type() == PCB_VIA_T ) // VIA encountered.
             {
                 int diameter;
 
                 if( drillShapeOpt == PRINT_PARAMETERS::SMALL_DRILL_SHAPE )
-                    diameter = std::min( SMALL_DRILL, pt_trace->GetDrillValue() );
+                    diameter = std::min( SMALL_DRILL, track->GetDrillValue() );
                 else
-                    diameter = pt_trace->GetDrillValue();
+                    diameter = track->GetDrillValue();
 
                 GRFilledCircle( m_canvas->GetClipBox(), aDC,
-                                pt_trace->GetStart().x, pt_trace->GetStart().y,
+                                track->GetStart().x, track->GetStart().y,
                                 diameter/2,
                                 0, color, color );
             }
@@ -327,17 +341,18 @@ void PCB_EDIT_FRAME::PrintPage( wxDC* aDC,
     m_DisplayModEdge = DisplayOpt.DisplayModEdge;
     m_DisplayModText = DisplayOpt.DisplayModText;
     GetBoard()->SetElementVisibility(NO_CONNECTS_VISIBLE, nctmp);
+    GetBoard()->SetElementVisibility(ANCHOR_VISIBLE, anchorsTmp);
 }
 
 
 static void Print_Module( EDA_DRAW_PANEL* aPanel, wxDC* aDC, MODULE* aModule,
-                          GR_DRAWMODE aDraw_mode, int aMasklayer,
+                          GR_DRAWMODE aDraw_mode, LAYER_MSK aMasklayer,
                           PRINT_PARAMETERS::DrillShapeOptT aDrillShapeOpt )
 {
     // Print pads
-    for( D_PAD* pad = aModule->m_Pads;  pad;  pad = pad->Next() )
+    for( D_PAD* pad = aModule->Pads();  pad;  pad = pad->Next() )
     {
-        if( (pad->GetLayerMask() & aMasklayer ) == 0 )
+        if( !(pad->GetLayerMask() & aMasklayer ) )
             continue;
 
         // Manage hole according to the print drill option
@@ -368,7 +383,7 @@ static void Print_Module( EDA_DRAW_PANEL* aPanel, wxDC* aDC, MODULE* aModule,
     }
 
     // Print footprint graphic shapes
-    int mlayer   = GetLayerMask( aModule->GetLayer() );
+    LAYER_MSK mlayer = GetLayerMask( aModule->GetLayer() );
 
     if( aModule->GetLayer() == LAYER_N_BACK )
         mlayer = SILKSCREEN_LAYER_BACK;
@@ -384,7 +399,7 @@ static void Print_Module( EDA_DRAW_PANEL* aPanel, wxDC* aDC, MODULE* aModule,
             aModule->Value().Draw( aPanel, aDC, aDraw_mode );
     }
 
-    for( EDA_ITEM* item = aModule->m_Drawings;  item;  item = item->Next() )
+    for( EDA_ITEM* item = aModule->GraphicalItems();  item;  item = item->Next() )
     {
         switch( item->Type() )
         {

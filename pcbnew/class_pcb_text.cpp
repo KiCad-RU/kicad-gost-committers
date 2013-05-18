@@ -111,32 +111,32 @@ void TEXTE_PCB::Draw( EDA_DRAW_PANEL* panel, wxDC* DC,
 void TEXTE_PCB::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 {
     wxString    msg;
-    BOARD*      board;
-    BOARD_ITEM* parent = (BOARD_ITEM*) m_Parent;
 
+#if defined(__WXDEBUG__)
+    BOARD_ITEM* parent = (BOARD_ITEM*) m_Parent;
     wxASSERT( parent );
 
+    BOARD*      board;
     if( parent->Type() == PCB_DIMENSION_T )
         board = (BOARD*) parent->GetParent();
     else
         board = (BOARD*) parent;
-
     wxASSERT( board );
+#endif
 
     if( m_Parent && m_Parent->Type() == PCB_DIMENSION_T )
-        aList.push_back( MSG_PANEL_ITEM( _( "DIMENSION" ), m_Text, DARKGREEN ) );
+        aList.push_back( MSG_PANEL_ITEM( _( "Dimension" ), m_Text, DARKGREEN ) );
     else
         aList.push_back( MSG_PANEL_ITEM( _( "PCB Text" ), m_Text, DARKGREEN ) );
 
-    aList.push_back( MSG_PANEL_ITEM( _( "Layer" ),
-                                     board->GetLayerName( m_Layer ), BLUE ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Layer" ), GetLayerName(), BLUE ) );
 
     if( !m_Mirror )
         aList.push_back( MSG_PANEL_ITEM( _( "Mirror" ), _( "No" ), DARKGREEN ) );
     else
         aList.push_back( MSG_PANEL_ITEM( _( "Mirror" ), _( "Yes" ), DARKGREEN ) );
 
-    msg.Printf( wxT( "%.1f" ), (float) m_Orient / 10 );
+    msg.Printf( wxT( "%.1f" ), m_Orient / 10.0 );
     aList.push_back( MSG_PANEL_ITEM( _( "Orientation" ), msg, DARKGREEN ) );
 
     msg = ::CoordinateToString( m_Thickness );
@@ -161,15 +161,8 @@ void TEXTE_PCB::Rotate( const wxPoint& aRotCentre, double aAngle )
 void TEXTE_PCB::Flip(const wxPoint& aCentre )
 {
     m_Pos.y  = aCentre.y - ( m_Pos.y - aCentre.y );
-//    NEGATE( m_Orient );   not needed: m_Mirror handles this
-    if( GetLayer() == LAYER_N_BACK
-        || GetLayer() == LAYER_N_FRONT
-        || GetLayer() == SILKSCREEN_N_BACK
-        || GetLayer() == SILKSCREEN_N_FRONT )
-    {
-        m_Mirror = not m_Mirror;      /* inverse mirror */
-    }
-    SetLayer( BOARD::ReturnFlippedLayerNumber( GetLayer() ) );
+    SetLayer( FlipLayer( GetLayer() ) );
+    m_Mirror = !m_Mirror;
 }
 
 
@@ -180,9 +173,9 @@ wxString TEXTE_PCB::GetSelectMenuText() const
     if( m_Text.Len() < 12 )
         shorttxt << m_Text;
     else
-        shorttxt += m_Text.Left( 10 ) + wxT( ".." );
+        shorttxt += m_Text.Left( 10 ) + wxT( "..." );
 
-    text.Printf( _( "Pcb Text %s on %s"),
+    text.Printf( _( "Pcb Text \"%s\" on %s"),
                  GetChars ( shorttxt ), GetChars( GetLayerName() ) );
 
     return text;
@@ -194,18 +187,3 @@ EDA_ITEM* TEXTE_PCB::Clone() const
     return new TEXTE_PCB( *this );
 }
 
-
-#if defined(DEBUG)
-
-void TEXTE_PCB::Show( int nestLevel, std::ostream& os ) const
-{
-    // for now, make it look like XML:
-    NestedSpace( nestLevel, os ) << '<' << GetClass().Lower().mb_str() <<
-    " string=\"" << m_Text.mb_str() << "\"/>\n";
-
-//    NestedSpace( nestLevel, os ) << "</" << GetClass().Lower().mb_str()
-//                                 << ">\n";
-}
-
-
-#endif

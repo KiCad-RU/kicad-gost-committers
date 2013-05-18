@@ -39,9 +39,9 @@
 
 // Thickness of copper
 // TODO: define the actual copper thickness by user
-#define COPPER_THICKNESS (int)(0.035 * IU_PER_MM)   // for 35 u
-#define TECH_LAYER_THICKNESS (int)(0.04 * IU_PER_MM)
-#define EPOXY_THICKNESS (int)(1.6 * IU_PER_MM)   // for 1.6 mm
+#define COPPER_THICKNESS KiROUND( 0.035 * IU_PER_MM )   // for 35 µm
+#define TECH_LAYER_THICKNESS KiROUND( 0.04 * IU_PER_MM )
+#define EPOXY_THICKNESS KiROUND( 1.6 * IU_PER_MM )   // for 1.6 mm
 
 
 /* INFO3D_VISU in an helper class to store parameters like scaling factors,
@@ -135,7 +135,7 @@ void INFO3D_VISU::InitSettings( BOARD* aBoard )
     }
 
     // calculate z position for each non copper layer
-    for( int layer_id = FIRST_NO_COPPER_LAYER; layer_id < NB_LAYERS; layer_id++ )
+    for( int layer_id = FIRST_NON_COPPER_LAYER; layer_id < NB_PCB_LAYERS; layer_id++ )
     {
         double zpos;
         #define NonCopperLayerThicknessMargin 1.1
@@ -184,7 +184,7 @@ void INFO3D_VISU::InitSettings( BOARD* aBoard )
 
         default:
             zpos = zpos_copper_front +
-                   (layer_id - FIRST_NO_COPPER_LAYER + 5) *
+                   (layer_id - FIRST_NON_COPPER_LAYER + 5) *
                    m_NonCopperLayerThickness * NonCopperLayerThicknessMargin;
             break;
         }
@@ -192,3 +192,19 @@ void INFO3D_VISU::InitSettings( BOARD* aBoard )
         m_LayerZcoord[layer_id] = zpos;
     }
 }
+
+/* return the Z position of 3D shapes, in 3D Units
+ * aIsFlipped: true for modules on Front (top) layer, false
+ * if on back (bottom) layer
+ * Note: in draw functions, the copper has a thickness = m_CopperThickness
+ * Vias and tracks are draw with the top side position = m_CopperThickness/2
+ * and the bottom side position = -m_CopperThickness/2 from the Z layer position
+ */
+double INFO3D_VISU::GetModulesZcoord3DIU( bool aIsFlipped )
+{
+    if(  aIsFlipped )
+        return m_LayerZcoord[LAYER_N_BACK] - ( m_CopperThickness / 2 );
+    else
+        return m_LayerZcoord[LAYER_N_FRONT] + ( m_CopperThickness / 2 );
+}
+

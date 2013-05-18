@@ -181,9 +181,6 @@ set(PCBNEW_CLASS_SRCS
     muonde.cpp
     muwave_command.cpp
     netlist.cpp
-    netlist_reader_common.cpp
-    netlist_reader_firstformat.cpp
-    netlist_reader_kicad.cpp
     onleftclick.cpp
     onrightclick.cpp
     pad_edition_functions.cpp
@@ -289,6 +286,7 @@ if (KICAD_SCRIPTING)
     set(SWIG_OPTS -python -c++ -outdir ${CMAKE_CURRENT_BINARY_DIR} ${SWIG_FLAGS} )
 
     add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/pcbnew_wrap.cxx
+        DEPENDS pcbcommon
         DEPENDS scripting/pcbnew.i
         DEPENDS scripting/board.i
         DEPENDS scripting/board_item.i

@@ -107,7 +107,7 @@ bool Project( wxPoint* aNearPos, wxPoint on_grid, const TRACK* track )
 bool Magnetize( PCB_EDIT_FRAME* frame, int aCurrentTool, wxSize aGridSize,
                 wxPoint on_grid, wxPoint* curpos )
 {
-    bool    doCheckNet = g_MagneticPadOption != capture_always && Drc_On;
+    bool    doCheckNet = g_MagneticPadOption != capture_always && g_Drc_On;
     bool    doTrack = false;
     bool    doPad = false;
     bool    amMovingVia = false;
@@ -157,7 +157,7 @@ bool Magnetize( PCB_EDIT_FRAME* frame, int aCurrentTool, wxSize aGridSize,
 
     if( doPad )
     {
-        int layer_mask = GetLayerMask( screen->m_Active_Layer );
+        LAYER_MSK layer_mask = GetLayerMask( screen->m_Active_Layer );
         D_PAD* pad = m_Pcb->GetPad( pos, layer_mask );
 
         if( pad )
@@ -173,7 +173,7 @@ bool Magnetize( PCB_EDIT_FRAME* frame, int aCurrentTool, wxSize aGridSize,
     // after pads, only track & via tests remain, skip them if not desired
     if( doTrack )
     {
-        int layer = screen->m_Active_Layer;
+        LAYER_NUM layer = screen->m_Active_Layer;
 
         for( TRACK* via = m_Pcb->m_Track;
              via && (via = via->GetVia( *curpos, layer )) != NULL;
@@ -192,7 +192,7 @@ bool Magnetize( PCB_EDIT_FRAME* frame, int aCurrentTool, wxSize aGridSize,
 
         if( !currTrack )
         {
-            int layer_mask = GetLayerMask( layer );
+            LAYER_MSK layer_mask = GetLayerMask( layer );
 
             TRACK* track = m_Pcb->GetTrace( m_Pcb->m_Track, pos, layer_mask );
 
@@ -251,11 +251,8 @@ bool Magnetize( PCB_EDIT_FRAME* frame, int aCurrentTool, wxSize aGridSize,
                 // a new track and that new track is parallel to the track the
                 // mouse is on. Find the nearest end point of the track under mouse
                 // to the mouse and return that.
-                double distStart = hypot( double( curpos->x - track->GetStart().x ),
-                                          double( curpos->y - track->GetStart().y ));
-
-                double distEnd   = hypot( double( curpos->x - track->GetEnd().x ),
-                                          double( curpos->y - track->GetEnd().y ));
+                double distStart = GetLineLength( *curpos, track->GetStart() );
+                double distEnd   = GetLineLength( *curpos, track->GetEnd() );
 
                 // if track not via, or if its a via dragging but not with its adjacent track
                 if( currTrack->Type() != PCB_VIA_T

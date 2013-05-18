@@ -71,6 +71,8 @@ set(COMMON_SRCS
     netlist_keywords.cpp
     newstroke_font.cpp
     projet_config.cpp
+    ptree.cpp
+    reporter.cpp
     richio.cpp
     selcolor.cpp
     string.cpp
@@ -106,7 +108,6 @@ set(PCB_COMMON_SRCS
     ../pcbnew/class_marker_pcb.cpp
     ../pcbnew/class_mire.cpp
     ../pcbnew/class_module.cpp
-    ../pcbnew/class_module_transform_functions.cpp
     ../pcbnew/class_pad.cpp
     ../pcbnew/class_pad_draw_functions.cpp
     ../pcbnew/class_pcb_text.cpp
@@ -116,6 +117,9 @@ set(PCB_COMMON_SRCS
     ../pcbnew/class_zone_settings.cpp
     ../pcbnew/classpcb.cpp
     ../pcbnew/collectors.cpp
+    ../pcbnew/netlist_reader.cpp
+    ../pcbnew/legacy_netlist_reader.cpp
+    ../pcbnew/kicad_netlist_reader.cpp
     ../pcbnew/sel_layer.cpp
     ../pcbnew/pcb_plot_params.cpp
     ../pcbnew/io_mgr.cpp

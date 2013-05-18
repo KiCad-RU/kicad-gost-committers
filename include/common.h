@@ -116,8 +116,6 @@ enum pseudokeys {
 #define TEXT_ORIENT_HORIZ 0
 #define TEXT_ORIENT_VERT  900
 
-#define ON  1
-#define OFF 0
 
 
 //-----<KiROUND KIT>------------------------------------------------------------
@@ -456,12 +454,6 @@ extern wxString     g_ProductName;
 extern wxString     g_UserLibDirBuffer;
 
 extern bool         g_ShowPageLimits;       ///< true to display the page limits
-
-/// Name of default configuration file. (kicad.pro)
-extern wxString     g_Prj_Default_Config_FullFilename;
-
-/// Name of local configuration file. (\<curr projet\>.pro)
-extern wxString     g_Prj_Config_LocalFilename;
 
 extern EDA_UNITS_T  g_UserUnit;     ///< display units
 

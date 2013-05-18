@@ -68,7 +68,8 @@ class INFO3D_VISU
 public:
     enum DISPLAY3D_FLG {
         FL_AXIS=0, FL_MODULE, FL_ZONE,
-        FL_COMMENTS, FL_DRAWINGS, FL_ECO1, FL_ECO2,
+        FL_ADHESIVE, FL_SILKSCREEN, FL_SOLDERMASK, FL_SOLDERPASTE,
+        FL_COMMENTS, FL_ECO,
         FL_GRID,
         FL_USE_COPPER_THICKNESS,
         FL_LAST
@@ -93,7 +94,7 @@ public:
     double  m_CurrentZpos;                          // temporary storage of current value of Z position,
                                                     // used in some calculation
 private:
-    double  m_LayerZcoord[LAYER_COUNT];             // Z position of each layer (normalized)
+    double  m_LayerZcoord[NB_LAYERS];               // Z position of each layer (normalized)
     double  m_CopperThickness;                      // Copper thickness (normalized)
     double  m_EpoxyThickness;                       // Epoxy thickness (normalized)
     double  m_NonCopperLayerThickness;              // Non copper layers thickness
@@ -110,18 +111,11 @@ public: INFO3D_VISU();
 
     /**
      * function GetModulesZcoord3DIU
-     * @return the Z coordinate of the module, in 3D Units
+     * @return the Z position of 3D shapes, in 3D Units
      * @param aIsFlipped: true for modules on Front (top) layer, false
      * if on back (bottom) layer
-     * Used to know the Z position of 3D shapes
      */
-    double GetModulesZcoord3DIU( bool aIsFlipped )
-    {
-        if(  aIsFlipped )
-            return m_LayerZcoord[ADHESIVE_N_BACK] - m_NonCopperLayerThickness;
-        else
-            return m_LayerZcoord[ADHESIVE_N_FRONT] + m_NonCopperLayerThickness;
-    }
+    double GetModulesZcoord3DIU( bool aIsFlipped );
 
     /**
      * function GetLayerZcoordBIU
@@ -130,7 +124,7 @@ public: INFO3D_VISU();
      */
     int GetLayerZcoordBIU( int aLayerId )
     {
-        return (int) (m_LayerZcoord[aLayerId] / m_BiuTo3Dunits );
+        return KiROUND( m_LayerZcoord[aLayerId] / m_BiuTo3Dunits );
     }
 
     /**
@@ -144,7 +138,7 @@ public: INFO3D_VISU();
     int GetCopperThicknessBIU() const
     {
         return m_DrawFlags[FL_USE_COPPER_THICKNESS] ?
-            (int) (m_CopperThickness / m_BiuTo3Dunits )
+            KiROUND( m_CopperThickness / m_BiuTo3Dunits )
             : 0;
     }
 
@@ -154,7 +148,7 @@ public: INFO3D_VISU();
      */
     int GetEpoxyThicknessBIU() const
     {
-        return (int) (m_EpoxyThickness / m_BiuTo3Dunits );
+        return KiROUND( m_EpoxyThickness / m_BiuTo3Dunits );
     }
 
     /**
@@ -167,7 +161,7 @@ public: INFO3D_VISU();
     int GetNonCopperLayerThicknessBIU() const
     {
         return  m_DrawFlags[FL_USE_COPPER_THICKNESS] ?
-            (int) (m_NonCopperLayerThickness / m_BiuTo3Dunits )
+            KiROUND( m_NonCopperLayerThickness / m_BiuTo3Dunits )
             : 0;
     }
 
@@ -180,7 +174,7 @@ public: INFO3D_VISU();
      */
     int GetLayerObjectThicknessBIU( int aLayerId) const
     {
-        return aLayerId >= FIRST_NO_COPPER_LAYER ?
+        return aLayerId >= FIRST_NON_COPPER_LAYER ?
                         GetNonCopperLayerThicknessBIU() :
                         GetCopperThicknessBIU();
     }

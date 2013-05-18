@@ -27,6 +27,7 @@
  */
 
 #include <io_mgr.h>
+#include <layers_id_colors_and_visibility.h>
 
 
 // forward declaration on ptree template so we can confine use of big boost
@@ -133,6 +134,11 @@ private:
 
     PROPERTIES* m_props;            ///< passed via Save() or Load(), no ownership, may be NULL.
     BOARD*      m_board;            ///< which BOARD is being worked on, no ownership here
+
+    int         m_min_trace;        ///< smallest trace we find on Load(), in BIU.
+    int         m_min_via;          ///< smallest via we find on Load(), in BIU.
+    int         m_min_via_hole;     ///< smallest via diameter hole we find on Load(), in BIU.
+
     double      mm_per_biu;         ///< how many mm in each BIU
     double      biu_per_mm;         ///< how many bius in a mm
 
@@ -153,7 +159,7 @@ private:
     wxSize  kicad_fontz( double d ) const;
 
     /// Convert an Eagle layer to a KiCad layer.
-    int     kicad_layer( int aLayer ) const;
+    LAYER_NUM kicad_layer( int aLayer ) const;
 
     /// Convert a KiCad distance to an Eagle distance.
     double  eagle( BIU d ) const            { return mm_per_biu * d; }

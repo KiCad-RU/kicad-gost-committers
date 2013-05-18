@@ -27,6 +27,7 @@
 #include <pcb_plot_params_lexer.h>
 #include <eda_text.h>                // EDA_DRAW_MODE_T
 #include <plot_common.h>
+#include <layers_id_colors_and_visibility.h>
 
 class PCB_PLOT_PARAMS;
 class LINE_READER;
@@ -45,16 +46,25 @@ public:
     LINE_READER* GetReader() { return reader; };
 
     void Parse( PCB_PLOT_PARAMS* aPcbPlotParams ) throw( PARSE_ERROR, IO_ERROR );
-    bool ParseBool();
+
+private:
+    bool parseBool();
 
     /**
-     * Function ParseInt
+     * Function parseInt
      * parses an integer and constrains it between two values.
      * @param aMin is the smallest return value.
      * @param aMax is the largest return value.
      * @return int - the parsed integer.
      */
-    int ParseInt( int aMin, int aMax );
+    int parseInt( int aMin, int aMax );
+
+    /**
+     * Function parseDouble
+     * parses a double
+     * @return double - the parsed double.
+     */
+    double parseDouble();
 };
 
 
@@ -115,7 +125,7 @@ private:
     bool        m_excludeEdgeLayer;
 
     /// Set of layers to plot
-    long        m_layerSelection;
+    LAYER_MSK   m_layerSelection;
 
     /** When plotting gerbers use a conventional set of extensions instead of
      * appending a suffix to the board name */

@@ -154,7 +154,7 @@ public:
      * @param aPrintMirrorMode = not used here (Set when printing in mirror mode)
      * @param aData = a pointer on an auxiliary data (NULL if not used)
      */
-    virtual void PrintPage( wxDC* aDC, int aPrintMaskLayer, bool aPrintMirrorMode,
+    virtual void PrintPage( wxDC* aDC, LAYER_MSK aPrintMaskLayer, bool aPrintMirrorMode,
                             void * aData = NULL);
 
     // BOARD handling
@@ -225,7 +225,6 @@ public:
 
 
     // Footprint edition
-    void Place_Ancre( MODULE* module );
     void RemoveStruct( EDA_ITEM* Item );
 
     /**
@@ -286,12 +285,12 @@ public:
     bool Load_Module_From_BOARD( MODULE* Module );
 
     /**
-     * Function Select_1_Module_From_BOARD
+     * Function SelectFootprint
      * Display the list of modules currently existing on the BOARD
      * @return a pointer to a module if this module is selected or NULL otherwise
      * @param aPcb = the board from modules can be loaded
      */
-    MODULE* Select_1_Module_From_BOARD( BOARD* aPcb );
+    MODULE* SelectFootprint( BOARD* aPcb );
 
     // functions to edit footprint edges
 
@@ -375,6 +374,8 @@ public:
     bool DeleteModuleFromCurrentLibrary();
 
     void Select_Active_Library();
+
+    virtual EDA_COLOR_T GetGridColor( void ) const;
 
     DECLARE_EVENT_TABLE()
 

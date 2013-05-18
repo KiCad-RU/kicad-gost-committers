@@ -80,7 +80,7 @@ public:
         m_Text.SetSize( aTextSize );
     }
 
-    void SetLayer( int aLayer );
+    void SetLayer( LAYER_NUM aLayer );
 
     void SetShape( int aShape )         { m_Shape = aShape; }
     int GetShape() const { return m_Shape; }
@@ -145,7 +145,7 @@ public:
     EDA_ITEM*   Clone() const;
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); }    // override
+    virtual void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); }    // override
 #endif
 };
 

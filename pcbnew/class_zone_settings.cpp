@@ -44,16 +44,16 @@ ZONE_SETTINGS::ZONE_SETTINGS()
     // Min thickness value in filled areas (this is the minimum width of copper to fill solid areas) :
     m_ZoneMinThickness   = Mils2iu( ZONE_THICKNESS_MIL );
     m_NetcodeSelection   = 0;                                  // Net code selection for the current zone
-    m_CurrentZone_Layer  = 0;                                  // Layer used to create the current zone
+    m_CurrentZone_Layer  = FIRST_LAYER;                        // Layer used to create the current zone
     m_Zone_HatchingStyle = CPolyLine::DIAGONAL_EDGE;           // Option to show the zone area (outlines only, short hatches or full hatches
 
     m_ArcToSegmentsCount = ARC_APPROX_SEGMENTS_COUNT_LOW_DEF;  // Option to select number of segments to approximate a circle
                                                                // ARC_APPROX_SEGMENTS_COUNT_LOW_DEF
                                                                // or ARC_APPROX_SEGMENTS_COUNT_HIGHT_DEF segments
 
-    // tickness of the gap in thermal reliefs:
+    // thickness of the gap in thermal reliefs:
     m_ThermalReliefGap = Mils2iu( ZONE_THERMAL_RELIEF_GAP_MIL );
-    // tickness of the copper bridge in thermal reliefs:
+    // thickness of the copper bridge in thermal reliefs:
     m_ThermalReliefCopperBridge = Mils2iu( ZONE_THERMAL_RELIEF_COPPER_WIDTH_MIL );
 
     m_PadConnection = THERMAL_PAD;                             // How pads are covered by copper in zone
@@ -73,15 +73,15 @@ ZONE_SETTINGS::ZONE_SETTINGS()
 ZONE_SETTINGS& ZONE_SETTINGS::operator << ( const ZONE_CONTAINER& aSource )
 {
     m_ZonePriority = aSource.GetPriority();
-    m_FillMode     = aSource.m_FillMode;
-    m_ZoneClearance      = aSource.m_ZoneClearance;
-    m_ZoneMinThickness   = aSource.m_ZoneMinThickness;
+    m_FillMode           = aSource.GetFillMode();
+    m_ZoneClearance      = aSource.GetClearance();
+    m_ZoneMinThickness   = aSource.GetMinThickness();
     m_NetcodeSelection   = aSource.GetNet();
     m_CurrentZone_Layer  = aSource.GetLayer();
     m_Zone_HatchingStyle = aSource.GetHatchStyle();
-    m_ArcToSegmentsCount = aSource.m_ArcToSegmentsCount;
-    m_ThermalReliefGap = aSource.m_ThermalReliefGap;
-    m_ThermalReliefCopperBridge = aSource.m_ThermalReliefCopperBridge;
+    m_ArcToSegmentsCount = aSource.GetArcSegmentCount();
+    m_ThermalReliefGap = aSource.GetThermalReliefGap();
+    m_ThermalReliefCopperBridge = aSource.GetThermalReliefCopperBridge();
     m_PadConnection = aSource.GetPadConnection();
     m_cornerSmoothingType = aSource.GetCornerSmoothingType();
     m_cornerRadius = aSource.GetCornerRadius();
@@ -96,12 +96,12 @@ ZONE_SETTINGS& ZONE_SETTINGS::operator << ( const ZONE_CONTAINER& aSource )
 
 void ZONE_SETTINGS::ExportSetting( ZONE_CONTAINER& aTarget, bool aFullExport ) const
 {
-    aTarget.m_FillMode = m_FillMode;
-    aTarget.m_ZoneClearance    = m_ZoneClearance;
-    aTarget.m_ZoneMinThickness = m_ZoneMinThickness;
-    aTarget.m_ArcToSegmentsCount = m_ArcToSegmentsCount;
-    aTarget.m_ThermalReliefGap = m_ThermalReliefGap;
-    aTarget.m_ThermalReliefCopperBridge = m_ThermalReliefCopperBridge;
+    aTarget.SetFillMode( m_FillMode );
+    aTarget.SetZoneClearance( m_ZoneClearance );
+    aTarget.SetMinThickness( m_ZoneMinThickness );
+    aTarget.SetArcSegmentCount( m_ArcToSegmentsCount );
+    aTarget.SetThermalReliefGap( m_ThermalReliefGap );
+    aTarget.SetThermalReliefCopperBridge( m_ThermalReliefCopperBridge );
     aTarget.SetPadConnection( m_PadConnection );
     aTarget.SetCornerSmoothingType( m_cornerSmoothingType );
     aTarget.SetCornerRadius( m_cornerRadius );
@@ -115,10 +115,10 @@ void ZONE_SETTINGS::ExportSetting( ZONE_CONTAINER& aTarget, bool aFullExport ) c
         aTarget.SetPriority( m_ZonePriority );
         aTarget.SetNet( m_NetcodeSelection );
         aTarget.SetLayer( m_CurrentZone_Layer );
-        aTarget.m_Poly->SetLayer( m_CurrentZone_Layer );
+        aTarget.Outline()->SetLayer( m_CurrentZone_Layer );
     }
 
     // call SetHatch last, because hatch lines will be rebuilt,
     // using new parameters values
-    aTarget.m_Poly->SetHatch( m_Zone_HatchingStyle, Mils2iu( 20 ), true );
+    aTarget.Outline()->SetHatch( m_Zone_HatchingStyle, Mils2iu( 20 ), true );
 }

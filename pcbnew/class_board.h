@@ -1,3 +1,27 @@
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2007 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
 /**
  * @file class_board.h
  * @brief Class BOARD to handle a board.
@@ -30,6 +54,8 @@ class TRACK;
 class D_PAD;
 class MARKER_PCB;
 class MSG_PANEL_ITEM;
+class NETLIST;
+class REPORTER;
 
 
 // non-owning container of item candidates when searching for items on the same track.
@@ -188,7 +214,7 @@ private:
     /// edge zone descriptors, owned by pointer.
     ZONE_CONTAINERS         m_ZoneDescriptorList;
 
-    LAYER                   m_Layer[LAYER_COUNT];
+    LAYER                   m_Layer[NB_LAYERS];
                                                     // if true m_highLight_NetCode is used
     HIGH_LIGHT_INFO         m_highLight;                // current high light data
     HIGH_LIGHT_INFO         m_highLightPrevious;        // a previously stored high light data
@@ -234,7 +260,7 @@ private:
      * @param aLayerMask The allowed layers for segments to search.
      * @param aList The track list to fill with points of flagged segments.
      */
-    void chainMarkedSegments( wxPoint aPosition, int aLayerMask, TRACK_PTRS* aList );
+    void chainMarkedSegments( wxPoint aPosition, LAYER_MSK aLayerMask, TRACK_PTRS* aList );
 
     void formatNetClass( NETCLASS* aNetClass, OUTPUTFORMATTER* aFormatter, int aNestLevel,
                          int aControlBits ) const
@@ -282,33 +308,16 @@ public:
     BOARD();
     ~BOARD();
 
+    bool IsEmpty() const
+    {
+        return m_Drawings.GetCount() == 0 && m_Modules.GetCount() == 0 &&
+               m_Track.GetCount() == 0 && m_Zone.GetCount() == 0;
+    }
+
     void Move( const wxPoint& aMoveVector );        // overload
 
     void SetFileFormatVersionAtLoad( int aVersion ) { m_fileFormatVersionAtLoad = aVersion; }
     int GetFileFormatVersionAtLoad()  const { return m_fileFormatVersionAtLoad; }
-
-    /**
-     * Function GetDefaultLayerName
-     * returns a default name of a PCB layer when given \a aLayerNumber.  This
-     * function is static so it can be called without a BOARD instance.  Use
-     * GetLayerName() if want the layer names of a specific BOARD, which could
-     * be different than the default if the user has renamed any copper layers.
-     *
-     * @param  aLayerNumber is the layer number to fetch
-     * @param  aTranslate = true to return the translated version
-     *                    = false to get the native version
-     * @return wxString - containing the layer name or "BAD INDEX" if aLayerNumber
-     *                      is not legal
-     */
-    static wxString GetDefaultLayerName( int aLayerNumber, bool aTranslate );
-
-    /**
-     * Function ReturnFlippedLayerNumber
-     * @return the layer number after flipping an item
-     * some (not all) layers: external copper, Mask, Paste, and solder
-     * are swapped between front and back sides
-     */
-    static int ReturnFlippedLayerNumber( int oldlayer );
 
     /**
      * Function Add
@@ -448,7 +457,7 @@ public:
      * Returns a bit-mask of all the layers that are enabled
      * @return int - the enabled layers in bit-mapped form.
      */
-    int  GetEnabledLayers() const;
+    LAYER_MSK GetEnabledLayers() const;
 
     /**
      * Function SetEnabledLayers
@@ -456,7 +465,7 @@ public:
      * Changes the bit-mask of enabled layers
      * @param aLayerMask = The new bit-mask of enabled layers
      */
-    void SetEnabledLayers( int aLayerMask );
+    void SetEnabledLayers( LAYER_MSK aLayerMask );
 
     /**
      * Function IsLayerEnabled
@@ -465,7 +474,7 @@ public:
      * @param aLayer = The layer to be tested
      * @return bool - true if the layer is visible.
      */
-    bool IsLayerEnabled( int aLayer ) const
+    bool IsLayerEnabled( LAYER_NUM aLayer ) const
     {
         return m_designSettings.IsLayerEnabled( aLayer );
     }
@@ -474,12 +483,12 @@ public:
      * Function IsLayerVisible
      * is a proxy function that calls the correspondent function in m_BoardSettings
      * tests whether a given layer is visible
-     * @param aLayerIndex = The index of the layer to be tested
+     * @param aLayer = The layer to be tested
      * @return bool - true if the layer is visible.
      */
-    bool IsLayerVisible( int aLayerIndex ) const
+    bool IsLayerVisible( LAYER_NUM aLayer ) const
     {
-        return m_designSettings.IsLayerVisible( aLayerIndex );
+        return m_designSettings.IsLayerVisible( aLayer );
     }
 
     /**
@@ -488,7 +497,7 @@ public:
      * Returns a bit-mask of all the layers that are visible
      * @return int - the visible layers in bit-mapped form.
      */
-    int  GetVisibleLayers() const;
+    LAYER_MSK  GetVisibleLayers() const;
 
     /**
      * Function SetVisibleLayers
@@ -496,7 +505,7 @@ public:
      * changes the bit-mask of visible layers
      * @param aLayerMask = The new bit-mask of visible layers
      */
-    void SetVisibleLayers( int aLayerMask );
+    void SetVisibleLayers( LAYER_MSK aLayerMask );
 
     // these 2 functions are not tidy at this time, since there are PCB_VISIBLEs that
     // are not stored in the bitmap.
@@ -552,7 +561,7 @@ public:
      * @param layer One of the two allowed layers for modules: LAYER_N_FRONT or LAYER_N_BACK
      * @return bool - true if the layer is visible, else false.
      */
-    bool IsModuleLayerVisible( int layer );
+    bool IsModuleLayerVisible( LAYER_NUM layer );
 
     /**
      * Function GetVisibleElementColor
@@ -604,67 +613,80 @@ public:
      * Function SetColorsSettings
      * @param aColorsSettings = the new COLORS_DESIGN_SETTINGS to use
      */
-    void SetColorsSettings(COLORS_DESIGN_SETTINGS* aColorsSettings)
+    void SetColorsSettings( COLORS_DESIGN_SETTINGS* aColorsSettings )
     {
         m_colorsSettings = aColorsSettings;
     }
 
     /**
      * Function GetLayerName
-     * returns the name of the layer given by aLayerIndex.
+     * returns the name of a layer given by aLayer.  Copper layers may
+     * have custom names.
      *
-     * @param aLayerIndex = A layer index, like LAYER_N_BACK, etc.
-     * @param  aTranslate = true to return the translated version (default)
-     *                    = false to get the native English name
-     *                   (Useful to build filenames from layer names)
-     * @return wxString - the layer name.
+     * @param aLayer = A layer, like LAYER_N_BACK, etc.
+     *
+     * @return wxString -   the layer name, which for copper layers may
+     *                      be custom, else standard.
      */
-    wxString GetLayerName( int aLayerIndex, bool aTranslate = true ) const;
+    wxString GetLayerName( LAYER_NUM aLayer ) const;
 
     /**
      * Function SetLayerName
-     * changes the name of the layer given by aLayerIndex.
+     * changes the name of the layer given by aLayer.
      *
-     * @param aLayerIndex A layer index, like LAYER_N_BACK, etc.
+     * @param aLayer A layer, like LAYER_N_BACK, etc.
      * @param aLayerName The new layer name
      * @return bool - true if aLayerName was legal and unique among other
-     *   layer names at other layer indices and aLayerIndex was within range, else false.
+     *   layer names at other layer indices and aLayer was within range, else false.
      */
-    bool SetLayerName( int aLayerIndex, const wxString& aLayerName );
+    bool SetLayerName( LAYER_NUM aLayer, const wxString& aLayerName );
 
-    bool SetLayer( int aIndex, const LAYER& aLayer );
+    /**
+     * Function GetStandardLayerName
+     * returns an "English Standard" name of a PCB layer when given \a aLayerNumber.
+     * This function is static so it can be called without a BOARD instance.  Use
+     * GetLayerName() if want the layer names of a specific BOARD, which could
+     * be different than the default if the user has renamed any copper layers.
+     *
+     * @param  aLayerNumber is the layer number to fetch
+     * @return wxString - containing the layer name or "BAD INDEX" if aLayerNumber
+     *                      is not legal
+     */
+    static wxString GetStandardLayerName( LAYER_NUM aLayerNumber );
+
+    bool SetLayer( LAYER_NUM aIndex, const LAYER& aLayer );
 
     /**
      * Function GetLayerType
-     * returns the type of the copper layer given by aLayerIndex.
+     * returns the type of the copper layer given by aLayer.
      *
-     * @param aLayerIndex A layer index, like LAYER_N_BACK, etc.
+     * @param aLayer A layer index, like LAYER_N_BACK, etc.
      * @return LAYER_T - the layer type, or LAYER_T(-1) if the
      *  index was out of range.
      */
-    LAYER_T GetLayerType( int aLayerIndex ) const;
+    LAYER_T GetLayerType( LAYER_NUM aLayer ) const;
 
     /**
      * Function SetLayerType
-     * changes the type of the layer given by aLayerIndex.
+     * changes the type of the layer given by aLayer.
      *
-     * @param aLayerIndex A layer index, like LAYER_N_BACK, etc.
+     * @param aLayer A layer index, like LAYER_N_BACK, etc.
      * @param aLayerType The new layer type.
-     * @return bool - true if aLayerType was legal and aLayerIndex was within range, else false.
+     * @return bool - true if aLayerType was legal and aLayer was within range, else false.
      */
-    bool SetLayerType( int aLayerIndex, LAYER_T aLayerType );
+    bool SetLayerType( LAYER_NUM aLayer, LAYER_T aLayerType );
 
     /**
      * Function SetLayerColor
      * changes a layer color for any valid layer, including non-copper ones.
      */
-    void SetLayerColor( int aLayer, EDA_COLOR_T aColor );
+    void SetLayerColor( LAYER_NUM aLayer, EDA_COLOR_T aColor );
 
     /**
      * Function GetLayerColor
      * gets a layer color for any valid layer, including non-copper ones.
      */
-    EDA_COLOR_T GetLayerColor( int aLayer ) const;
+    EDA_COLOR_T GetLayerColor( LAYER_NUM aLayer ) const;
 
     /** Functions to get some items count */
     int GetNumSegmTrack() const;
@@ -860,6 +882,47 @@ public:
     MODULE* FindModuleByReference( const wxString& aReference ) const;
 
     /**
+     * Function FindModule
+     * searches for a module matching \a aRefOrTimeStamp depending on the state of
+     * \a aSearchByTimeStamp.
+     * @param aRefOrTimeStamp is the search string.
+     * @param aSearchByTimeStamp searches by the module time stamp value if true.  Otherwise
+     *                           search by reference designator.
+     * @return the module found or NULL if not module is found that meets the search criteria.
+     */
+    MODULE* FindModule( const wxString& aRefOrTimeStamp, bool aSearchByTimeStamp = false );
+
+    /**
+     * Function ReplaceNetlist
+     * updates the #BOARD according to \a aNetlist.
+     *
+     * The changes are made to the board are as follows they are not disabled in the status
+     * settings in the #NETLIST:
+     * - If a new component is found in the #NETLIST and not in the #BOARD, it is added
+     *   to the #BOARD.
+     * - If a the component in the #NETLIST is already on the #BOARD, then one or more of the
+     *   following actions can occur:
+     *   + If the footprint name in the #NETLIST does not match the footprint name on the
+     *     #BOARD, the footprint on the #BOARD is replaced with the footprint specified in
+     *     the #NETLIST and the proper parameters are copied from the existing footprint.
+     *   + If the reference designator in the #NETLIST does not match the reference designator
+     *     on the #BOARD, the reference designator is updated from the #NETLIST.
+     *   + If the value field in the #NETLIST does not match the value field on the #BOARD,
+     *     the value field is updated from the #NETLIST.
+     *   + If the time stamp in the #NETLIST does not match the time stamp  on the #BOARD,
+     *     the time stamp is updated from the #NETLIST.
+     * - After each footprint is added or update as described above, each footprint pad net
+     *   name is compared and updated to the value defined in the #NETLIST.
+     * - After all of the footprints have been added, updated, and net names properly set,
+     *   any extra unlock footprints are removed from the #BOARD.
+     *
+     * @param aNetlist is the new netlist to revise the contents of the #BOARD with.
+     * @param aReporter is a #REPORTER object to report the changes \a aNetlist makes to
+     *                  the #BOARD.  If NULL, no change reporting occurs.
+     */
+    void ReplaceNetlist( NETLIST& aNetlist, REPORTER* aReporter = NULL );
+
+    /**
      * Function ReturnSortedNetnamesList
      * @param aNames An array string to fill with net names.
      * @param aSortbyPadsCount  true = sort by active pads count, false = no sort (i.e.
@@ -988,7 +1051,7 @@ public:
     }
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const;     // overload
+    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
 #endif
 
 
@@ -1007,8 +1070,8 @@ public:
      * @return ZONE_CONTAINER* return a pointer to the ZONE_CONTAINER found, else NULL
      */
     ZONE_CONTAINER* HitTestForAnyFilledArea( const wxPoint& aRefPos,
-                                             int            aStartLayer,
-                                             int            aEndLayer = -1 );
+                                             LAYER_NUM      aStartLayer,
+                                             LAYER_NUM      aEndLayer = UNDEFINED_LAYER );
 
     /**
      * Function RedrawAreasOutlines
@@ -1017,14 +1080,14 @@ public:
     void RedrawAreasOutlines( EDA_DRAW_PANEL* aPanel,
                               wxDC*           aDC,
                               GR_DRAWMODE     aDrawMode,
-                              int             aLayer );
+                              LAYER_NUM       aLayer );
 
     /**
      * Function RedrawFilledAreas
      * Redraw all filled areas on layer aLayer ( redraw all if aLayer < 0 )
      */
     void RedrawFilledAreas( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMode,
-                            int aLayer );
+                            LAYER_NUM aLayer );
 
     /**
      * Function SetAreasNetCodesFromNetNames
@@ -1092,14 +1155,14 @@ public:
      * @return a reference to the new area
      */
     ZONE_CONTAINER* AddArea( PICKED_ITEMS_LIST* aNewZonesList, int aNetcode,
-                             int aLayer, wxPoint aStartPointPosition, int aHatch );
+                             LAYER_NUM aLayer, wxPoint aStartPointPosition, int aHatch );
 
     /**
      * Function InsertArea
      * add empty copper area to net, inserting after m_ZoneDescriptorList[iarea]
      * @return pointer to the new area
      */
-    ZONE_CONTAINER* InsertArea( int netcode, int iarea, int layer, int x, int y, int hatch );
+    ZONE_CONTAINER* InsertArea( int netcode, int iarea, LAYER_NUM layer, int x, int y, int hatch );
 
     /**
      * Function NormalizeAreaPolygon
@@ -1109,10 +1172,8 @@ public:
      * @param aNewZonesList = a PICKED_ITEMS_LIST * where to store new created areas pickers
      * @param aCurrArea = the zone to process
      * @return true if changes are made
-     * Also sets areas->utility1 flags if areas are modified
      */
-    bool NormalizeAreaPolygon( PICKED_ITEMS_LIST * aNewZonesList,
-                               ZONE_CONTAINER* aCurrArea );
+    bool NormalizeAreaPolygon( PICKED_ITEMS_LIST* aNewZonesList, ZONE_CONTAINER* aCurrArea );
 
     /**
      * Function OnAreaPolygonModified
@@ -1133,13 +1194,13 @@ public:
      * @param aDeletedList = a PICKED_ITEMS_LIST * where to store deleted areas (useful
      *                       in undo commands can be NULL
      * @param aNetCode = net to consider
-     * @param aUseUtility : if true, don't check areas if both utility flags are 0
-     * Sets utility flag = 1 for any areas modified
+     * @param aUseLocalFlags : if true, don't check areas if both local flags are 0
+     * Sets local flag = 1 for any areas modified
      * @return true if some areas modified
      */
     bool CombineAllAreasInNet( PICKED_ITEMS_LIST* aDeletedList,
-                              int                aNetCode,
-                              bool               aUseUtility );
+                               int                aNetCode,
+                               bool               aUseLocalFlags );
 
     /**
      * Function RemoveArea
@@ -1214,10 +1275,10 @@ public:
      * of the via.
      * </p>
      * @param aPosition The wxPoint to HitTest() against.
-     * @param aLayerMask The layers to search.  Use -1 for a don't care.
+     * @param aLayer The layer to search.  Use -1 for a don't care.
      * @return TRACK* A point a to the SEGVIA object if found, else NULL.
      */
-    TRACK* GetViaByPosition( const wxPoint& aPosition, int aLayerMask = -1 );
+    TRACK* GetViaByPosition( const wxPoint& aPosition, LAYER_NUM aLayer = UNDEFINED_LAYER );
 
     /**
      * Function GetPad
@@ -1227,7 +1288,7 @@ public:
      * @param aLayerMask A layer or layers to mask the hit test.
      * @return A pointer to a D_PAD object if found or NULL if not found.
      */
-    D_PAD* GetPad( const wxPoint& aPosition, int aLayerMask = ALL_LAYERS );
+    D_PAD* GetPad( const wxPoint& aPosition, LAYER_MSK aLayerMask = ALL_LAYERS );
 
     /**
      * Function GetPad
@@ -1241,15 +1302,15 @@ public:
 
     /**
      * Function GetPadFast
-     * return pad found at \a aPosition on \a aLayer using the fast search method.
+     * return pad found at \a aPosition on \a aLayerMask using the fast search method.
      * <p>
      * The fast search method only works if the pad list has already been built.
      * </p>
      * @param aPosition A wxPoint object containing the position to hit test.
-     * @param aLayer A layer or layers to mask the hit test.
+     * @param aLayerMask A layer or layers to mask the hit test.
      * @return A pointer to a D_PAD object if found or NULL if not found.
      */
-    D_PAD* GetPadFast( const wxPoint& aPosition, int aLayer );
+    D_PAD* GetPadFast( const wxPoint& aPosition, LAYER_MSK aLayerMask );
 
     /**
      * Function GetPad
@@ -1266,7 +1327,7 @@ public:
      * @param aLayerMask A layer or layers to mask the hit test.
      * @return a D_PAD object pointer to the connected pad.
      */
-    D_PAD* GetPad( std::vector<D_PAD*>& aPadList, const wxPoint& aPosition, int aLayerMask );
+    D_PAD* GetPad( std::vector<D_PAD*>& aPadList, const wxPoint& aPosition, LAYER_MSK aLayerMask );
 
     /**
      * Function GetSortedPadListByXthenYCoord
@@ -1293,7 +1354,7 @@ public:
      *                   layer mask.
      * @return A TRACK object pointer if found otherwise NULL.
      */
-    TRACK* GetTrace( TRACK* aTrace, const wxPoint& aPosition, int aLayerMask );
+    TRACK* GetTrace( TRACK* aTrace, const wxPoint& aPosition, LAYER_MSK aLayerMask );
 
     /**
      * Function MarkTrace
@@ -1336,7 +1397,7 @@ public:
      * @param aIgnoreLocked Ignore locked modules when true.
      * @return MODULE* The best module or NULL if none.
      */
-    MODULE* GetFootprint( const wxPoint& aPosition, int aActiveLayer,
+    MODULE* GetFootprint( const wxPoint& aPosition, LAYER_NUM aActiveLayer,
                           bool aVisibleOnly, bool aIgnoreLocked = false );
 
     /**
@@ -1352,7 +1413,7 @@ public:
      *                   layer mask.
      * @return A pointer to a BOARD_ITEM object if found otherwise NULL.
      */
-    BOARD_CONNECTED_ITEM* GetLockPoint( const wxPoint& aPosition, int aLayerMask );
+    BOARD_CONNECTED_ITEM* GetLockPoint( const wxPoint& aPosition, LAYER_MSK aLayerMask );
 
     /**
      * Function CreateLockPoint

@@ -117,8 +117,8 @@ wxString SCH_BASE_FRAME::SelectComponentFromLibrary( const wxString& aLibname,
         }
     }
 
-    /* Ask for a component name or key words */
-    msg.Printf( _( "component selection (%d items loaded):" ), CmpCount );
+    // Ask for a component name or key words
+    msg.Printf( _( "Component selection (%d items loaded):" ), CmpCount );
 
     DIALOG_GET_COMPONENT dlg( this, aHistoryList, msg, aUseLibBrowser );
 
@@ -257,7 +257,7 @@ SCH_COMPONENT* SCH_EDIT_FRAME::Load_Component( wxDC*           aDC,
     component->SetLibName( Name );
 
     // Set the component value that can differ from component name in lib, for aliases
-    component->GetField( VALUE )->m_Text = Name;
+    component->GetField( VALUE )->SetText( Name );
 
     MSG_PANEL_ITEMS items;
     component->SetCurrentSheetPath( &GetCurrentSheet() );
@@ -360,7 +360,7 @@ void SCH_EDIT_FRAME::OnSelectUnit( wxCommandEvent& aEvent )
     if( unit > unitCount )
         unit = unitCount;
 
-    int flags = component->GetFlags();
+    STATUS_FLAGS flags = component->GetFlags();
 
     if( !flags )    // No command in progress: save in undo list
         SaveCopyInUndoList( component, UR_CHANGED );
@@ -405,7 +405,7 @@ void SCH_EDIT_FRAME::ConvertPart( SCH_COMPONENT* DrawComponent, wxDC* DC )
         return;
     }
 
-    int flags = DrawComponent->GetFlags();
+    STATUS_FLAGS flags = DrawComponent->GetFlags();
 
     if( DrawComponent->GetFlags() )
         DrawComponent->Draw( m_canvas, DC, wxPoint( 0, 0 ), g_XorMode, g_GhostColor );

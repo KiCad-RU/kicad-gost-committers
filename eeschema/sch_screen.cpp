@@ -1,8 +1,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2009 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -375,7 +377,7 @@ bool SCH_SCREEN::IsTerminalPoint( const wxPoint& aPosition, int aLayer )
 
         label = GetSheetLabel( aPosition );
 
-        if( label && IsBusLabel( label->m_Text ) && label->IsConnected( aPosition ) )
+        if( label && IsBusLabel( label->GetText() ) && label->IsConnected( aPosition ) )
             return true;
 
         text = GetLabel( aPosition );
@@ -394,7 +396,10 @@ bool SCH_SCREEN::IsTerminalPoint( const wxPoint& aPosition, int aLayer )
         break;
 
     case LAYER_WIRE:
-        if( GetItem( aPosition, std::max( GetDefaultLineThickness(), 3 ), SCH_BUS_ENTRY_T ) )
+        if( GetItem( aPosition, std::max( GetDefaultLineThickness(), 3 ), SCH_BUS_WIRE_ENTRY_T) )
+            return true;
+
+        if( GetItem( aPosition, std::max( GetDefaultLineThickness(), 3 ), SCH_BUS_BUS_ENTRY_T) )
             return true;
 
         if( GetItem( aPosition, std::max( GetDefaultLineThickness(), 3 ), SCH_JUNCTION_T ) )
@@ -413,7 +418,7 @@ bool SCH_SCREEN::IsTerminalPoint( const wxPoint& aPosition, int aLayer )
 
         label = GetSheetLabel( aPosition );
 
-        if( label && label->IsConnected( aPosition ) && !IsBusLabel( label->m_Text ) )
+        if( label && label->IsConnected( aPosition ) && !IsBusLabel( label->GetText() ) )
             return true;
 
         break;
@@ -493,9 +498,8 @@ bool SCH_SCREEN::SchematicCleanUp( EDA_DRAW_PANEL* aCanvas, wxDC* aDC )
 bool SCH_SCREEN::Save( FILE* aFile ) const
 {
     // Creates header
-    if( fprintf( aFile, "%s %s %d", EESCHEMA_FILE_STAMP,
-                 SCHEMATIC_HEAD_STRING, EESCHEMA_VERSION ) < 0
-        || fprintf( aFile, "  date %s\n", TO_UTF8( DateAndTime() ) ) < 0 )
+    if( fprintf( aFile, "%s %s %d\n", EESCHEMA_FILE_STAMP,
+                 SCHEMATIC_HEAD_STRING, EESCHEMA_VERSION ) < 0 )
         return false;
 
     BOOST_FOREACH( const CMP_LIBRARY& lib, CMP_LIBRARY::GetLibraryList() )
@@ -505,7 +509,7 @@ bool SCH_SCREEN::Save( FILE* aFile ) const
     }
 
     // This section is not used, but written for file compatibility
-    if( fprintf( aFile, "EELAYER %d %d\n", MAX_LAYERS, 0 ) < 0
+    if( fprintf( aFile, "EELAYER %d %d\n", NB_SCH_LAYERS, 0 ) < 0
         || fprintf( aFile, "EELAYER END\n" ) < 0 )
         return false;
 
@@ -547,9 +551,10 @@ bool SCH_SCREEN::Save( FILE* aFile ) const
     return true;
 }
 
-// note: SCH_SCREEN::Draw is useful only for schematic.
-// library editor and library viewer do not use a draw list, and therefore
-// SCH_SCREEN::Draw draws nothing
+/* note: SCH_SCREEN::Draw is useful only for schematic.
+ * library editor and library viewer do not use a draw list, and therefore
+ * SCH_SCREEN::Draw draws nothing
+ */
 void SCH_SCREEN::Draw( EDA_DRAW_PANEL* aCanvas, wxDC* aDC, GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
 {
     for( SCH_ITEM* item = m_drawList.begin(); item != NULL; item = item->Next() )
@@ -566,6 +571,10 @@ void SCH_SCREEN::Draw( EDA_DRAW_PANEL* aCanvas, wxDC* aDC, GR_DRAWMODE aDrawMode
 }
 
 
+/* note: SCH_SCREEN::Plot is useful only for schematic.
+ * library editor and library viewer do not use a draw list, and therefore
+ * SCH_SCREEN::Plot plots nothing
+ */
 void SCH_SCREEN::Plot( PLOTTER* aPlotter )
 {
     for( SCH_ITEM* item = m_drawList.begin();  item;  item = item->Next() )
@@ -958,13 +967,15 @@ bool SCH_SCREEN::BreakSegmentsOnJunctions()
             if( BreakSegment( junction->GetPosition() ) )
                 brokenSegments = true;
         }
-        else if( item->Type() == SCH_BUS_ENTRY_T )
+        else
         {
-            SCH_BUS_ENTRY* busEntry = ( SCH_BUS_ENTRY* ) item;
-
-            if( BreakSegment( busEntry->GetPosition() )
-                || BreakSegment( busEntry->m_End() ) )
-                brokenSegments = true;
+            SCH_BUS_ENTRY_BASE* busEntry = dynamic_cast<SCH_BUS_ENTRY_BASE*>( item );
+            if( busEntry )
+            {
+                if( BreakSegment( busEntry->GetPosition() )
+                 || BreakSegment( busEntry->m_End() ) )
+                    brokenSegments = true;
+            }
         }
     }
 
@@ -1083,25 +1094,21 @@ bool SCH_SCREEN::SetComponentFootprint( SCH_SHEET_PATH* aSheetPath, const wxStri
              * it is probably not yet initialized
              */
             SCH_FIELD * fpfield = component->GetField( FOOTPRINT );
-            if( fpfield->m_Text.IsEmpty()
-              && ( fpfield->m_Pos == component->GetPosition() ) )
+            if( fpfield->GetText().IsEmpty()
+              && ( fpfield->GetTextPosition() == component->GetPosition() ) )
             {
-                fpfield->m_Orient = component->GetField( VALUE )->m_Orient;
-                fpfield->m_Pos    = component->GetField( VALUE )->m_Pos;
-                fpfield->m_Size   = component->GetField( VALUE )->m_Size;
+                fpfield->SetOrientation( component->GetField( VALUE )->GetOrientation() );
+                fpfield->SetTextPosition( component->GetField( VALUE )->GetTextPosition() );
+                fpfield->SetSize( component->GetField( VALUE )->GetSize() );
 
-                if( fpfield->m_Orient == 0 )
-                    fpfield->m_Pos.y += 100;
+                if( fpfield->GetOrientation() == 0 )
+                    fpfield->Offset( wxPoint( 0, 100 ) );
                 else
-                    fpfield->m_Pos.x += 100;
+                    fpfield->Offset( wxPoint( 100, 0 ) );
             }
 
-            fpfield->m_Text = aFootPrint;
-
-            if( aSetVisible )
-                fpfield->m_Attributs &= ~TEXT_NO_VISIBLE;
-            else
-                fpfield->m_Attributs |= TEXT_NO_VISIBLE;
+            fpfield->SetText( aFootPrint );
+            fpfield->SetVisible( aSetVisible );
 
             found = true;
         }

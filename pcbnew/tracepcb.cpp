@@ -55,7 +55,7 @@
  * The pads must appear on the layers selected in LayerMask
  */
 static void Trace_Pads_Only( EDA_DRAW_PANEL* panel, wxDC* DC, MODULE* Module,
-                             int ox, int oy, int LayerMask, GR_DRAWMODE draw_mode );
+                             int ox, int oy, LAYER_MSK LayerMask, GR_DRAWMODE draw_mode );
 
 
 void FOOTPRINT_EDIT_FRAME::RedrawActiveWindow( wxDC* DC, bool EraseBg )
@@ -198,8 +198,8 @@ void BOARD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* DC, GR_DRAWMODE aDrawMode, const
 
     for( MODULE* module = m_Modules; module; module = module->Next() )
     {
-        bool    display     = true;
-        int     layerMask   = ALL_CU_LAYERS;
+        bool       display = true;
+        LAYER_MSK  layerMask = ALL_CU_LAYERS;
 
         if( module->IsMoving() )
             continue;
@@ -260,7 +260,7 @@ void BOARD::DrawHighLight( EDA_DRAW_PANEL* am_canvas, wxDC* DC, int aNetCode )
     // Redraw any pads that have aNetCode
     for( MODULE* module = m_Modules; module; module = module->Next() )
     {
-        for( D_PAD* pad = module->m_Pads; pad; pad = pad->Next() )
+        for( D_PAD* pad = module->Pads(); pad; pad = pad->Next() )
         {
             if( pad->GetNet() == aNetCode )
             {
@@ -286,7 +286,7 @@ void BOARD::DrawHighLight( EDA_DRAW_PANEL* am_canvas, wxDC* DC, int aNetCode )
  * The pads must appear on the layers selected in LayerMask
  */
 static void Trace_Pads_Only( EDA_DRAW_PANEL* panel, wxDC* DC, MODULE* aModule,
-                             int ox, int oy, int aLayerMask, GR_DRAWMODE draw_mode )
+                             int ox, int oy, LAYER_MSK aLayerMask, GR_DRAWMODE draw_mode )
 {
     PCB_BASE_FRAME* frame = (PCB_BASE_FRAME*) panel->GetParent();
 
@@ -295,7 +295,7 @@ static void Trace_Pads_Only( EDA_DRAW_PANEL* panel, wxDC* DC, MODULE* aModule,
     frame->m_DisplayPadFill = false;
 
     // Draw pads.
-    for( D_PAD* pad = aModule->m_Pads; pad; pad = pad->Next() )
+    for( D_PAD* pad = aModule->Pads(); pad; pad = pad->Next() )
     {
         if( (pad->GetLayerMask() & aLayerMask) == 0 )
             continue;

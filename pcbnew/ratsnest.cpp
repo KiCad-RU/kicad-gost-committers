@@ -9,6 +9,7 @@
 #include <class_drawpanel.h>
 #include <colors_selection.h>
 #include <wxBasePcbFrame.h>
+#include <macros.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -534,7 +535,7 @@ void PCB_BASE_FRAME::build_ratsnest_module( MODULE* aModule )
         m_Pcb->m_LocalRatsnest.clear();
 
         // collect active pads of the module:
-        for( pad_ref = aModule->m_Pads; pad_ref != NULL; pad_ref = pad_ref->Next() )
+        for( pad_ref = aModule->Pads(); pad_ref != NULL; pad_ref = pad_ref->Next() )
         {
             if( pad_ref->GetNet() == 0 )
                 continue;

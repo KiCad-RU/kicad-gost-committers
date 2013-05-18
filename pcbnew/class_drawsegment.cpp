@@ -45,6 +45,7 @@
 
 #include <pcbnew.h>
 #include <protos.h>
+#include <math_for_graphics.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -55,7 +56,8 @@
 DRAWSEGMENT::DRAWSEGMENT( BOARD_ITEM* aParent, KICAD_T idtype ) :
     BOARD_ITEM( aParent, idtype )
 {
-    m_Width = m_Flags = m_Type = m_Angle = 0;
+    m_Width = m_Type = m_Angle = 0;
+    m_Flags = 0;
     m_Shape = S_SEGMENT;
 }
 
@@ -110,7 +112,7 @@ void DRAWSEGMENT::Flip( const wxPoint& aCentre )
         NEGATE( m_Angle );
     }
 
-    SetLayer( BOARD::ReturnFlippedLayerNumber( GetLayer() ) );
+    SetLayer( FlipLayer( GetLayer() ) );
 }
 
 const wxPoint DRAWSEGMENT::GetArcEnd() const
@@ -137,16 +139,13 @@ const wxPoint DRAWSEGMENT::GetArcEnd() const
 const double DRAWSEGMENT::GetArcAngleStart() const
 {
     // due to the Y axis orient atan2 needs - y value
-    double angleStart = atan2( (double)(GetArcStart().y - GetCenter().y),
-                               (double)(GetArcStart().x - GetCenter().x) );
-    // angleStart is in radians, convert it in 1/10 degrees
-    angleStart = angleStart / M_PI * 1800.0;
+    double angleStart = ArcTangente( GetArcStart().y - GetCenter().y,
+                                     GetArcStart().x - GetCenter().x );
 
     // Normalize it to 0 ... 360 deg, to avoid discontinuity for angles near 180 deg
     // because 180 deg and -180 are very near angles when ampping betewwen -180 ... 180 deg.
     // and this is not easy to handle in calculations
-    if( angleStart < 0 )
-        angleStart += 3600.0;
+    NORMALIZE_ANGLE_POS( angleStart );
 
     return angleStart;
 }
@@ -155,7 +154,7 @@ void DRAWSEGMENT::SetAngle( double aAngle )
 {
     NORMALIZE_ANGLE_360( aAngle );
 
-    m_Angle = (int) aAngle;
+    m_Angle = aAngle;
 }
 
 
@@ -175,7 +174,7 @@ void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
     int l_trace;
     int mode;
     int radius;
-    int curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
+    LAYER_NUM curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
     EDA_COLOR_T color;
 
     BOARD * brd =  GetBoard( );
@@ -208,13 +207,13 @@ void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
     if( m_Flags & FORCE_SKETCH )
         mode = SKETCH;
 
-    if( l_trace < DC->DeviceToLogicalXRel( MIN_DRAW_WIDTH ) )
+    if( DC->LogicalToDeviceXRel( l_trace ) <= MIN_DRAW_WIDTH )
         mode = LINE;
 
     switch( m_Shape )
     {
     case S_CIRCLE:
-        radius = (int) hypot( (double) (dx - ux0), (double) (dy - uy0) );
+        radius = KiROUND( Distance( ux0, uy0, dx, dy ) );
 
         if( mode == LINE )
         {
@@ -233,9 +232,9 @@ void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
         break;
 
     case S_ARC:
-        int StAngle, EndAngle;
-        radius    = (int) hypot( (double) (dx - ux0), (double) (dy - uy0) );
-        StAngle  = (int) ArcTangente( dy - uy0, dx - ux0 );
+        double StAngle, EndAngle;
+        radius   = KiROUND( Distance( ux0, uy0, dx, dy ) );
+        StAngle  = ArcTangente( dy - uy0, dx - ux0 );
         EndAngle = StAngle + m_Angle;
 
         if( !panel->GetPrintMirrored() )
@@ -319,8 +318,7 @@ void DRAWSEGMENT::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     wxString msg;
     wxString coords;
 
-    BOARD*   board = (BOARD*) m_Parent;
-    wxASSERT( board );
+    wxASSERT( m_Parent );
 
     msg = wxT( "DRAWING" );
 
@@ -336,7 +334,7 @@ void DRAWSEGMENT::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 
     case S_ARC:
         aList.push_back( MSG_PANEL_ITEM( shape, _( "Arc" ), RED ) );
-        msg.Printf( wxT( "%.1f" ), (double)m_Angle/10 );
+        msg.Printf( wxT( "%.1f" ), m_Angle / 10.0 );
         aList.push_back( MSG_PANEL_ITEM( _("Angle"), msg, RED ) );
         break;
 
@@ -355,7 +353,7 @@ void DRAWSEGMENT::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     end << GetEnd();
 
     aList.push_back( MSG_PANEL_ITEM( start, end, DARKGREEN ) );
-    aList.push_back( MSG_PANEL_ITEM( _( "Layer" ), board->GetLayerName( m_Layer ), DARKBROWN ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Layer" ), GetLayerName(), DARKBROWN ) );
     msg = ::CoordinateToString( m_Width );
     aList.push_back( MSG_PANEL_ITEM( _( "Width" ), msg, DARKCYAN ) );
 }
@@ -434,7 +432,7 @@ bool DRAWSEGMENT::HitTest( const wxPoint& aPosition )
         {
             wxPoint relPos = aPosition - GetCenter();
             int radius = GetRadius();
-            int dist  = (int) hypot( (double) relPos.x, (double) relPos.y );
+            int dist   = KiROUND( EuclideanNorm( relPos ) );
 
             if( abs( radius - dist ) <= ( m_Width / 2 ) )
             {
@@ -449,8 +447,7 @@ bool DRAWSEGMENT::HitTest( const wxPoint& aPosition )
                 // and > arc angle if arc angle < 0 (CCW arc)
                 double arc_angle_start = GetArcAngleStart();    // Always 0.0 ... 360 deg, in 0.1 deg
 
-                double arc_hittest = atan2( (double) relPos.y, (double) relPos.x );
-                arc_hittest = arc_hittest / M_PI * 1800;    // angles are in 1/10 deg
+                double arc_hittest = ArcTangente( relPos.y, relPos.x );
 
                 // Calculate relative angle between the starting point of the arc, and the test point
                 arc_hittest -= arc_angle_start;
@@ -533,7 +530,7 @@ wxString DRAWSEGMENT::GetSelectMenuText() const
     wxString text;
     wxString temp = ::LengthDoubleToString( GetLength() );
 
-    text.Printf( _( "Pcb Graphic: %s length: %s on %s" ),
+    text.Printf( _( "Pcb Graphic: %s, length %s on %s" ),
                  GetChars( ShowShape( (STROKE_T) m_Shape ) ),
                  GetChars( temp ), GetChars( GetLayerName() ) );
 
@@ -546,25 +543,3 @@ EDA_ITEM* DRAWSEGMENT::Clone() const
     return new DRAWSEGMENT( *this );
 }
 
-
-#if defined(DEBUG)
-void DRAWSEGMENT::Show( int nestLevel, std::ostream& os ) const
-{
-    NestedSpace( nestLevel, os ) << '<' << GetClass().Lower().mb_str() <<
-
-    " shape=\"" << m_Shape << '"' <<
-/*
-    " layer=\"" << GetLayer() << '"' <<
-    " width=\"" << m_Width << '"' <<
-    " angle=\"" << m_Angle << '"' <<  // Used only for Arcs: Arc angle in 1/10 deg
-*/
-    '>' <<
-    "<start" << m_Start << "/>" <<
-    "<end"   << m_End << "/>"
-    "<GetStart" << GetStart() << "/>" <<
-    "<GetEnd"   << GetEnd() << "/>"
-    ;
-
-    os << "</" << GetClass().Lower().mb_str() << ">\n";
-}
-#endif

@@ -72,7 +72,7 @@ void LIB_EDIT_FRAME::OnEditPin( wxCommandEvent& event )
     if( m_drawItem == NULL || m_drawItem->Type() != LIB_PIN_T )
         return;
 
-    int item_flags = m_drawItem->GetFlags();       // save flags to restore them after editing
+    STATUS_FLAGS item_flags = m_drawItem->GetFlags(); // save flags to restore them after editing
     LIB_PIN* pin = (LIB_PIN*) m_drawItem;
 
     DIALOG_LIB_EDIT_PIN dlg( this, pin );
@@ -243,7 +243,7 @@ another pin. Continue?" ) );
 
     m_canvas->SetMouseCapture( NULL, NULL );
     OnModify();
-    CurrentPin->SetPosition( newpos );
+    CurrentPin->Move( newpos );
 
     if( CurrentPin->IsNew() )
     {
@@ -264,7 +264,7 @@ another pin. Continue?" ) );
         if( Pin->GetFlags() == 0 )
             continue;
 
-        Pin->SetPosition( CurrentPin->GetPosition() );
+        Pin->Move( CurrentPin->GetPosition() );
         Pin->ClearFlags();
     }
 
@@ -344,13 +344,13 @@ static void DrawMovePin( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
     // Erase pin in old position
     if( aErase )
     {
-        CurrentPin->SetPosition( PinPreviousPos );
+        CurrentPin->Move( PinPreviousPos );
         CurrentPin->Draw( aPanel, aDC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode,
                           &showPinText, DefaultTransform );
     }
 
     // Redraw pin in new position
-    CurrentPin->SetPosition( aPanel->GetScreen()->GetCrossHairPosition( true ) );
+    CurrentPin->Move( aPanel->GetScreen()->GetCrossHairPosition( true ) );
     CurrentPin->Draw( aPanel, aDC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode,
                       &showPinText, DefaultTransform );
 
@@ -359,7 +359,7 @@ static void DrawMovePin( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
     /* Keep the original position for existing pin (for Undo command)
      * and the current position for a new pin */
     if( !CurrentPin->IsNew() )
-        CurrentPin->SetPosition( pinpos );
+        CurrentPin->Move( pinpos );
 }
 
 
@@ -388,7 +388,7 @@ void LIB_EDIT_FRAME::CreatePin( wxDC* DC )
     if( SynchronizePins() )
         pin->SetFlags( IS_LINKED );
 
-    pin->SetPosition( GetScreen()->GetCrossHairPosition( true ) );
+    pin->Move( GetScreen()->GetCrossHairPosition( true ) );
     pin->SetLength( LastPinLength );
     pin->SetOrientation( LastPinOrient );
     pin->SetType( LastPinType );
@@ -541,7 +541,7 @@ void LIB_EDIT_FRAME::RepeatPinItem( wxDC* DC, LIB_PIN* SourcePin )
     Pin = (LIB_PIN*) SourcePin->Clone();
     Pin->ClearFlags();
     Pin->SetFlags( IS_NEW );
-    Pin->SetPosition( Pin->GetPosition() + wxPoint( g_RepeatStep.x, -g_RepeatStep.y ) );
+    Pin->Move( Pin->GetPosition() + wxPoint( g_RepeatStep.x, -g_RepeatStep.y ) );
     wxString nextName = Pin->GetName();
     IncrementLabelMember( nextName );
     Pin->SetName( nextName );
@@ -645,17 +645,20 @@ void LIB_EDIT_FRAME::OnCheckComponent( wxCommandEvent& event )
 
         dup_error++;
         Pin->ReturnPinStringNum( stringPinNum );
+
+        /* TODO I dare someone to find a way to make happy translators on
+           this thing! Lorenzo */
         curr_pin->ReturnPinStringNum( stringCurrPinNum );
         msg.Printf( _( "<b>Duplicate pin %s</b> \"%s\" at location <b>(%.3f, \
 %.3f)</b> conflicts with pin %s \"%s\" at location <b>(%.3f, %.3f)</b>" ),
                     GetChars( stringCurrPinNum ),
                     GetChars( curr_pin->GetName() ),
-                    (float) curr_pin->GetPosition().x / 1000.0,
-                    (float) -curr_pin->GetPosition().y / 1000.0,
+                    curr_pin->GetPosition().x / 1000.0,
+                    -curr_pin->GetPosition().y / 1000.0,
                     GetChars( stringPinNum ),
                     GetChars( Pin->GetName() ),
-                    (float) Pin->GetPosition().x / 1000.0,
-                    (float) -Pin->GetPosition().y / 1000.0 );
+                    Pin->GetPosition().x / 1000.0,
+                    -Pin->GetPosition().y / 1000.0 );
 
         if( m_component->GetPartCount() > 1 )
         {
@@ -693,8 +696,8 @@ void LIB_EDIT_FRAME::OnCheckComponent( wxCommandEvent& event )
         msg.Printf( _( "<b>Off grid pin %s</b> \"%s\" at location <b>(%.3f, %.3f)</b>" ),
                     GetChars( stringPinNum ),
                     GetChars( Pin->GetName() ),
-                    (float) Pin->GetPosition().x / 1000.0,
-                    (float) -Pin->GetPosition().y / 1000.0 );
+                    Pin->GetPosition().x / 1000.0,
+                    -Pin->GetPosition().y / 1000.0 );
 
         if( m_component->GetPartCount() > 1 )
         {

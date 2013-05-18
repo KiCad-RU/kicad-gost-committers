@@ -26,6 +26,7 @@
 
 #include <io_mgr.h>
 #include <string>
+#include <layers_id_colors_and_visibility.h>
 
 class BOARD;
 class BOARD_ITEM;
@@ -36,8 +37,8 @@ class PCB_PARSER;
 /// Current s-expression file format version.  2 was the last legacy format version.
 #define SEXPR_BOARD_FILE_VERSION    3
 
-/// Use English default layer names
-#define CTL_UNTRANSLATED_LAYERS     (1 << 0)
+/// Use English Standard layer names
+#define CTL_STD_LAYER_NAMES         (1 << 0)
 
 #define CTL_OMIT_NETS               (1 << 1)
 
@@ -46,10 +47,10 @@ class PCB_PARSER;
 // common combinations of the above:
 
 /// Format output for the clipboard instead of footprint library or BOARD
-#define CTL_FOR_CLIPBOARD           (CTL_UNTRANSLATED_LAYERS|CTL_OMIT_NETS)
+#define CTL_FOR_CLIPBOARD           (CTL_STD_LAYER_NAMES|CTL_OMIT_NETS)
 
 /// Format output for a footprint library instead of clipboard or BOARD
-#define CTL_FOR_LIBRARY             (CTL_UNTRANSLATED_LAYERS|CTL_OMIT_NETS|CTL_OMIT_TSTAMPS)
+#define CTL_FOR_LIBRARY             (CTL_STD_LAYER_NAMES|CTL_OMIT_NETS|CTL_OMIT_TSTAMPS)
 
 /**
  * Class PCB_IO
@@ -189,7 +190,7 @@ private:
 
     void formatLayer( const BOARD_ITEM* aItem ) const;
 
-    void formatLayers( int aLayerMask, int aNestLevel = 0 ) const
+    void formatLayers( LAYER_MSK aLayerMask, int aNestLevel = 0 ) const
         throw( IO_ERROR );
 
     /// we only cache one footprint library for now, this determines which one.

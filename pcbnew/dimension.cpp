@@ -127,17 +127,17 @@ DIALOG_DIMENSION_EDITOR::DIALOG_DIMENSION_EDITOR( PCB_EDIT_FRAME* aParent,
     AddUnitSymbol( *m_staticTextWidth );
 
     // Enter position value in dialog
-    PutValueInLocalUnits( *m_textCtrlPosX, aDimension->Text().GetPosition().x );
+    PutValueInLocalUnits( *m_textCtrlPosX, aDimension->Text().GetTextPosition().x );
     AddUnitSymbol( *m_staticTextPosX );
-    PutValueInLocalUnits( *m_textCtrlPosY, aDimension->Text().GetPosition().y );
+    PutValueInLocalUnits( *m_textCtrlPosY, aDimension->Text().GetTextPosition().y );
     AddUnitSymbol( *m_staticTextPosY );
 
-    for( int layer = FIRST_NO_COPPER_LAYER;  layer<NB_LAYERS;  layer++ )
+    for( LAYER_NUM layer = FIRST_NON_COPPER_LAYER; layer < NB_PCB_LAYERS; ++layer )
     {
         m_SelLayerBox->Append( aParent->GetBoard()->GetLayerName( layer ) );
     }
 
-    m_SelLayerBox->SetSelection( aDimension->GetLayer() - FIRST_NO_COPPER_LAYER );
+    m_SelLayerBox->SetSelection( aDimension->GetLayer() - FIRST_NON_COPPER_LAYER );
 
     GetSizer()->Fit( this );
     GetSizer()->SetSizeHints( this );
@@ -180,7 +180,7 @@ void DIALOG_DIMENSION_EDITOR::OnOKClick( wxCommandEvent& event )
     pos.x = ReturnValueFromString( g_UserUnit, msg );
     msg = m_textCtrlPosY->GetValue();
     pos.y = ReturnValueFromString( g_UserUnit, msg );
-    CurrentDimension->Text().SetPosition( pos );
+    CurrentDimension->Text().SetTextPosition( pos );
 
     // Get new line thickness value:
     msg = m_TxtWidthCtrl->GetValue();
@@ -199,7 +199,7 @@ void DIALOG_DIMENSION_EDITOR::OnOKClick( wxCommandEvent& event )
 
     CurrentDimension->Text().SetMirrored( ( m_rbMirror->GetSelection() == 1 ) ? true : false );
 
-    CurrentDimension->SetLayer( m_SelLayerBox->GetCurrentSelection() + FIRST_NO_COPPER_LAYER );
+    CurrentDimension->SetLayer( FIRST_NON_COPPER_LAYER + m_SelLayerBox->GetCurrentSelection() );
 
     if( m_DC )     // Display new text
     {
@@ -325,16 +325,16 @@ static void BuildDimension( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
     {
         wxPoint delta;
         int dx, dy;
-        float angle, depl;
+        double angle, depl;
         delta = Dimension->m_featureLineDO - Dimension->m_featureLineGO;
 
         /* Calculating the direction of travel perpendicular to the selected axis. */
-        angle = atan2( (double)delta.y, (double)delta.x ) + (M_PI / 2);
+        angle = atan2( delta.y, delta.x ) + (M_PI / 2);
 
         delta = pos - Dimension->m_featureLineDO;
         depl   = ( delta.x * cos( angle ) ) + ( delta.y * sin( angle ) );
-        dx = (int) ( depl * cos( angle ) );
-        dy = (int) ( depl * sin( angle ) );
+        dx = KiROUND( depl * cos( angle ) );
+        dy = KiROUND( depl * sin( angle ) );
         Dimension->m_crossBarO.x = Dimension->m_featureLineGO.x + dx;
         Dimension->m_crossBarO.y = Dimension->m_featureLineGO.y + dy;
         Dimension->m_crossBarF.x = Dimension->m_featureLineDO.x + dx;
@@ -380,13 +380,13 @@ void PCB_EDIT_FRAME::BeginMoveDimensionText( DIMENSION* aItem, wxDC* DC )
         return;
 
     // Store the initial position for undo/abort command
-    initialTextPosition = aItem->Text().GetPosition();
+    initialTextPosition = aItem->Text().GetTextPosition();
 
     aItem->Draw( m_canvas, DC, GR_XOR );
     aItem->SetFlags( IS_MOVED );
     SetMsgPanel( aItem );
 
-    GetScreen()->SetCrossHairPosition( aItem->Text().GetPosition() );
+    GetScreen()->SetCrossHairPosition( aItem->Text().GetTextPosition() );
     m_canvas->MoveCursorToCrossHair();
 
     m_canvas->SetMouseCapture( MoveDimensionText, AbortMoveDimensionText );
@@ -407,7 +407,7 @@ static void MoveDimensionText( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint&
     if( aErase )
         dimension->Draw( aPanel, aDC, GR_XOR );
 
-    dimension->Text().SetPosition( aPanel->GetScreen()->GetCrossHairPosition() );
+    dimension->Text().SetTextPosition( aPanel->GetScreen()->GetCrossHairPosition() );
 
     dimension->Draw( aPanel, aDC, GR_XOR );
 }
@@ -428,7 +428,7 @@ void AbortMoveDimensionText( EDA_DRAW_PANEL* aPanel, wxDC* aDC )
         return;
 
     dimension->Draw( aPanel, aDC, GR_XOR );
-    dimension->Text().SetPosition( initialTextPosition );
+    dimension->Text().SetTextPosition( initialTextPosition );
     dimension->ClearFlags();
     dimension->Draw( aPanel, aDC, GR_OR );
 }
@@ -447,10 +447,10 @@ void PCB_EDIT_FRAME::PlaceDimensionText( DIMENSION* aItem, wxDC* DC )
     aItem->Draw( m_canvas, DC, GR_OR );
     OnModify();
 
-    wxPoint tmp = aItem->Text().GetPosition();
-    aItem->Text().SetPosition( initialTextPosition );
+    wxPoint tmp = aItem->Text().GetTextPosition();
+    aItem->Text().SetTextPosition( initialTextPosition );
     SaveCopyInUndoList( aItem, UR_CHANGED );
-    aItem->Text().SetPosition( tmp );
+    aItem->Text().SetTextPosition( tmp );
 
     aItem->ClearFlags();
 }

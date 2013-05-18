@@ -43,7 +43,7 @@
 #include <transform.h>
 
 // Helper function
-static inline wxPoint twoPointVector( wxPoint startPoint, wxPoint endPoint )
+static inline wxPoint twoPointVector( const wxPoint &startPoint, const wxPoint &endPoint )
 {
     return endPoint - startPoint;
 }
@@ -131,7 +131,7 @@ bool LIB_ARC::Load( LINE_READER& aLineReader, wxString& aErrorMsg )
                   &m_Convert, &m_Width, tmp, &startx, &starty, &endx, &endy );
     if( cnt < 8 )
     {
-        aErrorMsg.Printf( _( "arc only had %d parameters of the required 8" ), cnt );
+        aErrorMsg.Printf( _( "Arc only had %d parameters of the required 8" ), cnt );
         return false;
     }
 
@@ -195,7 +195,7 @@ bool LIB_ARC::HitTest( wxPoint aPosition, int aThreshold, const TRANSFORM& aTran
 
     NEGATE( relativePosition.y );       // reverse Y axis
 
-    int distance = KiROUND( EuclideanNorm( twoPointVector( m_Pos, relativePosition ) ) );
+    int distance = KiROUND( GetLineLength( m_Pos, relativePosition ) );
 
     if( abs( distance - m_Radius ) > aThreshold )
         return false;
@@ -370,12 +370,12 @@ void LIB_ARC::Plot( PLOTTER* aPlotter, const wxPoint& aOffset, bool aFill,
 
     if( aFill && m_Fill == FILLED_WITH_BG_BODYCOLOR )
     {
-        aPlotter->SetColor( ReturnLayerColor( LAYER_DEVICE_BACKGROUND ) );
+        aPlotter->SetColor( GetLayerColor( LAYER_DEVICE_BACKGROUND ) );
         aPlotter->Arc( pos, -t2, -t1, m_Radius, FILLED_SHAPE, 0 );
     }
 
     bool already_filled = m_Fill == FILLED_WITH_BG_BODYCOLOR;
-    aPlotter->SetColor( ReturnLayerColor( LAYER_DEVICE ) );
+    aPlotter->SetColor( GetLayerColor( LAYER_DEVICE ) );
     aPlotter->Arc( pos, -t2, -t1, m_Radius, already_filled ? NO_FILL : m_Fill, GetPenSize() );
 }
 
@@ -416,7 +416,7 @@ void LIB_ARC::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOf
         return;
 
     wxPoint pos1, pos2, posc;
-    EDA_COLOR_T color = ReturnLayerColor( LAYER_DEVICE );
+    EDA_COLOR_T color = GetLayerColor( LAYER_DEVICE );
 
     if( aColor < 0 )       // Used normal color or selected color
     {
@@ -452,8 +452,8 @@ void LIB_ARC::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOf
     {
         GRFilledArc( aPanel->GetClipBox(), aDC, posc.x, posc.y, pt1, pt2,
                      m_Radius, GetPenSize( ),
-                     (m_Flags & IS_MOVED) ? color : ReturnLayerColor( LAYER_DEVICE_BACKGROUND ),
-                     ReturnLayerColor( LAYER_DEVICE_BACKGROUND ) );
+                     (m_Flags & IS_MOVED) ? color : GetLayerColor( LAYER_DEVICE_BACKGROUND ),
+                     GetLayerColor( LAYER_DEVICE_BACKGROUND ) );
     }
     else if( fill == FILLED_SHAPE && !aData )
     {
@@ -574,7 +574,7 @@ wxString LIB_ARC::GetSelectMenuText() const
 }
 
 
-void LIB_ARC::BeginEdit( int aEditMode, const wxPoint aPosition )
+void LIB_ARC::BeginEdit( STATUS_FLAGS aEditMode, const wxPoint aPosition )
 {
     wxCHECK_RET( ( aEditMode & ( IS_NEW | IS_MOVED | IS_RESIZED ) ) != 0,
                  wxT( "Invalid edit mode for LIB_ARC object." ) );
@@ -748,7 +748,7 @@ void LIB_ARC::calcEdit( const wxPoint& aPosition )
         // artifacts left behind from the initial draw.
         int dx, dy;
         int cX, cY;
-        int angle;
+        double angle;
 
         cX = aPosition.x;
         cY = aPosition.y;
@@ -757,7 +757,7 @@ void LIB_ARC::calcEdit( const wxPoint& aPosition )
         dy = m_ArcEnd.y - m_ArcStart.y;
         cX -= m_ArcStart.x;
         cY -= m_ArcStart.y;
-        angle = (int) ( atan2( (double) dy, (double) dx ) * 1800 / M_PI );
+        angle = ArcTangente( dy, dx );
         RotatePoint( &dx, &dy, angle );     /* The segment dx, dy is horizontal
                                              * -> Length = dx, dy = 0 */
         RotatePoint( &cX, &cY, angle );
@@ -786,11 +786,9 @@ void LIB_ARC::calcRadiusAngles()
 
     m_Radius = KiROUND( EuclideanNorm( centerStartVector ) );
 
-    m_t1 = (int) ( atan2( (double) centerStartVector.y,
-                          (double) centerStartVector.x ) * 1800 / M_PI );
-
-    m_t2 = (int) ( atan2( (double) centerEndVector.y,
-                          (double) centerEndVector.x ) * 1800 / M_PI );
+    // Angles in eeschema are still integers
+    m_t1 = KiROUND( ArcTangente( centerStartVector.y, centerStartVector.x ) );
+    m_t2 = KiROUND( ArcTangente( centerEndVector.y, centerEndVector.x ) );
 
     NORMALIZE_ANGLE_POS( m_t1 );
     NORMALIZE_ANGLE_POS( m_t2 );  // angles = 0 .. 3600

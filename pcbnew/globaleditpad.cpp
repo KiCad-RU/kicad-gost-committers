@@ -229,7 +229,7 @@ void PCB_BASE_FRAME::GlobalChange_PadSettings( D_PAD* aPad,
 
     // Search and copy the name of library reference.
     MODULE* Module_Ref = module;
-    int pad_orient = aPad->GetOrientation() - Module_Ref->GetOrientation();
+    double pad_orient = aPad->GetOrientation() - Module_Ref->GetOrientation();
 
     // Prepare an undo list:
     if( aSaveForUndo )
@@ -246,13 +246,13 @@ void PCB_BASE_FRAME::GlobalChange_PadSettings( D_PAD* aPad,
 
             bool   saveMe = false;
 
-            for( D_PAD* pad = module->m_Pads;  pad;  pad = pad->Next() )
+            for( D_PAD* pad = module->Pads();  pad;  pad = pad->Next() )
             {
                 // Filters changes prohibited.
                 if( aPadShapeFilter && ( pad->GetShape() != aPad->GetShape() ) )
                     continue;
 
-                int currpad_orient = pad->GetOrientation() - module->GetOrientation();
+                double currpad_orient = pad->GetOrientation() - module->GetOrientation();
 
                 if( aPadOrientFilter && ( currpad_orient != pad_orient ) )
                     continue;
@@ -291,7 +291,7 @@ void PCB_BASE_FRAME::GlobalChange_PadSettings( D_PAD* aPad,
             module->ClearFlags( DO_NOT_DRAW );
         }
 
-        for( D_PAD* pad = module->m_Pads;  pad;  pad = pad->Next() )
+        for( D_PAD* pad = module->Pads();  pad;  pad = pad->Next() )
         {
             // Filters changes prohibited.
             if( aPadShapeFilter && ( pad->GetShape() != aPad->GetShape() ) )

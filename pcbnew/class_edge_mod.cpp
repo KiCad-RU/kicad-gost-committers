@@ -40,6 +40,7 @@
 #include <colors_selection.h>
 #include <richio.h>
 #include <macros.h>
+#include <math_for_graphics.h>
 #include <wxBasePcbFrame.h>
 #include <pcbcommon.h>
 #include <msgpanel.h>
@@ -103,7 +104,7 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
     int             ux0, uy0, dx, dy, radius, StAngle, EndAngle;
     int             type_trace;
     int             typeaff;
-    int curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
+    LAYER_NUM curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
     PCB_BASE_FRAME* frame;
     MODULE* module = (MODULE*) m_Parent;
 
@@ -146,7 +147,7 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
             typeaff = SKETCH;
     }
 
-    if( DC->LogicalToDeviceXRel( m_Width ) < MIN_DRAW_WIDTH )
+    if( DC->LogicalToDeviceXRel( m_Width ) <= MIN_DRAW_WIDTH )
         typeaff = LINE;
 
     switch( type_trace )
@@ -163,7 +164,7 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
         break;
 
     case S_CIRCLE:
-        radius = (int) hypot( (double) (dx - ux0), (double) (dy - uy0) );
+        radius = KiROUND( Distance( ux0, uy0, dx, dy ) );
 
         if( typeaff == LINE )
         {
@@ -185,8 +186,8 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
         break;
 
     case S_ARC:
-        radius   = (int) hypot( (double) (dx - ux0), (double) (dy - uy0) );
-        StAngle  = (int) ArcTangente( dy - uy0, dx - ux0 );
+        radius   = KiROUND( Distance( ux0, uy0, dx, dy ) );
+        StAngle  = ArcTangente( dy - uy0, dx - ux0 );
         EndAngle = StAngle + m_Angle;
 
         if( StAngle > EndAngle )
@@ -250,9 +251,10 @@ void EDGE_MODULE::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     aList.push_back( MSG_PANEL_ITEM( _( "Value" ), module->GetValue(), BLUE ) );
     msg.Printf( wxT( "%8.8lX" ), module->GetTimeStamp() );
     aList.push_back( MSG_PANEL_ITEM( _( "TimeStamp" ), msg, BROWN ) );
-    aList.push_back( MSG_PANEL_ITEM( _( "Mod Layer" ), board->GetLayerName( module->GetLayer() ),
-                                     RED ) );
-    aList.push_back( MSG_PANEL_ITEM( _( "Seg Layer" ), board->GetLayerName( GetLayer() ), RED ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Mod Layer" ), 
+                     module->GetLayerName(), RED ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Seg Layer" ), 
+                     GetLayerName(), RED ) );
     msg = ::CoordinateToString( m_Width );
     aList.push_back( MSG_PANEL_ITEM( _( "Width" ), msg, BLUE ) );
 }
@@ -262,10 +264,10 @@ void EDGE_MODULE::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 wxString EDGE_MODULE::GetSelectMenuText() const
 {
     wxString text;
-
-    text << _( "Graphic" ) << wxT( " " ) << ShowShape( (STROKE_T) m_Shape );
-    text << wxT( " (" ) << GetLayerName() << wxT( ")" );
-    text << _( " of " ) << ( (MODULE*) GetParent() )->GetReference();
+    text.Printf( _( "Graphic (%s) on %s of %s" ),
+            GetChars( ShowShape( (STROKE_T) m_Shape ) ),
+            GetChars( GetLayerName() ),
+            GetChars( ((MODULE*) GetParent())->GetReference() ) );
 
     return text;
 }
@@ -276,22 +278,3 @@ EDA_ITEM* EDGE_MODULE::Clone() const
     return new EDGE_MODULE( *this );
 }
 
-
-#if defined(DEBUG)
-
-void EDGE_MODULE::Show( int nestLevel, std::ostream& os ) const
-{
-    wxString shape = ShowShape( (STROKE_T) m_Shape );
-
-    // for now, make it look like XML:
-    NestedSpace( nestLevel, os ) << '<' << GetClass().Lower().mb_str() <<
-    " type=\"" << TO_UTF8( shape ) << "\">";
-
-    os << " <start" << m_Start0 << "/>";
-    os << " <end" << m_End0 << "/>";
-
-    os << " </" << GetClass().Lower().mb_str() << ">\n";
-}
-
-
-#endif

@@ -37,6 +37,7 @@
 
 #include <pcbnew.h>
 #include <protos.h>
+#include <macros.h>
 
 #include <class_board.h>
 #include <class_drawsegment.h>
@@ -144,7 +145,7 @@ void PCB_EDIT_FRAME::Delete_Segment_Edge( DRAWSEGMENT* Segment, wxDC* DC )
 }
 
 
-void PCB_EDIT_FRAME::Delete_Drawings_All_Layer( int aLayer )
+void PCB_EDIT_FRAME::Delete_Drawings_All_Layer( LAYER_NUM aLayer )
 {
     if( aLayer <= LAST_COPPER_LAYER )
     {
@@ -152,7 +153,9 @@ void PCB_EDIT_FRAME::Delete_Drawings_All_Layer( int aLayer )
         return;
     }
 
-    wxString msg = _( "Delete Layer " ) + GetBoard()->GetLayerName( aLayer );
+    wxString msg;
+    msg.Printf( _( "Delete everything on layer %s?" ), 
+            GetChars( GetBoard()->GetLayerName( aLayer ) ) );
 
     if( !IsOK( this, msg ) )
         return;
@@ -343,7 +346,7 @@ static void DrawSegment( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
     if( aErase )
         Segment->Draw( aPanel, aDC, GR_XOR );
 
-    if( Segments_45_Only && Segment->GetShape() == S_SEGMENT )
+    if( g_Segments_45_Only && Segment->GetShape() == S_SEGMENT )
     {
         wxPoint pt;
 

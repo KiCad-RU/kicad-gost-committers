@@ -38,14 +38,9 @@
 #include <polygon_test_point_inside.h>
 
 
-/**
- * Function Test_For_Copper_Island_And_Remove__Insulated_Islands
- * Remove insulated copper islands found in m_FilledPolysList.
- * @param aPcb = the board to analyse
- */
-void ZONE_CONTAINER::Test_For_Copper_Island_And_Remove_Insulated_Islands( BOARD * aPcb )
+void ZONE_CONTAINER::TestForCopperIslandAndRemoveInsulatedIslands( BOARD* aPcb )
 {
-    if( m_FilledPolysList.size() == 0 )
+    if( m_FilledPolysList.GetCornersCount() == 0 )
         return;
 
     // Build a list of points connected to the net:
@@ -54,7 +49,7 @@ void ZONE_CONTAINER::Test_For_Copper_Island_And_Remove_Insulated_Islands( BOARD 
 
     for( MODULE* module = aPcb->m_Modules; module; module = module->Next() )
     {
-        for( D_PAD* pad = module->m_Pads; pad != NULL; pad = pad->Next() )
+        for( D_PAD* pad = module->Pads(); pad != NULL; pad = pad->Next() )
         {
             if( !pad->IsOnLayer( GetLayer() ) )
                 continue;
@@ -84,7 +79,7 @@ void ZONE_CONTAINER::Test_For_Copper_Island_And_Remove_Insulated_Islands( BOARD 
     unsigned indexstart = 0, indexend;
     bool     connected  = false;
 
-    for( indexend = 0; indexend < m_FilledPolysList.size(); indexend++ )
+    for( indexend = 0; indexend < m_FilledPolysList.GetCornersCount(); indexend++ )
     {
         if( m_FilledPolysList[indexend].end_contour )    // end of a filled sub-area found
         {
@@ -113,9 +108,7 @@ void ZONE_CONTAINER::Test_For_Copper_Island_And_Remove_Insulated_Islands( BOARD 
             }
             else                             // Not connected: remove this polygon
             {
-                m_FilledPolysList.erase( m_FilledPolysList.begin() + indexstart,
-                                         m_FilledPolysList.begin() + indexend + 1 );
-
+                m_FilledPolysList.DeleteCorners( indexstart, indexend );
                 indexend = indexstart;   /* indexstart points the first point of the next polygon
                                           * because the current poly is removed */
             }
@@ -124,15 +117,6 @@ void ZONE_CONTAINER::Test_For_Copper_Island_And_Remove_Insulated_Islands( BOARD 
 }
 
 
-/**
- * Function CalculateSubAreaBoundaryBox
- * Calculates the bounding box of a a filled area ( list of CPolyPt )
- * use m_FilledPolysList as list of CPolyPt (that are the corners of one or more polygons or
- * filled areas )
- * @return an EDA_RECT as bounding box
- * @param aIndexStart = index of the first corner of a polygon (filled area) in m_FilledPolysList
- * @param aIndexEnd = index of the last corner of a polygon in m_FilledPolysList
- */
 EDA_RECT ZONE_CONTAINER::CalculateSubAreaBoundaryBox( int aIndexStart, int aIndexEnd )
 {
     CPolyPt  start_point, end_point;

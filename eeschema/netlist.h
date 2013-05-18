@@ -45,9 +45,7 @@ class SCH_REFERENC_LIST;
 
 #define NETLIST_HEAD_STRING "EESchema Netlist Version 1.1"
 
-#define ISBUS 1
-
-/* Max pin number per component and footprint */
+// Max pin number per component and footprint
 #define MAXPIN 5000
 
 
@@ -74,7 +72,7 @@ private:
     bool           m_IsNew;             ///< True if not yet annotated.
     int            m_SheetNum;          ///< The sheet number for the reference.
     time_t         m_TimeStamp;         ///< The time stamp for the reference.
-    wxString*      m_Value;             ///< The component value of the refernce.  It is the
+    EDA_TEXT*      m_Value;             ///< The component value of the refernce.  It is the
                                         ///< same for all instances.
     int            m_NumRef;            ///< The numeric part of the reference designator.
     int            m_Flag;
@@ -148,7 +146,7 @@ public:
 
     int CompareValue( const SCH_REFERENCE& item ) const
     {
-        return m_Value->CmpNoCase( *item.m_Value );
+        return m_Value->GetText().CmpNoCase( item.m_Value->GetText() );
     }
 
     int CompareRef( const SCH_REFERENCE& item ) const

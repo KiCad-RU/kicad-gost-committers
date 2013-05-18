@@ -32,6 +32,7 @@
 #include <class_drawpanel.h>
 #include <confirm.h>
 #include <trigo.h>
+#include <macros.h>
 #include <wxBasePcbFrame.h>
 
 #include <pcbnew.h>
@@ -136,7 +137,7 @@ void PCB_BASE_FRAME::AddPad( MODULE* aModule, bool draw )
     D_PAD* pad = new D_PAD( aModule );
 
     // Add the new pad to end of the module pad list.
-    aModule->m_Pads.PushBack( pad );
+    aModule->Pads().PushBack( pad );
 
     // Update the pad properties.
     Import_Pad_Settings( pad, false );

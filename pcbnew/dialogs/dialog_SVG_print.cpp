@@ -36,6 +36,9 @@
 #include <base_units.h>
 #include <convert_from_iu.h>
 #include <wildcards_and_files_ext.h>
+#include <macros.h>
+#include <reporter.h>
+#include <confirm.h>
 
 #include <pcbnew.h>
 #include <pcbplot.h>
@@ -48,7 +51,7 @@
 #define PLOTSVGPAGESIZEOPT_KEY      wxT( "PlotSVGPageOpt" )
 #define PLOTSVGPLOT_BRD_EDGE_KEY    wxT( "PlotSVGBrdEdge" )
 
-// reasonnable values for default pen width
+// reasonable values for default pen width
 #define WIDTH_MAX_VALUE (2 * IU_PER_MM)
 #define WIDTH_MIN_VALUE (0.05 * IU_PER_MM)
 
@@ -103,8 +106,8 @@ void DIALOG_SVG_PRINT::initDialog()
         ReturnStringFromValue( g_UserUnit, g_DrawDefaultLineThickness ) );
 
     // Create layers list
-    int     layer;
-    for( layer = 0; layer < NB_LAYERS; ++layer )
+    LAYER_NUM layer;
+    for( layer = FIRST_LAYER; layer < NB_PCB_LAYERS; ++layer )
     {
         if( !m_board->IsLayerEnabled( layer ) )
             m_boxSelectLayer[layer] = NULL;
@@ -118,21 +121,21 @@ void DIALOG_SVG_PRINT::initDialog()
     // (Front or Top to Back or Bottom)
     DECLARE_LAYERS_ORDER_LIST( layersOrder );
 
-    for( int layer_idx = 0; layer_idx < NB_LAYERS; ++layer_idx )
+    for( LAYER_NUM layer_idx = FIRST_LAYER; layer_idx < NB_PCB_LAYERS; ++layer_idx )
     {
         layer = layersOrder[layer_idx];
 
-        wxASSERT( layer < NB_LAYERS );
+        wxASSERT( layer < NB_PCB_LAYERS );
 
         if( m_boxSelectLayer[layer] == NULL )
             continue;
 
-        long mask = 1 << layer;
+        LAYER_MSK mask = GetLayerMask( layer );
 
         if( mask & s_SelectedLayers )
             m_boxSelectLayer[layer]->SetValue( true );
 
-        if( layer < 16 )
+        if( layer <= LAST_COPPER_LAYER )
             m_CopperLayersBoxSizer->Add(  m_boxSelectLayer[layer],
                                           0,
                                           wxGROW | wxALL,
@@ -148,7 +151,7 @@ void DIALOG_SVG_PRINT::initDialog()
     {
         wxString layerKey;
 
-        for( int layer = 0; layer<NB_LAYERS; ++layer )
+        for( LAYER_NUM layer = FIRST_LAYER; layer < NB_PCB_LAYERS; ++layer )
         {
             bool option;
 
@@ -162,6 +165,7 @@ void DIALOG_SVG_PRINT::initDialog()
         }
     }
 }
+
 
 void DIALOG_SVG_PRINT::OnOutputDirectoryBrowseClicked( wxCommandEvent& event )
 {
@@ -191,14 +195,14 @@ void DIALOG_SVG_PRINT::OnOutputDirectoryBrowseClicked( wxCommandEvent& event )
         wxString boardFilePath = ( (wxFileName) m_board->GetFileName() ).GetPath();
 
         if( !dirName.MakeRelativeTo( boardFilePath ) )
-            wxMessageBox( _(
-                              "Cannot make path relative (target volume different from board file volume)!" ),
+            wxMessageBox( _( "Cannot make path relative (target volume different from board file volume)!" ),
                           _( "Plot Output Directory" ), wxOK | wxICON_ERROR );
     }
 
     m_outputDirectoryName->SetValue( dirName.GetFullPath() );
     m_outputDirectory = m_outputDirectoryName->GetValue();
 }
+
 
 void DIALOG_SVG_PRINT::SetPenWidth()
 {
@@ -218,6 +222,7 @@ void DIALOG_SVG_PRINT::SetPenWidth()
     m_DialogDefaultPenSize->SetValue( ReturnStringFromValue( g_UserUnit, pensize ) );
 }
 
+
 void DIALOG_SVG_PRINT::ExportSVGFile( bool aOnlyOneFile )
 {
     m_outputDirectory = m_outputDirectoryName->GetValue();
@@ -226,41 +231,50 @@ void DIALOG_SVG_PRINT::ExportSVGFile( bool aOnlyOneFile )
     // absolute form). Bail if it fails
     wxFileName outputDir = wxFileName::DirName( m_outputDirectory );
     wxString boardFilename = m_board->GetFileName();
+    WX_TEXT_CTRL_REPORTER reporter( m_messagesBox );
 
-    if( !EnsureOutputDirectory( &outputDir, boardFilename, m_messagesBox ) )
+    if( !EnsureOutputDirectory( &outputDir, boardFilename, &reporter ) )
+    {
+        wxString msg;
+        msg.Printf( _( "Could not write plot files to folder \"%s\"." ),
+                    GetChars( outputDir.GetPath() ) );
+        DisplayError( this, msg );
         return;
+    }
 
     m_printMirror = m_printMirrorOpt->GetValue();
     m_printBW = m_ModeColorOption->GetSelection();
     SetPenWidth();
 
     // Build layers mask
-    int printMaskLayer = 0;
+    LAYER_MSK printMaskLayer = NO_LAYERS;
 
-    for( int layer = 0; layer<NB_LAYERS; layer++ )
+    for( LAYER_NUM layer = FIRST_LAYER; layer < NB_PCB_LAYERS; ++layer )
     {
         if( m_boxSelectLayer[layer] && m_boxSelectLayer[layer]->GetValue() )
-            printMaskLayer |= 1 << layer;
+            printMaskLayer |= GetLayerMask( layer );
     }
 
     wxString    msg;
-    for( int layer = 0; layer<NB_LAYERS; layer++ )
+
+    for( LAYER_NUM layer = FIRST_LAYER; layer < NB_PCB_LAYERS; ++layer )
     {
-        int currlayer_mask = 1 << layer;
+        LAYER_MSK currlayer_mask = GetLayerMask( layer );
+
         if( (printMaskLayer & currlayer_mask ) == 0 )
             continue;
 
-        wxString suffix = m_board->GetLayerName( layer, false );
+        wxString suffix = m_board->GetStandardLayerName( layer );
 
         if( aOnlyOneFile )
         {
             m_printMaskLayer = printMaskLayer;
             suffix = wxT( "-brd" );
-         }
+        }
         else
         {
             m_printMaskLayer = currlayer_mask;
-            suffix = m_board->GetLayerName( layer, false );
+            suffix = m_board->GetStandardLayerName( layer );
         }
 
         wxFileName fn(boardFilename);
@@ -319,8 +333,8 @@ bool DIALOG_SVG_PRINT::CreateSVGFile( const wxString& aFullFileName )
 
     LOCALE_IO    toggle;
     SVG_PLOTTER* plotter = (SVG_PLOTTER*) StartPlotBoard( m_board,
-                                              &m_plotOpts, aFullFileName,
-                                              wxEmptyString );
+                                                          &m_plotOpts, aFullFileName,
+                                                          wxEmptyString );
 
     if( plotter )
     {
@@ -363,7 +377,7 @@ void DIALOG_SVG_PRINT::OnCloseWindow( wxCloseEvent& event )
 
         wxString layerKey;
 
-        for( int layer = 0; layer<NB_LAYERS; ++layer )
+        for( LAYER_NUM layer = FIRST_LAYER; layer < NB_PCB_LAYERS; ++layer )
         {
             if( m_boxSelectLayer[layer] == NULL )
                 continue;
@@ -385,7 +399,6 @@ void DIALOG_SVG_PRINT::OnCloseWindow( wxCloseEvent& event )
         m_parent->SetPlotSettings( tempOptions );
         m_parent->OnModify();
     }
-
 
     EndModal( 0 );
 }

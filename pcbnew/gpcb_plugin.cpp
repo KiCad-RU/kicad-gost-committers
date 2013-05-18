@@ -232,7 +232,7 @@ void GPCB_FPL_CACHE::Load()
 
     if( !dir.IsOpened() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "footprint library path '%s' does not exist" ),
+        THROW_IO_ERROR( wxString::Format( _( "footprint library path <%s> does not exist" ),
                                           m_lib_path.GetPath().GetData() ) );
     }
 
@@ -278,7 +278,7 @@ void GPCB_FPL_CACHE::Remove( const wxString& aFootprintName )
 
     if( it == m_modules.end() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "library '%s' has no footprint '%s' to delete" ),
+        THROW_IO_ERROR( wxString::Format( _( "library <%s> has no footprint '%s' to delete" ),
                                           m_lib_path.GetPath().GetData(),
                                           aFootprintName.GetData() ) );
     }
@@ -397,7 +397,7 @@ MODULE* GPCB_FPL_CACHE::parseMODULE( LINE_READER* aLineReader ) throw( IO_ERROR,
                            parseInt( parameters[7], conv_unit ) );
     }
 
-    module->Reference().SetPosition( textPos );
+    module->Reference().SetTextPosition( textPos );
     module->Reference().SetPos0( textPos );
 
     int orientation = parseInt( parameters[paramCnt-4] );
@@ -408,14 +408,14 @@ MODULE* GPCB_FPL_CACHE::parseMODULE( LINE_READER* aLineReader ) throw( IO_ERROR,
     int tsize = ( parseInt( parameters[paramCnt-3] ) * TEXT_DEFAULT_SIZE ) / 100;
     int thickness = module->Reference().GetSize().x / 6;
 
-    tsize = std::max( (int)(5 * IU_PER_MILS), tsize );     // Ensure a minimal size = 5 mils
+    tsize = std::max( KiROUND(5 * IU_PER_MILS), tsize ); // Ensure a minimal size = 5 mils
     module->Reference().SetSize( wxSize( tsize, tsize ) );
     module->Reference().SetThickness( thickness );
     module->Value().SetOrientation( module->Reference().GetOrientation() );
     module->Value().SetSize( module->Reference().GetSize() );
     module->Value().SetThickness( module->Reference().GetThickness() );
     textPos.y += tsize + thickness;
-    module->Value().SetPosition( textPos );
+    module->Value().SetTextPosition( textPos );
     module->Value().SetPos0( textPos );
 
     while( aLineReader->ReadLine() )
@@ -459,7 +459,7 @@ MODULE* GPCB_FPL_CACHE::parseMODULE( LINE_READER* aLineReader ) throw( IO_ERROR,
                                        parseInt( parameters[5], conv_unit ) ) );
             drawSeg->SetWidth( parseInt( parameters[6], conv_unit ) );
             drawSeg->SetDrawCoord();
-            module->m_Drawings.PushBack( drawSeg );
+            module->GraphicalItems().PushBack( drawSeg );
             continue;
         }
 
@@ -477,7 +477,7 @@ MODULE* GPCB_FPL_CACHE::parseMODULE( LINE_READER* aLineReader ) throw( IO_ERROR,
             EDGE_MODULE* drawSeg = new EDGE_MODULE( module.get() );
             drawSeg->SetLayer( SILKSCREEN_N_FRONT );
             drawSeg->SetShape( S_ARC );
-            module->m_Drawings.PushBack( drawSeg );
+            module->GraphicalItems().PushBack( drawSeg );
 
             // for and arc: ibuf[3] = ibuf[4]. Pcbnew does not know ellipses
             int     radius = ( parseInt( parameters[4], conv_unit ) +
@@ -559,12 +559,12 @@ MODULE* GPCB_FPL_CACHE::parseMODULE( LINE_READER* aLineReader ) throw( IO_ERROR,
             }
 
             // Negate angle (due to Y reversed axis) and convert it to internal units
-            angle = - angle * 1800.0 / M_PI;
+            angle = - RAD2DECIDEG( angle );
             pad->SetOrientation( KiROUND( angle ) );
 
             wxPoint padPos( (x1 + x2) / 2, (y1 + y2) / 2 );
 
-            pad->SetSize( wxSize( KiROUND( hypot( (double)delta.x, (double)delta.y ) ) + width,
+            pad->SetSize( wxSize( KiROUND( EuclideanNorm( delta ) ) + width,
                                   width ) );
 
             padPos += module->GetPosition();
@@ -878,7 +878,7 @@ void GPCB_PLUGIN::FootprintDelete( const wxString& aLibraryPath, const wxString&
 
     if( !m_cache->IsWritable() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "Library '%s' is read only" ),
+        THROW_IO_ERROR( wxString::Format( _( "Library <%s> is read only" ),
                                           aLibraryPath.GetData() ) );
     }
 
@@ -897,7 +897,7 @@ bool GPCB_PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* 
 
     if( !fn.IsDirWritable() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "user does not have permission to delete directory '%s'" ),
+        THROW_IO_ERROR( wxString::Format( _( "user does not have permission to delete directory <%s>" ),
                                           aLibraryPath.GetData() ) );
     }
 
@@ -905,7 +905,7 @@ bool GPCB_PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* 
 
     if( dir.HasSubDirs() )
     {
-        THROW_IO_ERROR( wxString::Format( _( "library directory '%s' has unexpected sub-directories" ),
+        THROW_IO_ERROR( wxString::Format( _( "library directory <%s> has unexpected sub-directories" ),
                                           aLibraryPath.GetData() ) );
     }
 
@@ -924,7 +924,7 @@ bool GPCB_PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* 
 
             if( tmp.GetExt() != KiCadFootprintFileExtension )
             {
-                THROW_IO_ERROR( wxString::Format( _( "unexpected file '%s' has found in library path '%'" ),
+                THROW_IO_ERROR( wxString::Format( _( "unexpected file <%s> was found in library path '%s'" ),
                                                   files[i].GetData(), aLibraryPath.GetData() ) );
             }
         }
@@ -942,7 +942,7 @@ bool GPCB_PLUGIN::FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* 
     // we don't want that.  we want bare metal portability with no UI here.
     if( !wxRmdir( aLibraryPath ) )
     {
-        THROW_IO_ERROR( wxString::Format( _( "footprint library '%s' cannot be deleted" ),
+        THROW_IO_ERROR( wxString::Format( _( "footprint library <%s> cannot be deleted" ),
                                           aLibraryPath.GetData() ) );
     }
 

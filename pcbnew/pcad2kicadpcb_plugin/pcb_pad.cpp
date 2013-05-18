@@ -180,7 +180,7 @@ void PCB_PAD::Flip()
         m_rotation = -m_rotation;
 
     for( i = 0; i < (int)m_shapes.GetCount(); i++ )
-        m_shapes[i]->m_KiCadLayer = FlipLayers( m_shapes[i]->m_KiCadLayer );
+        m_shapes[i]->m_KiCadLayer = FlipLayer( m_shapes[i]->m_KiCadLayer );
 }
 
 
@@ -194,7 +194,7 @@ void PCB_PAD::AddToModule( MODULE* aModule, int aRotation, bool aEncapsulatedPad
     int             height = 0;
 
     D_PAD* pad = new D_PAD( aModule );
-    aModule->m_Pads.PushBack( pad );
+    aModule->Pads().PushBack( pad );
 
     if( !m_isHolePlated && m_hole )
     {
@@ -319,7 +319,7 @@ void PCB_PAD::AddToBoard()
         if( width == 0 || height == 0 )
             THROW_IO_ERROR( wxT( "pad or via with zero size" ) );
 
-        if( IsValidCopperLayerIndex( m_KiCadLayer ) )
+        if( IsCopperLayer( m_KiCadLayer ) )
         {
             SEGVIA* via = new SEGVIA( m_board );
             m_board->m_Track.Append( via );

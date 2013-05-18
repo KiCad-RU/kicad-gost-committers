@@ -43,15 +43,12 @@
 #include <wx/docview.h>
 
 #include <colors.h>
+#include <fctsys.h>
 #include <common.h>
+#include <layers_id_colors_and_visibility.h>
 
 #ifdef USE_WX_OVERLAY
 #include <wx/overlay.h>
-#endif
-
-// C++ guarantees that operator delete checks its argument for null-ness
-#ifndef SAFE_DELETE
-#define SAFE_DELETE( p ) delete (p); (p) = NULL;
 #endif
 
 // Option for dialog boxes
@@ -663,7 +660,6 @@ public:
     void OnEraseBackground( wxEraseEvent& SizeEvent );
 
     virtual void OnZoom( wxCommandEvent& event );
-    void OnGrid( int grid_type );
 
     /**
      * Function RedrawScreen
@@ -880,7 +876,7 @@ public:
      * @param aPrintMirrorMode = not used here (Set when printing in mirror mode)
      * @param aData = a pointer on an auxiliary data (not always used, NULL if not used)
      */
-    virtual void PrintPage( wxDC* aDC, int aPrintMask, bool aPrintMirrorMode, void* aData = NULL );
+    virtual void PrintPage( wxDC* aDC, LAYER_MSK aPrintMask, bool aPrintMirrorMode, void* aData = NULL );
 
     /**
      * Function CoordinateToString

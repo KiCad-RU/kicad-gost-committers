@@ -61,12 +61,12 @@ void PCB_PARSER::init()
     // Add untranslated default (i.e. english) layernames.
     // Some may be overridden later if parsing a board rather than a footprint.
     // The english name will survive if parsing only a footprint.
-    for( int layerNdx = 0;  layerNdx < NB_LAYERS;  ++layerNdx )
+    for( LAYER_NUM layerNdx = FIRST_LAYER;  layerNdx < NB_PCB_LAYERS;  ++layerNdx )
     {
-        std::string untranslated = TO_UTF8( BOARD::GetDefaultLayerName( layerNdx, false ) );
+        std::string untranslated = TO_UTF8( BOARD::GetStandardLayerName( layerNdx ) );
 
         m_layerIndices[ untranslated ] = layerNdx;
-        m_layerMasks[ untranslated ]   = 1 << layerNdx;
+        m_layerMasks[ untranslated ]   = GetLayerMask( layerNdx );
     }
 
     m_layerMasks[ "*.Cu" ]      = ALL_CU_LAYERS;
@@ -89,7 +89,7 @@ double PCB_PARSER::parseDouble() throw( IO_ERROR )
     if( errno )
     {
         wxString error;
-        error.Printf( _( "invalid floating point number in\nfile: '%s'\nline: %d\noffset: %d" ),
+        error.Printf( _( "invalid floating point number in\nfile: <%s>\nline: %d\noffset: %d" ),
                       GetChars( CurSource() ), CurLineNumber(), CurOffset() );
 
         THROW_IO_ERROR( error );
@@ -98,7 +98,7 @@ double PCB_PARSER::parseDouble() throw( IO_ERROR )
     if( CurText() == tmp )
     {
         wxString error;
-        error.Printf( _( "missing floating point number in\nfile: '%s'\nline: %d\noffset: %d" ),
+        error.Printf( _( "missing floating point number in\nfile: <%s>\nline: %d\noffset: %d" ),
                       GetChars( CurSource() ), CurLineNumber(), CurOffset() );
 
         THROW_IO_ERROR( error );
@@ -612,39 +612,39 @@ void PCB_PARSER::parseTITLE_BLOCK() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_comment:
+        {
+            int commentNumber = parseInt( "comment" );
+
+            switch( commentNumber )
             {
-                int commentNumber = parseInt( "comment" );
-
-                switch( commentNumber )
-                {
-                case 1:
-                    NextTok();
-                    titleBlock.SetComment1( FromUTF8() );
-                    break;
-
-                case 2:
-                    NextTok();
-                    titleBlock.SetComment2( FromUTF8() );
-                    break;
-
-                case 3:
-                    NextTok();
-                    titleBlock.SetComment3( FromUTF8() );
-                    break;
-
-                case 4:
-                    NextTok();
-                    titleBlock.SetComment4( FromUTF8() );
-                    break;
-
-                default:
-                    wxString err;
-                    err.Printf( wxT( "%d is not a valid title block comment number" ), commentNumber );
-                    THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
-                }
-
+            case 1:
+                NextTok();
+                titleBlock.SetComment1( FromUTF8() );
                 break;
+
+            case 2:
+                NextTok();
+                titleBlock.SetComment2( FromUTF8() );
+                break;
+
+            case 3:
+                NextTok();
+                titleBlock.SetComment3( FromUTF8() );
+                break;
+
+            case 4:
+                NextTok();
+                titleBlock.SetComment4( FromUTF8() );
+                break;
+
+            default:
+                wxString err;
+                err.Printf( wxT( "%d is not a valid title block comment number" ), commentNumber );
+                THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
             }
+
+            break;
+        }
 
         default:
             Expecting( "title, date, rev, company, or comment" );
@@ -665,10 +665,10 @@ void PCB_PARSER::parseLayers() throw( IO_ERROR, PARSE_ERROR )
     T           token;
     std::string name;
     std::string type;
-    int         layerIndex;
+    LAYER_NUM   layerIndex;
     bool        isVisible = true;
-    int         visibleLayers = 0;
-    int         enabledLayers = 0;
+    LAYER_MSK   visibleLayers = NO_LAYERS;
+    LAYER_MSK   enabledLayers = NO_LAYERS;
     int         copperLayerCount = 0;
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
@@ -700,13 +700,13 @@ void PCB_PARSER::parseLayers() throw( IO_ERROR, PARSE_ERROR )
             Expecting( "hide or )" );
         }
 
-        enabledLayers |= 1 << layerIndex;
+        enabledLayers |= GetLayerMask( layerIndex );
 
         if( isVisible )
-            visibleLayers |= 1 << layerIndex;
+            visibleLayers |= GetLayerMask( layerIndex );
 
         m_layerIndices[ name ] = layerIndex;
-        m_layerMasks[ name ]   = 1 << layerIndex;
+        m_layerMasks[ name ]   = GetLayerMask(layerIndex);
 
         wxString        wname = FROM_UTF8( name.c_str() );
         enum LAYER_T    layerType = LAYER::ParseType( type.c_str() );
@@ -736,18 +736,19 @@ void PCB_PARSER::parseLayers() throw( IO_ERROR, PARSE_ERROR )
 }
 
 
-int PCB_PARSER::lookUpLayer( const LAYER_MAP& aMap ) throw( PARSE_ERROR, IO_ERROR )
+template<class T, class M>
+T PCB_PARSER::lookUpLayer( const M& aMap ) throw( PARSE_ERROR, IO_ERROR )
 {
     // avoid constructing another std::string, use lexer's directly
-    LAYER_MAP::const_iterator it = aMap.find( curText );
+    typename M::const_iterator it = aMap.find( curText );
 
     if( it == aMap.end() )
     {
-#if 1 && defined(DEBUG)
+#if 0 && defined(DEBUG)
         // dump the whole darn table, there's something wrong with it.
         for( it = aMap.begin();  it != aMap.end();  ++it )
         {
-            printf( &aMap == &m_layerIndices ? "lm[%s] = %d\n" : "lm[%s] = %08X\n",
+            printf( &aMap == (void*)&m_layerIndices ? "lm[%s] = %d\n" : "lm[%s] = %08X\n",
                 it->first.c_str(), it->second );
         }
 #endif
@@ -764,14 +765,14 @@ int PCB_PARSER::lookUpLayer( const LAYER_MAP& aMap ) throw( PARSE_ERROR, IO_ERRO
 }
 
 
-int PCB_PARSER::parseBoardItemLayer() throw( PARSE_ERROR, IO_ERROR )
+LAYER_NUM PCB_PARSER::parseBoardItemLayer() throw( PARSE_ERROR, IO_ERROR )
 {
     wxCHECK_MSG( CurTok() == T_layer, UNDEFINED_LAYER,
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as layer." ) );
 
     NextTok();
 
-    int layerIndex = lookUpLayer( m_layerIndices );
+    LAYER_NUM layerIndex = lookUpLayer<LAYER_NUM>( m_layerIndices );
 
     // Handle closing ) in object parser.
 
@@ -779,17 +780,17 @@ int PCB_PARSER::parseBoardItemLayer() throw( PARSE_ERROR, IO_ERROR )
 }
 
 
-int PCB_PARSER::parseBoardItemLayersAsMask() throw( PARSE_ERROR, IO_ERROR )
+LAYER_MSK PCB_PARSER::parseBoardItemLayersAsMask() throw( PARSE_ERROR, IO_ERROR )
 {
-    wxCHECK_MSG( CurTok() == T_layers, 0,
+    wxCHECK_MSG( CurTok() == T_layers, NO_LAYERS,
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) +
                  wxT( " as item layer mask." ) );
 
-    int layerMask = 0;
+    LAYER_MSK layerMask = NO_LAYERS;
 
     for( T token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
-        int mask = lookUpLayer( m_layerMasks );
+        LAYER_MSK mask = lookUpLayer<LAYER_MSK>( m_layerMasks );
         layerMask |= mask;
     }
 
@@ -1127,7 +1128,7 @@ void PCB_PARSER::parseNETCLASS() throw( IO_ERROR, PARSE_ERROR )
         // auto_ptr will delete nc on this code path
 
         wxString error;
-        error.Printf( _( "duplicate NETCLASS name '%s' in file %s at line %d, offset %d" ),
+        error.Printf( _( "duplicate NETCLASS name '%s' in file <%s> at line %d, offset %d" ),
                       nc->GetName().GetData(), CurSource().GetData(), CurLineNumber(), CurOffset() );
         THROW_IO_ERROR( error );
     }
@@ -1282,7 +1283,7 @@ DRAWSEGMENT* PCB_PARSER::parseDRAWSEGMENT() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_status:
-            segment->SetStatus( parseHex() );
+            segment->SetStatus( static_cast<STATUS_FLAGS>( parseHex() ) );
             break;
 
         default:
@@ -1317,7 +1318,7 @@ TEXTE_PCB* PCB_PARSER::parseTEXTE_PCB() throw( IO_ERROR, PARSE_ERROR )
 
     pt.x = parseBoardUnits( "X coordinate" );
     pt.y = parseBoardUnits( "Y coordinate" );
-    text->SetPosition( pt );
+    text->SetTextPosition( pt );
 
     // If there is no orientation defined, then it is the default value of 0 degrees.
     token = NextTok();
@@ -1406,7 +1407,7 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
         {
             TEXTE_PCB* text = parseTEXTE_PCB();
             dimension->Text() = *text;
-            dimension->SetPosition( text->GetPosition() );
+            dimension->SetPosition( text->GetTextPosition() );
             delete text;
             break;
         }
@@ -1668,19 +1669,20 @@ MODULE* PCB_PARSER::parseMODULE() throw( IO_ERROR, PARSE_ERROR )
             text->SetOrientation( orientation );
             text->SetDrawCoord();
 
-            if( text->GetType() == TEXT_is_REFERENCE )
+            switch( text->GetType() )
             {
+            case TEXTE_MODULE::TEXT_is_REFERENCE:
                 module->Reference() = *text;
                 delete text;
-            }
-            else if( text->GetType() == TEXT_is_VALUE )
-            {
+                break;
+
+            case TEXTE_MODULE::TEXT_is_VALUE:
                 module->Value() = *text;
                 delete text;
-            }
-            else
-            {
-                module->m_Drawings.PushBack( text );
+                break;
+
+            default:
+                module->GraphicalItems().PushBack( text );
             }
 
             break;
@@ -1695,7 +1697,7 @@ MODULE* PCB_PARSER::parseMODULE() throw( IO_ERROR, PARSE_ERROR )
             EDGE_MODULE* em = parseEDGE_MODULE();
             em->SetParent( module.get() );
             em->SetDrawCoord();
-            module->m_Drawings.PushBack( em );
+            module->GraphicalItems().PushBack( em );
             break;
         }
 
@@ -1742,11 +1744,11 @@ TEXTE_MODULE* PCB_PARSER::parseTEXTE_MODULE() throw( IO_ERROR, PARSE_ERROR )
     switch( token )
     {
     case T_reference:
-        text->SetType( TEXT_is_REFERENCE );
+        text->SetType( TEXTE_MODULE::TEXT_is_REFERENCE );
         break;
 
     case T_value:
-        text->SetType( TEXT_is_VALUE );
+        text->SetType( TEXTE_MODULE::TEXT_is_VALUE );
         break;
 
     case T_user:
@@ -1966,7 +1968,7 @@ EDGE_MODULE* PCB_PARSER::parseEDGE_MODULE() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_status:
-            segment->SetStatus( parseHex() );
+            segment->SetStatus( static_cast<STATUS_FLAGS>( parseHex() ) );
             break;
 
         default:
@@ -2152,16 +2154,7 @@ D_PAD* PCB_PARSER::parseD_PAD() throw( IO_ERROR, PARSE_ERROR )
 
         case T_layers:
             {
-                int layerMask = parseBoardItemLayersAsMask();
-
-                // 15-Nov-2012 before today, only the cu layers that were used were
-                // saved.  After wildcard *.Cu support went into effect, this is no
-                // longer an issue, but in order to load the interrim s-expression files,
-                // turn on all Cu layers for thru hole pads.  New files will not need this
-                // and eventually this code can be removed.
-                if( pad->GetAttribute() == PAD_STANDARD )
-                    layerMask |= ALL_CU_LAYERS;
-
+                LAYER_MSK layerMask = parseBoardItemLayersAsMask();
                 pad->SetLayerMask( layerMask );
             }
             break;
@@ -2189,7 +2182,8 @@ D_PAD* PCB_PARSER::parseD_PAD() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_solder_paste_margin_ratio:
-            pad->SetLocalSolderPasteMarginRatio( parseBoardUnits( T_solder_paste_margin_ratio ) );
+            pad->SetLocalSolderPasteMarginRatio(
+                parseDouble( "pad local solder paste margin ratio value" ) );
             NeedRIGHT();
             break;
 
@@ -2272,7 +2266,7 @@ TRACK* PCB_PARSER::parseTRACK() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_status:
-            track->SetStatus( parseHex() );
+            track->SetStatus( static_cast<STATUS_FLAGS>( parseHex() ) );
             break;
 
         default:
@@ -2331,11 +2325,11 @@ SEGVIA* PCB_PARSER::parseSEGVIA() throw( IO_ERROR, PARSE_ERROR )
 
         case T_layers:
             {
-                int layer1, layer2;
+                LAYER_NUM layer1, layer2;
                 NextTok();
-                layer1 = lookUpLayer( m_layerIndices );
+                layer1 = lookUpLayer<LAYER_NUM>( m_layerIndices );
                 NextTok();
-                layer2 = lookUpLayer( m_layerIndices );
+                layer2 = lookUpLayer<LAYER_NUM>( m_layerIndices );
                 via->SetLayerPair( layer1, layer2 );
                 NeedRIGHT();
             }
@@ -2352,7 +2346,7 @@ SEGVIA* PCB_PARSER::parseSEGVIA() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         case T_status:
-            via->SetStatus( parseHex() );
+            via->SetStatus( static_cast<STATUS_FLAGS>( parseHex() ) );
             NeedRIGHT();
             break;
 
@@ -2377,7 +2371,7 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
     T       token;
 
     // bigger scope since each filled_polygon is concatenated in here
-    std::vector< CPolyPt > pts;
+    CPOLYGONS_LIST pts;
 
     auto_ptr< ZONE_CONTAINER > zone( new ZONE_CONTAINER( m_board ) );
 
@@ -2494,18 +2488,22 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
 
                     // @todo Create an enum for fill modes.
                     zone->SetFillMode( token == T_polygon ? 0 : 1 );
+                    NeedRIGHT();
                     break;
 
                 case T_arc_segments:
-                    zone->SetArcSegCount( parseInt( "arc segment count" ) );
+                    zone->SetArcSegmentCount( parseInt( "arc segment count" ) );
+                    NeedRIGHT();
                     break;
 
                 case T_thermal_gap:
                     zone->SetThermalReliefGap( parseBoardUnits( T_thermal_gap ) );
+                    NeedRIGHT();
                     break;
 
                 case T_thermal_bridge_width:
                     zone->SetThermalReliefCopperBridge( parseBoardUnits( T_thermal_bridge_width ) );
+                    NeedRIGHT();
                     break;
 
                 case T_smoothing:
@@ -2526,21 +2524,19 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                     default:
                         Expecting( "none, chamfer, or fillet" );
                     }
-
+                    NeedRIGHT();
                     break;
 
                 case T_radius:
                     zone->SetCornerRadius( parseBoardUnits( "corner radius" ) );
+                    NeedRIGHT();
                     break;
 
                 default:
                     Expecting( "mode, arc_segments, thermal_gap, thermal_bridge_width, "
                                "smoothing, or radius" );
                 }
-
-                NeedRIGHT();
             }
-
             break;
 
         case T_keepout:
@@ -2618,11 +2614,11 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
 
             for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
             {
-                pts.push_back( CPolyPt( parseXY() ) );
+                pts.Append( CPolyPt( parseXY() ) );
             }
 
             NeedRIGHT();
-            pts.back().end_contour = true;
+            pts.CloseLastContour();
         }
 
             break;
@@ -2666,10 +2662,10 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
         }
 
         // Set hatch here, after outlines corners are read
-        zone->m_Poly->SetHatch( hatchStyle, hatchPitch, true );
+        zone->Outline()->SetHatch( hatchStyle, hatchPitch, true );
     }
 
-    if( pts.size() )
+    if( pts.GetCornersCount() )
         zone->AddFilledPolysList( pts );
 
     // Ensure keepout does not have a net (which have no sense for a keepout zone)

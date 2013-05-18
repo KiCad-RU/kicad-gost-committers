@@ -198,7 +198,7 @@ void PlaceCells( BOARD* aPcb, int net_code, int flag )
 {
     int       ux0 = 0, uy0 = 0, ux1, uy1, dx, dy;
     int       marge, via_marge;
-    int       layerMask;
+    LAYER_MSK layerMask;
 
     // use the default NETCLASS?
     NETCLASS* nc = aPcb->m_NetClasses.GetDefault();
@@ -229,7 +229,7 @@ void PlaceCells( BOARD* aPcb, int net_code, int flag )
 
     for( MODULE* module = aPcb->m_Modules; module; module = module->Next() )
     {
-        for( BOARD_ITEM* item = module->m_Drawings; item; item = item->Next() )
+        for( BOARD_ITEM* item = module->GraphicalItems(); item; item = item->Next() )
         {
             switch( item->Type() )
             {
@@ -240,7 +240,7 @@ void PlaceCells( BOARD* aPcb, int net_code, int flag )
                 tmpSegm.SetLayer( edge->GetLayer() );
 
                 if( tmpSegm.GetLayer() == EDGE_N )
-                    tmpSegm.SetLayer( -1 );
+                    tmpSegm.SetLayer( UNDEFINED_LAYER );
 
                 tmpSegm.SetStart( edge->GetStart() );
                 tmpSegm.SetEnd(   edge->GetEnd() );
@@ -275,7 +275,7 @@ void PlaceCells( BOARD* aPcb, int net_code, int flag )
 
             if( DrawSegm->GetLayer() == EDGE_N )
             {
-                tmpSegm.SetLayer( -1 );
+                tmpSegm.SetLayer( UNDEFINED_LAYER );
                 type_cell |= CELL_is_EDGE;
             }
 
@@ -295,7 +295,7 @@ void PlaceCells( BOARD* aPcb, int net_code, int flag )
             TEXTE_PCB* PtText;
             PtText = (TEXTE_PCB*) item;
 
-            if( PtText->GetLength() == 0 )
+            if( PtText->GetText().Length() == 0 )
                 break;
 
             EDA_RECT textbox = PtText->GetTextBox( -1 );
@@ -317,12 +317,12 @@ void PlaceCells( BOARD* aPcb, int net_code, int flag )
             layerMask = GetLayerMask( PtText->GetLayer() );
 
             TraceFilledRectangle( ux0 - marge, uy0 - marge, ux1 + marge,
-                                  uy1 + marge, (int) (PtText->GetOrientation()),
+                                  uy1 + marge, PtText->GetOrientation(),
                                   layerMask, HOLE, WRITE_CELL );
 
             TraceFilledRectangle( ux0 - via_marge, uy0 - via_marge,
                                   ux1 + via_marge, uy1 + via_marge,
-                                  (int) (PtText->GetOrientation()),
+                                  PtText->GetOrientation(),
                                   layerMask, VIA_IMPOSSIBLE, WRITE_OR_CELL );
         }
         break;

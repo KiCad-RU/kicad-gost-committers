@@ -89,16 +89,16 @@ bool ZONE_CONTAINER::IsSame( const ZONE_CONTAINER& aZoneToCompare )
             return false;
     }
 
-    if( m_ArcToSegmentsCount != aZoneToCompare.m_ArcToSegmentsCount )
+    if( m_ArcToSegmentsCount != aZoneToCompare.GetArcSegmentCount() )
         return false;
 
     if( m_ZoneClearance != aZoneToCompare.m_ZoneClearance )
         return false;
 
-    if( m_ZoneMinThickness != aZoneToCompare.m_ZoneMinThickness )
+    if( m_ZoneMinThickness != aZoneToCompare.GetMinThickness() )
         return false;
 
-    if( m_FillMode != aZoneToCompare.m_FillMode )
+    if( m_FillMode != aZoneToCompare.GetFillMode() )
         return false;
 
     if( m_PadConnection != aZoneToCompare.m_PadConnection )
@@ -113,9 +113,10 @@ bool ZONE_CONTAINER::IsSame( const ZONE_CONTAINER& aZoneToCompare )
 
     // Compare outlines
     wxASSERT( m_Poly );                                      // m_Poly == NULL Should never happen
-    wxASSERT( aZoneToCompare.m_Poly );
+    wxASSERT( aZoneToCompare.Outline() );
 
-    if( m_Poly->m_CornersList != aZoneToCompare.m_Poly->m_CornersList )    // Compare vector
+    if( Outline()->m_CornersList.GetList() !=
+        aZoneToCompare.Outline()->m_CornersList.GetList() )    // Compare vector
         return false;
 
     return true;
@@ -134,7 +135,7 @@ bool ZONE_CONTAINER::IsSame( const ZONE_CONTAINER& aZoneToCompare )
  * @param aLayer = the layer of zones. if aLayer < 0, all layers are used
  * @return the count of saved copies
  */
-int SaveCopyOfZones( PICKED_ITEMS_LIST& aPickList, BOARD* aPcb, int aNetCode, int aLayer )
+int SaveCopyOfZones( PICKED_ITEMS_LIST& aPickList, BOARD* aPcb, int aNetCode, LAYER_NUM aLayer )
 {
     int copyCount = 0;
 

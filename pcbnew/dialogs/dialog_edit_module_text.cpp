@@ -1,8 +1,33 @@
-/////////////////////////////////////////////////////////////////////////////
-// Name:        dialog_edit_module_text.cpp
-// Author:      jean-pierre Charras
-// Licence:		GPL
-/////////////////////////////////////////////////////////////////////////////
+/**
+ * @file dialog_edit_module_text.cpp
+ * @brief dialog editor for texts (fields) in footprints.
+ */
+
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2013 Jean-Pierre Charras
+ * Copyright (C) 2013 Dick Hollenbeck, dick@softplc.com
+ * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
 
 
 #include <fctsys.h>
@@ -97,7 +122,7 @@ void DialogEditModuleText::initDlg( )
         msg.Printf( format,
                     GetChars( m_module->GetReference() ),
                     GetChars( m_module->GetValue() ),
-                    (float) m_module->GetOrientation() / 10 );
+                    m_module->GetOrientation() / 10.0 );
     }
     else
     {
@@ -106,23 +131,30 @@ void DialogEditModuleText::initDlg( )
 
     m_ModuleInfoText->SetLabel( msg );
 
-
-    if( m_currentText->GetType() == TEXT_is_VALUE )
+    switch( m_currentText->GetType() )
+    {
+    case TEXTE_MODULE::TEXT_is_VALUE:
         m_TextDataTitle->SetLabel( _( "Value:" ) );
-    else if( m_currentText->GetType() == TEXT_is_DIVERS )
+        break;
+
+    case TEXTE_MODULE::TEXT_is_DIVERS:
         m_TextDataTitle->SetLabel( _( "Text:" ) );
-    else if( m_currentText->GetType() != TEXT_is_REFERENCE )
-        m_TextDataTitle->SetLabel( wxT( "???" ) );
+        break;
 
-    m_Name->SetValue( m_currentText->m_Text );
+    default:
+        m_TextDataTitle->SetLabel( _( "Reference:" ) );
+        break;
+    }
 
-    m_Style->SetSelection( m_currentText->m_Italic ? 1 : 0 );
+    m_Name->SetValue( m_currentText->GetText() );
+
+    m_Style->SetSelection( m_currentText->IsItalic() ? 1 : 0 );
 
     AddUnitSymbol( *m_SizeXTitle );
-    PutValueInLocalUnits( *m_TxtSizeCtrlX, m_currentText->m_Size.x );
+    PutValueInLocalUnits( *m_TxtSizeCtrlX, m_currentText->GetSize().x );
 
     AddUnitSymbol( *m_SizeYTitle );
-    PutValueInLocalUnits( *m_TxtSizeCtrlY, m_currentText->m_Size.y );
+    PutValueInLocalUnits( *m_TxtSizeCtrlY, m_currentText->GetSize().y );
 
     AddUnitSymbol( *m_PosXTitle );
     PutValueInLocalUnits( *m_TxtPosCtrlX, m_currentText->GetPos0().x );
@@ -131,10 +163,10 @@ void DialogEditModuleText::initDlg( )
     PutValueInLocalUnits( *m_TxtPosCtrlY, m_currentText->GetPos0().y );
 
     AddUnitSymbol( *m_WidthTitle );
-    PutValueInLocalUnits( *m_TxtWidthCtlr, m_currentText->m_Thickness );
+    PutValueInLocalUnits( *m_TxtWidthCtlr, m_currentText->GetThickness() );
 
-    int text_orient = m_currentText->m_Orient;
-    NORMALIZE_ANGLE_90(text_orient)
+    double text_orient = m_currentText->GetOrientation();
+    NORMALIZE_ANGLE_90( text_orient );
 
     if( (text_orient != 0) )
         m_Orient->SetSelection( 1 );
@@ -156,9 +188,9 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
         m_currentText->Draw( m_parent->GetCanvas(), m_dc, GR_XOR,
                              (m_currentText->IsMoving()) ? MoveVector : wxPoint( 0, 0 ) );
     }
-    m_currentText->m_Text = m_Name->GetValue();
 
-    m_currentText->m_Italic = m_Style->GetSelection() == 1 ? true : false;
+    m_currentText->SetText( m_Name->GetValue() );
+    m_currentText->SetItalic( m_Style->GetSelection() == 1 );
 
     wxPoint tmp;
 
@@ -170,16 +202,16 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
 
     m_currentText->SetPos0( tmp );
 
-    msg = m_TxtSizeCtrlX->GetValue();
-    m_currentText->m_Size.x = ReturnValueFromString( g_UserUnit, msg );
-    msg = m_TxtSizeCtrlY->GetValue();
-    m_currentText->m_Size.y = ReturnValueFromString( g_UserUnit, msg );
+    wxSize textSize( wxSize( ReturnValueFromString( g_UserUnit, m_TxtSizeCtrlX->GetValue() ),
+                             ReturnValueFromString( g_UserUnit, m_TxtSizeCtrlY->GetValue() ) ) );
 
     // Test for a reasonnable size:
-    if( m_currentText->m_Size.x< TEXTS_MIN_SIZE )
-        m_currentText->m_Size.x = TEXTS_MIN_SIZE;
-    if( m_currentText->m_Size.y< TEXTS_MIN_SIZE )
-        m_currentText->m_Size.y = TEXTS_MIN_SIZE;
+    if( textSize.x < TEXTS_MIN_SIZE )
+        textSize.x = TEXTS_MIN_SIZE;
+    if( textSize.y < TEXTS_MIN_SIZE )
+        textSize.y = TEXTS_MIN_SIZE;
+
+    m_currentText->SetSize( textSize ),
 
     msg = m_TxtWidthCtlr->GetValue();
     int width = ReturnValueFromString( g_UserUnit, msg );
@@ -188,7 +220,7 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
     if( width <= 1 )
         width = 1;
 
-    int maxthickness = Clamp_Text_PenSize(width, m_currentText->m_Size );
+    int maxthickness = Clamp_Text_PenSize(width, m_currentText->GetSize() );
 
     if( width > maxthickness )
     {
@@ -202,7 +234,7 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
     m_currentText->SetVisible( m_Show->GetSelection() == 0 );
 
     int text_orient = (m_Orient->GetSelection() == 0) ? 0 : 900;
-    m_currentText->m_Orient = text_orient;
+    m_currentText->SetOrientation( text_orient );
 
     m_currentText->SetDrawCoord();
 

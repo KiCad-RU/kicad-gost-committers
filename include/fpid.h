@@ -133,7 +133,49 @@ public:
                                const std::string& aRevision )
         throw( PARSE_ERROR );
 
+    /**
+     * Function IsValid
+     * @return true is the #FPID is valid.
+     *
+     * A valid #FPID must have both the footprint library nickname and the footprint name
+     * defined.  The revision field is optional.
+     *
+     * @note A return value of true does not indicated that the #FPID is a valid #FP_LIB_TABLE
+     *       entry.
+     */
+    bool IsValid() const { return !nickname.empty() && !footprint.empty(); }
+
+
+    /**
+     * Function IsLegacy
+     * @return true if the #FPID only has the #footprint name defined.
+     */
+    bool IsLegacy() const { return nickname.empty() && !footprint.empty() && revision.empty(); }
+
+    /**
+     * Function clear
+     * clears the contents of the library nickname, footprint name, and revision strings.
+     */
     void clear();
+
+    /**
+     * Function empty
+     * @return a boolean true value if the FPID is empty.  Otherwise return false.
+     */
+    bool empty() const { return nickname.empty() && footprint.empty() && revision.empty(); }
+
+    /**
+     * Function Compare
+     * compares the contents of FPID objects by performing a std::string comparison of the
+     * library nickname, footprint name, and revision strings respectively.
+     *
+     * @param aFPID is the FPID to compare against.
+     * @return -1 if less than \a aFPID, 1 if greater than \a aFPID, and 0 if equal to \a aFPID.
+     */
+    int compare( const FPID& aFPID ) const;
+
+    bool operator <( const FPID& aFPID ) const { return this->compare( aFPID ) < 0; }
+    bool operator ==( const FPID& aFPID ) const { return this->compare( aFPID ) == 0; }
 
 #if defined(DEBUG)
     static void Test();

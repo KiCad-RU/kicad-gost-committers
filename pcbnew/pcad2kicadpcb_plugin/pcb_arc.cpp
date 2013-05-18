@@ -93,12 +93,11 @@ void PCB_ARC::Parse( XNODE*     aNode,
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &endX, &endY, aActualConversion );
 
-        int alpha1  = ArcTangente( m_startY - m_positionY, m_startX - m_positionX );
-        int alpha2  = ArcTangente( endY - m_positionY, endX - m_positionX );
+        double alpha1  = ArcTangente( m_startY - m_positionY, m_startX - m_positionX );
+        double alpha2  = ArcTangente( endY - m_positionY, endX - m_positionX );
         m_angle = alpha1 - alpha2;
 
-        if( m_angle < 0 )
-            m_angle = 3600 + m_angle;
+        NORMALIZE_ANGLE_POS( m_angle );
     }
     else if( aNode->GetName() == wxT( "arc" ) )
     {
@@ -122,8 +121,8 @@ void PCB_ARC::Parse( XNODE*     aNode,
         if( lNode )
             m_angle = StrToInt1Units( lNode->GetNodeContent() );
 
-        m_startX = KiROUND( m_positionX + (double)r * cos( a * M_PI / 1800.0 ) );
-        m_startY = KiROUND( m_positionY - (double)r * sin( a * M_PI / 1800.0 ) );
+        m_startX = m_positionX + KiROUND( cosdecideg( r, a ) );
+        m_startY = m_positionY - KiROUND( sindecideg( r, a ) );
     }
 }
 
@@ -144,16 +143,16 @@ void PCB_ARC::Flip()
     m_startX = -m_startX;
     m_angle = -m_angle;
 
-    m_KiCadLayer = FlipLayers( m_KiCadLayer );
+    m_KiCadLayer = FlipLayer( m_KiCadLayer );
 }
 
 
 void PCB_ARC::AddToModule( MODULE* aModule )
 {
-    if( IsValidNonCopperLayerIndex( m_KiCadLayer ) )
+    if( IsNonCopperLayer( m_KiCadLayer ) )
     {
         EDGE_MODULE* arc = new EDGE_MODULE( aModule, S_ARC );
-        aModule->m_Drawings.PushBack( arc );
+        aModule->GraphicalItems().PushBack( arc );
 
         arc->SetAngle( -m_angle );
         arc->m_Start0   = wxPoint( m_positionX, m_positionY );

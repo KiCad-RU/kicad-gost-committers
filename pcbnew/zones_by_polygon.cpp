@@ -126,7 +126,7 @@ void PCB_EDIT_FRAME::duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone )
     if( success )
     {
         zoneSettings.ExportSetting( *newZone );
-        newZone->m_Poly->Hatch();
+        newZone->Outline()->Hatch();
 
         s_AuxiliaryList.ClearListAndDeleteItems();
         s_PickedList.ClearListAndDeleteItems();
@@ -176,7 +176,7 @@ int PCB_EDIT_FRAME::Delete_LastCreatedCorner( wxDC* DC )
 
     if( zone->GetNumCorners() > 2 )
     {
-        zone->m_Poly->DeleteCorner( zone->GetNumCorners() - 1 );
+        zone->Outline()->DeleteCorner( zone->GetNumCorners() - 1 );
 
         if( m_canvas->IsMouseCaptured() )
             m_canvas->CallMouseCapture( DC, wxDefaultPosition, false );
@@ -239,11 +239,11 @@ void PCB_EDIT_FRAME::Start_Move_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone,
 
     // Prepare copy of old zones, for undo/redo.
     // if the corner is new, remove it from list, save and insert it in list
-    int cx = aZone->m_Poly->GetX( corner_id );
-    int cy = aZone->m_Poly->GetY( corner_id );
+    int cx = aZone->Outline()->GetX( corner_id );
+    int cy = aZone->Outline()->GetY( corner_id );
 
     if ( IsNewCorner )
-        aZone->m_Poly->DeleteCorner( corner_id );
+        aZone->Outline()->DeleteCorner( corner_id );
 
     s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList.ClearListAndDeleteItems();
@@ -252,7 +252,7 @@ void PCB_EDIT_FRAME::Start_Move_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone,
                      aZone->GetLayer() );
 
     if ( IsNewCorner )
-        aZone->m_Poly->InsertCorner(corner_id-1, cx, cy );
+        aZone->Outline()->InsertCorner(corner_id-1, cx, cy );
 
     aZone->SetFlags( IN_EDIT );
     m_canvas->SetMouseCapture( Show_Zone_Corner_Or_Outline_While_Move_Mouse,
@@ -269,7 +269,7 @@ void PCB_EDIT_FRAME::Start_Move_Zone_Drag_Outline_Edge( wxDC*           DC,
                                                         int             corner_id )
 {
     aZone->SetFlags( IS_DRAGGED );
-    aZone->m_CornerSelection = corner_id;
+    aZone->SetSelectedCorner( corner_id );
     m_canvas->SetMouseCapture( Show_Zone_Corner_Or_Outline_While_Move_Mouse,
                                 Abort_Zone_Move_Corner_Or_Outlines );
     s_CursorLastPosition     = s_CornerInitialPosition = GetScreen()->GetCrossHairPosition();
@@ -358,7 +358,7 @@ void PCB_EDIT_FRAME::Remove_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone )
 {
     OnModify();
 
-    if( aZone->m_Poly->GetNumCorners() <= 3 )
+    if( aZone->Outline()->GetCornersCount() <= 3 )
     {
         m_canvas->RefreshDrawingRect( aZone->GetBoundingBox() );
 
@@ -372,7 +372,7 @@ void PCB_EDIT_FRAME::Remove_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone )
         return;
     }
 
-    int layer = aZone->GetLayer();
+    LAYER_NUM layer = aZone->GetLayer();
 
     if( DC )
     {
@@ -382,9 +382,8 @@ void PCB_EDIT_FRAME::Remove_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone )
 
     s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList. ClearListAndDeleteItems();
-    SaveCopyOfZones( s_PickedList, GetBoard(), aZone->GetNet(),
-                     aZone->GetLayer() );
-    aZone->m_Poly->DeleteCorner( aZone->m_CornerSelection );
+    SaveCopyOfZones( s_PickedList, GetBoard(), aZone->GetNet(), aZone->GetLayer() );
+    aZone->Outline()->DeleteCorner( aZone->GetSelectedCorner() );
 
     // modify zones outlines according to the new aZone shape
     GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, aZone );
@@ -438,12 +437,12 @@ void Abort_Zone_Move_Corner_Or_Outlines( EDA_DRAW_PANEL* Panel, wxDC* DC )
     {
         if( s_CornerIsNew )
         {
-            zone->m_Poly->DeleteCorner( zone->m_CornerSelection );
+            zone->Outline()->DeleteCorner( zone->GetSelectedCorner() );
         }
         else
         {
             wxPoint pos = s_CornerInitialPosition;
-            zone->m_Poly->MoveCorner( zone->m_CornerSelection, pos.x, pos.y );
+            zone->Outline()->MoveCorner( zone->GetSelectedCorner(), pos.x, pos.y );
         }
     }
 
@@ -489,7 +488,7 @@ void Show_Zone_Corner_Or_Outline_While_Move_Mouse( EDA_DRAW_PANEL* aPanel, wxDC*
     }
     else
     {
-        zone->m_Poly->MoveCorner( zone->m_CornerSelection, pos.x, pos.y );
+        zone->Outline()->MoveCorner( zone->GetSelectedCorner(), pos.x, pos.y );
     }
 
     zone->Draw( aPanel, aDC, GR_XOR );
@@ -621,7 +620,7 @@ int PCB_EDIT_FRAME::Begin_Zone( wxDC* DC )
         }
 
         // Show the Net for zones on copper layers
-        if( zoneInfo.m_CurrentZone_Layer < FIRST_NO_COPPER_LAYER &&
+        if( zoneInfo.m_CurrentZone_Layer < FIRST_NON_COPPER_LAYER &&
             ! zoneInfo.GetIsKeepout() )
         {
             if( s_CurrentZone )
@@ -651,14 +650,14 @@ int PCB_EDIT_FRAME::Begin_Zone( wxDC* DC )
 
         zoneInfo.ExportSetting( *zone );
 
-        zone->m_Poly->Start( zoneInfo.m_CurrentZone_Layer,
-                             GetScreen()->GetCrossHairPosition().x,
-                             GetScreen()->GetCrossHairPosition().y,
-                             zone->GetHatchStyle() );
+        zone->Outline()->Start( zoneInfo.m_CurrentZone_Layer,
+                                GetScreen()->GetCrossHairPosition().x,
+                                GetScreen()->GetCrossHairPosition().y,
+                                zone->GetHatchStyle() );
 
         zone->AppendCorner( GetScreen()->GetCrossHairPosition() );
 
-        if( Drc_On && (m_drc->Drc( zone, 0 ) == BAD_DRC) && zone->IsOnCopperLayer() )
+        if( g_Drc_On && (m_drc->Drc( zone, 0 ) == BAD_DRC) && zone->IsOnCopperLayer() )
         {
             zone->ClearFlags();
             zone->RemoveAllContours();
@@ -683,7 +682,7 @@ int PCB_EDIT_FRAME::Begin_Zone( wxDC* DC )
         // by Show_New_Edge_While_Move_Mouse
         if( zone->GetCornerPosition( ii - 1 ) != zone->GetCornerPosition( ii ) )
         {
-            if( !Drc_On || !zone->IsOnCopperLayer() || ( m_drc->Drc( zone, ii - 1 ) == OK_DRC ) )
+            if( !g_Drc_On || !zone->IsOnCopperLayer() || ( m_drc->Drc( zone, ii - 1 ) == OK_DRC ) )
             {
                 // Ok, we can add a new corner
                 if( m_canvas->IsMouseCaptured() )
@@ -715,16 +714,16 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
     }
 
     // Remove the last corner if is is at the same location as the prevoius corner
-    zone->m_Poly->RemoveNullSegments();
+    zone->Outline()->RemoveNullSegments();
 
     // Validate the current edge:
     int icorner = zone->GetNumCorners() - 1;
     if( zone->IsOnCopperLayer() )
     {
-        if( Drc_On && m_drc->Drc( zone, icorner - 1 ) == BAD_DRC )  // we can't validate last edge
+        if( g_Drc_On && m_drc->Drc( zone, icorner - 1 ) == BAD_DRC )  // we can't validate last edge
             return false;
 
-        if( Drc_On && m_drc->Drc( zone, icorner ) == BAD_DRC )      // we can't validate the closing edge
+        if( g_Drc_On && m_drc->Drc( zone, icorner ) == BAD_DRC )      // we can't validate the closing edge
         {
             DisplayError( this,
                           _( "DRC error: closing this area creates a drc error with an other area" ) );
@@ -740,7 +739,7 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
     m_canvas->SetMouseCapture( NULL, NULL );
 
     // Undraw old drawings, because they can have important changes
-    int layer = zone->GetLayer();
+    LAYER_NUM layer = zone->GetLayer();
     GetBoard()->RedrawAreasOutlines( m_canvas, DC, GR_XOR, layer );
     GetBoard()->RedrawFilledAreas( m_canvas, DC, GR_XOR, layer );
 
@@ -752,7 +751,7 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
     // Put new zone in list
     if( !s_CurrentZone )
     {
-        zone->m_Poly->CloseLastContour(); // Close the current corner list
+        zone->Outline()->CloseLastContour(); // Close the current corner list
         GetBoard()->Add( zone );
         GetBoard()->m_CurrentZoneContour = NULL;
 
@@ -767,7 +766,7 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
             s_CurrentZone->AppendCorner( zone->GetCornerPosition( ii ) );
         }
 
-        s_CurrentZone->m_Poly->CloseLastContour(); // Close the current corner list
+        s_CurrentZone->Outline()->CloseLastContour(); // Close the current corner list
         zone->RemoveAllContours();      // All corners are copied in s_CurrentZone. Free corner list.
         zone = s_CurrentZone;
     }
@@ -852,7 +851,7 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
     // note the net name and the layer can be changed, so we must save all zones
     s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList.ClearListAndDeleteItems();
-    SaveCopyOfZones(s_PickedList, GetBoard(), -1, -1 );
+    SaveCopyOfZones(s_PickedList, GetBoard(), -1, UNDEFINED_LAYER );
 
     if( aZone->GetIsKeepout() )
     {
@@ -860,7 +859,7 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
         zoneInfo << *aZone;
         edited = InvokeKeepoutAreaEditor( this, &zoneInfo );
     }
-    else if( aZone->GetLayer() < FIRST_NO_COPPER_LAYER )
+    else if( aZone->GetLayer() < FIRST_NON_COPPER_LAYER )
     {
         // edit a zone on a copper layer
 
@@ -911,7 +910,7 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
     GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, aZone );
 
     // Redraw the real new zone outlines
-    GetBoard()->RedrawAreasOutlines( m_canvas, DC, GR_OR, -1 );
+    GetBoard()->RedrawAreasOutlines( m_canvas, DC, GR_OR, UNDEFINED_LAYER );
 
     UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
     SaveCopyInUndoList(s_PickedList, UR_UNSPECIFIED);
@@ -924,7 +923,7 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
 
 void PCB_EDIT_FRAME::Delete_Zone_Contour( wxDC* DC, ZONE_CONTAINER* aZone )
 {
-    int      ncont = aZone->m_Poly->GetContour( aZone->m_CornerSelection );
+    int      ncont = aZone->Outline()->GetContour( aZone->GetSelectedCorner() );
 
     EDA_RECT dirty = aZone->GetBoundingBox();
 
@@ -943,7 +942,7 @@ void PCB_EDIT_FRAME::Delete_Zone_Contour( wxDC* DC, ZONE_CONTAINER* aZone )
     else
     {
         SaveCopyInUndoList( aZone, UR_CHANGED );
-        aZone->m_Poly->RemoveContour( ncont );
+        aZone->Outline()->RemoveContour( ncont );
     }
 
     m_canvas->RefreshDrawingRect( dirty );

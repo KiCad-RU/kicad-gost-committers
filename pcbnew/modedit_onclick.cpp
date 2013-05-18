@@ -14,7 +14,6 @@
 #include <class_edge_mod.h>
 
 #include <pcbnew.h>
-//#include <protos.h>
 #include <pcbnew_id.h>
 #include <hotkeys.h>
 #include <module_editor_frame.h>
@@ -112,7 +111,7 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
             }
             else
             {
-                DisplayError( this, wxT( "ProcessCommand error: item flags error" ) );
+                wxMessageBox( wxT( "ProcessCommand error: unknown shape" ) );
             }
         }
         break;
@@ -140,13 +139,15 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
             || (module->GetFlags() != 0) )
             break;
 
-        module->ClearFlags();
         SaveCopyInUndoList( module, UR_MODEDIT );
-        Place_Ancre( module );      // set the new relatives internal coordinates of items
-        RedrawScreen( wxPoint( 0, 0 ), true );
 
-        // Replace the module in position 0, to recalculate absolutes coordinates of items
-        module->SetPosition( wxPoint( 0, 0 ) );
+        // set the new relative internal local coordinates of footprint items
+        wxPoint moveVector = module->GetPosition() -
+                             GetScreen()->GetCrossHairPosition();
+        module->MoveAnchorPosition( moveVector );
+
+        // Usually, we do not need to change twice the anchor position,
+        // so deselect the active tool
         SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
         SetCurItem( NULL );
         m_canvas->Refresh();
@@ -252,7 +253,7 @@ bool FOOTPRINT_EDIT_FRAME::OnRightClick( const wxPoint& MousePos, wxMenu* PopMen
 
     if( item  )
     {
-        int flags = item->GetFlags();
+        STATUS_FLAGS flags = item->GetFlags();
         switch( item->Type() )
         {
         case PCB_MODULE_T:
@@ -313,7 +314,7 @@ bool FOOTPRINT_EDIT_FRAME::OnRightClick( const wxPoint& MousePos, wxMenu* PopMen
                                      HK_EDIT_ITEM );
                 AddMenuItem( PopMenu, ID_POPUP_PCB_EDIT_TEXTMODULE, msg, KiBitmap( edit_text_xpm ) );
 
-                if( ( (TEXTE_MODULE*) item )->GetType() == TEXT_is_DIVERS )
+                if( ( (TEXTE_MODULE*) item )->GetType() == TEXTE_MODULE::TEXT_is_DIVERS )
                 {
                     msg = AddHotkeyName( _("Delete Text Mod." ), g_Module_Editor_Hokeys_Descr,
                                          HK_DELETE );

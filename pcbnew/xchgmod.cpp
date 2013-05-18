@@ -177,7 +177,6 @@ int DIALOG_EXCHANGE_MODULE::Maj_ListeCmp( const wxString& reference,
     FILE*       FichCmp, * NewFile;
     char        line[1024];
     wxString    msg;
-//    char*  quiet_gcc_4_4_3;
 
     if( old_name == new_name )
         return 0;
@@ -192,7 +191,7 @@ int DIALOG_EXCHANGE_MODULE::Maj_ListeCmp( const wxString& reference,
     {
         if( ShowError )
         {
-            msg.Printf( _( "file %s not found" ), GetChars( fn.GetFullPath() ) );
+            msg.Printf( _( "file <%s> not found" ), GetChars( fn.GetFullPath() ) );
             m_WinMessages->AppendText( msg );
         }
 
@@ -207,7 +206,7 @@ int DIALOG_EXCHANGE_MODULE::Maj_ListeCmp( const wxString& reference,
     {
         if( ShowError )
         {
-            msg.Printf( _( "Unable to create file %s" ),
+            msg.Printf( _( "Unable to create file <%s>" ),
                         GetChars( tmpFileName.GetFullPath() ) );
             m_WinMessages->AppendText( msg );
         }
@@ -323,14 +322,14 @@ void DIALOG_EXCHANGE_MODULE::Change_ModuleId( bool aUseValue )
     {
         check_module_value = true;
         value = m_CurrentModule->GetValue();
-        msg.Printf( _( "Change modules <%s> -> <%s> (val = %s)?" ),
+        msg.Printf( _( "Change modules %s -> %s (for value = %s)?" ),
                     GetChars( m_CurrentModule->GetLibRef() ),
                     GetChars( newmodulename ),
                     GetChars( m_CurrentModule->GetValue() ) );
     }
     else
     {
-        msg.Printf( _( "Change modules <%s> -> <%s> ?" ),
+        msg.Printf( _( "Change modules %s -> %s ?" ),
                     GetChars( lib_reference ), GetChars( newmodulename ) );
     }
 
@@ -462,7 +461,7 @@ bool DIALOG_EXCHANGE_MODULE::Change_1_Module( MODULE*            Module,
     namecmp    = new_module;
 
     /* Load module. */
-    line.Printf( _( "Change module %s (%s)  " ),
+    line.Printf( _( "Change module %s (from %s)  " ),
                  GetChars( Module->GetReference() ),
                  GetChars( oldnamecmp ) );
     m_WinMessages->AppendText( line );
@@ -480,7 +479,7 @@ bool DIALOG_EXCHANGE_MODULE::Change_1_Module( MODULE*            Module,
     if( Module == m_CurrentModule )
         m_CurrentModule = NewModule;
 
-    m_WinMessages->AppendText( wxT( "Ok\n" ) );
+    m_WinMessages->AppendText( wxT( "OK\n" ) );
 
     m_Parent->Exchange_Module( Module, NewModule, aUndoPickList );
 
@@ -546,13 +545,13 @@ void PCB_EDIT_FRAME::Exchange_Module( MODULE*            aOldModule,
     aNewModule->SetPath( aOldModule->GetPath() );
 
     /* Update pad netnames ( when possible) */
-    pad = aNewModule->m_Pads;
+    pad = aNewModule->Pads();
 
     for( ; pad != NULL; pad = pad->Next() )
     {
         pad->SetNetname( wxEmptyString );
         pad->SetNet( 0 );
-        old_pad = aOldModule->m_Pads;
+        old_pad = aOldModule->Pads();
 
         for( ; old_pad != NULL; old_pad = old_pad->Next() )
         {
@@ -590,10 +589,8 @@ void DIALOG_EXCHANGE_MODULE::BrowseAndSelectFootprint( wxCommandEvent& event )
 {
     wxString newname;
 
-    newname = m_Parent->Select_1_Module_From_List( m_Parent,
-                                                   wxEmptyString,
-                                                   wxEmptyString,
-                                                   wxEmptyString );
+    newname = m_Parent->SelectFootprint( m_Parent, wxEmptyString, wxEmptyString, wxEmptyString );
+
     if( newname != wxEmptyString )
         m_NewModule->SetValue( newname );
 }

@@ -90,7 +90,7 @@ EDA_ITEM* SCH_FIELD::Clone() const
 }
 
 
-const wxString SCH_FIELD::GetText() const
+const wxString SCH_FIELD::GetFullyQualifiedText() const
 {
     wxString text = m_Text;
 
@@ -187,14 +187,14 @@ void SCH_FIELD::Draw( EDA_DRAW_PANEL* panel, wxDC* DC,
     else
     {
         if( m_id == REFERENCE )
-            color = ReturnLayerColor( LAYER_REFERENCEPART );
+            color = GetLayerColor( LAYER_REFERENCEPART );
         else if( m_id == VALUE )
-            color = ReturnLayerColor( LAYER_VALUEPART );
+            color = GetLayerColor( LAYER_VALUEPART );
         else
-            color = ReturnLayerColor( LAYER_FIELDS );
+            color = GetLayerColor( LAYER_FIELDS );
     }
 
-    DrawGraphicText( panel, DC, textpos, color, GetText(), orient, m_Size,
+    DrawGraphicText( panel, DC, textpos, color, GetFullyQualifiedText(), orient, m_Size,
                      GR_TEXT_HJUSTIFY_CENTER, GR_TEXT_VJUSTIFY_CENTER,
                      LineWidth, m_Italic, m_Bold );
 
@@ -224,15 +224,15 @@ void SCH_FIELD::Draw( EDA_DRAW_PANEL* panel, wxDC* DC,
 
 void SCH_FIELD::ImportValues( const LIB_FIELD& aSource )
 {
-    m_Orient    = aSource.m_Orient;
-    m_Size      = aSource.m_Size;
-    m_HJustify  = aSource.m_HJustify;
-    m_VJustify  = aSource.m_VJustify;
-    m_Italic    = aSource.m_Italic;
-    m_Bold      = aSource.m_Bold;
-    m_Thickness = aSource.m_Thickness;
-    m_Attributs = aSource.m_Attributs;
-    m_Mirror    = aSource.m_Mirror;
+    m_Orient    = aSource.GetOrientation();
+    m_Size      = aSource.GetSize();
+    m_HJustify  = aSource.GetHorizJustify();
+    m_VJustify  = aSource.GetVertJustify();
+    m_Italic    = aSource.IsItalic();
+    m_Bold      = aSource.IsBold();
+    m_Thickness = aSource.GetThickness();
+    m_Attributs = aSource.GetAttributes();
+    m_Mirror    = aSource.IsMirrored();
 }
 
 
@@ -387,7 +387,7 @@ void SCH_FIELD::Place( SCH_EDIT_FRAME* frame, wxDC* DC )
 bool SCH_FIELD::Matches( wxFindReplaceData& aSearchData, void* aAuxData, wxPoint* aFindLocation )
 {
     bool match;
-    wxString text = GetText();
+    wxString text = GetFullyQualifiedText();
 
     if( ((m_id > VALUE) && !(aSearchData.GetFlags() & FR_SEARCH_ALL_FIELDS))
         || ((m_id == REFERENCE) && !(aSearchData.GetFlags() & FR_REPLACE_REFERENCES)) )
@@ -427,7 +427,7 @@ bool SCH_FIELD::Matches( wxFindReplaceData& aSearchData, void* aAuxData, wxPoint
 bool SCH_FIELD::Replace( wxFindReplaceData& aSearchData, void* aAuxData )
 {
     bool isReplaced;
-    wxString text = GetText();
+    wxString text = GetFullyQualifiedText();
 
     if( m_id == REFERENCE && aAuxData != NULL )
     {
@@ -537,7 +537,7 @@ void SCH_FIELD::Plot( PLOTTER* aPlotter )
     wxCHECK_RET( parent != NULL && parent->Type() == SCH_COMPONENT_T,
                  wxT( "Cannot plot field with invalid parent." ) );
 
-    EDA_COLOR_T color = ReturnLayerColor( GetLayer() );
+    EDA_COLOR_T color = GetLayerColor( GetLayer() );
 
     if( m_Attributs & TEXT_NO_VISIBLE )
         return;

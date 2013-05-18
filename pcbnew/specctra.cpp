@@ -56,6 +56,7 @@
 #include <class_track.h>
 
 #include <specctra.h>
+#include <macros.h>
 
 
 namespace DSN {
@@ -79,11 +80,12 @@ void SPECCTRA_DB::buildLayerMaps( BOARD* aBoard )
 
     layerIds.clear();
     pcbLayer2kicad.resize( layerCount );
-    kicadLayer2pcb.resize( LAYER_N_FRONT+1 );
+    kicadLayer2pcb.resize( LAYER_N_FRONT + 1 );
 
-    for( int kiNdx=layerCount-1, pcbNdx=0;  kiNdx >= 0;  --kiNdx, ++pcbNdx )
+    for( LAYER_NUM kiNdx = layerCount - 1, pcbNdx=FIRST_LAYER;
+         kiNdx >= 0; --kiNdx, ++pcbNdx )
     {
-        int kilayer = kiNdx>0 && kiNdx==layerCount-1 ? LAYER_N_FRONT : kiNdx;
+        LAYER_NUM kilayer = (kiNdx>0 && kiNdx==layerCount-1) ? LAYER_N_FRONT : kiNdx;
 
         // establish bi-directional mapping between KiCad's BOARD layer and PCB layer
         pcbLayer2kicad[pcbNdx]  = kilayer;
@@ -97,10 +99,10 @@ void SPECCTRA_DB::buildLayerMaps( BOARD* aBoard )
 
 int SPECCTRA_DB::findLayerName( const std::string& aLayerName ) const
 {
-    for( unsigned i=0;  i<layerIds.size();  ++i )
+    for( int i=0;  i < int(layerIds.size());  ++i )
     {
         if( 0 == aLayerName.compare( layerIds[i] ) )
-            return (int) i;
+            return i;
     }
     return -1;
 }
@@ -1869,58 +1871,54 @@ void SPECCTRA_DB::doPLACEMENT( PLACEMENT* growth ) throw( IO_ERROR )
 {
     T       tok;
 
-    NeedLEFT();
-
-    tok = NextTok();
-    if( tok==T_unit || tok==T_resolution )
+    while( (tok = NextTok()) != T_RIGHT )
     {
-        growth->unit = new UNIT_RES( growth, tok );
-        if( tok==T_resolution )
-            doRESOLUTION( growth->unit );
-        else
-            doUNIT( growth->unit );
+        if( tok == T_EOF )
+            Unexpected( T_EOF );
 
-        if( NextTok() != T_LEFT )
-            Expecting( T_LEFT );
-        tok = NextTok();
-    }
-
-    if( tok == T_place_control )
-    {
-        if( NextTok() != T_LEFT )
+        if( tok != T_LEFT )
             Expecting( T_LEFT );
 
         tok = NextTok();
-        if( tok != T_flip_style )
-            Expecting( T_flip_style );
 
-        tok = NextTok();
-        if( tok==T_mirror_first || tok==T_rotate_first )
-            growth->flip_style = tok;
-        else
-            Expecting("mirror_first|rotate_first");
+        switch( tok )
+        {
+        case T_unit:
+        case T_resolution:
+            growth->unit = new UNIT_RES( growth, tok );
+            if( tok==T_resolution )
+                doRESOLUTION( growth->unit );
+            else
+                doUNIT( growth->unit );
+            break;
 
-        NeedRIGHT();
-        NeedRIGHT();
-        NeedLEFT();
-        tok = NextTok();
-    }
-
-    while( tok == T_component )
-    {
-        COMPONENT* component = new COMPONENT( growth );
-        growth->components.push_back( component );
-        doCOMPONENT( component );
-
-        tok = NextTok();
-        if( tok == T_RIGHT )
-            return;
-
-        else if( tok == T_LEFT )
+        case T_place_control:
+            NeedRIGHT();
             tok = NextTok();
-    }
+            if( tok != T_flip_style )
+                Expecting( T_flip_style );
 
-    Unexpected( CurText() );
+            tok = NextTok();
+            if( tok==T_mirror_first || tok==T_rotate_first )
+                growth->flip_style = tok;
+            else
+                Expecting( "mirror_first|rotate_first" );
+
+            NeedRIGHT();
+            NeedRIGHT();
+            break;
+
+        case T_component:
+            COMPONENT* component;
+            component = new COMPONENT( growth );
+            growth->components.push_back( component );
+            doCOMPONENT( component );
+            break;
+
+        default:
+            Unexpected( tok );
+        }
+    }
 }
 
 

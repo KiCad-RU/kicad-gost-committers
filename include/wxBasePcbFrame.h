@@ -91,6 +91,19 @@ protected:
     void updateZoomSelectBox();
     virtual void unitsChangeRefresh();
 
+    /**
+     * Function loadFootprint
+     * attempts to load \a aFootprintName from the list of libraries.
+     *
+     * @param aFootprintName is the name of component footprint to load.
+     * @return the #MODULE if found or NULL if \a aFootprintName not found in any of the
+     *         libraries.
+     * @throw IO_ERROR if an I/O error occurs or a #PARSE_ERROR if a file parsing error
+     *                 occurs while reading footprint library files.
+     */
+    MODULE* loadFootprint( const wxString& aFootprintName )
+        throw( IO_ERROR, PARSE_ERROR );
+
 public:
     PCB_BASE_FRAME( wxWindow* aParent, ID_DRAWFRAME_TYPE aFrameType,
                     const wxString& aTitle,
@@ -278,7 +291,7 @@ public:
     MODULE* Create_1_Module( const wxString& aModuleName );
 
     void Edit_Module( MODULE* module, wxDC* DC );
-    void Rotate_Module( wxDC* DC, MODULE* module, int angle, bool incremental );
+    void Rotate_Module( wxDC* DC, MODULE* module, double angle, bool incremental );
 
     /**
      * Function PlaceModule
@@ -419,7 +432,7 @@ public:
                               bool aDisplayError );
 
     /**
-     * Function Select_1_Module_From_List
+     * Function SelectFootprint
      *  Display a list of modules found in active libraries or a given library
      *  @param aWindow = the current window ( parent window )
      *  @param aLibraryFullFilename = library to list (if aLibraryFullFilename
@@ -432,10 +445,10 @@ public:
      *
      *  @return wxEmptyString if abort or fails, or the selected module name if Ok
      */
-    wxString Select_1_Module_From_List( EDA_DRAW_FRAME* aWindow,
-                                        const wxString& aLibraryFullFilename,
-                                        const wxString& aMask,
-                                        const wxString& aKeyWord );
+    wxString SelectFootprint( EDA_DRAW_FRAME* aWindow,
+                              const wxString& aLibraryFullFilename,
+                              const wxString& aMask,
+                              const wxString& aKeyWord );
 
     /**
      * Function Load_Module_From_Library
@@ -597,9 +610,9 @@ public:
     // layerhandling:
     // (See pcbnew/sel_layer.cpp for description of why null_layer parameter
     // is provided)
-    int SelectLayer( int default_layer, int min_layer, int max_layer, bool null_layer = false );
+    LAYER_NUM SelectLayer( LAYER_NUM default_layer, LAYER_NUM min_layer, LAYER_NUM max_layer, bool null_layer = false );
     void SelectLayerPair();
-    virtual void SwitchLayer( wxDC* DC, int layer );
+    virtual void SwitchLayer( wxDC* DC, LAYER_NUM layer );
 
     void InstallGridFrame( const wxPoint& pos );
 

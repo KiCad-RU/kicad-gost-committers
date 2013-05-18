@@ -49,7 +49,7 @@ DIMENSION::DIMENSION( BOARD_ITEM* aParent ) :
     BOARD_ITEM( aParent, PCB_DIMENSION_T ),
     m_Text( this )
 {
-    m_Layer = DRAW_LAYER;
+    m_Layer = DRAW_N;
     m_Width = Millimeter2iu( 0.2 );
     m_Value = 0;
     m_Shape = 0;
@@ -64,13 +64,13 @@ DIMENSION::~DIMENSION()
 
 void DIMENSION::SetPosition( const wxPoint& aPos )
 {
-    m_Text.SetPosition( aPos );
+    m_Text.SetTextPosition( aPos );
 }
 
 
 const wxPoint& DIMENSION::GetPosition() const
 {
-    return m_Text.GetPosition();
+    return m_Text.GetTextPosition();
 }
 
 
@@ -86,7 +86,7 @@ const wxString DIMENSION::GetText() const
 }
 
 
-void DIMENSION::SetLayer( int aLayer )
+void DIMENSION::SetLayer( LAYER_NUM aLayer )
 {
     m_Layer = aLayer;
     m_Text.SetLayer( aLayer );
@@ -122,7 +122,7 @@ void DIMENSION::Copy( DIMENSION* source )
 
 void DIMENSION::Move( const wxPoint& offset )
 {
-    m_Text.m_Pos    += offset;
+    m_Text.SetTextPosition( m_Text.GetTextPosition() + offset );
     m_crossBarO     += offset;
     m_crossBarF     += offset;
     m_featureLineGO += offset;
@@ -142,7 +142,9 @@ void DIMENSION::Move( const wxPoint& offset )
 
 void DIMENSION::Rotate( const wxPoint& aRotCentre, double aAngle )
 {
-    RotatePoint( &m_Text.m_Pos, aRotCentre, aAngle );
+    wxPoint tmp = m_Text.GetTextPosition();
+    RotatePoint( &tmp, aRotCentre, aAngle );
+    m_Text.SetTextPosition( tmp );
 
     double newAngle = m_Text.GetOrientation() + aAngle;
 
@@ -174,14 +176,18 @@ void DIMENSION::Rotate( const wxPoint& aRotCentre, double aAngle )
 void DIMENSION::Flip( const wxPoint& aCentre )
 {
     Mirror( aCentre );
-    SetLayer( BOARD::ReturnFlippedLayerNumber( GetLayer() ) );
+    SetLayer( FlipLayer( GetLayer() ) );
 }
 
 
 void DIMENSION::Mirror( const wxPoint& axis_pos )
 {
+    wxPoint newPos = m_Text.GetTextPosition();
+
 #define INVERT( pos ) (pos) = axis_pos.y - ( (pos) - axis_pos.y )
-    INVERT( m_Text.m_Pos.y );
+    INVERT( newPos.y );
+
+    m_Text.SetTextPosition( newPos );
 
     // invert angle
     double newAngle = m_Text.GetOrientation();
@@ -226,19 +232,15 @@ void DIMENSION::AdjustDimensionDetails( bool aDoNotChangeText )
     m_Text.SetLayer( GetLayer() );
 
     // calculate the size of the dimension (text + line above the text)
-    ii = m_Text.m_Size.y +
-         m_Text.GetThickness() + (m_Width * 3);
+    ii = m_Text.GetSize().y + m_Text.GetThickness() + (m_Width * 3);
 
     deltax  = m_featureLineDO.x - m_featureLineGO.x;
     deltay  = m_featureLineDO.y - m_featureLineGO.y;
 
     // Calculate dimension value
-    measure = KiROUND( hypot( (double) deltax, (double) deltay ) );
+    measure = KiROUND( hypot( deltax, deltay ) );
 
-    if( deltax || deltay )
-        angle = atan2( (double) deltay, (double) deltax );
-    else
-        angle = 0.0;
+    angle = atan2( deltay, deltax );
 
     // Calculation of parameters X and Y dimensions of the arrows and lines.
     hx = hy = ii;
@@ -246,8 +248,8 @@ void DIMENSION::AdjustDimensionDetails( bool aDoNotChangeText )
     // Taking into account the slope of the side lines.
     if( measure )
     {
-        hx  = (abs) ( (int) ( ( (double) deltay * hx ) / measure ) );
-        hy  = (abs) ( (int) ( ( (double) deltax * hy ) / measure ) );
+        hx  = abs( KiROUND( ( (double) deltay * hx ) / measure ) );
+        hy  = abs( KiROUND( ( (double) deltax * hy ) / measure ) );
 
         if( m_featureLineGO.x > m_crossBarO.x )
             hx = -hx;
@@ -261,12 +263,12 @@ void DIMENSION::AdjustDimensionDetails( bool aDoNotChangeText )
         if( m_featureLineGO.y == m_crossBarO.y )
             hy = 0;
 
-        angle_f     = angle + (M_PI * 27.5 / 180);
-        arrow_up_X  = (int) ( arrowz * cos( angle_f ) );
-        arrow_up_Y  = (int) ( arrowz * sin( angle_f ) );
-        angle_f     = angle - (M_PI * 27.5 / 180);
-        arrow_dw_X  = (int) ( arrowz * cos( angle_f ) );
-        arrow_dw_Y  = (int) ( arrowz * sin( angle_f ) );
+        angle_f     = angle + DEG2RAD( 27.5 );
+        arrow_up_X  = wxRound( arrowz * cos( angle_f ) );
+        arrow_up_Y  = wxRound( arrowz * sin( angle_f ) );
+        angle_f     = angle - DEG2RAD( 27.5 );
+        arrow_dw_X  = wxRound( arrowz * cos( angle_f ) );
+        arrow_dw_Y  = wxRound( arrowz * sin( angle_f ) );
     }
 
     m_arrowG1O.x    = m_crossBarO.x;
@@ -300,16 +302,14 @@ void DIMENSION::AdjustDimensionDetails( bool aDoNotChangeText )
     m_featureLineDF.y   = m_crossBarF.y + hy;
 
     // Calculate the better text position and orientation:
-    m_Text.m_Pos.x  = (m_crossBarF.x + m_featureLineGF.x) / 2;
-    m_Text.m_Pos.y  = (m_crossBarF.y + m_featureLineGF.y) / 2;
+    wxPoint textPos;
+    textPos.x  = (m_crossBarF.x + m_featureLineGF.x) / 2;
+    textPos.y  = (m_crossBarF.y + m_featureLineGF.y) / 2;
+    m_Text.SetTextPosition( textPos );
 
-    double newAngle = -(angle * 1800 / M_PI);
+    double newAngle = -RAD2DECIDEG( angle );
 
-    if( newAngle < 0 )
-        newAngle += 3600;
-
-    if( newAngle >= 3600 )
-        newAngle -= 3600;
+    NORMALIZE_ANGLE_POS( newAngle );
 
     if( newAngle > 900  &&  newAngle < 2700 )
         newAngle -= 1800;
@@ -343,7 +343,7 @@ void DIMENSION::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE mode_color,
     typeaff = DisplayOpt.DisplayDrawItems;
     width   = m_Width;
 
-    if( DC->LogicalToDeviceXRel( width ) < 2 )
+    if( DC->LogicalToDeviceXRel( width ) <= MIN_DRAW_WIDTH )
         typeaff = LINE;
 
     switch( typeaff )
@@ -482,8 +482,8 @@ EDA_RECT DIMENSION::GetBoundingBox() const
 wxString DIMENSION::GetSelectMenuText() const
 {
     wxString text;
-
-    text << _( "Dimension" ) << wxT( " \"" ) << GetText() << wxT( "\"" );
+    text.Printf( _( "Dimension \"%s\" on %s" ),
+                GetChars( GetText() ), GetChars( GetLayerName() ) );
 
     return text;
 }

@@ -111,14 +111,14 @@ bool EDA_APP::OnInit()
     }
 
     if( m_Checker && m_Checker->IsAnotherRunning() )
-      {
-          if( !IsOK( NULL, _( "Eeschema is already running, Continue?" ) ) )
-              return false;
-      }
+    {
+        if( !IsOK( NULL, _( "Eeschema is already running, Continue?" ) ) )
+            return false;
+    }
 
     // Give a default colour for all layers
     // (actual color will beinitialized by config)
-    for( int ii = 0; ii < MAX_LAYERS; ii++ )
+    for( int ii = 0; ii < NB_SCH_LAYERS; ii++ )
         SetLayerColor( DARKGRAY, ii );
 
     // read current setup and reopen last directory if no filename to open in

@@ -36,10 +36,8 @@
 // Conversion to application internal units defined at build time.
 #if defined( PCBNEW )
 #include <class_board_item.h>
-#define MILS_TO_IU( x )     ( x * IU_PER_MILS );
 #elif defined( EESCHEMA )
 #include <sch_item_struct.h>
-#define MILS_TO_IU( x )     ( x )
 #else
 #error "Cannot resolve units formatting due to no definition of EESCHEMA or PCBNEW."
 #endif
@@ -47,7 +45,7 @@
 
 EDA_TEXT::EDA_TEXT( const wxString& text )
 {
-    m_Size.x    = m_Size.y = MILS_TO_IU( DEFAULT_SIZE_TEXT );  // Width and height of font.
+    m_Size.x    = m_Size.y = Mils2iu( DEFAULT_SIZE_TEXT );  // Width and height of font.
     m_Orient    = 0;                             // Rotation angle in 0.1 degrees.
     m_Attributs = 0;
     m_Mirror    = false;                         // display mirror if true
@@ -271,22 +269,12 @@ void EDA_TEXT::DrawOneLineOfText( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
     if( aDrawMode != -1 )
         GRSetDrawMode( aDC, aDrawMode );
 
-    /* Draw text anchor, if allowed */
+    // Draw text anchor, if requested
     if( aAnchor_color != UNSPECIFIED_COLOR )
     {
-
-        int anchor_size = aDC->DeviceToLogicalXRel( 2 );
-
-        aAnchor_color = (EDA_COLOR_T) ( aAnchor_color & MASKCOLOR );
-
-        int cX = aPos.x + aOffset.x;
-        int cY = aPos.y + aOffset.y;
-
-        GRLine( aPanel->GetClipBox(), aDC, cX - anchor_size, cY,
-                cX + anchor_size, cY, 0, aAnchor_color );
-
-        GRLine( aPanel->GetClipBox(), aDC, cX, cY - anchor_size,
-                cX, cY + anchor_size, 0, aAnchor_color );
+        GRDrawAnchor( aPanel->GetClipBox(), aDC,
+                      aPos.x + aOffset.x, aPos.y + aOffset.y,
+                      DIM_ANCRE_TEXTE, aAnchor_color );
     }
 
     if( aFillMode == SKETCH )
@@ -325,8 +313,8 @@ wxString EDA_TEXT::GetTextStyleName()
 
 bool EDA_TEXT::IsDefaultFormatting() const
 {
-    return (  ( m_Size.x == DEFAULT_SIZE_TEXT )
-           && ( m_Size.y == DEFAULT_SIZE_TEXT )
+    return (  ( m_Size.x == Mils2iu( DEFAULT_SIZE_TEXT ) )
+           && ( m_Size.y == Mils2iu( DEFAULT_SIZE_TEXT ) )
            && ( m_Attributs == 0 )
            && ( m_Mirror == false )
            && ( m_HJustify == GR_TEXT_HJUSTIFY_CENTER )
@@ -345,14 +333,16 @@ void EDA_TEXT::Format( OUTPUTFORMATTER* aFormatter, int aNestLevel, int aControl
     {
         aFormatter->Print( aNestLevel+1, "(effects" );
 
-        if( ( m_Size.x != DEFAULT_SIZE_TEXT ) || ( m_Size.y != DEFAULT_SIZE_TEXT ) || m_Bold
-          || m_Italic )
+        if( ( m_Size.x != Mils2iu( DEFAULT_SIZE_TEXT ) )
+          || ( m_Size.y != Mils2iu( DEFAULT_SIZE_TEXT ) )
+          || ( m_Thickness != 0 ) || m_Bold || m_Italic )
         {
             aFormatter->Print( 0, " (font" );
 
             // Add font support here at some point in the future.
 
-            if( ( m_Size.x != DEFAULT_SIZE_TEXT ) || ( m_Size.y != DEFAULT_SIZE_TEXT ) )
+            if( ( m_Size.x != Mils2iu( DEFAULT_SIZE_TEXT ) )
+              || ( m_Size.y != Mils2iu( DEFAULT_SIZE_TEXT ) ) )
                 aFormatter->Print( 0, " (size %s %s)", FMT_IU( m_Size.GetHeight() ).c_str(),
                                    FMT_IU( m_Size.GetWidth() ).c_str() );
 

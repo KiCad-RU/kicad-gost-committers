@@ -30,6 +30,7 @@
 #include <wildcards_and_files_ext.h>
 #include <menus_helpers.h>
 #include <footprint_wizard_frame.h>
+#include <pcbnew_config.h>
 
 
 // Functions defined in block_module_editor, but used here
@@ -482,12 +483,12 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
             if( val && ref )
             {
-                ref->SetType( TEXT_is_REFERENCE );    // just in case ...
+                ref->SetType( TEXTE_MODULE::TEXT_is_REFERENCE );    // just in case ...
 
                 if( ref->GetLength() == 0 )
                     ref->SetText( wxT( "Ref**" ) );
 
-                val->SetType( TEXT_is_VALUE );        // just in case ...
+                val->SetType( TEXTE_MODULE::TEXT_is_VALUE );        // just in case ...
 
                 if( val->GetLength() == 0 )
                     val->SetText( L"Val**" );
@@ -769,18 +770,18 @@ void FOOTPRINT_EDIT_FRAME::Transform( MODULE* module, int transform )
         #define ROTATE( z ) RotatePoint( (&z), angle )
         RotateMarkedItems( module, wxPoint(0,0), true );
 
-        pos = module->Reference().GetPosition();
+        pos = module->Reference().GetTextPosition();
         ROTATE( pos );
-        module->Reference().SetPosition( pos );
-        module->Reference().SetPos0( module->Reference().GetPosition() );
+        module->Reference().SetTextPosition( pos );
+        module->Reference().SetPos0( module->Reference().GetTextPosition() );
         module->Reference().m_Orient += angle;
 
         if( module->Reference().m_Orient >= 1800 )
             module->Reference().m_Orient -= 1800;
 
-        pos = module->Value().GetPosition();
+        pos = module->Value().GetTextPosition();
         ROTATE( pos );
-        module->Value().SetPosition( pos );
+        module->Value().SetTextPosition( pos );
         module->Value().SetPos0( module->Value().m_Pos );
         module->Value().m_Orient += angle;
 
@@ -877,3 +878,9 @@ void FOOTPRINT_EDIT_FRAME::OnVerticalToolbar( wxCommandEvent& aEvent )
         SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
     }
 }
+
+EDA_COLOR_T FOOTPRINT_EDIT_FRAME::GetGridColor() const
+{
+    return g_ColorsSettings.GetItemColor( GRID_VISIBLE );
+}
+

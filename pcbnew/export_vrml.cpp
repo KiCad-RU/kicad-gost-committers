@@ -40,6 +40,8 @@
 #include <class_pcb_text.h>
 #include <convert_from_iu.h>
 
+#include "../3d-viewer/modelparsers.h"
+
 #include <vector>
 #include <cmath>
 
@@ -94,7 +96,7 @@ struct FLAT_FAN
     {
         pts.push_back( POINT_2D( x, y ) );
     }
-    void bag( int layer, bool close = true );
+    void bag( LAYER_NUM layer, bool close = true );
 };
 
 // A flat quad ring
@@ -112,7 +114,7 @@ struct FLAT_RING
         outer.push_back( POINT_2D( x, y ) );
     }
 
-    void bag( int layer, bool close = true );
+    void bag( LAYER_NUM layer, bool close = true );
 };
 
 // A vertical quad loop
@@ -129,11 +131,11 @@ struct VLoop
 };
 
 // The bags for all the layers
-static TRIANGLEBAG layer_triangles[LAYER_COUNT];
+static TRIANGLEBAG layer_triangles[NB_LAYERS];
 static TRIANGLEBAG via_triangles[4];
-static double      layer_z[LAYER_COUNT];
+static double      layer_z[NB_LAYERS];
 
-static void bag_flat_triangle( int layer, //{{{
+static void bag_flat_triangle( LAYER_NUM layer, //{{{
                                double x1, double y1,
                                double x2, double y2,
                                double x3, double y3 )
@@ -144,7 +146,7 @@ static void bag_flat_triangle( int layer, //{{{
 }
 
 
-void FLAT_FAN::bag( int layer, bool close ) //{{{
+void FLAT_FAN::bag( LAYER_NUM layer, bool close ) //{{{
 {
     unsigned i;
 
@@ -156,7 +158,7 @@ void FLAT_FAN::bag( int layer, bool close ) //{{{
 }
 
 
-static void bag_flat_quad( int layer, //{{{
+static void bag_flat_quad( LAYER_NUM layer, //{{{
                            double x1, double y1,
                            double x2, double y2,
                            double x3, double y3,
@@ -167,7 +169,7 @@ static void bag_flat_quad( int layer, //{{{
 }
 
 
-void FLAT_RING::bag( int layer, bool close ) //{{{
+void FLAT_RING::bag( LAYER_NUM layer, bool close ) //{{{
 {
     unsigned i;
 
@@ -255,6 +257,7 @@ static void write_triangle_bag( FILE* output_file, int color_index, //{{{
         "}\n",
         0 // End marker
     };
+
     int marker_found = 0, lineno = 0;
 
     while( marker_found < 4 )
@@ -270,19 +273,19 @@ static void write_triangle_bag( FILE* output_file, int color_index, //{{{
             case 1: // Material marker
                 fprintf( output_file,
                          "              diffuseColor %g %g %g\n",
-                         (double) ColorRefs[color_index].m_Red / 255.0,
-                         (double) ColorRefs[color_index].m_Green / 255.0,
-                         (double) ColorRefs[color_index].m_Blue / 255.0 );
+                         (double) g_ColorRefs[color_index].m_Red / 255.0,
+                         (double) g_ColorRefs[color_index].m_Green / 255.0,
+                         (double) g_ColorRefs[color_index].m_Blue / 255.0 );
                 fprintf( output_file,
                          "              specularColor %g %g %g\n",
-                         (double) ColorRefs[color_index].m_Red / 255.0,
-                         (double) ColorRefs[color_index].m_Green / 255.0,
-                         (double) ColorRefs[color_index].m_Blue / 255.0 );
+                         (double) g_ColorRefs[color_index].m_Red / 255.0,
+                         (double) g_ColorRefs[color_index].m_Green / 255.0,
+                         (double) g_ColorRefs[color_index].m_Blue / 255.0 );
                 fprintf( output_file,
                          "              emissiveColor %g %g %g\n",
-                         (double) ColorRefs[color_index].m_Red / 255.0,
-                         (double) ColorRefs[color_index].m_Green / 255.0,
-                         (double) ColorRefs[color_index].m_Blue / 255.0 );
+                         (double) g_ColorRefs[color_index].m_Red / 255.0,
+                         (double) g_ColorRefs[color_index].m_Green / 255.0,
+                         (double) g_ColorRefs[color_index].m_Blue / 255.0 );
                 break;
 
             case 2:
@@ -340,7 +343,7 @@ static void compute_layer_Zs( BOARD* pcb ) //{{{
     double half_thickness  = board_thickness / 2;
 
     // Compute each layer's Z value, more or less like the 3d view
-    for( int i = 0; i <= LAYER_N_FRONT; i++ )
+    for( LAYER_NUM i = FIRST_LAYER; i <= LAYER_N_FRONT; ++i )
     {
         if( i < copper_layers )
             layer_z[i] = board_thickness * i / (copper_layers - 1) - half_thickness;
@@ -367,7 +370,7 @@ static void compute_layer_Zs( BOARD* pcb ) //{{{
 }
 
 
-static void export_vrml_line( int layer, double startx, double starty, //{{{
+static void export_vrml_line( LAYER_NUM layer, double startx, double starty, //{{{
                               double endx, double endy, double width, int divisions )
 {
     double  r     = width / 2;
@@ -385,6 +388,7 @@ static void export_vrml_line( int layer, double startx, double starty, //{{{
 
     alpha = angle + PI2;
     fan.add( endx + r * cos( alpha ), endy + r * sin( alpha ) );
+
     // The 'start' side cap
     for( alpha = angle + PI2; alpha < angle + 3 * PI2; alpha += PI2 / divisions )
         fan.add( startx + r * cos( alpha ), starty + r * sin( alpha ) );
@@ -396,13 +400,13 @@ static void export_vrml_line( int layer, double startx, double starty, //{{{
 }
 
 
-static void export_vrml_circle( int layer, double startx, double starty,
+static void export_vrml_circle( LAYER_NUM layer, double startx, double starty, //{{{
                                 double endx, double endy, double width )
 {
     double   hole, radius;
     FLAT_RING ring;
 
-    radius = hypot( startx - endx, starty - endy ) + ( width / 2);
+    radius = Distance( startx, starty, endx, endy ) + ( width / 2);
     hole  = radius - width;
 
     for( double alpha = 0; alpha < M_PI * 2; alpha += INC_ANGLE )
@@ -416,8 +420,8 @@ static void export_vrml_circle( int layer, double startx, double starty,
 
 
 static void export_vrml_slot( TRIANGLEBAG& triangles, //{{{
-                              int top_layer, int bottom_layer, double xc, double yc,
-                              double dx, double dy, int orient )
+                              LAYER_NUM top_layer, LAYER_NUM bottom_layer, double xc, double yc,
+                              double dx, double dy, double orient )
 {
     double capx, capy; // Cap center
     VLoop  loop;
@@ -425,7 +429,7 @@ static void export_vrml_slot( TRIANGLEBAG& triangles, //{{{
 
     loop.z_top    = layer_z[top_layer];
     loop.z_bottom = layer_z[bottom_layer];
-    double angle = orient / 1800.0 * M_PI;
+    double angle  = DECIDEG2RAD( orient );
 
     if( dy > dx )
     {
@@ -475,15 +479,15 @@ static void export_vrml_hole( TRIANGLEBAG& triangles,
 }
 
 
-static void export_vrml_oval_pad( int layer, double xc, double yc,
-                                  double dx, double dy, int orient )
+static void export_vrml_oval_pad( LAYER_NUM layer, double xc, double yc,
+                                  double dx, double dy, double orient )
 {
     double  capx, capy; // Cap center
     FLAT_FAN fan;
 
     fan.c.x = xc;
     fan.c.y = yc;
-    double angle = orient / 1800.0 * M_PI;
+    double angle = DECIDEG2RAD( orient );
     int divisions = SEGM_COUNT_PER_360 / 2;
 
     if( dy > dx )
@@ -518,7 +522,7 @@ static void export_vrml_oval_pad( int layer, double xc, double yc,
 }
 
 
-static void export_vrml_arc( int layer, double centerx, double centery,
+static void export_vrml_arc( LAYER_NUM layer, double centerx, double centery,
                              double arc_startx, double arc_starty,
                              double width, double arc_angle )
 {
@@ -535,7 +539,7 @@ static void export_vrml_arc( int layer, double centerx, double centery,
 
     double divisions = arc_angle*M_PI/180.0 / count;
 
-    double outer_radius = hypot( arc_starty - centery, arc_startx - centerx )
+    double outer_radius = Distance( arc_startx, arc_starty, centerx, centery ) 
                           + ( width / 2);
     double inner_radius  = outer_radius - width;
 
@@ -552,8 +556,9 @@ static void export_vrml_arc( int layer, double centerx, double centery,
     ring.bag( layer, false );
 }
 
+
 static void export_vrml_varc( TRIANGLEBAG& triangles,
-                              int top_layer, int bottom_layer,
+                              LAYER_NUM top_layer, LAYER_NUM bottom_layer,
                               double centerx, double centery,
                               double arc_startx, double arc_starty,
                               double arc_angle )
@@ -564,7 +569,7 @@ static void export_vrml_varc( TRIANGLEBAG& triangles,
     loop.z_bottom = layer_z[bottom_layer];
 
     double start_angle = atan2( arc_starty - centery, arc_startx - centerx );
-    double radius = hypot( arc_starty - centery, arc_startx - centerx );
+    double radius = Distance( arc_startx, arc_starty, centerx, centery );
 
     int count = KiROUND( arc_angle / 360.0 * SEGM_COUNT_PER_360 );
 
@@ -590,7 +595,7 @@ static void export_vrml_varc( TRIANGLEBAG& triangles,
 
 static void export_vrml_drawsegment( DRAWSEGMENT* drawseg ) //{{{
 {
-    int    layer = drawseg->GetLayer();
+    LAYER_NUM layer = drawseg->GetLayer();
     double w     = drawseg->GetWidth();
     double x     = drawseg->GetStart().x;
     double y     = drawseg->GetStart().y;
@@ -613,7 +618,7 @@ static void export_vrml_drawsegment( DRAWSEGMENT* drawseg ) //{{{
         case S_CIRCLE:
             export_vrml_hole( layer_triangles[layer],
                               FIRST_COPPER_LAYER, LAST_COPPER_LAYER, x, y,
-                              hypot( xf - x, yf - y ) / 2 );
+                              Distance( xf, yf, x, y ) / 2 );
             break;
 
         default:
@@ -654,7 +659,7 @@ static void export_vrml_drawsegment( DRAWSEGMENT* drawseg ) //{{{
 /* C++ doesn't have closures and neither continuation forms... this is
  * for coupling the vrml_text_callback with the common parameters */
 
-static int s_text_layer;
+static LAYER_NUM s_text_layer;
 static int s_text_width;
 static void vrml_text_callback( int x0, int y0, int xf, int yf )
 {
@@ -666,15 +671,16 @@ static void export_vrml_pcbtext( TEXTE_PCB* text )
 {
     // Coupling by globals! Ewwww...
     s_text_layer = text->GetLayer();
-    s_text_width = text->m_Thickness;
+    s_text_width = text->GetThickness();
 
-    wxSize size = text->m_Size;
-    if( text->m_Mirror )
+    wxSize size = text->GetSize();
+
+    if( text->IsMirrored() )
         NEGATE( size.x );
 
-    if( text->m_MultilineAllowed )
+    if( text->IsMultilineAllowed() )
     {
-        wxPoint        pos  = text->m_Pos;
+        wxPoint        pos  = text->GetTextPosition();
         wxArrayString* list = wxStringSplit( text->GetText(), '\n' );
         wxPoint        offset;
 
@@ -687,8 +693,8 @@ static void export_vrml_pcbtext( TEXTE_PCB* text )
             wxString txt = list->Item( i );
             DrawGraphicText( NULL, NULL, pos, BLACK,
                              txt, text->GetOrientation(), size,
-                             text->m_HJustify, text->m_VJustify,
-                             text->m_Thickness, text->m_Italic,
+                             text->GetHorizJustify(), text->GetVertJustify(),
+                             text->GetThickness(), text->IsItalic(),
                              true,
                              vrml_text_callback );
             pos += offset;
@@ -698,10 +704,10 @@ static void export_vrml_pcbtext( TEXTE_PCB* text )
     }
     else
     {
-        DrawGraphicText( NULL, NULL, text->m_Pos, BLACK,
+        DrawGraphicText( NULL, NULL, text->GetTextPosition(), BLACK,
                          text->GetText(), text->GetOrientation(), size,
-                         text->m_HJustify, text->m_VJustify,
-                         text->m_Thickness, text->m_Italic,
+                         text->GetHorizJustify(), text->GetVertJustify(),
+                         text->GetThickness(), text->IsItalic(),
                          true,
                          vrml_text_callback );
     }
@@ -730,13 +736,12 @@ static void export_vrml_drawings( BOARD* pcb ) //{{{
 }
 
 
-static void export_round_padstack( BOARD* pcb, double x, double y,
-                                   double r,
-                                   int bottom_layer, int top_layer )
+static void export_round_padstack( BOARD* pcb, double x, double y, double r, //{{{
+                                   LAYER_NUM bottom_layer, LAYER_NUM top_layer )
 {
     int copper_layers = pcb->GetCopperLayerCount( );
 
-    for( int layer = bottom_layer; layer < copper_layers; layer++ )
+    for( LAYER_NUM layer = bottom_layer; layer < copper_layers; ++layer )
     {
         // The last layer is always the component one, unless it's single face
         if( (layer > FIRST_COPPER_LAYER) && (layer == copper_layers - 1) )
@@ -751,7 +756,7 @@ static void export_round_padstack( BOARD* pcb, double x, double y,
 static void export_vrml_via( BOARD* pcb, SEGVIA* via ) //{{{
 {
     double x, y, r, hole;
-    int    top_layer, bottom_layer;
+    LAYER_NUM top_layer, bottom_layer;
 
     r    = via->GetWidth() / 2;
     hole = via->GetDrillValue() / 2;
@@ -800,14 +805,15 @@ static void export_vrml_zones( BOARD* pcb )
         ZONE_CONTAINER* zone = pcb->GetArea( i );
 
         if( ( zone->m_FilledPolysList.size() == 0 )
-           ||( zone->m_ZoneMinThickness <= 1 ) )
+           ||( zone->GetMinThickness() <= 1 ) )
             continue;
 
-        int width = zone->m_ZoneMinThickness;
+        int width = zone->GetMinThickness();
+
         if( width > 0 )
         {
             int      imax  = zone->m_FilledPolysList.size() - 1;
-            int      layer = zone->GetLayer();
+            LAYER_NUM layer = zone->GetLayer();
             CPolyPt* firstcorner = &zone->m_FilledPolysList[0];
             CPolyPt* begincorner = firstcorner;
 
@@ -816,15 +822,13 @@ static void export_vrml_zones( BOARD* pcb )
             {
                 CPolyPt* endcorner = &zone->m_FilledPolysList[ic];
 
-                if( begincorner->utility == 0 ) // Draw only basic outlines, not extra segments
-                    export_vrml_line( layer, begincorner->x, begincorner->y,
-                                      endcorner->x, endcorner->y, width, 1 );
+                export_vrml_line( layer, begincorner->x, begincorner->y,
+                                  endcorner->x, endcorner->y, width, 1 );
 
                 if( (endcorner->end_contour) || (ic == imax) )  // the last corner of a filled area is found: draw it
                 {
-                    if( endcorner->utility == 0 )               // Draw only basic outlines, not extra segments
-                        export_vrml_line( layer, endcorner->x, endcorner->y,
-                                          firstcorner->x, firstcorner->y, width, 1 );
+                    export_vrml_line( layer, endcorner->x, endcorner->y,
+                                      firstcorner->x, firstcorner->y, width, 1 );
                     ic++;
 
                     // A new contour?
@@ -843,17 +847,17 @@ static void export_vrml_text_module( TEXTE_MODULE* module ) //{{{
 {
     if( module->IsVisible() )
     {
-        wxSize size = module->m_Size;
+        wxSize size = module->GetSize();
 
-        if( module->m_Mirror )
+        if( module->IsMirrored() )
             NEGATE( size.x ); // Text is mirrored
 
         s_text_layer = module->GetLayer();
-        s_text_width = module->m_Thickness;
-        DrawGraphicText( NULL, NULL, module->m_Pos, BLACK,
+        s_text_width = module->GetThickness();
+        DrawGraphicText( NULL, NULL, module->GetTextPosition(), BLACK,
                          module->GetText(), module->GetDrawRotation(), size,
-                         module->m_HJustify, module->m_VJustify,
-                         module->m_Thickness, module->m_Italic,
+                         module->GetHorizJustify(), module->GetVertJustify(),
+                         module->GetThickness(), module->IsItalic(),
                          true,
                          vrml_text_callback );
     }
@@ -862,7 +866,7 @@ static void export_vrml_text_module( TEXTE_MODULE* module ) //{{{
 
 static void export_vrml_edge_module( EDGE_MODULE* aOutline ) //{{{
 {
-    int    layer = aOutline->GetLayer();
+    LAYER_NUM layer = aOutline->GetLayer();
     double x     = aOutline->GetStart().x;
     double y     = aOutline->GetStart().y;
     double xf    = aOutline->GetEnd().x;
@@ -902,7 +906,8 @@ static void export_vrml_pad( BOARD* pcb, D_PAD* aPad ) //{{{
             // Oblong hole (slot)
             export_vrml_slot( layer_triangles[EDGE_N],
                               FIRST_COPPER_LAYER, LAST_COPPER_LAYER,
-                              hole_x, hole_y, hole_drill_w, hole_drill_h, aPad->GetOrientation() );
+                              hole_x, hole_y, hole_drill_w, hole_drill_h,
+                              aPad->GetOrientation() );
         }
         else
         {
@@ -914,7 +919,7 @@ static void export_vrml_pad( BOARD* pcb, D_PAD* aPad ) //{{{
     }
 
     // The pad proper, on the selected layers
-    int         layer_mask    = aPad->GetLayerMask();
+    LAYER_MSK   layer_mask    = aPad->GetLayerMask();
     int         copper_layers = pcb->GetCopperLayerCount( );
 
     // The (maybe offseted) pad position
@@ -929,13 +934,13 @@ static void export_vrml_pad( BOARD* pcb, D_PAD* aPad ) //{{{
     double      pad_w     = aPad->GetSize().x / 2;
     double      pad_h     = aPad->GetSize().y / 2;
 
-    for( int layer = FIRST_COPPER_LAYER; layer < copper_layers; layer++ )
+    for( LAYER_NUM layer = FIRST_COPPER_LAYER; layer < copper_layers; ++layer )
     {
         // The last layer is always the component one, unless it's single face
         if( (layer > FIRST_COPPER_LAYER) && (layer == copper_layers - 1) )
             layer = LAST_COPPER_LAYER;
 
-        if( layer_mask & (1 << layer) )
+        if( layer_mask & GetLayerMask( layer ) )
         {
             // OK, the pad is on this layer, export it
             switch( aPad->GetShape() )
@@ -956,28 +961,28 @@ static void export_vrml_pad( BOARD* pcb, D_PAD* aPad ) //{{{
                 pad_dy = 0;
 
             case PAD_TRAPEZOID:
+            {
+                int coord[8] =
                 {
-                    int coord[8] =
-                    {
-                        KiROUND(-pad_w - pad_dy), KiROUND(+pad_h + pad_dx),
-                        KiROUND(-pad_w + pad_dy), KiROUND(-pad_h - pad_dx),
-                        KiROUND(+pad_w - pad_dy), KiROUND(+pad_h - pad_dx),
-                        KiROUND(+pad_w + pad_dy), KiROUND(-pad_h + pad_dx),
-                    };
+                    KiROUND( -pad_w - pad_dy ), KiROUND( +pad_h + pad_dx ),
+                    KiROUND( -pad_w + pad_dy ), KiROUND( -pad_h - pad_dx ),
+                    KiROUND( +pad_w - pad_dy ), KiROUND( +pad_h - pad_dx ),
+                    KiROUND( +pad_w + pad_dy ), KiROUND( -pad_h + pad_dx ),
+                };
 
-                    for( int i = 0; i < 4; i++ )
-                    {
-                        RotatePoint( &coord[i * 2], &coord[i * 2 + 1], aPad->GetOrientation() );
-                        coord[i * 2]     += KiROUND( pad_x );
-                        coord[i * 2 + 1] += KiROUND( pad_y );
-                    }
-
-                    bag_flat_quad( layer, coord[0], coord[1],
-                                   coord[2], coord[3],
-                                   coord[4], coord[5],
-                                   coord[6], coord[7] );
+                for( int i = 0; i < 4; i++ )
+                {
+                    RotatePoint( &coord[i * 2], &coord[i * 2 + 1], aPad->GetOrientation() );
+                    coord[i * 2]     += KiROUND( pad_x );
+                    coord[i * 2 + 1] += KiROUND( pad_y );
                 }
-                break;
+
+                bag_flat_quad( layer, coord[0], coord[1],
+                               coord[2], coord[3],
+                               coord[4], coord[5],
+                               coord[6], coord[7] );
+            }
+            break;
 
             default:
                 ;
@@ -1036,16 +1041,16 @@ static void export_vrml_module( BOARD* aPcb, MODULE* aModule,
     export_vrml_text_module( &aModule->Value() );
 
     // Export module edges
-    for( EDA_ITEM* item = aModule->m_Drawings;  item != NULL;  item = item->Next() )
+    for( EDA_ITEM* item = aModule->GraphicalItems();  item != NULL;  item = item->Next() )
     {
         switch( item->Type() )
         {
         case PCB_MODULE_TEXT_T:
-            export_vrml_text_module( dynamic_cast<TEXTE_MODULE*>(item) );
+            export_vrml_text_module( dynamic_cast<TEXTE_MODULE*>( item ) );
             break;
 
         case PCB_MODULE_EDGE_T:
-            export_vrml_edge_module( dynamic_cast<EDGE_MODULE*>(item) );
+            export_vrml_edge_module( dynamic_cast<EDGE_MODULE*>( item ) );
             break;
 
         default:
@@ -1054,13 +1059,13 @@ static void export_vrml_module( BOARD* aPcb, MODULE* aModule,
     }
 
     // Export pads
-    for( D_PAD* pad = aModule->m_Pads;  pad; pad = pad->Next() )
+    for( D_PAD* pad = aModule->Pads();  pad; pad = pad->Next() )
         export_vrml_pad( aPcb, pad );
 
     bool isFlipped = aModule->GetLayer() == LAYER_N_BACK;
 
     // Export the object VRML model(s)
-    for( S3D_MASTER* vrmlm = aModule->m_3D_Drawings; vrmlm != 0; vrmlm = vrmlm->Next() )
+    for( S3D_MASTER* vrmlm = aModule->Models(); vrmlm != 0; vrmlm = vrmlm->Next() )
     {
         wxString fname = vrmlm->m_Shape3DName;
 
@@ -1076,13 +1081,13 @@ static void export_vrml_module( BOARD* aPcb, MODULE* aModule,
                 fname = vrmlm->m_Shape3DName;
         }
 
-        fname.Replace(wxT("\\"), wxT("/" ) );
+        fname.Replace( wxT( "\\" ), wxT( "/" ) );
         wxString source_fname = fname;
 
         if( aExport3DFiles )    // Change illegal characters in short filename
         {
             ChangeIllegalCharacters( fname, true );
-            fname = a3D_Subdir + wxT("/") + fname;
+            fname = a3D_Subdir + wxT( "/" ) + fname;
 
             if( !wxFileExists( fname ) )
                 wxCopyFile( source_fname, fname );
@@ -1106,15 +1111,15 @@ static void export_vrml_module( BOARD* aPcb, MODULE* aModule,
 
         // Do some quaternion munching
         double q1[4], q2[4], rot[4];
-        build_quat( 1, 0, 0, rotx / 180.0 * M_PI, q1 );
-        build_quat( 0, 1, 0, roty / 180.0 * M_PI, q2 );
+        build_quat( 1, 0, 0, DEG2RAD( rotx ), q1 );
+        build_quat( 0, 1, 0, DEG2RAD( roty ), q2 );
         compose_quat( q1, q2, q1 );
-        build_quat( 0, 0, 1, rotz / 180.0 * M_PI, q2 );
+        build_quat( 0, 0, 1, DEG2RAD( rotz ), q2 );
         compose_quat( q1, q2, q1 );
 
         // Note here aModule->GetOrientation() is in 0.1 degrees,
-        // so module rotation is aModule->GetOrientation() / 1800.0
-        build_quat( 0, 0, 1, aModule->GetOrientation() / 1800.0 * M_PI, q2 );
+        // so module rotation has to be converted to radians
+        build_quat( 0, 0, 1, DECIDEG2RAD( aModule->GetOrientation() ), q2 );
         compose_quat( q1, q2, q1 );
         from_quat( q1, rot );
 
@@ -1137,7 +1142,7 @@ static void export_vrml_module( BOARD* aPcb, MODULE* aModule,
         else    // In normal mode, Y axis is reversed in Pcbnew.
             NEGATE(offsety);
 
-        RotatePoint(&offsetx, &offsety, aModule->GetOrientation());
+        RotatePoint( &offsetx, &offsety, aModule->GetOrientation() );
 
         fprintf( aOutputFile, "  translation %g %g %g\n",
                  (offsetx + aModule->GetPosition().x) * boardIU2WRML,
@@ -1149,11 +1154,28 @@ static void export_vrml_module( BOARD* aPcb, MODULE* aModule,
                  vrmlm->m_MatScale.y * aVRMLModelsToBiu,
                  vrmlm->m_MatScale.z * aVRMLModelsToBiu );
 
-        fprintf( aOutputFile,
-//                 "  children [\n    Inline {\n      url \"file://%s\"\n    } ]\n",
-                 "  children [\n    Inline {\n      url \"%s\"\n    } ]\n",
-                 TO_UTF8( fname ) );
-        fprintf( aOutputFile, "  }\n" );
+        if( fname.EndsWith( wxT( "x3d" ) ) )
+        {
+            X3D_MODEL_PARSER* parser = new X3D_MODEL_PARSER( vrmlm );
+
+            if( parser )
+            {
+                // embed x3d model in vrml format
+                parser->Load( fname );
+                fprintf( aOutputFile,
+                         "  children [\n %s ]\n", TO_UTF8( parser->VRML_representation() ) );
+                fprintf( aOutputFile, "  }\n" );
+                delete parser;
+            }
+        }
+        else
+        {
+            fprintf( aOutputFile,
+                     "  children [\n    Inline {\n      url \"%s\"\n    } ]\n",
+                     TO_UTF8( fname ) );
+            fprintf( aOutputFile, "  }\n" );
+        }
+
     }
 }
 
@@ -1168,28 +1190,7 @@ static void write_and_empty_triangle_bag( FILE* output_file, TRIANGLEBAG& triang
     }
 }
 
-/* ExportVRML_File
- * Creates the file(s) exporting current BOARD to a VRML file.
- * aFullFileName = the full filename of the file to create
- * aMMtoWRMLunit = the general WRML scaling factor. 1.0 to export in mm
- * @param aExport3DFiles = true to copy 3D shapes in the subdir a3D_Subdir
- * a3D_Subdir = sub directory where 3D shapes files are copied
- * used only when aExport3DFiles == true
- */
-/* Note1:
- * When copying 3D shapes files, the new filename is build from
- * the full path name, changing the separators by underscore.
- * this is needed because files with the same shortname can exist in different directories
- * Note 2:
- * ExportVRML_File generates coordinates in board units (BIU) inside the file.
- * (TODO: use mm inside the file)
- * A general scale transform is applied to the whole file
- * (1.0 to have the actual WRML unit im mm, 0.001 to have the actual WRML unit im meter
- * Note 3:
- * For 3D models built by a 3D modeler, the unit is 0,1 inch
- * A specfic scale is applied to 3D models to convert them to BIU
- *
- */
+
 bool PCB_EDIT_FRAME::ExportVRML_File( const wxString & aFullFileName,
                                       double aMMtoWRMLunit, bool aExport3DFiles,
                                       const wxString & a3D_Subdir )
@@ -1199,6 +1200,7 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString & aFullFileName,
     BOARD*     pcb = GetBoard();
 
     output_file = wxFopen( aFullFileName, wxT( "wt" ) );
+
     if( output_file == NULL )
         return false;
 
@@ -1208,7 +1210,7 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString & aFullFileName,
     // Begin with the usual VRML boilerplate
     wxString name = aFullFileName;
 
-    name.Replace(wxT("\\"), wxT("/" ) );
+    name.Replace( wxT( "\\" ), wxT( "/" ) );
     ChangeIllegalCharacters( name, false );
     fprintf( output_file, "#VRML V2.0 utf8\n"
                           "WorldInfo {\n"
@@ -1256,6 +1258,7 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString & aFullFileName,
      * is 2.54 * aMMtoWRMLunit
      */
     double wrml_3D_models_scaling_factor = 2.54 * aMMtoWRMLunit;
+
     // Export footprints
     for( MODULE* module = pcb->m_Modules; module != 0; module = module->Next() )
         export_vrml_module( pcb, module, output_file,
@@ -1265,7 +1268,7 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString & aFullFileName,
 
     /* Output the bagged triangles for each layer
      * Each layer will be a separate shape */
-    for( int layer = 0; layer < LAYER_COUNT; layer++ )
+    for( LAYER_NUM layer = FIRST_LAYER; layer < NB_LAYERS; ++layer )
         write_and_empty_triangle_bag( output_file,
                                       layer_triangles[layer],
                                       pcb->GetLayerColor(layer),
@@ -1288,6 +1291,7 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString & aFullFileName,
     return true;
 }
 
+
 /*
  * some characters cannot be used in filenames,
  * this function change them to "_"
@@ -1295,8 +1299,8 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString & aFullFileName,
 static void ChangeIllegalCharacters( wxString & aFileName, bool aDirSepIsIllegal )
 {
     if( aDirSepIsIllegal )
-        aFileName.Replace(wxT("/"), wxT("_" ) );
+        aFileName.Replace( wxT( "/" ), wxT( "_" ) );
 
-    aFileName.Replace(wxT(" "), wxT("_" ) );
-    aFileName.Replace(wxT(":"), wxT("_" ) );
+    aFileName.Replace( wxT( " " ), wxT( "_" ) );
+    aFileName.Replace( wxT( ":" ), wxT( "_" ) );
 }

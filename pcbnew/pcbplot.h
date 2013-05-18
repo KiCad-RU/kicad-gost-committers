@@ -1,5 +1,29 @@
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
 /**
  * @file pcbnew/pcbplot.h
+ * @brief Board plot function definition file.
  */
 
 #ifndef PCBPLOT_H_
@@ -8,6 +32,7 @@
 #include <wx/filename.h>
 #include <pad_shapes.h>
 #include <pcb_plot_params.h>
+#include <layers_id_colors_and_visibility.h>
 
 class PLOTTER;
 class TEXTE_PCB;
@@ -19,6 +44,7 @@ class PCB_TARGET;
 class TEXTE_MODULE;
 class ZONE_CONTAINER;
 class BOARD;
+class REPORTER;
 
 // Shared Config keys for plot and print
 #define OPTKEY_LAYERBASE             wxT( "PlotLayer_%d" )
@@ -39,15 +65,15 @@ class BOARD;
 #define PLOT_MAX_SCALE 100.0
 
 // Small drill marks (small pad holes) diameter value
-#define SMALL_DRILL (int)( 0.35 * IU_PER_MM )
+#define SMALL_DRILL KiROUND( 0.35 * IU_PER_MM )
 
 
 // A helper class to plot board items
 class BRDITEMS_PLOTTER: public PCB_PLOT_PARAMS
 {
     PLOTTER* m_plotter;
-    BOARD* m_board;
-    int m_layerMask;
+    BOARD*   m_board;
+    int      m_layerMask;
 
 
 public:
@@ -62,7 +88,7 @@ public:
     /**
      * @return a 'width adjustment' for the postscript engine
      * (useful for controlling toner bleeding during direct transfer)
-     * addded to track width and via/pads size
+     * added to track width and via/pads size
      */
     int getFineWidthAdj()
     {
@@ -71,12 +97,22 @@ public:
         else
             return 0;
     }
+
     // Basic functions to plot a board item
     void SetLayerMask( int aLayerMask ){ m_layerMask = aLayerMask; }
     void Plot_Edges_Modules();
     void Plot_1_EdgeModule( EDGE_MODULE* aEdge );
     void PlotTextModule( TEXTE_MODULE* aTextMod, EDA_COLOR_T aColor );
+
+    /*
+     * Plot field of a module (footprint)
+     * Reference, Value, and other fields are plotted only if
+     * the corresponding option is enabled
+     * Invisible text fields are plotted only if PlotInvisibleText option is set
+     * usually they are not plotted.
+     */
     bool PlotAllTextsModule( MODULE* aModule );
+
     void PlotDimension( DIMENSION* Dimension );
     void PlotPcbTarget( PCB_TARGET* PtMire );
     void PlotFilledAreas( ZONE_CONTAINER* aZone );
@@ -113,7 +149,7 @@ public:
      * and in B&W mode, is plotted as white but other colors are plotted in BLACK
      * so the returned color is LIGHTGRAY when the layer color is WHITE
      */
-    EDA_COLOR_T getColor( int aLayer );
+    EDA_COLOR_T getColor( LAYER_NUM aLayer );
 
 private:
     /** Helper function to plot a single drill mark. It compensate and clamp
@@ -134,14 +170,14 @@ PLOTTER* StartPlotBoard( BOARD* aBoard,
 /**
  * Function PlotOneBoardLayer
  * main function to plot one copper or technical layer.
- * It prepare options and calls the specilized plot function,
+ * It prepare options and calls the specialized plot function,
  * according to the layer type
  * @param aBoard = the board to plot
  * @param aPlotter = the plotter to use
  * @param aLayer = the layer id to plot
  * @param aPlotOpt = the plot options (files, sketch). Has meaning for some formats only
  */
-void PlotOneBoardLayer( BOARD* aBoard, PLOTTER* aPlotter, int aLayer,
+void PlotOneBoardLayer( BOARD *aBoard, PLOTTER* aPlotter, LAYER_NUM aLayer,
                         const PCB_PLOT_PARAMS& aPlotOpt );
 
 /**
@@ -154,8 +190,8 @@ void PlotOneBoardLayer( BOARD* aBoard, PLOTTER* aPlotter, int aLayer,
  * @param aLayerMask = the mask to define the layers to plot
  * @param aPlotOpt = the plot options (files, sketch). Has meaning for some formats only
  *
- * aPlotOpt has 3 important options to controle this plot,
- * which are set, depending on the layer typpe to plot
+ * aPlotOpt has 3 important options to control this plot,
+ * which are set, depending on the layer type to plot
  *      SetEnablePlotVia( bool aEnable )
  *          aEnable = true to plot vias, false to skip vias (has meaning
  *                      only for solder mask layers).
@@ -165,7 +201,7 @@ void PlotOneBoardLayer( BOARD* aBoard, PLOTTER* aPlotter, int aLayer,
  *      SetDrillMarksType( DrillMarksType aVal ) controle the actual hole:
  *              no hole, small hole, actual hole
  */
-void PlotStandardLayer( BOARD* aBoard, PLOTTER* aPlotter, long aLayerMask,
+void PlotStandardLayer( BOARD* aBoard, PLOTTER* aPlotter, LAYER_MSK aLayerMask,
                         const PCB_PLOT_PARAMS& aPlotOpt );
 
 /**
@@ -177,22 +213,22 @@ void PlotStandardLayer( BOARD* aBoard, PLOTTER* aPlotter, long aLayerMask,
  * @param aLayerMask = the mask to define the layers to plot (silkscreen Front and/or Back)
  * @param aPlotOpt = the plot options (files, sketch). Has meaning for some formats only
  */
-void PlotSilkScreen( BOARD* aBoard, PLOTTER* aPlotter, long aLayerMask,
+void PlotSilkScreen( BOARD* aBoard, PLOTTER* aPlotter, LAYER_MSK aLayerMask,
                      const PCB_PLOT_PARAMS&  aPlotOpt );
 
 
 /**
  * Function EnsureOutputDirectory (helper function)
- * Fix the output directory pathname to absolute and ensure it exists
- * (Creates it if not exists)
- * @param aOutputDir = the wxFileName to modify
- *          (contains the absolute or relative to the board path
- * @param aBoardFilename = the board full filename
- * @param aMessageBox = a wxMessageBox to show meesage (can be NULL)
+ * make \a OutputDir absolute and creates the path if it doesn't exist.
+ * @param aOutputDir  the wxFileName containing the full path and file name to modify.  The path
+ *                    may be absolute or relative to \a aBoardFilename .
+ * @param aBoardFilename the board full path and filename.
+ * @param aReporter a point to a REPORTER object use to show messages (can be NULL)
+ * @return true if \a aOutputDir already exists or was successfully created.
  */
-bool EnsureOutputDirectory( wxFileName* aOutputDir,
+bool EnsureOutputDirectory( wxFileName*     aOutputDir,
                             const wxString& aBoardFilename,
-                            wxTextCtrl* aMessageBox );
+                            REPORTER*       aReporter = NULL );
 
 /**
  * Function BuildPlotFileName (helper function)
@@ -201,15 +237,23 @@ bool EnsureOutputDirectory( wxFileName* aOutputDir,
  * the suffix is usually the layer name
  * replaces not allowed chars in suffix by '_'
  * @param aFilename = the wxFileName to initialize
- *                  Contians the base filename
+ *                  Contains the base filename
  * @param aOutputDir = the path
  * @param aSuffix = the suffix to add to the base filename
  * @param aExtension = the file extension
  */
-void BuildPlotFileName( wxFileName* aFilename,
-                               const wxString& aOutputDir,
-                               const wxString& aSuffix,
-                               const wxString& aExtension );
+void BuildPlotFileName( wxFileName*     aFilename,
+                        const wxString& aOutputDir,
+                        const wxString& aSuffix,
+                        const wxString& aExtension );
+
+
+/**
+ * Function GetGerberExtension
+ * @return the appropriate Gerber file extension for \a aLayer
+ */
+extern wxString GetGerberExtension( LAYER_NUM aLayer );
+
 
 // PLOTGERB.CPP
 void SelectD_CODE_For_LineDraw( PLOTTER* plotter, int aSize );

@@ -57,7 +57,7 @@ public:
     MODULE*       m_Module;         // Link to the actual footprint
     const wxChar* m_Reference;      // Its schematic reference
     const wxChar* m_Value;          // Its schematic value
-    int           m_Layer;          // its side (LAYER_N_BACK, or LAYER_N_FRONT)
+    LAYER_NUM     m_Layer;          // its side (LAYER_N_BACK, or LAYER_N_FRONT)
 };
 
 
@@ -235,9 +235,10 @@ bool DIALOG_GEN_MODULE_POSITION::CreateFiles()
     }
 
     if( singleFile  )
-        msg.Printf( _( "Place file: %s\n" ), GetChars( fn.GetFullPath() ) );
+        msg.Printf( _( "Place file: <%s>\n" ), GetChars( fn.GetFullPath() ) );
     else
-        msg.Printf( _( "Component side place file: %s\n" ), GetChars( fn.GetFullPath() ) );
+        msg.Printf( _( "Front side (top side) place file: <%s>\n" ),
+                    GetChars( fn.GetFullPath() ) );
 
     AddMessage( msg );
     msg.Printf( _( "Footprint count %d\n" ), fpcount );
@@ -268,7 +269,7 @@ bool DIALOG_GEN_MODULE_POSITION::CreateFiles()
     // Display results
     if( !singleFile )
     {
-        msg.Printf( _( "Copper side place file: %s\n" ), GetChars( fn.GetFullPath() ) );
+        msg.Printf( _( "Back side (bottom side) place file: <%s>\n" ), GetChars( fn.GetFullPath() ) );
         AddMessage( msg );
         msg.Printf( _( "Footprint count %d\n" ), fpcount );
         AddMessage( msg );
@@ -318,7 +319,7 @@ static bool HasNonSMDPins( MODULE* aModule )
 {
     D_PAD* pad;
 
-    for( pad = aModule->m_Pads;  pad;  pad = pad->Next() )
+    for( pad = aModule->Pads();  pad;  pad = pad->Next() )
     {
         if( pad->GetAttribute() != PAD_SMD )
             return true;
@@ -484,9 +485,9 @@ int PCB_EDIT_FRAME::DoGenFootprintsPositionFile( const wxString& aFullFileName,
         sprintf( text, " %9.4f  %9.4f  %8.1f    ",
                  module_pos.x * conv_unit,
                  -module_pos.y * conv_unit,
-                 double(list[ii].m_Module->GetOrientation()) / 10 );
+                 list[ii].m_Module->GetOrientation() / 10.0 );
 
-        int layer = list[ii].m_Module->GetLayer();
+        LAYER_NUM layer = list[ii].m_Module->GetLayer();
 
         wxASSERT( layer==LAYER_N_FRONT || layer==LAYER_N_BACK );
 
@@ -531,7 +532,7 @@ void PCB_EDIT_FRAME::GenFootprintsReport( wxCommandEvent& event )
     wxString msg;
     if( success )
     {
-        msg.Printf( _( "Module report file created:\n%s" ),
+        msg.Printf( _( "Module report file created:\n<%s>" ),
                     GetChars( fn.GetFullPath() ) );
         wxMessageBox( msg, _( "Module Report" ), wxICON_INFORMATION );
     }
@@ -639,7 +640,7 @@ bool PCB_EDIT_FRAME::DoGenFootprintsReport( const wxString& aFullFilename, bool 
                      module_pos.y * conv_unit );
             fputs( line, rptfile );
 
-            sprintf( line, "orientation  %.2f\n", (double) Module->GetOrientation() / 10 );
+            sprintf( line, "orientation  %.2f\n", Module->GetOrientation() / 10.0 );
 
             if( Module->GetLayer() == LAYER_N_FRONT )
                 strcat( line, "layer component\n" );
@@ -652,7 +653,7 @@ bool PCB_EDIT_FRAME::DoGenFootprintsReport( const wxString& aFullFilename, bool 
 
             legacy->SaveModule3D( Module );
 
-            for( pad = Module->m_Pads; pad != NULL; pad = pad->Next() )
+            for( pad = Module->Pads(); pad != NULL; pad = pad->Next() )
             {
                 fprintf( rptfile, "$PAD \"%s\"\n", TO_UTF8( pad->GetPadName() ) );
                 sprintf( line, "position %9.6f %9.6f\n",
@@ -674,10 +675,10 @@ bool PCB_EDIT_FRAME::DoGenFootprintsReport( const wxString& aFullFilename, bool 
                 fputs( line, rptfile );
 
                 sprintf( line, "orientation  %.2f\n",
-                         double(pad->GetOrientation() - Module->GetOrientation()) / 10 );
+                         (pad->GetOrientation() - Module->GetOrientation()) / 10.0 );
                 fputs( line, rptfile );
 
-                static const char* shape_name[6] = { "??? ", "Circ", "Rect", "Oval", "trap", "spec" };
+                static const char* shape_name[6] = { "???", "Circ", "Rect", "Oval", "Trap", "Spec" };
 
                 sprintf( line, "Shape  %s\n", shape_name[pad->GetShape()] );
                 fputs( line, rptfile );
@@ -690,7 +691,7 @@ bool PCB_EDIT_FRAME::DoGenFootprintsReport( const wxString& aFullFilename, bool 
                 if( pad->GetLayerMask() & LAYER_FRONT )
                     layer |= 2;
 
-                static const char* layer_name[4] = { "??? ", "copper", "component", "all" };
+                static const char* layer_name[4] = { "none", "back", "front", "both" };
 
                 sprintf( line, "Layer  %s\n", layer_name[layer] );
                 fputs( line, rptfile );
@@ -750,7 +751,7 @@ void WriteDrawSegmentPcb( DRAWSEGMENT* PtDrawSegment, FILE* rptfile, double aCon
     switch( PtDrawSegment->GetShape() )
     {
     case S_CIRCLE:
-        radius = hypot( dx - ux0, dy - uy0 );
+        radius = Distance( ux0, uy0, dx, dy );
         fprintf( rptfile, "$CIRCLE \n" );
         fprintf( rptfile, "centre %.6lf %.6lf\n", ux0, uy0 );
         fprintf( rptfile, "radius %.6lf\n", radius );
@@ -763,7 +764,7 @@ void WriteDrawSegmentPcb( DRAWSEGMENT* PtDrawSegment, FILE* rptfile, double aCon
             int endx = PtDrawSegment->GetEnd().x;
             int endy = PtDrawSegment->GetEnd().y;
 
-            radius = hypot( dx - ux0, dy - uy0 );
+            radius = Distance( ux0, uy0, dx, dy );
             RotatePoint( &endx,
                          &endy,
                          PtDrawSegment->GetStart().x,

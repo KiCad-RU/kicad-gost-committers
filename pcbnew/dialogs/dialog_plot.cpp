@@ -31,14 +31,13 @@
 #include <wxPcbStruct.h>
 #include <pcbplot.h>
 #include <base_units.h>
+#include <macros.h>
+#include <reporter.h>
+
 #include <class_board.h>
-#include <plotcontroller.h>
 #include <wx/ffile.h>
 #include <dialog_plot.h>
 
-/**
- * Class DIALOG_PLOT
- */
 
 DIALOG_PLOT::DIALOG_PLOT( PCB_EDIT_FRAME* aParent ) :
     DIALOG_PLOT_BASE( aParent ), m_parent( aParent ),
@@ -102,7 +101,6 @@ void DIALOG_PLOT::Init_Dialog()
     msg = ReturnStringFromValue( g_UserUnit, m_brdSettings.m_SolderMaskMinWidth, true );
     m_SolderMaskMinWidthCurrValue->SetLabel( msg );
 
-
     // Set units and value for HPGL pen size (this param in in mils).
     AddUnitSymbol( *m_textPenSize, g_UserUnit );
     msg = ReturnStringFromValue( g_UserUnit,
@@ -148,7 +146,8 @@ void DIALOG_PLOT::Init_Dialog()
     // List layers in same order than in setup layers dialog
     // (Front or Top to Back or Bottom)
     DECLARE_LAYERS_ORDER_LIST( layersOrder );
-    int layerIndex, checkIndex, layer;
+    int layerIndex, checkIndex;
+    LAYER_NUM layer;
 
     for( layerIndex = 0; layerIndex < NB_LAYERS; layerIndex++ )
     {
@@ -162,7 +161,7 @@ void DIALOG_PLOT::Init_Dialog()
         m_layerList.push_back( layer );
         checkIndex = m_layerCheckListBox->Append( m_board->GetLayerName( layer ) );
 
-        if( m_plotOpts.GetLayerSelection() & ( 1 << layer ) )
+        if( m_plotOpts.GetLayerSelection() & GetLayerMask( layer ) )
             m_layerCheckListBox->Check( checkIndex );
     }
 
@@ -223,11 +222,13 @@ void DIALOG_PLOT::OnClose( wxCloseEvent& event )
     EndModal( 0 );
 }
 
+
 // A helper function to show a popup menu, when the dialog is right clicked.
 void DIALOG_PLOT::OnRightClick( wxMouseEvent& event )
 {
     PopupMenu( m_popMenu );
 }
+
 
 // Select or deselect groups of layers in the layers list:
 #include <layers_id_colors_and_visibility.h>
@@ -237,15 +238,11 @@ void DIALOG_PLOT::OnPopUpLayers( wxCommandEvent& event )
 
     switch( event.GetId() )
     {
-        case ID_LAYER_FAB: // Select layers usually neede d to build a board
+        case ID_LAYER_FAB: // Select layers usually needed to build a board
             for( i = 0; i < m_layerList.size(); i++ )
             {
-                long layermask = 1 << m_layerList[ i ];
-                if( ( layermask &
-                    ( ALL_CU_LAYERS | SOLDERPASTE_LAYER_BACK | SOLDERPASTE_LAYER_FRONT |
-                      SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT |
-                      SILKSCREEN_LAYER_BACK | SILKSCREEN_LAYER_FRONT ) )
-                    != 0 )
+                LAYER_MSK layermask = GetLayerMask( m_layerList[ i ] );
+                if( layermask & ( ALL_CU_LAYERS | ALL_AUX_LAYERS ) )
                     m_layerCheckListBox->Check( i, true );
                 else
                     m_layerCheckListBox->Check( i, false );
@@ -285,6 +282,7 @@ void DIALOG_PLOT::OnPopUpLayers( wxCommandEvent& event )
             break;
     }
 }
+
 
 void DIALOG_PLOT::CreateDrillFile( wxCommandEvent& event )
 {
@@ -332,8 +330,7 @@ void DIALOG_PLOT::OnOutputDirectoryBrowseClicked( wxCommandEvent& event )
         wxString boardFilePath = ( (wxFileName) m_parent->GetBoard()->GetFileName() ).GetPath();
 
         if( !dirName.MakeRelativeTo( boardFilePath ) )
-            wxMessageBox( _(
-                             "Cannot make path relative (target volume different from board file volume)!" ),
+            wxMessageBox( _( "Cannot make path relative (target volume different from board file volume)!" ),
                           _( "Plot Output Directory" ), wxOK | wxICON_ERROR );
     }
 
@@ -356,6 +353,7 @@ PlotFormat DIALOG_PLOT::GetPlotFormat()
 
     return plotFmt[ m_plotFormatOpt->GetSelection() ];
 }
+
 
 // Enable or disable widgets according to the plot format selected
 // and clear also some optional values
@@ -536,6 +534,8 @@ static bool setDouble( double* aResult, double aValue, double aMin, double aMax 
     *aResult = aValue;
     return true;
 }
+
+
 static bool setInt( int* aResult, int aValue, int aMin, int aMax )
 {
     if( aValue < aMin )
@@ -627,7 +627,7 @@ void DIALOG_PLOT::applyPlotSettings()
         m_messagesBox->AppendText( msg );
     }
 
-    m_config->Write( OPTKEY_PLOT_X_FINESCALE_ADJ, m_XScaleAdjust );
+   ConfigBaseWriteDouble( m_config, OPTKEY_PLOT_X_FINESCALE_ADJ, m_XScaleAdjust );
 
     // Y scale
     msg = m_fineAdjustYscaleOpt->GetValue();
@@ -641,7 +641,7 @@ void DIALOG_PLOT::applyPlotSettings()
         m_messagesBox->AppendText( msg );
     }
 
-    m_config->Write( OPTKEY_PLOT_Y_FINESCALE_ADJ, m_YScaleAdjust );
+    ConfigBaseWriteDouble( m_config, OPTKEY_PLOT_Y_FINESCALE_ADJ, m_YScaleAdjust );
 
     // PS Width correction
     msg = m_PSFineAdjustWidthOpt->GetValue();
@@ -661,7 +661,8 @@ void DIALOG_PLOT::applyPlotSettings()
     }
 
     // Store m_PSWidthAdjust in mm in user config
-    m_config->Write( CONFIG_PS_FINEWIDTH_ADJ, (double)m_PSWidthAdjust / IU_PER_MM );
+    ConfigBaseWriteDouble( m_config, CONFIG_PS_FINEWIDTH_ADJ,
+                           (double)m_PSWidthAdjust / IU_PER_MM );
 
     tempOptions.SetUseGerberExtensions( m_useGerberExtensions->GetValue() );
 
@@ -673,7 +674,7 @@ void DIALOG_PLOT::applyPlotSettings()
     for( i = 0; i < m_layerList.size(); i++ )
     {
         if( m_layerCheckListBox->IsChecked( i ) )
-            selectedLayers |= (1 << m_layerList[i]);
+            selectedLayers |= GetLayerMask( m_layerList[i] );
     }
 
     tempOptions.SetLayerSelection( selectedLayers );
@@ -692,4 +693,127 @@ void DIALOG_PLOT::applyPlotSettings()
         m_plotOpts = tempOptions;
         m_parent->OnModify();
     }
+}
+
+
+void DIALOG_PLOT::Plot( wxCommandEvent& event )
+{
+    applyPlotSettings();
+
+    // Create output directory if it does not exist (also transform it in
+    // absolute form). Bail if it fails
+    wxFileName            outputDir = wxFileName::DirName( m_plotOpts.GetOutputDirectory() );
+    wxString              boardFilename = m_parent->GetBoard()->GetFileName();
+    WX_TEXT_CTRL_REPORTER reporter( m_messagesBox );
+
+    if( !EnsureOutputDirectory( &outputDir, boardFilename, &reporter ) )
+    {
+        wxString msg;
+        msg.Printf( _( "Could not write plot files to folder \"%s\"." ),
+                    GetChars( outputDir.GetPath() ) );
+        DisplayError( this, msg );
+        return;
+    }
+
+    m_plotOpts.SetAutoScale( false );
+    m_plotOpts.SetScale( 1 );
+
+    switch( m_plotOpts.GetScaleSelection() )
+    {
+    default:
+        break;
+
+    case 0:     // Autoscale option
+        m_plotOpts.SetAutoScale( true );
+        break;
+
+    case 2:     // 3:2 option
+        m_plotOpts.SetScale( 1.5 );
+        break;
+
+    case 3:     // 2:1 option
+        m_plotOpts.SetScale( 2 );
+        break;
+
+    case 4:     // 3:1 option
+        m_plotOpts.SetScale( 3 );
+        break;
+    }
+
+    /* If the scale factor edit controls are disabled or the scale value
+     * is 0, don't adjust the base scale factor.   This fixes a bug when
+     * the default scale adjust is initialized to 0 and saved in program
+     * settings resulting in a divide by zero fault.
+     */
+    if( m_fineAdjustXscaleOpt->IsEnabled()  && m_XScaleAdjust != 0.0 )
+        m_plotOpts.SetFineScaleAdjustX( m_XScaleAdjust );
+
+    if( m_fineAdjustYscaleOpt->IsEnabled() && m_YScaleAdjust != 0.0 )
+        m_plotOpts.SetFineScaleAdjustY( m_YScaleAdjust );
+
+    if( m_PSFineAdjustWidthOpt->IsEnabled() )
+        m_plotOpts.SetWidthAdjust( m_PSWidthAdjust );
+
+    wxString file_ext( GetDefaultPlotExtension( m_plotOpts.GetFormat() ) );
+
+    // Test for a reasonable scale value
+    // XXX could this actually happen? isn't it constrained in the apply
+    // function?
+    if( m_plotOpts.GetScale() < PLOT_MIN_SCALE )
+        DisplayInfoMessage( this,
+                            _( "Warning: Scale option set to a very small value" ) );
+
+    if( m_plotOpts.GetScale() > PLOT_MAX_SCALE )
+        DisplayInfoMessage( this,
+                            _( "Warning: Scale option set to a very large value" ) );
+
+    // Save the current plot options in the board
+    m_parent->SetPlotSettings( m_plotOpts );
+
+    for( LAYER_NUM layer = FIRST_LAYER; layer < NB_PCB_LAYERS; ++layer )
+    {
+        if( m_plotOpts.GetLayerSelection() & GetLayerMask( layer ) )
+        {
+            // Pick the basename from the board file
+            wxFileName fn( boardFilename );
+
+            // Use Gerber Extensions based on layer number
+            // (See http://en.wikipedia.org/wiki/Gerber_File)
+            if( ( m_plotOpts.GetFormat() == PLOT_FORMAT_GERBER )
+                && m_useGerberExtensions->GetValue() )
+                file_ext = GetGerberExtension( layer );
+
+            // Create file name (from the English layer name for non copper layers).
+            BuildPlotFileName( &fn, outputDir.GetPath(),
+                               m_board->GetStandardLayerName( layer ),
+                               file_ext );
+
+            LOCALE_IO toggle;
+            BOARD *board = m_parent->GetBoard();
+            PLOTTER *plotter = StartPlotBoard(board, &m_plotOpts,
+                                              fn.GetFullPath(),
+                                              wxEmptyString );
+
+            // Print diags in messages box:
+            wxString msg;
+            if( plotter )
+            {
+                PlotOneBoardLayer( board, plotter, layer, m_plotOpts );
+                plotter->EndPlot();
+                delete plotter;
+
+                msg.Printf( _( "Plot file <%s> created" ), GetChars( fn.GetFullPath() ) );
+            }
+            else
+                msg.Printf( _( "Unable to create <%s>" ), GetChars( fn.GetFullPath() ) );
+
+            msg << wxT( "\n" );
+            m_messagesBox->AppendText( msg );
+        }
+    }
+
+    // If no layer selected, we have nothing plotted.
+    // Prompt user if it happens because he could think there is a bug in Pcbnew.
+    if( !m_plotOpts.GetLayerSelection() )
+        DisplayError( this, _( "No layer selected" ) );
 }

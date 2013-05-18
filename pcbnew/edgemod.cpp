@@ -167,7 +167,7 @@ void FOOTPRINT_EDIT_FRAME::Edit_Edge_Width( EDGE_MODULE* aEdge )
 
     if( aEdge == NULL )
     {
-        aEdge = (EDGE_MODULE*) (BOARD_ITEM*) module->m_Drawings;
+        aEdge = (EDGE_MODULE*) (BOARD_ITEM*) module->GraphicalItems();
 
         for( ; aEdge != NULL; aEdge = aEdge->Next() )
         {
@@ -191,7 +191,7 @@ void FOOTPRINT_EDIT_FRAME::Edit_Edge_Width( EDGE_MODULE* aEdge )
 void FOOTPRINT_EDIT_FRAME::Edit_Edge_Layer( EDGE_MODULE* aEdge )
 {
     MODULE* module    = GetBoard()->m_Modules;
-    int     new_layer = SILKSCREEN_N_FRONT;
+    LAYER_NUM new_layer = SILKSCREEN_N_FRONT;
 
     if( aEdge )
         new_layer = aEdge->GetLayer();
@@ -202,7 +202,7 @@ void FOOTPRINT_EDIT_FRAME::Edit_Edge_Layer( EDGE_MODULE* aEdge )
     if( new_layer < 0 )
         return;
 
-    if( IsValidCopperLayerIndex( new_layer ) )
+    if( IsCopperLayer( new_layer ) )
     {
         /* an edge is put on a copper layer, and it is very dangerous. a
          *confirmation is requested */
@@ -215,7 +215,7 @@ void FOOTPRINT_EDIT_FRAME::Edit_Edge_Layer( EDGE_MODULE* aEdge )
 
     if( aEdge == NULL )
     {
-        aEdge = (EDGE_MODULE*) (BOARD_ITEM*) module->m_Drawings;
+        aEdge = (EDGE_MODULE*) (BOARD_ITEM*) module->GraphicalItems();
 
         for( ; aEdge != NULL; aEdge = aEdge->Next() )
         {
@@ -314,7 +314,6 @@ EDGE_MODULE* FOOTPRINT_EDIT_FRAME::Begin_Edge_Module( EDGE_MODULE* aEdge,
                                                       STROKE_T     type_edge )
 {
     MODULE* module = GetBoard()->m_Modules;
-    int     angle  = 0;
 
     if( module == NULL )
         return NULL;
@@ -327,11 +326,11 @@ EDGE_MODULE* FOOTPRINT_EDIT_FRAME::Begin_Edge_Module( EDGE_MODULE* aEdge,
         MoveVector.x = MoveVector.y = 0;
 
         // Add the new item to the Drawings list head
-        module->m_Drawings.PushFront( aEdge );
+        module->GraphicalItems().PushFront( aEdge );
 
         // Update characteristics of the segment or arc.
         aEdge->SetFlags( IS_NEW );
-        aEdge->SetAngle( angle );
+        aEdge->SetAngle( 0 );
         aEdge->SetShape( type_edge );
 
         if( aEdge->GetShape() == S_ARC )
@@ -340,11 +339,11 @@ EDGE_MODULE* FOOTPRINT_EDIT_FRAME::Begin_Edge_Module( EDGE_MODULE* aEdge,
         aEdge->SetWidth( GetDesignSettings().m_ModuleSegmentWidth );
         aEdge->SetLayer( module->GetLayer() );
 
-        if( module->GetLayer() == LAYER_N_FRONT )
-            aEdge->SetLayer( SILKSCREEN_N_FRONT );
-
-        if( module->GetLayer() == LAYER_N_BACK )
+        // The default layer for an edge is the corresponding silk layer
+        if( module->IsFlipped() )
             aEdge->SetLayer( SILKSCREEN_N_BACK );
+        else
+            aEdge->SetLayer( SILKSCREEN_N_FRONT );
 
         // Initialize the starting point of the new segment or arc
         aEdge->SetStart( GetScreen()->GetCrossHairPosition() );
@@ -377,7 +376,7 @@ EDGE_MODULE* FOOTPRINT_EDIT_FRAME::Begin_Edge_Module( EDGE_MODULE* aEdge,
                 EDGE_MODULE* newedge = new EDGE_MODULE( *aEdge );
 
                 // insert _after_ aEdge, which is the same as inserting before aEdge->Next()
-                module->m_Drawings.Insert( newedge, aEdge->Next() );
+                module->GraphicalItems().Insert( newedge, aEdge->Next() );
                 aEdge->ClearFlags();
 
                 aEdge = newedge;     // point now new item

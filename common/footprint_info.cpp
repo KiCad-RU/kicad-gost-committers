@@ -1,3 +1,27 @@
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2011 Jean-Pierre Charras, <jp.charras@wanadoo.fr>
+ * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
 /**
  * @file footprint_info.cpp
  */
@@ -8,36 +32,16 @@
  * and their documentation (comments and keywords)
  */
 #include <fctsys.h>
-#include <wxstruct.h>
 #include <common.h>
-#include <kicad_string.h>
 #include <macros.h>
 #include <appl_wxstruct.h>
-
-#include <pcbcommon.h>
-#include <pcbstruct.h>
+#include <wildcards_and_files_ext.h>
 #include <footprint_info.h>
 #include <io_mgr.h>
 
-#include <class_pad.h>
 #include <class_module.h>
-#include <wildcards_and_files_ext.h>
 
 
-/* Read the list of libraries (*.mod files)
- * for each module are stored
- *      the module name
- *      documentation string
- *      associated keywords
- *      lib name
- * Module description format:
- *   $MODULE c64acmd                    First line of module description
- *   Li c64acmd DIN connector           Library reference
- *   Cd Europe 96 AC male vertical      documentation string
- *   Kw PAD_CONN DIN                    associated keywords
- *   ...... other data (pads, outlines ..)
- *   $Endmodule
- */
 bool FOOTPRINT_LIST::ReadFootprintFiles( wxArrayString& aFootprintsLibNames )
 {
     // Clear data before reading files
@@ -52,33 +56,48 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( wxArrayString& aFootprintsLibNames )
         // Parse Libraries Listed
         for( unsigned ii = 0; ii < aFootprintsLibNames.GetCount(); ii++ )
         {
+            // Footprint library file names can be fully qualified or file name only.
             wxFileName filename = aFootprintsLibNames[ii];
 
-            filename.SetExt( LegacyFootprintLibPathExtension );
-
-            wxString libPath = wxGetApp().FindLibraryPath( filename );
-
-            if( !libPath )
+            if( !filename.FileExists() )
             {
-                m_filesNotFound << filename.GetFullName() << wxT("\n");
+                filename = wxGetApp().FindLibraryPath( filename.GetFullName() );
+
+                if( !filename.FileExists() )
+                {
+                    filename = wxFileName( wxEmptyString, aFootprintsLibNames[ii],
+                                           LegacyFootprintLibPathExtension );
+
+                    filename = wxGetApp().FindLibraryPath( filename.GetFullName() );
+                }
+            }
+
+            wxLogDebug( wxT( "Path <%s> -> <%s>." ), GetChars( aFootprintsLibNames[ii] ),
+                        GetChars( filename.GetFullPath() ) );
+
+            if( !filename.FileExists() )
+            {
+                m_filesNotFound << filename.GetFullName() << wxT( "\n" );
                 continue;
             }
 
             try
             {
-                wxArrayString fpnames = pi->FootprintEnumerate( libPath );
+                wxArrayString fpnames = pi->FootprintEnumerate( filename.GetFullPath() );
 
                 for( unsigned i=0; i<fpnames.GetCount();  ++i )
                 {
-                    std::auto_ptr<MODULE> m( pi->FootprintLoad( libPath, fpnames[i] ) );
+                    std::auto_ptr<MODULE> m( pi->FootprintLoad( filename.GetFullPath(),
+                                                                fpnames[i] ) );
 
                     // we're loading what we enumerated, all must be there.
                     wxASSERT( m.get() );
 
                     FOOTPRINT_INFO* fpinfo = new FOOTPRINT_INFO();
 
+                    fpinfo->SetLibraryName( filename.GetName() );
+                    fpinfo->SetLibraryPath( filename.GetFullPath() );
                     fpinfo->m_Module   = fpnames[i];
-                    fpinfo->m_LibName  = libPath;
                     fpinfo->m_padCount = m->GetPadCount();
                     fpinfo->m_KeyWord  = m->GetKeywords();
                     fpinfo->m_Doc      = m->GetDescription();
@@ -88,7 +107,7 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( wxArrayString& aFootprintsLibNames )
             }
             catch( IO_ERROR ioe )
             {
-                m_filesInvalid << ioe.errorText << wxT("\n");
+                m_filesInvalid << ioe.errorText << wxT( "\n" );
             }
         }
     }

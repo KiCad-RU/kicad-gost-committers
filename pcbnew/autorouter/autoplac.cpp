@@ -99,7 +99,7 @@ void PCB_EDIT_FRAME::AutoPlaceModule( MODULE* Module, int place_mode, wxDC* DC )
     wxPoint  PosOK;
     wxPoint  memopos;
     int      error;
-    int      lay_tmp_TOP, lay_tmp_BOTTOM;
+    LAYER_NUM lay_tmp_TOP, lay_tmp_BOTTOM;
 
     // Undo: init list
     PICKED_ITEMS_LIST  newList;
@@ -140,8 +140,8 @@ void PCB_EDIT_FRAME::AutoPlaceModule( MODULE* Module, int place_mode, wxDC* DC )
     }
 
     memopos = CurrPosition;
-    lay_tmp_BOTTOM = Route_Layer_BOTTOM;
-    lay_tmp_TOP    = Route_Layer_TOP;
+    lay_tmp_BOTTOM = g_Route_Layer_BOTTOM;
+    lay_tmp_TOP    = g_Route_Layer_TOP;
 
     RoutingMatrix.m_GridRouting = (int) GetScreen()->GetGridSize().x;
 
@@ -353,8 +353,8 @@ end_of_tst:
 
     RoutingMatrix.UnInitRoutingMatrix();
 
-    Route_Layer_TOP    = lay_tmp_TOP;
-    Route_Layer_BOTTOM = lay_tmp_BOTTOM;
+    g_Route_Layer_TOP    = lay_tmp_TOP;
+    g_Route_Layer_BOTTOM = lay_tmp_BOTTOM;
 
     Module = GetBoard()->m_Modules;
 
@@ -447,17 +447,17 @@ int PCB_EDIT_FRAME::GenPlaceBoard()
     msg.Printf( wxT( "%d" ), RoutingMatrix.m_MemSize / 1024 );
     m_messagePanel->SetMessage( 24, wxT( "Mem(Kb)" ), msg, CYAN );
 
-    Route_Layer_BOTTOM = LAYER_N_FRONT;
+    g_Route_Layer_BOTTOM = LAYER_N_FRONT;
 
     if( RoutingMatrix.m_RoutingLayersCount > 1 )
-        Route_Layer_BOTTOM = LAYER_N_BACK;
+        g_Route_Layer_BOTTOM = LAYER_N_BACK;
 
-    Route_Layer_TOP = LAYER_N_FRONT;
+    g_Route_Layer_TOP = LAYER_N_FRONT;
 
     /* Place the edge layer segments */
     TRACK TmpSegm( NULL );
 
-    TmpSegm.SetLayer( -1 );
+    TmpSegm.SetLayer( UNDEFINED_LAYER );
     TmpSegm.SetNet( -1 );
     TmpSegm.SetWidth( RoutingMatrix.m_GridRouting / 2 );
 
@@ -564,7 +564,7 @@ void PCB_EDIT_FRAME::GenModuleOnBoard( MODULE* Module )
     /* Trace pads and surface safely. */
     marge = trackWidth + clearance;
 
-    for( Pad = Module->m_Pads; Pad != NULL; Pad = Pad->Next() )
+    for( Pad = Module->Pads(); Pad != NULL; Pad = Pad->Next() )
     {
         ::PlacePad( Pad, CELL_is_MODULE, marge, WRITE_OR_CELL );
     }
@@ -626,7 +626,7 @@ int PCB_EDIT_FRAME::GetOptimalModulePlacement( MODULE* aModule, wxDC* aDC )
         if( aModule->GetLayer() == LAYER_N_BACK )
             otherLayerMask = LAYER_FRONT;
 
-        for( Pad = aModule->m_Pads; Pad != NULL; Pad = Pad->Next() )
+        for( Pad = aModule->Pads(); Pad != NULL; Pad = Pad->Next() )
         {
             if( ( Pad->GetLayerMask() & otherLayerMask ) == 0 )
                 continue;
@@ -648,7 +648,7 @@ int PCB_EDIT_FRAME::GetOptimalModulePlacement( MODULE* aModule, wxDC* aDC )
 
         if( m_canvas->GetAbortRequest() )
         {
-            if( IsOK( this, _( "Ok to abort?" ) ) )
+            if( IsOK( this, _( "OK to abort?" ) ) )
                 return ESC;
             else
                 m_canvas->SetAbortRequest( false );
@@ -942,8 +942,8 @@ double PCB_EDIT_FRAME::Compute_Ratsnest_PlaceModule( wxDC* DC )
         // the penalty is max for 45 degrees ratsnests,
         // and 0 for horizontal or vertical ratsnests.
         // For Horizontal and Vertical ratsnests, dy = 0;
-        icout  = hypot( (double) dx, (double) dy * 2.0 );
-        cout  += icout; /* Total cost = sum of costs of each connection. */
+        icout  = hypot( dx, dy * 2.0 );
+        cout  += icout; // Total cost = sum of costs of each connection
     }
 
     return cout;
@@ -969,10 +969,10 @@ void CreateKeepOutRectangle( int ux0, int uy0, int ux1, int uy1,
     DIST_CELL data, LocalKeepOut;
     int      lgain, cgain;
 
-    if( aLayerMask & GetLayerMask( Route_Layer_BOTTOM ) )
+    if( aLayerMask & GetLayerMask( g_Route_Layer_BOTTOM ) )
         trace = 1;     /* Trace on bottom layer. */
 
-    if( ( aLayerMask & GetLayerMask( Route_Layer_TOP ) ) && RoutingMatrix.m_RoutingLayersCount )
+    if( ( aLayerMask & GetLayerMask( g_Route_Layer_TOP ) ) && RoutingMatrix.m_RoutingLayersCount )
         trace |= 2;    /* Trace on top layer. */
 
     if( trace == 0 )
