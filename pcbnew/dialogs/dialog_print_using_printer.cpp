@@ -3,7 +3,7 @@
 /****************************************/
 
 // Set this to 1 if you want to test PostScript printing under MSW.
-#define wxTEST_POSTSCRIPT_IN_MSW 1
+//#define wxTEST_POSTSCRIPT_IN_MSW 1
 
 #include <fctsys.h>
 #include <appl_wxstruct.h>
@@ -21,8 +21,8 @@
 #include <dialog_print_using_printer_base.h>
 
 
-#define WIDTH_MAX_VALUE           1000
-#define WIDTH_MIN_VALUE           1
+#define PEN_WIDTH_MAX_VALUE ( (int)(5 * IU_PER_MM) )
+#define PEN_WIDTH_MIN_VALUE ( (int)(0.005 * IU_PER_MM) )
 
 
 extern int g_DrawDefaultLineThickness;
@@ -100,6 +100,7 @@ void PCB_EDIT_FRAME::ToPrinter( wxCommandEvent& event )
         s_pageSetupData = new wxPageSetupDialogData( *s_PrintData );
 
     s_pageSetupData->SetPaperId( pageInfo.GetPaperId() );
+    s_pageSetupData->GetPrintData().SetOrientation( pageInfo.GetWxOrientation() );
 
     if( pageInfo.IsCustom() )
     {
@@ -110,10 +111,6 @@ void PCB_EDIT_FRAME::ToPrinter( wxCommandEvent& event )
             s_pageSetupData->SetPaperSize( wxSize( Mils2mm( pageInfo.GetHeightMils() ),
                                                    Mils2mm( pageInfo.GetWidthMils() ) ) );
     }
-
-    s_pageSetupData->SetMarginTopLeft( wxPoint( 0, 0 ) );
-    s_pageSetupData->SetMarginBottomRight( wxPoint( 0, 0 ) );
-    s_pageSetupData->GetPrintData().SetOrientation( pageInfo.GetWxOrientation() );
 
     *s_PrintData = s_pageSetupData->GetPrintData();
 
@@ -211,6 +208,7 @@ void DIALOG_PRINT_USING_PRINTER::InitValues( )
         m_config->Read( OPTKEY_PRINT_SCALE, &scale_idx );
         m_config->Read( OPTKEY_PRINT_PAGE_FRAME, &s_Parameters.m_Print_Sheet_Ref, 1);
         m_config->Read( OPTKEY_PRINT_MONOCHROME_MODE, &s_Parameters.m_Print_Black_and_White, 1);
+        m_config->Read( OPTKEY_PRINT_PAGE_PER_LAYER, &s_Parameters.m_OptionPrintPage, 0);
         int tmp;
         m_config->Read( OPTKEY_PRINT_PADS_DRILL,  &tmp, PRINT_PARAMETERS::SMALL_DRILL_SHAPE );
         s_Parameters.m_DrillShapeOpt = (PRINT_PARAMETERS::DrillShapeOptT) tmp;
@@ -258,6 +256,7 @@ void DIALOG_PRINT_USING_PRINTER::InitValues( )
     else
         m_ModeColorOption->SetSelection( 0 );
 
+    m_PagesOption->SetSelection(s_Parameters.m_OptionPrintPage);
     s_Parameters.m_PenDefaultSize = g_DrawDefaultLineThickness;
     AddUnitSymbol( *m_TextPenWidth, g_UserUnit );
     m_DialogPenWidth->SetValue(
@@ -320,6 +319,7 @@ void DIALOG_PRINT_USING_PRINTER::OnCloseWindow( wxCloseEvent& event )
         m_config->Write( OPTKEY_PRINT_SCALE, m_ScaleOption->GetSelection() );
         m_config->Write( OPTKEY_PRINT_PAGE_FRAME, s_Parameters.m_Print_Sheet_Ref);
         m_config->Write( OPTKEY_PRINT_MONOCHROME_MODE, s_Parameters.m_Print_Black_and_White);
+        m_config->Write( OPTKEY_PRINT_PAGE_PER_LAYER, s_Parameters.m_OptionPrintPage );
         m_config->Write( OPTKEY_PRINT_PADS_DRILL, (long) s_Parameters.m_DrillShapeOpt );
         wxString layerKey;
         for( int layer = 0; layer < NB_LAYERS;  ++layer )
@@ -387,14 +387,14 @@ void DIALOG_PRINT_USING_PRINTER::SetPenWidth()
 
     s_Parameters.m_PenDefaultSize = ReturnValueFromTextCtrl( *m_DialogPenWidth );
 
-    if( s_Parameters.m_PenDefaultSize > WIDTH_MAX_VALUE )
+    if( s_Parameters.m_PenDefaultSize > PEN_WIDTH_MAX_VALUE )
     {
-        s_Parameters.m_PenDefaultSize = WIDTH_MAX_VALUE;
+        s_Parameters.m_PenDefaultSize = PEN_WIDTH_MAX_VALUE;
     }
 
-    if( s_Parameters.m_PenDefaultSize < WIDTH_MIN_VALUE )
+    if( s_Parameters.m_PenDefaultSize < PEN_WIDTH_MIN_VALUE )
     {
-        s_Parameters.m_PenDefaultSize = WIDTH_MIN_VALUE;
+        s_Parameters.m_PenDefaultSize = PEN_WIDTH_MIN_VALUE;
     }
 
     g_DrawDefaultLineThickness = s_Parameters.m_PenDefaultSize;
@@ -429,6 +429,14 @@ void DIALOG_PRINT_USING_PRINTER::OnPrintPreview( wxCommandEvent& event )
 {
     SetPrintParameters( );
 
+    // If no layer selected, we have no plot. prompt user if it happens
+    // because he could think there is a bug in Pcbnew:
+    if( s_Parameters.m_PrintMaskLayer == 0 )
+    {
+        DisplayError( this, _( "No layer selected" ) );
+        return;
+    }
+
     // Pass two printout objects: for preview, and possible printing.
     wxString        title   = _( "Print Preview" );
     wxPrintPreview* preview =
@@ -442,20 +450,11 @@ void DIALOG_PRINT_USING_PRINTER::OnPrintPreview( wxCommandEvent& event )
         return;
     }
 
-    SetLayerMaskFromListSelection();
-
-    // If no layer selected, we have no plot. prompt user if it happens
-    // because he could think there is a bug in Pcbnew:
-    if( s_Parameters.m_PrintMaskLayer == 0 )
-    {
-        DisplayError( this, _( "No layer selected" ) );
-        return;
-    }
-
     // Uses the parent position and size.
-    // @todo uses last position and size ans store them when exit in m_config
     wxPoint         WPos  = m_parent->GetPosition();
     wxSize          WSize = m_parent->GetSize();
+
+    preview->SetZoom( 100 );
 
     wxPreviewFrame* frame = new wxPreviewFrame( preview, this, title, WPos, WSize );
 
