@@ -33,6 +33,8 @@ option(USE_OPENOFFICE_SDK "enable/disable building GOST document generator with 
 # It is recommended to set the suboptions as follows: USE_RPC_DOC_SERVER=ON and USE_OPENOFFICE_SDK=OFF.
 # Other suboption combinations suffer from building and incompatibility issues. They are kept as spare approaches.
 
+option(USE_PCAD2KICAD "PCad to Kicad converter (default ON). Warning, this is experimental" ON)
+
 #for those who bored with uppercase
 option(KICAD_KEEPCASE "turn-off automatic component name conversion to uppercase if selected")
 
@@ -178,6 +180,10 @@ endif()
 if(USE_OPENOFFICE_SDK)
     add_definitions(-DUSE_OPENOFFICE_SDK)
 endif()
+
+if(USE_PCAD2KICAD)
+    add_definitions(-DUSE_PCAD2KICAD)
+endif(USE_PCAD2KICAD)
 
 if(KICAD_KEEPCASE)
     add_definitions(-DKICAD_KEEPCASE)
@@ -391,6 +397,9 @@ add_subdirectory(pcb_calculator)
 add_subdirectory(tools)
 #add_subdirectory(new)
 
+#if (USE_PCAD2KICAD)
+add_subdirectory(extra/pcad2kicadsch)
+#endif(USE_PCAD2KICAD)
 
 #############
 # Resources #
