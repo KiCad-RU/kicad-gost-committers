@@ -78,7 +78,7 @@ SCH_PORT::~SCH_PORT()
 
 void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
 {
-    char lr;
+    wxString lr;
 
     if( m_labelText.textRotation == 0 )
         lr = wxT( '0' );

@@ -171,7 +171,7 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
 
 void SCH_LINE::WriteLabelToFile( wxFile* aFile, char aFileType )
 {
-    char lr;
+    wxString lr;
 
     if( m_labelText.textIsVisible == 1 )
     {

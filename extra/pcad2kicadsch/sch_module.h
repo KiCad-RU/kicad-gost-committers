@@ -50,8 +50,8 @@ private:
     int                     m_numParts;
     wxString                m_attachedPattern;
     wxArrayString           m_attachedSymbols;
-    char                    m_pinNumVisibility;
-    char                    m_pinNameVisibility;
+    wxString                m_pinNumVisibility;
+    wxString                m_pinNameVisibility;
 
 public:
     SCH_MODULE();

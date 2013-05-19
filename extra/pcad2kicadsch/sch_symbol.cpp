@@ -263,9 +263,8 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
 
 void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
 {
-    char        orientation;
-    wxString    visibility, str;
-    int         a, b, c, d;
+    wxString orientation, visibility, str;
+    int      a, b, c, d;
 
     CorrectTextPosition( &m_value, m_rotation );
     CorrectTextPosition( &m_reference, m_rotation );

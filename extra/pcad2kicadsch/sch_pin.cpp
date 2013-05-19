@@ -175,8 +175,7 @@ void SCH_PIN::ParsePinProperties( XNODE*   aNode, int aSymbolIndex,
 
 void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
 {
-    char        orientation, pinType;
-    wxString    shape;
+    wxString orientation, pinType, shape;
 
     orientation = wxT( 'L' );
 
