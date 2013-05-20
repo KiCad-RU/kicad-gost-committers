@@ -207,7 +207,8 @@ bool RPC_DOC_IFACE::LoadDocument( wxString aUrl )
 
     if( strcmp( m_buffer, "OK______" ) )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to load document" ),
+        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to load document\n"
+                           "RPC command: " + loadDocument ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         return false;
@@ -229,7 +230,8 @@ bool RPC_DOC_IFACE::AppendDocument( wxString aUrl )
 
     if( strcmp( m_buffer, "OK______" ) )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to append document" ),
+        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to append document\n"
+                           "RPC command: " + appendDocument ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         return false;

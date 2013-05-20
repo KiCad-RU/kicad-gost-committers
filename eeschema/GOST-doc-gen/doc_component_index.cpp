@@ -38,15 +38,16 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 {
     COMPONENT_ARRAY singleVariantComponents;
     int             variant;
-    wxString        str, refdes_prefix_reserved, var_str;
+    wxString        str, refdes_prefix_reserved, var_str, fileName;
     wxArrayString   letter_digit_sets;
     bool            comps_absent;
 
-    if ( !aDocIface->Connect() )
+    if( !aDocIface->Connect() )
         return false;
 
-    if ( !aDocIface->LoadDocument(
-        GetResourceFile( wxT( "templates/CompIndexFirstSheet_template.odt" ) ) ) )
+    if( ( fileName = GetResourceFile( wxT( "templates/CompIndexFirstSheet_template.odt" ) ) )
+        == wxEmptyString
+        || !aDocIface->LoadDocument( fileName ) )
     {
         aDocIface->Disconnect();
         return false;
@@ -166,8 +167,9 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
 
     // print the last sheet
-    if ( !aDocIface->AppendDocument(
-        GetResourceFile( wxT( "templates/CompIndexLastSheet_template.odt" ) ) ) )
+    if( ( fileName = GetResourceFile( wxT( "templates/CompIndexLastSheet_template.odt" ) ) )
+        == wxEmptyString
+        || !aDocIface->AppendDocument( fileName ) )
     {
         aDocIface->Disconnect();
         return false;

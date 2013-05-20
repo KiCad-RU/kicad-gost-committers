@@ -151,7 +151,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 {
     COMPONENT_ARRAY singleVariantComponents, AllVariantsComponents;
     int             variant;
-    wxString        str, var_str;
+    wxString        str, var_str, fileName;
     wxArrayString   specification_positions;
     bool            comps_absent;
 
@@ -159,8 +159,9 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     if ( !aDocIface->Connect() )
         return false;
 
-    if( !aDocIface->LoadDocument(
-            GetResourceFile( wxT( "templates/SpecificationFirstSheet_template.odt" ) ) ) )
+    if( ( fileName = GetResourceFile( wxT( "templates/SpecificationFirstSheet_template.odt" ) ) )
+        == wxEmptyString
+        || !aDocIface->LoadDocument( fileName ) )
     {
         aDocIface->Disconnect();
         return false;
@@ -519,8 +520,9 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
 
     // print the last sheet
-    if ( !aDocIface->AppendDocument(
-        GetResourceFile( wxT( "templates/CompIndexLastSheet_template.odt" ) ) ) )
+    if( ( fileName = GetResourceFile( wxT( "templates/CompIndexLastSheet_template.odt" ) ) )
+        == wxEmptyString
+        || !aDocIface->AppendDocument( fileName ) )
     {
         aDocIface->Disconnect();
         return false;

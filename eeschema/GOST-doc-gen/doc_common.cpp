@@ -51,7 +51,7 @@ void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
                               COMPONENT_DB*     aComponentDB )
 {
     int             i, row_step;
-    wxString        cell_address;
+    wxString        cell_address, fileName;
     wxArrayString   string_array;
 
     row_step = 1;
@@ -69,8 +69,9 @@ void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
         current_sheet++;
         current_row = 2;
 
-        if ( !aDocIface->AppendDocument(
-            GetResourceFile( wxT( "templates/CompIndexMiddleSheet_template.odt" ) ) ) )
+        if( ( fileName = GetResourceFile( wxT( "templates/CompIndexMiddleSheet_template.odt" ) ) )
+            == wxEmptyString
+            || !aDocIface->AppendDocument( fileName ) )
             return;
 
         aDocIface->SelectTable( current_sheet );
@@ -413,11 +414,14 @@ void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
 void OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
                                      COMPONENT_DB*     aComponentDB )
 {
+    wxString fileName;
+
     current_sheet++;
     current_row = 2;
 
-    if ( !aDocIface->AppendDocument(
-        GetResourceFile( wxT( "templates/SpecificationMiddleSheet_template.odt" ) ) ) )
+    if( ( fileName = GetResourceFile( wxT( "templates/SpecificationMiddleSheet_template.odt" ) ) )
+        == wxEmptyString
+        || !aDocIface->AppendDocument( fileName ) )
         return;
 
     aDocIface->SelectTable( current_sheet );
