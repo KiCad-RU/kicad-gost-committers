@@ -49,15 +49,16 @@ namespace GOST_DOC_GEN {
 
 COMPONENT_DB::COMPONENT_DB()
 {
-    m_designName = wxT( "" );
-    m_designation = wxT( "" );
-    m_specFirstUse = wxT( "" );
-    m_PCBDesignation = wxT( "" );
-    m_circuitDrawingFmt   = wxT( "" );
-    m_assemblyDrawingFmt  = wxT( "" );
-    m_developerField = wxT( "" );
-    m_verifierField = wxT( "" );
-    m_approverField = wxT( "" );
+    m_designName         = wxT( "" );
+    m_designation        = wxT( "" );
+    m_specFirstUse       = wxT( "" );
+    m_PCBDesignation     = wxT( "" );
+    m_circuitDrawingFmt  = wxT( "" );
+    m_assemblyDrawingFmt = wxT( "" );
+    m_developerField     = wxT( "" );
+    m_verifierField      = wxT( "" );
+    m_approverField      = wxT( "" );
+    m_dbgEna             = false;
 }
 
 
@@ -145,7 +146,7 @@ void COMPONENT_DB::SortComponents()
 void COMPONENT_DB::GenerateComponentIndexDoc()
 {
 #if defined(USE_RPC_DOC_SERVER)
-    COMMON_DOC_IFACE* docIface = new RPC_DOC_IFACE();
+    COMMON_DOC_IFACE* docIface = new RPC_DOC_IFACE( m_dbgEna );
 #elif defined(USE_OPENOFFICE_SDK)
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
 #else
@@ -161,7 +162,7 @@ void COMPONENT_DB::GenerateComponentIndexDoc()
 void COMPONENT_DB::GenerateSpecificationDoc()
 {
 #if defined(USE_RPC_DOC_SERVER)
-    COMMON_DOC_IFACE* docIface = new RPC_DOC_IFACE();
+    COMMON_DOC_IFACE* docIface = new RPC_DOC_IFACE( m_dbgEna );
 #elif defined(USE_OPENOFFICE_SDK)
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
 #else
@@ -171,6 +172,12 @@ void COMPONENT_DB::GenerateSpecificationDoc()
     CreateNewSpecificationDoc( this, docIface );
 
     delete docIface;
+}
+
+
+void COMPONENT_DB::SetDbgMode( bool aDbgEna )
+{
+    m_dbgEna = aDbgEna;
 }
 
 

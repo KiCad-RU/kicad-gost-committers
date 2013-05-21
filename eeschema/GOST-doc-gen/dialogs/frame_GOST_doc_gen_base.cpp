@@ -35,6 +35,12 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 	m_menuSettings->Append( m_menuSettingsRemoveExistingVariant );
 	m_menuSettingsRemoveExistingVariant->Enable( false );
 	
+	wxMenuItem* m_separator1;
+	m_separator1 = m_menuSettings->AppendSeparator();
+	
+	m_menuSettingsDebugOn = new wxMenuItem( m_menuSettings, wxID_ANY, wxString( _("Debug on") ) , wxEmptyString, wxITEM_CHECK );
+	m_menuSettings->Append( m_menuSettingsDebugOn );
+	
 	m_menubar1->Append( m_menuSettings, _("Settings") ); 
 	
 	this->SetMenuBar( m_menubar1 );
@@ -197,6 +203,7 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 	this->Connect( m_menuFileGenerateSpecification->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnFileGenerateSpecification ) );
 	this->Connect( m_menuSettingsAddaNewVariant->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsAddaNewVariant ) );
 	this->Connect( m_menuSettingsRemoveExistingVariant->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsRemoveExistingVariant ) );
+	this->Connect( m_menuSettingsDebugOn->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsDebugOn ) );
 	m_combo_Name->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboName ), NULL, this );
 	m_combo_Type->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboType ), NULL, this );
 	m_combo_SubType->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboSubtype ), NULL, this );
@@ -223,6 +230,7 @@ FRAME_GOST_DOC_GEN_BASE::~FRAME_GOST_DOC_GEN_BASE()
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnFileGenerateSpecification ) );
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsAddaNewVariant ) );
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsRemoveExistingVariant ) );
+	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsDebugOn ) );
 	m_combo_Name->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboName ), NULL, this );
 	m_combo_Type->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboType ), NULL, this );
 	m_combo_SubType->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboSubtype ), NULL, this );

@@ -95,6 +95,7 @@ public:
                                                wxString         aSet_prefix );
     void            GenerateComponentIndexDoc();
     void            GenerateSpecificationDoc();
+    void            SetDbgMode( bool aDbgEna );
 
 private:
     void            ZeroInserting( wxString* aStr );
@@ -106,6 +107,7 @@ private:
                                                wxString aAttrName );
 
     SCH_REFERENCE_LIST m_cmplist;              // a flat list of components in the full hierarchy
+    bool               m_dbgEna;
 };
 
 } // namespace GOST_DOC_GEN

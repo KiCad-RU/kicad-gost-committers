@@ -35,7 +35,7 @@
 namespace GOST_DOC_GEN {
 
 
-RPC_DOC_IFACE::RPC_DOC_IFACE()
+RPC_DOC_IFACE::RPC_DOC_IFACE( bool aDbgEna ) : m_dbgEna( aDbgEna )
 {
     // put a string terminator
     m_buffer[RECV_MSG_SIZE] = 0;
@@ -125,7 +125,11 @@ bool RPC_DOC_IFACE::Connect()
     if( pyFile == wxEmptyString )
         return false;
 
-    wxExecute( pythonExecutable + wxT( " \"" ) + pyFile + wxT( "\"" ), wxEXEC_ASYNC );
+    pythonExecutable += wxT( " \"" ) + pyFile + wxT( "\"" );
+    if( m_dbgEna )
+        pythonExecutable += wxT( " DBG=ON" );
+
+    wxExecute( pythonExecutable, wxEXEC_ASYNC );
 
     wxIPV4address addr;
     addr.Hostname( HOSTNAME );

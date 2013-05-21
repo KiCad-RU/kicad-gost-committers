@@ -76,6 +76,7 @@ class FRAME_GOST_DOC_GEN_BASE : public wxFrame
 		virtual void OnFileGenerateSpecification( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnSettingsAddaNewVariant( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnSettingsRemoveExistingVariant( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnSettingsDebugOn( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnEditChangeComboName( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnEditChangeComboType( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnEditChangeComboSubtype( wxCommandEvent& event ) { event.Skip(); }
@@ -93,6 +94,7 @@ class FRAME_GOST_DOC_GEN_BASE : public wxFrame
 		
 	
 	public:
+		wxMenuItem* m_menuSettingsDebugOn;
 		
 		FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("GOST Component Manager"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxDEFAULT_FRAME_STYLE|wxFRAME_FLOAT_ON_PARENT|wxMAXIMIZE|wxTAB_TRAVERSAL );
 		~FRAME_GOST_DOC_GEN_BASE();

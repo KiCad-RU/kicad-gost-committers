@@ -70,6 +70,7 @@ private:
     void OnRadioVarPart(wxCommandEvent& event);
     void OnSelChangeComboVariant( wxCommandEvent& event );
     void OnSettingsAddaNewVariant( wxCommandEvent& event );
+    void OnSettingsDebugOn( wxCommandEvent& event );
 
     void OnFileGenerateComponentIndex( wxCommandEvent& event );
     void OnFileGenerateSpecification( wxCommandEvent& event );

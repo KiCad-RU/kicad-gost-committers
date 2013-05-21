@@ -834,6 +834,12 @@ void GOST_COMP_MANAGER::OnSettingsAddaNewVariant( wxCommandEvent& event )
 }
 
 
+void GOST_COMP_MANAGER::OnSettingsDebugOn( wxCommandEvent& event )
+{
+    m_componentDB->SetDbgMode( m_menuSettingsDebugOn->IsChecked() );
+}
+
+
 void GOST_COMP_MANAGER::OnActivate( wxActivateEvent& event )
 {
     // does not work

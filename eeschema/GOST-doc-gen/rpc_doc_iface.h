@@ -43,7 +43,7 @@ namespace GOST_DOC_GEN {
 class RPC_DOC_IFACE : public COMMON_DOC_IFACE
 {
 public:
-    RPC_DOC_IFACE();
+    RPC_DOC_IFACE( bool aDbgEna );
     ~RPC_DOC_IFACE();
 
     bool Connect();
@@ -58,6 +58,7 @@ public:
 private:
     wxSocketClient* m_sock;
     char            m_buffer[RECV_MSG_SIZE+1];
+    bool            m_dbgEna;
 };
 
 } // namespace GOST_DOC_GEN

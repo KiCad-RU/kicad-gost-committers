@@ -23,6 +23,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 
+import sys, os
 import uno, time
 import socket
 import re
@@ -97,6 +98,16 @@ class UNO_IFACE():
             return False
 
 
+dbg_ena = False
+if( len( sys.argv ) > 1 and sys.argv[1]=='DBG=ON' ):
+    dbg_ena = True
+    # redirect stdout and stderr into logfile
+    # put logfile into the current user's HOME directory
+    logfile = os.path.join( os.path.expanduser( '~' ), 'kicad_uno_iface.log' )
+    sys.stdout = open( logfile, 'w' )
+    sys.stderr = open( logfile, 'w' )
+    print( 'Python version:', sys.version_info )
+
 uno_iface_inst = UNO_IFACE()
 
 host = 'localhost'
@@ -109,7 +120,13 @@ sock, addr = s.accept()
 #print 'Connected with', addr
 
 while True:
-    buf = sock.recv( 1024 ).decode( 'UTF-8' )
+    buf = sock.recv( 1024 )
+
+    if( dbg_ena ):
+        # log RPC commands
+        print( buf )
+
+    buf = buf.decode( 'UTF-8' )
 
     # "Exit"
     args = re.findall( u'^Exit', buf )
@@ -161,6 +178,9 @@ while True:
         else:
             sock.send( b'FAILED__' )
         continue
+
+    if( dbg_ena ):
+        print( 'error: received unknown command' )
 
     sock.send( b'UNKWNCMD' )
 
