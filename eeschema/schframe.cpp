@@ -359,10 +359,6 @@ void SCH_EDIT_FRAME::CreateScreens()
 
     g_RootSheet->GetScreen()->SetFileName( m_DefaultSchematicFileName );
 
-    TITLE_BLOCK tb = g_RootSheet->GetScreen()->GetTitleBlock();
-    tb.SetDate();
-    g_RootSheet->GetScreen()->SetTitleBlock( tb );
-
     m_CurrentSheet->Clear();
     m_CurrentSheet->Push( g_RootSheet );
 
@@ -537,27 +533,24 @@ wxString SCH_EDIT_FRAME::GetUniqueFilenameForCurrentSheet()
      * However if filename is too long name is <sheet filename>-<sheet number>
      */
 
-    #define FN_LEN_MAX 100   // A reasonnable value for the full file name len
+    #define FN_LEN_MAX 80   // A reasonable value for the short filename len
 
-    fn.ClearExt();
-    wxString filename = fn.GetFullPath();
-    if( ( filename.Len() + m_CurrentSheet->PathHumanReadable().Len() ) < FN_LEN_MAX )
-    {
-        filename += m_CurrentSheet->PathHumanReadable();
-        filename.Replace( wxT( "/" ), wxT( "-" ) );
-        filename.RemoveLast();
-        // To avoid issues on unix, ensure the filename does not start
-        // by '-', which has a special meaning in command lines
-#ifndef __WINDOWS__
-        wxString newfn;
-        if( filename.StartsWith( wxT( "-" ), &newfn ) )
-            filename = newfn;
-#endif
-    }
+    wxString filename = fn.GetName();
+    wxString sheetFullName =  m_CurrentSheet->PathHumanReadable();
+    sheetFullName.Trim( true );
+    sheetFullName.Trim( false );
+
+    // Remove the last '/' of the path human readable
+    // (and for the root sheet, make sheetFullName empty):
+    sheetFullName.RemoveLast();
+
+    // Convert path human readable separator to '-'
+    sheetFullName.Replace( wxT( "/" ), wxT( "-" ) );
+
+    if( ( filename.Len() + sheetFullName.Len() ) < FN_LEN_MAX )
+        filename += sheetFullName;
     else
-    {
         filename << wxT( "-" ) << GetScreen()->m_ScreenNumber;
-    }
 
     return filename;
 }
@@ -570,15 +563,6 @@ void SCH_EDIT_FRAME::OnModify()
 
     if( m_dlgFindReplace == NULL )
         m_foundItems.SetForceSearch();
-
-    SCH_SCREENS s_list;
-
-    // Set the date for each sheet
-    // There are 2 possibilities:
-    // >> change only the current sheet
-    // >> change all sheets.
-    // I believe all sheets in a project must have the same date
-    s_list.SetDate();
 }
 
 
@@ -882,8 +866,8 @@ void SCH_EDIT_FRAME::PrintPage( wxDC* aDC, LAYER_MSK aPrintMask, bool aPrintMirr
                                 void* aData )
 {
     GetScreen()->Draw( m_canvas, aDC, GR_DEFAULT_DRAWMODE );
-    TraceWorkSheet( aDC, GetScreen(), GetDefaultLineThickness(), IU_PER_MILS,
-                    GetScreen()->GetFileName() );
+    DrawWorkSheet( aDC, GetScreen(), GetDefaultLineThickness(), IU_PER_MILS,
+                   GetScreen()->GetFileName() );
 }
 
 

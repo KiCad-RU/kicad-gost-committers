@@ -31,32 +31,98 @@
 
 
 #include <fctsys.h>
+#include <appl_wxstruct.h>
 #include <gr_basic.h>
 #include <common.h>
-#include <macros.h>
 #include <class_drawpanel.h>
 #include <class_base_screen.h>
 #include <drawtxt.h>
-#include <confirm.h>
 #include <wxstruct.h>
-#include <appl_wxstruct.h>
-#include <kicad_string.h>
 #include <worksheet.h>
 #include <class_title_block.h>
 #include <build_version.h>
 
-// include data which defines the shape of a title block
-// and frame references
 #include <worksheet_shape_builder.h>
 
-#if defined(KICAD_GOST)
-#include "title_block_shapes_gost.h"
-#else
-#include "title_block_shapes.h"
-#endif
+void DrawPageLayout( wxDC* aDC, EDA_DRAW_PANEL * aCanvas,
+                     const PAGE_INFO& aPageInfo,
+                     const wxString &aFullSheetName,
+                     const wxString& aFileName,
+                     TITLE_BLOCK& aTitleBlock,
+                     int aSheetCount, int aSheetNumber,
+                     int aPenWidth, double aScalar,
+                     EDA_COLOR_T aLineColor, EDA_COLOR_T aTextColor )
+{
+    GRSetDrawMode( aDC, GR_COPY );
+    WS_DRAW_ITEM_LIST drawList;
+
+    wxPoint LTmargin( aPageInfo.GetLeftMarginMils(), aPageInfo.GetTopMarginMils() );
+    wxPoint RBmargin( aPageInfo.GetRightMarginMils(), aPageInfo.GetBottomMarginMils() );
+    wxSize pagesize = aPageInfo.GetSizeMils();
+
+    drawList.SetMargins( LTmargin, RBmargin );
+    drawList.SetPenSize( aPenWidth );
+    drawList.SetMilsToIUfactor( aScalar );
+    drawList.SetPageSize( pagesize );
+    drawList.SetSheetNumber( aSheetNumber );
+    drawList.SetSheetCount( aSheetCount );
+
+    drawList.BuildWorkSheetGraphicList(
+                               aPageInfo.GetType(), aFullSheetName, aFileName,
+                               aTitleBlock, aLineColor, aTextColor );
+
+    // Draw item list
+    for( WS_DRAW_ITEM_BASE* item = drawList.GetFirst(); item;
+         item = drawList.GetNext() )
+    {
+        switch( item->GetType() )
+        {
+        case WS_DRAW_ITEM_BASE::wsg_line:
+            {
+                WS_DRAW_ITEM_LINE* line = (WS_DRAW_ITEM_LINE*) item;
+                GRLine( aCanvas ? aCanvas->GetClipBox() : NULL, aDC,
+                        line->GetStart(), line->GetEnd(),
+                        line->GetPenWidth(), line->GetColor() );
+            }
+            break;
+
+        case WS_DRAW_ITEM_BASE::wsg_rect:
+            {
+                WS_DRAW_ITEM_RECT* rect = (WS_DRAW_ITEM_RECT*) item;
+                GRRect( aCanvas ? aCanvas->GetClipBox() : NULL, aDC,
+                        rect->GetStart().x, rect->GetStart().y,
+                        rect->GetEnd().x, rect->GetEnd().y,
+                        rect->GetPenWidth(), rect->GetColor() );
+            }
+            break;
+
+        case WS_DRAW_ITEM_BASE::wsg_text:
+            {
+                WS_DRAW_ITEM_TEXT* text = (WS_DRAW_ITEM_TEXT*) item;
+                DrawGraphicText( aCanvas, aDC, text->GetTextPosition(),
+                                 text->GetColor(), text->GetText(),
+                                 text->GetOrientation(), text->GetSize(),
+                                 text->GetHorizJustify(), text->GetVertJustify(),
+                                 text->GetPenWidth(), text->IsItalic(), text->IsBold() );
+            }
+            break;
+
+        case WS_DRAW_ITEM_BASE::wsg_poly:
+            {
+                WS_DRAW_ITEM_POLYGON* poly = (WS_DRAW_ITEM_POLYGON*) item;
+                GRPoly( aCanvas ? aCanvas->GetClipBox() : NULL, aDC,
+                        poly->m_Corners.size(), &poly->m_Corners[0],
+                        poly->IsFilled() ? FILLED_SHAPE : NO_FILL,
+                        poly->GetPenWidth(),
+                        poly->GetColor(), poly->GetColor() );
+            }
+            break;
+        }
+    }
+}
 
 
-void EDA_DRAW_FRAME::TraceWorkSheet( wxDC* aDC, BASE_SCREEN* aScreen, int aLineWidth,
+void EDA_DRAW_FRAME::DrawWorkSheet( wxDC* aDC, BASE_SCREEN* aScreen, int aLineWidth,
                                      double aScalar, const wxString &aFilename )
 {
     if( !m_showBorderAndTitleBlock )
@@ -74,17 +140,13 @@ void EDA_DRAW_FRAME::TraceWorkSheet( wxDC* aDC, BASE_SCREEN* aScreen, int aLineW
                 g_DrawBgColor == WHITE ? LIGHTGRAY : DARKDARKGRAY );
     }
 
-    wxPoint margin_left_top( pageInfo.GetLeftMarginMils(), pageInfo.GetTopMarginMils() );
-    wxPoint margin_right_bottom( pageInfo.GetRightMarginMils(), pageInfo.GetBottomMarginMils() );
-    wxString paper = pageInfo.GetType();
-    wxString file = aFilename;
     TITLE_BLOCK t_block = GetTitleBlock();
-    int number_of_screens = aScreen->m_NumberOfScreens;
-    int screen_to_draw = aScreen->m_ScreenNumber;
+    EDA_COLOR_T color = RED;
 
-    TraceWorkSheet( aDC, pageSize, margin_left_top, margin_right_bottom,
-                    paper, file, t_block, number_of_screens, screen_to_draw,
-                    aLineWidth, aScalar );
+    DrawPageLayout( aDC, m_canvas, pageInfo,
+                    aFilename, GetScreenDesc(), t_block,
+                    aScreen->m_NumberOfScreens, aScreen->m_ScreenNumber,
+                    aLineWidth, aScalar, color, color );
 }
 
 
@@ -143,26 +205,139 @@ wxString EDA_DRAW_FRAME::GetScreenDesc()
     return msg;
 }
 
+// returns the full text corresponding to the aTextbase,
+// after replacing format symbols by the corresponding value
+wxString WS_DRAW_ITEM_LIST::BuildFullText( const wxString& aTextbase )
+{
+    wxString msg;
+
+    /* Known formats
+     * %% = replaced by %
+     * %K = Kicad version
+     * %Z = paper format name (A4, USLetter)
+     * %Y = company name
+     * %D = date
+     * %R = revision
+     * %S = sheet number
+     * %N = number of sheets
+     * %Cx = comment (x = 0 to 9 to identify the comment)
+     * %F = filename
+     * %P = sheet path (sheet full name)
+     * %T = title
+     */
+
+    for( unsigned ii = 0; ii < aTextbase.Len(); ii++ )
+    {
+        if( aTextbase[ii] != '%' )
+        {
+            msg << aTextbase[ii];
+            continue;
+        }
+        ii++;
+        if( ii >= aTextbase.Len() )
+            break;
+
+        wxChar format = aTextbase[ii];
+        switch( format )
+        {
+            case '%':
+                msg += '%';
+                break;
+
+            case 'D':
+                msg += m_titleBlock->GetDate();
+                break;
+
+            case 'R':
+                msg += m_titleBlock->GetRevision();
+                break;
+
+            case 'K':
+                msg += g_ProductName + wxGetApp().GetAppName();
+                msg += wxT( " " ) + GetBuildVersion();
+                break;
+
+            case 'Z':
+                msg += *m_paperFormat;
+                break;
+
+            case 'S':
+                msg << m_sheetNumber;
+                break;
+
+            case 'N':
+                msg << m_sheetCount;
+                break;
+
+            case 'F':
+                {
+                    wxFileName fn( *m_fileName );
+                    msg += fn.GetFullName();
+                }
+                break;
+
+            case 'P':
+                msg += *m_sheetFullName;
+                break;
+
+            case 'Y':
+                msg = m_titleBlock->GetCompany();
+                break;
+
+            case 'T':
+                msg += m_titleBlock->GetTitle();
+                break;
+
+            case 'C':
+                format = aTextbase[++ii];
+                switch( format )
+                {
+                case '1':
+                    msg += m_titleBlock->GetComment1();
+                    break;
+
+                case '2':
+                    msg += m_titleBlock->GetComment2();
+                    break;
+
+                case '3':
+                    msg += m_titleBlock->GetComment3();
+                    break;
+
+                case '4':
+                    msg += m_titleBlock->GetComment4();
+                    break;
+
+                default:
+                    break;
+                }
+
+            default:
+                break;
+        }
+    }
+
+    return msg;
+}
+
 
 void TITLE_BLOCK::Format( OUTPUTFORMATTER* aFormatter, int aNestLevel, int aControlBits ) const
     throw( IO_ERROR )
 {
     // Don't write the title block information if there is nothing to write.
-    if(  !m_title.IsEmpty() || /* !m_date.IsEmpty() || */ !m_revision.IsEmpty()
+    if(  !m_title.IsEmpty() || !m_date.IsEmpty() || !m_revision.IsEmpty()
       || !m_company.IsEmpty() || !m_comment1.IsEmpty() || !m_comment2.IsEmpty()
       || !m_comment3.IsEmpty() || !m_comment4.IsEmpty()  )
     {
-        aFormatter->Print( aNestLevel, "(title_block \n" );
+        aFormatter->Print( aNestLevel, "(title_block\n" );
 
         if( !m_title.IsEmpty() )
             aFormatter->Print( aNestLevel+1, "(title %s)\n",
                                aFormatter->Quotew( m_title ).c_str() );
 
-        /* version control users were complaining, see mailing list.
         if( !m_date.IsEmpty() )
             aFormatter->Print( aNestLevel+1, "(date %s)\n",
                                aFormatter->Quotew( m_date ).c_str() );
-        */
 
         if( !m_revision.IsEmpty() )
             aFormatter->Print( aNestLevel+1, "(rev %s)\n",
@@ -189,74 +364,5 @@ void TITLE_BLOCK::Format( OUTPUTFORMATTER* aFormatter, int aNestLevel, int aCont
                                aFormatter->Quotew( m_comment4 ).c_str() );
 
         aFormatter->Print( aNestLevel, ")\n\n" );
-    }
-}
-
-
-void EDA_DRAW_FRAME::TraceWorkSheet( wxDC* aDC, wxSize& aPageSize,
-                                     wxPoint& aLTmargin, wxPoint& aRBmargin,
-                                     wxString& aPaperFormat,
-                                     wxString& aFileName,
-                                     TITLE_BLOCK& aTitleBlock,
-                                     int aSheetCount, int aSheetNumber,
-                                     int aPenWidth, double aScalar,
-                                     EDA_COLOR_T aLineColor, EDA_COLOR_T aTextColor )
-{
-    GRSetDrawMode( aDC, GR_COPY );
-    WS_DRAW_ITEM_LIST drawList;
-
-    drawList.BuildWorkSheetGraphicList( aPageSize, aLTmargin, aRBmargin,
-                               aPaperFormat, aFileName,
-                               GetScreenDesc(),
-                               aTitleBlock, aSheetCount, aSheetNumber,
-                               aPenWidth, aScalar, aLineColor, aTextColor );
-
-    // Draw item list
-    for( WS_DRAW_ITEM_BASE* item = drawList.GetFirst(); item;
-         item = drawList.GetNext() )
-    {
-        switch( item->GetType() )
-        {
-        case WS_DRAW_ITEM_BASE::wsg_line:
-            {
-                WS_DRAW_ITEM_LINE* line = (WS_DRAW_ITEM_LINE*) item;
-                GRLine( m_canvas->GetClipBox(), aDC,
-                        line->GetStart(), line->GetEnd(),
-                        line->GetPenWidth(), line->GetColor() );
-            }
-            break;
-
-        case WS_DRAW_ITEM_BASE::wsg_rect:
-            {
-                WS_DRAW_ITEM_RECT* rect = (WS_DRAW_ITEM_RECT*) item;
-                GRRect( m_canvas->GetClipBox(), aDC,
-                        rect->GetStart().x, rect->GetStart().y,
-                        rect->GetEnd().x, rect->GetEnd().y,
-                        rect->GetPenWidth(), rect->GetColor() );
-            }
-            break;
-
-        case WS_DRAW_ITEM_BASE::wsg_text:
-            {
-                WS_DRAW_ITEM_TEXT* text = (WS_DRAW_ITEM_TEXT*) item;
-                DrawGraphicText( m_canvas, aDC, text->GetTextPosition(),
-                                 text->GetColor(),
-                                 text->GetText(),
-                                 text->GetOrientation(), text->GetSize(),
-                                 text->GetHorizJustify(), text->GetVertJustify(),
-                                 text->GetPenWidth(), text->IsItalic(), text->IsBold() );
-            }
-            break;
-
-        case WS_DRAW_ITEM_BASE::wsg_poly:
-            {
-                WS_DRAW_ITEM_POLYGON* poly = (WS_DRAW_ITEM_POLYGON*) item;
-                GRPoly( m_canvas->GetClipBox(), aDC,
-                        poly->m_Corners.size(), &poly->m_Corners[0],
-                        true, poly->GetPenWidth(),
-                        poly->GetColor(), poly->GetColor() );
-            }
-            break;
-        }
     }
 }

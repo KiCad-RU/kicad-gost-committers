@@ -3,6 +3,30 @@
  * @brief Kicad: Common plotting functions
  */
 
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 1992-2013 KiCad Developers, see change_log.txt for contributors.
+ *
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
 #include <fctsys.h>
 #include <base_struct.h>
 #include <plot_common.h>
@@ -66,12 +90,16 @@ void PlotWorkSheet( PLOTTER* plotter, const TITLE_BLOCK& aTitleBlock,
     plotter->SetCurrentLineWidth( PLOTTER::DEFAULT_LINE_WIDTH );
     WS_DRAW_ITEM_LIST drawList;
 
-    drawList.BuildWorkSheetGraphicList( pageSize, LTmargin, RBmargin,
-                               aPageInfo.GetType(), aFilename,
-                               aSheetDesc,
-                               aTitleBlock, aNumberOfSheets, aSheetNumber,
-                               PLOTTER::DEFAULT_LINE_WIDTH, iusPerMil,
-                               plotColor, plotColor );
+    // Prepare plot parameters
+    drawList.SetMargins( LTmargin, RBmargin);
+    drawList.SetPenSize(PLOTTER::DEFAULT_LINE_WIDTH );
+    drawList.SetMilsToIUfactor( iusPerMil );
+    drawList.SetPageSize( pageSize );
+    drawList.SetSheetNumber( aSheetNumber );
+    drawList.SetSheetCount( aNumberOfSheets );
+
+    drawList.BuildWorkSheetGraphicList( aPageInfo.GetType(), aFilename,
+                               aSheetDesc, aTitleBlock, plotColor, plotColor );
 
     // Draw item list
     for( WS_DRAW_ITEM_BASE* item = drawList.GetFirst(); item;
@@ -108,7 +136,8 @@ void PlotWorkSheet( PLOTTER* plotter, const TITLE_BLOCK& aTitleBlock,
         case WS_DRAW_ITEM_BASE::wsg_poly:
             {
                 WS_DRAW_ITEM_POLYGON* poly = (WS_DRAW_ITEM_POLYGON*) item;
-                plotter->PlotPoly( poly->m_Corners, NO_FILL );
+                plotter->PlotPoly( poly->m_Corners,
+                                   poly->IsFilled() ? FILLED_SHAPE : NO_FILL );
             }
             break;
         }

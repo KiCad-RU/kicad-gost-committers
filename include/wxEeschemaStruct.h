@@ -983,7 +983,12 @@ public:
 
 private:
 
-    // Component
+    /**
+     * Function Load_Component
+     * loads from a library and places a component.
+     * if libname != "", search in lib "libname"
+     * else search in all loaded libs
+     */
     SCH_COMPONENT* Load_Component( wxDC*           DC,
                                    const wxString& libname,
                                    wxArrayString&  List,
@@ -998,6 +1003,11 @@ private:
     void EditComponent( SCH_COMPONENT* aComponent );
 
 public:
+
+    /**
+     * Function OrientComponent
+     * rotates and mirrors a component.
+     */
     void OrientComponent( COMPONENT_ORIENTATION_T aOrientation = CMP_NORMAL );
 
 private:

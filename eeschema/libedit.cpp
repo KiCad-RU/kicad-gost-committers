@@ -690,7 +690,7 @@ lost!\n\nClear the current component from the screen?" ) ) )
 void LIB_EDIT_FRAME::SaveOnePartInMemory()
 {
     LIB_COMPONENT* oldComponent;
-    LIB_COMPONENT* Component;
+    LIB_COMPONENT* component;
     wxString       msg;
 
     if( m_component == NULL )
@@ -724,15 +724,15 @@ void LIB_EDIT_FRAME::SaveOnePartInMemory()
     m_drawItem = m_lastDrawItem = NULL;
 
     if( oldComponent != NULL )
-        Component = m_library->ReplaceComponent( oldComponent, m_component );
+        component = m_library->ReplaceComponent( oldComponent, m_component );
     else
-        Component = m_library->AddComponent( m_component );
+        component = m_library->AddComponent( m_component );
 
-    if( Component == NULL )
+    if( component == NULL )
         return;
 
     msg.Printf( _( "Component %s saved in library %s" ),
-                GetChars( Component->GetName() ),
+                GetChars( component->GetName() ),
                 GetChars( m_library->GetName() ) );
     SetStatusText( msg );
 }
