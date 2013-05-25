@@ -26,6 +26,8 @@
  * @file doc_specification.cpp
  */
 
+#include <wx/progdlg.h>
+
 #include <common_doc_iface.h>
 #include <doc_common.h>
 #include <doc_specification.h>
@@ -155,9 +157,13 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     wxArrayString   specification_positions;
     bool            comps_absent;
 
+    wxProgressDialog progressDlg( wxT("Generating specification document..."),
+                                  wxT("Please wait a moment"), 1 );
 
     if ( !aDocIface->Connect() )
         return false;
+
+    progressDlg.Pulse();
 
     if( ( fileName = GetResourceFile( wxT( "templates/SpecificationFirstSheet_template.odt" ) ) )
         == wxEmptyString
@@ -167,6 +173,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
         return false;
     }
 
+    progressDlg.Pulse();
 
     current_row = 4;
     current_sheet = 0;
@@ -174,6 +181,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
     // Generate positions list
     Specification_GeneratePosList( &aComponentDB->m_AllComponents, &specification_positions );
+
+    progressDlg.Pulse();
 
     aDocIface->SelectTable( 0 );
 
@@ -203,6 +212,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, PARTTYPE_SPECIFICATION |
                                              PARTTYPE_DOCUMENTATION, 0, wxT( "" ) );
 
+    progressDlg.Pulse();
+
     if( singleVariantComponents.GetCount() )
     {
         // process the constant part (documents)
@@ -211,6 +222,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                             aComponentDB,
                                             &specification_positions,
                                             SPEC_NO_SORTING );
+        progressDlg.Pulse();
     }
     else
     {
@@ -263,6 +275,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, PARTTYPE_SPECIFICATION |
                                              PARTTYPE_ASSEMBLY_UNITS, 0, wxT( "" ) );
 
+    progressDlg.Pulse();
+
     if( singleVariantComponents.GetCount() > 0 )
     {
         OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
@@ -278,7 +292,10 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                             aComponentDB,
                                             &specification_positions,
                                             0 );
+
+        progressDlg.Pulse();
     }
+
 
     // form the constant part of specification (details)
     OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
@@ -291,6 +308,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, PARTTYPE_SPECIFICATION |
                                              PARTTYPE_DETAILS, 0, wxT( "" ) );
 
+    progressDlg.Pulse();
+
     if( singleVariantComponents.GetCount() > 0 )
     {
         // process the constant part (details)
@@ -299,6 +318,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                             aComponentDB,
                                             &specification_positions,
                                             0 );
+        progressDlg.Pulse();
     }
     else
     {
@@ -318,6 +338,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                              PARTTYPE_STANDARD_DETAILS,
                                              0, wxT( "" ) );
 
+    progressDlg.Pulse();
+
     if( singleVariantComponents.GetCount() > 0 )
     {
         current_row = SECOND_SHEET_LAST_STR_I;
@@ -332,6 +354,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
         Specification_ProcessSingleVariant( aDocIface,
                                             (wxArrayPtrVoid*) &singleVariantComponents, -1,
                                             aComponentDB, &specification_positions, 0 );
+        progressDlg.Pulse();
     }
 
     OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
@@ -347,19 +370,25 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     // form the constant part of specification (not a set)
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, PARTTYPE_SPECIFICATION, 0,
                                              wxT( "" ) );
+    progressDlg.Pulse();
 
     // process the constant part
     Specification_ProcessSingleVariant( aDocIface,
                                         (wxArrayPtrVoid*) &singleVariantComponents, -1,
                                         aComponentDB, &specification_positions, 0 );
+    progressDlg.Pulse();
 
     // form the constant part of specification (a set)
     Form_a_set( aDocIface, aComponentDB, PARTTYPE_SPECIFICATION | PARTTYPE_A_SET, 0,
                 &specification_positions );
 
+    progressDlg.Pulse();
+
     // form the constant part of specification (goods)
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, PARTTYPE_SPECIFICATION |
                                              PARTTYPE_GOODS, 0, wxT( "" ) );
+
+    progressDlg.Pulse();
 
     if( singleVariantComponents.GetCount() > 0 )
     {
@@ -376,6 +405,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                             aComponentDB,
                                             &specification_positions,
                                             0 );
+        progressDlg.Pulse();
     }
 
 
@@ -439,6 +469,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
             PARTTYPE_SPECIFICATION | PARTTYPE_VAR |
             PARTTYPE_ASSEMBLY_UNITS, variant, wxT( "" ) );
 
+        progressDlg.Pulse();
+
         if( singleVariantComponents.GetCount() > 0 )
         {
             comps_absent = false;
@@ -457,6 +489,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                                 aComponentDB,
                                                 &specification_positions,
                                                 0 );
+            progressDlg.Pulse();
         }
 
         // form the variable part of specification (details)
@@ -464,6 +497,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
             &singleVariantComponents,
             PARTTYPE_SPECIFICATION | PARTTYPE_VAR |
             PARTTYPE_DETAILS, variant, wxT( "" ) );
+
+        progressDlg.Pulse();
 
         if( singleVariantComponents.GetCount() > 0 )
         {
@@ -483,12 +518,14 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                                 aComponentDB,
                                                 &specification_positions,
                                                 0 );
+            progressDlg.Pulse();
         }
 
         // form the variable part of specification (not a set)
         aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents,
                                                  PARTTYPE_SPECIFICATION | PARTTYPE_VAR, variant,
                                                  wxT( "" ) );
+        progressDlg.Pulse();
 
         if( singleVariantComponents.GetCount() > 0 )
             comps_absent = false;
@@ -498,6 +535,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                             aComponentDB,
                                             &specification_positions,
                                             0 );
+        progressDlg.Pulse();
 
         // form the variable part of specification (a set)
         comps_absent &= ~Form_a_set( aDocIface,
@@ -505,6 +543,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                      PARTTYPE_SPECIFICATION | PARTTYPE_VAR | PARTTYPE_A_SET,
                                      variant,
                                      &specification_positions );
+        progressDlg.Pulse();
 
         if( comps_absent )
         {
@@ -527,6 +566,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
         aDocIface->Disconnect();
         return false;
     }
+
+    progressDlg.Pulse();
 
     current_sheet++;
     aDocIface->SelectTable( current_sheet );

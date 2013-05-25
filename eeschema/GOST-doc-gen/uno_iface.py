@@ -23,8 +23,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 
-import sys, os
-import uno, time
+import sys, os, time
+import uno
+from com.sun.star.beans import PropertyValue
 import socket
 import re
 
@@ -58,7 +59,8 @@ class UNO_IFACE():
 
     def LoadDocument( self, aUrl ):
         try:
-            self.document = self.desktop.loadComponentFromURL( aUrl, "_blank", 0, () )
+            hidden = PropertyValue( "Hidden" , 0 , True, 0 ),
+            self.document = self.desktop.loadComponentFromURL( aUrl, "_blank", 0, (hidden) )
             self.SelectTable( 0 )
             return True
         except:
@@ -98,6 +100,15 @@ class UNO_IFACE():
             return False
 
 
+    def MakeVisible( self ):
+        try:
+            self.document.CurrentController.Frame.ContainerWindow.Visible = True
+            self.document.CurrentController.Frame.ContainerWindow.toFront()
+            return True
+        except:
+            return False
+
+
 dbg_ena = False
 if( len( sys.argv ) > 1 and sys.argv[1]=='DBG=ON' ):
     dbg_ena = True
@@ -131,6 +142,7 @@ while True:
     # "Exit"
     args = re.findall( u'^Exit', buf )
     if( args != [] ):
+        uno_iface_inst.MakeVisible()
         sock.send( b'BYE_____' )
         break
 

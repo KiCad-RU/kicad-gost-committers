@@ -26,6 +26,8 @@
  * @file doc_component_index.cpp
  */
 
+#include <wx/progdlg.h>
+
 #include <common_doc_iface.h>
 #include <doc_common.h>
 #include <doc_component_index.h>
@@ -42,8 +44,13 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
     wxArrayString   letter_digit_sets;
     bool            comps_absent;
 
+    wxProgressDialog progressDlg( wxT("Generating component index document..."),
+                                  wxT("Please wait a moment"), 1 );
+
     if( !aDocIface->Connect() )
         return false;
+
+    progressDlg.Pulse();
 
     if( ( fileName = GetResourceFile( wxT( "templates/CompIndexFirstSheet_template.odt" ) ) )
         == wxEmptyString
@@ -52,6 +59,7 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
         aDocIface->Disconnect();
         return false;
     }
+
 
     aDocIface->SelectTable( 0 );
 
@@ -78,14 +86,20 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
     // form the constant part of components index (not a set)
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, 0, 0, wxT( "" ) );
 
+    progressDlg.Pulse();
+
     // process the constant part (not a set)
     ProcessSingleVariant( aDocIface,
                           &singleVariantComponents,
                           -1,
                           aComponentDB );
 
+    progressDlg.Pulse();
+
     // form the constant part of components index (a set)
     Form_a_set( aDocIface, aComponentDB, PARTTYPE_A_SET, 0, NULL );
+
+    progressDlg.Pulse();
 
     // form the variable part of components index
     if( aComponentDB->m_variantIndexes.GetCount() )
@@ -140,6 +154,8 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
         aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, PARTTYPE_VAR, variant,
                                                  wxT( "" ) );
 
+        progressDlg.Pulse();
+
         if( singleVariantComponents.GetCount()>0 )
             comps_absent = false;
 
@@ -148,12 +164,16 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
                               variant,
                               aComponentDB );
 
+        progressDlg.Pulse();
+
         // a set
         comps_absent &= ~Form_a_set( aDocIface,
                                      aComponentDB,
                                      PARTTYPE_VAR | PARTTYPE_A_SET,
                                      variant,
                                      NULL );
+
+        progressDlg.Pulse();
 
         if( comps_absent )
         {
@@ -174,6 +194,8 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
         aDocIface->Disconnect();
         return false;
     }
+
+    progressDlg.Pulse();
 
     current_sheet++;
     aDocIface->SelectTable( current_sheet );
