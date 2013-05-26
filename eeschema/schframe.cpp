@@ -642,10 +642,17 @@ void SCH_EDIT_FRAME::OnCreateNetlist( wxCommandEvent& event )
 
 void SCH_EDIT_FRAME::OnCreateBillOfMaterials( wxCommandEvent& )
 {
+#if defined(KICAD_GOST)
+    DIALOG_BUILD_BOM* dlg = new DIALOG_BUILD_BOM( this );
+
+    dlg->ShowModal();
+    dlg->Destroy();
+#else
     wxMessageDialog dlg( this,
                         wxT( "https://answers.launchpad.net/kicad/+faq/2265" ),
                         _( "BOM Howto" ) );
     dlg.ShowModal();
+#endif
 }
 
 #if defined(KICAD_GOST)

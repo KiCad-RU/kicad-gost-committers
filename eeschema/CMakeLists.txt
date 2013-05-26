@@ -6,6 +6,13 @@ endif()
 
 if(KICAD_GOST)
     set(GOST_DOC_GEN_INCLUDE_DIR ./GOST-doc-gen)
+    set(GOST_EESCHEMA_DLGS
+        dialogs/dialog_build_BOM.cpp
+        dialogs/dialog_build_BOM_base.cpp
+        )
+    set(GOST_EESCHEMA_SRCS
+        build_BOM.cpp
+        )
 endif()
 
 include_directories(BEFORE ${INC_BEFORE})
@@ -24,6 +31,7 @@ set(EESCHEMA_DLGS
     dialogs/dialog_annotate_base.cpp
     dialogs/dialog_lib_edit_text.cpp
     dialogs/dialog_lib_edit_text_base.cpp
+    ${GOST_EESCHEMA_DLGS}
     dialogs/dialog_edit_component_in_lib.cpp
     dialogs/dialog_edit_component_in_lib_base.cpp
     dialogs/dialog_edit_component_in_schematic_fbp.cpp
@@ -66,6 +74,7 @@ set(EESCHEMA_SRCS
     backanno.cpp
     block.cpp
     block_libedit.cpp
+    ${GOST_EESCHEMA_SRCS}
     busentry.cpp
     bus-wire-junction.cpp
     class_drc_erc_item.cpp
