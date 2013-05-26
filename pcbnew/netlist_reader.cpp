@@ -370,9 +370,9 @@ NETLIST_READER* NETLIST_READER::GetNetlistReader( NETLIST*        aNetlist,
 }
 
 
-void CMP_READER::Load( NETLIST* aNetlist ) throw( IO_ERROR, PARSE_ERROR )
+bool CMP_READER::Load( NETLIST* aNetlist ) throw( IO_ERROR, PARSE_ERROR )
 {
-    wxCHECK_RET( aNetlist != NULL, wxT( "No netlist passed to CMP_READER::Load()" ) );
+    wxCHECK_MSG( aNetlist != NULL,true, wxT( "No netlist passed to CMP_READER::Load()" ) );
 
     wxString reference;    // Stores value read from line like Reference = BUS1;
     wxString timestamp;    // Stores value read from line like TimeStamp = /32307DE2/AA450F67;
@@ -380,6 +380,7 @@ void CMP_READER::Load( NETLIST* aNetlist ) throw( IO_ERROR, PARSE_ERROR )
     wxString buffer;
     wxString value;
 
+    bool ok = true;
 
     while( m_lineReader->ReadLine() )
     {
@@ -428,16 +429,15 @@ void CMP_READER::Load( NETLIST* aNetlist ) throw( IO_ERROR, PARSE_ERROR )
         // Find the corresponding item in component list:
         COMPONENT* component = aNetlist->GetComponentByReference( reference );
 
-        // This cannot happen with a valid file.
-        if( component == NULL )
-        {
-            wxString msg;
-            msg.Printf( _( "Cannot find component \'%s\' in footprint assignment file." ),
-                        GetChars( reference ) );
-            THROW_PARSE_ERROR( msg, m_lineReader->GetSource(), m_lineReader->Line(),
-                               m_lineReader->LineNumber(), m_lineReader->Length() );
-        }
-
-        component->SetFootprintName( footprint );
+        // the corresponding component could be no more existing in netlist:
+        // this is the case when it is just removed from schematic,
+        // and still exists in footprint assignment list, before this list is updated
+        // This is an usual case during the life of a design
+        if( component )
+            component->SetFootprintName( footprint );
+        else
+            ok = false;     // can be used to display a warning in Pcbnew.
     }
+
+    return ok;
 }
