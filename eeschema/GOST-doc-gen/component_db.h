@@ -71,6 +71,7 @@ public:
     wxString        m_developerField;
     wxString        m_verifierField;
     wxString        m_approverField;
+    wxString        m_companyName;
 
     INT_ARRAY       m_variantIndexes;
 

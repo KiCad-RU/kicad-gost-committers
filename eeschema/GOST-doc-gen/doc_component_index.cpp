@@ -68,6 +68,7 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
     // fill 'design name' field
     aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->m_designName, 0 );
+
     // fill 'designation' field
     aDocIface->PutCell( wxT( "B27" ),
                         wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
@@ -82,6 +83,9 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
     // fill 'approver' field
     aDocIface->PutCell( wxT( "A28.2.5" ), wxT( " " ) + aComponentDB->m_approverField, 0 );
+
+    // fill 'company' field
+    aDocIface->PutCell( wxT( "C28.1.3" ), wxT( " " ) + aComponentDB->m_companyName, 0 );
 
     // form the constant part of components index (not a set)
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, 0, 0, wxT( "" ) );

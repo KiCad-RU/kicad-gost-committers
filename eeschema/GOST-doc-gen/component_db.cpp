@@ -58,6 +58,7 @@ COMPONENT_DB::COMPONENT_DB()
     m_developerField     = wxT( "" );
     m_verifierField      = wxT( "" );
     m_approverField      = wxT( "" );
+    m_companyName        = wxT( "" );
     m_dbgEna             = false;
 }
 
@@ -259,6 +260,7 @@ void COMPONENT_DB::LoadFromKiCad()
 
     TITLE_BLOCK tb   = g_RootSheet->GetScreen()->GetTitleBlock();
     m_designName     = tb.GetTitle();
+    m_companyName    = tb.GetCompany();
     m_designation    = tb.GetComment1();
     m_developerField = tb.GetComment2();
     m_verifierField  = tb.GetComment3();

@@ -202,6 +202,9 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     // fill 'approver' field
     aDocIface->PutCell( wxT( "A28.2.5" ), wxT( " " ) + aComponentDB->m_approverField, 0 );
 
+    // fill 'company' field
+    aDocIface->PutCell( wxT( "C28.1.3" ), wxT( " " ) + aComponentDB->m_companyName, 0 );
+
     OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
                                  wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
     OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
