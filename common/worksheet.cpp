@@ -44,6 +44,9 @@
 
 #include <worksheet_shape_builder.h>
 
+static const wxString productName = wxT( "KiCad E.D.A.  " );
+
+
 void DrawPageLayout( wxDC* aDC, EDA_DRAW_PANEL * aCanvas,
                      const PAGE_INFO& aPageInfo,
                      const wxString &aFullSheetName,
@@ -198,11 +201,9 @@ const wxString EDA_DRAW_FRAME::GetXYSheetReferences( const wxPoint& aPosition ) 
 
 wxString EDA_DRAW_FRAME::GetScreenDesc()
 {
-    wxString msg;
-
-    msg << GetScreen()->m_ScreenNumber << wxT( "/" )
-        << GetScreen()->m_NumberOfScreens;
-    return msg;
+    // Virtual function, in basic function, returns
+    // an empty string.
+    return wxEmptyString;
 }
 
 // returns the full text corresponding to the aTextbase,
@@ -253,7 +254,7 @@ wxString WS_DRAW_ITEM_LIST::BuildFullText( const wxString& aTextbase )
                 break;
 
             case 'K':
-                msg += g_ProductName + wxGetApp().GetAppName();
+                msg += productName + wxGetApp().GetAppName();
                 msg += wxT( " " ) + GetBuildVersion();
                 break;
 
