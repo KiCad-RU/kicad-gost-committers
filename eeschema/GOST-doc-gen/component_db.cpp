@@ -280,7 +280,10 @@ void COMPONENT_DB::LoadFromKiCad()
 
         pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr  = component->GetLibName();
 
-        if( component->GetField( VALUE )->GetText() == wxT( "~" ) )
+        if( component->GetField( VALUE )->GetText() == wxT( "~" )
+            || component->GetField( VALUE )->GetText() == component->GetLibName() )
+            // workaround for eeschema bug (Value field is assigned to Chip Name field by default
+            // on the component adding from a library)
             pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = wxEmptyString;
         else
             pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = component->GetField( VALUE )->GetText();

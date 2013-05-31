@@ -106,7 +106,7 @@ void SplitString( wxString aIn, wxArrayString* aResult, int aMax_len, int aSplit
     aResult->Clear();
     cur_pos = 0;
     str     = wxT( "" );
-    split_ena_str = wxT( "_@" );
+    split_ena_str = wxT( "_@()" );
 
     if( aSplit_ena & SPLIT_COMMA_ENA )
         split_ena_str += wxT( ',' );
@@ -137,17 +137,32 @@ void SplitString( wxString aIn, wxArrayString* aResult, int aMax_len, int aSplit
             else if( aIn[i] == wxT( '.' )
                      && (aSplit_ena & SPLIT_DOT_ENA) )
                 separator_len = 1;
+            else if( aIn[i] == wxT( '(' ) )
+            {
+                // treat as a possible line feed
+                separator_len = 0;
+                if( i == 0 )
+                {
+                    // ignore '(' at the beginning of the string.
+                    // Scan the rest of the sting for tokens
+                    i = FindOneOf( aIn.Right( aIn.Len() - 1 ), split_ena_str ) + 1;
+                }
+            }
+            else if( aIn[i] == wxT( ')' ) )
+                separator_len = 1;
             else if( aIn[i] == wxT( '_' ) )
                 separator_len = 1;
             else    // '@'
             {
+                // treat as a forced line feed
                 next_str = true;
                 separator_len = 0;
                 aIn.Remove( i, 1 );
             }
         }
 
-        if( (int) str.Len() + i + separator_len > aMax_len )
+        if( ( str.Len() > 0 )
+            && ( (int) str.Len() + i + separator_len > aMax_len ) )
         {
             str.Replace( wxT( "_" ), wxT( " " ) );
             str.Trim( true );
