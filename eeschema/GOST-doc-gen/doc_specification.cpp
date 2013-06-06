@@ -187,23 +187,23 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     aDocIface->SelectTable( 0 );
 
     // fill 'design name' field
-    aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->m_designName, 0 );
+    aDocIface->PutCell( ADDR_DESIGN_NAME, wxT( "\n" ) + aComponentDB->m_designName, 0 );
     // fill 'designation' field
-    aDocIface->PutCell( wxT( "B27" ), wxT( "\n" ) + aComponentDB->m_designation, 0 );
+    aDocIface->PutCell( ADDR_DESIGNATION, wxT( "\n" ) + aComponentDB->m_designation, 0 );
     // fill 'first use' field
-    aDocIface->PutCell( wxT( "B2" ), aComponentDB->m_specFirstUse, 0 );
+    aDocIface->PutCell( ADDR_FIRST_USE, aComponentDB->m_specFirstUse, 0 );
 
     // fill 'developer' field
-    aDocIface->PutCell( wxT( "A28.2.1" ), wxT( " " ) + aComponentDB->m_developerField, 0 );
+    aDocIface->PutCell( ADDR_DEVELOPER, wxT( " " ) + aComponentDB->m_developerField, 0 );
 
     // fill 'verifier' field
-    aDocIface->PutCell( wxT( "A28.2.2" ), wxT( " " ) + aComponentDB->m_verifierField, 0 );
+    aDocIface->PutCell( ADDR_VERIFIER, wxT( " " ) + aComponentDB->m_verifierField, 0 );
 
     // fill 'approver' field
-    aDocIface->PutCell( wxT( "A28.2.5" ), wxT( " " ) + aComponentDB->m_approverField, 0 );
+    aDocIface->PutCell( ADDR_APPROVER, wxT( " " ) + aComponentDB->m_approverField, 0 );
 
     // fill 'company' field
-    aDocIface->PutCell( wxT( "C28.1.3" ), wxT( " " ) + aComponentDB->m_companyName, 0 );
+    aDocIface->PutCell( ADDR_COMPANY, wxT( " " ) + aComponentDB->m_companyName, 0 );
 
     OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
                                  wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
@@ -576,16 +576,17 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     aDocIface->SelectTable( current_sheet );
 
     // fill 'sheet number' field
-    aDocIface->PutCell( wxT( "C28.1.2" ),
+    aDocIface->PutCell( ADDR_LASTSHEET_NUMBER,
                         wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
                         0 );
 
     // fill 'designation' field
-    aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->m_designation, 0 );
+    aDocIface->PutCell( ADDR_LASTSHEET_DESIGNATION,
+                        wxT( "\n" ) + aComponentDB->m_designation, 0 );
 
     // fill 'sheets qty' field
     aDocIface->SelectTable( 0 );
-    aDocIface->PutCell( wxT( "C28.5.2" ),
+    aDocIface->PutCell( ADDR_SHEET_QTY,
                         wxString::Format( wxT( "%d" ), current_sheet + 1 ),
                         0 );
 

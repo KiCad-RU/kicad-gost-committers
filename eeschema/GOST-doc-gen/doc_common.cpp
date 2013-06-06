@@ -77,12 +77,12 @@ void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
         aDocIface->SelectTable( current_sheet );
 
         // fill 'sheet number' field
-        aDocIface->PutCell( wxT( "C30.1.2" ),
+        aDocIface->PutCell( ADDR_MIDSHEET_NUMBER,
                             wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
                             0 );
 
         // fill 'designation' field
-        aDocIface->PutCell( wxT( "B30" ),
+        aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION,
                             wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
     }
 
@@ -427,11 +427,11 @@ void OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
     aDocIface->SelectTable( current_sheet );
 
     // fill 'sheet number' field
-    aDocIface->PutCell( wxT( "C30.1.2" ),
+    aDocIface->PutCell( ADDR_MIDSHEET_NUMBER,
                         wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
                         0 );
     // fill 'designation' field
-    aDocIface->PutCell( wxT( "B30" ), wxT( "\n" ) + aComponentDB->m_designation, 0 );
+    aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION, wxT( "\n" ) + aComponentDB->m_designation, 0 );
 }
 
 

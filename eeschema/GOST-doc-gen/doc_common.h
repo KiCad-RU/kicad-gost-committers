@@ -50,6 +50,22 @@ namespace GOST_DOC_GEN {
 #define SPEC_NO_SORTING             0x0001
 #define SPEC_GEN_POS_LIST           0x0002
 
+// cell address constants
+#define ADDR_DESIGN_NAME            wxT( "B28" )
+#define ADDR_DESIGNATION            wxT( "B27" )
+#define ADDR_FIRST_USE              wxT( "B2" )
+#define ADDR_DEVELOPER              wxT( "A28.2.1" )
+#define ADDR_VERIFIER               wxT( "A28.2.2" )
+#define ADDR_APPROVER               wxT( "A28.2.5" )
+#define ADDR_COMPANY                wxT( "C28.1.3" )
+#define ADDR_SHEET_QTY              wxT( "C28.5.2" )
+
+#define ADDR_MIDSHEET_NUMBER        wxT( "C30.1.2" )
+#define ADDR_MIDSHEET_DESIGNATION   wxT( "B30" )
+
+#define ADDR_LASTSHEET_NUMBER       wxT( "C28.1.2" )
+#define ADDR_LASTSHEET_DESIGNATION  wxT( "B28" )
+
 extern int current_row;
 extern int current_sheet;
 extern int specification_pos_field;
