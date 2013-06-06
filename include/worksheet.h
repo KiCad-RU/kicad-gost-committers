@@ -7,23 +7,14 @@
 #ifndef WORKSHEET_H_
 #define WORKSHEET_H_
 
-// Forwadr declarations:
+#include <colors.h>     // EDA_COLOR_T definition
+
+// Forward declarations:
 class EDA_DRAW_PANEL;
 class TITLE_BLOCK;
 class PAGE_INFO;
 
 #define PAS_REF  2000    // Pitch (in mils) of reference locations in worksheet
-
-struct Ki_WorkSheetData
-{
-public:
-    int               m_Type;
-    Ki_WorkSheetData* Pnext;
-    int               m_Posx, m_Posy;
-    int               m_Endx, m_Endy;
-    const wxChar*     m_TextBase;
-    int               m_Flags;
-};
 
 /**
  * Function DrawPageLayout is a core function to draw the page layout with
@@ -55,5 +46,10 @@ void DrawPageLayout( wxDC* aDC, EDA_DRAW_PANEL * aCanvas,
                      int aSheetCount, int aSheetNumber,
                      int aPenWidth, double aScalar,
                      EDA_COLOR_T aLineColor, EDA_COLOR_T aTextColor );
+
+// defaultPageLayout is the default page layout description
+// using the S expr.
+// see page_layout_default_shape.cpp
+extern const char defaultPageLayout[];
 
 #endif // WORKSHEET_H_
