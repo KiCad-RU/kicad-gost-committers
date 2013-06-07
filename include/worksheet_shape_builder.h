@@ -156,6 +156,16 @@ public:
      * the corresponding text size is not constrained
      */
     void SetConstrainedTextSize();
+
+    /**
+     * @return true is a bold font should be selected
+     */
+    bool IsBold() { return (m_Flags & USE_BOLD) != 0; }
+
+    /**
+     * @return true is an italic font should be selected
+     */
+    bool IsItalic() { return (m_Flags & USE_ITALIC) != 0; }
 };
 
 /*
@@ -497,6 +507,13 @@ public:
      * Fills the list with the default layout shape
      */
     void SetDefaultLayout();
+
+    /**
+     * Fills the list with a custom layout, or
+     * the default layout, if no custom layout available
+     */
+    void SetLayout();
+
 };
 
 #endif      // WORKSHEET_SHAPE_BUILDER_H
