@@ -38,6 +38,7 @@ namespace PCAD2KICAD {
 
 SCH_SYMBOL::SCH_SYMBOL()
 {
+    m_objType = wxT( "symbol" );
     InitTTextValue( &m_module );
     InitTTextValue( &m_reference );
     InitTTextValue( &m_value );
@@ -187,8 +188,6 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
     XNODE*      lNode;
     wxString    propValue, str;
     long        num;
-
-    m_objType = wxT( "symbol" );
 
     if( FindNode( aNode, wxT( "partNum" ) ) )
     {

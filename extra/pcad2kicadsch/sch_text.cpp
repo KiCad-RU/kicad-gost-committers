@@ -35,9 +35,12 @@
 
 namespace PCAD2KICAD {
 
-SCH_TEXT::SCH_TEXT()
+SCH_TEXT::SCH_TEXT( int aSymbolIndex )
 {
+    m_objType   = wxT( "text" );
+
     InitTTextValue( &m_text );
+    m_partNum   = aSymbolIndex;
 }
 
 
@@ -46,11 +49,22 @@ SCH_TEXT::~SCH_TEXT()
 }
 
 
-void SCH_TEXT::Parse( XNODE*  aNode, int aSymbolIndex,
-                     wxString aDefaultMeasurementUnit, wxString aActualConversion )
+void SCH_TEXT::Parse( XNODE*  aNode,
+                      wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    m_objType   = wxT( "text" );
-    m_partNum   = aSymbolIndex;
+    XNODE*      lNode;
+
+    lNode = FindNode( aNode, wxT( "pt" ) );
+
+    if( lNode )
+    {
+        SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                     &m_positionX, &m_positionY, aActualConversion );
+    }
+
+    if( FindNode( lNode, wxT( "rotation" ) ) )
+        m_text.textRotation = StrToInt1Units(
+            FindNode( lNode, wxT( "rotation" ) )->GetNodeContent() );
 
     if( aNode->GetName() == wxT( "text" ) )
     {
@@ -64,10 +78,31 @@ void SCH_TEXT::Parse( XNODE*  aNode, int aSymbolIndex,
 
 void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
 {
-    aFile->Write( wxString::Format( wxT( "T %d %d %d %d 0 %d 0 " ), m_text.textRotation,
-                                    m_text.textPositionX, m_text.textPositionY,
-                                    m_text.textHeight, m_partNum ) +
-                  m_text.text + wxT( " Normal 0 C C\n" ) );
+    if( aFileType == wxT( 'L' ) ) // library
+    {
+        aFile->Write( wxString::Format( wxT( "T %d %d %d %d 0 %d 0 " ), m_text.textRotation,
+                                        m_text.textPositionX, m_text.textPositionY,
+                                        m_text.textHeight, m_partNum ) +
+                      m_text.text + wxT( " Normal 0 C C\n" ) );
+    }
+    else // schematic
+    {
+        wxString lr;
+
+        m_text.text.Replace( wxT( "\n" ), wxT( "\\n" ), true );
+        m_text.text.Replace( wxT( "\r" ), wxT( "\\r" ), true );
+        m_text.text.Replace( wxT( "\t" ), wxT( "\\t" ), true );
+
+        if( m_text.textRotation == 0 )
+            lr = wxT( '0' );
+        else
+            lr = wxT( '1' );
+
+        aFile->Write( wxString::Format( wxT( "Text Notes %d %d" ),
+                                        m_positionX, m_positionY ) +
+                      wxT( ' ' ) + lr + wxT( ' ' ) + wxT( " 60 ~\n" ) );
+        aFile->Write( m_text.text + wxT( "\n" ) );
+    }
 }
 
 } // namespace PCAD2KICAD

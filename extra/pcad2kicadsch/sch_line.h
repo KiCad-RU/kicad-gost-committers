@@ -42,10 +42,10 @@ class SCH_LINE : public SCH_COMPONENT
 public:
     int         m_toX, m_toY;
     wxString    m_net;
-    char        m_lineType; // Wire, Bus, ...
+    wxString    m_lineType; // Wire, Bus, ...
     TTEXTVALUE  m_labelText;
 
-    SCH_LINE();
+    SCH_LINE( wxString aLineType = wxT( '?' ) );
     ~SCH_LINE();
 
     virtual void    Parse( XNODE*   aNode, int aSymbolIndex,

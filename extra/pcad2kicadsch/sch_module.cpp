@@ -42,6 +42,7 @@ namespace PCAD2KICAD {
 
 SCH_MODULE::SCH_MODULE()
 {
+    m_objType   = wxT( "module" );
     InitTTextValue( &m_name );
     InitTTextValue( &m_reference );
     m_numParts = 0;
@@ -75,7 +76,6 @@ void SCH_MODULE::Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
                                                             &propValue );
     propValue.Trim( false );
     m_name.text = propValue;
-    m_objType   = wxT( "module" );
     aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
 
     lNode = FindNode( aNode, wxT( "compHeader" ) );
@@ -304,9 +304,8 @@ void SCH_MODULE::FindAndProcessSymbolDef( XNODE*        aNode,
                 {
                     if( tNode->GetName() == wxT( "text" ) )
                     {
-                        text = new SCH_TEXT;
-                        text->Parse( tNode, aSymbolIndex,
-                                    aDefaultMeasurementUnit, aActualConversion );
+                        text = new SCH_TEXT( aSymbolIndex );
+                        text->Parse( tNode, aDefaultMeasurementUnit, aActualConversion );
                         m_moduleObjects.Add( text );
                     }
 

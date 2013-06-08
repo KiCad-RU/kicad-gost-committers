@@ -36,14 +36,19 @@
 
 namespace PCAD2KICAD {
 
+SCH_BUS::SCH_BUS()
+{
+    m_objType   = wxT( "line" );
+    m_lineType  = wxT( 'B' ); // Bus
+}
+
+
 void SCH_BUS::Parse( XNODE*   aNode, wxString aDefaultMeasurementUnit,
                      wxString aActualConversion )
 {
     XNODE*      lNode;
     wxString    propValue;
 
-    m_objType   = wxT( "line" );
-    m_lineType  = wxT( 'B' ); // Bus
     m_labelText.textIsVisible = 0;
     aNode->GetAttribute( wxT( "Name" ), &m_labelText.text );
     m_labelText.text.Trim( false );

@@ -42,6 +42,7 @@
 #include <sch_pin.h>
 #include <sch_port.h>
 #include <sch_symbol.h>
+#include <sch_text.h>
 
 namespace PCAD2KICAD {
 
@@ -211,6 +212,7 @@ void SCH_SHEET::Parse( XNODE* aNode, wxString aDefaultMeasurementUnit )
     SCH_BUS*        bus;
     SCH_JUNCTION*   junction;
     SCH_SYMBOL*     symbol;
+    SCH_TEXT*       text;
     bool            isJunction;
     int             i;
 
@@ -226,14 +228,23 @@ void SCH_SHEET::Parse( XNODE* aNode, wxString aDefaultMeasurementUnit )
             m_schComponents.Add( symbol );
         }
 
+        // wire
         if( aNode->GetName() == wxT( "wire" ) )
             if( FindNode( aNode, wxT( "line" ) ) )
             {
-                line = new SCH_LINE;
+                line = new SCH_LINE( wxT( 'W' ) );
                 line->Parse( FindNode( aNode, wxT( "line" ) ), 0,
                              aDefaultMeasurementUnit, wxT( "SCH" ) );
                 m_schComponents.Add( line );
             }
+
+        // graphic line
+        if( aNode->GetName() == wxT( "line" ) )
+        {
+            line = new SCH_LINE( wxT( 'N' ) );
+            line->Parse( aNode, 0, aDefaultMeasurementUnit, wxT( "SCH" ) );
+            m_schComponents.Add( line );
+        }
 
         if( aNode->GetName() == wxT( "port" ) )
         {
@@ -255,6 +266,13 @@ void SCH_SHEET::Parse( XNODE* aNode, wxString aDefaultMeasurementUnit )
             junction    = new SCH_JUNCTION();
             junction->Parse( aNode, aDefaultMeasurementUnit, wxT( "SCH" ) );
             m_schComponents.Add( junction );
+        }
+
+        if( aNode->GetName() == wxT( "text" ) )
+        {
+            text = new SCH_TEXT();
+            text->Parse( aNode, aDefaultMeasurementUnit, wxT( "SCH" ) );
+            m_schComponents.Add( text );
         }
 
         aNode = aNode->GetNext();
@@ -370,6 +388,13 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
         if( m_schComponents[i]->m_objType == wxT( "port" ) )
+            m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
+    }
+
+    // Texts
+    for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
+    {
+        if( m_schComponents[i]->m_objType == wxT( "text" ) )
             m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
     }
 

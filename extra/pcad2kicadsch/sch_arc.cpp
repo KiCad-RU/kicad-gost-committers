@@ -38,6 +38,7 @@ namespace PCAD2KICAD {
 
 SCH_ARC::SCH_ARC()
 {
+    m_objType       = wxT( "arc" );
     m_startX        = 0;
     m_startY        = 0;
     m_toX           = 0;
@@ -60,7 +61,6 @@ void SCH_ARC::Parse( XNODE*   aNode, int aSymbolIndex,
     wxString    propValue;
     double      r = 0.0;
 
-    m_objType   = wxT( "arc" );
     m_partNum   = aSymbolIndex;
 
     if( FindNode( aNode, wxT( "width" ) ) )

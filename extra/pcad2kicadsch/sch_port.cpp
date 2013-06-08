@@ -37,6 +37,8 @@ namespace PCAD2KICAD {
 
 SCH_PORT::SCH_PORT()
 {
+    m_objType   = wxT( "port" );
+
     InitTTextValue( &m_labelText );
 }
 
@@ -46,8 +48,6 @@ void SCH_PORT::Parse( XNODE*   aNode,
 {
     XNODE*      lNode;
     wxString    propValue;
-
-    m_objType   = wxT( "port" );
 
     lNode = FindNode( aNode, wxT( "pt" ) );
 

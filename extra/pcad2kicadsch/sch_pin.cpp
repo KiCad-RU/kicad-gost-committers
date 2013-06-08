@@ -38,6 +38,7 @@ namespace PCAD2KICAD {
 
 SCH_PIN::SCH_PIN()
 {
+    m_objType = wxT( "pin" );
     InitTTextValue( &m_pinNum );
     InitTTextValue( &m_pinName );
     InitTTextValue( &m_number );
@@ -59,7 +60,6 @@ void SCH_PIN::Parse( XNODE* aNode )
     wxString    str, propValue;
     long        num;
 
-    m_objType = wxT( "pin" );
 // SCHLine.PartNum:=SymbolIndex;
     aNode->GetAttribute( wxT( "Name" ), &m_number.text );
     m_pinNum.text   = wxT( '0' );  // Default

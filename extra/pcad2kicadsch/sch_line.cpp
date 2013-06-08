@@ -36,12 +36,13 @@
 
 namespace PCAD2KICAD {
 
-SCH_LINE::SCH_LINE()
+SCH_LINE::SCH_LINE( wxString aLineType )
 {
-    m_toX   = 0;
-    m_toY   = 0;
-    m_net   = wxEmptyString;
-    m_lineType = wxT( '?' );
+    m_objType  = wxT( "line" );
+    m_lineType = aLineType;
+    m_toX      = 0;
+    m_toY      = 0;
+    m_net      = wxEmptyString;
     InitTTextValue( &m_labelText );
 }
 
@@ -52,11 +53,7 @@ void SCH_LINE::Parse( XNODE*   aNode, int aSymbolIndex,
     XNODE*      lNode;
     wxString    propValue, str;
 
-    m_objType   = wxT( "line" );
     m_partNum   = aSymbolIndex;
-
-    if( aNode->GetName() == wxT( "line" ) )
-        m_lineType = wxT( 'W' ); // wire
 
     if( FindNode( aNode, wxT( "width" ) ) )
         m_width = StrToIntUnits( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
@@ -161,6 +158,9 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
 
         if( m_lineType == wxT( 'B' ) )
             lt = wxT( "Bus" );
+
+        if( m_lineType == wxT( 'N' ) )
+            lt = wxT( "Notes" );
 
         aFile->Write( wxT( "Wire " ) + lt + wxT( " Line\n" ) );
         aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),

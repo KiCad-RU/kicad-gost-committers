@@ -39,6 +39,8 @@ namespace PCAD2KICAD {
 class SCH_BUS : public SCH_LINE
 {
 public:
+    SCH_BUS();
+
     virtual void Parse( XNODE*      aNode,
                         wxString    aDefaultMeasurementUnit,
                         wxString    aActualConversion );

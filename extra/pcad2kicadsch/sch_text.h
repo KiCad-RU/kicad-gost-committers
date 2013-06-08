@@ -41,10 +41,10 @@ class SCH_TEXT : public SCH_COMPONENT
 public:
     TTEXTVALUE      m_text;
 
-    SCH_TEXT();
+    SCH_TEXT( int aSymbolIndex = 0 );
     ~SCH_TEXT();
 
-    virtual void    Parse( XNODE* aNode, int aSymbolIndex,
+    virtual void    Parse( XNODE* aNode,
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
