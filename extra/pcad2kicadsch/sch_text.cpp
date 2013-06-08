@@ -49,17 +49,12 @@ SCH_TEXT::~SCH_TEXT()
 void SCH_TEXT::Parse( XNODE*  aNode, int aSymbolIndex,
                      wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
-    XNODE*  lNode;
-
     m_objType   = wxT( "text" );
     m_partNum   = aSymbolIndex;
 
     if( aNode->GetName() == wxT( "text" ) )
     {
-       lNode = FindNode( aNode, wxT( "value" ) );
-
-        if( lNode )
-            m_text.text = lNode->GetNodeContent();
+        aNode->GetAttribute( wxT( "Name" ), &m_text.text );
 
         SetTextParameters( aNode, &m_text,
                            aDefaultMeasurementUnit, aActualConversion );
