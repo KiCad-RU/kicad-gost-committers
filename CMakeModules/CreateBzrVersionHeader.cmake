@@ -57,7 +57,7 @@ macro( create_bzr_version_header )
         string( REGEX REPLACE "^([0-9]+)\\-([0-9]+)\\-([0-9]+)" "\\1-\\2-\\3"
                 _kicad_bzr_date ${Kicad_REPO_LAST_CHANGED_DATE} )
         if( KICAD_GOST )
-        	set( KICAD_BUILD_VERSION "(${_kicad_bzr_date} BZR ${Kicad_REPO_REVISION} GOST)" )
+        	set( KICAD_BUILD_VERSION "(${_kicad_bzr_date} BZR ${Kicad_REPO_REVISION} GOST-COMMITTERS)" )
         else( KICAD_GOST )
         	set( KICAD_BUILD_VERSION "(${_kicad_bzr_date} BZR ${Kicad_REPO_REVISION})" )
         endif( KICAD_GOST )
