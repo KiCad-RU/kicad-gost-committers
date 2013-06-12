@@ -52,7 +52,6 @@
 #include <sch_sheet.h>
 
 #include <dialogs/annotate_dialog.h>
-#include <dialogs/dialog_build_BOM.h>
 #include <dialogs/dialog_erc.h>
 #include <dialogs/dialog_print_using_printer.h>
 #include <dialogs/dialog_schematic_find.h>
@@ -62,6 +61,7 @@
 #include <wildcards_and_files_ext.h>
 
 #if defined(KICAD_GOST)
+#include <dialogs/dialog_build_BOM.h>
 #include <GOST-doc-gen/GOST_comp_manager.h>
 #endif
 

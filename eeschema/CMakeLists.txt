@@ -5,19 +5,24 @@ if(KICAD_GOST AND USE_OPENOFFICE_SDK)
 endif()
 
 if(KICAD_GOST)
+    set(BOM_INCLUDE_DIR
+        ./BOM/dialogs
+        ./BOM
+        )
     set(GOST_DOC_GEN_INCLUDE_DIR ./GOST-doc-gen)
     set(GOST_EESCHEMA_DLGS
-        dialogs/dialog_build_BOM.cpp
-        dialogs/dialog_build_BOM_base.cpp
+        BOM/dialogs/dialog_build_BOM.cpp
+        BOM/dialogs/dialog_build_BOM_base.cpp
         )
     set(GOST_EESCHEMA_SRCS
-        build_BOM.cpp
+        BOM/build_BOM.cpp
         )
 endif()
 
 include_directories(BEFORE ${INC_BEFORE})
 include_directories(
     ./dialogs
+    ${BOM_INCLUDE_DIR}
     ${GOST_DOC_GEN_INCLUDE_DIR}
     ../common
     ../common/dialogs
