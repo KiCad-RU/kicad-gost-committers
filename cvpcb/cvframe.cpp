@@ -89,7 +89,6 @@ BEGIN_EVENT_TABLE( CVPCB_MAINFRAME, EDA_BASE_FRAME )
               CVPCB_MAINFRAME::OnSelectFilteringFootprint )
 
     // Frame events
-    EVT_CHAR( CVPCB_MAINFRAME::OnChar )
     EVT_CLOSE( CVPCB_MAINFRAME::OnCloseWindow )
     EVT_SIZE( CVPCB_MAINFRAME::OnSize )
 
@@ -306,83 +305,77 @@ void CVPCB_MAINFRAME::OnCloseWindow( wxCloseEvent& Event )
 }
 
 
-void CVPCB_MAINFRAME::OnChar( wxKeyEvent& event )
+void CVPCB_MAINFRAME::ChangeFocus( bool aMoveRight )
 {
-    switch( event.GetKeyCode() )
+    wxWindow* hasFocus = wxWindow::FindFocus();
+
+    if( aMoveRight )
     {
-    case WXK_LEFT:
-    case WXK_NUMPAD_LEFT:
-        m_ListCmp->SetFocus();
-        break;
-
-    case WXK_RIGHT:
-    case WXK_NUMPAD_RIGHT:
-        m_FootprintList->SetFocus();
-        break;
-
-    default:
-        event.Skip();
-        break;
+        if( hasFocus == m_LibraryList )
+            m_ListCmp->SetFocus();
+        else if( hasFocus == m_ListCmp )
+            m_FootprintList->SetFocus();
+        else if( hasFocus == m_FootprintList )
+            m_LibraryList->SetFocus();
+    }
+    else
+    {
+        if( hasFocus == m_LibraryList )
+            m_FootprintList->SetFocus();
+        else if( hasFocus == m_ListCmp )
+            m_LibraryList->SetFocus();
+        else if( hasFocus == m_FootprintList )
+            m_ListCmp->SetFocus();
     }
 }
 
 
 void CVPCB_MAINFRAME::ToFirstNA( wxCommandEvent& event )
 {
-    int ii = 0;
-    int selection;
-
     if( m_netlist.IsEmpty() )
         return;
 
-    selection = m_ListCmp->GetSelection();
+    long selection = m_ListCmp->GetFirstSelected();
 
     if( selection < 0 )
-        selection = 0;
+        selection = -1;     // We will start to 0 for the first search , if no item selected
 
-    for( unsigned jj = 0;  jj < m_netlist.GetCount();  jj++ )
+    for( unsigned jj = selection+1; jj < m_netlist.GetCount(); jj++ )
     {
-        if( m_netlist.GetComponent( jj )->GetFootprintName().IsEmpty() && ii > selection )
+        if( m_netlist.GetComponent( jj )->GetFootprintName().IsEmpty() )
         {
-            m_ListCmp->SetSelection( ii );
+            m_ListCmp->SetSelection( wxNOT_FOUND, false );  // Remove all selections
+            m_ListCmp->SetSelection( jj );
             SendMessageToEESCHEMA();
             return;
         }
-
-        ii++;
     }
-
-    m_ListCmp->SetSelection( selection );
 }
 
 
 void CVPCB_MAINFRAME::ToPreviousNA( wxCommandEvent& event )
 {
-    int ii;
-    int selection;
-
     if( m_netlist.IsEmpty() )
         return;
 
-    ii = m_ListCmp->GetCount() - 1;
-    selection = m_ListCmp->GetSelection();
+    int selection = m_ListCmp->GetFirstSelected();
 
     if( selection < 0 )
-        selection = m_ListCmp->GetCount() - 1;
+        selection = m_ListCmp->GetCount();
+    else
+        while( m_ListCmp->GetNextSelected( selection ) >= 0 )
+            selection =  m_ListCmp->GetNextSelected( selection );
 
-    for( unsigned kk = m_netlist.GetCount() - 1;  kk >= 0;  kk-- )
+    for( int kk = selection-1; kk >= 0; kk-- )
     {
-        if( m_netlist.GetComponent( kk )->GetFootprintName().IsEmpty() && ii < selection )
+        if( m_netlist.GetComponent( kk )->GetFootprintName().IsEmpty() )
         {
-            m_ListCmp->SetSelection( ii );
+            m_ListCmp->SetSelection( wxNOT_FOUND, false );  // Remove all selections
+            m_ListCmp->SetSelection( kk );
             SendMessageToEESCHEMA();
             return;
         }
-
-        ii--;
     }
-
-    m_ListCmp->SetSelection( selection );
 }
 
 
@@ -523,10 +516,10 @@ void CVPCB_MAINFRAME::OnSelectComponent( wxListEvent& event )
 
     // Preview of the already assigned footprint.
     // Find the footprint that was already chosen for this component and select it,
-    // but only if the selection is made from the component list.  If the selection is
-    // made from the footprint list, do not change the current selected footprint.
-
-    if( FindFocus() == m_ListCmp )
+    // but only if the selection is made from the component list or the library list.
+    // If the selection is made from the footprint list, do not change the current
+    // selected footprint.
+    if( FindFocus() == m_ListCmp || FindFocus() == m_LibraryList )
     {
         wxString module = component->GetFootprintName();
 
@@ -586,28 +579,46 @@ void CVPCB_MAINFRAME::DisplayStatus()
     wxString   msg;
     COMPONENT* component;
 
-    msg.Printf( _( "Components: %d, unassigned: %d" ), (int) m_netlist.GetCount(),
-                m_undefinedComponentCnt );
-    SetStatusText( msg, 0 );
-
-    msg.Empty();
-
-    component = GetSelectedComponent();
-
-    if( m_mainToolBar->GetToolToggled( ID_CVPCB_FOOTPRINT_DISPLAY_FILTERED_LIST ) && component )
+    if( wxWindow::FindFocus() == m_ListCmp || wxWindow::FindFocus() == m_LibraryList )
     {
-        for( unsigned ii = 0;  ii < component->GetFootprintFilters().GetCount();  ii++ )
+        msg.Printf( _( "Components: %d, unassigned: %d" ), (int) m_netlist.GetCount(),
+                    m_undefinedComponentCnt );
+        SetStatusText( msg, 0 );
+
+        msg.Empty();
+
+        component = GetSelectedComponent();
+
+        if( component )
         {
-            if( msg.IsEmpty() )
-                msg += component->GetFootprintFilters()[ii];
-            else
-                msg += wxT( ", " ) + component->GetFootprintFilters()[ii];
+            for( unsigned ii = 0;  ii < component->GetFootprintFilters().GetCount();  ii++ )
+            {
+                if( msg.IsEmpty() )
+                    msg += component->GetFootprintFilters()[ii];
+                else
+                    msg += wxT( ", " ) + component->GetFootprintFilters()[ii];
+            }
+
+            msg = _( "Filter list: " ) + msg;
         }
 
-        msg = _( "Filter list: " ) + msg;
+        SetStatusText( msg, 1 );
+    }
+    else
+    {
+        wxString        footprintName = m_FootprintList->GetSelectedFootprint();
+        FOOTPRINT_INFO* module = m_footprints.GetModuleInfo( footprintName );
+
+        if( module )    // can be NULL if no netlist loaded
+        {
+            msg = _( "Description: " ) + module->m_Doc;
+            SetStatusText( msg, 0 );
+
+            msg  = _( "Key words: " ) + module->m_KeyWord;
+            SetStatusText( msg, 1 );
+        }
     }
 
-    SetStatusText( msg, 1 );
 
     msg.Empty();
 

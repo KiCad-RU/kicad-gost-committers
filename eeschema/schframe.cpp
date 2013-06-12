@@ -51,7 +51,7 @@
 #include <eeschema_config.h>
 #include <sch_sheet.h>
 
-#include <invoke_a_dialog.h>
+#include <invoke_sch_dialog.h>
 #include <dialogs/dialog_schematic_find.h>
 
 #include <wx/display.h>
@@ -612,11 +612,12 @@ void SCH_EDIT_FRAME::OnAnnotate( wxCommandEvent& event )
 
 void SCH_EDIT_FRAME::OnErc( wxCommandEvent& event )
 {
-    // See if its already open...
+    // See if it's already open...
     wxWindow* erc = FindWindowById( ID_DIALOG_ERC, this );
 
     if( erc )
-        erc->Raise();       // bring it to the top if already open.
+        // Bring it to the top if already open.  Dual monitor users need this.
+        erc->Raise();
     else
         InvokeDialogERC( this );
 }
