@@ -64,6 +64,8 @@ GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
     DisableComboBoxes();
 
     wxCommandEvent dummyEvent;
+
+    OnSettingsSwitchToEnglish( dummyEvent );
     OnRadioFullList( dummyEvent );
 }
 
@@ -831,6 +833,82 @@ void GOST_COMP_MANAGER::OnSettingsAddaNewVariant( wxCommandEvent& event )
         m_componentDB->AddNewVariant( variant );
         FormVariantList();
     }
+}
+
+
+void GOST_COMP_MANAGER::OnSettingsSwitchToEnglish( wxCommandEvent& event )
+{
+    // deselect all items in m_listCtrl to prevent breaking fields of selected components
+    long item = -1;
+    for ( ;; )
+    {
+        item = m_listCtrl->GetNextItem( item,
+                                        wxLIST_NEXT_ALL,
+                                        wxLIST_STATE_SELECTED );
+        if ( item == -1 )
+            break;
+
+        m_listCtrl->SetItemState( item, 0, wxLIST_STATE_SELECTED );
+    }
+
+    m_combo_Name->Clear();
+    m_combo_Type->Clear();
+    m_combo_SubType->Clear();
+    m_combo_Note->Clear();
+
+    if( m_menuSettingsSwitchToEnglish->IsChecked() )
+    {
+        m_combo_Name->Append( wxT("Capacitor") );
+        m_combo_Name->Append( wxT("Resistor") );
+        m_combo_Name->Append( wxT("IC") );
+        m_combo_Name->Append( wxT("Connector") );
+        m_combo_Name->Append( wxT("Diode") );
+        m_combo_Name->Append( wxT("Resistor array") );
+        m_combo_Name->Append( wxT("Diode array") );
+        m_combo_Name->Append( wxT("Zener") );
+        m_combo_Name->Append( wxT("Choke") );
+        m_combo_Name->Append( wxT("Transformer") );
+
+        m_combo_Type->Append( wxT("tantalum type C") );
+
+        m_combo_SubType->Append( wxT("-X7R-50 V-") );
+        m_combo_SubType->Append( wxT("-NPO-50 V-") );
+        m_combo_SubType->Append( wxT("-Y5V-50 V-") );
+        m_combo_SubType->Append( wxT("-16 V-") );
+
+        m_componentDB->m_notInstalledStr = wxT( "Not installed" );
+        m_combo_Note->Append( m_componentDB->m_notInstalledStr );
+        m_combo_Note->Append( wxT("The replacement is permitted with") );
+    }
+    else
+    {
+        m_combo_Name->Append( wxT("Конденсатор") );
+        m_combo_Name->Append( wxT("Резистор") );
+        m_combo_Name->Append( wxT("Микросхема") );
+        m_combo_Name->Append( wxT("Разъем") );
+        m_combo_Name->Append( wxT("Диод") );
+        m_combo_Name->Append( wxT("Резисторная сборка") );
+        m_combo_Name->Append( wxT("Диодная сборка") );
+        m_combo_Name->Append( wxT("Стабилитрон") );
+        m_combo_Name->Append( wxT("Дроссель") );
+        m_combo_Name->Append( wxT("Трансформатор") );
+
+        m_combo_Type->Append( wxT("танталовый тип C") );
+
+        m_combo_SubType->Append( wxT("-X7R-50 В-") );
+        m_combo_SubType->Append( wxT("-NPO-50 В-") );
+        m_combo_SubType->Append( wxT("-Y5V-50 В-") );
+        m_combo_SubType->Append( wxT("-16 В-") );
+
+        m_componentDB->m_notInstalledStr = wxT( "Не устанавливается");
+        m_combo_Note->Append( m_componentDB->m_notInstalledStr );
+        m_combo_Note->Append( wxT("Разрешается замена на") );
+    }
+
+    m_combo_Precision->Clear();
+    m_combo_Precision->Append( wxT("5%") );
+    m_combo_Precision->Append( wxT("10%") );
+    m_combo_Precision->Append( wxT("20%") );
 }
 
 

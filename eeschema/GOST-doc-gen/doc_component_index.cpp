@@ -44,8 +44,8 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
     wxArrayString   letter_digit_sets;
     bool            comps_absent;
 
-    wxProgressDialog progressDlg( wxT("Generating component index document..."),
-                                  wxT("Please wait a moment"), 1 );
+    wxProgressDialog progressDlg( wxT( "Generating component index document..." ),
+                                  wxT( "Please wait a moment" ), 1 );
 
     if( !aDocIface->Connect() )
         return false;

@@ -60,6 +60,7 @@ COMPONENT_DB::COMPONENT_DB()
     m_approverField      = wxT( "" );
     m_companyName        = wxT( "" );
     m_dbgEna             = false;
+    m_notInstalledStr    = wxT( "" );
 }
 
 
@@ -496,9 +497,7 @@ void COMPONENT_DB::FindSets( COMPONENT_ARRAY*   aComponents,
 
                 if( comp_attrs->attrs[ATTR_NAME]==wxT( "" )
                     || ( ( aPart_type & PARTTYPE_SPECIFICATION )
-                         && ( comp_attrs->attrs[ATTR_NOTE]==wxT( "Не устанавливается" )
-                              || comp_attrs->attrs[ATTR_NOTE]==wxT( "Not installed" )
-                            ) ) )
+                         && comp_attrs->attrs[ATTR_NOTE] == m_notInstalledStr ) )
                 {
                     analysis_ena = false;
                 }
@@ -516,8 +515,7 @@ void COMPONENT_DB::FindSets( COMPONENT_ARRAY*   aComponents,
                     analysis_ena = false;
 
                 if( ( aPart_type & PARTTYPE_SPECIFICATION )
-                    && ( comp_attrs->attrs[ATTR_NOTE]==wxT( "Не устанавливается" )
-                         || comp_attrs->attrs[ATTR_NOTE]==wxT( "Not installed" ) ) )
+                    && comp_attrs->attrs[ATTR_NOTE] == m_notInstalledStr )
                 {
                     analysis_ena = false;
                 }
@@ -579,9 +577,7 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
 
                 if( comp_attrs->attrs[ATTR_NAME]==wxT( "" )
                     || ( (aPart_type & PARTTYPE_SPECIFICATION)
-                         && ( comp_attrs->attrs[ATTR_NOTE]==wxT( "Не устанавливается" )
-                              || comp_attrs->attrs[ATTR_NOTE]==wxT( "Not installed" )
-                            ) ) )
+                         && comp_attrs->attrs[ATTR_NOTE] == m_notInstalledStr ) )
                 {
                     add_ena = false;
                 }
@@ -599,8 +595,7 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
                     add_ena = false;
 
                 if( (aPart_type & PARTTYPE_SPECIFICATION)
-                    && ( comp_attrs->attrs[ATTR_NOTE]==wxT( "Не устанавливается" )
-                         || comp_attrs->attrs[ATTR_NOTE]==wxT( "Not installed" ) ) )
+                    && comp_attrs->attrs[ATTR_NOTE] == m_notInstalledStr )
                 {
                     add_ena = false;
                 }

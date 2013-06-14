@@ -208,6 +208,21 @@
                         <property name="help"></property>
                         <property name="id">wxID_ANY</property>
                         <property name="kind">wxITEM_CHECK</property>
+                        <property name="label">Switch to English</property>
+                        <property name="name">m_menuSettingsSwitchToEnglish</property>
+                        <property name="permission">public</property>
+                        <property name="shortcut"></property>
+                        <property name="unchecked_bitmap"></property>
+                        <event name="OnMenuSelection">OnSettingsSwitchToEnglish</event>
+                        <event name="OnUpdateUI"></event>
+                    </object>
+                    <object class="wxMenuItem" expanded="1">
+                        <property name="bitmap"></property>
+                        <property name="checked">0</property>
+                        <property name="enabled">1</property>
+                        <property name="help"></property>
+                        <property name="id">wxID_ANY</property>
+                        <property name="kind">wxITEM_CHECK</property>
                         <property name="label">Debug on</property>
                         <property name="name">m_menuSettingsDebugOn</property>
                         <property name="permission">public</property>
@@ -329,7 +344,7 @@
                                             <property name="proportion">0</property>
                                             <object class="wxComboBox" expanded="0">
                                                 <property name="bg"></property>
-                                                <property name="choices">&quot;Capacitor&quot; &quot;Resistor&quot; &quot;IC&quot; &quot;Connector&quot; &quot;Diode&quot; &quot;Resistor array&quot; &quot;Diode array&quot; &quot;Zener&quot; &quot;Choke&quot; &quot;Transformer&quot;</property>
+                                                <property name="choices"></property>
                                                 <property name="context_help"></property>
                                                 <property name="context_menu">1</property>
                                                 <property name="enabled">1</property>
@@ -444,7 +459,7 @@
                                             <property name="proportion">0</property>
                                             <object class="wxComboBox" expanded="0">
                                                 <property name="bg"></property>
-                                                <property name="choices">&quot;tantalum type C&quot;</property>
+                                                <property name="choices"></property>
                                                 <property name="context_help"></property>
                                                 <property name="context_menu">1</property>
                                                 <property name="enabled">1</property>
@@ -559,7 +574,7 @@
                                             <property name="proportion">0</property>
                                             <object class="wxComboBox" expanded="0">
                                                 <property name="bg"></property>
-                                                <property name="choices">&quot;-X7R-50 V-&quot; &quot;-NPO-50 V-&quot; &quot;-Y5V-50 V-&quot; &quot;-16 V-&quot;</property>
+                                                <property name="choices"></property>
                                                 <property name="context_help"></property>
                                                 <property name="context_menu">1</property>
                                                 <property name="enabled">1</property>
@@ -789,7 +804,7 @@
                                             <property name="proportion">0</property>
                                             <object class="wxComboBox" expanded="0">
                                                 <property name="bg"></property>
-                                                <property name="choices">&quot;5%&quot; &quot;10%&quot; &quot;20%&quot;</property>
+                                                <property name="choices"></property>
                                                 <property name="context_help"></property>
                                                 <property name="context_menu">1</property>
                                                 <property name="enabled">1</property>
@@ -904,7 +919,7 @@
                                             <property name="proportion">0</property>
                                             <object class="wxComboBox" expanded="0">
                                                 <property name="bg"></property>
-                                                <property name="choices">&quot;Not installed&quot; &quot;The replacement is permitted with&quot;</property>
+                                                <property name="choices"></property>
                                                 <property name="context_help"></property>
                                                 <property name="context_menu">1</property>
                                                 <property name="enabled">1</property>

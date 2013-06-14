@@ -75,6 +75,8 @@ public:
 
     INT_ARRAY       m_variantIndexes;
 
+    wxString        m_notInstalledStr;
+
                     ~COMPONENT_DB();
     void            LoadFromKiCad();
     bool            WriteBackToKiCad();

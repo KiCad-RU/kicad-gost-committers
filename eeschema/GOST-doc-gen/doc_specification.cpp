@@ -51,7 +51,8 @@ bool CompareCompPos( TCOMPONENT_ATTRS* aComp1, TCOMPONENT_ATTRS* aComp2 )
 }
 
 
-void SpecPosList_ExtractPartOfDB( COMPONENT_ARRAY*          aAll_components,
+void SpecPosList_ExtractPartOfDB( COMPONENT_DB*             aComponentDB,
+                                  COMPONENT_ARRAY*          aAll_components,
                                   TCOMPONENT_ATTRS_ARRAY*   aAllCompPositions,
                                   int                       aType )
 {
@@ -86,8 +87,7 @@ void SpecPosList_ExtractPartOfDB( COMPONENT_ARRAY*          aAll_components,
                 componentAttrs = (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i];
 
                 if( componentAttrs->attrs[ATTR_NAME] != wxT( "" )
-                    && componentAttrs->attrs[ATTR_NOTE] != wxT( "Не устанавливается" )
-                    && componentAttrs->attrs[ATTR_NOTE] != wxT( "Not installed" ) )
+                    && componentAttrs->attrs[ATTR_NOTE] != aComponentDB->m_notInstalledStr )
                 {
                     found = false;
 
@@ -112,7 +112,8 @@ void SpecPosList_ExtractPartOfDB( COMPONENT_ARRAY*          aAll_components,
 }
 
 
-void Specification_GeneratePosList( COMPONENT_ARRAY* aAll_components,
+void Specification_GeneratePosList( COMPONENT_DB*    aComponentDB,
+                                    COMPONENT_ARRAY* aAll_components,
                                     wxArrayString*   aSpecification_positions )
 {
     wxString                str;
@@ -121,26 +122,30 @@ void Specification_GeneratePosList( COMPONENT_ARRAY* aAll_components,
     aSpecification_positions->Clear();
 
     // form all component positions list (assembly units)
-    SpecPosList_ExtractPartOfDB( aAll_components, &allCompPositions, PARTTYPE_ASSEMBLY_UNITS );
+    SpecPosList_ExtractPartOfDB( aComponentDB, aAll_components,
+                                 &allCompPositions, PARTTYPE_ASSEMBLY_UNITS );
     Specification_ProcessSingleVariant( NULL, (wxArrayPtrVoid*) &allCompPositions, -1, NULL,
                                         aSpecification_positions, SPEC_GEN_POS_LIST );
 
-    SpecPosList_ExtractPartOfDB( aAll_components, &allCompPositions, PARTTYPE_DETAILS );
-
-    Specification_ProcessSingleVariant( NULL, (wxArrayPtrVoid*) &allCompPositions, -1, NULL,
-                                        aSpecification_positions, SPEC_GEN_POS_LIST );
-
-    SpecPosList_ExtractPartOfDB( aAll_components, &allCompPositions, PARTTYPE_STANDARD_DETAILS );
-
-    Specification_ProcessSingleVariant( NULL, (wxArrayPtrVoid*) &allCompPositions, -1, NULL,
-                                        aSpecification_positions, SPEC_GEN_POS_LIST );
-
-    SpecPosList_ExtractPartOfDB( aAll_components, &allCompPositions, 0 );
+    SpecPosList_ExtractPartOfDB( aComponentDB, aAll_components,
+                                 &allCompPositions, PARTTYPE_DETAILS );
 
     Specification_ProcessSingleVariant( NULL, (wxArrayPtrVoid*) &allCompPositions, -1, NULL,
                                         aSpecification_positions, SPEC_GEN_POS_LIST );
 
-    SpecPosList_ExtractPartOfDB( aAll_components, &allCompPositions, PARTTYPE_GOODS );
+    SpecPosList_ExtractPartOfDB( aComponentDB, aAll_components,
+                                 &allCompPositions, PARTTYPE_STANDARD_DETAILS );
+
+    Specification_ProcessSingleVariant( NULL, (wxArrayPtrVoid*) &allCompPositions, -1, NULL,
+                                        aSpecification_positions, SPEC_GEN_POS_LIST );
+
+    SpecPosList_ExtractPartOfDB( aComponentDB, aAll_components, &allCompPositions, 0 );
+
+    Specification_ProcessSingleVariant( NULL, (wxArrayPtrVoid*) &allCompPositions, -1, NULL,
+                                        aSpecification_positions, SPEC_GEN_POS_LIST );
+
+    SpecPosList_ExtractPartOfDB( aComponentDB, aAll_components,
+                                 &allCompPositions, PARTTYPE_GOODS );
 
     Specification_ProcessSingleVariant( NULL, (wxArrayPtrVoid*) &allCompPositions, -1, NULL,
                                         aSpecification_positions, SPEC_GEN_POS_LIST );
@@ -157,8 +162,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     wxArrayString   specification_positions;
     bool            comps_absent;
 
-    wxProgressDialog progressDlg( wxT("Generating specification document..."),
-                                  wxT("Please wait a moment"), 1 );
+    wxProgressDialog progressDlg( wxT( "Generating specification document..." ),
+                                  wxT( "Please wait a moment" ), 1 );
 
     if ( !aDocIface->Connect() )
         return false;
@@ -180,7 +185,8 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     specification_pos_field = 1;
 
     // Generate positions list
-    Specification_GeneratePosList( &aComponentDB->m_AllComponents, &specification_positions );
+    Specification_GeneratePosList( aComponentDB, &aComponentDB->m_AllComponents,
+                                   &specification_positions );
 
     progressDlg.Pulse();
 

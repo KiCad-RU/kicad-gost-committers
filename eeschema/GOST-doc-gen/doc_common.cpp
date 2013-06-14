@@ -227,17 +227,16 @@ void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
 
                 if( ( base_refdes_postfix!=next_refdes_postfix - 1 )
                     || ( !CompareComps( pBaseComponent, pComponent, aVariant )
-                         && note!=wxT( "Не устанавливается" ) && note!=wxT( "Not installed" ) ) )
+                         && note != aComponentDB->m_notInstalledStr ) )
                 {
                     break;
                 }
 
-                if( note==wxT( "Не устанавливается" ) || note==wxT( "Not installed" ) )
+                if( note == aComponentDB->m_notInstalledStr )
                 {
                     comp_attrs = (pTCOMPONENT_ATTRS) pComponent->m_comp_attr_variants[item_var_i];
 
-                    if( comp_attrs->attrs[ATTR_NOTE]!=wxT( "Не устанавливается" )
-                        && comp_attrs->attrs[ATTR_NOTE]!=wxT( "Not installed" ) )
+                    if( comp_attrs->attrs[ATTR_NOTE] != aComponentDB->m_notInstalledStr )
                         break;
                 }
 
@@ -260,7 +259,7 @@ void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
 
         str += baseComp_attrs->attrs[ATTR_DESIGNATION];
 
-        if( note==wxT( "Не устанавливается" ) || note==wxT( "Not installed" ) )
+        if( note == aComponentDB->m_notInstalledStr )
         {
             str = wxT( "" );
 
@@ -384,8 +383,7 @@ void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
                 str = comp_attrs->attrs[ATTR_TYPE];
 
                 if( !DoesStringExist( &group_types, str )
-                    && comp_attrs->attrs[ATTR_NOTE] != wxT( "Не устанавливается" )
-                    && comp_attrs->attrs[ATTR_NOTE] != wxT( "Not installed" ) )
+                    && comp_attrs->attrs[ATTR_NOTE] != aComponentDB->m_notInstalledStr )
                 {
                     group_types.Add( str );
                 }

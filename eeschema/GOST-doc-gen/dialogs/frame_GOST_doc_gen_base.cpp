@@ -38,6 +38,9 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 	wxMenuItem* m_separator1;
 	m_separator1 = m_menuSettings->AppendSeparator();
 	
+	m_menuSettingsSwitchToEnglish = new wxMenuItem( m_menuSettings, wxID_ANY, wxString( _("Switch to English") ) , wxEmptyString, wxITEM_CHECK );
+	m_menuSettings->Append( m_menuSettingsSwitchToEnglish );
+	
 	m_menuSettingsDebugOn = new wxMenuItem( m_menuSettings, wxID_ANY, wxString( _("Debug on") ) , wxEmptyString, wxITEM_CHECK );
 	m_menuSettings->Append( m_menuSettingsDebugOn );
 	
@@ -67,17 +70,7 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 	m_staticText1->Wrap( -1 );
 	fgSizer1->Add( m_staticText1, 0, wxALIGN_CENTER_VERTICAL|wxALL, 6 );
 	
-	m_combo_Name = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 );
-	m_combo_Name->Append( _("Capacitor") );
-	m_combo_Name->Append( _("Resistor") );
-	m_combo_Name->Append( _("IC") );
-	m_combo_Name->Append( _("Connector") );
-	m_combo_Name->Append( _("Diode") );
-	m_combo_Name->Append( _("Resistor array") );
-	m_combo_Name->Append( _("Diode array") );
-	m_combo_Name->Append( _("Zener") );
-	m_combo_Name->Append( _("Choke") );
-	m_combo_Name->Append( _("Transformer") );
+	m_combo_Name = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 ); 
 	m_combo_Name->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), 70, 90, 90, false, wxEmptyString ) );
 	
 	fgSizer1->Add( m_combo_Name, 0, wxALL, 5 );
@@ -86,19 +79,14 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 	m_staticText2->Wrap( -1 );
 	fgSizer1->Add( m_staticText2, 0, wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxLEFT|wxRIGHT, 6 );
 	
-	m_combo_Type = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 );
-	m_combo_Type->Append( _("tantalum type C") );
+	m_combo_Type = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 ); 
 	fgSizer1->Add( m_combo_Type, 0, wxALL, 5 );
 	
 	m_staticText3 = new wxStaticText( this, wxID_ANY, _("Subtype:"), wxDefaultPosition, wxSize( -1,25 ), 0 );
 	m_staticText3->Wrap( -1 );
 	fgSizer1->Add( m_staticText3, 0, wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxLEFT|wxRIGHT, 6 );
 	
-	m_combo_SubType = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 );
-	m_combo_SubType->Append( _("-X7R-50 V-") );
-	m_combo_SubType->Append( _("-NPO-50 V-") );
-	m_combo_SubType->Append( _("-Y5V-50 V-") );
-	m_combo_SubType->Append( _("-16 V-") );
+	m_combo_SubType = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 ); 
 	fgSizer1->Add( m_combo_SubType, 0, wxALL, 5 );
 	
 	m_staticText4 = new wxStaticText( this, wxID_ANY, _("Value:"), wxDefaultPosition, wxSize( -1,25 ), 0 );
@@ -112,19 +100,14 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 	m_staticText5->Wrap( -1 );
 	fgSizer1->Add( m_staticText5, 0, wxALL, 5 );
 	
-	m_combo_Precision = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 );
-	m_combo_Precision->Append( _("5%") );
-	m_combo_Precision->Append( _("10%") );
-	m_combo_Precision->Append( _("20%") );
+	m_combo_Precision = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 ); 
 	fgSizer1->Add( m_combo_Precision, 0, wxALL, 5 );
 	
 	m_staticText6 = new wxStaticText( this, wxID_ANY, _("Note:"), wxDefaultPosition, wxSize( -1,25 ), 0 );
 	m_staticText6->Wrap( -1 );
 	fgSizer1->Add( m_staticText6, 0, wxALL, 5 );
 	
-	m_combo_Note = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 );
-	m_combo_Note->Append( _("Not installed") );
-	m_combo_Note->Append( _("The replacement is permitted with") );
+	m_combo_Note = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 230,25 ), 0, NULL, 0 ); 
 	fgSizer1->Add( m_combo_Note, 0, wxALL, 5 );
 	
 	m_staticText7 = new wxStaticText( this, wxID_ANY, _("Designation:"), wxDefaultPosition, wxSize( -1,25 ), 0 );
@@ -203,6 +186,7 @@ FRAME_GOST_DOC_GEN_BASE::FRAME_GOST_DOC_GEN_BASE( wxWindow* parent, wxWindowID i
 	this->Connect( m_menuFileGenerateSpecification->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnFileGenerateSpecification ) );
 	this->Connect( m_menuSettingsAddaNewVariant->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsAddaNewVariant ) );
 	this->Connect( m_menuSettingsRemoveExistingVariant->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsRemoveExistingVariant ) );
+	this->Connect( m_menuSettingsSwitchToEnglish->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsSwitchToEnglish ) );
 	this->Connect( m_menuSettingsDebugOn->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsDebugOn ) );
 	m_combo_Name->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboName ), NULL, this );
 	m_combo_Type->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboType ), NULL, this );
@@ -230,6 +214,7 @@ FRAME_GOST_DOC_GEN_BASE::~FRAME_GOST_DOC_GEN_BASE()
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnFileGenerateSpecification ) );
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsAddaNewVariant ) );
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsRemoveExistingVariant ) );
+	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsSwitchToEnglish ) );
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnSettingsDebugOn ) );
 	m_combo_Name->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboName ), NULL, this );
 	m_combo_Type->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FRAME_GOST_DOC_GEN_BASE::OnEditChangeComboType ), NULL, this );
