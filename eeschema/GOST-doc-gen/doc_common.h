@@ -50,7 +50,20 @@ namespace GOST_DOC_GEN {
 #define SPEC_NO_SORTING             0x0001
 #define SPEC_GEN_POS_LIST           0x0002
 
-// cell address constants
+#if 0
+// cell address constants (old implementation)
+#define ADDR_CMPIDX_COL_REFDES      wxT( "A" )
+#define ADDR_CMPIDX_COL_NAME        wxT( "B" )
+#define ADDR_CMPIDX_COL_QTY         wxT( "C" )
+#define ADDR_CMPIDX_COL_NOTE        wxT( "D" )
+
+#define ADDR_SPEC_COL_FORMAT        wxT( "A" )
+#define ADDR_SPEC_COL_POSITION      wxT( "C" )
+#define ADDR_SPEC_COL_DESIGNATION   wxT( "D" )
+#define ADDR_SPEC_COL_NAME          wxT( "E" )
+#define ADDR_SPEC_COL_QTY           wxT( "F" )
+#define ADDR_SPEC_COL_NOTE          wxT( "G" )
+
 #define ADDR_DESIGN_NAME            wxT( "B28" )
 #define ADDR_DESIGNATION            wxT( "B27" )
 #define ADDR_FIRST_USE              wxT( "B2" )
@@ -65,6 +78,35 @@ namespace GOST_DOC_GEN {
 
 #define ADDR_LASTSHEET_NUMBER       wxT( "C28.1.2" )
 #define ADDR_LASTSHEET_DESIGNATION  wxT( "B28" )
+#else
+// cell address constants (new implementation)
+#define ADDR_CMPIDX_COL_REFDES      wxT( "1:A" )
+#define ADDR_CMPIDX_COL_NAME        wxT( "1:B" )
+#define ADDR_CMPIDX_COL_QTY         wxT( "1:C" )
+#define ADDR_CMPIDX_COL_NOTE        wxT( "1:D" )
+
+#define ADDR_SPEC_COL_FORMAT        wxT( "1:A" )
+#define ADDR_SPEC_COL_POSITION      wxT( "1:C" )
+#define ADDR_SPEC_COL_DESIGNATION   wxT( "1:D" )
+#define ADDR_SPEC_COL_NAME          wxT( "1:E" )
+#define ADDR_SPEC_COL_QTY           wxT( "1:F" )
+#define ADDR_SPEC_COL_NOTE          wxT( "1:G" )
+
+#define ADDR_DESIGN_NAME            wxT( "3:E4" )
+#define ADDR_DESIGNATION            wxT( "3:F1" )
+#define ADDR_FIRST_USE              wxT( "0:B1" )
+#define ADDR_DEVELOPER              wxT( "3:B4" )
+#define ADDR_VERIFIER               wxT( "3:B5" )
+#define ADDR_APPROVER               wxT( "3:B8" )
+#define ADDR_COMPANY                wxT( "3:F6" )
+#define ADDR_SHEET_QTY              wxT( "3:J5" )
+
+#define ADDR_MIDSHEET_NUMBER        wxT( "3:G3" )
+#define ADDR_MIDSHEET_DESIGNATION   wxT( "3:F1" )
+
+#define ADDR_LASTSHEET_NUMBER       wxT( "3:I5" )
+#define ADDR_LASTSHEET_DESIGNATION  wxT( "3:F1" )
+#endif
 
 extern int current_row;
 extern int current_sheet;

@@ -27,14 +27,14 @@ import sys, os, time
 import uno
 from com.sun.star.beans import PropertyValue
 import socket
-import re
+import re, string
 
 class UNO_IFACE():
 
     def __init__( self ):
         self.desktop = None
         self.document = None
-        self.curTable = None
+        self.curTable = 0
 
     def Connect( self ):
         local = uno.getComponentContext()
@@ -61,7 +61,6 @@ class UNO_IFACE():
         try:
             hidden = PropertyValue( "Hidden" , 0 , True, 0 ),
             self.document = self.desktop.loadComponentFromURL( aUrl, "_blank", 0, (hidden) )
-            self.SelectTable( 0 )
             return True
         except:
             return False
@@ -71,6 +70,7 @@ class UNO_IFACE():
         try:
             textRange = self.document.Text.End
             cursor = self.document.Text.createTextCursorByRange( textRange )
+            self.document.Text.insertString( cursor, "\r", 0 )
             cursor.insertDocumentFromURL( aUrl, () )
             return True
         except:
@@ -78,16 +78,16 @@ class UNO_IFACE():
 
 
     def SelectTable( self, aIndex ):
-        try:
-            self.curTable = self.document.TextTables.getByIndex( aIndex )
+            self.curTable = aIndex
             return True
-        except:
-            return False
 
 
     def PutCell( self, aCellAddress, aStr, aStyle ):
         try:
-            cell = self.curTable.getCellByName( aCellAddress )
+            aCellAddress = string.split( aCellAddress, ':' )
+            tableAddress = self.curTable * 4 + int( aCellAddress[0] )
+            aCellAddress = aCellAddress[1]
+            cell = self.document.TextTables.getByIndex( tableAddress ).getCellByName( aCellAddress )
             cursor = cell.createTextCursor()
 
             if( aStyle != 0 ):

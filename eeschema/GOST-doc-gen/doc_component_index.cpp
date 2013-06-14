@@ -60,7 +60,6 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
         return false;
     }
 
-
     aDocIface->SelectTable( 0 );
 
     current_row     = 4;
