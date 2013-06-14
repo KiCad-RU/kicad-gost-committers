@@ -144,12 +144,28 @@ void ChangeWordForm( wxString* aStr, int aType )
 
     if( !title_found )
     {
-        if( aType == WORDFORM_PLURAL )
-            (*aStr) += wxT( "ы" );
-        else if( aType==WORDFORM_SINGULAR_GENITIVE )
-            (*aStr) += wxT( "а" );
-        else if( aType==WORDFORM_PLURAL_GENITIVE )
-            (*aStr) += wxT( "ов" );
+        wxString lastChar = (*aStr)[aStr->Len() - 1];
+
+        if( lastChar == wxT( "ь" ) )
+        {
+            (*aStr).RemoveLast();
+
+            if( aType == WORDFORM_PLURAL )
+                (*aStr) += wxT( "и" );
+            else if( aType==WORDFORM_SINGULAR_GENITIVE )
+                (*aStr) += wxT( "я" );
+            else if( aType==WORDFORM_PLURAL_GENITIVE )
+                (*aStr) += wxT( "ей" );
+        }
+        else
+        {
+            if( aType == WORDFORM_PLURAL )
+                (*aStr) += wxT( "ы" );
+            else if( aType==WORDFORM_SINGULAR_GENITIVE )
+                (*aStr) += wxT( "а" );
+            else if( aType==WORDFORM_PLURAL_GENITIVE )
+                (*aStr) += wxT( "ов" );
+        }
     }
 }
 
