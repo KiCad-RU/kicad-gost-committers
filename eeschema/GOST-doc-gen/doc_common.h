@@ -35,11 +35,6 @@
 
 namespace GOST_DOC_GEN {
 
-#define NOTE_LENGTH_MAX             28
-
-#define SPEC_NAME_LENGTH_MAX        34
-#define SPEC_NOTE_LENGTH_MAX        11
-
 #define FIRST_SHEET_LAST_STR_I      26
 #define SECOND_SHEET_LAST_STR_I     29
 
@@ -52,6 +47,11 @@ namespace GOST_DOC_GEN {
 
 #if 0
 // cell address constants (old implementation)
+#define NOTE_LENGTH_MAX             28
+
+#define SPEC_NAME_LENGTH_MAX        34
+#define SPEC_NOTE_LENGTH_MAX        11
+
 #define ADDR_CMPIDX_COL_REFDES      wxT( "A" )
 #define ADDR_CMPIDX_COL_NAME        wxT( "B" )
 #define ADDR_CMPIDX_COL_QTY         wxT( "C" )
@@ -80,6 +80,11 @@ namespace GOST_DOC_GEN {
 #define ADDR_LASTSHEET_DESIGNATION  wxT( "B28" )
 #else
 // cell address constants (new implementation)
+#define NOTE_LENGTH_MAX             20
+
+#define SPEC_NAME_LENGTH_MAX        28
+#define SPEC_NOTE_LENGTH_MAX        10
+
 #define ADDR_CMPIDX_COL_REFDES      wxT( "1:A" )
 #define ADDR_CMPIDX_COL_NAME        wxT( "1:B" )
 #define ADDR_CMPIDX_COL_QTY         wxT( "1:C" )

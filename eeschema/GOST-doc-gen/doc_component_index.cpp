@@ -66,25 +66,25 @@ bool DOC_COMPONENT_INDEX::CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
     m_current_sheet   = 0;
 
     // fill 'design name' field
-    aDocIface->PutCell( ADDR_DESIGN_NAME, wxT( "\n" ) + aComponentDB->m_designName, 0 );
+    aDocIface->PutCell( ADDR_DESIGN_NAME, aComponentDB->m_designName, 0 );
 
     // fill 'designation' field
     aDocIface->PutCell( ADDR_DESIGNATION,
-                        wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
+                        aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
     // fill 'first use' field
     aDocIface->PutCell( ADDR_FIRST_USE, aComponentDB->m_designation, 0 );
 
     // fill 'developer' field
-    aDocIface->PutCell( ADDR_DEVELOPER, wxT( " " ) + aComponentDB->m_developerField, 0 );
+    aDocIface->PutCell( ADDR_DEVELOPER, aComponentDB->m_developerField, 0 );
 
     // fill 'verifier' field
-    aDocIface->PutCell( ADDR_VERIFIER, wxT( " " ) + aComponentDB->m_verifierField, 0 );
+    aDocIface->PutCell( ADDR_VERIFIER, aComponentDB->m_verifierField, 0 );
 
     // fill 'approver' field
-    aDocIface->PutCell( ADDR_APPROVER, wxT( " " ) + aComponentDB->m_approverField, 0 );
+    aDocIface->PutCell( ADDR_APPROVER, aComponentDB->m_approverField, 0 );
 
     // fill 'company' field
-    aDocIface->PutCell( ADDR_COMPANY, wxT( " " ) + aComponentDB->m_companyName, 0 );
+    aDocIface->PutCell( ADDR_COMPANY, aComponentDB->m_companyName, 0 );
 
     // form the constant part of components index (not a set)
     aComponentDB->ExtractPartOfComponentsDB( &singleVariantComponents, 0, 0, wxT( "" ) );
@@ -205,12 +205,12 @@ bool DOC_COMPONENT_INDEX::CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
     // fill 'sheet number' field
     aDocIface->PutCell( ADDR_LASTSHEET_NUMBER,
-                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
+                        wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
 
     // fill 'designation' field
     aDocIface->PutCell( ADDR_LASTSHEET_DESIGNATION,
-                        wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
+                        aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
 
     // fill 'sheets qty' field
     aDocIface->SelectTable( 0 );

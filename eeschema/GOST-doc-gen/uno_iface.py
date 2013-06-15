@@ -70,7 +70,9 @@ class UNO_IFACE():
         try:
             textRange = self.document.Text.End
             cursor = self.document.Text.createTextCursorByRange( textRange )
+            # insert a paragraph break
             self.document.Text.insertString( cursor, "\r", 0 )
+            # insert a sheet
             cursor.insertDocumentFromURL( aUrl, () )
             return True
         except:

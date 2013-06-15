@@ -88,12 +88,12 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
 
         // fill 'sheet number' field
         aDocIface->PutCell( ADDR_MIDSHEET_NUMBER,
-                            wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
+                            wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                             0 );
 
         // fill 'designation' field
         aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION,
-                            wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
+                            aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
     }
 
     aDocIface->SelectTable( m_current_sheet );
@@ -103,13 +103,13 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
     // {
     cell_address = ADDR_CMPIDX_COL_REFDES;
     cell_address += wxString::Format( wxT( "%d" ), m_current_row /* + i*/ );
-    aDocIface->PutCell( cell_address, wxT( " " ) + /*string_array[i]*/ aRef_des, 0 );
+    aDocIface->PutCell( cell_address, /*string_array[i]*/ aRef_des, 0 );
     // }
 
     // name
     cell_address = ADDR_CMPIDX_COL_NAME;
     cell_address += wxString::Format( wxT( "%d" ), m_current_row );
-    aDocIface->PutCell( cell_address, wxT( " " ) + aName, aStyle );
+    aDocIface->PutCell( cell_address, aName, aStyle );
 
     // qty
     if( aQty > 0 )
@@ -124,7 +124,7 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
     {
         cell_address = ADDR_CMPIDX_COL_NOTE;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row + i );
-        aDocIface->PutCell( cell_address, wxT( " " ) + string_array[i], 0 );
+        aDocIface->PutCell( cell_address, string_array[i], 0 );
     }
 
     m_current_row += row_step;
@@ -452,10 +452,10 @@ void DOC_COMMON::OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
 
     // fill 'sheet number' field
     aDocIface->PutCell( ADDR_MIDSHEET_NUMBER,
-                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
+                        wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
     // fill 'designation' field
-    aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION, wxT( "\n" ) + aComponentDB->m_designation, 0 );
+    aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION, aComponentDB->m_designation, 0 );
 }
 
 
@@ -518,7 +518,7 @@ void DOC_COMMON::OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
     {
         cell_address = ADDR_SPEC_COL_NAME;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row + i);
-        aDocIface->PutCell( cell_address, wxT( " " ) + name_string_array[i], aStyle );
+        aDocIface->PutCell( cell_address, name_string_array[i], aStyle );
     }
 
     // qty field
@@ -536,7 +536,7 @@ void DOC_COMMON::OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
     {
         cell_address = ADDR_SPEC_COL_NOTE;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row + note_i );
-        aDocIface->PutCell( cell_address, wxT( " " ) + note_string_array[i], 0 );
+        aDocIface->PutCell( cell_address, note_string_array[i], 0 );
 
         if( ( ( m_current_sheet==0 )
               && ( m_current_row + note_i >= FIRST_SHEET_LAST_STR_I ) )
