@@ -87,12 +87,12 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
         aDocIface->SelectTable( m_current_sheet );
 
         // fill 'sheet number' field
-        aDocIface->PutCell( wxT( "C30.1.2" ),
+        aDocIface->PutCell( ADDR_MIDSHEET_NUMBER,
                             wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                             0 );
 
         // fill 'designation' field
-        aDocIface->PutCell( wxT( "B30" ),
+        aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION,
                             wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
     }
 
@@ -101,20 +101,20 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
     // ref des
     // for (i=0;i<(int)string_array.GetCount();i++)
     // {
-    cell_address = wxT( "A" );
+    cell_address = ADDR_CMPIDX_COL_REFDES;
     cell_address += wxString::Format( wxT( "%d" ), m_current_row /* + i*/ );
     aDocIface->PutCell( cell_address, wxT( " " ) + /*string_array[i]*/ aRef_des, 0 );
     // }
 
     // name
-    cell_address = wxT( "B" );
+    cell_address = ADDR_CMPIDX_COL_NAME;
     cell_address += wxString::Format( wxT( "%d" ), m_current_row );
     aDocIface->PutCell( cell_address, wxT( " " ) + aName, aStyle );
 
     // qty
     if( aQty > 0 )
     {
-        cell_address = wxT( "C" );
+        cell_address = ADDR_CMPIDX_COL_QTY;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row );
         aDocIface->PutCell( cell_address, wxString::Format( wxT( "%d" ), aQty ), 0 );
     }
@@ -122,7 +122,7 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
     // note
     for( i = 0; i < (int)string_array.GetCount(); i++ )
     {
-        cell_address = wxT( "D" );
+        cell_address = ADDR_CMPIDX_COL_NOTE;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row + i );
         aDocIface->PutCell( cell_address, wxT( " " ) + string_array[i], 0 );
     }
@@ -451,11 +451,11 @@ void DOC_COMMON::OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
     aDocIface->SelectTable( m_current_sheet );
 
     // fill 'sheet number' field
-    aDocIface->PutCell( wxT( "C30.1.2" ),
+    aDocIface->PutCell( ADDR_MIDSHEET_NUMBER,
                         wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
     // fill 'designation' field
-    aDocIface->PutCell( wxT( "B30" ), wxT( "\n" ) + aComponentDB->m_designation, 0 );
+    aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION, wxT( "\n" ) + aComponentDB->m_designation, 0 );
 }
 
 
@@ -495,28 +495,28 @@ void DOC_COMMON::OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
     aDocIface->SelectTable( m_current_sheet );
 
     // format field
-    cell_address = wxT( "A" );
+    cell_address = ADDR_SPEC_COL_FORMAT;
     cell_address += wxString::Format( wxT( "%d" ), m_current_row );
     aDocIface->PutCell( cell_address, aFormat, 0 );
 
     // position field
     if( aPos > 0 )
     {
-        cell_address = wxT( "C" );
+        cell_address = ADDR_SPEC_COL_POSITION;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row );
         // 'position' field
         aDocIface->PutCell( cell_address, wxString::Format( wxT( "%d" ), aPos ), 0 );
     }
 
     // designation field
-    cell_address = wxT( "D" );
+    cell_address = ADDR_SPEC_COL_DESIGNATION;
     cell_address += wxString::Format( wxT( "%d" ), m_current_row );
     aDocIface->PutCell( cell_address, aDesignation, 0 );
 
     // name field
     for( i = 0; i<(int) name_string_array.GetCount(); i++ )
     {
-        cell_address = wxT( "E" );
+        cell_address = ADDR_SPEC_COL_NAME;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row + i);
         aDocIface->PutCell( cell_address, wxT( " " ) + name_string_array[i], aStyle );
     }
@@ -524,7 +524,7 @@ void DOC_COMMON::OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
     // qty field
     if( aQty != wxT( "" ) )
     {
-        cell_address = wxT( "F" );
+        cell_address = ADDR_SPEC_COL_QTY;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row );
         aDocIface->PutCell( cell_address, aQty, 0 );
     }
@@ -534,7 +534,7 @@ void DOC_COMMON::OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
 
     for( i = 0; i<(int) note_string_array.GetCount(); i++ )
     {
-        cell_address = wxT( "G" );
+        cell_address = ADDR_SPEC_COL_NOTE;
         cell_address += wxString::Format( wxT( "%d" ), m_current_row + note_i );
         aDocIface->PutCell( cell_address, wxT( " " ) + note_string_array[i], 0 );
 
