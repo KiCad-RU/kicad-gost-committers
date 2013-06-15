@@ -29,9 +29,17 @@
 #ifndef DOC_COMPONENT_INDEX_H
 #define DOC_COMPONENT_INDEX_H
 
+#include <doc_common.h>
+
 namespace GOST_DOC_GEN {
-    extern bool CreateNewCompIndexDoc( COMPONENT_DB* aCmponentDB,
-                                       COMMON_DOC_IFACE* aDocIface );
+
+class DOC_COMPONENT_INDEX : public DOC_COMMON
+{
+public:
+    bool CreateNewCompIndexDoc( COMPONENT_DB* aCmponentDB,
+                                COMMON_DOC_IFACE* aDocIface );
+};
+
 }
 
 #endif    // DOC_COMPONENT_INDEX_H

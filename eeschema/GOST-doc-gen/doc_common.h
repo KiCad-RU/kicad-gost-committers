@@ -50,47 +50,97 @@ namespace GOST_DOC_GEN {
 #define SPEC_NO_SORTING             0x0001
 #define SPEC_GEN_POS_LIST           0x0002
 
-extern int current_row;
-extern int current_sheet;
-extern int specification_pos_field;
+class DOC_COMMON
+{
+public:
+    DOC_COMMON();
+    ~DOC_COMMON();
 
-extern void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
-                                     wxString          aRef_des,
-                                     wxString          aName,
-                                     int               aQty,
-                                     wxString          aNote,
-                                     int               aStyle,
-                                     int               aReserve_strings,
-                                     COMPONENT_DB*     aComponentDB );
+    int m_current_row;
+    int m_current_sheet;
+    int m_specification_pos_field;
 
-extern void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
-                                  COMPONENT_ARRAY*  aSingleVariantComponents,
-                                  int               aVariant,
+    void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
+                                  wxString          aRef_des,
+                                  wxString          aName,
+                                  int               aQty,
+                                  wxString          aNote,
+                                  int               aStyle,
+                                  int               aReserve_strings,
                                   COMPONENT_DB*     aComponentDB );
 
-extern void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
-                                         wxString          aFormat,
-                                         int               aPos,
-                                         wxString          aDesignation,
-                                         wxString          aName,
-                                         wxString          aQty,
-                                         wxString          aNote,
-                                         int               aStyle,
-                                         int               aReserve_strings,
+    void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
+                               COMPONENT_ARRAY*  aSingleVariantComponents,
+                               int               aVariant,
+                               COMPONENT_DB*     aComponentDB );
+
+    void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
+                                      wxString          aFormat,
+                                      int               aPos,
+                                      wxString          aDesignation,
+                                      wxString          aName,
+                                      wxString          aQty,
+                                      wxString          aNote,
+                                      int               aStyle,
+                                      int               aReserve_strings,
+                                      COMPONENT_DB*     aComponentDB );
+
+    void Specification_ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
+                                             wxArrayPtrVoid*   aSingleVariantComponents,
+                                             int               aVariant,
+                                             COMPONENT_DB*     aComponentDB,
+                                             wxArrayString*    aSpecification_positions,
+                                             int               aMode );
+
+    bool Form_a_set( COMMON_DOC_IFACE* aDocIface,
+                     COMPONENT_DB*     aComponentDB,
+                     int               aPart_type,
+                     int               aVariant,
+                     wxArrayString*    aSpecification_positions );
+
+private:
+    void ChangeWordForm( wxString* aStr, int aType );
+
+    void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
+                          COMPONENT_ARRAY*  aTitle_group_components,
+                          int               aPositions,
+                          wxArrayString*    aGroup_types,
+                          wxString          aBase_title,
+                          int               aVariant,
+                          COMPONENT_DB*     aComponentDB );
+
+    void OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
                                          COMPONENT_DB*     aComponentDB );
 
-extern void Specification_ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
-                                                wxArrayPtrVoid*   aSingleVariantComponents,
-                                                int               aVariant,
-                                                COMPONENT_DB*     aComponentDB,
-                                                wxArrayString*    aSpecification_positions,
-                                                int               aMode );
+    void SortStringArray( wxArrayString* aString_array );
+    double ExtractAbsoluteValue( wxString aValue );
 
-extern bool Form_a_set( COMMON_DOC_IFACE* aDocIface,
-                        COMPONENT_DB*     aComponentDB,
-                        int               aPart_type,
-                        int               aVariant,
-                        wxArrayString*    aSpecification_positions );
+    bool CompareTwoCompPositionsValues( TCOMPONENT_ATTRS* aComp_pos1,
+                                        TCOMPONENT_ATTRS* aComp_pos2 );
+
+    bool CompareTwoComponentsValues( COMPONENT* aComponent1,
+                                     COMPONENT* aComponent2,
+                                     int variant );
+
+    void SortComponentsArrayByValue( COMPONENT_ARRAY* aComponent_array, int aVariant );
+    void SortComponentsArrayByDesignation( COMPONENT_ARRAY* aComponent_array, int aVariant );
+    void SortComponentsArrayBySubType( COMPONENT_ARRAY* aComponent_array, int aVariant );
+    void SortCompPositionsArrayByDesignation( TCOMPONENT_ATTRS_ARRAY* aComp_position_array );
+    void SortCompPositionsArrayBySubType( TCOMPONENT_ATTRS_ARRAY* aComp_position_array );
+    void SortCompPositionsArrayByValue( TCOMPONENT_ATTRS_ARRAY* aComp_position_array );
+
+    int  GetSpecificationPos( wxArrayString* aSpecification_positions,
+                              TCOMPONENT_ATTRS* aComponentAttrs );
+
+    void Specification_PrintTypeGroup( COMMON_DOC_IFACE* aDocIface,
+                                       COMPONENT_ARRAY*  aType_group_components,
+                                       int               aPositions,
+                                       wxString          aBase_type,
+                                       wxString          aBase_title,
+                                       int               aVariant,
+                                       COMPONENT_DB*     aComponentDB,
+                                       wxArrayString*    aSpecification_positions );
+};
 
 } // namespace GOST_DOC_GEN
 

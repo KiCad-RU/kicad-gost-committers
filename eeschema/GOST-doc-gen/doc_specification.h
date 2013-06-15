@@ -29,9 +29,29 @@
 #ifndef DOC_SPECIFICATION_H
 #define DOC_SPECIFICATION_H
 
+#include <doc_common.h>
+
 namespace GOST_DOC_GEN {
-    extern bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
-                                           COMMON_DOC_IFACE* aDocIface );
+
+class DOC_SPECIFICATION : public DOC_COMMON
+{
+public:
+    bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
+                                    COMMON_DOC_IFACE* aDocIface );
+
+private:
+    bool CompareCompPos( TCOMPONENT_ATTRS* aComp1, TCOMPONENT_ATTRS* aComp2 );
+
+    void SpecPosList_ExtractPartOfDB( COMPONENT_DB*             aComponentDB,
+                                      COMPONENT_ARRAY*          aAll_components,
+                                      TCOMPONENT_ATTRS_ARRAY*   aAllCompPositions,
+                                      int                       aType );
+
+    void Specification_GeneratePosList( COMPONENT_DB*    aComponentDB,
+                                        COMPONENT_ARRAY* aAll_components,
+                                        wxArrayString*   aSpecification_positions );
+};
+
 }
 
 #endif    // DOC_SPECIFICATION_H

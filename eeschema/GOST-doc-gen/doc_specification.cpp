@@ -35,7 +35,7 @@
 namespace GOST_DOC_GEN {
 
 // returns true if both components have identical attributes except ref des
-bool CompareCompPos( TCOMPONENT_ATTRS* aComp1, TCOMPONENT_ATTRS* aComp2 )
+bool DOC_SPECIFICATION::CompareCompPos( TCOMPONENT_ATTRS* aComp1, TCOMPONENT_ATTRS* aComp2 )
 {
     for( int i = 0; i < ATTR_QTY; i++ )
     {
@@ -51,10 +51,10 @@ bool CompareCompPos( TCOMPONENT_ATTRS* aComp1, TCOMPONENT_ATTRS* aComp2 )
 }
 
 
-void SpecPosList_ExtractPartOfDB( COMPONENT_DB*             aComponentDB,
-                                  COMPONENT_ARRAY*          aAll_components,
-                                  TCOMPONENT_ATTRS_ARRAY*   aAllCompPositions,
-                                  int                       aType )
+void DOC_SPECIFICATION::SpecPosList_ExtractPartOfDB( COMPONENT_DB*             aComponentDB,
+                                                     COMPONENT_ARRAY*          aAll_components,
+                                                     TCOMPONENT_ATTRS_ARRAY*   aAllCompPositions,
+                                                     int                       aType )
 {
     COMPONENT* pComponent;
     pTCOMPONENT_ATTRS componentAttrs;
@@ -112,9 +112,9 @@ void SpecPosList_ExtractPartOfDB( COMPONENT_DB*             aComponentDB,
 }
 
 
-void Specification_GeneratePosList( COMPONENT_DB*    aComponentDB,
-                                    COMPONENT_ARRAY* aAll_components,
-                                    wxArrayString*   aSpecification_positions )
+void DOC_SPECIFICATION::Specification_GeneratePosList( COMPONENT_DB*    aComponentDB,
+                                                       COMPONENT_ARRAY* aAll_components,
+                                                       wxArrayString*   aSpecification_positions )
 {
     wxString                str;
     TCOMPONENT_ATTRS_ARRAY  allCompPositions;
@@ -153,8 +153,8 @@ void Specification_GeneratePosList( COMPONENT_DB*    aComponentDB,
 
 
 // returns false if error
-bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
-                                COMMON_DOC_IFACE* aDocIface )
+bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
+                                                   COMMON_DOC_IFACE* aDocIface )
 {
     COMPONENT_ARRAY singleVariantComponents, AllVariantsComponents;
     int             variant;
@@ -180,9 +180,9 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
     progressDlg.Pulse();
 
-    current_row = 4;
-    current_sheet = 0;
-    specification_pos_field = 1;
+    m_current_row = 4;
+    m_current_sheet = 0;
+    m_specification_pos_field = 1;
 
     // Generate positions list
     Specification_GeneratePosList( aComponentDB, &aComponentDB->m_AllComponents,
@@ -335,7 +335,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                      wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
 
         OO_PrintSpecificationDocRow( aDocIface,
-                                     wxT( "" ), specification_pos_field++,
+                                     wxT( "" ), m_specification_pos_field++,
                                      aComponentDB->m_PCBDesignation,
                                      wxT( "Плата печатная" ), wxT( "1" ), wxT(
                                          "" ), 0, 1, aComponentDB );
@@ -351,7 +351,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
     if( singleVariantComponents.GetCount() > 0 )
     {
-        current_row = SECOND_SHEET_LAST_STR_I;
+        m_current_row = SECOND_SHEET_LAST_STR_I;
         OO_PrintSpecificationDocRow( aDocIface, wxT( "" ), 0, wxT( "" ),
                                      wxT( "" ), wxT( "" ), wxT( "" ), 0, 4, aComponentDB );
 
@@ -578,12 +578,12 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
     progressDlg.Pulse();
 
-    current_sheet++;
-    aDocIface->SelectTable( current_sheet );
+    m_current_sheet++;
+    aDocIface->SelectTable( m_current_sheet );
 
     // fill 'sheet number' field
     aDocIface->PutCell( wxT( "C28.1.2" ),
-                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
+                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
 
     // fill 'designation' field
@@ -592,7 +592,7 @@ bool CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     // fill 'sheets qty' field
     aDocIface->SelectTable( 0 );
     aDocIface->PutCell( wxT( "C28.5.2" ),
-                        wxString::Format( wxT( "%d" ), current_sheet + 1 ),
+                        wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
 
     aDocIface->Disconnect();

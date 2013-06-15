@@ -35,8 +35,8 @@
 namespace GOST_DOC_GEN {
 
 // returns false if error
-bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
-                            COMMON_DOC_IFACE* aDocIface )
+bool DOC_COMPONENT_INDEX::CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
+                                                 COMMON_DOC_IFACE* aDocIface )
 {
     COMPONENT_ARRAY singleVariantComponents;
     int             variant;
@@ -63,8 +63,8 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
     aDocIface->SelectTable( 0 );
 
-    current_row     = 4;
-    current_sheet   = 0;
+    m_current_row     = 4;
+    m_current_sheet   = 0;
 
     // fill 'design name' field
     aDocIface->PutCell( wxT( "B28" ), wxT( "\n" ) + aComponentDB->m_designName, 0 );
@@ -201,12 +201,12 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
     progressDlg.Pulse();
 
-    current_sheet++;
-    aDocIface->SelectTable( current_sheet );
+    m_current_sheet++;
+    aDocIface->SelectTable( m_current_sheet );
 
     // fill 'sheet number' field
     aDocIface->PutCell( wxT( "C28.1.2" ),
-                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
+                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
 
     // fill 'designation' field
@@ -216,7 +216,7 @@ bool CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
     // fill 'sheets qty' field
     aDocIface->SelectTable( 0 );
     aDocIface->PutCell( wxT( "C28.5.2" ),
-                        wxString::Format( wxT( "%d" ), current_sheet + 1 ),
+                        wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
 
     aDocIface->Disconnect();

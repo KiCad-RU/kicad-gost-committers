@@ -36,19 +36,27 @@
 
 namespace GOST_DOC_GEN {
 
-int current_row;
-int current_sheet;
-int specification_pos_field;
+DOC_COMMON::DOC_COMMON()
+{
+    m_current_row = 0;
+    m_current_sheet = 0;
+    m_specification_pos_field = 0;
+}
 
 
-void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
-                              wxString          aRef_des,
-                              wxString          aName,
-                              int               aQty,
-                              wxString          aNote,
-                              int               aStyle,
-                              int               aReserve_strings,
-                              COMPONENT_DB*     aComponentDB )
+DOC_COMMON::~DOC_COMMON()
+{
+}
+
+
+void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
+                                          wxString          aRef_des,
+                                          wxString          aName,
+                                          int               aQty,
+                                          wxString          aNote,
+                                          int               aStyle,
+                                          int               aReserve_strings,
+                                          COMPONENT_DB*     aComponentDB )
 {
     int             i, row_step;
     wxString        cell_address, fileName;
@@ -63,22 +71,24 @@ void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
     row_step = std::max( row_step, (int) string_array.GetCount() );
     aReserve_strings = std::max( aReserve_strings, row_step );
 
-    if( ( (current_sheet==0) && (current_row + aReserve_strings - 1 > FIRST_SHEET_LAST_STR_I) )
-        || ( (current_sheet>0) && (current_row + aReserve_strings - 1 > SECOND_SHEET_LAST_STR_I) ) )
+    if( ( ( m_current_sheet==0 )
+          && (m_current_row + aReserve_strings - 1 > FIRST_SHEET_LAST_STR_I) )
+        || ( ( m_current_sheet > 0 )
+             && (m_current_row + aReserve_strings - 1 > SECOND_SHEET_LAST_STR_I) ) )
     {
-        current_sheet++;
-        current_row = 2;
+        m_current_sheet++;
+        m_current_row = 2;
 
         if( ( fileName = GetResourceFile( wxT( "templates/CompIndexMiddleSheet_template.odt" ) ) )
             == wxEmptyString
             || !aDocIface->AppendDocument( fileName ) )
             return;
 
-        aDocIface->SelectTable( current_sheet );
+        aDocIface->SelectTable( m_current_sheet );
 
         // fill 'sheet number' field
         aDocIface->PutCell( wxT( "C30.1.2" ),
-                            wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
+                            wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                             0 );
 
         // fill 'designation' field
@@ -86,26 +96,26 @@ void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
                             wxT( "\n" ) + aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
     }
 
-    aDocIface->SelectTable( current_sheet );
+    aDocIface->SelectTable( m_current_sheet );
 
     // ref des
     // for (i=0;i<(int)string_array.GetCount();i++)
     // {
     cell_address = wxT( "A" );
-    cell_address += wxString::Format( wxT( "%d" ), current_row /* + i*/ );
+    cell_address += wxString::Format( wxT( "%d" ), m_current_row /* + i*/ );
     aDocIface->PutCell( cell_address, wxT( " " ) + /*string_array[i]*/ aRef_des, 0 );
     // }
 
     // name
     cell_address = wxT( "B" );
-    cell_address += wxString::Format( wxT( "%d" ), current_row );
+    cell_address += wxString::Format( wxT( "%d" ), m_current_row );
     aDocIface->PutCell( cell_address, wxT( " " ) + aName, aStyle );
 
     // qty
     if( aQty > 0 )
     {
         cell_address = wxT( "C" );
-        cell_address += wxString::Format( wxT( "%d" ), current_row );
+        cell_address += wxString::Format( wxT( "%d" ), m_current_row );
         aDocIface->PutCell( cell_address, wxString::Format( wxT( "%d" ), aQty ), 0 );
     }
 
@@ -113,15 +123,15 @@ void OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
     for( i = 0; i < (int)string_array.GetCount(); i++ )
     {
         cell_address = wxT( "D" );
-        cell_address += wxString::Format( wxT( "%d" ), current_row + i );
+        cell_address += wxString::Format( wxT( "%d" ), m_current_row + i );
         aDocIface->PutCell( cell_address, wxT( " " ) + string_array[i], 0 );
     }
 
-    current_row += row_step;
+    m_current_row += row_step;
 }
 
 
-void ChangeWordForm( wxString* aStr, int aType )
+void DOC_COMMON::ChangeWordForm( wxString* aStr, int aType )
 {
     int     i;
     bool    title_found = false;
@@ -170,13 +180,13 @@ void ChangeWordForm( wxString* aStr, int aType )
 }
 
 
-void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
-                      COMPONENT_ARRAY*  aTitle_group_components,
-                      int               aPositions,
-                      wxArrayString*    aGroup_types,
-                      wxString          aBase_title,
-                      int               aVariant,
-                      COMPONENT_DB*     aComponentDB )
+void DOC_COMMON::PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
+                                  COMPONENT_ARRAY*  aTitle_group_components,
+                                  int               aPositions,
+                                  wxArrayString*    aGroup_types,
+                                  wxString          aBase_title,
+                                  int               aVariant,
+                                  COMPONENT_DB*     aComponentDB )
 {
     wxString           note, ref_des_group, str;
     COMPONENT*         pComponent, * pBaseComponent;
@@ -314,10 +324,10 @@ void PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
 }
 
 
-void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
-                           COMPONENT_ARRAY*  aSingleVariantComponents,
-                           int               aVariant,
-                           COMPONENT_DB*     aComponentDB )
+void DOC_COMMON::ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
+                                       COMPONENT_ARRAY*  aSingleVariantComponents,
+                                       int               aVariant,
+                                       COMPONENT_DB*     aComponentDB )
 {
     COMPONENT_ARRAY    title_group_components;
     wxArrayString      group_titles;
@@ -425,40 +435,40 @@ void ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
 // #define FIRST_SHEET_LAST_STR_I       26
 // #define SECOND_SHEET_LAST_STR_I      29
 
-void OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
-                                     COMPONENT_DB*     aComponentDB )
+void DOC_COMMON::OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
+                                                 COMPONENT_DB*     aComponentDB )
 {
     wxString fileName;
 
-    current_sheet++;
-    current_row = 2;
+    m_current_sheet++;
+    m_current_row = 2;
 
     if( ( fileName = GetResourceFile( wxT( "templates/SpecificationMiddleSheet_template.odt" ) ) )
         == wxEmptyString
         || !aDocIface->AppendDocument( fileName ) )
         return;
 
-    aDocIface->SelectTable( current_sheet );
+    aDocIface->SelectTable( m_current_sheet );
 
     // fill 'sheet number' field
     aDocIface->PutCell( wxT( "C30.1.2" ),
-                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), current_sheet + 1 ),
+                        wxT( "\n" ) + wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
     // fill 'designation' field
     aDocIface->PutCell( wxT( "B30" ), wxT( "\n" ) + aComponentDB->m_designation, 0 );
 }
 
 
-void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
-                                  wxString          aFormat,
-                                  int               aPos,
-                                  wxString          aDesignation,
-                                  wxString          aName,
-                                  wxString          aQty,
-                                  wxString          aNote,
-                                  int               aStyle,
-                                  int               aReserve_strings,
-                                  COMPONENT_DB*     aComponentDB )
+void DOC_COMMON::OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
+                                              wxString          aFormat,
+                                              int               aPos,
+                                              wxString          aDesignation,
+                                              wxString          aName,
+                                              wxString          aQty,
+                                              wxString          aNote,
+                                              int               aStyle,
+                                              int               aReserve_strings,
+                                              COMPONENT_DB*     aComponentDB )
 {
     int             i, note_i, row_step;
     wxString        cell_address;
@@ -476,36 +486,38 @@ void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
     row_step    = std::max( row_step, (int) note_string_array.GetCount() );
     aReserve_strings = std::max( aReserve_strings, row_step );
 
-    if( ( (current_sheet==0) && (current_row + aReserve_strings - 1 > FIRST_SHEET_LAST_STR_I) )
-        || ( (current_sheet>0) && (current_row + aReserve_strings - 1 > SECOND_SHEET_LAST_STR_I) ) )
+    if( ( ( m_current_sheet==0 )
+          && ( m_current_row + aReserve_strings - 1 > FIRST_SHEET_LAST_STR_I ) )
+        || ( ( m_current_sheet > 0 )
+             && ( m_current_row + aReserve_strings - 1 > SECOND_SHEET_LAST_STR_I ) ) )
         OO_AttachNewSpecificationSheet( aDocIface, aComponentDB );
 
-    aDocIface->SelectTable( current_sheet );
+    aDocIface->SelectTable( m_current_sheet );
 
     // format field
     cell_address = wxT( "A" );
-    cell_address += wxString::Format( wxT( "%d" ), current_row );
+    cell_address += wxString::Format( wxT( "%d" ), m_current_row );
     aDocIface->PutCell( cell_address, aFormat, 0 );
 
     // position field
     if( aPos > 0 )
     {
         cell_address = wxT( "C" );
-        cell_address += wxString::Format( wxT( "%d" ), current_row );
+        cell_address += wxString::Format( wxT( "%d" ), m_current_row );
         // 'position' field
         aDocIface->PutCell( cell_address, wxString::Format( wxT( "%d" ), aPos ), 0 );
     }
 
     // designation field
     cell_address = wxT( "D" );
-    cell_address += wxString::Format( wxT( "%d" ), current_row );
+    cell_address += wxString::Format( wxT( "%d" ), m_current_row );
     aDocIface->PutCell( cell_address, aDesignation, 0 );
 
     // name field
     for( i = 0; i<(int) name_string_array.GetCount(); i++ )
     {
         cell_address = wxT( "E" );
-        cell_address += wxString::Format( wxT( "%d" ), current_row + i);
+        cell_address += wxString::Format( wxT( "%d" ), m_current_row + i);
         aDocIface->PutCell( cell_address, wxT( " " ) + name_string_array[i], aStyle );
     }
 
@@ -513,7 +525,7 @@ void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
     if( aQty != wxT( "" ) )
     {
         cell_address = wxT( "F" );
-        cell_address += wxString::Format( wxT( "%d" ), current_row );
+        cell_address += wxString::Format( wxT( "%d" ), m_current_row );
         aDocIface->PutCell( cell_address, aQty, 0 );
     }
 
@@ -523,14 +535,16 @@ void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
     for( i = 0; i<(int) note_string_array.GetCount(); i++ )
     {
         cell_address = wxT( "G" );
-        cell_address += wxString::Format( wxT( "%d" ), current_row + note_i );
+        cell_address += wxString::Format( wxT( "%d" ), m_current_row + note_i );
         aDocIface->PutCell( cell_address, wxT( " " ) + note_string_array[i], 0 );
 
-        if( ( (current_sheet==0) && (current_row + note_i >= FIRST_SHEET_LAST_STR_I) )
-            || ( (current_sheet>0) && (current_row + note_i >= SECOND_SHEET_LAST_STR_I) ) )
+        if( ( ( m_current_sheet==0 )
+              && ( m_current_row + note_i >= FIRST_SHEET_LAST_STR_I ) )
+            || ( ( m_current_sheet > 0 )
+                 && ( m_current_row + note_i >= SECOND_SHEET_LAST_STR_I ) ) )
         {
             OO_AttachNewSpecificationSheet( aDocIface, aComponentDB );
-            aDocIface->SelectTable( current_sheet );
+            aDocIface->SelectTable( m_current_sheet );
 
             row_step = note_string_array.GetCount() - note_i;
             note_i   = 0;
@@ -539,11 +553,11 @@ void OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
             note_i++;
     }
 
-    current_row += row_step;
+    m_current_row += row_step;
 }
 
 
-void SortStringArray( wxArrayString* aString_array )
+void DOC_COMMON::SortStringArray( wxArrayString* aString_array )
 {
     int         i, j, item_qty = aString_array->GetCount();
     wxString    tmp;
@@ -564,7 +578,7 @@ void SortStringArray( wxArrayString* aString_array )
 }
 
 
-double ExtractAbsoluteValue( wxString aValue )
+double DOC_COMMON::ExtractAbsoluteValue( wxString aValue )
 {
     int         i, start, exp;
     double      mant;
@@ -623,7 +637,8 @@ double ExtractAbsoluteValue( wxString aValue )
 
 
 // returns true if comp_pos1 value is greater than value of comp_pos2
-bool CompareTwoCompPositionsValues( TCOMPONENT_ATTRS* aComp_pos1, TCOMPONENT_ATTRS* aComp_pos2 )
+bool DOC_COMMON::CompareTwoCompPositionsValues( TCOMPONENT_ATTRS* aComp_pos1,
+                                                TCOMPONENT_ATTRS* aComp_pos2 )
 {
     double absvalue1, absvalue2;
 
@@ -638,7 +653,9 @@ bool CompareTwoCompPositionsValues( TCOMPONENT_ATTRS* aComp_pos1, TCOMPONENT_ATT
 
 
 // returns true if component1 value is greater than value of component2
-bool CompareTwoComponentsValues( COMPONENT* aComponent1, COMPONENT* aComponent2, int variant )
+bool DOC_COMMON::CompareTwoComponentsValues( COMPONENT* aComponent1,
+                                             COMPONENT* aComponent2,
+                                             int variant )
 {
     int comp1_var_i = ConvertVariantToItemVarI( aComponent1, variant );
     int comp2_var_i = ConvertVariantToItemVarI( aComponent2, variant );
@@ -649,7 +666,7 @@ bool CompareTwoComponentsValues( COMPONENT* aComponent1, COMPONENT* aComponent2,
 }
 
 
-void SortComponentsArrayByValue( COMPONENT_ARRAY* aComponent_array, int aVariant )
+void DOC_COMMON::SortComponentsArrayByValue( COMPONENT_ARRAY* aComponent_array, int aVariant )
 {
     int         i, j, item_qty;
     COMPONENT*  tmp;
@@ -675,7 +692,8 @@ void SortComponentsArrayByValue( COMPONENT_ARRAY* aComponent_array, int aVariant
 }
 
 
-void SortComponentsArrayByDesignation( COMPONENT_ARRAY* aComponent_array, int aVariant )
+void DOC_COMMON::SortComponentsArrayByDesignation( COMPONENT_ARRAY* aComponent_array,
+                                                   int aVariant )
 {
     int         comp1_var_i, comp2_var_i;
     int         i, j, item_qty;
@@ -714,7 +732,7 @@ void SortComponentsArrayByDesignation( COMPONENT_ARRAY* aComponent_array, int aV
 }
 
 
-void SortComponentsArrayBySubType( COMPONENT_ARRAY* aComponent_array, int aVariant )
+void DOC_COMMON::SortComponentsArrayBySubType( COMPONENT_ARRAY* aComponent_array, int aVariant )
 {
     int         comp1_var_i, comp2_var_i;
     int         i, j, item_qty;
@@ -752,7 +770,7 @@ void SortComponentsArrayBySubType( COMPONENT_ARRAY* aComponent_array, int aVaria
 }
 
 
-void SortCompPositionsArrayByDesignation( TCOMPONENT_ATTRS_ARRAY* aComp_position_array )
+void DOC_COMMON::SortCompPositionsArrayByDesignation( TCOMPONENT_ATTRS_ARRAY* aComp_position_array )
 {
     int i, j, item_qty;
     TCOMPONENT_ATTRS* tmp, * pComp_pos1, * pComp_pos2;
@@ -779,7 +797,7 @@ void SortCompPositionsArrayByDesignation( TCOMPONENT_ATTRS_ARRAY* aComp_position
 }
 
 
-void SortCompPositionsArrayBySubType( TCOMPONENT_ATTRS_ARRAY* aComp_position_array )
+void DOC_COMMON::SortCompPositionsArrayBySubType( TCOMPONENT_ATTRS_ARRAY* aComp_position_array )
 {
     int i, j, item_qty;
     TCOMPONENT_ATTRS* tmp, * pComp_pos1, * pComp_pos2;
@@ -806,7 +824,7 @@ void SortCompPositionsArrayBySubType( TCOMPONENT_ATTRS_ARRAY* aComp_position_arr
 }
 
 
-void SortCompPositionsArrayByValue( TCOMPONENT_ATTRS_ARRAY* aComp_position_array )
+void DOC_COMMON::SortCompPositionsArrayByValue( TCOMPONENT_ATTRS_ARRAY* aComp_position_array )
 {
     int i, j, item_qty;
     TCOMPONENT_ATTRS* tmp;
@@ -832,7 +850,8 @@ void SortCompPositionsArrayByValue( TCOMPONENT_ATTRS_ARRAY* aComp_position_array
 
 
 // return -1 if no given position found
-int GetSpecificationPos( wxArrayString* aSpecification_positions, TCOMPONENT_ATTRS* aComponentAttrs )
+int DOC_COMMON::GetSpecificationPos( wxArrayString* aSpecification_positions,
+                                     TCOMPONENT_ATTRS* aComponentAttrs )
 {
     wxString    str;
     int         i;
@@ -849,21 +868,21 @@ int GetSpecificationPos( wxArrayString* aSpecification_positions, TCOMPONENT_ATT
     for( i = 0; i<(int) aSpecification_positions->GetCount(); i++ )
     {
         if( (*aSpecification_positions)[i]==str )
-            return i + specification_pos_field;
+            return i + m_specification_pos_field;
     }
 
     return -1;
 }
 
 
-void Specification_PrintTypeGroup( COMMON_DOC_IFACE* aDocIface,
-                                   COMPONENT_ARRAY*  aType_group_components,
-                                   int               aPositions,
-                                   wxString          aBase_type,
-                                   wxString          aBase_title,
-                                   int               aVariant,
-                                   COMPONENT_DB*     aComponentDB,
-                                   wxArrayString*    aSpecification_positions )
+void DOC_COMMON::Specification_PrintTypeGroup( COMMON_DOC_IFACE* aDocIface,
+                                               COMPONENT_ARRAY*  aType_group_components,
+                                               int               aPositions,
+                                               wxString          aBase_type,
+                                               wxString          aBase_title,
+                                               int               aVariant,
+                                               COMPONENT_DB*     aComponentDB,
+                                               wxArrayString*    aSpecification_positions )
 {
     wxString            note, manufacturer, ref_des_group, str, qty_str;
     COMPONENT*          pComponent;
@@ -1000,12 +1019,12 @@ void Specification_PrintTypeGroup( COMMON_DOC_IFACE* aDocIface,
 }
 
 
-void Specification_ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
-                                         wxArrayPtrVoid*   aSingleVariantComponents,
-                                         int               aVariant,
-                                         COMPONENT_DB*     aComponentDB,
-                                         wxArrayString*    aSpecification_positions,
-                                         int               aMode )
+void DOC_COMMON::Specification_ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
+                                                     wxArrayPtrVoid*   aSingleVariantComponents,
+                                                     int               aVariant,
+                                                     COMPONENT_DB*     aComponentDB,
+                                                     wxArrayString*    aSpecification_positions,
+                                                     int               aMode )
 {
     wxArrayPtrVoid      title_group_components, type_group_components;
     wxArrayString       group_titles, group_types;
@@ -1188,11 +1207,11 @@ void Specification_ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
 
 
 // returns false if no component presents. else true
-bool Form_a_set( COMMON_DOC_IFACE* aDocIface,
-                 COMPONENT_DB*     aComponentDB,
-                 int               aPart_type,
-                 int               aVariant,
-                 wxArrayString*    aSpecification_positions )
+bool DOC_COMMON::Form_a_set( COMMON_DOC_IFACE* aDocIface,
+                             COMPONENT_DB*     aComponentDB,
+                             int               aPart_type,
+                             int               aVariant,
+                             wxArrayString*    aSpecification_positions )
 {
     int             i, set_type_i;
     COMPONENT*      pComponent;

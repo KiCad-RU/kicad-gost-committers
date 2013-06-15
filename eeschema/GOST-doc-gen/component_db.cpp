@@ -155,7 +155,8 @@ void COMPONENT_DB::GenerateComponentIndexDoc()
     COMMON_DOC_IFACE* docIface = new OO_PYTHON_UNO_IFACE();
 #endif
 
-    CreateNewCompIndexDoc( this, docIface );
+    DOC_COMPONENT_INDEX doc_comp_index;
+    doc_comp_index.CreateNewCompIndexDoc( this, docIface );
 
     delete docIface;
 }
@@ -171,7 +172,8 @@ void COMPONENT_DB::GenerateSpecificationDoc()
     COMMON_DOC_IFACE* docIface = new OO_PYTHON_UNO_IFACE();
 #endif
 
-    CreateNewSpecificationDoc( this, docIface );
+    DOC_SPECIFICATION doc_specification;
+    doc_specification.CreateNewSpecificationDoc( this, docIface );
 
     delete docIface;
 }
