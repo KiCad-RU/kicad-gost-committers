@@ -67,7 +67,6 @@ bool SCH_REFERENCE_LIST::sortByXPosition( const SCH_REFERENCE& item1,
     return ii < 0;
 }
 
-
 bool SCH_REFERENCE_LIST::sortByYPosition( const SCH_REFERENCE& item1,
                                           const SCH_REFERENCE& item2 )
 {
@@ -106,31 +105,9 @@ bool SCH_REFERENCE_LIST::sortByRefAndValue( const SCH_REFERENCE& item1,
     return ii < 0;
 }
 
-bool SCH_REFERENCE_LIST::sortByValueAndRef( const SCH_REFERENCE& item1,
-                                            const SCH_REFERENCE& item2 )
-{
-    int ii = item1.CompareValue( item2 );
 
-    if( ii == 0 )
-        ii = RefDesStringCompare( item1.GetRef(), item2.GetRef() );
-
-    if( ii == 0 )
-        ii = item1.m_Unit - item2.m_Unit;
-
-    if( ii == 0 )
-        ii = item1.m_SheetNum - item2.m_SheetNum;
-
-    if( ii == 0 )
-        ii = item1.m_CmpPos.x - item2.m_CmpPos.x;
-
-    if( ii == 0 )
-        ii = item1.m_CmpPos.y - item2.m_CmpPos.y;
-
-    if( ii == 0 )
-        ii = item1.m_TimeStamp - item2.m_TimeStamp;
-
-    return ii < 0;
-}
+#if defined(KICAD_GOST)
+// used by eeschema BOM
 
 /*
  * Helper function to calculate in a component value string
@@ -282,6 +259,7 @@ static bool splitRefStr( const wxString& aRef, wxString* aStr, int* aNumber )
     return true;
 }
 
+
 /* sort the list of references by value.
  * Components are grouped by type and are sorted by value:
  * The value of a component accept multiplier symbols (p, n, K ..)
@@ -351,6 +329,7 @@ bool SCH_REFERENCE_LIST::sortByValueOnly( const SCH_REFERENCE& item1,
 
     return ii < 0;
 }
+#endif // KICAD_GOST
 
 
 bool SCH_REFERENCE_LIST::sortByReferenceOnly( const SCH_REFERENCE& item1,
@@ -384,7 +363,6 @@ bool SCH_REFERENCE_LIST::sortByTimeStamp( const SCH_REFERENCE& item1,
 
     return ii < 0;
 }
-
 
 int SCH_REFERENCE_LIST::FindUnit( size_t aIndex, int aUnit )
 {

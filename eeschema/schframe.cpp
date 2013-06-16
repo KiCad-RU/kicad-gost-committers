@@ -121,6 +121,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( ID_GET_NETLIST, SCH_EDIT_FRAME::OnCreateNetlist )
     EVT_TOOL( ID_GET_TOOLS, SCH_EDIT_FRAME::OnCreateBillOfMaterials )
 #if defined(KICAD_GOST)
+    EVT_TOOL( ID_GEN_OLD_BOM, SCH_EDIT_FRAME::OnCreateOldBillOfMaterials )
     EVT_TOOL( ID_GOST_TOOLS, SCH_EDIT_FRAME::OnGOSTTools )
     EVT_TOOL( ID_PCAD2KICADSCH, SCH_EDIT_FRAME::OnPCad2KiCadSch )
 #endif
@@ -640,20 +641,18 @@ void SCH_EDIT_FRAME::OnCreateNetlist( wxCommandEvent& event )
 
 void SCH_EDIT_FRAME::OnCreateBillOfMaterials( wxCommandEvent& )
 {
+    InvokeDialogCreateBOM( this );
+}
+
 #if defined(KICAD_GOST)
+void SCH_EDIT_FRAME::OnCreateOldBillOfMaterials( wxCommandEvent& )
+{
     DIALOG_BUILD_BOM* dlg = new DIALOG_BUILD_BOM( this );
 
     dlg->ShowModal();
     dlg->Destroy();
-#else
-    wxMessageDialog dlg( this,
-                        wxT( "https://answers.launchpad.net/kicad/+faq/2265" ),
-                        _( "BOM Howto" ) );
-    dlg.ShowModal();
-#endif
 }
 
-#if defined(KICAD_GOST)
 void SCH_EDIT_FRAME::OnGOSTTools( wxCommandEvent& )
 {
     m_GOST_comp_manager = new GOST_COMP_MANAGER( this );
@@ -661,11 +660,13 @@ void SCH_EDIT_FRAME::OnGOSTTools( wxCommandEvent& )
     m_GOST_comp_manager->Show( true );
 }
 
+
 void SCH_EDIT_FRAME::OnPCad2KiCadSch( wxCommandEvent& )
 {
     ExecuteFile( this, PCAD2KICADSCH_EXE );
 }
 #endif
+
 
 void SCH_EDIT_FRAME::OnFindItems( wxCommandEvent& aEvent )
 {

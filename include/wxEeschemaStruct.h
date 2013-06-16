@@ -750,6 +750,7 @@ private:
     void OnCreateNetlist( wxCommandEvent& event );
     void OnCreateBillOfMaterials( wxCommandEvent& event );
 #if defined(KICAD_GOST)
+    void OnCreateOldBillOfMaterials( wxCommandEvent& event );
     void OnGOSTTools( wxCommandEvent& );
     void OnPCad2KiCadSch( wxCommandEvent& );
 #endif

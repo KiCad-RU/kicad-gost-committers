@@ -487,6 +487,15 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                  _( "Generate the component netlist" ),
                  KiBitmap( netlist_xpm ) );
 
+#if defined(KICAD_GOST)
+    // Generate bill of materials (old implementation)
+    AddMenuItem( toolsMenu,
+                 ID_GEN_OLD_BOM,
+                 _( "Generate Bill of &Materials (old implementation)" ),
+                 HELP_GENERATE_BOM,
+                 KiBitmap( bom_xpm ) );
+#endif
+
     // Generate bill of materials
     AddMenuItem( toolsMenu,
                  ID_GET_TOOLS,

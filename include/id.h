@@ -223,6 +223,7 @@ enum main_id
     ID_GET_NETLIST,
     ID_GET_TOOLS,
 #if defined(KICAD_GOST)
+    ID_GEN_OLD_BOM,
     ID_GOST_TOOLS,
     ID_PCAD2KICADSCH,
 #endif
