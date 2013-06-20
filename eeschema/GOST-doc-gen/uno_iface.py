@@ -27,7 +27,7 @@ import sys, os, time
 import uno
 from com.sun.star.beans import PropertyValue
 import socket
-import re, string
+import re
 
 class UNO_IFACE():
 
@@ -86,7 +86,7 @@ class UNO_IFACE():
 
     def PutCell( self, aCellAddress, aStr, aStyle ):
         try:
-            aCellAddress = string.split( aCellAddress, ':' )
+            aCellAddress = aCellAddress.split( ':' )
             tableAddress = self.curTable * 4 + int( aCellAddress[0] )
             aCellAddress = aCellAddress[1]
             cell = self.document.TextTables.getByIndex( tableAddress ).getCellByName( aCellAddress )
