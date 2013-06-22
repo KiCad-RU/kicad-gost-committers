@@ -34,7 +34,7 @@
 namespace GOST_DOC_GEN {
 
 #define DICTIONARY_SIZE    12
-#define UNITS_MATRIX_SIZE  17
+#define UNITS_MATRIX_SIZE  22
 
 typedef struct _TDICTIONARY_ITEM
 {
