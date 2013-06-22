@@ -102,6 +102,9 @@ class COMPONENT
     wxArrayString  m_footprintFilters; ///< Footprint filters found in netlist.
     wxString       m_reference;        ///< The component reference designator found in netlist.
     wxString       m_value;            ///< The component value found in netlist.
+#if defined(KICAD_GOST)
+    wxString       m_type;             ///< The component type found in netlist.
+#endif
 
     // ZZZ This timestamp is string, not time_t
     wxString       m_timeStamp;        ///< The component full time stamp found in netlist.
@@ -138,11 +141,17 @@ public:
     COMPONENT( const wxString& aFootprintName,
                const wxString& aReference,
                const wxString& aValue,
+#if defined(KICAD_GOST)
+               const wxString& aType,
+#endif
                const wxString& aTimeStamp )
     {
         m_footprintName    = aFootprintName;
         m_reference        = aReference;
         m_value            = aValue;
+#if defined(KICAD_GOST)
+        m_type             = aType;
+#endif
         m_timeStamp        = aTimeStamp;
         m_footprintChanged = false;
     }
@@ -171,6 +180,10 @@ public:
     const wxString& GetReference() const { return m_reference; }
 
     const wxString& GetValue() const { return m_value; }
+
+#if defined(KICAD_GOST)
+    const wxString& GetType() const { return m_type; }
+#endif
 
     void SetFootprintName( const wxString& aFootprintName )
     {

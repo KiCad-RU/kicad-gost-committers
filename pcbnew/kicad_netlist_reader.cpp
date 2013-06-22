@@ -283,6 +283,9 @@ void KICAD_NETLIST_PARSER::parseComponent() throw( IO_ERROR, PARSE_ERROR )
      */
     wxString ref;
     wxString value;
+#if defined(KICAD_GOST)
+    wxString type, fieldName;
+#endif
     wxString footprintName;
     wxString library;
     wxString name;
@@ -307,6 +310,39 @@ void KICAD_NETLIST_PARSER::parseComponent() throw( IO_ERROR, PARSE_ERROR )
             value = FROM_UTF8( CurText() );
             NeedRIGHT();
             break;
+
+#if defined(KICAD_GOST)
+        case T_fields:
+            // Read fields
+            while( (token = NextTok()) != T_RIGHT )
+            {
+                if( token == T_LEFT )
+                    token = NextTok();
+
+                if( token == T_field )
+                {
+                    while( (token = NextTok()) != T_RIGHT )
+                    {
+                        if( token == T_LEFT )
+                            token = NextTok();
+
+                        if( token == T_name )
+                        {
+                            NeedSYMBOLorNUMBER();
+                            fieldName = FROM_UTF8( CurText() );
+                            NeedRIGHT();
+
+                            if( fieldName == wxT( "Type" ) )
+                            {
+                                NeedSYMBOLorNUMBER();
+                                type = FROM_UTF8( CurText() );
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+#endif
 
         case T_footprint:
             NeedSYMBOLorNUMBER();
@@ -362,7 +398,11 @@ void KICAD_NETLIST_PARSER::parseComponent() throw( IO_ERROR, PARSE_ERROR )
     }
 
     pathtimestamp += timestamp;
+#if defined(KICAD_GOST)
+    COMPONENT* component = new COMPONENT( footprintName, ref, value, type, pathtimestamp );
+#else
     COMPONENT* component = new COMPONENT( footprintName, ref, value, pathtimestamp );
+#endif
     component->SetName( name );
     component->SetLibrary( library );
     m_netlist->AddComponent( component );

@@ -349,7 +349,8 @@ void DOC_COMMON::ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
                             &base_ref_des_prefix );
 
         // define a regular ref des group
-        ref_des_group_start = offset; ref_des_group_end = ref_des_group_start;
+        ref_des_group_start = offset;
+        ref_des_group_end = ref_des_group_start;
 
         for( i = ref_des_group_start; i < (int)aSingleVariantComponents->GetCount(); i++ )
         {
@@ -382,7 +383,7 @@ void DOC_COMMON::ProcessSingleVariant( COMMON_DOC_IFACE* aDocIface,
         for( title_group_i = 0; title_group_i<(int) group_titles.GetCount(); title_group_i++ )
         {
             base_title = group_titles[title_group_i];
-            // form title group compononents array
+            // form title group component array
             title_group_components.Clear();
 
             for( i = ref_des_group_start; i<=ref_des_group_end; i++ )

@@ -115,6 +115,9 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
 {
     COMPONENT* component;
     wxString   msg;
+#if defined(KICAD_GOST)
+    wxString   full_str;
+#endif
 
     ReadSchematicNetlist();
 
@@ -133,10 +136,30 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
     {
         component = m_netlist.GetComponent( i );
 
+#if defined(KICAD_GOST)
+        if( component->GetType() == wxEmptyString )
+            full_str = component->GetName();
+        else
+            full_str = component->GetType();
+
+        if( component->GetValue() != wxT( "~" )
+            && component->GetValue() != component->GetName() )
+            // workaround for eeschema bug (Value field is assigned to Chip Name field by default
+            // on the component adding from a library)
+        {
+            full_str += wxT( " " ) + component->GetValue();
+        }
+
+        msg.Printf( CMP_FORMAT, m_ListCmp->GetCount() + 1,
+                    GetChars( component->GetReference() ),
+                    GetChars( full_str ),
+                    GetChars( component->GetFootprintName() ) );
+#else
         msg.Printf( CMP_FORMAT, m_ListCmp->GetCount() + 1,
                     GetChars( component->GetReference() ),
                     GetChars( component->GetValue() ),
                     GetChars( component->GetFootprintName() ) );
+#endif
         m_ListCmp->AppendLine( msg );
 
         if( component->GetFootprintName().IsEmpty() )

@@ -165,7 +165,11 @@ COMPONENT* LEGACY_NETLIST_READER::loadComponent( char* aText ) throw( PARSE_ERRO
         name = FROM_UTF8( text ).AfterFirst( wxChar( '=' ) ).BeforeLast( wxChar( '}' ) );
     }
 
+#if defined(KICAD_GOST)
+    COMPONENT* component = new COMPONENT( footprintName, reference, value, wxEmptyString, timeStamp );
+#else
     COMPONENT* component = new COMPONENT( footprintName, reference, value, timeStamp );
+#endif
     component->SetName( name );
     m_netlist->AddComponent( component );
     return component;
