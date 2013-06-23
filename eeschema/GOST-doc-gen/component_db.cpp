@@ -281,8 +281,6 @@ void COMPONENT_DB::LoadFromKiCad()
         pComp->m_RefDes = m_cmplist[index].GetRef();
         pComp->m_SortingRefDes = str;
 
-        pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr  = component->GetLibName();
-
         if( component->GetField( VALUE )->GetText() == wxT( "~" )
             || component->GetField( VALUE )->GetText() == component->GetLibName() )
             // workaround for eeschema bug (Value field is assigned to Chip Name field by default
@@ -294,8 +292,23 @@ void COMPONENT_DB::LoadFromKiCad()
         if ( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_NAME].value_of_attr = pSch_field->GetText();
 
-        if ( ( pSch_field = component->FindField( wxT( "Type" ) ) ) )
-            pComp->m_KiCadAttrs[ATTR_TYPE1].value_of_attr = pSch_field->GetText();
+        if ( !( pSch_field = component->FindField( wxT( "Type" ) ) ) )
+        {
+            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = component->GetLibName();
+
+            // the field does not exist then create it
+            SCH_FIELD field( wxPoint( 0, 0 ),
+                             -1, // field id is not relavant for user defined fields
+                             component,
+                             wxT( "Type" ) );
+
+            field.SetText( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr );
+            component->AddField( field );
+        }
+        else if ( pSch_field->GetText() != wxT( "~" ) )
+            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = pSch_field->GetText();
+        else
+            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = wxEmptyString;
 
         if ( ( pSch_field = component->FindField( wxT( "SType" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_SUBTYPE].value_of_attr = pSch_field->GetText();
@@ -359,13 +372,21 @@ bool COMPONENT_DB::WriteBackToKiCad()
         pComp = m_AllComponents[item];
 
         // Save Value attribute
+        if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr == wxEmptyString )
+            pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = wxT( "~" );
+
         if( pComp->m_KiCadAttrs[ATTR_VALUE].attr_changed )
             pComp->m_KiCadComponentPtr->GetField( VALUE )->SetText(
                 pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr );
 
         // Save the other attributes
         WriteAttributeBackToKiCad( pComp, ATTR_NAME,         wxT( "Title" ) );
-        WriteAttributeBackToKiCad( pComp, ATTR_TYPE1,        wxT( "Type" ) );
+
+        if( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr == wxEmptyString )
+            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = wxT( "~" );
+
+        WriteAttributeBackToKiCad( pComp, ATTR_TYPE,         wxT( "Type" ) );
+
         WriteAttributeBackToKiCad( pComp, ATTR_SUBTYPE,      wxT( "SType" ) );
         WriteAttributeBackToKiCad( pComp, ATTR_PRECISION,    wxT( "Precision" ) );
         WriteAttributeBackToKiCad( pComp, ATTR_NOTE,         wxT( "Note" ) );

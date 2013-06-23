@@ -39,10 +39,6 @@ bool DOC_SPECIFICATION::CompareCompPos( TCOMPONENT_ATTRS* aComp1, TCOMPONENT_ATT
 {
     for( int i = 0; i < ATTR_QTY; i++ )
     {
-        // skip comparison of ATTR_TYPE1
-        if( i==ATTR_TYPE1)
-            continue;
-
         if( aComp1->attrs[i] != aComp2->attrs[i] )
             return false;
     }

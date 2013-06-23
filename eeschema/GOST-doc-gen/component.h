@@ -43,7 +43,6 @@ enum ATTR_T
 {
     ATTR_NAME,
     ATTR_TYPE,
-    ATTR_TYPE1,
     ATTR_SUBTYPE,
     ATTR_VALUE,
     ATTR_PRECISION,

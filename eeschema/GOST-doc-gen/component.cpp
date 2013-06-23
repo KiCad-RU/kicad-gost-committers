@@ -244,10 +244,7 @@ bool COMPONENT::ReadVariants()
     int err;
     size_t              i;
 
-    if( m_KiCadAttrs[ATTR_TYPE1].value_of_attr == wxT( "" ) )
-        Type = m_KiCadAttrs[ATTR_TYPE].value_of_attr;
-    else
-        Type = m_KiCadAttrs[ATTR_TYPE1].value_of_attr;
+    Type = m_KiCadAttrs[ATTR_TYPE].value_of_attr;
 
     err = ReadVariantsInStr( m_KiCadAttrs[ATTR_NAME].value_of_attr, ATTR_NAME, true );
 
@@ -398,29 +395,7 @@ bool COMPONENT::WriteVariants()
                     ( (pTCOMPONENT_ATTRS) m_comp_attr_variants[0] )->attrs[attr];
     }
 
-    if( m_KiCadAttrs[ATTR_NAME].value_of_attr!=component_attrs.attrs[ATTR_NAME] )
-    {
-        m_KiCadAttrs[ATTR_NAME].value_of_attr = component_attrs.attrs[ATTR_NAME];
-        m_KiCadAttrs[ATTR_NAME].attr_changed  = true;
-        some_changes_done = true;
-    }
-
-    if( m_KiCadAttrs[ATTR_TYPE].value_of_attr==component_attrs.attrs[ATTR_TYPE]
-        && m_KiCadAttrs[ATTR_TYPE1].value_of_attr != wxT( "" ) )
-    {
-        m_KiCadAttrs[ATTR_TYPE1].value_of_attr = wxT( "" );
-        m_KiCadAttrs[ATTR_TYPE1].attr_changed  = true;
-        some_changes_done = true;
-    }
-    else if( m_KiCadAttrs[ATTR_TYPE].value_of_attr!=component_attrs.attrs[ATTR_TYPE]
-             && m_KiCadAttrs[ATTR_TYPE1].value_of_attr!=component_attrs.attrs[ATTR_TYPE] )
-    {
-        m_KiCadAttrs[ATTR_TYPE1].value_of_attr = component_attrs.attrs[ATTR_TYPE];
-        m_KiCadAttrs[ATTR_TYPE1].attr_changed  = true;
-        some_changes_done = true;
-    }
-
-    for( attr = ATTR_SUBTYPE; attr < ATTR_QTY; attr++ )
+    for( attr = 0; attr < ATTR_QTY; attr++ )
         if( m_KiCadAttrs[attr].value_of_attr!=component_attrs.attrs[attr] )
         {
             m_KiCadAttrs[attr].value_of_attr = component_attrs.attrs[attr];
@@ -449,10 +424,6 @@ bool CompareComps( COMPONENT* aComp1, COMPONENT* aComp2, int aVariant )
 
     for( int i = 0; i < ATTR_QTY; i++ )
     {
-        // skip comparison of ATTR_TYPE1
-        if( i==ATTR_TYPE1)
-            continue;
-
         if( ( (pTCOMPONENT_ATTRS) aComp1->m_comp_attr_variants[comp1_var_i] )->attrs[i]!=
             ( (pTCOMPONENT_ATTRS) aComp2->m_comp_attr_variants[comp2_var_i] )->attrs[i] )
             return false;
