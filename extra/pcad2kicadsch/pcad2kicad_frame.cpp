@@ -69,7 +69,19 @@ void PCAD2KICAD_FRAME::OnLib( wxCommandEvent& event )
     wxString fileName = fileDlg.GetPath();
     m_inputFileName->SetLabel( fileName );
 
-    LoadInputFile( fileName, &xmlDoc );
+    try
+    {
+        LoadInputFile( fileName, &xmlDoc );
+    }
+    catch( IO_ERROR ioe )
+    {
+        wxString msg = wxString::Format( _( "Error loading library.\n%s" ),
+                                         ioe.errorText.GetData() );
+        wxMessageBox( msg, _( "Open Library File" ), wxOK | wxICON_ERROR );
+
+        return;
+    }
+
     sch.Parse( m_statusBar, &xmlDoc, m_actualConversion );
 
     m_statusBar->SetStatusText( wxT( "Generating output file.... " ) );
@@ -101,7 +113,19 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     wxString fileName = fileDlg.GetPath();
     m_inputFileName->SetLabel( fileName );
 
-    LoadInputFile( fileName, &xmlDoc );
+    try
+    {
+        LoadInputFile( fileName, &xmlDoc );
+    }
+    catch( IO_ERROR ioe )
+    {
+        wxString msg = wxString::Format( _( "Error loading scheme.\n%s" ),
+                                         ioe.errorText.GetData() );
+        wxMessageBox( msg, _( "Open Schematic File" ), wxOK | wxICON_ERROR );
+
+        return;
+    }
+
     sch.Parse( m_statusBar, &xmlDoc, m_actualConversion );
 
     m_statusBar->SetStatusText( wxT( "Generating output file.... " ) );
