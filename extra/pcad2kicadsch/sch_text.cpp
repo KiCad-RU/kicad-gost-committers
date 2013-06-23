@@ -78,6 +78,10 @@ void SCH_TEXT::Parse( XNODE*  aNode,
 
 void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
 {
+    m_text.text.Replace( wxT( "\n" ), wxT( "\\n" ), true );
+    m_text.text.Replace( wxT( "\r" ), wxT( "\\r" ), true );
+    m_text.text.Replace( wxT( "\t" ), wxT( "\\t" ), true );
+
     if( aFileType == wxT( 'L' ) ) // library
     {
         aFile->Write( wxString::Format( wxT( "T %d %d %d %d 0 %d 0 " ), m_text.textRotation,
@@ -88,10 +92,6 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
     else // schematic
     {
         wxString lr;
-
-        m_text.text.Replace( wxT( "\n" ), wxT( "\\n" ), true );
-        m_text.text.Replace( wxT( "\r" ), wxT( "\\r" ), true );
-        m_text.text.Replace( wxT( "\t" ), wxT( "\\t" ), true );
 
         if( m_text.textRotation == 0 )
             lr = wxT( '0' );

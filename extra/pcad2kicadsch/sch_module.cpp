@@ -329,7 +329,7 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     // Go out
     aFile->Write( wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );
-    aFile->Write( wxT( "# " ) + m_name.text + wxT( "\n" ) );
+    aFile->Write( wxT( "# " ) + ValidateName( m_name.text ) + wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );
     aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " U 0 40 " ) +
                   m_pinNumVisibility + wxT( ' ' ) + m_pinNameVisibility +
@@ -341,7 +341,7 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
                                     m_reference.correctedPositionX,
                                     m_reference.correctedPositionY ) );
     // NAME
-    aFile->Write( wxT( "F1 \"" ) + m_name.text + wxT( "\" " ) +
+    aFile->Write( wxT( "F1 \"" ) + ValidateName( m_name.text ) + wxT( "\" " ) +
                   wxString::Format( wxT( "%d %d 50 H V C C\n" ),
                                     m_name.correctedPositionX, m_name.correctedPositionY ) );
     // FOOTPRINT

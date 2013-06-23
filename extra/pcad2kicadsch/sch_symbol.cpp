@@ -268,9 +268,8 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     CorrectTextPosition( &m_value, m_rotation );
     CorrectTextPosition( &m_reference, m_rotation );
     // Go out
-    str = m_attachedSymbol;
-    str.Replace( wxT( " " ), wxT( "~" ), true );
-    aFile->Write( wxT( "L " ) + str + wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
+    aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol )
+                  + wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
     aFile->Write( wxString::Format( wxT( "U %d 1 00000000\n" ), m_partNum ) );
     aFile->Write( wxString::Format( wxT( "P %d %d\n" ), m_positionX, m_positionY ) );
 
