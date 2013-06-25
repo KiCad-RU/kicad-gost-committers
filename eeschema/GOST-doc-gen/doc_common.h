@@ -80,6 +80,7 @@ namespace GOST_DOC_GEN {
 #define ADDR_LASTSHEET_DESIGNATION  wxT( "B28" )
 #else
 // cell address constants (new implementation)
+#define NAME_LENGTH_MAX             46
 #define NOTE_LENGTH_MAX             20
 
 #define SPEC_NAME_LENGTH_MAX        28

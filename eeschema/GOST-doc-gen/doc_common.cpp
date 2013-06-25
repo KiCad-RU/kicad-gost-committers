@@ -60,14 +60,17 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
 {
     int             i, row_step;
     wxString        cell_address, fileName;
-    wxArrayString   string_array;
+    wxArrayString   name_string_array, string_array;
 
     row_step = 1;
 
     if( ( i = aName.Find( wxT( "%" ) ) )!=wxNOT_FOUND )
         StringInsert( &aName, wxT( ' ' ), i );
 
+    SplitString( aName, &name_string_array, NAME_LENGTH_MAX, 0 );
     SplitString( aNote, &string_array, NOTE_LENGTH_MAX, SPLIT_COMMA_ENA | SPLIT_DOT_ENA );
+
+    row_step = std::max( row_step, (int) name_string_array.GetCount() );
     row_step = std::max( row_step, (int) string_array.GetCount() );
     aReserve_strings = std::max( aReserve_strings, row_step );
 
@@ -107,9 +110,12 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
     // }
 
     // name
-    cell_address = ADDR_CMPIDX_COL_NAME;
-    cell_address += wxString::Format( wxT( "%d" ), m_current_row );
-    aDocIface->PutCell( cell_address, aName, aStyle );
+    for( i = 0; i<(int) name_string_array.GetCount(); i++ )
+    {
+        cell_address = ADDR_CMPIDX_COL_NAME;
+        cell_address += wxString::Format( wxT( "%d" ), m_current_row + i );
+        aDocIface->PutCell( cell_address, name_string_array[i], aStyle );
+    }
 
     // qty
     if( aQty > 0 )
@@ -217,8 +223,12 @@ void DOC_COMMON::PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
                 }
 
                 OO_PrintCompIndexDocRow( aDocIface,
-                                         wxT( "" ), aBase_title + wxT( " " ) +
-                                                    (*aGroup_types)[i], 0, wxT( "" ), 0, 1,
+                                         wxT( "" ),
+                                         aBase_title + wxT( " " ) + (*aGroup_types)[i],
+                                         0,
+                                         wxT( "" ),
+                                         TEXT_CENTERED,
+                                         1,
                                          aComponentDB );
             }
         }
@@ -226,7 +236,7 @@ void DOC_COMMON::PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
         {
             OO_PrintCompIndexDocRow( aDocIface,
                                      wxT( "" ), aBase_title, 0,
-                                     wxT( "" ), 0, 1,
+                                     wxT( "" ), TEXT_CENTERED, 1,
                                      aComponentDB );
         }
     }
@@ -274,16 +284,19 @@ void DOC_COMMON::PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
         if( aPositions > 1 )
             str = wxT( "" );
         else
-            str = aBase_title + wxT( " " );
+            str = aBase_title + wxT( "_" );
 
         str += baseComp_attrs->attrs[ATTR_TYPE];
         str += baseComp_attrs->attrs[ATTR_SUBTYPE];
-        str += wxT( " " ) + baseComp_attrs->attrs[ATTR_VALUE];
+
+        if( baseComp_attrs->attrs[ATTR_VALUE] != wxT( "" ) )
+            str += wxT( "_" ) + baseComp_attrs->attrs[ATTR_VALUE];
 
         if( baseComp_attrs->attrs[ATTR_PRECISION] != wxT( "" ) )
             str += wxT( " ±" ) + baseComp_attrs->attrs[ATTR_PRECISION];
 
-        str += baseComp_attrs->attrs[ATTR_DESIGNATION];
+        if( baseComp_attrs->attrs[ATTR_DESIGNATION] != wxT( "" ) )
+            str += wxT( "_" ) + baseComp_attrs->attrs[ATTR_DESIGNATION];
 
         if( note == aComponentDB->m_notInstalledStr )
         {
@@ -518,7 +531,7 @@ void DOC_COMMON::OO_PrintSpecificationDocRow( COMMON_DOC_IFACE* aDocIface,
     for( i = 0; i<(int) name_string_array.GetCount(); i++ )
     {
         cell_address = ADDR_SPEC_COL_NAME;
-        cell_address += wxString::Format( wxT( "%d" ), m_current_row + i);
+        cell_address += wxString::Format( wxT( "%d" ), m_current_row + i );
         aDocIface->PutCell( cell_address, name_string_array[i], aStyle );
     }
 

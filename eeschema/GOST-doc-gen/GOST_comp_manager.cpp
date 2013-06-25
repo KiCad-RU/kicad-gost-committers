@@ -338,7 +338,7 @@ void GOST_COMP_MANAGER::FormFullListString( int aItem, int aList_str_ind, bool a
         str += wxT( " ±" ) + pMain_comp_attrs->attrs[ATTR_PRECISION];
     }
 
-    str += pMain_comp_attrs->attrs[ATTR_DESIGNATION];
+    str += wxT( " " ) + pMain_comp_attrs->attrs[ATTR_DESIGNATION];
 
     if( pComponent->m_Variants_State == COMP_IN_VAR_PART_DIFF )
         str = wxT( "{{{" ) + str + wxT( "}}}" );
@@ -437,7 +437,7 @@ void GOST_COMP_MANAGER::FormConstPartString( int aItem, int aList_str_ind, bool 
     if( pMain_comp_attrs->attrs[ATTR_PRECISION] != wxT( "" ) )
         str += wxT( " ±" ) + pMain_comp_attrs->attrs[ATTR_PRECISION];
 
-    str += pMain_comp_attrs->attrs[ATTR_DESIGNATION];
+    str += wxT( " " ) + pMain_comp_attrs->attrs[ATTR_DESIGNATION];
 
     if( pMain_comp_attrs->attrs[ATTR_NAME] == wxT( "" ) )
         icon = 0;
@@ -526,7 +526,7 @@ void GOST_COMP_MANAGER::FormVarPartString( int aItem, int aList_str_ind, bool aN
         if( variant_attrs.attrs[ATTR_PRECISION] != wxT( "" ) )
             str += wxT( " ±" ) + variant_attrs.attrs[ATTR_PRECISION];
 
-        str += variant_attrs.attrs[ATTR_DESIGNATION];
+        str += wxT( " " ) + variant_attrs.attrs[ATTR_DESIGNATION];
 
         m_listCtrl->SetItem( actual_item_i, TABLE_NAME_COL, str );
 
