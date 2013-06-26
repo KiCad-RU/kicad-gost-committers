@@ -29,6 +29,9 @@ from com.sun.star.beans import PropertyValue
 import socket
 import re
 
+TEXT_UNDERLINED = 0x0001
+TEXT_CENTERED   = 0x0002
+
 class UNO_IFACE():
 
     def __init__( self ):
@@ -92,8 +95,10 @@ class UNO_IFACE():
             cell = self.document.TextTables.getByIndex( tableAddress ).getCellByName( aCellAddress )
             cursor = cell.createTextCursor()
 
-            if( aStyle != 0 ):
+            if( aStyle & TEXT_UNDERLINED ):
                 cursor.setPropertyValue( "CharUnderline", 1 )
+
+            if( aStyle & TEXT_CENTERED ):
                 cursor.setPropertyValue( "ParaAdjust", 3 )
 
             cursor.setString( aStr )
