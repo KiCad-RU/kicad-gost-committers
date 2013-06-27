@@ -615,8 +615,10 @@ double DOC_COMMON::ExtractAbsoluteValue( wxString aValue )
             break;
         }
 
-    exp     = 0;
-    aValue   += wxT( ' ' );
+    // the smallest exponenta is for pF.
+    // It can fail for Ohms, however it does not matter for sorting.
+    exp    = -12;
+    aValue += wxT( ' ' );
 
     if( start != -1 )
     {
