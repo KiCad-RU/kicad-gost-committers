@@ -905,10 +905,18 @@ void CVPCB_MAINFRAME::BuildCmpListBox()
     {
         component = m_netlist.GetComponent( i );
 
+#if defined(KICAD_GOST)
+        msg.Printf( CMP_FORMAT, m_ListCmp->GetCount() + 1,
+                    GetChars( component->GetReference() ),
+                    GetChars( FormFullString( component ) ),
+                    GetChars( component->GetFootprintName() ) );
+#else
         msg.Printf( CMP_FORMAT, m_ListCmp->GetCount() + 1,
                     GetChars( component->GetReference() ),
                     GetChars( component->GetValue() ),
                     GetChars( component->GetFootprintName() ) );
+#endif
+
         m_ListCmp->m_ComponentList.Add( msg );
     }
 

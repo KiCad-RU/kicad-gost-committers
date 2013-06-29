@@ -149,6 +149,9 @@ public:
 
     void             OnUpdateKeepOpenOnSave( wxUpdateUIEvent& event );
 
+#if defined(KICAD_GOST)
+    wxString         FormFullString( COMPONENT* aComponent );
+#endif
     /**
      * Function SetNewPkg
      * links the footprint to the current selected component

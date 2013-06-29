@@ -39,6 +39,28 @@
 
 #define titleComponentLibErr _( "Component Library Error" )
 
+#if defined(KICAD_GOST)
+wxString CVPCB_MAINFRAME::FormFullString( COMPONENT* aComponent )
+{
+    wxString   full_str;
+
+    if( aComponent->GetType() == wxEmptyString )
+        full_str = aComponent->GetName();
+    else
+        full_str = aComponent->GetType();
+
+    if( aComponent->GetValue() != wxT( "~" )
+        && aComponent->GetValue() != aComponent->GetName() )
+        // workaround for eeschema bug (Value field is assigned to Chip Name field by default
+        // on the component adding from a library)
+    {
+        full_str += wxT( " " ) + aComponent->GetValue();
+    }
+
+    return full_str;
+}
+#endif
+
 void CVPCB_MAINFRAME::SetNewPkg( const wxString& aFootprintName )
 {
     COMPONENT* component;
@@ -77,10 +99,17 @@ void CVPCB_MAINFRAME::SetNewPkg( const wxString& aFootprintName )
 
         // create the new component description
 
+#if defined(KICAD_GOST)
         description.Printf( CMP_FORMAT, componentIndex + 1,
                             GetChars( component->GetReference() ),
-                            GetChars( component->GetValue() ),
+                            GetChars( FormFullString( component ) ),
                             GetChars( component->GetFootprintName() ) );
+#else
+        description.Printf( CMP_FORMAT, componentIndex + 1,
+                            GetChars( component->GetReference() ),
+                            GetChars( wxT( "123" ) + component->GetValue() ),
+                            GetChars( component->GetFootprintName() ) );
+#endif
 
         // If the component hasn't had a footprint associated with it
         // it now has, so we decrement the count of components without
@@ -115,9 +144,6 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
 {
     COMPONENT* component;
     wxString   msg;
-#if defined(KICAD_GOST)
-    wxString   full_str;
-#endif
 
     ReadSchematicNetlist();
 
@@ -137,22 +163,9 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
         component = m_netlist.GetComponent( i );
 
 #if defined(KICAD_GOST)
-        if( component->GetType() == wxEmptyString )
-            full_str = component->GetName();
-        else
-            full_str = component->GetType();
-
-        if( component->GetValue() != wxT( "~" )
-            && component->GetValue() != component->GetName() )
-            // workaround for eeschema bug (Value field is assigned to Chip Name field by default
-            // on the component adding from a library)
-        {
-            full_str += wxT( " " ) + component->GetValue();
-        }
-
         msg.Printf( CMP_FORMAT, m_ListCmp->GetCount() + 1,
                     GetChars( component->GetReference() ),
-                    GetChars( full_str ),
+                    GetChars( FormFullString( component ) ),
                     GetChars( component->GetFootprintName() ) );
 #else
         msg.Printf( CMP_FORMAT, m_ListCmp->GetCount() + 1,
