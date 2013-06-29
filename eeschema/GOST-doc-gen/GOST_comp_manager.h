@@ -48,6 +48,7 @@ private:
     GOST_DOC_GEN::COMPONENT_DB* m_componentDB;
     bool m_onEditChangeComboBoxLock;
     bool m_onItemChangedCheckListCtrlLock;
+    bool m_warnDiffParams_flag;
 
 public:
     GOST_COMP_MANAGER( wxWindow* parent );

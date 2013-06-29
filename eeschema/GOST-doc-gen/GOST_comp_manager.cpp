@@ -37,6 +37,7 @@ GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
     m_schEditFrame = (SCH_EDIT_FRAME *)parent;
     m_onEditChangeComboBoxLock = false;
     m_onItemChangedCheckListCtrlLock = false;
+    m_warnDiffParams_flag = false;
 
     m_componentDB = new COMPONENT_DB();
 
@@ -171,6 +172,8 @@ void GOST_COMP_MANAGER::OnClickListCtrl( wxListEvent& event )
 
     COMPONENT* pComponent;
     TCOMPONENT_ATTRS* pVariant_attrs;
+
+    m_warnDiffParams_flag = false;
 
     item = m_listCtrl->GetNextItem( -1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED );
     // if no component is selected then do nothing
@@ -672,12 +675,14 @@ void GOST_COMP_MANAGER::EditAttribute( int aComp_attr, wxString aStr )
             return;
         }
 
-        if ( error==EDITATTR_ERR_WARN_DIFFERENT_PARAMS )
+        if ( error==EDITATTR_ERR_WARN_DIFFERENT_PARAMS && !m_warnDiffParams_flag )
         {
             int res = wxMessageBox( _( "The selected components have different parameters. "
                                          "Continue?" ), wxT( "" ), wxYES_NO );
             if ( res==wxNO )
                 return;
+
+            m_warnDiffParams_flag = true;
         }
     }
 
