@@ -637,11 +637,9 @@ double DOC_COMMON::ExtractAbsoluteValue( wxString aValue )
         aValue = aValue.Left( start );
     }
 
-    if( ( i = aValue.Find( wxT( ',' ) ) )!=wxNOT_FOUND )
-    {
-        aValue.Remove( i, 1 );
-        StringInsert( &aValue, wxT( '.' ), i );
-    }
+    aValue.Replace( wxT( "," ), wxT( "." ) );
+
+    LOCALE_IO toggle;
 
     if( start == -1 )
         aValue.ToDouble( &mant );
