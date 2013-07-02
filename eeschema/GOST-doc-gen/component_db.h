@@ -111,6 +111,7 @@ private:
 
     SCH_REFERENCE_LIST m_cmplist;              // a flat list of components in the full hierarchy
     bool               m_dbgEna;
+    bool               m_modified;
 };
 
 } // namespace GOST_DOC_GEN

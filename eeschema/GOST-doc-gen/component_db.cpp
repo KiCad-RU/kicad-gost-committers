@@ -61,6 +61,7 @@ COMPONENT_DB::COMPONENT_DB()
     m_companyName        = wxT( "" );
     m_dbgEna             = false;
     m_notInstalledStr    = wxT( "" );
+    m_modified           = false;
 }
 
 
@@ -296,6 +297,7 @@ void COMPONENT_DB::LoadFromKiCad()
         {
             pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = component->GetLibName();
 
+            m_modified = true;
             // the field does not exist then create it
             SCH_FIELD field( wxPoint( 0, 0 ),
                              -1, // field id is not relavant for user defined fields
@@ -305,7 +307,13 @@ void COMPONENT_DB::LoadFromKiCad()
             field.SetText( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr );
             component->AddField( field );
         }
-        else if ( pSch_field->GetText() != wxT( "~" ) )
+        else if( pSch_field->GetText() == wxEmptyString )
+        {
+            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = component->GetLibName();
+            m_modified = true;
+            pSch_field->SetText( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr );
+        }
+        else if( pSch_field->GetText() != wxT( "~" ) )
             pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = pSch_field->GetText();
         else
             pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = wxEmptyString;
@@ -365,7 +373,8 @@ bool COMPONENT_DB::WriteBackToKiCad()
     size_t      item;
     COMPONENT*  pComp;
 
-    bool modified = WriteVariants();
+    bool modified = WriteVariants() | m_modified;
+    m_modified = false;
 
     for( item = 0; item < m_AllComponents.GetCount(); item++ )
     {
