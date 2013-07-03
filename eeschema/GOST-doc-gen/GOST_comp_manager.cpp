@@ -877,7 +877,7 @@ void GOST_COMP_MANAGER::OnSettingsSwitchToEnglish( wxCommandEvent& event )
         m_combo_Type->Append( wxT("tantalum type C") );
 
         m_combo_SubType->Append( wxT("-X7R-50 V-") );
-        m_combo_SubType->Append( wxT("-NPO-50 V-") );
+        m_combo_SubType->Append( wxT("-NP0-50 V-") );
         m_combo_SubType->Append( wxT("-Y5V-50 V-") );
         m_combo_SubType->Append( wxT("-16 V-") );
 
@@ -901,7 +901,7 @@ void GOST_COMP_MANAGER::OnSettingsSwitchToEnglish( wxCommandEvent& event )
         m_combo_Type->Append( wxT("танталовый тип C") );
 
         m_combo_SubType->Append( wxT("-X7R-50 В-") );
-        m_combo_SubType->Append( wxT("-NPO-50 В-") );
+        m_combo_SubType->Append( wxT("-NP0-50 В-") );
         m_combo_SubType->Append( wxT("-Y5V-50 В-") );
         m_combo_SubType->Append( wxT("-16 В-") );
 
