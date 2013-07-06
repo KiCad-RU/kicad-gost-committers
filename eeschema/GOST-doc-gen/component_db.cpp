@@ -259,6 +259,7 @@ void COMPONENT_DB::LoadFromKiCad()
     SCH_FIELD*      pSch_field;
 
     sheetList.GetComponents( m_cmplist, false );
+    m_cmplist.RemoveSubComponentsFromList();
 
     unsigned int index = 0;
 
