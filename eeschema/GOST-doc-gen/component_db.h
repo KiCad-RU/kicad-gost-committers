@@ -79,6 +79,7 @@ public:
 
                     ~COMPONENT_DB();
     void            LoadFromKiCad();
+    bool            CompareDB();
     bool            WriteBackToKiCad();
     void            SortComponents();
     void            AddNewVariant( int aVariant );

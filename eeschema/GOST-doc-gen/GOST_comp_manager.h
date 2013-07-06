@@ -49,6 +49,7 @@ private:
     bool m_onEditChangeComboBoxLock;
     bool m_onItemChangedCheckListCtrlLock;
     bool m_warnDiffParams_flag;
+    bool m_ignoreLostFocus_flag;
 
 public:
     GOST_COMP_MANAGER( wxWindow* parent );

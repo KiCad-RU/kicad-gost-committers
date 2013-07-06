@@ -291,10 +291,10 @@ void COMPONENT_DB::LoadFromKiCad()
         else
             pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = component->GetField( VALUE )->GetText();
 
-        if ( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
+        if( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_NAME].value_of_attr = pSch_field->GetText();
 
-        if ( !( pSch_field = component->FindField( wxT( "Type" ) ) ) )
+        if( !( pSch_field = component->FindField( wxT( "Type" ) ) ) )
         {
             pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = component->GetLibName();
 
@@ -319,19 +319,19 @@ void COMPONENT_DB::LoadFromKiCad()
         else
             pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = wxEmptyString;
 
-        if ( ( pSch_field = component->FindField( wxT( "SType" ) ) ) )
+        if( ( pSch_field = component->FindField( wxT( "SType" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_SUBTYPE].value_of_attr = pSch_field->GetText();
 
-        if ( ( pSch_field = component->FindField( wxT( "Precision" ) ) ) )
+        if( ( pSch_field = component->FindField( wxT( "Precision" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_PRECISION].value_of_attr = pSch_field->GetText();
 
-        if ( ( pSch_field = component->FindField( wxT( "Note" ) ) ) )
+        if( ( pSch_field = component->FindField( wxT( "Note" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_NOTE].value_of_attr = pSch_field->GetText();
 
-        if ( ( pSch_field = component->FindField( wxT( "Designation" ) ) ) )
+        if( ( pSch_field = component->FindField( wxT( "Designation" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_DESIGNATION].value_of_attr = pSch_field->GetText();
 
-        if ( ( pSch_field = component->FindField( wxT( "Manufacturer" ) ) ) )
+        if( ( pSch_field = component->FindField( wxT( "Manufacturer" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_MANUFACTURER].value_of_attr = pSch_field->GetText();
 
         m_AllComponents.Add( pComp );
@@ -341,6 +341,120 @@ void COMPONENT_DB::LoadFromKiCad()
     SortComponents();
 
     ReadVariants();
+}
+
+
+//return false if Component manager DB is not consistent to that of EESchema
+bool COMPONENT_DB::CompareDB()
+{
+    SCH_SHEET_LIST  sheetList;
+    wxString        str;
+    COMPONENT*      pComp;
+    SCH_FIELD*      pSch_field;
+
+    sheetList.GetComponents( m_cmplist, false );
+    m_cmplist.RemoveSubComponentsFromList();
+
+    if( m_cmplist.GetCount() != m_AllComponents.GetCount() )
+        return false;
+
+    unsigned int index = 0;
+
+    // update fields from the title block
+    TITLE_BLOCK tb   = g_RootSheet->GetScreen()->GetTitleBlock();
+    m_designName     = tb.GetTitle();
+    m_companyName    = tb.GetCompany();
+    m_designation    = tb.GetComment1();
+    m_developerField = tb.GetComment2();
+    m_verifierField  = tb.GetComment3();
+    m_approverField  = tb.GetComment4();
+
+    while( index < m_cmplist.GetCount() )
+    {
+        SCH_COMPONENT* component = m_cmplist[index].GetComponent();
+
+        str = m_cmplist[index].GetRef();
+        ZeroInserting( &str );
+
+        pComp = m_AllComponents[index];
+
+        if( component != pComp->m_KiCadComponentPtr )
+            return false;
+
+        if( pComp->m_RefDes != m_cmplist[index].GetRef() )
+            return false;
+
+        if( pComp->m_SortingRefDes != str )
+            return false;
+
+        if( component->GetField( VALUE )->GetText() == wxT( "~" )
+            || component->GetField( VALUE )->GetText() == component->GetLibName() )
+            // workaround for eeschema bug (Value field is assigned to Chip Name field by default
+            // on the component adding from a library)
+        {
+            if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr != wxT( "~" ) )
+                return false;
+        }
+        else
+        {
+            if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr !=
+                component->GetField( VALUE )->GetText() )
+                return false;
+        }
+
+        if( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
+        {
+            if( pComp->m_KiCadAttrs[ATTR_NAME].value_of_attr != pSch_field->GetText() )
+                return false;
+        }
+
+        if( !( pSch_field = component->FindField( wxT( "Type" ) ) ) )
+            return false;
+        else if( pSch_field->GetText() == wxEmptyString )
+        {
+            if( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr != component->GetLibName() )
+                return false;
+        }
+        else
+        {
+            if( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr != pSch_field->GetText() )
+                return false;
+        }
+
+        if( ( pSch_field = component->FindField( wxT( "SType" ) ) ) )
+        {
+            if( pComp->m_KiCadAttrs[ATTR_SUBTYPE].value_of_attr != pSch_field->GetText() )
+                return false;
+        }
+
+        if( ( pSch_field = component->FindField( wxT( "Precision" ) ) ) )
+        {
+            if( pComp->m_KiCadAttrs[ATTR_PRECISION].value_of_attr != pSch_field->GetText() )
+                return false;
+        }
+
+        if( ( pSch_field = component->FindField( wxT( "Note" ) ) ) )
+        {
+            if( pComp->m_KiCadAttrs[ATTR_NOTE].value_of_attr != pSch_field->GetText() )
+                return false;
+        }
+
+        if( ( pSch_field = component->FindField( wxT( "Designation" ) ) ) )
+        {
+            if( pComp->m_KiCadAttrs[ATTR_DESIGNATION].value_of_attr != pSch_field->GetText() )
+                return false;
+        }
+
+        if( ( pSch_field = component->FindField( wxT( "Manufacturer" ) ) ) )
+        {
+            if( pComp->m_KiCadAttrs[ATTR_MANUFACTURER].value_of_attr != pSch_field->GetText() )
+                return false;
+        }
+
+        index++;
+    }
+
+    return true;
 }
 
 

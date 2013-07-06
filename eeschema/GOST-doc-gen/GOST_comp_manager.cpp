@@ -38,6 +38,7 @@ GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
     m_onEditChangeComboBoxLock = false;
     m_onItemChangedCheckListCtrlLock = false;
     m_warnDiffParams_flag = false;
+    m_ignoreLostFocus_flag = false;
 
     m_componentDB = new COMPONENT_DB();
 
@@ -572,7 +573,9 @@ void GOST_COMP_MANAGER::OnRadioVarPart( wxCommandEvent& event )
 
 void GOST_COMP_MANAGER::OnSelChangeComboVariant( wxCommandEvent& event )
 {
-    if ( m_radio_VarPart->GetValue() )
+    m_ignoreLostFocus_flag = true;
+
+    if( m_radio_VarPart->GetValue() )
     {
         wxCommandEvent dummyEvent;
         OnRadioVarPart( dummyEvent );
@@ -590,7 +593,7 @@ void GOST_COMP_MANAGER::FormVariantList()
     m_combo_Variant->Clear();
     m_checkListCtrl->Clear();
 
-    for ( i=0; i < m_componentDB->m_variantIndexes.GetCount(); i++ )
+    for( i=0; i < m_componentDB->m_variantIndexes.GetCount(); i++ )
     {
         variant_str = wxString::Format( wxT( "%02d" ), m_componentDB->m_variantIndexes[i] );
 
@@ -601,7 +604,7 @@ void GOST_COMP_MANAGER::FormVariantList()
 
     m_onItemChangedCheckListCtrlLock = false;
 
-    if ( m_radio_FullList->GetValue() )
+    if( m_radio_FullList->GetValue() )
     {
         wxCommandEvent dummyEvent;
         OnRadioFullList( dummyEvent );
@@ -656,7 +659,7 @@ void GOST_COMP_MANAGER::EditAttribute( int aComp_attr, wxString aStr )
             }
         }
 
-        if ( error==EDITATTR_ERR_N_A_IN_VAR_PART_MODE
+        if( error==EDITATTR_ERR_N_A_IN_VAR_PART_MODE
              || error==EDITATTR_ERR_FATAL_DIFFERENT_PARAMS )
         {
             wxString err_str;
@@ -671,14 +674,14 @@ void GOST_COMP_MANAGER::EditAttribute( int aComp_attr, wxString aStr )
                                    "components has different parameters along its variants" );
                     break;
             }
-            wxMessageBox( err_str, wxT( "" ), wxOK );
+            wxMessageBox( err_str, wxT( "" ), wxOK, this );
             return;
         }
 
-        if ( error==EDITATTR_ERR_WARN_DIFFERENT_PARAMS && !m_warnDiffParams_flag )
+        if( error==EDITATTR_ERR_WARN_DIFFERENT_PARAMS && !m_warnDiffParams_flag )
         {
             int res = wxMessageBox( _( "The selected components have different parameters. "
-                                         "Continue?" ), wxT( "" ), wxYES_NO );
+                                       "Continue?" ), wxT( "" ), wxYES_NO, this );
             if ( res==wxNO )
                 return;
 
@@ -729,6 +732,8 @@ void GOST_COMP_MANAGER::EditAttribute( int aComp_attr, wxString aStr )
 
 void GOST_COMP_MANAGER::OnEditChangeComboName( wxCommandEvent& event )
 {
+    m_ignoreLostFocus_flag = true;
+
     if( m_onEditChangeComboBoxLock )
         return;
 
@@ -738,6 +743,8 @@ void GOST_COMP_MANAGER::OnEditChangeComboName( wxCommandEvent& event )
 
 void GOST_COMP_MANAGER::OnEditChangeComboType( wxCommandEvent& event )
 {
+    m_ignoreLostFocus_flag = true;
+
     if( m_onEditChangeComboBoxLock )
         return;
 
@@ -747,6 +754,8 @@ void GOST_COMP_MANAGER::OnEditChangeComboType( wxCommandEvent& event )
 
 void GOST_COMP_MANAGER::OnEditChangeComboSubtype( wxCommandEvent& event )
 {
+    m_ignoreLostFocus_flag = true;
+
     if( m_onEditChangeComboBoxLock )
         return;
 
@@ -756,6 +765,8 @@ void GOST_COMP_MANAGER::OnEditChangeComboSubtype( wxCommandEvent& event )
 
 void GOST_COMP_MANAGER::OnEditChangeComboValue( wxCommandEvent& event )
 {
+    m_ignoreLostFocus_flag = true;
+
     if( m_onEditChangeComboBoxLock )
         return;
 
@@ -765,6 +776,8 @@ void GOST_COMP_MANAGER::OnEditChangeComboValue( wxCommandEvent& event )
 
 void GOST_COMP_MANAGER::OnEditChangeComboPrecision( wxCommandEvent& event )
 {
+    m_ignoreLostFocus_flag = true;
+
     if( m_onEditChangeComboBoxLock )
         return;
 
@@ -777,12 +790,16 @@ void GOST_COMP_MANAGER::OnEditChangeComboNote( wxCommandEvent& event )
     if( m_onEditChangeComboBoxLock )
         return;
 
+    m_ignoreLostFocus_flag = true;
+
     EditAttribute( ATTR_NOTE, m_combo_Note->GetValue() );
 }
 
 
 void GOST_COMP_MANAGER::OnEditChangeComboDesignation( wxCommandEvent& event )
 {
+    m_ignoreLostFocus_flag = true;
+
     if( m_onEditChangeComboBoxLock )
         return;
 
@@ -792,6 +809,8 @@ void GOST_COMP_MANAGER::OnEditChangeComboDesignation( wxCommandEvent& event )
 
 void GOST_COMP_MANAGER::OnEditChangeComboManufacturer( wxCommandEvent& event )
 {
+    m_ignoreLostFocus_flag = true;
+
     if( m_onEditChangeComboBoxLock )
         return;
 
@@ -925,32 +944,44 @@ void GOST_COMP_MANAGER::OnSettingsDebugOn( wxCommandEvent& event )
 
 void GOST_COMP_MANAGER::OnActivate( wxActivateEvent& event )
 {
-    // does not work
-
-    /*if( event.GetActive() )
+    if( event.GetActive() )
     {
         // focus reacquired
-        m_componentDB = new COMPONENT_DB();
+        //printf("focus reacquired\n");
+        if( !m_ignoreLostFocus_flag )
+        {
+            if( !m_componentDB->CompareDB() )
+            {
+                delete m_componentDB;
+                m_componentDB = new COMPONENT_DB();
 
-        m_componentDB->LoadFromKiCad();
+                m_componentDB->LoadFromKiCad();
 
-        FormVariantList();
-        DisableComboBoxes();
+                FormVariantList();
+                DisableComboBoxes();
 
-        wxCommandEvent dummyEvent;
-        OnRadioFullList( dummyEvent );
+                wxCommandEvent dummyEvent;
+                OnRadioFullList( dummyEvent );
+
+                wxMessageBox( _( "Some components were changed outside of "
+                                 "the Component Manager."
+                                 "\n\nThe changes have been transferred back "
+                                 "to the Component Manager." ), wxT( "" ), wxOK, this );
+            }
+        }
+
+        m_ignoreLostFocus_flag = false;
     }
     else
     {
         // focus lost
+        //printf("focus lost\n");
         if( m_componentDB->WriteBackToKiCad() )
+        {
             // let eeschema know to save changes on closing it
             m_schEditFrame->GetScreen()->SetModify();
         }
-
-        delete m_componentDB;
-        m_componentDB = NULL;
-    }*/
+    }
 
     event.Skip();
 }
