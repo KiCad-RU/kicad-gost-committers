@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
- * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2012-2013 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -37,14 +37,23 @@
 
 namespace PCAD2KICAD {
 
+typedef struct _TATTR
+{
+    wxString  attrName;
+    wxString  attrValue;
+} TATTR;
+
+WX_DEFINE_ARRAY( TATTR*, TATTR_ARRAY );
+
 class SCH_SYMBOL : public SCH_COMPONENT
 {
 public:
-    TTEXTVALUE  m_module;
-    TTEXTVALUE  m_reference;
-    TTEXTVALUE  m_value;
-    wxString    m_attachedSymbol;
-    wxString    m_attachedPattern;
+    TTEXTVALUE     m_module;
+    TTEXTVALUE     m_reference;
+    TTEXTVALUE     m_value;
+    wxString       m_attachedSymbol;
+    wxString       m_attachedPattern;
+    TATTR_ARRAY    m_attributes;
 
     SCH_SYMBOL();
     ~SCH_SYMBOL();
@@ -55,8 +64,9 @@ public:
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 
 private:
-    void ParseNetlist( XNODE*   aNode, wxString aReference );
-    void ParseLibrary( XNODE*   aNode, wxString aModule,
+    void FindAttributes( XNODE* aNode );
+    void ParseNetlist( XNODE* aNode, wxString aReference );
+    void ParseLibrary( XNODE* aNode, wxString aModule,
                        wxString aDefaultMeasurementUnit, wxString aActualConversion );
 };
 

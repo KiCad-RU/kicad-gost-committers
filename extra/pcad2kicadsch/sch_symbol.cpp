@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
- * Copyright (C) 2012 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2012-2013 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -29,6 +29,7 @@
 
 #include <wx/wx.h>
 #include <wx/config.h>
+#include <wx/tokenzr.h>
 
 #include <common.h>
 
@@ -42,19 +43,63 @@ SCH_SYMBOL::SCH_SYMBOL()
     InitTTextValue( &m_module );
     InitTTextValue( &m_reference );
     InitTTextValue( &m_value );
-    m_attachedSymbol    = wxEmptyString;
-    m_attachedPattern   = wxEmptyString;
+    m_attachedSymbol  = wxEmptyString;
+    m_attachedPattern = wxEmptyString;
 }
 
 
 SCH_SYMBOL::~SCH_SYMBOL()
 {
+    int i;
+
+    for( i = 0; i < (int)m_attributes.GetCount(); i++ )
+    {
+        delete m_attributes[i];
+        m_attributes[i] = NULL;
+    }
 }
+
+
+void SCH_SYMBOL::FindAttributes( XNODE* aNode )
+{
+    TATTR* attr;
+    wxString  propValue;
+
+    aNode = aNode->GetChildren();
+
+    while( aNode )
+    {
+        if( aNode->GetName() == wxT( "attr" ) )
+        {
+            aNode->GetAttribute( wxT( "Name" ), &propValue );
+            propValue.Trim( false );
+            propValue.Trim( true );
+
+            attr = new TATTR;
+            attr->attrName = wxEmptyString;
+            attr->attrValue = wxEmptyString;
+
+            wxStringTokenizer tkz( propValue, wxT(" ") );
+
+            if( tkz.HasMoreTokens() )
+                attr->attrName = tkz.GetNextToken();
+
+            if( attr->attrName.Len() + 1 < propValue.Len() )
+                attr->attrValue = propValue.Mid( attr->attrName.Len() + 1 );
+
+            if( attr->attrName != wxEmptyString )
+                m_attributes.Add( attr );
+        }
+
+        aNode = aNode->GetNext();
+    }
+}
+
 
 void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
 {
-    wxString    propValue;
-    XNODE* lNode = aNode;
+    wxString  propValue;
+    XNODE*    lNode = aNode;
 
     // also symbol from library as name of component as is known in schematics library
     while( lNode->GetName() != wxT( "www.lura.sk" ) )
@@ -88,6 +133,8 @@ void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
                 //                                                     &propValue );
                 //    m_typ.text = propValue;
                 //}
+
+                FindAttributes( lNode );
 
                 // Pattern
                 if( FindNode( lNode, wxT( "patternName" ) ) )
@@ -263,7 +310,7 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
 void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
 {
     wxString orientation, visibility, str;
-    int      a, b, c, d;
+    int      a, b, c, d, i;
 
     CorrectTextPosition( &m_value, m_rotation );
     CorrectTextPosition( &m_reference, m_rotation );
@@ -308,6 +355,17 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                                     m_value.correctedPositionY + m_positionY,
                                     KiROUND( (double) m_value.textHeight / 2.0 ) ) +
                   wxT( ' ' ) + visibility + wxT( " C C\n" ) );
+
+    for( i = 0; i < (int)m_attributes.GetCount(); i++ )
+    {
+        aFile->Write( wxString::Format( wxT( "F %d \"" ), i + 4 ) +
+                      (m_attributes[i])->attrValue + wxT( "\" H " ) +
+                      wxString::Format( wxT( "%d %d %d" ),
+                                        m_positionX,
+                                        m_positionY,
+                                        60 ) +
+                      wxT( " 0001 C CNN \"" ) + (m_attributes[i])->attrName + wxT( "\"\n" ) );
+    }
 
 // SOME ROTATION MATRICS ?????????????
 // 1    2900 5200
