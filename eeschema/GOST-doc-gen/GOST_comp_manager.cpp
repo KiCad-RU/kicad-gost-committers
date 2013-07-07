@@ -26,6 +26,8 @@
  * @file GOST_comp_manager.cpp
  */
 
+#include <eda_dde.h>
+
 #include <GOST_comp_manager.h>
 #include <component_db.h>
 
@@ -167,9 +169,10 @@ void GOST_COMP_MANAGER::FormCheckListBoxContent( int aDBitem )
 
 void GOST_COMP_MANAGER::OnClickListCtrl( wxListEvent& event )
 {
-    long item;
-    int variant;
-    wxString str;
+    char      cmd[1024];
+    long      item;
+    int       variant;
+    wxString  str;
 
     COMPONENT* pComponent;
     TCOMPONENT_ATTRS* pVariant_attrs;
@@ -184,6 +187,13 @@ void GOST_COMP_MANAGER::OnClickListCtrl( wxListEvent& event )
     item = m_listCtrl->GetItemData( item );
 
     pComponent = (COMPONENT *)m_componentDB->m_AllComponents[item];
+
+    // point the cursor in EESchema to the selected component
+    sprintf( cmd, "$PART: \"%s\"", TO_UTF8( pComponent->m_RefDes ) );
+    SendCommand( MSG_TO_SCH, cmd );
+    // point the cursor in Pcbnew to the selected component
+    sprintf( cmd, "$PART: %s", TO_UTF8( pComponent->m_RefDes ) );
+    SendCommand( MSG_TO_PCB, cmd );
 
     if( m_radio_FullList->GetValue() && pComponent->m_Variants_State==COMP_IN_VAR_PART_DIFF )
     {

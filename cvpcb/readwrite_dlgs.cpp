@@ -107,7 +107,7 @@ void CVPCB_MAINFRAME::SetNewPkg( const wxString& aFootprintName )
 #else
         description.Printf( CMP_FORMAT, componentIndex + 1,
                             GetChars( component->GetReference() ),
-                            GetChars( wxT( "123" ) + component->GetValue() ),
+                            GetChars( component->GetValue() ),
                             GetChars( component->GetFootprintName() ) );
 #endif
 
