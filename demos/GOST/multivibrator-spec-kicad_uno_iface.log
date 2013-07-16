@@ -1,0 +1,180 @@
+('Python version:', (2, 6, 6, 'final', 0))
+Connect
+LoadDocument {file:///usr/local/share/kicad/GOST-doc-gen/templates/SpecificationFirstSheet_template.odt}
+SelectTable {0}
+PutCell {3:E4} {Мультивибратор} {0}
+PutCell {3:F1} {АБВГ.000000.001} {0}
+PutCell {0:B1} {} {0}
+PutCell {3:B4} {Лунев} {0}
+PutCell {3:B5} {Барановский} {0}
+PutCell {3:B8} {Викулов} {0}
+PutCell {3:F6} {ООО "XXXXX"} {0}
+SelectTable {0}
+PutCell {1:A4} {} {0}
+PutCell {1:D4} {} {0}
+SelectTable {0}
+PutCell {1:A5} {} {0}
+PutCell {1:D5} {} {0}
+PutCell {1:E5} {Документация} {3}
+SelectTable {0}
+PutCell {1:A6} {} {0}
+PutCell {1:D6} {} {0}
+SelectTable {0}
+PutCell {1:A7} {} {0}
+PutCell {1:D7} {АБВГ.000000.001 СБ} {0}
+PutCell {1:E7} {Сборочный чертеж} {0}
+SelectTable {0}
+PutCell {1:A8} {} {0}
+PutCell {1:D8} {} {0}
+SelectTable {0}
+PutCell {1:A9} {} {0}
+PutCell {1:D9} {АБВГ.000000.001 Э3} {0}
+PutCell {1:E9} {Схема электрическая} {0}
+PutCell {1:E10} {принципиальная} {0}
+SelectTable {0}
+PutCell {1:A11} {} {0}
+PutCell {1:D11} {} {0}
+SelectTable {0}
+PutCell {1:A12} {A4} {0}
+PutCell {1:D12} {АБВГ.000000.001 ПЭ3} {0}
+PutCell {1:E12} {Перечень элементов} {0}
+SelectTable {0}
+PutCell {1:A13} {} {0}
+PutCell {1:D13} {} {0}
+SelectTable {0}
+PutCell {1:A14} {} {0}
+PutCell {1:D14} {} {0}
+PutCell {1:E14} {Детали} {3}
+SelectTable {0}
+PutCell {1:A15} {} {0}
+PutCell {1:D15} {} {0}
+SelectTable {0}
+PutCell {1:A16} {} {0}
+PutCell {1:C16} {1} {0}
+PutCell {1:D16} {} {0}
+PutCell {1:E16} {Плата печатная} {0}
+PutCell {1:F16} {1} {0}
+SelectTable {0}
+PutCell {1:A17} {} {0}
+PutCell {1:D17} {} {0}
+SelectTable {0}
+PutCell {1:A18} {} {0}
+PutCell {1:D18} {} {0}
+SelectTable {0}
+PutCell {1:A19} {} {0}
+PutCell {1:D19} {} {0}
+PutCell {1:E19} {Прочие изделия} {3}
+SelectTable {0}
+PutCell {1:A20} {} {0}
+PutCell {1:D20} {} {0}
+SelectTable {0}
+PutCell {1:A21} {} {0}
+PutCell {1:D21} {} {0}
+PutCell {1:E21} {Резисторы 0805} {0}
+SelectTable {0}
+PutCell {1:A22} {} {0}
+PutCell {1:C22} {5} {0}
+PutCell {1:D22} {} {0}
+PutCell {1:E22} {0805 1 кОм ±5 %} {0}
+PutCell {1:E23} {Фирма "Yageo"} {0}
+PutCell {1:F22} {2} {0}
+PutCell {1:G22} {R1,R4} {0}
+SelectTable {0}
+PutCell {1:A24} {} {0}
+PutCell {1:C24} {6} {0}
+PutCell {1:D24} {} {0}
+PutCell {1:E24} {0805 100 кОм ±5 %} {0}
+PutCell {1:E25} {Фирма "Yageo"} {0}
+PutCell {1:F24} {2} {0}
+PutCell {1:G24} {R2,R3} {0}
+SelectTable {0}
+PutCell {1:A26} {} {0}
+PutCell {1:D26} {} {0}
+AppendDocument {file:///usr/local/share/kicad/GOST-doc-gen/templates/SpecificationMiddleSheet_template.odt}
+SelectTable {1}
+PutCell {3:G3} {2} {0}
+PutCell {3:F1} {АБВГ.000000.001} {0}
+SelectTable {1}
+PutCell {1:A2} {} {0}
+PutCell {1:C2} {7} {0}
+PutCell {1:D2} {} {0}
+PutCell {1:E2} {Транзистор PN2222A} {0}
+PutCell {1:E3} {Фирма "Fairchild"} {0}
+PutCell {1:E4} {допускается замена на} {0}
+PutCell {1:E5} {MMBT2222A} {0}
+PutCell {1:F2} {2} {0}
+PutCell {1:G2} {VT1,VT2} {0}
+SelectTable {1}
+PutCell {1:A6} {} {0}
+PutCell {1:D6} {} {0}
+SelectTable {1}
+PutCell {1:A7} {} {0}
+PutCell {1:D7} {} {0}
+PutCell {1:E7} {Переменные данные} {3}
+PutCell {1:E8} {для исполнений} {3}
+SelectTable {1}
+PutCell {1:A9} {} {0}
+PutCell {1:D9} {} {0}
+SelectTable {1}
+PutCell {1:A10} {} {0}
+PutCell {1:D10} {} {0}
+PutCell {1:E10} {АБВГ.000000.001} {3}
+SelectTable {1}
+PutCell {1:A11} {} {0}
+PutCell {1:D11} {} {0}
+PutCell {1:E11} {Мультивибратор} {3}
+SelectTable {1}
+PutCell {1:A12} {} {0}
+PutCell {1:D12} {} {0}
+SelectTable {1}
+PutCell {1:A13} {} {0}
+PutCell {1:C13} {2} {0}
+PutCell {1:D13} {} {0}
+PutCell {1:E13} {Конденсатор 0805-X7R-50 В-} {0}
+PutCell {1:E14} {0,1 мкФ ±20 %} {0}
+PutCell {1:E15} {Фирма "AVX"} {0}
+PutCell {1:F13} {2} {0}
+PutCell {1:G13} {C1,C2} {0}
+SelectTable {1}
+PutCell {1:A16} {} {0}
+PutCell {1:D16} {} {0}
+SelectTable {1}
+PutCell {1:A17} {} {0}
+PutCell {1:D17} {} {0}
+PutCell {1:E17} {АБВГ.000000.001-01} {3}
+SelectTable {1}
+PutCell {1:A18} {} {0}
+PutCell {1:D18} {} {0}
+PutCell {1:E18} {Мультивибратор - 01} {3}
+SelectTable {1}
+PutCell {1:A19} {} {0}
+PutCell {1:D19} {} {0}
+SelectTable {1}
+PutCell {1:A20} {} {0}
+PutCell {1:C20} {3} {0}
+PutCell {1:D20} {} {0}
+PutCell {1:E20} {Конденсатор 0805-X7R-50 В-} {0}
+PutCell {1:E21} {0,22 мкФ ±20 %} {0}
+PutCell {1:E22} {Фирма "AVX"} {0}
+PutCell {1:F20} {2} {0}
+PutCell {1:G20} {C1,C2} {0}
+SelectTable {1}
+PutCell {1:A23} {} {0}
+PutCell {1:D23} {} {0}
+SelectTable {1}
+PutCell {1:A24} {} {0}
+PutCell {1:C24} {4} {0}
+PutCell {1:D24} {} {0}
+PutCell {1:E24} {Конденсатор} {0}
+PutCell {1:E25} {танталовый тип B-16 В-} {0}
+PutCell {1:E26} {10 мкФ ±20 %} {0}
+PutCell {1:E27} {Фирма "Panasonic"} {0}
+PutCell {1:F24} {1} {0}
+PutCell {1:G24} {C3} {0}
+AppendDocument {file:///usr/local/share/kicad/GOST-doc-gen/templates/CompIndexLastSheet_template.odt}
+SelectTable {2}
+PutCell {3:I5} {3} {0}
+PutCell {3:F1} {АБВГ.000000.001} {0}
+SelectTable {0}
+PutCell {3:J5} {3} {0}
+Exit
