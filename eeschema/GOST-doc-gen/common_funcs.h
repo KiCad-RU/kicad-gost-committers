@@ -51,6 +51,9 @@ void     StringInsert( wxString* aStr, wxString aIns, int aPos );
 wxString GetResourceFile( wxString aFileName );
 wxString AddUrlPrefix( wxString aFileName );
 wxString FindOOInstallationPath();
+#ifdef USE_PYTHON_GOSTDOCGEN
+bool     ImportPyModule( wxString aModuleName );
+#endif
 
 } // namespace GOST_DOC_GEN
 

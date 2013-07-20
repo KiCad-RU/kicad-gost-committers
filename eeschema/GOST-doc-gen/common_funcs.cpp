@@ -27,7 +27,14 @@
  */
 
 #include <appl_wxstruct.h>
+#include <macros.h>
+
 #include <common_funcs.h>
+
+#ifdef USE_PYTHON_GOSTDOCGEN
+#include <python_scripting.h>
+#include <wx_python_helpers.h>
+#endif
 
 namespace GOST_DOC_GEN {
 
@@ -418,5 +425,41 @@ wxString FindOOInstallationPath()
 
     return wxEmptyString;
 }
+
+
+#ifdef USE_PYTHON_GOSTDOCGEN
+bool ImportPyModule( wxString aModuleName )
+{
+    wxString path = GetResourceFile( aModuleName + wxT( ".py" ) );
+    if( path == wxEmptyString )
+        return false;
+
+    // remove filename from the full path
+#if defined (__WXMSW__)
+    path.Replace( wxT( "\\" ) + aModuleName + wxT( ".py" ), wxEmptyString );
+#else
+    path.Replace( wxT( "/" ) + aModuleName + wxT( ".py" ), wxEmptyString );
+#endif
+
+    path = wxT( "import sys\nsys.path.append('" ) + path + wxT( "')" );
+    if( PyRun_SimpleString( TO_UTF8( path ) ) == -1 )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
+
+    PyObject* pyModuleString = PyString_FromString( TO_UTF8( aModuleName ) );
+    PyObject* pyModule = PyImport_Import( pyModuleString );
+    if( !pyModule )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
+}
+#endif // USE_PYTHON_GOSTDOCGEN
 
 } // namespace GOST_DOC_GEN

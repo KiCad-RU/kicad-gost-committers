@@ -81,6 +81,11 @@ endif(USE_RPC_DOC_SERVER)
 if(NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK)
     set(OO_PYTHON_UNO_IFACE_SRCS
         oo_python_uno_iface.cpp
+        )
+endif()
+
+if((NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK) OR USE_PYTHON_GOSTDOCGEN)
+    set(PYTHON_GOSTDOCGEN_SRCS
         ../../scripting/python_scripting.cpp
         ../../scripting/wx_python_helpers.cpp
         )
@@ -88,6 +93,7 @@ endif()
 
 set(GOST_DOC_GEN_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../template_fieldnames_keywords.cpp
+    ${PYTHON_GOSTDOCGEN_SRCS}
     common_funcs.cpp
     component.cpp
     component_db.cpp
@@ -111,7 +117,9 @@ if(USE_OPENOFFICE_SDK AND NOT NEW_OO_CONNECT_MODE)
 endif()
 
 if(NOT USE_OPENOFFICE_SDK)
-    install(FILES uno_iface.py
+    install(FILES
+                doc_common.py
+                uno_iface.py
             DESTINATION ${KICAD_DATA}/GOST-doc-gen
             COMPONENT resources)
 endif()

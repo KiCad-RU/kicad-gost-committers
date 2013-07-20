@@ -22,6 +22,7 @@ option(wxUSE_UNICODE "enable/disable building unicode (default OFF)")
 option(KICAD_GOST "enable/disable building using GOST notation for multiple gates per package (default OFF)")
 option(USE_RPC_DOC_SERVER "enable/disable building GOST document generator using RPC document server (default ON)" ON)
 option(USE_OPENOFFICE_SDK "enable/disable building GOST document generator with use of OpenOffice/LibreOffice SDK (default OFF)")
+option(USE_PYTHON_GOSTDOCGEN "enable/disable building Python based GOST document generator (default OFF)")
 # USE_RPC_DOC_SERVER and USE_OPENOFFICE_SDK are suboptions of KICAD_GOST option.
 # These suboptions select an approach how to interact with OpenOffice / LibreOffice.
 # It is recommended to set the suboptions as follows: USE_RPC_DOC_SERVER=ON and USE_OPENOFFICE_SDK=OFF.
@@ -321,7 +322,7 @@ if(MINGW AND USE_WX_GRAPHICS_CONTEXT)
 endif()
 
 # Find Python and other scripting resources
-if(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR
+if(KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_PYTHON_GOSTDOCGEN OR
    (KICAD_GOST AND NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK))
     set(PythonInterp_FIND_VERSION)
     find_package(PythonInterp)

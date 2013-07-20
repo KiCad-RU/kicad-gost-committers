@@ -41,11 +41,21 @@ DOC_COMMON::DOC_COMMON()
     m_current_row = 0;
     m_current_sheet = 0;
     m_specification_pos_field = 0;
+
+#ifdef USE_PYTHON_GOSTDOCGEN
+    // launch the Python interpreter
+    Py_Initialize();
+
+    ImportPyModule( wxT( "doc_common" ) );
+#endif
 }
 
 
 DOC_COMMON::~DOC_COMMON()
 {
+#ifdef USE_PYTHON_GOSTDOCGEN
+    Py_Finalize();
+#endif
 }
 
 

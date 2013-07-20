@@ -32,6 +32,9 @@
 #include <wx/wx.h>
 #include <component_db.h>
 
+#ifdef USE_PYTHON_GOSTDOCGEN
+#include <python_scripting.h>
+#endif
 
 namespace GOST_DOC_GEN {
 
