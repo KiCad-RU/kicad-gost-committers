@@ -78,6 +78,7 @@ public:
     wxString        m_notInstalledStr;
 
                     ~COMPONENT_DB();
+    void            ValidateKiCadAttrs();
     void            LoadFromKiCad();
     bool            CompareDB();
     bool            WriteBackToKiCad();

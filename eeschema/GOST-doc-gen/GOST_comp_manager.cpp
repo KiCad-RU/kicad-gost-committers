@@ -62,6 +62,7 @@ GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
                               wxLIST_FORMAT_LEFT,
                               listClientSize.GetWidth() * 1/4 );
 
+    m_componentDB->ValidateKiCadAttrs();
     m_componentDB->LoadFromKiCad();
 
     FormVariantList();

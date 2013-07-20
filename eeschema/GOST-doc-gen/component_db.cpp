@@ -251,6 +251,108 @@ void COMPONENT_DB::AddNewVariant( int aVariant )
 }
 
 
+void COMPONENT_DB::ValidateKiCadAttrs()
+{
+    SCH_SHEET_LIST  sheetList;
+    SCH_FIELD*      pSch_field;
+    bool            warnAttrValueDuplication_flag = false;
+    bool            copyValueAttrPosition;
+
+    sheetList.GetComponents( m_cmplist, false );
+    m_cmplist.RemoveSubComponentsFromList();
+
+    unsigned int index = 0;
+
+    while( index < m_cmplist.GetCount() )
+    {
+        SCH_COMPONENT* component = m_cmplist[index].GetComponent();
+
+        copyValueAttrPosition = false;
+
+        if( component->GetField( VALUE )->GetText() == component->GetLibName()
+            && !warnAttrValueDuplication_flag )
+        {
+            int res = wxMessageBox( _( "Some components have equal 'Chip Name' and 'Value' attributes!\n"
+                                       "'Value' attributes will be copied to 'Type' ones "
+                                       "including their position, orientation and visibility. "
+                                       "After that 'Value' attributes will be cleared.\n"
+                                       "If some of components do not have 'Type' attribute "
+                                       "then such attributes will be created.\n"
+                                       "Continue?" ), wxT( "" ), wxYES_NO );
+            if ( res==wxNO )
+                return;
+
+            warnAttrValueDuplication_flag = true;
+        }
+
+        if( component->GetField( VALUE )->GetText() == component->GetLibName() )
+        {
+            // workaround for eeschema bug (Value field is assigned to Chip Name field by default
+            // on the component adding from a library)
+            m_modified = true;
+            component->GetField( VALUE )->SetText( wxT( "~" ) );
+            copyValueAttrPosition = true;
+        }
+
+        if( ( !( pSch_field = component->FindField( wxT( "Type" ) ) )
+            || pSch_field->GetText() == wxEmptyString )
+            && !warnAttrValueDuplication_flag )
+        {
+            int res = wxMessageBox( _( "Some components do not have 'Type' attribute!\n"
+                                       "'Type' attributes will be created for such components.\n"
+                                       "Also if some of components have equal 'Chip Name' and 'Value' attributes "
+                                       "then 'Value' attributes will be copied to 'Type' ones "
+                                       "including their position, orientation and visibility. "
+                                       "After that 'Value' attributes will be cleared.\n"
+                                       "Continue?" ), wxT( "" ), wxYES_NO );
+            if ( res==wxNO )
+                return;
+
+            warnAttrValueDuplication_flag = true;
+        }
+
+        if( !( pSch_field = component->FindField( wxT( "Type" ) ) ) )
+        {
+            m_modified = true;
+            // the field does not exist then create it
+            SCH_FIELD field( wxPoint( 0, 0 ),
+                             -1, // field id is not relavant for user defined fields
+                             component,
+                             wxT( "Type" ) );
+
+            field.SetText( component->GetLibName() );
+
+            if( copyValueAttrPosition )
+            {
+                field.SetTextPosition( component->GetField( VALUE )->GetTextPosition() );
+                field.SetOrientation( component->GetField( VALUE )->GetOrientation() );
+                field.SetVisible( component->GetField( VALUE )->IsVisible() );
+            }
+            else
+                field.SetTextPosition( component->GetPosition() );
+
+            component->AddField( field );
+        }
+        else if( pSch_field->GetText() == wxEmptyString )
+        {
+            m_modified = true;
+            pSch_field->SetText( component->GetLibName() );
+
+            if( copyValueAttrPosition )
+            {
+                pSch_field->SetTextPosition( component->GetField( VALUE )->GetTextPosition() );
+                pSch_field->SetOrientation( component->GetField( VALUE )->GetOrientation() );
+                pSch_field->SetVisible( component->GetField( VALUE )->IsVisible() );
+            }
+            else
+                pSch_field->SetTextPosition( component->GetPosition() );
+        }
+
+        index++;
+    }
+}
+
+
 void COMPONENT_DB::LoadFromKiCad()
 {
     SCH_SHEET_LIST  sheetList;
@@ -283,10 +385,7 @@ void COMPONENT_DB::LoadFromKiCad()
         pComp->m_RefDes = m_cmplist[index].GetRef();
         pComp->m_SortingRefDes = str;
 
-        if( component->GetField( VALUE )->GetText() == wxT( "~" )
-            || component->GetField( VALUE )->GetText() == component->GetLibName() )
-            // workaround for eeschema bug (Value field is assigned to Chip Name field by default
-            // on the component adding from a library)
+        if( component->GetField( VALUE )->GetText() == wxT( "~" ) )
             pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = wxEmptyString;
         else
             pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = component->GetField( VALUE )->GetText();
@@ -294,31 +393,13 @@ void COMPONENT_DB::LoadFromKiCad()
         if( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_NAME].value_of_attr = pSch_field->GetText();
 
-        if( !( pSch_field = component->FindField( wxT( "Type" ) ) ) )
+        if( ( pSch_field = component->FindField( wxT( "Type" ) ) ) )
         {
-            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = component->GetLibName();
-
-            m_modified = true;
-            // the field does not exist then create it
-            SCH_FIELD field( wxPoint( 0, 0 ),
-                             -1, // field id is not relavant for user defined fields
-                             component,
-                             wxT( "Type" ) );
-
-            field.SetText( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr );
-            field.SetTextPosition( component->GetPosition() );
-            component->AddField( field );
+            if( pSch_field->GetText() == wxT( "~" ) )
+                pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = wxEmptyString;
+            else
+                pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = pSch_field->GetText();
         }
-        else if( pSch_field->GetText() == wxEmptyString )
-        {
-            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = component->GetLibName();
-            m_modified = true;
-            pSch_field->SetText( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr );
-        }
-        else if( pSch_field->GetText() != wxT( "~" ) )
-            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = pSch_field->GetText();
-        else
-            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = wxEmptyString;
 
         if( ( pSch_field = component->FindField( wxT( "SType" ) ) ) )
             pComp->m_KiCadAttrs[ATTR_SUBTYPE].value_of_attr = pSch_field->GetText();
@@ -388,20 +469,9 @@ bool COMPONENT_DB::CompareDB()
         if( pComp->m_SortingRefDes != str )
             return false;
 
-        if( component->GetField( VALUE )->GetText() == wxT( "~" )
-            || component->GetField( VALUE )->GetText() == component->GetLibName() )
-            // workaround for eeschema bug (Value field is assigned to Chip Name field by default
-            // on the component adding from a library)
-        {
-            if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr != wxT( "~" ) )
-                return false;
-        }
-        else
-        {
-            if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr !=
-                component->GetField( VALUE )->GetText() )
-                return false;
-        }
+        if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr !=
+            component->GetField( VALUE )->GetText() )
+            return false;
 
         if( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
         {
@@ -409,14 +479,7 @@ bool COMPONENT_DB::CompareDB()
                 return false;
         }
 
-        if( !( pSch_field = component->FindField( wxT( "Type" ) ) ) )
-            return false;
-        else if( pSch_field->GetText() == wxEmptyString )
-        {
-            if( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr != component->GetLibName() )
-                return false;
-        }
-        else
+        if( ( pSch_field = component->FindField( wxT( "Type" ) ) ) )
         {
             if( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr != pSch_field->GetText() )
                 return false;
