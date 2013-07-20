@@ -54,7 +54,7 @@ F 3 "~" H 3300 5300 60  0000 C CNN
 F 4 "Транзистор" H 3300 5300 60  0001 C CNN "Title"
 F 5 "Fairchild" H 3300 5300 60  0001 C CNN "Manufacturer"
 F 6 "допускается замена на MMBT2222A" H 3300 5300 60  0001 C CNN "Note"
-F 7 "PN2222A" H 0   0   60  0001 C CNN "Type"
+F 7 "PN2222A" H 3300 5300 60  0001 C CNN "Type"
 	1    3300 5300
 	-1   0    0    -1  
 $EndComp
@@ -222,7 +222,7 @@ F 3 "~" H 5200 5300 60  0000 C CNN
 F 4 "Транзистор" H 5200 5300 60  0001 C CNN "Title"
 F 5 "Fairchild" H 5200 5300 60  0001 C CNN "Manufacturer"
 F 6 "допускается замена на MMBT2222A" H 5200 5300 60  0001 C CNN "Note"
-F 7 "PN2222A" H 0   0   60  0001 C CNN "Type"
+F 7 "PN2222A" H 5200 5300 60  0001 C CNN "Type"
 	1    5200 5300
 	1    0    0    -1  
 $EndComp

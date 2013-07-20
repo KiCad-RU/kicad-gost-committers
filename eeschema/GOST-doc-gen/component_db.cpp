@@ -306,6 +306,7 @@ void COMPONENT_DB::LoadFromKiCad()
                              wxT( "Type" ) );
 
             field.SetText( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr );
+            field.SetTextPosition( component->GetPosition() );
             component->AddField( field );
         }
         else if( pSch_field->GetText() == wxEmptyString )
@@ -477,6 +478,7 @@ void COMPONENT_DB::WriteAttributeBackToKiCad( COMPONENT* aComp,
                              aAttrName );
 
             field.SetText( aComp->m_KiCadAttrs[aAttrIndex].value_of_attr );
+            field.SetTextPosition( aComp->m_KiCadComponentPtr->GetPosition() );
             aComp->m_KiCadComponentPtr->AddField( field );
         }
     }
