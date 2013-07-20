@@ -105,8 +105,17 @@ public:
 private:
     void            ZeroInserting( wxString* aStr );
     bool            FindVariant( int aVariant );
+
+    void            ReadAttrFromKiCad( COMPONENT* aComp,
+                                      int aAttrIndex,
+                                      wxString aAttrName );
+
+    bool            CompareAttrFromKiCad( COMPONENT* aComp,
+                                          int aAttrIndex,
+                                          wxString aAttrName );
     void            ReadVariants();
     bool            WriteVariants();
+
     void            WriteAttributeBackToKiCad( COMPONENT* aComp,
                                                int aAttrIndex,
                                                wxString aAttrName );

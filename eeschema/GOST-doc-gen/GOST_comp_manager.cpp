@@ -40,7 +40,8 @@ GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
     m_onEditChangeComboBoxLock = false;
     m_onItemChangedCheckListCtrlLock = false;
     m_warnDiffParams_flag = false;
-    m_ignoreLostFocus_flag = false;
+    // skip comparing DB the first time because the DB has not written back yet
+    m_ignoreLostFocus_flag = true;
 
     m_componentDB = new COMPONENT_DB();
 
@@ -193,8 +194,9 @@ void GOST_COMP_MANAGER::OnClickListCtrl( wxListEvent& event )
     sprintf( cmd, "$PART: \"%s\"", TO_UTF8( pComponent->m_RefDes ) );
     SendCommand( MSG_TO_SCH, cmd );
     // point the cursor in Pcbnew to the selected component
-    sprintf( cmd, "$PART: %s", TO_UTF8( pComponent->m_RefDes ) );
-    SendCommand( MSG_TO_PCB, cmd );
+    // commented because hangs up under Ununtu 10.04 (wxWidgets 2.8.10 Unicode)
+    //sprintf( cmd, "$PART: %s", TO_UTF8( pComponent->m_RefDes ) );
+    //SendCommand( MSG_TO_PCB, cmd );
 
     if( m_radio_FullList->GetValue() && pComponent->m_Variants_State==COMP_IN_VAR_PART_DIFF )
     {

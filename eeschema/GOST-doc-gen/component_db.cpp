@@ -353,12 +353,53 @@ void COMPONENT_DB::ValidateKiCadAttrs()
 }
 
 
+void COMPONENT_DB::ReadAttrFromKiCad( COMPONENT* aComp,
+                                      int aAttrIndex,
+                                      wxString aAttrName )
+{
+    SCH_FIELD*  pSch_field;
+
+    if( ( pSch_field = aComp->m_KiCadComponentPtr->FindField( aAttrName ) ) )
+    {
+        if( pSch_field->GetText() == wxT( "~" ) )
+            aComp->m_KiCadAttrs[aAttrIndex].value_of_attr = wxEmptyString;
+        else
+            aComp->m_KiCadAttrs[aAttrIndex].value_of_attr = pSch_field->GetText();
+    }
+}
+
+
+bool COMPONENT_DB::CompareAttrFromKiCad( COMPONENT* aComp,
+                                         int aAttrIndex,
+                                         wxString aAttrName )
+{
+    SCH_FIELD*  pSch_field;
+    wxString    str;
+
+    if( ( pSch_field = aComp->m_KiCadComponentPtr->FindField( aAttrName ) ) )
+    {
+        str = pSch_field->GetText();
+        if( str == wxT( "~" ) )
+            str = wxEmptyString;
+
+        if( aComp->m_KiCadAttrs[aAttrIndex].value_of_attr != str )
+            return false;
+    }
+    else
+    {
+        if( aComp->m_KiCadAttrs[aAttrIndex].value_of_attr != wxEmptyString )
+            return false;
+    }
+
+    return true;
+}
+
+
 void COMPONENT_DB::LoadFromKiCad()
 {
     SCH_SHEET_LIST  sheetList;
     wxString        str;
     COMPONENT*      pComp;
-    SCH_FIELD*      pSch_field;
 
     sheetList.GetComponents( m_cmplist, false );
     m_cmplist.RemoveSubComponentsFromList();
@@ -390,31 +431,13 @@ void COMPONENT_DB::LoadFromKiCad()
         else
             pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = component->GetField( VALUE )->GetText();
 
-        if( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
-            pComp->m_KiCadAttrs[ATTR_NAME].value_of_attr = pSch_field->GetText();
-
-        if( ( pSch_field = component->FindField( wxT( "Type" ) ) ) )
-        {
-            if( pSch_field->GetText() == wxT( "~" ) )
-                pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = wxEmptyString;
-            else
-                pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = pSch_field->GetText();
-        }
-
-        if( ( pSch_field = component->FindField( wxT( "SType" ) ) ) )
-            pComp->m_KiCadAttrs[ATTR_SUBTYPE].value_of_attr = pSch_field->GetText();
-
-        if( ( pSch_field = component->FindField( wxT( "Precision" ) ) ) )
-            pComp->m_KiCadAttrs[ATTR_PRECISION].value_of_attr = pSch_field->GetText();
-
-        if( ( pSch_field = component->FindField( wxT( "Note" ) ) ) )
-            pComp->m_KiCadAttrs[ATTR_NOTE].value_of_attr = pSch_field->GetText();
-
-        if( ( pSch_field = component->FindField( wxT( "Designation" ) ) ) )
-            pComp->m_KiCadAttrs[ATTR_DESIGNATION].value_of_attr = pSch_field->GetText();
-
-        if( ( pSch_field = component->FindField( wxT( "Manufacturer" ) ) ) )
-            pComp->m_KiCadAttrs[ATTR_MANUFACTURER].value_of_attr = pSch_field->GetText();
+        ReadAttrFromKiCad( pComp, ATTR_NAME,         wxT( "Title" ) );
+        ReadAttrFromKiCad( pComp, ATTR_TYPE,         wxT( "Type" ) );
+        ReadAttrFromKiCad( pComp, ATTR_SUBTYPE,      wxT( "SType" ) );
+        ReadAttrFromKiCad( pComp, ATTR_PRECISION,    wxT( "Precision" ) );
+        ReadAttrFromKiCad( pComp, ATTR_NOTE,         wxT( "Note" ) );
+        ReadAttrFromKiCad( pComp, ATTR_DESIGNATION,  wxT( "Designation" ) );
+        ReadAttrFromKiCad( pComp, ATTR_MANUFACTURER, wxT( "Manufacturer" ) );
 
         m_AllComponents.Add( pComp );
         index++;
@@ -432,7 +455,6 @@ bool COMPONENT_DB::CompareDB()
     SCH_SHEET_LIST  sheetList;
     wxString        str;
     COMPONENT*      pComp;
-    SCH_FIELD*      pSch_field;
 
     sheetList.GetComponents( m_cmplist, false );
     m_cmplist.RemoveSubComponentsFromList();
@@ -469,51 +491,32 @@ bool COMPONENT_DB::CompareDB()
         if( pComp->m_SortingRefDes != str )
             return false;
 
-        if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr !=
-            component->GetField( VALUE )->GetText() )
+        str = component->GetField( VALUE )->GetText();
+        if( str == wxT( "~" ) )
+            str = wxEmptyString;
+        if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr != str )
             return false;
 
-        if( ( pSch_field = component->FindField( wxT( "Title" ) ) ) )
-        {
-            if( pComp->m_KiCadAttrs[ATTR_NAME].value_of_attr != pSch_field->GetText() )
-                return false;
-        }
+        if( !CompareAttrFromKiCad( pComp, ATTR_NAME, wxT( "Title" ) ) )
+            return false;
 
-        if( ( pSch_field = component->FindField( wxT( "Type" ) ) ) )
-        {
-            if( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr != pSch_field->GetText() )
-                return false;
-        }
+        if( !CompareAttrFromKiCad( pComp, ATTR_TYPE, wxT( "Type" ) ) )
+            return false;
 
-        if( ( pSch_field = component->FindField( wxT( "SType" ) ) ) )
-        {
-            if( pComp->m_KiCadAttrs[ATTR_SUBTYPE].value_of_attr != pSch_field->GetText() )
-                return false;
-        }
+        if( !CompareAttrFromKiCad( pComp, ATTR_SUBTYPE, wxT( "SType" ) ) )
+            return false;
 
-        if( ( pSch_field = component->FindField( wxT( "Precision" ) ) ) )
-        {
-            if( pComp->m_KiCadAttrs[ATTR_PRECISION].value_of_attr != pSch_field->GetText() )
-                return false;
-        }
+        if( !CompareAttrFromKiCad( pComp, ATTR_PRECISION, wxT( "Precision" ) ) )
+            return false;
 
-        if( ( pSch_field = component->FindField( wxT( "Note" ) ) ) )
-        {
-            if( pComp->m_KiCadAttrs[ATTR_NOTE].value_of_attr != pSch_field->GetText() )
-                return false;
-        }
+        if( !CompareAttrFromKiCad( pComp, ATTR_NOTE, wxT( "Note" ) ) )
+            return false;
 
-        if( ( pSch_field = component->FindField( wxT( "Designation" ) ) ) )
-        {
-            if( pComp->m_KiCadAttrs[ATTR_DESIGNATION].value_of_attr != pSch_field->GetText() )
-                return false;
-        }
+        if( !CompareAttrFromKiCad( pComp, ATTR_DESIGNATION, wxT( "Designation" ) ) )
+            return false;
 
-        if( ( pSch_field = component->FindField( wxT( "Manufacturer" ) ) ) )
-        {
-            if( pComp->m_KiCadAttrs[ATTR_MANUFACTURER].value_of_attr != pSch_field->GetText() )
-                return false;
-        }
+        if( !CompareAttrFromKiCad( pComp, ATTR_MANUFACTURER, wxT( "Manufacturer" ) ) )
+            return false;
 
         index++;
     }
@@ -527,11 +530,16 @@ void COMPONENT_DB::WriteAttributeBackToKiCad( COMPONENT* aComp,
                                               wxString aAttrName )
 {
     SCH_FIELD*  pSch_field;
+    wxString    str;
 
     if( aComp->m_KiCadAttrs[aAttrIndex].attr_changed )
     {
+        str = aComp->m_KiCadAttrs[aAttrIndex].value_of_attr;
+        if( aComp->m_KiCadAttrs[aAttrIndex].value_of_attr == wxEmptyString )
+            str = wxT( "~" );
+
         if ( ( pSch_field = aComp->m_KiCadComponentPtr->FindField( aAttrName ) ) )
-            pSch_field->SetText( aComp->m_KiCadAttrs[aAttrIndex].value_of_attr );
+            pSch_field->SetText( str );
         else
         {
             // the field does not exist then create it
@@ -540,7 +548,7 @@ void COMPONENT_DB::WriteAttributeBackToKiCad( COMPONENT* aComp,
                              aComp->m_KiCadComponentPtr,
                              aAttrName );
 
-            field.SetText( aComp->m_KiCadAttrs[aAttrIndex].value_of_attr );
+            field.SetText( str );
             field.SetTextPosition( aComp->m_KiCadComponentPtr->GetPosition() );
             aComp->m_KiCadComponentPtr->AddField( field );
         }
@@ -561,21 +569,18 @@ bool COMPONENT_DB::WriteBackToKiCad()
         pComp = m_AllComponents[item];
 
         // Save Value attribute
-        if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr == wxEmptyString )
-            pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr = wxT( "~" );
-
         if( pComp->m_KiCadAttrs[ATTR_VALUE].attr_changed )
-            pComp->m_KiCadComponentPtr->GetField( VALUE )->SetText(
-                pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr );
+        {
+            if( pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr == wxEmptyString )
+                pComp->m_KiCadComponentPtr->GetField( VALUE )->SetText( wxT( "~" ) );
+            else
+                pComp->m_KiCadComponentPtr->GetField( VALUE )->SetText(
+                    pComp->m_KiCadAttrs[ATTR_VALUE].value_of_attr );
+        }
 
         // Save the other attributes
         WriteAttributeBackToKiCad( pComp, ATTR_NAME,         wxT( "Title" ) );
-
-        if( pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr == wxEmptyString )
-            pComp->m_KiCadAttrs[ATTR_TYPE].value_of_attr = wxT( "~" );
-
         WriteAttributeBackToKiCad( pComp, ATTR_TYPE,         wxT( "Type" ) );
-
         WriteAttributeBackToKiCad( pComp, ATTR_SUBTYPE,      wxT( "SType" ) );
         WriteAttributeBackToKiCad( pComp, ATTR_PRECISION,    wxT( "Precision" ) );
         WriteAttributeBackToKiCad( pComp, ATTR_NOTE,         wxT( "Note" ) );
