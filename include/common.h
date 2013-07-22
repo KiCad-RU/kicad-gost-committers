@@ -82,8 +82,9 @@ enum pseudokeys {
 #define EESCHEMA_EXE        wxT( "eeschema.exe" )
 #define GERBVIEW_EXE        wxT( "gerbview.exe" )
 #define BITMAPCONVERTER_EXE wxT( "bitmap2component.exe" )
-#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.exe" )
 #define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch.exe" )
+#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.exe" )
+#define PL_EDITOR_EXE       wxT( "pl_editor.exe" )
 #else
 #ifndef __WXMAC__
 #define CVPCB_EXE           wxT( "cvpcb" )
@@ -91,16 +92,18 @@ enum pseudokeys {
 #define EESCHEMA_EXE        wxT( "eeschema" )
 #define GERBVIEW_EXE        wxT( "gerbview" )
 #define BITMAPCONVERTER_EXE wxT( "bitmap2component" )
-#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator" )
 #define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch" )
+#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator" )
+#define PL_EDITOR_EXE       wxT( "pl_editor" )
 #else
 #define CVPCB_EXE           wxT( "cvpcb.app/Contents/MacOS/cvpcb" )
 #define PCBNEW_EXE          wxT( "pcbnew.app/Contents/MacOS/pcbnew" )
 #define EESCHEMA_EXE        wxT( "eeschema.app/Contents/MacOS/eeschema" )
 #define GERBVIEW_EXE        wxT( "gerbview.app/Contents/MacOS/gerbview" )
 #define BITMAPCONVERTER_EXE wxT( "bitmap2component.app/Contents/MacOS/bitmap2component" )
-#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.app/Contents/MacOS/pcb_calculator" )
 #define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch.app/Contents/MacOS/pcad2kicadsch" )
+#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.app/Contents/MacOS/pcb_calculator" )
+#define PL_EDITOR_EXE  wxT( "pcb_calculator.app/Contents/MacOS/pl_editor" )
 # endif
 #endif
 
@@ -170,7 +173,14 @@ inline int Mils2mm( double x ) { return KiROUND( x * 25.4 / 1000. ); }
 
 
 /// Return whether GOST is in play
-bool IsGOST();
+inline bool IsGOST()
+{
+#if defined(KICAD_GOST)
+    return true;
+#else
+    return false;
+#endif
+}
 
 
 enum EDA_UNITS_T {
@@ -289,59 +299,11 @@ public:
 
     // Accessors returning "Internal Units (IU)".  IUs are mils in EESCHEMA,
     // and either deci-mils or nanometers in PCBNew.
-#if defined(PCBNEW) || defined(EESCHEMA) || defined(GERBVIEW)
+#if defined(PCBNEW) || defined(EESCHEMA) || defined(GERBVIEW) || defined(PL_EDITOR)
     int GetWidthIU() const  { return IU_PER_MILS * GetWidthMils();  }
     int GetHeightIU() const { return IU_PER_MILS * GetHeightMils(); }
     const wxSize GetSizeIU() const  { return wxSize( GetWidthIU(), GetHeightIU() ); }
 #endif
-
-    /**
-     * Function GetLeftMarginMils.
-     * @return int - logical page left margin in mils.
-     */
-    int GetLeftMarginMils() const           { return m_left_margin; }
-
-    /**
-     * Function GetLeftMarginMils.
-     * @return int - logical page right margin in mils.
-     */
-    int GetRightMarginMils() const          { return m_right_margin; }
-
-    /**
-     * Function GetLeftMarginMils.
-     * @return int - logical page top margin in mils.
-     */
-    int GetTopMarginMils() const            { return m_top_margin; }
-
-    /**
-     * Function GetBottomMarginMils.
-     * @return int - logical page bottom margin in mils.
-     */
-    int GetBottomMarginMils() const         { return m_bottom_margin; }
-
-    /**
-     * Function SetLeftMarginMils
-     * sets left page margin to @a aMargin in mils.
-     */
-    void SetLeftMarginMils( int aMargin )   { m_left_margin = aMargin; }
-
-    /**
-     * Function SetRightMarginMils
-     * sets right page margin to @a aMargin in mils.
-     */
-    void SetRightMarginMils( int aMargin )  { m_right_margin = aMargin; }
-
-    /**
-     * Function SetTopMarginMils
-     * sets top page margin to @a aMargin in mils.
-     */
-    void SetTopMarginMils( int aMargin )    { m_top_margin = aMargin; }
-
-    /**
-     * Function SetBottomMarginMils
-     * sets bottom page margin to @a aMargin in mils.
-     */
-    void SetBottomMarginMils( int aMargin ) { m_bottom_margin = aMargin; }
 
     /**
      * Function SetCustomWidthMils
@@ -421,12 +383,6 @@ private:
 /// Min and max page sizes for clamping.
 #define MIN_PAGE_SIZE   4000
 #define MAX_PAGE_SIZE   48000
-
-
-    int         m_left_margin;
-    int         m_right_margin;
-    int         m_top_margin;
-    int         m_bottom_margin;
 
     bool        m_portrait;         ///< true if portrait, false if landscape
 
