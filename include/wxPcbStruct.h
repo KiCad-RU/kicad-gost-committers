@@ -542,7 +542,15 @@ public:
     void ReCreateMicrowaveVToolbar();
     void ReCreateOptToolbar();
     void ReCreateMenuBar();
-    PCB_LAYER_BOX_SELECTOR* ReCreateLayerBox( wxAuiToolBar* parent );
+
+    /**
+     * Re create the layer Box by clearing the old list, and building
+     * le new one, from the new layers names and cole layers
+     * @param aForceResizeToolbar = true to resize the parent toolbar
+     * false if not needed (mainly in parent toolbar creation,
+     * or when the layers names are not modified)
+     */
+    void ReCreateLayerBox( bool aForceResizeToolbar = true );
 
     /**
      * Function OnModify
@@ -1451,6 +1459,8 @@ public:
      * @param aSelectByTimestamp if true, use timestamp instead of reference to identify
      *                           footprints from components (use after reannotation of the
      *                           schematic)
+     * @param aDeleteSinglePadNets if true, remove nets counting only one pad
+     *                             and set net code to 0 for these pads
      * @param aIsDryRun performs a dry run without making any changes if true.
      */
     void ReadPcbNetlist( const wxString&  aNetlistFileName,
@@ -1460,6 +1470,7 @@ public:
                          bool             aDeleteBadTracks,
                          bool             aDeleteExtraFootprints,
                          bool             aSelectByTimestamp,
+                         bool             aDeleteSinglePadNets,
                          bool             aIsDryRun );
 
     /**

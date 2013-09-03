@@ -76,6 +76,7 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_global_deletion_base.cpp
     dialogs/dialog_keepout_area_properties.cpp
     dialogs/dialog_keepout_area_properties_base.cpp
+    dialogs/dialog_layer_selection_base.cpp
     dialogs/dialog_layers_setup.cpp
     dialogs/dialog_layers_setup_base.cpp
     dialogs/dialog_netlist.cpp
@@ -101,6 +102,7 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_SVG_print_base.cpp
     dialogs/dialog_set_grid.cpp
     dialogs/dialog_set_grid_base.cpp
+    dialogs/dialog_target_properties_base.cpp
     footprint_wizard.cpp
     footprint_wizard_frame.cpp
     dialogs/dialog_footprint_wizard_list_base.cpp
@@ -172,7 +174,6 @@ set( PCBNEW_CLASS_SRCS
     menubar_modedit.cpp
     menubar_pcbframe.cpp
     minimun_spanning_tree.cpp
-    mirepcb.cpp
     modedit.cpp
     modedit_onclick.cpp
     modeditoptions.cpp
@@ -200,6 +201,7 @@ set( PCBNEW_CLASS_SRCS
     specctra_import.cpp
     specctra_keywords.cpp
     swap_layers.cpp
+    target_edit.cpp
     tool_modedit.cpp
     tool_onrightclick.cpp
     tool_pcb.cpp
