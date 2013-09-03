@@ -26,7 +26,6 @@ include_directories(
     ${GOST_DOC_GEN_INCLUDE_DIR}
     ../common
     ../common/dialogs
-    ${Boost_INCLUDE_DIR}
     ${INC_AFTER}
     )
 
