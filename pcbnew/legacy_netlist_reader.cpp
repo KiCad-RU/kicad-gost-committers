@@ -165,11 +165,15 @@ COMPONENT* LEGACY_NETLIST_READER::loadComponent( char* aText ) throw( PARSE_ERRO
         name = FROM_UTF8( text ).AfterFirst( wxChar( '=' ) ).BeforeLast( wxChar( '}' ) );
     }
 
+    FPID fpid;
+
+    fpid.SetFootprintName( footprintName );
 #if defined(KICAD_GOST)
-    COMPONENT* component = new COMPONENT( footprintName, reference, value, wxEmptyString, timeStamp );
+    COMPONENT* component = new COMPONENT( fpid, reference, value, wxEmptyString, timeStamp );
 #else
-    COMPONENT* component = new COMPONENT( footprintName, reference, value, timeStamp );
+    COMPONENT* component = new COMPONENT( fpid, reference, value, timeStamp );
 #endif
+
     component->SetName( name );
     m_netlist->AddComponent( component );
     return component;

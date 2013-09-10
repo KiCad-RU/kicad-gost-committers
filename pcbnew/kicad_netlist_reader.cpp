@@ -287,6 +287,7 @@ void KICAD_NETLIST_PARSER::parseComponent() throw( IO_ERROR, PARSE_ERROR )
     wxString type, fieldName;
 #endif
     wxString footprintName;
+    wxString footprintLib;
     wxString library;
     wxString name;
     wxString pathtimestamp, timestamp;
@@ -350,6 +351,12 @@ void KICAD_NETLIST_PARSER::parseComponent() throw( IO_ERROR, PARSE_ERROR )
             NeedRIGHT();
             break;
 
+        case T_fp_lib:
+            NeedSYMBOLorNUMBER();
+            footprintLib = FROM_UTF8( CurText() );
+            NeedRIGHT();
+            break;
+
         case T_libsource:
             // Read libsource
             while( (token = NextTok()) != T_RIGHT )
@@ -397,11 +404,15 @@ void KICAD_NETLIST_PARSER::parseComponent() throw( IO_ERROR, PARSE_ERROR )
         }
     }
 
+    FPID fpid;
+
+    fpid.SetFootprintName( footprintName );
+    fpid.SetLibNickname( footprintName );
     pathtimestamp += timestamp;
 #if defined(KICAD_GOST)
-    COMPONENT* component = new COMPONENT( footprintName, ref, value, type, pathtimestamp );
+    COMPONENT* component = new COMPONENT( fpid, ref, value, type, pathtimestamp );
 #else
-    COMPONENT* component = new COMPONENT( footprintName, ref, value, pathtimestamp );
+    COMPONENT* component = new COMPONENT( fpid, ref, value, pathtimestamp );
 #endif
     component->SetName( name );
     component->SetLibrary( library );
