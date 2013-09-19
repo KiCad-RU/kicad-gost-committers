@@ -25,6 +25,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 ### END LICENSE
 
+import re
+
 FIRST_SHEET_LAST_STR_I = 26
 SECOND_SHEET_LAST_STR_I = 29
 
@@ -71,7 +73,7 @@ ADDR_LASTSHEET_DESIGNATION = '3:F1'
 
 class DocCommon:
     """
-    Common functions for work with the document.
+    Common functions for working with the document.
 
     """
 
@@ -84,91 +86,92 @@ class DocCommon:
         self.current_sheet = 0
         self.specification_pos_field = 0
         self.dictionary = {
-           u'Диодная сборка': [
-               u'Диодные сборки',
-               u'Диодной сборки',
-               u'Додных сбоорок'
-                ],
-           u'Микросхема': [
-               u'Микросхемы',
-               u'Микросхемы',
-               u'Микросхем'
-                ],
-           u'Кварцевый резонатор': [
-               u'Кварцевые резонаторы',
-               u'Кварцевого резонатора',
-               u'Кварцевых резонаторов'
-                ],
-           u'Конпка': [
-               u'Кнопки',
-               u'Кнопки',
-               u'Кнопок'
-                ],
-           u'Колодка зажимов': [
-               u'Колодки зажимов',
-               u'Колодки зажимов',
-               u'Колодок зажимов'
-                ],
-           u'Крепление для элемента питания': [
-               u'Крепления для элементов питания',
-               u'Крепления для элемента питания',
-               u'Креплений для эелементов питания'
-                ],
-           u'Оптопара': [
-               u'Оптопары',
-               u'Оптопары',
-               u'Оптопар'
-                ],
-           u'Планка': [
-               u'Планки',
-               u'Планки',
-               u'Планок'
-                ],
-           u'Резисторная сборка': [
-               u'Резисторные сборки',
-               u'Резисторной сборки',
-               u'Резисторных сборок'
-                ],
-           u'Реле': [
-               u'Реле',
-               u'Реле',
-               u'Реле'
-                ],
-           u'Стойка': [
-               u'Стойки',
-               u'Стойки',
-               u'Стоек'
-                ],
-           u'Элемент защиты': [
-               u'Элементы защиты',
-               u'Элемента защиты',
-               u'Элементов защиты'
-                ]
+            u'Диодная сборка': (
+                u'Диодные сборки',
+                u'Диодной сборки',
+                u'Додных сбоорок'
+                ),
+            u'Микросхема': (
+                u'Микросхемы',
+                u'Микросхемы',
+                u'Микросхем'
+                ),
+            u'Кварцевый резонатор': (
+                u'Кварцевые резонаторы',
+                u'Кварцевого резонатора',
+                u'Кварцевых резонаторов'
+                ),
+            u'Конпка': (
+                u'Кнопки',
+                u'Кнопки',
+                u'Кнопок'
+                ),
+            u'Колодка зажимов': (
+                u'Колодки зажимов',
+                u'Колодки зажимов',
+                u'Колодок зажимов'
+                ),
+            u'Крепление для элемента питания': (
+                u'Крепления для элементов питания',
+                u'Крепления для элемента питания',
+                u'Креплений для эелементов питания'
+                ),
+            u'Оптопара': (
+                u'Оптопары',
+                u'Оптопары',
+                u'Оптопар'
+                ),
+            u'Планка': (
+                u'Планки',
+                u'Планки',
+                u'Планок'
+                ),
+            u'Резисторная сборка': (
+                u'Резисторные сборки',
+                u'Резисторной сборки',
+                u'Резисторных сборок'
+                ),
+            u'Реле': (
+                u'Реле',
+                u'Реле',
+                u'Реле'
+                ),
+            u'Стойка': (
+                u'Стойки',
+                u'Стойки',
+                u'Стоек'
+                ),
+            u'Элемент защиты': (
+                u'Элементы защиты',
+                u'Элемента защиты',
+                u'Элементов защиты'
+                )
             }
-        self.meas_units_matrix = {
-           u'мкГн': -6,
-           u'кОм': 3,
-           u'МОм': 6,
-           u'ГОм': 9,
-           u'мкФ': -6,
-           u'нГн': -9,
-           u'кГц': 3,
-           u'МГц': 6,
-           u'ГГц': 9,
-           u'мГн': -3,
-           u'Ом': 0,
-           u'пФ': -12,
-           u'Гц': 0,
-           u'мФ': -3,
-           u'нФ': -9,
-           u'мк': -6,
-           u'Гн': 0,
-           u'Ф': 0,
-           u'к': 3,
-           u'н': -9,
-           u'М': 6,
-           u'Г': 9
-            }
+
+        self.meas_units_matrix = (
+            (u'мкГн', -6),
+            (u'кОм', 3),
+            (u'МОм', 6),
+            (u'ГОм', 9),
+            (u'мкФ', -6),
+            (u'нГн', -9),
+            (u'кГц', 3),
+            (u'МГц', 6),
+            (u'ГГц', 9),
+            (u'мГн', -3),
+            (u'Ом', 0),
+            (u'пФ', -12),
+            (u'Гц', 0),
+            (u'мФ', -3),
+            (u'нФ', -9),
+            (u'мк', -6),
+            (u'Гн', 0),
+            (u'Ф', 0),
+            (u'к', 3),
+            (u'н', -9),
+            (u'М', 6),
+            (u'Г', 9)
+            )
 
     def change_word_form(self, str_, type_):
         """
@@ -198,4 +201,44 @@ class DocCommon:
                 output = str_ + (u'ы', u'а', u'ов')[type_]
         return output
 
+    def extract_absolute_value(self, value):
+        """
+        Get absolute value of component from string.
 
+            Arguments:
+
+            value - string with value of component like '100 кОм', etc.
+
+            Returns:
+
+            if value is correct - absolute value;
+            else - None.
+
+        """
+        value = value.replace(u',', u'.')
+        match = re.search(r'\D\.?\d+(?:\.\d+)?', value)
+        if match:
+            mant = float(match.group(0))
+            for unit, exp in self.meas_units_matrix:
+                if unit in value:
+                    return mant * (10 ** exp)
+            return mant
+        else:
+            return None
+
+    def sort_string_array(self, string_array):
+        """
+        Sortsing an array of strings.
+
+            Arguments:
+
+            string_array - array of strings.
+
+        """
+        for i in range(len(string_array)):
+            # compare two neighbour strings
+            for j in range(len(string_array) - i):
+                if string_array[j] > string_array[j + 1]:
+                    # if the strings are placed out of order
+                    # then the string are swapped
+                    string_array[j], string_array[j + 1] = string_array[j + 1], string_array[j]
