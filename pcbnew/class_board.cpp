@@ -39,7 +39,7 @@
 #include <pcbcommon.h>
 #include <wxBasePcbFrame.h>
 #include <msgpanel.h>
-#include <netlist_reader.h>
+#include <pcb_netlist.h>
 #include <reporter.h>
 #include <base_units.h>
 
@@ -1500,7 +1500,8 @@ void BOARD::RedrawFilledAreas( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDr
 
 ZONE_CONTAINER* BOARD::HitTestForAnyFilledArea( const wxPoint& aRefPos,
                                                 LAYER_NUM      aStartLayer,
-                                                LAYER_NUM      aEndLayer )
+                                                LAYER_NUM      aEndLayer,
+                                                int aNetCode )
 {
     if( aEndLayer < 0 )
         aEndLayer = aStartLayer;
@@ -1518,6 +1519,9 @@ ZONE_CONTAINER* BOARD::HitTestForAnyFilledArea( const wxPoint& aRefPos,
 
         // In locate functions we must skip tagged items with BUSY flag set.
         if( area->GetState( BUSY ) )
+            continue;
+
+        if( aNetCode >= 0 && area->GetNet() != aNetCode )
             continue;
 
         if( area->HitTestFilledArea( aRefPos ) )
@@ -2629,8 +2633,8 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                     if( aReporter && aReporter->ReportAll() )
                     {
                         msg.Printf( _( "Remove single pad net \"%s\" on \"%s\" pad <%s>\n" ),
-                                    GetChars( pad->GetNetname() ),
-                                    GetChars( pad->GetParent()->GetReference() ),
+                                    GetChars( previouspad->GetNetname() ),
+                                    GetChars( previouspad->GetParent()->GetReference() ),
                                     GetChars( previouspad->GetPadName() ) );
                         aReporter->Report( msg );
                     }

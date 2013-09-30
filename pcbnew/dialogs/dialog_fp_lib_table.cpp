@@ -48,6 +48,19 @@
 #include <wx/regex.h>
 #include <set>
 
+
+/// grid column order is established by this sequence
+enum COL_ORDER
+{
+    COL_NICKNAME,
+    COL_URI,
+    COL_TYPE,
+    COL_OPTIONS,
+    COL_DESCR,
+    COL_COUNT       // keep as last
+};
+
+
 /**
  * Class FP_TBL_MODEL
  * mixes in wxGridTableBase into FP_LIB_TABLE so that the latter can be used
@@ -56,16 +69,6 @@
 class FP_TBL_MODEL : public wxGridTableBase, public FP_LIB_TABLE
 {
 public:
-
-    enum COL_ORDER      ///<  grid column order, established by this sequence
-    {
-        COL_NICKNAME,
-        COL_URI,
-        COL_TYPE,
-        COL_OPTIONS,
-        COL_DESCR,
-        COL_COUNT       // keep as last
-    };
 
     /**
      * Constructor FP_TBL_MODEL
@@ -79,8 +82,8 @@ public:
 
     //-----<wxGridTableBase overloads>-------------------------------------------
 
-    int         GetNumberRows () { return rows.size(); }
-    int         GetNumberCols () { return COL_COUNT; }
+    int         GetNumberRows()     { return rows.size(); }
+    int         GetNumberCols()     { return COL_COUNT; }
 
     wxString    GetValue( int aRow, int aCol )
     {
@@ -394,6 +397,101 @@ class DIALOG_FP_LIB_TABLE : public DIALOG_FP_LIB_TABLE_BASE
         }
     }
 
+    /**
+     * Function verifyTables
+     * trims important fields, removes blank row entries, and checks for duplicates.
+     * @return bool - true if tables are OK, else false.
+     */
+    bool verifyTables()
+    {
+        for( int t=0; t<2; ++t )
+        {
+            FP_TBL_MODEL& model = t==0 ? m_global_model : m_project_model;
+
+            for( int r = 0; r < model.GetNumberRows(); )
+            {
+                wxString nick = model.GetValue( r, COL_NICKNAME ).Trim( false ).Trim();
+                wxString uri  = model.GetValue( r, COL_URI ).Trim( false ).Trim();
+
+                if( !nick || !uri )
+                {
+                    // Delete the "empty" row, where empty means missing nick or uri.
+                    // This also updates the UI which could be slow, but there should only be a few
+                    // rows to delete, unless the user fell asleep on the Add Row
+                    // button.
+                    model.DeleteRows( r, 1 );
+                }
+                else if( nick.find(':') != size_t(-1) )
+                {
+                    wxString msg = wxString::Format(
+                        _( "Illegal character '%s' found in Nickname: '%s' in row %d" ),
+                        wxT( ":" ), GetChars( nick ), r );
+
+                    // show the tabbed panel holding the grid we have flunked:
+                    if( &model != (FP_TBL_MODEL*) m_cur_grid->GetTable() )
+                    {
+                        m_auinotebook->SetSelection( &model == &m_global_model ? 0 : 1 );
+                    }
+
+                    // go to the problematic row
+                    m_cur_grid->SelectBlock( r, 0, r, 0 );
+                    m_cur_grid->MakeCellVisible( r, 0 );
+
+                    wxMessageDialog errdlg( this, msg, _( "No Colon in Nicknames" ) );
+                    errdlg.ShowModal();
+                    return false;
+                }
+                else
+                {
+                    // set the trimmed values back into the table so they get saved to disk.
+                    model.SetValue( r, COL_NICKNAME, nick );
+                    model.SetValue( r, COL_URI, uri );
+                    ++r;        // this row was OK.
+                }
+            }
+        }
+
+        // check for duplicate nickNames, separately in each table.
+        for( int t=0; t<2; ++t )
+        {
+            FP_TBL_MODEL& model = t==0 ? m_global_model : m_project_model;
+
+            for( int r1 = 0; r1 < model.GetNumberRows() - 1;  ++r1 )
+            {
+                wxString    nick1 = model.GetValue( r1, COL_NICKNAME );
+
+                for( int r2=r1+1; r2 < model.GetNumberRows();  ++r2 )
+                {
+                    wxString    nick2 = model.GetValue( r2, COL_NICKNAME );
+
+                    if( nick1 == nick2 )
+                    {
+                        wxString msg = wxString::Format(
+                            _( "Duplicate Nickname: '%s' in rows %d and %d" ),
+                            GetChars( nick1 ), r1+1, r2+1
+                            );
+
+                        // show the tabbed panel holding the grid we have flunked:
+                        if( &model != (FP_TBL_MODEL*) m_cur_grid->GetTable() )
+                        {
+                            m_auinotebook->SetSelection( &model == &m_global_model ? 0 : 1 );
+                        }
+
+                        // go to the lower of the two rows, it is technically the duplicate:
+                        m_cur_grid->SelectBlock( r2, 0, r2, 0 );
+                        m_cur_grid->MakeCellVisible( r2, 0 );
+
+                        wxMessageDialog errdlg( this, msg, _( "Please Delete or Modify One" ) );
+                        errdlg.ShowModal();
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     //-----<event handlers>----------------------------------
 
     void pageChangedHandler( wxAuiNotebookEvent& event )
@@ -404,7 +502,13 @@ class DIALOG_FP_LIB_TABLE : public DIALOG_FP_LIB_TABLE_BASE
 
     void appendRowHandler( wxMouseEvent& event )
     {
-        m_cur_grid->AppendRows( 1 );
+        if( m_cur_grid->AppendRows( 1 ) )
+        {
+            int last_row = m_cur_grid->GetNumberRows() - 1;
+
+            m_cur_grid->SelectBlock( last_row, 0, last_row, 0 );
+            m_cur_grid->MakeCellVisible( last_row, 0 );
+        }
     }
 
     void deleteRowHandler( wxMouseEvent& event )
@@ -474,6 +578,12 @@ class DIALOG_FP_LIB_TABLE : public DIALOG_FP_LIB_TABLE_BASE
         D(printf("%s\n", __func__);)
     }
 
+    void optionsEditor( wxMouseEvent& event )
+    {
+        // @todo: write the options editor, and pass the options to the Footprint*() calls.
+        //D(printf("%s:%d\n", __func__, (int) m_cur_grid->GetNumberRows() );)
+    }
+
     void onCancelButtonClick( wxCommandEvent& event )
     {
         EndModal( 0 );
@@ -483,23 +593,26 @@ class DIALOG_FP_LIB_TABLE : public DIALOG_FP_LIB_TABLE_BASE
     {
         int dialogRet = 0;
 
-        if( m_global_model != *m_global )
+        if( verifyTables() )
         {
-            dialogRet |= 1;
+            if( m_global_model != *m_global )
+            {
+                dialogRet |= 1;
 
-            *m_global  = m_global_model;
-            m_global->reindex();
+                *m_global  = m_global_model;
+                m_global->reindex();
+            }
+
+            if( m_project_model != *m_project )
+            {
+                dialogRet |= 2;
+
+                *m_project = m_project_model;
+                m_project->reindex();
+            }
+
+            EndModal( dialogRet );
         }
-
-        if( m_project_model != *m_project )
-        {
-            dialogRet |= 2;
-
-            *m_project = m_project_model;
-            m_project->reindex();
-        }
-
-        EndModal( dialogRet );
     }
 
     void onGridCellLeftClick( wxGridEvent& event )
@@ -546,7 +659,7 @@ class DIALOG_FP_LIB_TABLE : public DIALOG_FP_LIB_TABLE_BASE
 
         for( row = 0;  row < gblRowCount;  ++row )
         {
-            wxString uri = m_global_model.GetValue( row, FP_TBL_MODEL::COL_URI );
+            wxString uri = m_global_model.GetValue( row, COL_URI );
 
             while( re.Matches( uri ) )
             {
@@ -562,7 +675,7 @@ class DIALOG_FP_LIB_TABLE : public DIALOG_FP_LIB_TABLE_BASE
 
         for( row = 0;  row < prjRowCount;  ++row )
         {
-            wxString uri = m_project_model.GetValue( row, FP_TBL_MODEL::COL_URI );
+            wxString uri = m_project_model.GetValue( row, COL_URI );
 
             while( re.Matches( uri ) )
             {
@@ -628,19 +741,26 @@ public:
 
         wxArrayString choices;
         choices.Add( IO_MGR::ShowType( IO_MGR::KICAD ) );
+#if defined(BUILD_GITHUB_PLUGIN)
+        choices.Add( IO_MGR::ShowType( IO_MGR::GITHUB ) );
+#endif
         choices.Add( IO_MGR::ShowType( IO_MGR::LEGACY ) );
         choices.Add( IO_MGR::ShowType( IO_MGR::EAGLE ) );
         choices.Add( IO_MGR::ShowType( IO_MGR::GEDA_PCB ) );
+
+        /* PCAD_PLUGIN does not support Footprint*() functions
+        choices.Add( IO_MGR::ShowType( IO_MGR::GITHUB ) );
+        */
 
         wxGridCellAttr* attr;
 
         attr = new wxGridCellAttr;
         attr->SetEditor( new wxGridCellChoiceEditor( choices ) );
-        m_project_grid->SetColAttr( FP_TBL_MODEL::COL_TYPE, attr );
+        m_project_grid->SetColAttr( COL_TYPE, attr );
 
         attr = new wxGridCellAttr;
         attr->SetEditor( new wxGridCellChoiceEditor( choices ) );
-        m_global_grid->SetColAttr(  FP_TBL_MODEL::COL_TYPE, attr );
+        m_global_grid->SetColAttr( COL_TYPE, attr );
 
         m_global_grid->AutoSizeColumns();
         m_project_grid->AutoSizeColumns();
@@ -681,4 +801,3 @@ int InvokePcbLibTableEditor( wxFrame* aParent, FP_LIB_TABLE* aGlobal, FP_LIB_TAB
 
     return dialogRet;
 }
-

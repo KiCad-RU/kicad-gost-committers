@@ -39,12 +39,15 @@
 #include <footprint_info.h>
 #include <io_mgr.h>
 #include <fp_lib_table.h>
+#include <fpid.h>
 
 #include <class_module.h>
 
 
 bool FOOTPRINT_LIST::ReadFootprintFiles( wxArrayString& aFootprintsLibNames )
 {
+    bool retv = true;
+
     // Clear data before reading files
     m_filesNotFound.Empty();
     m_filesInvalid.Empty();
@@ -76,9 +79,10 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( wxArrayString& aFootprintsLibNames )
             wxLogDebug( wxT( "Path <%s> -> <%s>." ), GetChars( aFootprintsLibNames[ii] ),
                         GetChars( filename.GetFullPath() ) );
 
-            if( !filename.FileExists() )
+            if( !filename.IsOk() || !filename.FileExists() )
             {
                 m_filesNotFound << aFootprintsLibNames[ii] << wxT( "\n" );
+                retv = false;
                 continue;
             }
 
@@ -109,6 +113,7 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( wxArrayString& aFootprintsLibNames )
             catch( IO_ERROR ioe )
             {
                 m_filesInvalid << ioe.errorText << wxT( "\n" );
+                retv = false;
             }
         }
     }
@@ -123,12 +128,14 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( wxArrayString& aFootprintsLibNames )
 
     m_List.sort();
 
-    return true;
+    return retv;
 }
 
 
 bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE& aTable )
 {
+    bool retv = true;
+
     // Clear data before reading files
     m_filesNotFound.Empty();
     m_filesInvalid.Empty();
@@ -173,12 +180,38 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE& aTable )
         catch( IO_ERROR ioe )
         {
             m_filesInvalid << ioe.errorText << wxT( "\n" );
+            retv = false;
         }
     }
 
     m_List.sort();
 
-    return true;
+    return retv;
+}
+
+
+FOOTPRINT_INFO* FOOTPRINT_LIST::GetModuleInfo( const wxString & aFootprintName )
+{
+    BOOST_FOREACH( FOOTPRINT_INFO& footprint, m_List )
+    {
+#if defined( USE_FP_LIB_TABLE )
+        FPID fpid;
+
+        wxCHECK_MSG( fpid.Parse( aFootprintName ) < 0, NULL,
+                     wxString::Format( wxT( "<%s> is not a valid FPID." ),
+                                       GetChars( aFootprintName ) ) );
+
+        wxString libNickname = FROM_UTF8( fpid.GetLibNickname().c_str() );
+        wxString footprintName = FROM_UTF8( fpid.GetFootprintName().c_str() );
+
+        if( libNickname == footprint.m_libName && footprintName == footprint.m_Module )
+            return &footprint;
+#else
+        if( aFootprintName.CmpNoCase( footprint.m_Module ) == 0 )
+            return &footprint;
+#endif
+    }
+    return NULL;
 }
 
 

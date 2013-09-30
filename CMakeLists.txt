@@ -62,7 +62,14 @@ option( KICAD_SCRIPTING_WXPYTHON
 
 option( USE_FP_LIB_TABLE "Use the new footprint library table implementation. ( default OFF)" )
 
-#option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." OFF )
+# BUILD_GITHUB_PLUGIN for MINGW is pretty demanding due to download_openssl.cmake and openssl's
+# use of perl to drive its configure step.  You might find it works in a cross builder say on linux.
+# Dick is not personally supporting Windows any more with this exotic stuff.  Some other windows
+# developer will have to smooth out the build issues.  So enable this for MINGW without my help but
+# with my best wishes.
+if( NOT MINGW )
+    option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." OFF )
+endif()
 
 
 #Set version option (stable or testing)
@@ -119,39 +126,42 @@ if( CMAKE_COMPILER_IS_GNUCXX )
             "Setting GCC version ${GCC_VERSION} build flags \"${KICAD_GCC_RELEASE_BUILD_FLAGS}\"" )
     endif()
 
-    if( MINGW )
-        # According to some sources, under Windows -fPIC option is not needed:
-        # http://mingw.5.n7.nabble.com/Option-fPIC-not-supported-td18480.html
+    set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall" )
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
 
+    if( MINGW )
         # Set default flags for Release build.
-        set( CMAKE_C_FLAGS_RELEASE "-Wall ${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
-        set( CMAKE_CXX_FLAGS_RELEASE "-Wall ${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
+        set( CMAKE_C_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
+        set( CMAKE_CXX_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
         set( CMAKE_EXE_LINKER_FLAGS_RELEASE "-s -static-libgcc -static-libstdc++" )
 
         # Set default flags for Debug build.
-        set( CMAKE_C_FLAGS_DEBUG "-Wall ${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
-        set( CMAKE_CXX_FLAGS_DEBUG "-Wall ${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
+        set( CMAKE_C_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
+        set( CMAKE_CXX_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
         set( CMAKE_MODULE_LINKER_FLAGS "-static-libgcc -static-libstdc++") # SWIG macros on Windows
 
     else()
         # We build DLL/DSOs from static libraries, so create position independent code
         # for all cases, since we do not have DLL/DSO specific static libraries.
-        # This flag could be localized to any object file going into a DLL/DSO in the future.
-        set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC" )
-        set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
+        # Subdirectories via add_subdirectores() reference this variable, and it is either set or empty,
+        # empty for Windows.
+        set( PIC_FLAG -fPIC )
+
+        set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${PIC_FLAG}" )
+        set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PIC_FLAG}" )
 
         # Thou shalt not link vaporware and tell us it's a valid DSO:
         set( CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined" )
         set( CMAKE_MODULE_LINKER_FLAGS "-Wl,--no-undefined" ) # needed by SWIG macros on linux
 
         # Set default flags for Release build.
-        set( CMAKE_C_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -Wall -DNDEBUG" )
-        set( CMAKE_CXX_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -Wall -DNDEBUG" )
+        set( CMAKE_C_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
+        set( CMAKE_CXX_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
         set( CMAKE_EXE_LINKER_FLAGS_RELEASE "-s" )
 
         # Set default flags for Debug build.
-        set( CMAKE_C_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -Wall  -g3 -ggdb3 -DDEBUG" )
-        set( CMAKE_CXX_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -Wall -g3 -ggdb3 -DDEBUG" )
+        set( CMAKE_C_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
+        set( CMAKE_CXX_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
     endif()
 
     # quiet GCC 4.8.1 while in boost

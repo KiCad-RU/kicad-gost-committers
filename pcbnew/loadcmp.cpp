@@ -154,7 +154,7 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
                                                bool            aUseFootprintViewer,
                                                wxDC*           aDC )
 {
-    MODULE*     module;
+    MODULE*     module = NULL;
     wxPoint     curspos = GetCrossHairPosition();
     wxString    moduleName, keys;
     wxString    libName = aLibrary;
@@ -224,7 +224,7 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
 #else
     FPID fpid;
 
-    wxCHECK_MSG( fpid.Parse( TO_UTF8( moduleName ) ) < 0, NULL,
+    wxCHECK_MSG( fpid.Parse( moduleName ) < 0, NULL,
                  wxString::Format( wxT( "Could not parse FPID string <%s>." ),
                                    GetChars( moduleName ) ) );
 
@@ -260,7 +260,7 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
 #else
             FPID fpid;
 
-            wxCHECK_MSG( fpid.Parse( TO_UTF8( moduleName ) ) < 0, NULL,
+            wxCHECK_MSG( fpid.Parse( moduleName ) < 0, NULL,
                          wxString::Format( wxT( "Could not parse FPID string <%s>." ),
                                            GetChars( moduleName ) ) );
 
@@ -451,7 +451,7 @@ MODULE* PCB_BASE_FRAME::loadFootprint( const FPID& aFootprintId )
 
     PLUGIN::RELEASER pi( IO_MGR::PluginFind( IO_MGR::EnumFromStr( row->GetType() ) ) );
 
-    return pi->FootprintLoad( libPath, footprintName );
+    return pi->FootprintLoad( libPath, footprintName, row->GetProperties() );
 }
 
 
@@ -511,7 +511,21 @@ wxString PCB_BASE_FRAME::SelectFootprint( EDA_DRAW_FRAME* aWindow,
         return wxEmptyString;
     }
 
-    MList.ReadFootprintFiles( libTable );
+    if( !MList.ReadFootprintFiles( libTable ) )
+    {
+        msg.Format( _( "Error occurred attempting to load footprint library <%s>:\n\n" ),
+                    GetChars( aLibraryFullFilename ) );
+
+        if( !MList.m_filesNotFound.IsEmpty() )
+            msg += _( "Files not found:\n\n" ) + MList.m_filesNotFound;
+
+        if( !MList.m_filesInvalid.IsEmpty() )
+            msg +=  _("\n\nFile load errors:\n\n" ) + MList.m_filesInvalid;
+
+        DisplayError( this, msg );
+        return wxEmptyString;
+    }
+
 #endif
 
     if( MList.GetCount() == 0 )

@@ -29,13 +29,8 @@
 
 #-----<configure>----------------------------------------------------------------
 
-if( false )
-    set( BOOST_RELEASE 1.53.0 )
-    set( BOOST_MD5 a00d22605d5dbcfb4c9936a9b35bc4c2 )   # re-calc this on every RELEASE change
-else()
-    set( BOOST_RELEASE 1.54.0 )
-    set( BOOST_MD5 15cb8c0803064faef0c4ddf5bc5ca279 )   # re-calc this on every RELEASE change
-endif()
+set( BOOST_RELEASE 1.54.0 )
+set( BOOST_MD5 15cb8c0803064faef0c4ddf5bc5ca279 )   # re-calc this on every RELEASE change
 
 # The boost headers [and static libs if built] go here, at the top of KiCad
 # source tree in boost_root.
@@ -44,15 +39,20 @@ set( BOOST_ROOT "${PROJECT_SOURCE_DIR}/boost_root" )
 
 if( BUILD_GITHUB_PLUGIN )
     # Space separated list which indicates the subset of boost libraries to compile.
+    # Chosen libraries are based on AVHTTP requirements, and possibly
+    # unit_test_framework for its own worth.
     set( BOOST_LIBS_BUILT
-        #filesystem
-        system
-        #regex
-        #program_options
-        #date_time
-        #thread
+        date_time
         #exception
-        unit_test_framework
+        filesystem
+        iostreams
+        locale
+        program_options
+        regex
+        #signals
+        system
+        thread
+        #unit_test_framework
         )
 endif()
 
@@ -73,35 +73,41 @@ set( PREFIX ${DOWNLOAD_DIR}/boost_${BOOST_VERS} )
 set( headers_src "${PREFIX}/src/boost/boost" )
 
 
-# don't look at this:
 function( set_boost_lib_names libs output )
     foreach( lib ${libs} )
-        set( fullpath_lib, "${BOOST_ROOT}/lib/libboost_${lib}.a" )
-        message( STATUS "fullpath_lib:${fullpath_lib}" )
-        set( output ${output} ${fullpath_lib} )
+        set( fullpath_lib "${BOOST_ROOT}/lib/libboost_${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+        list( APPEND results ${fullpath_lib} )
     endforeach()
+    # set the results into variable represented by output into caller's scope
+    set( ${output} ${results} PARENT_SCOPE )
 endfunction()
 
 
 if( BUILD_GITHUB_PLUGIN )
 
+    # It will probably be simpler to make this the only path in the future.
+
     # (BTW "test" yields "unit_test_framework" when passed to bootstrap.{sh,bat} ).
-    message( STATUS "BOOST_LIBS_BUILT:${BOOST_LIBS_BUILT}" )
+    #message( STATUS "BOOST_LIBS_BUILT:${BOOST_LIBS_BUILT}" )
     string( REPLACE "unit_test_framework" "test" libs_csv "${BOOST_LIBS_BUILT}" )
-    message( STATUS "REPLACE libs_csv:${libs_csv}" )
+    #message( STATUS "REPLACE libs_csv:${libs_csv}" )
 
     string( REGEX REPLACE "\\;" "," libs_csv "${libs_csv}" )
-    message( STATUS "libs_csv:${libs_csv}" )
+    #message( STATUS "libs_csv:${libs_csv}" )
 
     if( MINGW )
         set( bootstrap "bootstart.bat mingw" )
+        unset( PIC_STUFF )
     else()
         set( bootstrap bootstrap.sh )
+        # pass to *both* C and C++ compilers
+        set( PIC_STUFF "cflags=${PIC_FLAG}" )
     endif()
 
     ExternalProject_Add( boost
         PREFIX          "${PREFIX}"
         DOWNLOAD_DIR    "${DOWNLOAD_DIR}"
+        INSTALL_DIR     "${BOOST_ROOT}"
         URL             http://downloads.sourceforge.net/project/boost/boost/${BOOST_RELEASE}/boost_${BOOST_VERS}.tar.bz2
         URL_MD5         ${BOOST_MD5}
 
@@ -113,22 +119,24 @@ if( BUILD_GITHUB_PLUGIN )
         UPDATE_COMMAND  ${CMAKE_COMMAND} -E remove_directory "${BOOST_ROOT}"
 
         BINARY_DIR      "${PREFIX}/src/boost/"
-        CONFIGURE_COMMAND ${bootstrap}
+        CONFIGURE_COMMAND ./${bootstrap}
                         --with-libraries=${libs_csv}
 
-        BUILD_COMMAND   b2
+        BUILD_COMMAND   ./b2
                         variant=release
                         threading=multi
                         toolset=gcc
-                        link=static
-                        --prefix=${BOOST_ROOT}
+                        ${PIC_STUFF}
+                        #link=static
+                        --prefix=<INSTALL_DIR>
                         install
 
         INSTALL_COMMAND ""
         )
 
-    file( GLOB boost_libs "${BOOST_ROOT}/lib/*" )
-    #message( STATUS BOOST_ROOT:${BOOST_ROOT}  boost_libs:${boost_libs} )
+    set( boost_libs "" )
+    set_boost_lib_names( "${BOOST_LIBS_BUILT}" boost_libs )
+    #message( STATUS "BOOST_ROOT:${BOOST_ROOT}  boost_libs:${boost_libs}" )
     set( Boost_LIBRARIES    ${boost_libs}           CACHE FILEPATH "Boost libraries directory" )
     set( Boost_INCLUDE_DIR  "${BOOST_ROOT}/include" CACHE FILEPATH "Boost include directory" )
 

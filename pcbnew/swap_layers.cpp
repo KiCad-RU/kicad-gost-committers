@@ -14,7 +14,6 @@
 #include <class_drawsegment.h>
 
 #include <pcbnew.h>
-#include <protos.h>
 
 #include <wx/statline.h>
 
@@ -31,7 +30,7 @@ enum swap_layer_id {
 };
 
 
-class WinEDA_SwapLayerFrame : public DIALOG_SHIM
+class SWAP_LAYERS_DIALOG : public DIALOG_SHIM
 {
 private:
     PCB_BASE_FRAME*         m_Parent;
@@ -46,8 +45,8 @@ private:
 
 public:
 
-    WinEDA_SwapLayerFrame( PCB_BASE_FRAME* parent );
-    ~WinEDA_SwapLayerFrame() { };
+    SWAP_LAYERS_DIALOG( PCB_BASE_FRAME* parent );
+    ~SWAP_LAYERS_DIALOG() { };
 
 private:
     void Sel_Layer( wxCommandEvent& event );
@@ -58,16 +57,16 @@ private:
 };
 
 
-BEGIN_EVENT_TABLE( WinEDA_SwapLayerFrame, wxDialog )
+BEGIN_EVENT_TABLE( SWAP_LAYERS_DIALOG, wxDialog )
     EVT_COMMAND_RANGE( ID_BUTTON_0, ID_BUTTON_0 + NB_PCB_LAYERS - 1,
                        wxEVT_COMMAND_BUTTON_CLICKED,
-                       WinEDA_SwapLayerFrame::Sel_Layer )
-    EVT_BUTTON( wxID_OK, WinEDA_SwapLayerFrame::OnOkClick )
-    EVT_BUTTON( wxID_CANCEL, WinEDA_SwapLayerFrame::OnCancelClick )
+                       SWAP_LAYERS_DIALOG::Sel_Layer )
+    EVT_BUTTON( wxID_OK, SWAP_LAYERS_DIALOG::OnOkClick )
+    EVT_BUTTON( wxID_CANCEL, SWAP_LAYERS_DIALOG::OnCancelClick )
 END_EVENT_TABLE()
 
 
-WinEDA_SwapLayerFrame::WinEDA_SwapLayerFrame( PCB_BASE_FRAME* parent ) :
+SWAP_LAYERS_DIALOG::SWAP_LAYERS_DIALOG( PCB_BASE_FRAME* parent ) :
     DIALOG_SHIM( parent, -1, _( "Swap Layers:" ), wxPoint( -1, -1 ),
                  wxDefaultSize, wxDEFAULT_DIALOG_STYLE | MAYBE_RESIZE_BORDER )
 {
@@ -195,12 +194,11 @@ WinEDA_SwapLayerFrame::WinEDA_SwapLayerFrame( PCB_BASE_FRAME* parent ) :
         item_ID = ID_TEXT_0 + ii;
 
         /* When the first of these text strings is being added, determine
-         * what size is necessary to to be able to display any possible
-         * string without it being truncated. Then specify that size as the
-         * minimum size for all of these text strings. (If this minimum
-         * size is not determined in this fashion, then it is possible for
-         * the display of one or more of these strings to be truncated after
-         * different layers are selected.)
+         * what size is necessary to to be able to display the longest
+         * string without truncation. Then use that size as the
+         * minimum size for all text strings. (If the minimum
+         * size is not this size, strings can be truncated after
+         * some other layer is selected.)
          */
         if( ii == 0 )
         {
@@ -235,8 +233,8 @@ WinEDA_SwapLayerFrame::WinEDA_SwapLayerFrame( PCB_BASE_FRAME* parent ) :
     }
 
     /* Provide spacers to occupy otherwise blank cells within the second
-     * FlexGrid sizer. (As it incorporates three columns, three spacers
-     * are thus required for each otherwise unused row.)
+     * FlexGrid sizer. (Becuse there are three columns, three spacers
+     * are thus required for each unused row.)
      */
     for( int ii = 3 * NB_PCB_LAYERS; ii < 96; ii++ )
     {
@@ -270,10 +268,12 @@ WinEDA_SwapLayerFrame::WinEDA_SwapLayerFrame( PCB_BASE_FRAME* parent ) :
     {
         GetSizer()->SetSizeHints( this );
     }
+
+    Center();
 }
 
 
-void WinEDA_SwapLayerFrame::Sel_Layer( wxCommandEvent& event )
+void SWAP_LAYERS_DIALOG::Sel_Layer( wxCommandEvent& event )
 {
     int ii;
 
@@ -284,33 +284,24 @@ void WinEDA_SwapLayerFrame::Sel_Layer( wxCommandEvent& event )
 
     ii = event.GetId() - ID_BUTTON_0;
 
-    LAYER_NUM jj = New_Layer[ii];
+    LAYER_NUM layer = New_Layer[ii];
 
-    if( (jj < 0) || (jj > NB_PCB_LAYERS) )
-        jj = LAYER_NO_CHANGE; // (Defaults to "No Change".)
+    if( (layer < 0) || (layer > NB_PCB_LAYERS) )
+        layer = LAYER_NO_CHANGE; // (Defaults to "No Change".)
 
-    jj = m_Parent->SelectLayer( jj, UNDEFINED_LAYER, UNDEFINED_LAYER, true );
+    LAYER_MSK notallowed_mask = ii < NB_COPPER_LAYERS ?
+                                ALL_NO_CU_LAYERS : ALL_CU_LAYERS;
+    layer = m_Parent->SelectLayer( layer == LAYER_NO_CHANGE ? ii : layer,
+                                   notallowed_mask );
 
-    if( !IsValidLayer( jj ) )
+    if( !IsValidLayer( layer ) )
         return;
 
-    // No change if the selected layer matches the layer being edited.
-    // (Hence the only way to restore a layer to the "No Change"
-    // state is by specifically deselecting it; any attempt
-    // to select the same layer (instead) will be ignored.)
-    if( jj == ii )
+    if( layer != New_Layer[ii] )
     {
-        wxString msg;
-        msg = _( "Deselect this layer to select the No Change state" );
-        DisplayInfoMessage( this, msg );
-        return;
-    }
+        New_Layer[ii] = layer;
 
-    if( jj != New_Layer[ii] )
-    {
-        New_Layer[ii] = jj;
-
-        if( jj >= LAYER_NO_CHANGE )
+        if( layer >= LAYER_NO_CHANGE || layer == ii )
         {
             layer_list[ii]->SetLabel( _( "No Change" ) );
 
@@ -320,7 +311,7 @@ void WinEDA_SwapLayerFrame::Sel_Layer( wxCommandEvent& event )
         }
         else
         {
-            layer_list[ii]->SetLabel( m_Parent->GetBoard()->GetLayerName( jj ) );
+            layer_list[ii]->SetLabel( m_Parent->GetBoard()->GetLayerName( layer ) );
 
             // Change the text color to fuchsia (to highlight
             // that this layer *is* being swapped)
@@ -330,13 +321,13 @@ void WinEDA_SwapLayerFrame::Sel_Layer( wxCommandEvent& event )
 }
 
 
-void WinEDA_SwapLayerFrame::OnCancelClick( wxCommandEvent& event )
+void SWAP_LAYERS_DIALOG::OnCancelClick( wxCommandEvent& event )
 {
     EndModal( -1 );
 }
 
 
-void WinEDA_SwapLayerFrame::OnOkClick( wxCommandEvent& event )
+void SWAP_LAYERS_DIALOG::OnOkClick( wxCommandEvent& event )
 {
     EndModal( 1 );
 }
@@ -353,10 +344,9 @@ void PCB_EDIT_FRAME::Swap_Layers( wxCommandEvent& event )
     for( ii = FIRST_LAYER; ii < NB_PCB_LAYERS; ii++ )
         New_Layer[ii] = LAYER_NO_CHANGE;
 
-    WinEDA_SwapLayerFrame* frame = new WinEDA_SwapLayerFrame( this );
+    SWAP_LAYERS_DIALOG dlg( this );
 
-    ii = frame->ShowModal();
-    frame->Destroy();
+    ii = dlg.ShowModal();
 
     if( ii != 1 )
         return; // (Canceled dialog box returns -1 instead)

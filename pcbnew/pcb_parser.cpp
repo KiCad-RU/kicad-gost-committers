@@ -754,8 +754,8 @@ T PCB_PARSER::lookUpLayer( const M& aMap ) throw( PARSE_ERROR, IO_ERROR )
         // dump the whole darn table, there's something wrong with it.
         for( it = aMap.begin();  it != aMap.end();  ++it )
         {
-            printf( &aMap == (void*)&m_layerIndices ? "lm[%s] = %d\n" : "lm[%s] = %08X\n",
-                it->first.c_str(), it->second );
+            wxLogDebug( &aMap == (void*)&m_layerIndices ? wxT( "lm[%s] = %d" ) :
+                        wxT( "lm[%s] = %08X" ), it->first.c_str(), it->second );
         }
 #endif
 
@@ -1540,16 +1540,25 @@ MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments ) throw( IO_ERR
     wxCHECK_MSG( CurTok() == T_module, NULL,
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as MODULE." ) );
 
-    wxPoint pt;
-    T       token;
-    FPID    fpid;
+    wxString name;
+    wxPoint  pt;
+    T        token;
+    FPID     fpid;
 
     auto_ptr< MODULE > module( new MODULE( m_board ) );
 
     module->SetInitialComments( aInitialComments );
 
     NeedSYMBOLorNUMBER();
-    fpid.SetFootprintName( FromUTF8() );
+    name = FromUTF8();
+
+    if( !name.IsEmpty() && fpid.Parse( FromUTF8() ) >= 0 )
+    {
+        wxString error;
+        error.Printf( _( "invalid PFID in\nfile: <%s>\nline: %d\noffset: %d" ),
+                      GetChars( CurSource() ), CurLineNumber(), CurOffset() );
+        THROW_IO_ERROR( error );
+    }
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
@@ -1564,12 +1573,6 @@ MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments ) throw( IO_ERR
 
         case T_placed:
             module->SetIsPlaced( true );
-            break;
-
-        case T_fp_lib:
-            NeedSYMBOLorNUMBER();
-            fpid.SetLibNickname( FromUTF8() );
-            NeedRIGHT();
             break;
 
         case T_layer:

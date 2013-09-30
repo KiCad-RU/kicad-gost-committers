@@ -55,6 +55,19 @@ class PCB_PARSER;
 /// a BOARD file underneath IO_MGR.
 #define CTL_FOR_BOARD               (CTL_OMIT_INITIAL_COMMENTS)
 
+
+class DIMENSION;
+class EDGE_MODULE;
+class DRAWSEGMENT;
+class PCB_TARGET;
+class D_PAD;
+class TEXTE_MODULE;
+class TRACK;
+class ZONE_CONTAINER;
+class TEXTE_PCB;
+
+
+
 /**
  * Class PCB_IO
  * is a PLUGIN derivation for saving and loading Pcbnew s-expression formatted files.
@@ -86,23 +99,23 @@ public:
     }
 
     void Save( const wxString& aFileName, BOARD* aBoard,
-               PROPERTIES* aProperties = NULL );          // overload
+               const PROPERTIES* aProperties = NULL );          // overload
 
-    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe, PROPERTIES* aProperties = NULL );
+    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe, const PROPERTIES* aProperties = NULL );
 
-    wxArrayString FootprintEnumerate( const wxString& aLibraryPath, PROPERTIES* aProperties = NULL);
+    wxArrayString FootprintEnumerate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL);
 
     MODULE* FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName,
-                           PROPERTIES* aProperties = NULL );
+                           const PROPERTIES* aProperties = NULL );
 
     void FootprintSave( const wxString& aLibraryPath, const MODULE* aFootprint,
-                        PROPERTIES* aProperties = NULL );
+                        const PROPERTIES* aProperties = NULL );
 
-    void FootprintDelete( const wxString& aLibraryPath, const wxString& aFootprintName );
+    void FootprintDelete( const wxString& aLibraryPath, const wxString& aFootprintName, const PROPERTIES* aProperties = NULL );
 
-    void FootprintLibCreate( const wxString& aLibraryPath, PROPERTIES* aProperties = NULL);
+    void FootprintLibCreate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL);
 
-    bool FootprintLibDelete( const wxString& aLibraryPath, PROPERTIES* aProperties = NULL );
+    bool FootprintLibDelete( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL );
 
     bool IsFootprintLibWritable( const wxString& aLibraryPath );
 
@@ -143,6 +156,8 @@ protected:
 
     wxString        m_error;        ///< for throwing exceptions
     BOARD*          m_board;        ///< which BOARD, no ownership here
+
+    const
     PROPERTIES*     m_props;        ///< passed via Save() or Load(), no ownership, may be NULL.
     FP_CACHE*       m_cache;        ///< Footprint library cache.
 
@@ -197,9 +212,9 @@ private:
         throw( IO_ERROR );
 
     /// we only cache one footprint library for now, this determines which one.
-    void cacheLib( const wxString& aLibraryPath );
+    void cacheLib( const wxString& aLibraryPath, const wxString& aFootprintName = wxEmptyString );
 
-    void init( PROPERTIES* aProperties );
+    void init( const PROPERTIES* aProperties );
 };
 
 #endif  // KICAD_PLUGIN_H_
