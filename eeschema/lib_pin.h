@@ -36,7 +36,7 @@
 #define DEFAULT_PIN_LENGTH  300 // Default Length of a pin when it is created.
 
 // pins: special symbols sizes
-#define INVERT_PIN_RADIUS   30  // Radius of inverted pin circle.
+#define INVERT_PIN_RADIUS   20  // Radius of inverted pin circle.
 #define CLOCK_PIN_DIM       40  // Dim of clock pin symbol.
 #define IEEE_SYMBOL_PIN_DIM 40  // Dim of special pin symbol.
 #define NONLOGIC_PIN_DIM    30  // Dim of nonlogic pin symbol (X).

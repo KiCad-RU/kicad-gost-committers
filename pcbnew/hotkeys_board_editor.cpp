@@ -164,6 +164,10 @@ void PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
         CallMacros( aDC, GetCrossHairPosition( false ), hk_id - HK_CALL_MACROS_0 );
         break;
 
+    case HK_SET_TRACK_WIDTH:
+        OnHotkeyEditItem( HK_SET_TRACK_WIDTH );
+        break;
+
     case HK_SWITCH_TRACK_WIDTH_TO_NEXT:
         if( GetCanvas()->IsMouseCaptured() )
             GetCanvas()->CallMouseCapture( aDC, wxDefaultPosition, false );
@@ -657,6 +661,9 @@ bool PCB_EDIT_FRAME::OnHotkeyEditItem( int aIdCommand )
     case PCB_VIA_T:
         if( aIdCommand == HK_EDIT_ITEM )
             evt_type = ID_POPUP_PCB_EDIT_TRACKSEG;
+
+        if( aIdCommand == HK_SET_TRACK_WIDTH )
+            evt_type = ID_POPUP_PCB_EDIT_TRACK;
 
         break;
 

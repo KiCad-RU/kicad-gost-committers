@@ -403,7 +403,7 @@ void BRDITEMS_PLOTTER::Plot_1_EdgeModule( EDGE_MODULE* aEdge )
         double endAngle = startAngle + aEdge->GetAngle();
 
         if ( ( GetFormat() == PLOT_FORMAT_DXF ) &&
-             ( m_layerMask & ( SILKSCREEN_LAYER_BACK | DRAW_LAYER | COMMENT_LAYER ) ) )
+             ( m_layerMask & ( SILKSCREEN_LAYER_BACK | COMMENT_LAYER ) ) )
             m_plotter->ThickArc( pos, -startAngle, -endAngle, radius, thickness, GetMode() );
         else
             m_plotter->ThickArc( pos, -endAngle, -startAngle, radius, thickness, GetMode() );

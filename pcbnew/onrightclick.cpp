@@ -552,8 +552,11 @@ void PCB_EDIT_FRAME::createPopupMenuForTracks( TRACK* Track, wxMenu* PopMenu )
             msg = AddHotkeyName( _( "Change Segment Width" ), g_Board_Editor_Hokeys_Descr,
                                  HK_EDIT_ITEM );
             AddMenuItem( PopMenu, ID_POPUP_PCB_EDIT_TRACKSEG, msg, KiBitmap( width_segment_xpm ) );
-            AddMenuItem( PopMenu, ID_POPUP_PCB_EDIT_TRACK,
-                         _( "Change Track Width" ), KiBitmap( width_track_xpm ) );
+//            AddMenuItem( PopMenu, ID_POPUP_PCB_EDIT_TRACK,
+//                         _( "Change Track Width" ), KiBitmap( width_track_xpm ) );
+            msg = AddHotkeyName( _( "Change Track Width" ), g_Board_Editor_Hokeys_Descr,
+                                 HK_SET_TRACK_WIDTH );
+            AddMenuItem( PopMenu, ID_POPUP_PCB_EDIT_TRACK, msg, KiBitmap( width_track_xpm ) );
         }
     }
 

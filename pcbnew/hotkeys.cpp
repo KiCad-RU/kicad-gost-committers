@@ -127,12 +127,13 @@ static EDA_HOTKEY HkRedo( wxT( "Redo" ), HK_REDO,
                           (int) wxID_REDO );
 #endif
 
+static EDA_HOTKEY HkSetTrackWidth( wxT( "Set Track Width" ), HK_SET_TRACK_WIDTH, 'W' );
+
 static EDA_HOTKEY HkSwitchTrackWidthToNext( wxT( "Switch Track Width To Next" ),
-                                            HK_SWITCH_TRACK_WIDTH_TO_NEXT, 'W' );
+                                            HK_SWITCH_TRACK_WIDTH_TO_NEXT, 'W' + GR_KB_CTRL);
 
 static EDA_HOTKEY HkSwitchTrackWidthToPrevious( wxT( "Switch Track Width To Previous" ),
-                                                HK_SWITCH_TRACK_WIDTH_TO_PREVIOUS, 'W'
-                                                + GR_KB_CTRL );
+                                                HK_SWITCH_TRACK_WIDTH_TO_PREVIOUS, 'E' + GR_KB_CTRL );
 
 static EDA_HOTKEY HkSwitchGridToFastGrid1( wxT( "Switch Grid To Fast Grid1" ),
                                            HK_SWITCH_GRID_TO_FASTGRID1, GR_KB_ALT + '1' );
@@ -221,8 +222,9 @@ EDA_HOTKEY* board_edit_Hotkey_List[] =
     &HkSwitch2InnerLayer2,     &HkSwitch2InnerLayer3,        &HkSwitch2InnerLayer4,
     &HkSwitch2InnerLayer5,     &HkSwitch2InnerLayer6,        &HkSwitch2ComponentLayer,
     &HkSwitch2NextCopperLayer, &HkSwitch2PreviousCopperLayer,&HkAddModule,
-    &HkSwitchTrackWidthToNext, &HkSwitchTrackWidthToPrevious,&HkSwitchGridToFastGrid1,
-    &HkSwitchGridToFastGrid2,  &HkSwitchGridToNext,          &HkSwitchGridToPrevious,
+    &HkSetTrackWidth,          &HkSwitchTrackWidthToNext,    &HkSwitchTrackWidthToPrevious,
+    &HkSwitchGridToFastGrid1,  &HkSwitchGridToFastGrid2,
+    &HkSwitchGridToNext,       &HkSwitchGridToPrevious,
     &HkRecordMacros0,          &HkCallMacros0,    &HkRecordMacros1,          &HkCallMacros1,
     &HkRecordMacros2,          &HkCallMacros2,    &HkRecordMacros3,          &HkCallMacros3,
     &HkRecordMacros4,          &HkCallMacros4,    &HkRecordMacros5,          &HkCallMacros5,

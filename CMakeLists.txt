@@ -248,6 +248,8 @@ if( MINGW )
     set( KICAD_FP_LIB_INSTALL_PATH "${KICAD_FP_LIB_INSTALL_PATH}/modules" )
 endif()
 
+set(KICAD_INTERNAT ${KICAD_DATA}/internat
+    CACHE PATH "Location of KiCad i18n files.")
 set( KICAD_DEMOS ${KICAD_DATA}/demos
     CACHE PATH "Location of KiCad demo files." )
 set( KICAD_TEMPLATE ${KICAD_DATA}/template
@@ -257,6 +259,7 @@ mark_as_advanced( KICAD_BIN
     KICAD_PLUGINS
     KICAD_DATA
     KICAD_DOCS
+    KICAD_INTERNAT
     KICAD_DEMOS
     KICAD_TEMPLATE )
 
@@ -430,6 +433,7 @@ add_dependencies( pl_editor boost )
 # Resources #
 #############
 add_subdirectory( demos )
+add_subdirectory(internat)
 add_subdirectory( template )
 
 #================================================
