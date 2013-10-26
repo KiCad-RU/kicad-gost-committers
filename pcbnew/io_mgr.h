@@ -26,11 +26,22 @@
  */
 
 #include <richio.h>
-#include <hashtables.h>
+#include <map>
+
 
 class BOARD;
 class PLUGIN;
 class MODULE;
+
+/**
+ * Class PROPERTIES
+ * is a name/value tuple with unique names and optional values.  The names
+ * may be iterated alphabetically.
+ */
+class PROPERTIES : public std::map< std::string, std::string >
+{
+    // alphabetical tuple of name and value hereby defined.
+};
 
 
 /**
@@ -405,7 +416,11 @@ public:
         API functions which take one.
     */
 
-    virtual ~PLUGIN() {};
+    virtual ~PLUGIN()
+    {
+        //printf( "~%s", __func__ );
+    };
+
 
     /**
      * Class RELEASER
@@ -416,6 +431,12 @@ public:
     {
         PLUGIN* plugin;
 
+        // private assignment operator so it's illegal
+        RELEASER& operator=( RELEASER& aOther ) { return *this; }
+
+        // private copy constructor so it's illegal
+        RELEASER( const RELEASER& aOther ) {}
+
     public:
         RELEASER( PLUGIN* aPlugin = NULL ) :
             plugin( aPlugin )
@@ -425,15 +446,28 @@ public:
         ~RELEASER()
         {
             if( plugin )
-                IO_MGR::PluginRelease( plugin );
+                release();
         }
 
-        operator PLUGIN* ()
+        void release()
+        {
+            IO_MGR::PluginRelease( plugin );
+            plugin = NULL;
+        }
+
+        void set( PLUGIN* aPlugin )
+        {
+            if( plugin )
+                release();
+            plugin = aPlugin;
+        }
+
+        operator PLUGIN* () const
         {
             return plugin;
         }
 
-        PLUGIN* operator -> ()
+        PLUGIN* operator -> () const
         {
             return plugin;
         }

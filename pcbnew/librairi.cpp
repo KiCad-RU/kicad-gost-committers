@@ -655,7 +655,7 @@ bool PCB_BASE_FRAME::Save_Module_In_Library( const wxString& aLibPath,
             if( aDisplayDialog )
             {
                 wxString msg = wxString::Format( FMT_MOD_EXISTS,
-                                                 footprintName.GetData(), aLibPath.GetData() );
+                        footprintName.GetData(), aLibPath.GetData() );
 
                 SetStatusText( msg );
             }
@@ -821,14 +821,12 @@ void FOOTPRINT_EDIT_FRAME::Select_Active_Library()
     if( dlg.ShowModal() != wxID_OK )
         return;
 
-    setLibNickName( dlg.GetTextSelection() );
-    wxString uri = m_footprintLibTable->FindRow( dlg.GetTextSelection() )->GetFullURI();
-    wxFileName fileName = FP_LIB_TABLE::ExpandSubstitutions( uri );
+    wxString nickname = dlg.GetTextSelection();
 
-    wxLogDebug( wxT( "Loading footprint library <%s> from <%s>." ),
-                GetChars( dlg.GetTextSelection() ), GetChars( fileName.GetFullPath() ) );
+    setLibNickName( nickname );
 
-    setLibPath( fileName.GetFullPath() );
+    wxLogDebug( wxT( "Chose footprint library <%s>." ), GetChars( nickname ) );
+
     updateTitle();
 }
 

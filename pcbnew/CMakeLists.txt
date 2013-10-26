@@ -26,6 +26,8 @@ include_directories(
     ../common
     ../polygon
     ../common/dialogs
+    ../lib_dxf
+    ./import_dxf
     ${INC_AFTER}
     )
 
@@ -58,6 +60,8 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_find.cpp
     dialogs/dialog_fp_lib_table_base.cpp
     dialogs/dialog_fp_lib_table.cpp
+    dialogs/dialog_fp_plugin_options_base.cpp
+    dialogs/dialog_fp_plugin_options.cpp
     dialogs/dialog_freeroute_exchange.cpp
     dialogs/dialog_freeroute_exchange_base.cpp
     dialogs/dialog_gendrill.cpp
@@ -112,6 +116,12 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_footprint_wizard_list.cpp
     )
 
+set( PCBNEW_IMPORT_DXF
+    import_dxf/dialog_dxf_import_base.cpp
+    import_dxf/dialog_dxf_import.cpp
+    import_dxf/dxf2brd_items.cpp
+    )
+
 set( PCBNEW_AUTOROUTER_SRCS
     autorouter/automove.cpp
     autorouter/autoplac.cpp
@@ -143,6 +153,7 @@ set( PCBNEW_CLASS_SRCS
     cross-probing.cpp
     deltrack.cpp
     ${PCBNEW_DIALOGS}
+    ${PCBNEW_IMPORT_DXF}
     dragsegm.cpp
     drc.cpp
     drc_clearance_test_functions.cpp
@@ -199,10 +210,10 @@ set( PCBNEW_CLASS_SRCS
     print_board_functions.cpp
     printout_controler.cpp
     ratsnest.cpp
-    specctra.cpp
-    specctra_export.cpp
+#    specctra.cpp           #moved in pcbcommon lib
+#    specctra_export.cpp
+#    specctra_keywords.cpp
     specctra_import.cpp
-    specctra_keywords.cpp
     swap_layers.cpp
     target_edit.cpp
     tool_modedit.cpp
@@ -345,6 +356,7 @@ if( KICAD_SCRIPTING_MODULES )
         pcbcommon
         common
         pcad2kicadpcb
+        lib_dxf
         ${GITHUB_PLUGIN_LIBRARIES}
         polygon
         bitmaps
@@ -513,6 +525,7 @@ target_link_libraries( pcbnew
     pcad2kicadpcb
     polygon
     bitmaps
+    lib_dxf
     ${GITHUB_PLUGIN_LIBRARIES}
     ${wxWidgets_LIBRARIES}
     ${OPENGL_LIBRARIES}

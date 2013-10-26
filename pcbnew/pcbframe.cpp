@@ -105,6 +105,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
 
     EVT_MENU( ID_GEN_IMPORT_SPECCTRA_SESSION,PCB_EDIT_FRAME::ImportSpecctraSession )
     EVT_MENU( ID_GEN_IMPORT_SPECCTRA_DESIGN, PCB_EDIT_FRAME::ImportSpecctraDesign )
+    EVT_MENU( ID_GEN_IMPORT_DXF_FILE, PCB_EDIT_FRAME::Process_Special_Functions )
 
     EVT_MENU( ID_MENU_ARCHIVE_NEW_MODULES, PCB_EDIT_FRAME::Process_Special_Functions )
     EVT_MENU( ID_MENU_ARCHIVE_ALL_MODULES, PCB_EDIT_FRAME::Process_Special_Functions )
@@ -547,7 +548,6 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
         case wxID_NO:
             break;
 
-        case wxID_OK:
         case wxID_YES:
             SavePcbFile( GetBoard()->GetFileName() );
             break;

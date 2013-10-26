@@ -79,8 +79,9 @@ PLUGIN* IO_MGR::PluginFind( PCB_FILE_T aFileType )
     case GITHUB:
 #if defined(BUILD_GITHUB_PLUGIN)
         return new GITHUB_PLUGIN();
+#else
+        THROW_IO_ERROR( "BUILD_GITHUB_PLUGIN not enabled in cmake build environment" );
 #endif
-        ;   // GITHUB fall thru to NULL below
     }
 
     return NULL;
@@ -221,7 +222,7 @@ BOARD* IO_MGR::Load( PCB_FILE_T aFileType, const wxString& aFileName,
                      BOARD* aAppendToMe, const PROPERTIES* aProperties )
 {
     // release the PLUGIN even if an exception is thrown.
-    PLUGIN::RELEASER pi = PluginFind( aFileType );
+    PLUGIN::RELEASER pi( PluginFind( aFileType ) );
 
     if( (PLUGIN*) pi )  // test pi->plugin
     {
@@ -235,7 +236,7 @@ BOARD* IO_MGR::Load( PCB_FILE_T aFileType, const wxString& aFileName,
 void IO_MGR::Save( PCB_FILE_T aFileType, const wxString& aFileName, BOARD* aBoard, const PROPERTIES* aProperties )
 {
     // release the PLUGIN even if an exception is thrown.
-    PLUGIN::RELEASER pi = PluginFind( aFileType );
+    PLUGIN::RELEASER pi( PluginFind( aFileType ) );
 
     if( (PLUGIN*) pi )  // test pi->plugin
     {

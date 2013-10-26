@@ -42,6 +42,8 @@ if( BUILD_GITHUB_PLUGIN )
     # Chosen libraries are based on AVHTTP requirements, and possibly
     # unit_test_framework for its own worth.
     set( BOOST_LIBS_BUILT
+        #context
+        #coroutine
         date_time
         #exception
         filesystem
@@ -87,21 +89,34 @@ if( BUILD_GITHUB_PLUGIN )
 
     # It will probably be simpler to make this the only path in the future.
 
-    # (BTW "test" yields "unit_test_framework" when passed to bootstrap.{sh,bat} ).
+    # (BTW "test" yields "unit_test_framework" when passed to bootstrap.sh ).
     #message( STATUS "BOOST_LIBS_BUILT:${BOOST_LIBS_BUILT}" )
-    string( REPLACE "unit_test_framework" "test" libs_csv "${BOOST_LIBS_BUILT}" )
-    #message( STATUS "REPLACE libs_csv:${libs_csv}" )
-
-    string( REGEX REPLACE "\\;" "," libs_csv "${libs_csv}" )
-    #message( STATUS "libs_csv:${libs_csv}" )
+    string( REPLACE "unit_test_framework" "test" boost_libs_list "${BOOST_LIBS_BUILT}" )
+    #message( STATUS "REPLACE libs_csv:${boost_libs_list}" )
 
     if( MINGW )
-        set( bootstrap "bootstart.bat mingw" )
+        if( MSYS )
+            # The Boost system does not build properly on MSYS using bootstrap.sh.  Running
+            # bootstrap.bat with cmd.exe does.  It's ugly but it works.  At least for Boost
+            # version 1.54.
+            set( bootstrap cmd.exe /c "bootstrap.bat mingw" )
+        else()
+            set( bootstrap ./bootstrap.bat mingw )
+        endif()
+
+        foreach( lib ${boost_libs_list} )
+            set( b2_libs ${b2_libs} --with-${lib} )
+        endforeach()
         unset( PIC_STUFF )
     else()
-        set( bootstrap bootstrap.sh )
+        string( REGEX REPLACE "\\;" "," libs_csv "${boost_libs_list}" )
+        #message( STATUS "libs_csv:${libs_csv}" )
+
+        set( bootstrap ./bootstrap.sh --with-libraries=${libs_csv} )
         # pass to *both* C and C++ compilers
         set( PIC_STUFF "cflags=${PIC_FLAG}" )
+        set( BOOST_INCLUDE "${BOOST_ROOT}/include" )
+        unset( b2_libs )
     endif()
 
     ExternalProject_Add( boost
@@ -119,14 +134,14 @@ if( BUILD_GITHUB_PLUGIN )
         UPDATE_COMMAND  ${CMAKE_COMMAND} -E remove_directory "${BOOST_ROOT}"
 
         BINARY_DIR      "${PREFIX}/src/boost/"
-        CONFIGURE_COMMAND ./${bootstrap}
-                        --with-libraries=${libs_csv}
+        CONFIGURE_COMMAND ${bootstrap}
 
         BUILD_COMMAND   ./b2
                         variant=release
                         threading=multi
                         toolset=gcc
                         ${PIC_STUFF}
+                        ${b2_libs}
                         #link=static
                         --prefix=<INSTALL_DIR>
                         install
@@ -134,15 +149,41 @@ if( BUILD_GITHUB_PLUGIN )
         INSTALL_COMMAND ""
         )
 
+    if( MINGW )
+        execute_process( COMMAND ${CMAKE_C_COMPILER} -dumpversion
+            OUTPUT_VARIABLE GCC_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE )
+
+        string( REGEX REPLACE "([0-9]+)\\.([0-9]+)\\.[0-9]+.*" "\\1\\2" BOOST_GCC_VERSION ${GCC_VERSION} )
+        #message( STATUS "BOOST_GCC_VERSION: ${BOOST_GCC_VERSION}" )
+
+        string( REGEX REPLACE "([0-9]+)\\.([0-9]+)\\.([0-9])" "\\1_\\2" BOOST_LIB_VERSION ${BOOST_RELEASE} )
+        #message( STATUS "BOOST_LIB_VERSION: ${BOOST_LIB_VERSION}" )
+
+        # adjust the names of the libraries to suit the build. There's no
+        # symbolic links provided on the MinGW build to allow us to use
+        # generic names for the libs
+        foreach( lib ${BOOST_LIBS_BUILT} )
+            set( mingw_boost_libs ${mingw_boost_libs} ${lib}-mgw${BOOST_GCC_VERSION}-mt-${BOOST_LIB_VERSION} )
+        endforeach()
+
+        set( BOOST_LIBS_BUILT ${mingw_boost_libs} )
+        set( BOOST_INCLUDE "${BOOST_ROOT}/include/boost-${BOOST_LIB_VERSION}" )
+        unset( mingw_boost_libs )
+    endif()
+
     set( boost_libs "" )
     set_boost_lib_names( "${BOOST_LIBS_BUILT}" boost_libs )
-    #message( STATUS "BOOST_ROOT:${BOOST_ROOT}  boost_libs:${boost_libs}" )
-    set( Boost_LIBRARIES    ${boost_libs}           CACHE FILEPATH "Boost libraries directory" )
-    set( Boost_INCLUDE_DIR  "${BOOST_ROOT}/include" CACHE FILEPATH "Boost include directory" )
 
+    set( Boost_LIBRARIES    ${boost_libs}      CACHE FILEPATH "Boost libraries directory" )
+    set( Boost_INCLUDE_DIR  "${BOOST_INCLUDE}" CACHE FILEPATH "Boost include directory" )
+
+    mark_as_advanced( Boost_LIBRARIES Boost_INCLUDE_DIR )
+
+    #message( STATUS "BOOST_ROOT:${BOOST_ROOT}  BOOST_LIBRARIES:${BOOST_LIBRARIES}" )
+    #message( STATUS "Boost_INCLUDE_DIR: ${Boost_INCLUDE_DIR}" )
 
 else( BUILD_GITHUB_PLUGIN )
-
 
     ExternalProject_Add( boost
         PREFIX          "${PREFIX}"

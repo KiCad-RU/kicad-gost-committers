@@ -112,17 +112,18 @@ public:
         ROW( const wxString& aNick, const wxString& aURI, const wxString& aType,
              const wxString& aOptions, const wxString& aDescr = wxEmptyString ) :
             nickName( aNick ),
-            uri( aURI ),
-            options( aOptions ),
             description( aDescr ),
             properties( 0 )
         {
+            SetOptions( aOptions ),
+            SetFullURI( aURI );
             SetType( aType );
         }
 
         ROW( const ROW& a ) :
             nickName( a.nickName ),
-            uri( a.uri ),
+            uri_user( a.uri_user ),
+            uri_expanded( a.uri_expanded ),
             type( a.type ),
             options( a.options ),
             description( a.description ),
@@ -139,17 +140,23 @@ public:
 
         ROW& operator=( const ROW& r )
         {
-            nickName = r.nickName;
-            uri      = r.uri;
-            type     = r.type;
-            options  = r.options;
-            properties = r.properties ? new PROPERTIES( *r.properties ) : NULL;
+            nickName     = r.nickName;
+            uri_user     = r.uri_user;
+            uri_expanded = r.uri_expanded;
+            type         = r.type;
+            options      = r.options;
+            description  = r.description;
+            properties   = r.properties ? new PROPERTIES( *r.properties ) : NULL;
+
+            // do not copy the PLUGIN, it is lazily created.
+            setPlugin( NULL );
+
             return *this;
         }
 
         bool operator==( const ROW& r ) const
         {
-            return  nickName==r.nickName && uri==r.uri && type==r.type && options==r.options;
+            return  nickName==r.nickName && uri_user==r.uri_user && type==r.type && options==r.options;
         }
 
         bool operator!=( const ROW& r ) const   { return !( *this == r ); }
@@ -178,19 +185,28 @@ public:
          * Function SetType
          * changes the type represented by this row.
          */
-        void SetType( const wxString& aType )       { type = IO_MGR::EnumFromStr( aType ); }
+        void SetType( const wxString& aType );
 
         /**
          * Function GetFullURI
-         * returns the full location specifying URI for the LIB.
+         * returns the full location specifying URI for the LIB, either in original
+         * UI form or in environment variable expanded form.
+         *
+         * @param aSubstituted Tells if caller wanted the substituted form, else not.
          */
-        const wxString& GetFullURI() const          { return uri; }
+        const wxString& GetFullURI( bool aSubstituted = false ) const
+        {
+            if( aSubstituted )
+                return uri_expanded;
+            else
+                return uri_user;
+        }
 
         /**
          * Function SetFullURI
          * changes the full URI for the library.
          */
-        void SetFullURI( const wxString& aFullURI ) { uri = aFullURI; }
+        void SetFullURI( const wxString& aFullURI );
 
         /**
          * Function GetOptions
@@ -202,7 +218,13 @@ public:
         /**
          * Function SetOptions
          */
-        void SetOptions( const wxString& aOptions ) { options = aOptions; }
+        void SetOptions( const wxString& aOptions )
+        {
+            options = aOptions;
+
+            // set PROPERTIES* from options
+            setProperties( ParseOptions( TO_UTF8( aOptions ) ) );
+        }
 
         /**
          * Function GetDescr
@@ -223,17 +245,6 @@ public:
          */
         const PROPERTIES* GetProperties() const     { return properties; }
 
-        /**
-         * Function SetProperties
-         * sets this ROW's PROPERTIES by taking ownership of @a aProperties.
-         * @param aProperties ownership is given over to this ROW.
-         */
-        void SetProperties( const PROPERTIES* aProperties )
-        {
-            delete properties;
-            properties = aProperties;
-        }
-
         //-----</accessors>-----------------------------------------------------
 
         /**
@@ -249,15 +260,32 @@ public:
 
     private:
 
+        /**
+         * Function setProperties
+         * sets this ROW's PROPERTIES by taking ownership of @a aProperties.
+         * @param aProperties ownership is given over to this ROW.
+         */
+        void setProperties( const PROPERTIES* aProperties )
+        {
+            delete properties;
+            properties = aProperties;
+        }
+
+        void setPlugin( PLUGIN* aPlugin )
+        {
+            plugin.set( aPlugin );
+        }
+
         wxString        nickName;
-        wxString        uri;
+        wxString        uri_user;           ///< what user entered from UI or loaded from disk
+        wxString        uri_expanded;       ///< from ExpandSubstitutions()
         LIB_T           type;
         wxString        options;
         wxString        description;
-        const
-        PROPERTIES*     properties;
-    };
 
+        const PROPERTIES*   properties;
+        PLUGIN::RELEASER    plugin;
+    };
 
     /**
      * Constructor FP_LIB_TABLE
@@ -285,7 +313,11 @@ public:
         return false;
     }
 
-    bool operator!=( const FP_LIB_TABLE& r ) const { return !( *this == r ); }
+    bool operator!=( const FP_LIB_TABLE& r ) const  { return !( *this == r ); }
+
+    int     GetCount()                              { return rows.size(); }
+
+    ROW&    At( int aIndex )                        { return rows[aIndex]; }
 
     /**
      * Function Parse
@@ -347,6 +379,8 @@ public:
      */
     void Format( OUTPUTFORMATTER* out, int nestLevel ) const throw( IO_ERROR );
 
+    void Save( const wxFileName& aPath ) const throw( IO_ERROR );
+
     /**
      * Function GetLogicalLibs
      * returns the logical library names, all of them that are pertinent to
@@ -354,55 +388,78 @@ public:
      */
     std::vector<wxString> GetLogicalLibs();
 
-    //----<read accessors>----------------------------------------------------
-    // the returning of a const wxString* tells if not found, but might be too
-    // promiscuous?
-
-#if 0
-    /**
-     * Function GetURI
-     * returns the full library path from a logical library name.
-     * @param aLogicalLibraryName is the short name for the library of interest.
-     * @return const wxString* - or NULL if not found.
-     */
-    const wxString* GetURI( const wxString& aLogicalLibraryName ) const
-    {
-        const ROW* row = FindRow( aLogicalLibraryName );
-        return row ? &row->uri : 0;
-    }
+    //-----<PLUGIN API SUBSET, REBASED ON aNickname>---------------------------
 
     /**
-     * Function GetType
-     * returns the type of a logical library.
-     * @param aLogicalLibraryName is the short name for the library of interest.
-     * @return const wxString* - or NULL if not found.
+     * Function FootprintEnumerate
+     * returns a list of footprint names contained within the library given by
+     * @a aNickname.
+     *
+     * @param aNickname is a locator for the "library", it is a "name"
+     *     in FP_LIB_TABLE::ROW
+     *
+     * @return wxArrayString - is the array of available footprint names inside
+     *   a library
+     *
+     * @throw IO_ERROR if the library cannot be found, or footprint cannot be loaded.
      */
-    const wxString* GetType( const wxString& aLogicalLibraryName ) const
-    {
-        const ROW* row = FindRow( aLogicalLibraryName );
-        return row ? &row->type : 0;
-    }
+    wxArrayString FootprintEnumerate( const wxString& aNickname );
 
     /**
-     * Function GetLibOptions
-     * returns the options string for \a aLogicalLibraryName.
-     * @param aLogicalLibraryName is the short name for the library of interest.
-     * @return const wxString* - or NULL if not found.
+     * Function FootprintLoad
+     * loads a footprint having @a aFootprintName from the library given by @a aNickname.
+     *
+     * @param aNickname is a locator for the "library", it is a "name"
+     *     in FP_LIB_TABLE::ROW
+     *
+     * @param aFootprintName is the name of the footprint to load.
+     *
+     * @return  MODULE* - if found caller owns it, else NULL if not found.
+     *
+     * @throw   IO_ERROR if the library cannot be found or read.  No exception
+     *          is thrown in the case where aFootprintName cannot be found.
      */
-    const wxString* GetLibOptions( const wxString& aLogicalLibraryName ) const
-    {
-        const ROW* row = FindRow( aLogicalLibraryName );
-        return row ? &row->options : 0;
-    }
-#endif
+    MODULE* FootprintLoad( const wxString& aNickname, const wxString& aFootprintName );
 
-    //----</read accessors>---------------------------------------------------
+    /**
+     * Function FootprintSave
+     * will write @a aFootprint to an existing library given by @a aNickname.
+     * If a footprint by the same name already exists, it is replaced.
+     *
+     * @param aNickname is a locator for the "library", it is a "name"
+     *     in FP_LIB_TABLE::ROW
+     *
+     * @param aFootprint is what to store in the library. The caller continues
+     *    to own the footprint after this call.
+     *
+     * @throw IO_ERROR if there is a problem saving.
+     */
+    void FootprintSave( const wxString& aNickname, const MODULE* aFootprint );
 
-#if 1 || defined(DEBUG)
-    /// implement the tests in here so we can honor the privilege levels of the
-    /// accessors, something difficult to do from int main(int, char**)
-    void Test();
-#endif
+    /**
+     * Function FootprintDelete
+     * deletes the @a aFootprintName from the library given by @a aNickname.
+     *
+     * @param aNickname is a locator for the "library", it is a "name"
+     *     in FP_LIB_TABLE::ROW
+     *
+     * @param aFootprintName is the name of a footprint to delete from the specified library.
+     *
+     * @throw IO_ERROR if there is a problem finding the footprint or the library, or deleting it.
+     */
+    void FootprintDelete( const wxString& aNickname, const wxString& aFootprintName );
+
+    /**
+     * Function IsFootprintLibWritable
+     * returns true iff the library given by @a aNickname is writable.  (Often
+     * system libraries are read only because of where they are installed.)
+     *
+     * @throw IO_ERROR if no library at aLibraryPath exists.
+     */
+    bool IsFootprintLibWritable( const wxString& aNickname );
+
+    //-----</PLUGIN API SUBSET, REBASED ON aNickname>---------------------------
+
 
     /**
      * Function InsertRow
@@ -417,16 +474,12 @@ public:
     bool InsertRow( const ROW& aRow, bool doReplace = false );
 
     /**
-     * Function PluginFind
-     * returns a PLUGIN*.  Caller should wrap that in a PLUGIN::RELEASER()
-     * so when it goes out of scope, IO_MGR::PluginRelease() is called.
-     */
-    PLUGIN* PluginFind( const wxString& aLibraryNickName ) throw( IO_ERROR );
-
-    /**
      * Function FindRow
      * returns a ROW if aNickName is found in this table or in any chained
-     * fallBack table fragment, else NULL.
+     * fallBack table fragment.  The PLUGIN is loaded and attached
+     * to the "plugin" field of the ROW if not already loaded.
+     *
+     * @throw IO_ERROR if aNickName cannot be found.
      */
     const ROW* FindRow( const wxString& aNickName ) throw( IO_ERROR );
 
@@ -439,9 +492,11 @@ public:
 
     /**
      * Function IsEmpty
+     * @param aIncludeFallback is used to determine if the fallback table should be
+     *                         included in the test.
      * @return true if the footprint library table is empty.
      */
-    bool IsEmpty() const;
+    bool IsEmpty( bool aIncludeFallback = true );
 
     /**
      * Function MissingLegacyLibs
@@ -481,7 +536,7 @@ public:
      * This enables (fp_lib_table)s to have platform dependent environment
      * variables in them, allowing for a uniform table across platforms.
      */
-    static const wxString ExpandSubstitutions( const wxString aString );
+    static const wxString ExpandSubstitutions( const wxString& aString );
 
     /**
      * Function LoadGlobalTable
@@ -505,10 +560,16 @@ public:
     static wxString GetGlobalTableFileName();
 
     /**
-     * Function GetFootprintTableFileName
+     * Function GetFileName
      * @return the footprint library file name.
      */
-    static wxString GetFileName();
+    static const wxString& GetFileName();
+
+    static void SetProjectPathEnvVariable( const wxFileName& aPath );
+
+    const wxString& GetProjectPathEnvVariableName() const;
+
+    static wxString GetProjectFileName( const wxFileName& aPath );
 
     /**
      * Function Load
@@ -529,7 +590,7 @@ protected:
      * returns a ROW if aNickName is found in this table or in any chained
      * fallBack table fragment, else NULL.
      */
-    const ROW* findRow( const wxString& aNickName );
+    ROW* findRow( const wxString& aNickName ) const;
 
     void reindex()
     {

@@ -132,11 +132,7 @@ static bool engStrToDouble( wxString aStr, double* aDouble )
     aStr.Append( wxT( "R" ) );
 
     // Regular expression for a value string, e.g., 47k2
-#if defined(KICAD_GOST)
     static wxRegEx valueRegEx( wxT( "^([0-9]+)(мк|[pnumRkKMGT.,кнМГ])([0-9]*)(мк*|[pnumRkKMGTкнМГ]*)" ) );
-#else
-    static wxRegEx valueRegEx( wxT( "^([0-9]+)([pnumRkKMGT.,])([0-9]*)([pnumRkKMGT]*)" ) );
-#endif
 
     if( !valueRegEx.Matches( aStr ) )
         return false;
@@ -145,7 +141,6 @@ static bool engStrToDouble( wxString aStr, double* aDouble )
                                   + wxT( "." )
                                   + valueRegEx.GetMatch( aStr, 3 ) );
     wxString multiplierString = valueRegEx.GetMatch( aStr, 2 );
-#if defined(KICAD_GOST)
     if ( multiplierString == wxT( "мк" ) )
         multiplierString = wxT( "u" );
     else if ( multiplierString == wxT( "к" ) )
@@ -156,9 +151,9 @@ static bool engStrToDouble( wxString aStr, double* aDouble )
         multiplierString = wxT( "M" );
     else if ( multiplierString == wxT( "Г" ) )
         multiplierString = wxT( "G" );
-#endif
+
     wxString post_multiplierString = valueRegEx.GetMatch( aStr, 4 );
-#if defined(KICAD_GOST)
+
     if ( post_multiplierString == wxT( "мк" ) )
         multiplierString = wxT( "u" );
     else if ( post_multiplierString == wxT( "к" ) )
@@ -169,7 +164,7 @@ static bool engStrToDouble( wxString aStr, double* aDouble )
         multiplierString = wxT( "M" );
     else if ( post_multiplierString == wxT( "Г" ) )
         multiplierString = wxT( "G" );
-#endif
+
     double multiplier;
 
     switch( (wxChar)multiplierString[0] )

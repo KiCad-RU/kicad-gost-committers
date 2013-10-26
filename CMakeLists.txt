@@ -62,18 +62,10 @@ option( KICAD_SCRIPTING_WXPYTHON
 
 option( USE_FP_LIB_TABLE "Use the new footprint library table implementation. ( default OFF)" )
 
-# BUILD_GITHUB_PLUGIN for MINGW is pretty demanding due to download_openssl.cmake and openssl's
-# use of perl to drive its configure step.  You might find it works in a cross builder say on linux.
-# Dick is not personally supporting Windows any more with this exotic stuff.  Some other windows
-# developer will have to smooth out the build issues.  So enable this for MINGW without my help but
-# with my best wishes.
-if( NOT MINGW )
-    option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." OFF )
-endif()
+option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." OFF )
 
 
-#Set version option (stable or testing)
-
+# Set version option (stable or testing)
 if( KICAD_STABLE_VERSION)
     add_definitions( -DKICAD_STABLE_VERSION )
     message( STATUS "Building stable version of KiCad" )
@@ -86,6 +78,13 @@ endif()
 set( DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/.downloads-by-cmake
     CACHE PATH "Location of KiCad downloads, suggested is a dir common to all builds, i.e. global." )
 
+if( UNIX )
+    set( KICAD_USER_CONFIG_DIR $ENV{HOME} CACHE PATH "Location of user specifig KiCad config files" )
+elseif( MINGW )
+    set( KICAD_USER_CONFIG_DIR $ENV{%APPDATA%} CACHE PATH "Location of user specifig KiCad config files" )
+endif()
+mark_as_advanced( KICAD_USER_CONFIG_DIR )
+
 
 #================================================
 # Set flags for GCC.
@@ -93,51 +92,41 @@ set( DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/.downloads-by-cmake
 
 if( CMAKE_COMPILER_IS_GNUCXX )
 
-    set( KICAD_GCC_RELEASE_BUILD_FLAGS "-O2" )
-    set( KICAD_GCC_RELEASE_DEBUG_FLAGS "" )
-
     execute_process( COMMAND ${CMAKE_C_COMPILER} -dumpversion
         OUTPUT_VARIABLE GCC_VERSION
         OUTPUT_STRIP_TRAILING_WHITESPACE )
 
-    # Added -Wno-narrowing on 10/7/12 to prevent a huge number of warnings when
-    # compiling with GCC 4.7.  This appears to be caused by and int to unsigned
-    # conversion in the Boost polygon library.  At some point in the future when
-    # Boost is updated to the next version, -Wno-narrowing should be removed to
-    # see if the problem has been resolved.  Wayne.
-    #
-    # Also note the optimization level is -O1 instead of the usual -O2 level
-    # because boost::polygon has a function ( inflate polygon) broken by
-    # the -O2 level with GCC 4.7 (works fine with  with GCC 4.6).
+    # Establish -Wall early, so specialized relaxations of this may come
+    # subsequently on the command line, such as in pcbnew/github/CMakeLists.txt
+    set( CMAKE_C_FLAGS   "-Wall" )
+    set( CMAKE_CXX_FLAGS "-Wall" )
+
+    # The optimization level is -O1 instead of the usual -O2 level because
+    # boost::polygon has a function (inflate polygon) broken by the -O2 level
+    # with GCC 4.7.0 to 4.7.2 (works fine with  with GCC 4.6 and 4.7.3).
     # This lower optimization level does not have a significant change on the speed.
-    #
-    # As newer versions of GCC and/or Boost are released, this code needs reviewed to
-    # determine if the problems above have been fixed either in Boost or GCC.
-    if( GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7 )
-        set( KICAD_GCC_RELEASE_BUILD_FLAGS "-Wno-narrowing -O1" )
-        set( KICAD_GCC_DEBUG_BUILD_FLAGS "-Wno-narrowing" )
-    endif()
-
-    if( CMAKE_BUILD_TYPE STREQUAL Debug )
-        message( STATUS
-            "Setting GCC version ${GCC_VERSION} build flags \"${KICAD_GCC_DEBUG_BUILD_FLAGS}\"" )
+    # See also:
+    #   https://bugs.launchpad.net/kicad/+bug/1056926
+    #   https://svn.boost.org/trac/boost/ticket/7983
+    if( GCC_VERSION VERSION_EQUAL 4.7.0 OR ( GCC_VERSION VERSION_GREATER 4.7.0 AND GCC_VERSION VERSION_LESS 4.7.3 ) )
+        set( CMAKE_C_FLAGS_RELEASE   "-O1" )
+        set( CMAKE_CXX_FLAGS_RELEASE "-O1" )
     else()
-        message( STATUS
-            "Setting GCC version ${GCC_VERSION} build flags \"${KICAD_GCC_RELEASE_BUILD_FLAGS}\"" )
+        set( CMAKE_C_FLAGS_RELEASE   "-O2" )
+        set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
     endif()
 
-    set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall" )
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
+    set( CMAKE_C_FLAGS_DEBUG   "-g3 -ggdb3 -DDEBUG" )
+    set( CMAKE_CXX_FLAGS_DEBUG "-g3 -ggdb3 -DDEBUG" )
+
+    set( CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} -DNDEBUG" )
+    set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG" )
 
     if( MINGW )
         # Set default flags for Release build.
-        set( CMAKE_C_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
-        set( CMAKE_CXX_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
         set( CMAKE_EXE_LINKER_FLAGS_RELEASE "-s -static-libgcc -static-libstdc++" )
 
         # Set default flags for Debug build.
-        set( CMAKE_C_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
-        set( CMAKE_CXX_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
         set( CMAKE_MODULE_LINKER_FLAGS "-static-libgcc -static-libstdc++") # SWIG macros on Windows
 
     else()
@@ -147,7 +136,7 @@ if( CMAKE_COMPILER_IS_GNUCXX )
         # empty for Windows.
         set( PIC_FLAG -fPIC )
 
-        set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${PIC_FLAG}" )
+        set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${PIC_FLAG}" )
         set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PIC_FLAG}" )
 
         # Thou shalt not link vaporware and tell us it's a valid DSO:
@@ -155,13 +144,8 @@ if( CMAKE_COMPILER_IS_GNUCXX )
         set( CMAKE_MODULE_LINKER_FLAGS "-Wl,--no-undefined" ) # needed by SWIG macros on linux
 
         # Set default flags for Release build.
-        set( CMAKE_C_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
-        set( CMAKE_CXX_FLAGS_RELEASE "${KICAD_GCC_RELEASE_BUILD_FLAGS} -DNDEBUG" )
         set( CMAKE_EXE_LINKER_FLAGS_RELEASE "-s" )
 
-        # Set default flags for Debug build.
-        set( CMAKE_C_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
-        set( CMAKE_CXX_FLAGS_DEBUG "${KICAD_GCC_DEBUG_BUILD_FLAGS} -g3 -ggdb3 -DDEBUG" )
     endif()
 
     # quiet GCC 4.8.1 while in boost
@@ -413,6 +397,7 @@ add_subdirectory( cvpcb )
 add_subdirectory( eeschema )
 add_subdirectory( gerbview )
 add_subdirectory( kicad )
+add_subdirectory( lib_dxf )
 add_subdirectory( pcbnew )
 add_subdirectory( polygon )
 add_subdirectory( pagelayout_editor )
@@ -465,20 +450,26 @@ endif()
 
 
 #================================================
-# make uninstall rules
+# "make uninstall" rules
 #================================================
 configure_file(
-  "${CMAKE_MODULE_PATH}/cmake_uninstall.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-  IMMEDIATE @ONLY )
+    "${CMAKE_MODULE_PATH}/cmake_uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+    IMMEDIATE @ONLY )
 
 add_custom_target( uninstall
-  "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" )
+    "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" )
 
 
 #================================================
-# Installation parameters
+# Installation
 #================================================
+
+add_custom_target( install_user_configuration_files
+    "${CMAKE_COMMAND}" -E copy "${PROJECT_SOURCE_DIR}/template/fp-lib-table" ${KICAD_USER_CONFIG_DIR}/
+    COMMENT "Install template fp-lib-table into your home directory."
+    )
+
 install( FILES INSTALL.txt
     DESTINATION ${KICAD_DOCS}
     COMPONENT resources )
@@ -492,15 +483,16 @@ install( FILES resources/freeroute.jnlp
 ###
 if( UNIX )
     install( DIRECTORY scripts
-            DESTINATION ${KICAD_DOCS}
-            COMPONENT resources
-            PATTERN ".svn" EXCLUDE )
+        DESTINATION ${KICAD_DOCS}
+        COMPONENT resources
+        )
 endif()
 
 ###
 # FreeDesktop .desktop and MIME resources
 ###
 if( UNIX )
+
     # Set paths
     set( UNIX_MIME_DIR resources/linux/mime )
     set( UNIX_MIMELNK_FILES ${UNIX_MIME_DIR}/mimelnk )
@@ -512,25 +504,46 @@ if( UNIX )
     install( DIRECTORY ${UNIX_MIMELNK_FILES}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/share
         COMPONENT resources
-        PATTERN ".svn" EXCLUDE )
+        )
 
     # Install Mime directory
     install( DIRECTORY ${UNIX_ICONS_FILES}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/share
         COMPONENT resources
-        PATTERN ".svn" EXCLUDE )
+        )
 
     # Install Icons
     install( DIRECTORY ${UNIX_MIME_FILES}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/share
         COMPONENT resources
-        PATTERN ".svn" EXCLUDE )
+        )
 
     # Install Applications directory (.desktop files)
     install( DIRECTORY ${UNIX_APPLICATIONS_FILES}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/share
         COMPONENT resources
-        PATTERN ".svn" EXCLUDE )
+        )
 endif()
 
-include( CTest )
+#include( CTest )
+
+
+if( UNIX AND NOT APPLE )
+
+    # Create a *.deb file:
+    set( CPACK_GENERATOR "DEB" )
+    set( CPACK_DEBIAN_PACKAGE_MAINTAINER "http://launchpad.net/kicad" )
+
+    set( CPACK_PACKAGE_VERSION_MAJOR 1 )
+    set( CPACK_PACKAGE_VERSION_MINOR 0 )
+    set( CPACK_PACKAGE_VERSION_PATCH 0 )
+    #set( CPACK_PACKAGE_CONTACT Firstname Lastname <email@company.com> )
+    set( CPACK_PACKAGE_DESCRIPTION_SUMMARY "KiCad built by CMake build system." )
+
+    # Tell debian CPack about all files which are configuration files
+    add_conffiles()         # clear file
+    add_conffiles( ${KICAD_USER_CONFIG_DIR}/fp-lib-table )  # append to it
+
+    include( CPack )
+
+endif()
