@@ -442,6 +442,7 @@ add_dependencies( pl_editor boost )
 #############
 # Resources #
 #############
+add_subdirectory(internat)
 add_subdirectory( demos )
 add_subdirectory(internat)
 add_subdirectory( template )
