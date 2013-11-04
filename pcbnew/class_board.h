@@ -33,12 +33,12 @@
 
 #include <dlist.h>
 
+#include <common.h>                         // PAGE_INFO
 #include <layers_id_colors_and_visibility.h>
 #include <class_netinfo.h>
 #include <class_pad.h>
 #include <class_colors_design_settings.h>
 #include <class_board_design_settings.h>
-#include <common.h>                         // PAGE_INFO
 #include <class_title_block.h>
 #include <class_zone_settings.h>
 #include <pcb_plot_params.h>
@@ -306,6 +306,10 @@ public:
 
     BOARD();
     ~BOARD();
+
+    virtual const wxPoint& GetPosition() const;
+
+    virtual void SetPosition( const wxPoint& aPos );
 
     bool IsEmpty() const
     {
@@ -915,9 +919,9 @@ public:
      * @param aRefOrTimeStamp is the search string.
      * @param aSearchByTimeStamp searches by the module time stamp value if true.  Otherwise
      *                           search by reference designator.
-     * @return the module found or NULL if not module is found that meets the search criteria.
+     * @return MODULE* - If found, the module meeting the search criteria, else NULL.
      */
-    MODULE* FindModule( const wxString& aRefOrTimeStamp, bool aSearchByTimeStamp = false );
+    MODULE* FindModule( const wxString& aRefOrTimeStamp, bool aSearchByTimeStamp = false ) const;
 
     /**
      * Function ReplaceNetlist

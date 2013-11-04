@@ -78,6 +78,9 @@ endif()
 set( DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/.downloads-by-cmake
     CACHE PATH "Location of KiCad downloads, suggested is a dir common to all builds, i.e. global." )
 
+#Add option to add user directories for linker, if any
+LINK_DIRECTORIES( ${LINK_DIRECTORIES_PATH} )
+
 if( UNIX )
     set( KICAD_USER_CONFIG_DIR $ENV{HOME} CACHE PATH "Location of user specifig KiCad config files" )
 elseif( MINGW )
@@ -266,11 +269,26 @@ include( ExternalProject )
 #================================================
 include( CheckFindPackageResult )
 
+# Turn on wxWidgets compatibility mode for some classes
+add_definitions(-DWX_COMPATIBILITY)
+
 #######################
 # Find OpenGL library #
 #######################
 find_package( OpenGL QUIET )
 check_find_package_result( OPENGL_FOUND "OpenGL" )
+
+#####################
+# Find GLEW library #
+#####################
+find_package(GLEW)
+check_find_package_result(GLEW_FOUND "GLEW")
+
+######################
+# Find Cairo library #
+######################
+find_package(Cairo 1.8.1 QUIET)
+check_find_package_result(CAIRO_FOUND "Cairo")
 
 # Download boost and possibly build parts of it
 #################################################
@@ -416,12 +434,14 @@ add_subdirectory(extra/pcad2kicadsch)
 add_dependencies( pcbnew boost )
 add_dependencies( eeschema boost )
 add_dependencies( cvpcb boost )
+add_dependencies( gal boost )
 add_dependencies( common boost )
 add_dependencies( pcbcommon boost )
 add_dependencies( 3d-viewer boost )
 add_dependencies( pcad2kicadpcb boost )
 add_dependencies( polygon boost )
 add_dependencies( pl_editor boost )
+add_dependencies( pnsrouter boost )
 
 
 #############

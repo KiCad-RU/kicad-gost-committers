@@ -51,7 +51,7 @@ static const wxString traceFpLibTable( wxT( "KicadFpLibTable" ) );
 
 /// The evinronment variable name for the current project path.  This is used interanally
 /// at run time and is not exposed outside of the current process.
-static wxString projectPathEnvVariableName( wxT( "KICAD_PRJ_PATH" ) );
+static wxString projectPathEnvVariableName( wxT( "KIPRJMOD" ) );
 
 /// The footprint library table name used when no project file is passed to Pcbnew or CvPcb.
 /// This is used temporarily to store the project specific library table until the project
@@ -388,15 +388,17 @@ std::string FP_LIB_TABLE::FormatOptions( const PROPERTIES* aProperties )
 
             // the separation between name and value is '='
             if( value.size() )
+            {
                 ret += '=';
 
-            for( std::string::const_iterator si = value.begin();  si != value.end();  ++si )
-            {
-                // escape any separator in the value.
-                if( *si == OPT_SEP )
-                    ret += '\\';
+                for( std::string::const_iterator si = value.begin();  si != value.end();  ++si )
+                {
+                    // escape any separator in the value.
+                    if( *si == OPT_SEP )
+                        ret += '\\';
 
-                ret += *si;
+                    ret += *si;
+                }
             }
         }
     }
@@ -838,22 +840,3 @@ void FP_LIB_TABLE::Load( const wxFileName& aFileName, FP_LIB_TABLE* aFallBackTab
     }
 }
 
-
-#if 0  // don't know that this is needed yet
-MODULE* FP_LIB_TABLE::LookupFootprint( const FP_LIB_ID& aFootprintId )
-    throw( IO_ERROR )
-{
-    const ROW* row = FindRow( aFootprintId.GetLibraryNickName() );
-
-    // row will never be NULL here.
-
-    PLUGIN::RELEASER pi( PluginFind( row->type ) );
-
-    return pi->FootprintLoad(   aLibraryPath->GetFullURI() ),
-                                aFootprintId.GetFootprintName(),
-
-                                // fetch a PROPERTIES instance on stack here
-                                row->GetPropertiesFromOptions()
-                                );
-}
-#endif

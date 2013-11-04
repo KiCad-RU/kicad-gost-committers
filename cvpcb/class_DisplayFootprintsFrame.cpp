@@ -31,6 +31,7 @@
 #include <appl_wxstruct.h>
 #include <common.h>
 #include <class_drawpanel.h>
+#include <class_drawpanel_gal.h>
 #include <confirm.h>
 #include <macros.h>
 #include <bitmaps.h>
@@ -120,8 +121,6 @@ DISPLAY_FOOTPRINTS_FRAME::DISPLAY_FOOTPRINTS_FRAME( CVPCB_MAINFRAME* parent,
 
     EDA_PANEINFO mesg;
     mesg.MessageToolbarPane();
-
-
 
     m_auimgr.AddPane( m_mainToolBar,
                       wxAuiPaneInfo( horiz ).Name( wxT( "m_mainToolBar" ) ).Top(). Row( 0 ) );
@@ -549,19 +548,22 @@ MODULE* DISPLAY_FOOTPRINTS_FRAME::Get_Module( const wxString& aFootprintName )
 void DISPLAY_FOOTPRINTS_FRAME::InitDisplay()
 {
     wxString msg;
-    CVPCB_MAINFRAME * parentframe = (CVPCB_MAINFRAME *) GetParent();
+
+    CVPCB_MAINFRAME* parentframe = (CVPCB_MAINFRAME *) GetParent();
+
     wxString footprintName = parentframe->m_FootprintList->GetSelectedFootprint();
 
     if( !footprintName.IsEmpty() )
     {
         msg.Printf( _( "Footprint: %s" ), GetChars( footprintName ) );
+
         SetTitle( msg );
         FOOTPRINT_INFO* module_info = parentframe->m_footprints.GetModuleInfo( footprintName );
 
         const wxChar *libname;
 
         if( module_info )
-            libname = GetChars( module_info->GetLibraryPath() );
+            libname = GetChars( module_info->GetNickname() );
         else
             libname = GetChars( wxT( "???" ) );
 
@@ -581,7 +583,6 @@ void DISPLAY_FOOTPRINTS_FRAME::InitDisplay()
             GetBoard()->m_Modules.PushBack( module );
 
         Zoom_Automatique( false );
-
     }
     else   // No footprint to display. Erase old footprint, if any
     {
