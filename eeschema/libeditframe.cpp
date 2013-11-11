@@ -221,12 +221,13 @@ LIB_EDIT_FRAME::LIB_EDIT_FRAME( SCH_EDIT_FRAME* aParent,
 
     SetCrossHairPosition( wxPoint( 0, 0 ) );
 
+    // Initialize grid id to the default value 50 mils:
+    m_LastGridSizeId = ID_POPUP_GRID_LEVEL_50 - ID_POPUP_GRID_LEVEL_1000;
+
     LoadSettings();
 
     SetSize( m_FramePos.x, m_FramePos.y, m_FrameSize.x, m_FrameSize.y );
 
-    // Initialize grid id to the default value 50 mils:
-    m_LastGridSizeId = ID_POPUP_GRID_LEVEL_50 - ID_POPUP_GRID_LEVEL_1000;
     GetScreen()->SetGrid( ID_POPUP_GRID_LEVEL_1000 + m_LastGridSizeId  );
 
     if( m_canvas )
@@ -287,23 +288,17 @@ LIB_EDIT_FRAME::~LIB_EDIT_FRAME()
     m_tempCopyComponent = NULL;
 }
 
-/**
- * Function GetLibEditFrameName (static)
- * @return the frame name used when creating the frame
- * used to get a reference to this frame, if exists
- */
 const wxChar* LIB_EDIT_FRAME::GetLibEditFrameName()
 {
     return LIB_EDIT_FRAME_NAME;
 }
 
-/* return a reference to the current opened Library editor
- * or NULL if no Library editor currently opened
- */
+
 LIB_EDIT_FRAME* LIB_EDIT_FRAME::GetActiveLibraryEditor()
 {
     return (LIB_EDIT_FRAME*) wxWindow::FindWindowByName(GetLibEditFrameName());
 }
+
 
 void LIB_EDIT_FRAME::LoadSettings()
 {
@@ -469,7 +464,7 @@ void LIB_EDIT_FRAME::UpdatePartSelectList()
         for( int i = 0; i < m_component->GetPartCount(); i++ )
         {
             wxString sub  = LIB_COMPONENT::ReturnSubReference( i+1, false );
-            wxString part = wxString::Format( _( "Part %s" ), GetChars( sub ) );
+            wxString part = wxString::Format( _( "Unit %s" ), GetChars( sub ) );
             m_partSelectBox->Append( part );
         }
     }
@@ -752,9 +747,11 @@ void LIB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         m_canvas->MoveCursorToCrossHair();
         STATUS_FLAGS oldFlags = m_drawItem->GetFlags();
         m_drawItem->ClearFlags();
-        m_drawItem->Draw( m_canvas, &dc, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode, NULL, DefaultTransform );
+        m_drawItem->Draw( m_canvas, &dc, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode, NULL,
+                          DefaultTransform );
         ( (LIB_POLYLINE*) m_drawItem )->DeleteSegment( GetCrossHairPosition( true ) );
-        m_drawItem->Draw( m_canvas, &dc, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode, NULL, DefaultTransform );
+        m_drawItem->Draw( m_canvas, &dc, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode, NULL,
+                          DefaultTransform );
         m_drawItem->SetFlags( oldFlags );
         m_lastDrawItem = NULL;
         break;
@@ -961,7 +958,8 @@ void LIB_EDIT_FRAME::EditSymbolText( wxDC* DC, LIB_ITEM* DrawItem )
 
     // Deleting old text
     if( DC && !DrawItem->InEditMode() )
-        DrawItem->Draw( m_canvas, DC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode, NULL, DefaultTransform );
+        DrawItem->Draw( m_canvas, DC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode, NULL,
+                        DefaultTransform );
 
     DIALOG_LIB_EDIT_TEXT* frame = new DIALOG_LIB_EDIT_TEXT( this, (LIB_TEXT*) DrawItem );
     frame->ShowModal();
@@ -1027,7 +1025,7 @@ void LIB_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
         m_lastDrawItem = NULL;
 
     m_canvas->EndMouseCapture( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(),
-                                wxEmptyString );
+                               wxEmptyString );
 
     switch( id )
     {
