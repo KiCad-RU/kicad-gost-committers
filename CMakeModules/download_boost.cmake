@@ -58,7 +58,7 @@ set( BOOST_LIBS_BUILT
 
 #-----</configure>---------------------------------------------------------------
 
-
+find_package( BZip2 REQUIRED )
 
 string( REGEX REPLACE "\\." "_" BOOST_VERS "${BOOST_RELEASE}" )
 set( PREFIX ${DOWNLOAD_DIR}/boost_${BOOST_VERS} )
@@ -121,7 +121,13 @@ ExternalProject_Add( boost
     URL_MD5         ${BOOST_MD5}
 
     # The patch command executes with the working directory set to <SOURCE_DIR>
-    PATCH_COMMAND   bzr patch -p0 "${PROJECT_SOURCE_DIR}/patches/boost.patch"
+    # Revert the branch to pristine before applying patch sets as bzr patch
+    # fails when applying a patch to the branch twice and doesn't have a switch
+    # to ignore previously applied patches
+    PATCH_COMMAND   bzr revert
+        # PATCH_COMMAND continuation (any *_COMMAND here can be continued with COMMAND):
+        COMMAND     bzr patch -p0 "${PROJECT_SOURCE_DIR}/patches/boost_minkowski.patch"
+        COMMAND     bzr patch -p0 "${PROJECT_SOURCE_DIR}/patches/boost_cstdint.patch"
 
     # [Mis-]use this step to erase all the boost headers and libraries before
     # replacing them below.

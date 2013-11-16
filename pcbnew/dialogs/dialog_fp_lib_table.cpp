@@ -198,7 +198,7 @@ public:
         case COL_NICKNAME:  return _( "Nickname" );
         case COL_URI:       return _( "Library Path" );
 
-        // keep this text fairly long so column is sized wide enough
+        // keep this "Plugin Type" text fairly long so column is sized wide enough
         case COL_TYPE:      return _( "Plugin Type" );
         case COL_OPTIONS:   return _( "Options" );
         case COL_DESCR:     return _( "Description" );
@@ -323,19 +323,24 @@ public:
         attr->SetEditor( new wxGridCellChoiceEditor( choices ) );
         m_global_grid->SetColAttr( COL_TYPE, attr );
 
-        m_global_grid->AutoSizeColumns( false );
-        m_project_grid->AutoSizeColumns( false );
-
-        /*
-        Connect( MYID_FIRST, MYID_LAST, wxEVT_COMMAND_MENU_SELECTED,
-            wxCommandEventHandler( DIALOG_FP_LIB_TABLE::onPopupSelection ), NULL, this );
-        */
-
         populateEnvironReadOnlyTable();
 
-        /* This scrunches the dialog hideously
-        Fit();
-        */
+        for( int i=0; i<2; ++i )
+        {
+            wxGrid* g = i==0 ? m_global_grid : m_project_grid;
+
+            // all but COL_OPTIONS, which is edited with Option Editor anyways.
+            g->AutoSizeColumn( COL_NICKNAME, true );
+            g->AutoSizeColumn( COL_TYPE, false );
+            g->AutoSizeColumn( COL_URI, false );
+            g->AutoSizeColumn( COL_DESCR, false );
+
+            g->SetColSize( COL_OPTIONS, 80 );
+        }
+
+        // This scrunches the dialog hideously, probably due to wxAUI container.
+        // Fit();
+        // We derive from DIALOG_SHIM so prior size will be used anyways.
 
         // fire pageChangedHandler() so m_cur_grid gets set
         wxAuiNotebookEvent uneventful;
@@ -583,12 +588,16 @@ private:
         wxString        result;
         const wxString& options = row.GetOptions();
 
-        InvokePluginOptionsEditor( this, row.GetNickName(), options, &result );
+        InvokePluginOptionsEditor( this, row.GetNickName(), row.GetType(), options, &result );
 
         if( options != result )
         {
             row.SetOptions( result );
-            m_cur_grid->AutoSizeColumn( COL_OPTIONS, false );
+
+            // all but options:
+            m_cur_grid->AutoSizeColumn( COL_NICKNAME, false );
+            m_cur_grid->AutoSizeColumn( COL_URI, false );
+            m_cur_grid->AutoSizeColumn( COL_TYPE, false );
         }
     }
 
@@ -682,6 +691,12 @@ private:
                 uri.Replace( re.GetMatch( uri, 0 ), wxEmptyString );
             }
         }
+
+        // Make sure this special environment variable shows up even if it was
+        // not used yet.  It is automatically set by KiCad to the directory holding
+        // the current project.
+        unique.insert( FP_LIB_TABLE::ProjectPathEnvVariableName() );
+        unique.insert( FP_LIB_TABLE::GlobalPathEnvVariableName() );
 
         m_path_subs_grid->AppendRows( unique.size() );
 

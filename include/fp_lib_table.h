@@ -34,6 +34,8 @@
 #include <io_mgr.h>
 
 
+#define KISYSMOD        "KISYSMOD"
+
 class wxFileName;
 class OUTPUTFORMATTER;
 class MODULE;
@@ -567,7 +569,22 @@ public:
 
     static void SetProjectPathEnvVariable( const wxFileName& aPath );
 
-    const wxString& GetProjectPathEnvVariableName() const;
+    /**
+     * Function ProjectPathEnvVarVariableName
+     * returns the name of the environment variable used to hold the directory of
+     * the current project on program startup.
+     */
+    static const wxString ProjectPathEnvVariableName();
+
+    /**
+     * Function GlobalPathEnvVarVariableName
+     * returns the name of the environment variable used to hold the directory of
+     * locally installed "KiCad sponsored" system footprint libraries.  These can
+     * be either legacy or pretty format.  The only thing special about this
+     * particular environment variable is that it is set automatically by
+     * KiCad on program startup, <b>iff</b> it is not set already in the environment.
+     */
+    static const wxString GlobalPathEnvVariableName();
 
     static wxString GetProjectFileName( const wxFileName& aPath );
 

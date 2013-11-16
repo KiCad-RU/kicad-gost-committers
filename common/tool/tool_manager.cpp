@@ -43,6 +43,7 @@
 #include <tool/action_manager.h>
 
 #include <wxPcbStruct.h>
+#include <confirm.h>
 #include <class_drawpanel_gal.h>
 
 using boost::optional;
@@ -136,11 +137,11 @@ void TOOL_MANAGER::RegisterTool( TOOL_BASE* aTool )
 
     if( aTool->GetType() == INTERACTIVE )
     {
-        bool initState = static_cast<TOOL_INTERACTIVE*>( aTool )->Init();
-
-        if( !initState )
+        if( !static_cast<TOOL_INTERACTIVE*>( aTool )->Init() )
         {
-            wxLogError( wxT( "Initialization of the %s tool failed" ), aTool->GetName().c_str() );
+            std::string msg = StrPrintf( "Initialization of the %s tool failed", aTool->GetName().c_str() );
+
+            DisplayError( NULL, wxString::FromUTF8( msg.c_str() ) );
 
             // Unregister the tool
             m_toolState.erase( aTool );
