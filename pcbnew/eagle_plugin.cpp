@@ -1106,17 +1106,15 @@ EAGLE_PLUGIN::~EAGLE_PLUGIN()
 }
 
 
-const wxString& EAGLE_PLUGIN::PluginName() const
+const wxString EAGLE_PLUGIN::PluginName() const
 {
-    static const wxString name = wxT( "Eagle" );
-    return name;
+    return wxT( "Eagle" );
 }
 
 
-const wxString& EAGLE_PLUGIN::GetFileExtension() const
+const wxString EAGLE_PLUGIN::GetFileExtension() const
 {
-    static const wxString extension = wxT( "brd" );
-    return extension;
+    return wxT( "brd" );
 }
 
 
@@ -2892,6 +2890,8 @@ MODULE* EAGLE_PLUGIN::FootprintLoad( const wxString& aLibraryPath, const wxStrin
 
 void EAGLE_PLUGIN::FootprintLibOptions( PROPERTIES* aListToAppendTo ) const
 {
+    PLUGIN::FootprintLibOptions( aListToAppendTo );
+
     /*
     (*aListToAppendTo)["ignore_duplicates"] = wxString( _(
         "Ignore duplicately named footprints within the same Eagle library. "
