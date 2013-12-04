@@ -846,7 +846,7 @@ MODULE* PCB_BASE_FRAME::Create_1_Module( const wxString& aModuleName )
     if( moduleName.IsEmpty() )
     {
         wxTextEntryDialog dlg( this, FMT_MOD_REF, FMT_MOD_CREATE, moduleName );
-        dlg.SetTextValidator( FOOTPRINT_NAME_VALIDATOR() );
+        //dlg.SetTextValidator( FOOTPRINT_NAME_VALIDATOR() );
 
         if( dlg.ShowModal() != wxID_OK )
             return NULL;    //Aborted by user
