@@ -315,10 +315,9 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( wxWindow* parent, const wxString& title,
     m_microWaveToolBar = NULL;
     m_useCmpFileForFpNames = true;
 
-#if defined( USE_FP_LIB_TABLE )
     m_footprintLibTable = NULL;
     m_globalFootprintTable = NULL;
-#endif
+    m_rotationAngle = 900;
 
 #ifdef KICAD_SCRIPTING_WXPYTHON
     m_pythonPanel = NULL;
@@ -471,7 +470,6 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( wxWindow* parent, const wxString& title,
 
     m_auimgr.Update();
 
-#if defined( USE_FP_LIB_TABLE )
     if( m_globalFootprintTable == NULL )
     {
         try
@@ -499,7 +497,6 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( wxWindow* parent, const wxString& title,
             DisplayError( this, msg );
         }
     }
-#endif
 
     setupTools();
 }
@@ -515,10 +512,8 @@ PCB_EDIT_FRAME::~PCB_EDIT_FRAME()
 
     delete m_drc;
 
-#if defined( USE_FP_LIB_TABLE )
     delete m_footprintLibTable;
     delete m_globalFootprintTable;
-#endif
 }
 
 
@@ -556,6 +551,7 @@ void PCB_EDIT_FRAME::OnQuit( wxCommandEvent& event )
 void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
 {
     m_canvas->SetAbortRequest( true );
+    m_galCanvas->StopDrawing();
 
     if( GetScreen()->IsModify() )
     {
@@ -1076,4 +1072,13 @@ void PCB_EDIT_FRAME::ToPlotter( wxCommandEvent& event )
 {
     DIALOG_PLOT dlg( this );
     dlg.ShowModal();
+}
+
+
+void PCB_EDIT_FRAME::SetRotationAngle( int aRotationAngle )
+{
+    wxCHECK2_MSG( aRotationAngle > 0 && aRotationAngle <= 900, aRotationAngle = 900,
+                  wxT( "Invalid rotation angle, defaulting to 90." ) );
+
+    m_rotationAngle = aRotationAngle;
 }

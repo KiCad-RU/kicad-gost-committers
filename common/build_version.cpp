@@ -7,7 +7,7 @@
 
 #ifndef KICAD_BUILD_VERSION
 #if defined KICAD_GOST
-#   define KICAD_BUILD_VERSION "(2013-dec-06 BZR 4243 GOST (bzr4523-testing))"
+#   define KICAD_BUILD_VERSION "(2013-dec-19 BZR 4244 GOST (bzr4558-testing))"
 #else
 #   define KICAD_BUILD_VERSION "(2013-jul-14)"
 #endif
