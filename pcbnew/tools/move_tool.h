@@ -49,7 +49,6 @@ class MOVE_TOOL : public TOOL_INTERACTIVE
 {
 public:
     MOVE_TOOL();
-    ~MOVE_TOOL();
 
     /// @copydoc TOOL_INTERACTIVE::Reset()
     void Reset();
@@ -65,6 +64,8 @@ public:
     int Main( TOOL_EVENT& aEvent );
 
 private:
+    void updateRatsnest( bool aRedraw );
+
     /// Saves the state of items and allows to restore them
     ITEM_STATE m_state;
 
