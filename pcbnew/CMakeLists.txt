@@ -27,6 +27,7 @@ include_directories(
     ../common
     ../polygon
     ../common/dialogs
+    ./exporters
     ../lib_dxf
     ./import_dxf
     ${INC_AFTER}
@@ -55,6 +56,8 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_edit_module_text.cpp
     dialogs/dialog_edit_module_text_base.cpp
     dialogs/dialog_exchange_modules_base.cpp
+    dialogs/dialog_export_idf.cpp
+    dialogs/dialog_export_idf_base.cpp
     dialogs/dialog_export_vrml_base.cpp
     dialogs/dialog_export_vrml.cpp
     dialogs/dialog_find_base.cpp
@@ -123,6 +126,18 @@ set( PCBNEW_IMPORT_DXF
     import_dxf/dxf2brd_items.cpp
     )
 
+set( PCBNEW_EXPORTERS
+    exporters/export_d356.cpp
+    exporters/export_gencad.cpp
+    exporters/export_idf.cpp
+    exporters/export_vrml.cpp
+    exporters/idf.cpp
+    exporters/gen_drill_report_files.cpp
+    exporters/gen_modules_placefile.cpp
+    exporters/gendrill_Excellon_writer.cpp
+    exporters/vrml_board.cpp
+    )
+
 set( PCBNEW_AUTOROUTER_SRCS
     autorouter/rect_placement/rect_placement.cpp
     autorouter/move_and_route_event_functions.cpp
@@ -157,6 +172,7 @@ set( PCBNEW_CLASS_SRCS
     deltrack.cpp
     ${PCBNEW_DIALOGS}
     ${PCBNEW_IMPORT_DXF}
+    ${PCBNEW_EXPORTERS}
     dragsegm.cpp
     drc.cpp
     drc_clearance_test_functions.cpp
@@ -171,13 +187,7 @@ set( PCBNEW_CLASS_SRCS
     edit_track_width.cpp
     edtxtmod.cpp
     event_handlers_tracks_vias_sizes.cpp
-    export_d356.cpp
-    export_gencad.cpp
-    export_vrml.cpp
     files.cpp
-    gen_drill_report_files.cpp
-    gen_modules_placefile.cpp
-    gendrill_Excellon_writer.cpp
     globaleditpad.cpp
     highlight.cpp
     hotkeys.cpp
@@ -376,6 +386,7 @@ if( KICAD_SCRIPTING_MODULES )
         gal
         ${GLEW_LIBRARIES}
         ${CAIRO_LIBRARIES}
+        ${PIXMAN_LIBRARY}
         ${wxWidgets_LIBRARIES}
         ${OPENGL_LIBRARIES}
         ${GDI_PLUS_LIBRARIES}
@@ -553,6 +564,7 @@ target_link_libraries( pcbnew
     ${PCBNEW_EXTRA_LIBS}
     ${GLEW_LIBRARIES}
     ${CAIRO_LIBRARIES}
+    ${PIXMAN_LIBRARY}
     ${Boost_LIBRARIES}      # must follow GITHUB
     )
 

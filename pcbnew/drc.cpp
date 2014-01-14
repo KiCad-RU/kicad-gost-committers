@@ -40,7 +40,6 @@
 #include <class_zone.h>
 
 #include <pcbnew.h>
-#include <protos.h>
 #include <drc_stuff.h>
 
 #include <dialog_drc.h>
@@ -224,7 +223,8 @@ void DRC::RunTests( wxTextCtrl* aMessages )
         wxSafeYield();
     }
 
-    m_mainWindow->Fill_All_Zones( aMessages->GetParent(), false );
+    m_mainWindow->Fill_All_Zones( aMessages ? aMessages->GetParent() : m_mainWindow,
+                                  false );
 
     // test zone clearances to other zones
     if( aMessages )

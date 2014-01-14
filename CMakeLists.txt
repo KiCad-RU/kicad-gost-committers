@@ -36,11 +36,6 @@ option( USE_WX_GRAPHICS_CONTEXT
 option( USE_WX_OVERLAY
     "Use wxOverlay: Always ON for MAC ( default OFF). Warning, this is experimental" )
 
-#One of these 2 option *must* be set to ON:
-option( KICAD_STABLE_VERSION
-    "set this option to ON to build the stable version of KICAD. mainly used to set version ID (default OFF)"
-    )
-
 option( KICAD_SCRIPTING
     "set this option ON to build the scripting support inside kicad binaries"
     )
@@ -53,21 +48,30 @@ option( KICAD_SCRIPTING_WXPYTHON
     "set this option ON to build wxpython implementation for wx interface building in python and py.shell"
     )
 
+option( KICAD_BUILD_STATIC
+    "Builds Kicad and all libraries static (except wx-widgets)"
+    )
+
+# WARNING: KiCad developers strongly advise you to build Boost with supplied patches,
+# as it is known to work with KiCad.  Other versions may contain bugs that may result
+# in KiCad errors.
+option( KICAD_SKIP_BOOST
+    "Skip building downloaded Boost library components, use Boost from your system."
+    )
+mark_as_advanced( KICAD_SKIP_BOOST )    # Normal builders should build Boost.
+
+
 # when option KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES is enabled:
 # PYTHON_EXECUTABLE can be defined when invoking cmake
 # ( use -DPYTHON_EXECUTABLE=<python path>/python.exe or python2 )
 # when not defined by user, the default is python.exe under Windows and python2 for others
 # python binary file should be is exec path.
 
-
 option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." OFF )
 
+# This can be set to a custom name to brag about a particular branch in the "About" dialog:
+set( KICAD_REPO_NAME "product" CACHE STRING "Name of the tree from which this build came." )
 
-# Set version option (stable or testing)
-if( KICAD_STABLE_VERSION)
-    add_definitions( -DKICAD_STABLE_VERSION )
-    message( STATUS "Building stable version of KiCad" )
-endif()
 
 # All CMake downloads go here.  Suggested is up in the source tree, not in the build dir where they
 # would have to be downloaded over and over again.  The default is to choose a directory that is
@@ -123,6 +127,14 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
     set( CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} -DNDEBUG" )
     set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG" )
 
+    if( GXX_HAS_VISIBILITY_FLAG AND NOT APPLE )
+        set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden" )
+    endif()
+
+    if( GXX_HAS_VISIBILITY_INLINES_FLAG AND NOT APPLE )
+        set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden" )
+    endif()
+
     if( MINGW )
         set( CMAKE_EXE_LINKER_FLAGS_RELEASE "-s" )
 
@@ -141,8 +153,8 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
         # Disable this response file for includes ( See Windows-GNU.cmake module )
         if( WIN32 AND MSYS AND NOT CMAKE_CROSSCOMPILING )
             # fixme: it is needed only with MSYS+MINGW32? or always under MINGW
-            if (${CMAKE_SIZEOF_VOID_P} MATCHES 4)
-                set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES 0)
+            if( ${CMAKE_SIZEOF_VOID_P} MATCHES 4 )
+                set( CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES 0 )
             endif()
         endif()
 
@@ -170,7 +182,12 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
         set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-local-typedefs" )
     endif()
 
-endif( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if( APPLE )
+        set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -D__ASSERTMACROS__ -mmacosx-version-min=10.5" )
+        set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__ASSERTMACROS__ -mmacosx-version-min=10.5" )
+    endif()
+
+endif( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 
 if( wxUSE_UNICODE )
     add_definitions( -DwxUSE_UNICODE )
@@ -278,6 +295,19 @@ include( Functions )
 
 include( ExternalProject )
 
+if ( APPLE )
+    set( KICAD_BUILD_STATIC ON)
+
+    if( NOT CMAKE_CXX_COMPILER )
+        EXEC_PROGRAM( wx-config ARGS --cc  OUTPUT_VARIABLE CMAKE_C_COMPILER )
+    endif( NOT CMAKE_CXX_COMPILER )
+
+    if( NOT CMAKE_CXX_COMPILER )
+        EXEC_PROGRAM( wx-config ARGS --cxx OUTPUT_VARIABLE CMAKE_CXX_COMPILER )
+    endif( NOT CMAKE_CXX_COMPILER )
+
+endif( APPLE )
+
 #================================================
 # Find libraries that are needed to build KiCad.
 #================================================
@@ -291,6 +321,23 @@ add_definitions(-DWX_COMPATIBILITY)
 #######################
 find_package( OpenGL QUIET )
 check_find_package_result( OPENGL_FOUND "OpenGL" )
+
+if ( KICAD_BUILD_STATIC )
+
+    #set(CMAKE_FIND_LIBRARY_SUFFIXES ".a;.so;.dylib;.dll")
+
+    include( download_pkgconfig )
+        set( PKG_CONFIG_EXECUTABLE "${PKGCONFIG_ROOT}/bin/pkg-config")
+    include( download_glew )
+        set( GLEW_GLEW_LIBRARY "${GLEW_ROOT}/lib/libGLEW.a")
+        set( GLEW_INCLUDE_DIR  "${GLEW_ROOT}/include")
+    include( download_pixman )
+        set( PIXMAN_LIBRARY     "${PIXMAN_ROOT}/lib/libpixman-1.a")
+    include( download_libpng )
+    include( download_cairo )
+        set( CAIRO_INCLUDE_DIR  "${CAIRO_ROOT}/include/cairo")
+        set( CAIRO_LIBRARY      "${CAIRO_ROOT}/lib/libcairo.a")
+endif( KICAD_BUILD_STATIC )
 
 #####################
 # Find GLEW library #
@@ -306,8 +353,21 @@ check_find_package_result(CAIRO_FOUND "Cairo")
 
 # Download boost and possibly build parts of it
 #################################################
-include( download_boost )
+if( KICAD_SKIP_BOOST )
+    find_package( Boost 1.54.0 REQUIRED COMPONENTS context date_time filesystem iostreams locale
+                                                   program_options regex system thread )
 
+    if( NOT Boost_FOUND )
+        message( FATAL_ERROR "Boost 1.54+ libraries are required." )
+    endif()
+
+    message( WARNING "
+WARNING: You decided to skip building boost library.
+KiCad developers strongly advise you to build the bundled boost library, as it is known to work with KiCad.
+Other versions may contain bugs that may result in KiCad errors." )
+else()
+    include( download_boost )
+endif()
 
 ##########################
 # Find wxWidgets library #

@@ -233,6 +233,14 @@ public:
     void OnQuit( wxCommandEvent& event );
 
     /**
+     * Execute a remote command send by Eeschema via a socket,
+     * port KICAD_PCB_PORT_SERVICE_NUMBER (currently 4242)
+     * this is a virtual function called by EDA_DRAW_FRAME::OnSockRequest().
+     * @param cmdline = received command from socket
+     */
+    virtual void ExecuteRemoteCommand( const char* cmdline );
+
+    /**
      * Function ToPlotter
      * Open a dialog frame to create plot and drill files
      * relative to the current board
@@ -976,6 +984,12 @@ public:
      */
     bool ExportVRML_File( const wxString & aFullFileName, double aMMtoWRMLunit,
                           bool aExport3DFiles, const wxString & a3D_Subdir );
+
+    /**
+     * Function ExportToIDF3
+     * will export the current BOARD to a IDFv3 board and lib files.
+     */
+    void ExportToIDF3( wxCommandEvent& event );
 
     /**
      * Function ExporttoSPECCTRA

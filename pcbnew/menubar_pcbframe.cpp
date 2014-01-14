@@ -32,7 +32,6 @@
 #include <appl_wxstruct.h>
 #include <pcbnew.h>
 #include <wxPcbStruct.h>
-#include <protos.h>
 #include <hotkeys.h>
 #include <pcbnew_id.h>
 
@@ -203,6 +202,11 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "&VRML" ),
                  _( "Export a VRML board representation" ),
                  KiBitmap( three_d_xpm ) );
+
+    // IDF3
+    AddMenuItem( submenuexport, ID_GEN_EXPORT_FILE_IDF3,
+                 _( "I&DFv3 Board Shape Export" ), _( "Basic export of board shape only IDFv3 format" ),
+                 KiBitmap( export_xpm ) );
 
     AddMenuItem( filesMenu, submenuexport,
                  ID_GEN_EXPORT_FILE, _( "E&xport" ),
