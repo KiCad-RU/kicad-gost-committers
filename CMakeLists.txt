@@ -17,9 +17,10 @@ set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules )
 # Russian GOST patch
 option( wxUSE_UNICODE "enable/disable building unicode (default OFF)" )
 option( KICAD_GOST "enable/disable building using GOST notation for multiple gates per package (default OFF)" )
-option(USE_RPC_DOC_SERVER "enable/disable building GOST document generator using RPC document server (default ON)" ON)
-option(USE_OPENOFFICE_SDK "enable/disable building GOST document generator with use of OpenOffice/LibreOffice SDK (default OFF)")
-option(USE_PYTHON_GOSTDOCGEN "enable/disable building Python based GOST document generator (default OFF)")
+option( USE_INTERNAT "this option needs to be clarified (default OFF)" )
+option( USE_RPC_DOC_SERVER "enable/disable building GOST document generator using RPC document server (default ON)" ON )
+option( USE_OPENOFFICE_SDK "enable/disable building GOST document generator with use of OpenOffice/LibreOffice SDK (default OFF)" )
+option( USE_PYTHON_GOSTDOCGEN "enable/disable building Python based GOST document generator (default OFF)" )
 # USE_RPC_DOC_SERVER and USE_OPENOFFICE_SDK are suboptions of KICAD_GOST option.
 # These suboptions select an approach how to interact with OpenOffice / LibreOffice.
 # It is recommended to set the suboptions as follows: USE_RPC_DOC_SERVER=ON and USE_OPENOFFICE_SDK=OFF.
@@ -499,9 +500,9 @@ add_subdirectory( pcb_calculator )
 add_subdirectory( tools )
 #add_subdirectory( new )
 
-#if (USE_PCAD2KICAD)
-add_subdirectory(extra/pcad2kicadsch)
-#endif(USE_PCAD2KICAD)
+#if( USE_PCAD2KICAD )
+add_subdirectory( extra/pcad2kicadsch )
+#endif( USE_PCAD2KICAD )
 
 # Make all libs and executables depend on ExternalProject_Add( boost ),
 # except perhaps bitmap lib.  This allows a multi-threaded build to succeed.
@@ -521,7 +522,10 @@ add_dependencies( pnsrouter boost )
 #############
 # Resources #
 #############
-add_subdirectory(internat)
+if( USE_INTERNAT )
+add_subdirectory( internat )
+endif( USE_INTERNAT )
+
 add_subdirectory( demos )
 add_subdirectory( template )
 
