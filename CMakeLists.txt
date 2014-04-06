@@ -26,7 +26,10 @@ option( USE_PYTHON_GOSTDOCGEN "enable/disable building Python based GOST documen
 # It is recommended to set the suboptions as follows: USE_RPC_DOC_SERVER=ON and USE_OPENOFFICE_SDK=OFF.
 # Other suboption combinations suffer from building and incompatibility issues. They are kept as spare approaches.
 
-option(USE_PCAD2KICAD "PCad to Kicad converter (default ON). Warning, this is experimental" ON)
+option( USE_PCAD2KICAD "PCad to Kicad converter (default ON). Warning, this is experimental" ON )
+
+option( USE_KIWAY_DLLS
+    "Build the major modules as DLLs or DSOs, will soon be the norm." OFF )
 
 #for those who bored with uppercase
 option( KICAD_KEEPCASE "turn-off automatic component name conversion to uppercase if selected" )
@@ -160,22 +163,26 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
         endif()
 
     else()
-        # We build DLL/DSOs from static libraries, so create position independent code
-        # for all cases, since we do not have DLL/DSO specific static libraries.
-        # Subdirectories via add_subdirectores() reference this variable, and it is either set or empty,
-        # empty for Windows.
+        # We build DLL/DSOs from static libraries, so create position independent
+        # code for all cases, since we do not have DLL/DSO specific static
+        # libraries. Subdirectories via add_subdirectores() reference this
+        # variable, and it is either set or empty, empty for Windows.
         set( PIC_FLAG -fPIC )
 
-        set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${PIC_FLAG}" )
+        set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${PIC_FLAG}" )
         set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PIC_FLAG}" )
 
+        if( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+            set( TO_LINKER -XLinker )
+        else()
+            set( TO_LINKER -Wl )
+        endif()
+
         # Thou shalt not link vaporware and tell us it's a valid DSO:
-        set( CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined" )
-        set( CMAKE_MODULE_LINKER_FLAGS "-Wl,--no-undefined" ) # needed by SWIG macros on linux
+        set( CMAKE_SHARED_LINKER_FLAGS "${TO_LINKER},--no-undefined" )
+        set( CMAKE_MODULE_LINKER_FLAGS "${TO_LINKER},--no-undefined" )
 
-        # Set default flags for Release build.
         set( CMAKE_EXE_LINKER_FLAGS_RELEASE "-s" )
-
     endif()
 
     # quiet GCC 4.8.1 while in boost
