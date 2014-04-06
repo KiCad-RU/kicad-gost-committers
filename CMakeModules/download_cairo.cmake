@@ -38,10 +38,14 @@ find_package( BZip2 REQUIRED )
 set( PREFIX ${DOWNLOAD_DIR}/cairo )
 
 if (APPLE) 
+
+    set( CAIRO_CFLAGS  "CFLAGS=" )
+    set( CAIRO_LDFLAGS "LDFLAGS=-framework CoreServices -framework Cocoa" )
+    set( CAIRO_OPTS    --enable-ft=no )
+
     if( CMAKE_OSX_ARCHITECTURES )
-        set( CAIRO_CFLAGS  "CFLAGS=-arch ${CMAKE_OSX_ARCHITECTURES}" )
-        set( CAIRO_LDFLAGS "LDFLAGS=-arch ${CMAKE_OSX_ARCHITECTURES} -framework CoreServices -framework Cocoa" )
-        set( CAIRO_OPTS    --enable-ft=no )
+        set( CAIRO_CFLAGS  "${CAIRO_CFLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}" )
+        set( CAIRO_LDFLAGS "${CAIRO_LDFLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}" )
     endif( CMAKE_OSX_ARCHITECTURES )
 
     if( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
