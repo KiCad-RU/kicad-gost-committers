@@ -206,7 +206,7 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
      * which should be represented by the same icon.
      */
 
-    // The developers
+    // The core developers
     info.AddDeveloper(
         new Contributor( wxT( "Jean-Pierre Charras" ),  wxT( "jp.charras@wanadoo.fr" ) ) );
     info.AddDeveloper(
@@ -218,6 +218,8 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
     info.AddDeveloper(
         new Contributor( wxT( "Frank Bennett" ),        wxT( "bennett78@lpbroadband.net" ) ) );
     info.AddDeveloper(
+        new Contributor( wxT( "Cirilo Bernardo" ),      wxT( "cirilo_bernardo@yahoo.com" ) ) );
+    info.AddDeveloper(
         new Contributor( wxT( "Jonas Diemer" ),         wxT( "diemer@gmx.de" ) ) );
     info.AddDeveloper(
         new Contributor( wxT( "Tim Hanson" ),           wxT( "sideskate@gmail.com" ) ) );
@@ -225,12 +227,6 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
         new Contributor( wxT( "Hauptmech" ),            wxT( "hauptmech@gmail.com" ) ) );
     info.AddDeveloper(
         new Contributor( wxT( "Jerry Jacobs" ),         wxT( "xor.gate.engineering@gmail.com" ) ) );
-
-    /*
-    info.AddDeveloper(
-        new Contributor( wxT( "KBool Library" ),         wxT( "http://boolean.klaasholwerda.nl/bool.html" ) ) );
-    */
-
     info.AddDeveloper(
         new Contributor( wxT( "Lorenzo Marcantonio" ),  wxT( "lomarcan@tin.it" ) ) );
     info.AddDeveloper(
@@ -244,9 +240,13 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
     info.AddDeveloper(
         new Contributor( wxT( "Brian Sidebotham" ),     wxT( "brian.sidebotham@gmail.com" ) ) );
     info.AddDeveloper(
+        new Contributor( wxT( "Orson (Maciej Suminski)" ),    wxT( "maciej.suminski@cern.ch" ) ) );
+    info.AddDeveloper(
         new Contributor( wxT( "Rafael Sokolowski" ),    wxT( "rafael.sokolowski@web.de" ) ) );
     info.AddDeveloper(
         new Contributor( wxT( "Vesa Solonen" ),         wxT( "vesa.solonen@hut.fi" ) ) );
+    info.AddDeveloper(
+        new Contributor( wxT( "Tomasz Wlostowski" ),    wxT( "tomasz.wlostowski@cern.ch" ) ) );
 
     // The document writers
     info.AddDocWriter(
