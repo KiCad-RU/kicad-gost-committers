@@ -1,3 +1,12 @@
+
+# Default to CMAKE_BUILD_TYPE = Release unless overridden on command line
+# http://www.cmake.org/pipermail/cmake/2008-September/023808.html
+if( DEFINED CMAKE_BUILD_TYPE )
+    set( CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Set to either \"Release\" or \"Debug\"" )
+else()
+    set( CMAKE_BUILD_TYPE Release CACHE STRING "Set to either \"Release\" or \"Debug\"" )
+endif()
+
 project( kicad )
 
 cmake_minimum_required( VERSION 2.8.4 FATAL_ERROR )
@@ -31,8 +40,18 @@ option( USE_PCAD2KICAD "PCad to Kicad converter (default ON). Warning, this is e
 option( USE_KIWAY_DLLS
     "Build the major modules as DLLs or DSOs, will soon be the norm." OFF )
 
-#for those who bored with uppercase
-option( KICAD_KEEPCASE "turn-off automatic component name conversion to uppercase if selected" )
+# The desire is to migrate designs *away from* case independence, and to create designs which use
+# literally (case specific) interpreted component names.  But for backwards compatibility,
+# you may turn OFF this option if you really must.  (Remember that with KiCad using text
+# data files, typically you would be better off simply doctoring those files into
+# a case literal state with a text editor and move forward into the brave new
+# world of case specificity.  Also, BOM generators may not work properly when you
+# have this option turned OFF, the xml export's referential integrity is broken
+# on library part name.  Hence the default is ON now, as of 29-Jan-2014.
+option( KICAD_KEEPCASE
+    "ON= case specific string matching on component names, OFF= match names as if they were spelt using uppercase."
+    ON
+    )
 
 option( USE_WX_GRAPHICS_CONTEXT
     "Use wxGraphicsContext for rendering ( default OFF). Warning, this is experimental" )
@@ -196,6 +215,9 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
         set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -D__ASSERTMACROS__ -mmacosx-version-min=10.5" )
         set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__ASSERTMACROS__ -mmacosx-version-min=10.5" )
 
+        # Allows .dylib relocation in the future
+        set( CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -headerpad_max_install_names")
+
         if( NOT CMAKE_CXX_COMPILER )
             EXEC_PROGRAM( wx-config ARGS --cc  OUTPUT_VARIABLE CMAKE_C_COMPILER )
         endif( NOT CMAKE_CXX_COMPILER )
@@ -342,7 +364,7 @@ if ( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC )
 
     if( KICAD_BUILD_DYNAMIC )
         message(STATUS "KICAD_BUILD_DYNAMIC set")
-        # TODO - Library packaging/relocation 
+        # TODO - Library packaging/relocation
     endif()
 
     add_custom_target( lib-dependencies
@@ -368,6 +390,11 @@ if ( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC )
     include( download_cairo )
         set( CAIRO_INCLUDE_DIR  "${CAIRO_ROOT}/include/cairo")
         set( CAIRO_LIBRARY      "${CAIRO_ROOT}/lib/libcairo.a")
+
+    if( KICAD_BUILD_DYNAMIC AND APPLE )
+        add_custom_target( osx_fix_bundles ALL DEPENDS cvpcb eeschema gerbview kicad pcbnew bitmap2component pcb_calculator pl_editor)
+        add_custom_command(TARGET osx_fix_bundles POST_BUILD COMMAND scripts/osx_fixbundle.sh COMMENT "Migrating dylibs to bundles")
+    endif()
 
 
 endif( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC)
@@ -533,6 +560,7 @@ add_subdirectory( potrace )
 add_subdirectory( bitmap2component )
 add_subdirectory( pcb_calculator )
 add_subdirectory( tools )
+add_subdirectory( qa )
 #add_subdirectory( new )
 
 #if( USE_PCAD2KICAD )
@@ -566,8 +594,13 @@ add_dependencies( pcad2kicadpcb lib-dependencies )
 add_dependencies( polygon lib-dependencies )
 add_dependencies( pl_editor lib-dependencies )
 add_dependencies( pnsrouter lib-dependencies )
+    if ( BUILD_GITHUB_PLUGIN )
+    add_dependencies( github_plugin lib-dependencies )
+    endif()
 endif()
 
+if ( KICAD_BUILD_DYNAMIC )
+endif()
 
 #############
 # Resources #

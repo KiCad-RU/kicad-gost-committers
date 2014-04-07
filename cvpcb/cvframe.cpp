@@ -337,7 +337,7 @@ void CVPCB_MAINFRAME::OnCloseWindow( wxCloseEvent& Event )
         m_DisplayFootprintFrame->Close( true );
 
     m_modified = false;
-    SaveSettings();
+
     Destroy();
     return;
 }

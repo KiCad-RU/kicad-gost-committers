@@ -81,8 +81,6 @@ wxPoint        g_Offset_Module;     /* Distance to offset module trace when movi
  */
 wxString      g_DocModulesFileName = wxT( "footprints_doc/footprints.pdf" );
 
-wxArrayString g_LibraryNames;
-
 // wxWindow* DoPythonStuff(wxWindow* parent); // declaration
 
 IMPLEMENT_APP( EDA_APP )
@@ -91,15 +89,15 @@ IMPLEMENT_APP( EDA_APP )
 /* MacOSX: Needed for file association
  * http://wiki.wxwidgets.org/WxMac-specific_topics
  */
-void EDA_APP::MacOpenFile( const wxString& fileName )
+void EDA_APP::MacOpenFile( const wxString& aFileName )
 {
-    wxFileName      filename = fileName;
     PCB_EDIT_FRAME* frame    = ( (PCB_EDIT_FRAME*) GetTopWindow() );
+    wxFileName      filename = aFileName;
 
     if( !filename.FileExists() )
         return;
 
-    frame->LoadOnePcbFile( fileName, false );
+    frame->LoadOnePcbFile( aFileName, false );
 }
 
 
@@ -218,9 +216,9 @@ bool EDA_APP::OnInit()
 
     frame = new PCB_EDIT_FRAME( NULL, wxT( "Pcbnew" ), wxPoint( 0, 0 ), wxSize( 600, 400 ) );
 
-    #ifdef KICAD_SCRIPTING
+#ifdef KICAD_SCRIPTING
     ScriptingSetPcbEditFrame(frame); /* give the scripting helpers access to our frame */
-    #endif
+#endif
 
     frame->UpdateTitle();
 
@@ -284,7 +282,8 @@ bool EDA_APP::OnInit()
         }
 
         if( ! file_exists )
-        {   // File does not exists: prepare an empty board
+        {
+            // File does not exists: prepare an empty board
             if( ! fn.GetPath().IsEmpty() )
                 wxSetWorkingDirectory( fn.GetPath() );
 
