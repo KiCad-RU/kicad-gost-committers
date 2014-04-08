@@ -513,6 +513,7 @@ make_lexer(
 add_subdirectory( pcad2kicadpcb_plugin )
 if( BUILD_GITHUB_PLUGIN )
     add_subdirectory( github )
+    add_dependencies( github_plugin lib-dependencies )
 endif()
 
 
@@ -526,6 +527,7 @@ add_executable( pcbnew WIN32 MACOSX_BUNDLE
     ${PCBNEW_RESOURCES}
     )
 
+add_dependencies( pcbnew lib-dependencies )
 ###
 # Set properties for APPLE on pcbnew target
 ###
@@ -597,13 +599,13 @@ if( KICAD_SCRIPTING )
     if( APPLE ) 
         # copies all into PYTHON_DEST then all into the bundle !
         add_custom_target( _pcbnew_py_copy ALL
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/pcbnew/pcbnew.py  "${PYTHON_DEST}"
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/pcbnew/pcbnew.py "${PYTHON_DEST}/wx-3.0-osx_cocoa/"
             DEPENDS FixSwigImportsScripting
-            COMMENT "Copying pcbnew.py into PYTHON_DEST"
+            COMMENT "Copying pcbnew.py into PYTHON_DEST/wx-3.0-osx_cocoa/"
         )
 
         add_custom_target( pcbnew_copy_wxpython_scripting ALL
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBWXPYTHON_ROOT}/wxPython  ${CMAKE_SOURCE_DIR}/pcbnew/pcbnew.app/Contents/Frameworks/wxPython
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBWXPYTHON_ROOT}/wxPython/  ${CMAKE_SOURCE_DIR}/pcbnew/pcbnew.app/Contents/Frameworks/wxPython/
             DEPENDS FixSwigImportsScripting _pcbnew_py_copy
             COMMENT "Copying wxPython into pcbnew.app Framework"
         )
@@ -643,7 +645,7 @@ if( KICAD_SCRIPTING_MODULES )
         )
 
         add_custom_target( pcbnew_copy_wxpython_module ALL
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBWXPYTHON_ROOT}/wxPython  ${PROJECT_SOURCE_DIR}/pcbnew/pcbnew.app/Contents/Frameworks/wxPython
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBWXPYTHON_ROOT}/wxPython/  ${PROJECT_SOURCE_DIR}/pcbnew/pcbnew.app/Contents/Frameworks/wxPython/
             DEPENDS FixSwigImportsModuleScripting _pcbnew_so_copy
             COMMENT "Copying wxPython into pcbnew.app Frameworks"
         )
