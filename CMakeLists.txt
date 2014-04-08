@@ -72,9 +72,16 @@ option( KICAD_SCRIPTING_WXPYTHON
     )
 
 option( KICAD_BUILD_STATIC
-    "Builds Kicad and all libraries static (except wx-widgets)"
+    "Builds Kicad and all libraries static"
     )
 
+option( KICAD_BUILD_DYNAMIC
+    "Builds Kicad and all libraries dynamic (required for wxPython)"
+    )
+
+
+# WARNING: KiCad developers strongly advise you to build Boost with supplied patches,
+# as it is known to work with KiCad.  Other versions may contain bugs that may result
 # WARNING: KiCad developers strongly advise you to build Boost with supplied patches,
 # as it is known to work with KiCad.  Other versions may contain bugs that may result
 # in KiCad errors.
@@ -197,9 +204,11 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
             set( TO_LINKER -Wl )
         endif()
 
-        # Thou shalt not link vaporware and tell us it's a valid DSO:
-        set( CMAKE_SHARED_LINKER_FLAGS "${TO_LINKER},--no-undefined" )
-        set( CMAKE_MODULE_LINKER_FLAGS "${TO_LINKER},--no-undefined" )
+        # Thou shalt not link vaporware and tell us it's a valid DSO (apple ld doesn't support it)
+        if( NOT APPLE )
+            set( CMAKE_SHARED_LINKER_FLAGS "${TO_LINKER},--no-undefined" )
+            set( CMAKE_MODULE_LINKER_FLAGS "${TO_LINKER},--no-undefined" )
+        endif()
 
         set( CMAKE_EXE_LINKER_FLAGS_RELEASE "-s" )
     endif()
@@ -371,7 +380,17 @@ add_definitions(-DWX_COMPATIBILITY)
 find_package( OpenGL QUIET )
 check_find_package_result( OPENGL_FOUND "OpenGL" )
 
+
 if( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC )
+
+add_custom_target( lib-wxpython )
+    include( download_pcre )
+    include( download_swig )
+    include( download_wxpython )
+    add_dependencies( lib-wxpython pcre )
+    add_dependencies( lib-wxpython swig )
+    add_dependencies( lib-wxpython libwxpython )
+
 
     #set(CMAKE_FIND_LIBRARY_SUFFIXES ".a;.so;.dylib;.dll")
 
@@ -381,11 +400,13 @@ if( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC )
 
     if( KICAD_BUILD_STATIC )
         message(STATUS "KICAD_BUILD_STATIC set")
+        if( KICAD_SCRIPTING OR KICAD_SCRIPTING_WXPYTHON OR KICAD_SCRIPTING_MODULES )
+            message(FATAL_ERROR "KICAD_SCRIPTING* is not supported with KICAD_BUILD_STATIC, please select KICAD_BUILD_DYNAMIC" )
+        endif()
     endif()
 
     if( KICAD_BUILD_DYNAMIC )
         message(STATUS "KICAD_BUILD_DYNAMIC set")
-        # TODO - Library packaging/relocation
     endif()
 
     add_custom_target( lib-dependencies
@@ -394,8 +415,29 @@ if( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC )
 
     include( download_libpng )
 
-    if( KICAD_SCRIPTING_WXPYTHON )
-        message( FATAL_ERROR "KICAD_BUILD_* and SCRIPTING Not Implemented Yet!" )
+    if( KICAD_SCRIPTING OR KICAD_SCRIPTING_WXPYTHON OR KICAD_SCRIPTING_MODULES )
+ 
+        message(STATUS "Scripting ENABLED")        
+
+        set( SWIG_EXECUTABLE  ${SWIG_ROOT}/bin/swig )
+        set( SWIG_INCLUDE     ${SWIG_ROOT}/include )
+        set( PYTHON_DEST ${LIBWXPYTHON_ROOT}/wxPython/lib/python2.6/site-packages )
+
+        if( NOT EXISTS ${SWIG_EXECUTABLE} )
+            set(KICAD_SCRIPTING CACHE OFF FORCE "Disabling KICAD_SCRIPTING")
+            message( STATUS  "KICAD_SCRIPTING Enabled but SWIG not found, please disable and before reenabling execute: make lib-wxpython")
+            message( FATAL_ERROR "Missing SWIG!")
+        endif()
+        message(STATUS "SWIG_EXECUTABLE: ${SWIG_EXECUTABLE}")
+
+        set( PYTHON_DEST ${LIBWXPYTHON_ROOT}/wxPython/lib/python2.6/site-packages )
+
+        set(wxWidgets_BIN_DIR           ${LIBWXPYTHON_ROOT}/bin/wxrc )
+        set(wxWidgets_CONFIG_EXECUTABLE ${LIBWXPYTHON_ROOT}/bin/wx-config )
+        set(wxWidgets_INCLUDE_DIRS      ${LIBWXPYTHON_ROOT}/include/wx-3.0 )
+        set(wxWidgets_LIBRARY_DIRS      ${LIBWXPYTHON_ROOT}/lib )
+
+        add_dependencies( lib-dependencies libwxpython )
     else()
         include( download_wxwidgets )
         add_dependencies( lib-dependencies libwx )
@@ -458,7 +500,7 @@ endif()
 
 # On Apple only wxwidgets 2.9 or higher doesn't need to find aui part of base
 # Seems no more needed on wx-3
-if( APPLE AND NOT (KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC) )
+if( APPLE AND ( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR KICAD_SCRIPTING_WXPYTHON) )
     find_package( wxWidgets COMPONENTS gl adv html core net base xml QUIET )
 else()
     find_package( wxWidgets COMPONENTS gl aui adv html core net base xml QUIET )
@@ -508,10 +550,24 @@ set( INC_AFTER
 # Find Python and other scripting resources
 if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_PYTHON_GOSTDOCGEN OR
    ( KICAD_GOST AND NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK ) )
-    set( PythonInterp_FIND_VERSION )
+    if( APPLE )
+        set( PYTHON_LIBRARY /System/Library/Frameworks/Python.framework/Versions/2.6/Python  )
+        set( PYTHON_INCLUDE_DIR /System/Library/Frameworks/Python.framework/Versions//2.6/include/python2.6 )
+        set( PythonInterp_FIND_VERSION 2.6 )
+        set( PythonLibs_FIND_VERSION 2.6 )
+    endif()
+
+    # force a python version < 3.0
+    set( PythonInterp_FIND_VERSION 2.6)
+    set( PythonLibs_FIND_VERSION 2.6 )
+
     find_package( PythonInterp )
+
     check_find_package_result( PYTHONINTERP_FOUND "Python Interpreter" )
 
+    if( NOT PYTHON_VERSION_MAJOR EQUAL 2 )
+        message( FATAL_ERROR "Python 2.x is required." )
+    endif()
     # Get the correct Python site package install path from the Python interpreter found by
     # FindPythonInterp unless the user specifically defined a custom path.
     if( NOT PYTHON_SITE_PACKAGE_PATH )
@@ -529,7 +585,7 @@ if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_PYTHON_GOSTDOCGEN OR
     mark_as_advanced( PYTHON_DEST )
     message( STATUS "Python module install path: ${PYTHON_DEST}" )
 
-    find_package( PythonLibs )
+    find_package( PythonLibs 2.6 )
 
     #message( STATUS "PYTHON_INCLUDE_DIRS:${PYTHON_INCLUDE_DIRS}" )
 
