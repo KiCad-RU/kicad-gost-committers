@@ -106,24 +106,24 @@ as such!  As such, it is OK to use UTF8 characters:
 #define KIFACE_VERSION                      1
 #define KIFACE_GETTER                       KIFACE_1
 
-// Adjust the spelling of this in a platform specific way if need be.  The
-// KIFACE acquistion function is declared extern "C" so its name should not
-// be mangled.  Keep the trailing version number in sync with the KIFACE_GETTER
-// define above.
-#define KIFACE_INSTANCE_NAME_AND_VERSION    "KIFACE_1"
+// The KIFACE acquistion function is declared extern "C" so its name should not
+// be mangled (much).  Windows has leading underscore for our C function.
+// Keep the trailing version number in sync with the KIFACE_GETTER define above.
+#if defined(__MINGW32__)
+ #define KIFACE_INSTANCE_NAME_AND_VERSION   "_KIFACE_1"
+#else
+ #define KIFACE_INSTANCE_NAME_AND_VERSION   "KIFACE_1"
+#endif
 
 
 #if defined(__linux__)
  #define LIB_ENV_VAR    wxT( "LD_LIBRARY_PATH" )
- #define DSO_EXT        wxT( "so" )
+
 #elif defined(__WXMAC__)
  #define LIB_ENV_VAR    wxT( "DYLD_LIBRARY_PATH" )
- // This should be set to whatever CMake builds when using:
- // add_library( target MODULE )
- #define DSO_EXT        wxT( "so" )
+
 #elif defined(__MINGW32__)
  #define LIB_ENV_VAR    wxT( "PATH" )
- #define DSO_EXT        wxT( "dll" )
 #endif
 
 
@@ -139,7 +139,7 @@ class PROJECT
 public:
 
 #if 0
-    /// Derive PROCESS elements from this, it has a virtual destructor, and
+    /// Derive PROJECT elements from this, it has a virtual destructor, and
     /// Elem*() functions can work with it.
     class ELEM_BASE
     {
@@ -220,13 +220,15 @@ struct KIFACE
  * <p>
  * Most all calls are via virtual functions which means C++ vtables
  * are used to hold function pointers and eliminate the need to link to specific
- * object code libraries, speeding development and encourage clearly defined
+ * object code libraries, speeding development and encouraging clearly defined
  * interface design.  There is one KIWAY in the launching portion of the process
  * for each open KiCad project.  Each project has its own KIWAY.  Within a KIWAY
- * is an actual PROJECT data structure.  In summary, a KIWAY facilitates
- * communicating between DSOs, where the topic of the communication is
- * project specific.  Here a "project" means a BOARD and a SCHEMATIC and a NETLIST,
- * (anything relating to production of a single BOARD and added to class PROJECT.)
+ * is an actual PROJECT data structure.
+ * <p>
+ * In summary, a KIWAY facilitates communicating between DSOs, where the topic
+ * of the communication is project specific.  Here a "project" means a BOARD
+ * and a SCHEMATIC and a NETLIST, (anything relating to production of a single BOARD
+ * and added to class PROJECT.)
  */
 class KIWAY : public wxEvtHandler
 {
@@ -279,7 +281,11 @@ private:
  * @param aKIFACEversion is where to put the API version implemented by the KIFACE.
  * @param aKIWAYversion tells the KIFACE what KIWAY version will be available.
  * @param aProcess is a pointer to the basic wxApp for this process.
+ * @return KIFACE* - unconditionally.
  */
 typedef     KIFACE*  KIFACE_GETTER_FUNC( int* aKIFACEversion, int aKIWAYversion, wxApp* aProcess );
+
+/// No name mangling.  Each TOPMOD will implement this once.
+extern "C" KIFACE* KIFACE_GETTER(  int* aKIFACEversion, int aKIWAYversion, wxApp* aProcess );
 
 #endif  // KIWAY_H_
