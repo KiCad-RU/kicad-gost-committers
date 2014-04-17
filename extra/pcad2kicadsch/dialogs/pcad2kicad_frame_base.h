@@ -10,6 +10,9 @@
 
 #include <wx/intl.h>
 
+class KIWAY_PLAYER;
+
+#include "kiway_player.h"
 #include <wx/string.h>
 #include <wx/menu.h>
 #include <wx/gdicmn.h>
@@ -29,7 +32,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 /// Class PCAD2KICAD_FRAME_BASE
 ///////////////////////////////////////////////////////////////////////////////
-class PCAD2KICAD_FRAME_BASE : public wxFrame 
+class PCAD2KICAD_FRAME_BASE : public KIWAY_PLAYER
 {
 	private:
 	

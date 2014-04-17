@@ -27,7 +27,8 @@
  */
 
 #include <fctsys.h>
-#include <appl_wxstruct.h>
+#include <kiface_i.h>
+#include <pgm_base.h>
 #include <confirm.h>
 #include <gestfich.h>
 #include <kicad_string.h>
@@ -111,10 +112,10 @@ static char s_ExportSeparator[] = ("\t;,.");
  */
 
 
-DIALOG_BUILD_BOM::DIALOG_BUILD_BOM( EDA_DRAW_FRAME* parent ) :
+DIALOG_BUILD_BOM::DIALOG_BUILD_BOM( SCH_EDIT_FRAME* parent ) :
     DIALOG_BUILD_BOM_BASE( parent )
 {
-    m_config = wxGetApp().GetSettings();
+    m_config = Kiface().KifaceSettings();
     wxASSERT( m_config != NULL );
 
     m_parent = parent;
@@ -411,7 +412,7 @@ void DIALOG_BUILD_BOM::Create_BOM_Lists( int  aTypeFile,
 
     if( aRunBrowser )
     {
-        wxString editorname = wxGetApp().GetEditorName();
+        wxString editorname = Pgm().GetEditorName();
         wxString filename   = m_listFileName;
         AddDelimiterString( filename );
         ExecuteFile( this, editorname, filename );
@@ -567,7 +568,7 @@ void DIALOG_BUILD_BOM::CreatePartsAndLabelsFullList( bool aIncludeSubComponents 
             bom_lister.AddFieldIdToPrintList( ii );
 
     // creates the list file
-    wxString Title = wxGetApp().GetAppName() + wxT( " " ) + GetBuildVersion();
+    wxString Title = Pgm().App().GetAppName() + wxT( " " ) + GetBuildVersion();
 
     fprintf( f, "%s  >> Creation date: %s\n", TO_UTF8( Title ), TO_UTF8( DateAndTime() ) );
 

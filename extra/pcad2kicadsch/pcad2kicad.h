@@ -43,7 +43,7 @@ private:
     wxSize      m_FrameSize;
     wxPoint     m_FramePos;
 public:
-    PCAD2KICAD_FRAME( wxWindow* parent = NULL );
+    PCAD2KICAD_FRAME( KIWAY* aKiway, wxWindow* aParent );
     ~PCAD2KICAD_FRAME();
 private:
 

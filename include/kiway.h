@@ -262,6 +262,9 @@ public:
         FACE_GERBVIEW,
         FACE_PL_EDITOR,
         FACE_PCB_CALCULATOR,
+#if defined( KICAD_GOST )
+        FACE_PCAD2KICADSCH,
+#endif
 
         FACE_COUNT,         ///< how many KIWAY player types
     };

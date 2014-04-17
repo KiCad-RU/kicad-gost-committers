@@ -39,7 +39,8 @@
 
 #include <s_expr_loader.h>
 #include <sch.h>
-#include <appl_wxstruct.h>
+#include <pgm_base.h>
+#include <kiface_i.h>
 #include <build_version.h>
 #include <wx/aboutdlg.h>
 
@@ -141,9 +142,11 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
 }
 
 
-PCAD2KICAD_FRAME::PCAD2KICAD_FRAME( wxWindow* parent ) :
-    PCAD2KICAD_FRAME_BASE( parent, wxID_ANY, wxGetApp().GetTitle() + wxT(" ") + GetBuildVersion() )
+PCAD2KICAD_FRAME::PCAD2KICAD_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
+    PCAD2KICAD_FRAME_BASE( aParent, wxID_ANY, Pgm().App().GetAppName() + wxT(" ") + GetBuildVersion() )
 {
+    SetKiway( this, aKiway );
+
     // Give an icon
     // wxIcon icon;
     // icon.CopyFromBitmap( KiBitmap( icon_pcad2kicad_xpm ) );

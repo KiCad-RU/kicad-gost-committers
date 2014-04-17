@@ -29,17 +29,16 @@
 #define _DIALOG_BUILD_BOM_H_
 
 #include <dialog_build_BOM_base.h>
+#include <wxEeschemaStruct.h>
 
-
-class EDA_DRAW_FRAME;
 class SCH_COMPONENT;
 class wxConfig;
 
 class DIALOG_BUILD_BOM : public DIALOG_BUILD_BOM_BASE
 {
 private:
-    EDA_DRAW_FRAME* m_parent;
-    wxConfig*       m_config;
+    SCH_EDIT_FRAME* m_parent;
+    wxConfigBase*   m_config;
     wxString        m_listFileName;     // The full filename of the file report.
 
 private:
@@ -86,7 +85,7 @@ private:
     bool    IsFieldChecked( int aFieldId );
 
 public:
-    DIALOG_BUILD_BOM( EDA_DRAW_FRAME* parent );
+    DIALOG_BUILD_BOM( SCH_EDIT_FRAME* parent );
 
     // ~DIALOG_BUILD_BOM() {};
 };

@@ -260,6 +260,33 @@ set_source_files_properties( dialogs/dialog_bom.cpp
         OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/dialogs/dialog_bom_help_html.h
     )
 
+if(KICAD_GOST)
+    set(GOST_DOC_GEN_LIB GOST-doc-gen)
+
+    if((NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK) OR USE_PYTHON_GOSTDOCGEN)
+        set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB} ${PYTHON_LIBRARIES})
+    endif()
+
+    if(USE_OPENOFFICE_SDK)
+        if(WIN32)
+            set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB}
+                "${OOO_SDK_DIR}\\lib\\icppuhelper.lib"
+                "${OOO_SDK_DIR}\\lib\\icppu.lib"
+                "${OOO_SDK_DIR}\\lib\\isalhelper.lib"
+                "${OOO_SDK_DIR}\\lib\\isal.lib"
+                )
+        else(WIN32)
+            set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB}
+                -L${OOO_SDK_DIR}/lib
+                -luno_cppuhelpergcc3
+                -luno_cppu
+                -luno_salhelpergcc3
+                -luno_sal
+                )
+        endif(WIN32)
+    endif(USE_OPENOFFICE_SDK)
+endif(KICAD_GOST)
+
 if( USE_KIWAY_DLLS )
     add_executable( eeschema WIN32 MACOSX_BUNDLE
         ../common/single_top.cpp
@@ -273,6 +300,7 @@ if( USE_KIWAY_DLLS )
         # There's way too much crap coming in from common yet.
         common
         bitmaps
+        #${GOST_DOC_GEN_LIB}
         ${wxWidgets_LIBRARIES}
         )
 
@@ -286,6 +314,7 @@ if( USE_KIWAY_DLLS )
         common
         bitmaps
         polygon
+        ${GOST_DOC_GEN_LIB}
         ${wxWidgets_LIBRARIES}
         ${GDI_PLUS_LIBRARIES}
         )
@@ -340,33 +369,6 @@ else()
         ${EESCHEMA_COMMON_SRCS}
         ${EESCHEMA_RESOURCES}
         )
-
-    if(KICAD_GOST)
-        set(GOST_DOC_GEN_LIB GOST-doc-gen)
-
-        if((NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK) OR USE_PYTHON_GOSTDOCGEN)
-            set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB} ${PYTHON_LIBRARIES})
-        endif()
-
-        if(USE_OPENOFFICE_SDK)
-            if(WIN32)
-                set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB}
-                    "${OOO_SDK_DIR}\\lib\\icppuhelper.lib"
-                    "${OOO_SDK_DIR}\\lib\\icppu.lib"
-                    "${OOO_SDK_DIR}\\lib\\isalhelper.lib"
-                    "${OOO_SDK_DIR}\\lib\\isal.lib"
-                    )
-            else(WIN32)
-                set(GOST_DOC_GEN_LIB ${GOST_DOC_GEN_LIB}
-                    -L${OOO_SDK_DIR}/lib
-                    -luno_cppuhelpergcc3
-                    -luno_cppu
-                    -luno_salhelpergcc3
-                    -luno_sal
-                    )
-            endif(WIN32)
-        endif(USE_OPENOFFICE_SDK)
-    endif(KICAD_GOST)
 
     target_link_libraries( eeschema
         common

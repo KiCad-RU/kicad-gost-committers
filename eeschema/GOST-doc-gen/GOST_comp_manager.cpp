@@ -30,7 +30,7 @@
 
 #include <GOST_comp_manager.h>
 #include <component_db.h>
-#include <appl_wxstruct.h>
+#include <pgm_base.h>
 
 using namespace GOST_DOC_GEN;
 
@@ -177,7 +177,7 @@ void sch_highlight_part( const wxString part_ref )
     SendCommand( MSG_TO_SCH, cmd );
 #else
     SCH_EDIT_FRAME* frame;
-    frame = (SCH_EDIT_FRAME*)wxGetApp().GetTopWindow();
+    frame = (SCH_EDIT_FRAME*)Pgm().App().GetTopWindow();
     frame->FindComponentAndItem( part_ref, true, FIND_COMPONENT_ONLY, wxEmptyString, false );
 #endif
 }

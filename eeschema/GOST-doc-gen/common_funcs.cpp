@@ -26,7 +26,7 @@
  * @file common_funcs.cpp
  */
 
-#include <appl_wxstruct.h>
+#include <kiface_i.h>
 #include <macros.h>
 
 #include <common_funcs.h>
@@ -340,7 +340,7 @@ wxString GetResourceFile( wxString aFileName )
 
     subdirs.Add( wxT( "GOST-doc-gen" ) );
 
-    res = wxGetApp().FindFileInSearchPaths( aFileName, &subdirs );
+    res = Kiface().KifaceSearch().FindFileInSearchPaths( aFileName, &subdirs );
 
     if( res == wxEmptyString )
     {

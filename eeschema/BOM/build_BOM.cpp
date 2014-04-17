@@ -383,7 +383,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceHumanReadable( FILE* aFile )
 
         if( isMulti && m_includeSubComponents )
         {
-            subReference = LIB_COMPONENT::ReturnSubReference( m_cmplist[ii].GetUnit() );
+            subReference = LIB_COMPONENT::SubReference( m_cmplist[ii].GetUnit() );
             CmpName += TO_UTF8( subReference );
         }
 
@@ -525,7 +525,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceCsvForm( FILE* aFile )
 
         if( isMulti && includeSubComponents )
             // Add unit ident, for mutiple parts per package
-            cmpName += LIB_COMPONENT::ReturnSubReference( m_cmplist[ii].GetUnit() );
+            cmpName += LIB_COMPONENT::SubReference( m_cmplist[ii].GetUnit() );
 
         if( groupRefs )
         {
@@ -695,7 +695,7 @@ int BOM_LISTER::PrintComponentsListByValue( FILE* aFile )
 
         if( isMulti && m_includeSubComponents )
             // Add unit ident, for mutiple parts per package
-            cmpName += TO_UTF8( LIB_COMPONENT::ReturnSubReference( m_cmplist[ii].GetUnit() ) );
+            cmpName += TO_UTF8( LIB_COMPONENT::SubReference( m_cmplist[ii].GetUnit() ) );
 
         fprintf( m_outFile, "| %-12s %-10s",
                  TO_UTF8( drawLibItem->GetField( VALUE )->GetText() ),
@@ -730,7 +730,7 @@ const wxString BOM_LISTER::returnURLItemLocation( const wxString&   aPathName,
     wxString text;
 
     text.Printf( wxT( "Loc %s(X=%s, Y=%s)" ), GetChars( aPathName ),
-                 GetChars( ReturnStringFromValue( g_UserUnit, aPosition.x, true ) ),
-                 GetChars( ReturnStringFromValue( g_UserUnit, aPosition.y, true ) ) );
+                 GetChars( StringFromValue( g_UserUnit, aPosition.x, true ) ),
+                 GetChars( StringFromValue( g_UserUnit, aPosition.y, true ) ) );
     return text;
 }

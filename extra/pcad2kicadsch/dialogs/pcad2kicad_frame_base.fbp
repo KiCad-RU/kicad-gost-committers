@@ -39,7 +39,7 @@
             <property name="pos"></property>
             <property name="size">670,489</property>
             <property name="style">wxDEFAULT_FRAME_STYLE|wxRESIZE_BORDER</property>
-            <property name="subclass"></property>
+            <property name="subclass">KIWAY_PLAYER; kiway_player.h</property>
             <property name="title">PCad to Kicad converter</property>
             <property name="tooltip"></property>
             <property name="validator_data_type"></property>
