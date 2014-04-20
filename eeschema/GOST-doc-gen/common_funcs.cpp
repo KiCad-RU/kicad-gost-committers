@@ -29,6 +29,9 @@
 #include <kiface_i.h>
 #include <macros.h>
 
+#include <pgm_base.h>
+#include <common.h>
+
 #include <common_funcs.h>
 
 #ifdef USE_PYTHON_GOSTDOCGEN
@@ -324,11 +327,19 @@ void SortCByteArray( INT_ARRAY* aArr )
     }
 }
 
-
 wxString GetResourceFile( wxString aFileName )
 {
     wxArrayString subdirs;
-    wxString res;
+    wxString      res;
+    SEARCH_STACK  ss = Kiface().KifaceSearch();
+
+    // It might already be in aSStack, but why depend on other code
+    // far away when it's so easy to add it again (to our copy) as the first place to look.
+    // This is CMAKE_INSTALL_PREFIX:
+    ss.AddPaths( wxT( DEFAULT_INSTALL_PATH ), 0 );
+
+    // If there's a KICAD environment variable set, use that guy's path also
+    ss.AddPaths( Pgm().GetKicadEnvVariable(), 0 );
 
     subdirs.Add( wxT( "share" ) );
 
@@ -340,7 +351,7 @@ wxString GetResourceFile( wxString aFileName )
 
     subdirs.Add( wxT( "GOST-doc-gen" ) );
 
-    res = Kiface().KifaceSearch().FindFileInSearchPaths( aFileName, &subdirs );
+    res = FindFileInSearchPaths( ss, aFileName, &subdirs );
 
     if( res == wxEmptyString )
     {

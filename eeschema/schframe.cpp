@@ -185,7 +185,7 @@ END_EVENT_TABLE()
 #define SCH_EDIT_FRAME_NAME wxT( "SchematicFrame" )
 
 SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ):
-    SCH_BASE_FRAME( aKiway, aParent, SCHEMATIC_FRAME_TYPE, wxT( "Eeschema" ),
+    SCH_BASE_FRAME( aKiway, aParent, FRAME_SCH, wxT( "Eeschema" ),
         wxDefaultPosition, wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, SCH_EDIT_FRAME_NAME ),
     m_item_to_repeat( 0 )
 {
@@ -762,13 +762,13 @@ void SCH_EDIT_FRAME::OnLoadCmpToFootprintLinkFile( wxCommandEvent& event )
 
 void SCH_EDIT_FRAME::OnNewProject( wxCommandEvent& event )
 {
-    wxFileDialog dlg( this, _( "Open Schematic" ), wxGetCwd(),
+    wxFileDialog dlg( this, _( "New Schematic" ), wxGetCwd(),
                       wxEmptyString, SchematicFileWildcard,
-                      wxFD_OPEN | wxFD_FILE_MUST_EXIST );
+                      wxFD_SAVE );
 
     if( dlg.ShowModal() != wxID_CANCEL )
     {
-        OpenProjectFiles( std::vector<wxString>( 1, dlg.GetPath() ) );
+        OpenProjectFiles( std::vector<wxString>( 1, dlg.GetPath() ), 1 );
     }
 }
 
@@ -851,7 +851,9 @@ void SCH_EDIT_FRAME::OnOpenLibraryEditor( wxCommandEvent& event )
     }
     else
     {
-        wxWindow* w = Kiface().CreateWindow( this, LIBEDITOR_FRAME_TYPE, &Kiway() );
+        KIFACE_I&   kf = Kiface();
+
+        wxWindow* w = kf.CreateWindow( this, FRAME_SCH_LIB_EDITOR, &Kiway(), kf.StartFlags() );
         libeditFrame = dynamic_cast<LIB_EDIT_FRAME*>( w );
     }
 
@@ -900,7 +902,7 @@ void SCH_EDIT_FRAME::OnPrint( wxCommandEvent& event )
 
         // was: wxGetApp().WriteProjectConfig( fn.GetFullPath(), GROUP, GetProjectFileParametersList() );
         Prj().ConfigSave( Kiface().KifaceSearch(),
-                fn.GetFullPath(), GROUP, GetProjectFileParametersList() );
+                fn.GetFullPath(), GROUP_SCH, GetProjectFileParametersList() );
     }
 }
 

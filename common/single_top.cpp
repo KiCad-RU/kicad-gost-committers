@@ -34,6 +34,7 @@
 */
 
 
+#include <typeinfo>
 #include <macros.h>
 #include <fctsys.h>
 #include <wx/dynlib.h>
@@ -50,74 +51,8 @@
 // The functions we use will cause the program launcher to pull stuff in
 // during linkage, keep the map file in mind to see what's going into it.
 
-
-#if !wxCHECK_VERSION( 3, 0, 0 )
-
-// implement missing wx2.8 function until >= wx3.0 pervades.
-static wxString wxJoin(const wxArrayString& arr, const wxChar sep,
-                const wxChar escape = '\\')
-{
-    size_t count = arr.size();
-    if ( count == 0 )
-        return wxEmptyString;
-
-    wxString str;
-
-    // pre-allocate memory using the estimation of the average length of the
-    // strings in the given array: this is very imprecise, of course, but
-    // better than nothing
-    str.reserve(count*(arr[0].length() + arr[count-1].length()) / 2);
-
-    if ( escape == wxT('\0') )
-    {
-        // escaping is disabled:
-        for ( size_t i = 0; i < count; i++ )
-        {
-            if ( i )
-                str += sep;
-            str += arr[i];
-        }
-    }
-    else // use escape character
-    {
-        for ( size_t n = 0; n < count; n++ )
-        {
-            if ( n )
-                str += sep;
-
-            for ( wxString::const_iterator i = arr[n].begin(),
-                                         end = arr[n].end();
-                  i != end;
-                  ++i )
-            {
-                const wxChar ch = *i;
-                if ( ch == sep )
-                    str += escape;      // escape this separator
-                str += ch;
-            }
-        }
-    }
-
-    str.Shrink(); // release extra memory if we allocated too much
-    return str;
-}
-#endif
-
-
-/// Put aPriorityPath in front of all paths in the value of aEnvVar.
-const wxString PrePendPath( const wxString& aEnvVar, const wxString& aPriorityPath )
-{
-    wxPathList  paths;
-
-    paths.AddEnvList( aEnvVar );
-    paths.Insert( aPriorityPath, 0 );
-
-    return wxJoin( paths, wxPATH_SEP[0] );
-}
-
-
 /// Extend LIB_ENV_VAR list with the directory from which I came, prepending it.
-void SetLibEnvVar( const wxString& aAbsoluteArgv0 )
+static void set_lib_env_var( const wxString& aAbsoluteArgv0 )
 {
     // POLICY CHOICE 2: Keep same path, so that installer MAY put the
     // "subsidiary DSOs" in the same directory as the kiway top process modules.
@@ -148,6 +83,7 @@ void SetLibEnvVar( const wxString& aAbsoluteArgv0 )
 #endif
 }
 
+
 // POLICY CHOICE 1: return the full path of the DSO to load from single_top.
 static const wxString dso_full_path( const wxString& aAbsoluteArgv0 )
 {
@@ -164,7 +100,7 @@ static const wxString dso_full_path( const wxString& aAbsoluteArgv0 )
     // in them. They are basically spin-offs from what was once a top process module.
     // That may not make linux package maintainers happy, but that is not my job.
     // Get over it.  KiCad is not a trivial suite, and multiple platforms come
-    // into play, not merely linux.  For starters they will use extension ".kicad",
+    // into play, not merely linux.  For starters they will use extension ".kiface",
     // but later in time morph to ".so".  They are not purely libraries, else they
     // would begin with "lib" in basename.  Like I said, get over it, we're serving
     // too many masters here: python, windows, linux, OSX, multiple versions of wx...
@@ -182,14 +118,10 @@ static const wxString dso_full_path( const wxString& aAbsoluteArgv0 )
     return fn.GetFullPath();
 }
 
-// Use of this is arbitrary, remember single_top only knows about a single DSO.
-// Could have used one from the KIWAY also.
-static wxDynamicLibrary dso;
-
 
 // Only a single KIWAY is supported in this single_top top level component,
 // which is dedicated to loading only a single DSO.
-static KIWAY    kiway;
+KIWAY    Kiway( &Pgm() );
 
 
 // implement a PGM_BASE and a wxApp side by side:
@@ -230,6 +162,32 @@ struct APP_SINGLE_TOP : public wxApp
         return wxApp::OnExit();
     }
 
+    int OnRun()             // overload wxApp virtual
+    {
+        try
+        {
+            return wxApp::OnRun();
+        }
+        catch( const std::exception& e )
+        {
+            wxLogError( wxT( "Unhandled exception class: %s  what: %s" ),
+                GetChars( FROM_UTF8( typeid(e).name() )),
+                GetChars( FROM_UTF8( e.what() ) ) );;
+        }
+        catch( const IO_ERROR& ioe )
+        {
+            wxLogError( wxT( "Unhandled exception class: %s  what: %s" ),
+                GetChars( FROM_UTF8( typeid( ioe ).name() ) ),
+                GetChars( ioe.errorText ) );
+        }
+        catch(...)
+        {
+            wxLogError( wxT( "Unhandled exception of unknown type" ) );
+        }
+
+        return -1;
+    }
+
     /**
      * Function MacOpenFile
      * is specific to MacOSX (not used under Linux or Windows).
@@ -261,6 +219,15 @@ IMPLEMENT_APP( APP_SINGLE_TOP );
 static KIFACE_GETTER_FUNC* get_kiface_getter( const wxString& aDSOName )
 {
 #if defined(BUILD_KIWAY_DLL)
+
+    // Remember single_top only knows about a single DSO.  Using an automatic
+    // with a defeated destructor, see Detach() below, so that the DSO program
+    // image stays in RAM until process termination, and specifically
+    // beyond the point in time at which static destructors are run.  Otherwise
+    // a static wxDynamicLibrary's destructor might create an out of sequence
+    // problem.  This was never detected, so it's only a preventative strategy.
+    wxDynamicLibrary dso;
+
     void*   addr = NULL;
 
     if( !dso.Load( aDSOName, wxDL_VERBATIM | wxDL_NOW ) )
@@ -274,6 +241,9 @@ static KIFACE_GETTER_FUNC* get_kiface_getter( const wxString& aDSOName )
         // Failure: error reporting UI was done via wxLogSysError().
         // No further reporting required here.
     }
+
+    // Tell dso's wxDynamicLibrary destructor not to Unload() the program image.
+    (void) dso.Detach();
 
     return (KIFACE_GETTER_FUNC*) addr;
 
@@ -304,7 +274,7 @@ bool PGM_SINGLE_TOP::OnPgmInit( wxApp* aWxApp )
 
     // Set LIB_ENV_VAR *before* loading the DSO, in case the top-level DSO holding the
     // KIFACE has hard dependencies on subsidiary DSOs below it.
-    SetLibEnvVar( absoluteArgv0 );
+    set_lib_env_var( absoluteArgv0 );
 
     if( !initPgm() )
         return false;
@@ -329,21 +299,22 @@ bool PGM_SINGLE_TOP::OnPgmInit( wxApp* aWxApp )
 
     // Give the DSO a single chance to do its "process level" initialization.
     // "Process level" specifically means stay away from any projects in there.
-    if( !kiface->OnKifaceStart( this ) )
+    if( !kiface->OnKifaceStart( this, KFCTL_STANDALONE ) )
         return false;
 
     // Use KIFACE to create a top window that the KIFACE knows about.
     // TOP_FRAME is passed on compiler command line from CMake, and is one of
-    // the types in ID_DRAWFRAME_TYPE.
+    // the types in FRAME_T.
     // KIFACE::CreateWindow() is a virtual so we don't need to link to it.
     // Remember its in the *.kiface DSO.
 #if 0
-    // this pulls in EDA_DRAW_FRAME type info, which we don't want in single_top
+    // this pulls in EDA_DRAW_FRAME type info, which we don't want in
+    // the single_top link image.
     KIWAY_PLAYER* frame = dynamic_cast<KIWAY_PLAYER*>( kiface->CreateWindow(
-                                NULL, TOP_FRAME, &kiway, KFCTL_STANDALONE ) );
+                                NULL, TOP_FRAME, &Kiway, KFCTL_STANDALONE ) );
 #else
     KIWAY_PLAYER* frame = (KIWAY_PLAYER*) kiface->CreateWindow(
-                                NULL, TOP_FRAME, &kiway, KFCTL_STANDALONE );
+                                NULL, TOP_FRAME, &Kiway, KFCTL_STANDALONE );
 #endif
 
     App().SetTopWindow( frame );      // wxApp gets a face.
@@ -353,76 +324,57 @@ bool PGM_SINGLE_TOP::OnPgmInit( wxApp* aWxApp )
 
     if( argc > 1 )
     {
+        /*
+            gerbview handles multiple project data files, i.e. gerber files on
+            cmd line. Others currently do not, they handle only one. For common
+            code simplicity we simply pass all the arguments in however, each
+            program module can do with them what they want, ignore, complain
+            whatever.  We don't establish policy here, as this is a multi-purpose
+            launcher.
+        */
 
-#if defined(TOP_FRAME) && TOP_FRAME==GERBER_FRAME_TYPE
-        // gerbview handles multiple project data files, i.e. gerber files on cmd line.
-
-        std::vector<wxString>   fileSet;
-
-        // Load all files specified on the command line.
+        std::vector<wxString>   argSet;
 
         for( int i=1;  i<argc;  ++i )
         {
-            wxFileName fn( App().argv[i] );
-
-            if( fn.FileExists() )
-                fileSet.push_back( App().argv[i] );
+            argSet.push_back( App().argv[i] );
         }
 
-        wxFileName fn( fileSet[0] );
+        // special attention to the first argument: argv[1] (==argSet[0])
+        wxFileName argv1( argSet[0] );
 
-        if( fn.GetPath().size() )
+        if( argc == 2 )
         {
-            // wxSetWorkingDirectory does not like empty paths
-            wxSetWorkingDirectory( fn.GetPath() );
-
-            // @todo: setting CWD is taboo in a multi-project environment
-        }
-
-        // Use the KIWAY_PLAYER::OpenProjectFiles() API function:
-        if( !frame->OpenProjectFiles( fileSet ) )
-        {
-            // OpenProjectFiles() API asks that it report failure to the UI.
-            // Nothing further to say here.
-
-            // Fail the process startup if the file could not be opened,
-            // although this is an optional choice, one that can be reversed
-            // also in the KIFACE specific OpenProjectFiles() return value.
-            return false;
-        }
-
-#else
-
-        wxFileName  fn( argv[1] );
-
-        if( !fn.IsOk() )
-        {
-            return false;
-        }
-
 #if defined(PGM_DATA_FILE_EXT)
-        // PGM_DATA_FILE_EXT is different for each compile, it may come from CMake
-        // on the compiler command line, or not.
-        if( !fn.GetExt() )
-            fn.SetExt( wxT( PGM_DATA_FILE_EXT ) );
-#endif
+            // PGM_DATA_FILE_EXT, if present, may be different for each compile,
+            // it may come from CMake on the compiler command line, but often does not.
+            // This facillity is mostly useful for those program modules
+            // supporting a single argv[1].
+            if( !argv1.GetExt() )
+                argv1.SetExt( wxT( PGM_DATA_FILE_EXT ) );
 
-        if( !Pgm().LockFile( fn.GetFullPath() ) )
-        {
-            wxLogSysError( _( "This file is already open." ) );
-            return false;
+#endif
+            argv1.MakeAbsolute();
+
+            argSet[0] = argv1.GetFullPath();
+
+            if( !Pgm().LockFile( argSet[0] ) )
+            {
+                wxLogSysError( _( "This file is already open." ) );
+                return false;
+            }
         }
 
-        if( fn.GetPath().size() )
+        // @todo: setting CWD is taboo in a multi-project environment, this
+        // will not be possible soon.
+        if( argv1.GetPath().size() )   // path only
         {
-            // wxSetWorkingDirectory does not like empty paths
-            wxSetWorkingDirectory( fn.GetPath() );
-
-            // @todo: setting CWD is taboo in a multi-project environment
+            // wxSetWorkingDirectory() does not like empty paths
+            wxSetWorkingDirectory( argv1.GetPath() );
         }
 
         // Use the KIWAY_PLAYER::OpenProjectFiles() API function:
-        if( !frame->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) ) )
+        if( !frame->OpenProjectFiles( argSet ) )
         {
             // OpenProjectFiles() API asks that it report failure to the UI.
             // Nothing further to say here.
@@ -432,15 +384,16 @@ bool PGM_SINGLE_TOP::OnPgmInit( wxApp* aWxApp )
             // also in the KIFACE specific OpenProjectFiles() return value.
             return false;
         }
-#endif
     }
     else
     {
-        /*  The lean single_top program launcher has no access program settings,
-            else it would not be lean.  That kind of functionality is in the
-            KIFACE now, but it cannot assume that it is the only KIFACE in memory.
-            So this looks like a dead concept here, or an expensive one in terms
-            of code size.
+        /*
+
+            The lean single_top program launcher has no access to program
+            settings, for if it did, it would not be lean. That kind of
+            functionality is in the KIFACE now, but it cannot assume that it is
+            the only KIFACE in memory. So this looks like a dead concept here,
+            or an expensive one in terms of code size.
 
         wxString dir;
 
@@ -478,8 +431,8 @@ void PGM_SINGLE_TOP::MacOpenFile( const wxString& aFileName )
     if( filename.FileExists() )
     {
 #if 0
-        // this pulls in EDA_DRAW_FRAME type info, which we don't want in single_top
-        // link image.
+        // this pulls in EDA_DRAW_FRAME type info, which we don't want in
+        // the single_top link image.
         KIWAY_PLAYER* frame = dynamic_cast<KIWAY_PLAYER*>( App().GetTopWindow() );
 #else
         KIWAY_PLAYER* frame = (KIWAY_PLAYER*) App().GetTopWindow();

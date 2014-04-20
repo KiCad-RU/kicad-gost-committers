@@ -65,7 +65,7 @@ public:
      * Function Prj
      * returns a reference to the PROJECT "associated with" this KIWAY.
      */
-    PROJECT& Prj() const;                // coded in kiface_i.cpp for now
+    PROJECT& Prj() const;
 
     /**
      * Function SetKiway
@@ -76,7 +76,7 @@ public:
      *
      * @param aKiway is often from a parent window, or from KIFACE::CreateWindow().
      */
-    void SetKiway( wxWindow* aDest, KIWAY* aKiway );  // in kiface_i.cpp for now
+    void SetKiway( wxWindow* aDest, KIWAY* aKiway );
 
 private:
     // private, all setting is done through SetKiway().
@@ -98,7 +98,7 @@ private:
 class KIWAY_PLAYER : public EDA_BASE_FRAME, public KIWAY_HOLDER
 {
 public:
-    KIWAY_PLAYER( KIWAY* aKiway, wxWindow* aParent, ID_DRAWFRAME_TYPE aFrameType,
+    KIWAY_PLAYER( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrameType,
             const wxString& aTitle, const wxPoint& aPos, const wxSize& aSize,
             long aStyle, const wxString& aWdoName = wxFrameNameStr ) :
         EDA_BASE_FRAME( aParent, aFrameType, aTitle, aPos, aSize, aStyle, aWdoName ),
@@ -110,7 +110,7 @@ public:
     KIWAY_PLAYER( wxWindow* aParent, wxWindowID aId, const wxString& aTitle,
             const wxPoint& aPos, const wxSize& aSize, long aStyle,
             const wxString& aWdoName = wxFrameNameStr ) :
-        EDA_BASE_FRAME( aParent, (ID_DRAWFRAME_TYPE) aId, aTitle, aPos, aSize, aStyle, aWdoName ),
+        EDA_BASE_FRAME( aParent, (FRAME_T) aId, aTitle, aPos, aSize, aStyle, aWdoName ),
         KIWAY_HOLDER( 0 )
     {}
 
@@ -129,8 +129,15 @@ public:
      * KIWAY_PLAYER is precluded.
      * <p>
      * Each derived class should handle this in a way specific to its needs.
-     * No prompting is done inside here for any file or project.  There is no
-     * need to call this with aFileList which is empty.
+     * No prompting is done inside here for any file or project.  There should be
+     * no need to call this with aFileList which is empty.  However, calling it with
+     * a single filename which does not exist should indicate to the implementor
+     * that a new session is being started and that the given name is the desired
+     * name for the data file at time of save.
+     * <p>
+     * Therefore, one of the first things an implementation should do is test for
+     * existence of the first file in the list, and if it does not exist, treat
+     * it as a new session, possibly with a UI notification to that effect.
      * <p>
      * After loading the window should update its Title as part of this operation.
      * If the KIWAY_PLAYER needs to, it can load the *.pro file as part of this operation.
@@ -141,6 +148,8 @@ public:
      * @param aFileList includes files that this frame should open
      *  according to the knowledge in the derived wxFrame.  In almost every case,
      *  the list will have only a single file in it.
+     *
+     * @param aCtl is a set of bit flags ORed together from the set of KICTL_* \#defined above.
      *
      * @return bool - true if all requested files were opened OK, else false.
      */
@@ -156,5 +165,52 @@ public:
         return false;
     }
 };
+
+
+// psuedo code for OpenProjectFiles
+#if 0
+
+bool OpenProjectFiles( const std::vector<wxString>& aFileList, int aCtl = 0 )
+{
+    if( aFileList.size() != 1 )
+    {
+        complain via UI.
+        return false
+    }
+
+    assert( aFileList[0] is absolute )      // bug in single_top.cpp or project manager.
+
+    if (window does not support appending) || !(aCtl & KICTL_OPEN_APPEND)
+    {
+        close any currently open project files.
+    }
+
+    if( aFileList[0] does not exist )
+    {
+        notify user file does not exist.
+
+        create an empty project file
+        mark file as modified.
+
+        use the default project config file.
+    }
+    else
+    {
+        load aFileList[0]
+
+        use the project config file for project given by aFileList[0]s full path.
+    }
+
+    UpdateTitle();
+
+    show contents.
+}
+
+
+
+#endif
+
+
+
 
 #endif // KIWAY_PLAYER_H_

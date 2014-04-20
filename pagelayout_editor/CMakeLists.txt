@@ -1,4 +1,10 @@
-set( MAKE_LINK_MAPS true )
+# the map generation creates on Windows/gcc a lot of useless warnings
+# so disable it on windows
+if( WIN32 AND NOT CMAKE_CROSSCOMPILING )
+    set( MAKE_LINK_MAPS false )
+else()
+    set( MAKE_LINK_MAPS true )
+endif()
 
 add_definitions(-DPL_EDITOR)
 
@@ -49,13 +55,14 @@ endif()
 
 if( USE_KIWAY_DLLS )
 
-    # a very small program launcher for pcbnew_kiface
+    # a very small program launcher for pl_editor_kiface
     add_executable( pl_editor WIN32 MACOSX_BUNDLE
         ../common/single_top.cpp
         ../common/pgm_base.cpp
+        ${PL_EDITOR_RESOURCES}
         )
     set_source_files_properties( ../common/single_top.cpp PROPERTIES
-        COMPILE_DEFINITIONS "TOP_FRAME=PL_EDITOR_FRAME_TYPE;PGM_DATA_FILE_EXT=\"kicad_wks\";BUILD_KIWAY_DLL"
+        COMPILE_DEFINITIONS "TOP_FRAME=FRAME_PL_EDITOR;PGM_DATA_FILE_EXT=\"kicad_wks\";BUILD_KIWAY_DLL"
         )
     target_link_libraries( pl_editor
         #singletop  # replaces common, giving us restrictive control and link warnings.
@@ -69,13 +76,13 @@ if( USE_KIWAY_DLLS )
             LINK_FLAGS "${TO_LINKER},-cref ${TO_LINKER},-Map=pl_editor.map" )
     endif()
 
-    # the main pcbnew program, in DSO form.
+    # the main pl_editor program, in DSO form.
     add_library( pl_editor_kiface MODULE
         pl_editor.cpp
         ${PL_EDITOR_SRCS}
         ${DIALOGS_SRCS}
         ${PL_EDITOR_EXTRA_SRCS}
-        ${PL_EDITOR_RESOURCES}
+#        ${PL_EDITOR_RESOURCES}
         )
     target_link_libraries( pl_editor_kiface
         common
@@ -99,7 +106,7 @@ if( USE_KIWAY_DLLS )
             LINK_FLAGS "${TO_LINKER},-cref ${TO_LINKER},-Map=_pl_editor.kiface.map" )
     endif()
 
-    # if building pcbnew, then also build pcbnew_kiface if out of date.
+    # if building pl_editor, then also build pl_editor_kiface if out of date.
     add_dependencies( pl_editor pl_editor_kiface )
 
     # these 2 binaries are a matched set, keep them together:
@@ -112,6 +119,14 @@ if( USE_KIWAY_DLLS )
         COMPONENT binary
         )
 
+    if( APPLE )
+        # copies kiface into the bundle
+        add_custom_target( _pleditor_kiface_copy ALL
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/pagelayout_editor/_pl_editor.kiface "${CMAKE_BINARY_DIR}/pagelayout_editor/pl_editor.app/Contents/MacOS/"
+            DEPENDS pl_editor_kiface
+            COMMENT "Copying kiface into pleditor"
+        )
+    endif()
 
 else()
 

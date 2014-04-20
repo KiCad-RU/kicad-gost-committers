@@ -1,5 +1,10 @@
-
-set( MAKE_LINK_MAPS true )
+# the map generation creates on Windows/gcc a lot of useless warnings
+# so disable it on windows
+if( WIN32 AND NOT CMAKE_CROSSCOMPILING )
+    set( MAKE_LINK_MAPS false )
+else()
+    set( MAKE_LINK_MAPS true )
+endif()
 
 add_definitions( -DCVPCB )
 
@@ -73,9 +78,10 @@ if( USE_KIWAY_DLLS )
     add_executable( cvpcb WIN32 MACOSX_BUNDLE
         ../common/single_top.cpp
         ../common/pgm_base.cpp
+        ${CVPCB_RESOURCES}
         )
     set_source_files_properties( ../common/single_top.cpp PROPERTIES
-        COMPILE_DEFINITIONS "TOP_FRAME=CVPCB_FRAME_TYPE;PGM_DATA_FILE_EXT=\"net\";BUILD_KIWAY_DLL"
+        COMPILE_DEFINITIONS "TOP_FRAME=FRAME_CVPCB;PGM_DATA_FILE_EXT=\"net\";BUILD_KIWAY_DLL"
         )
     target_link_libraries( cvpcb
         #singletop  # replaces common, giving us restrictive control and link warnings.
@@ -94,7 +100,7 @@ if( USE_KIWAY_DLLS )
         cvpcb.cpp
         ${CVPCB_SRCS}
         ${CVPCB_DIALOGS}
-        ${CVPCB_RESOURCES}
+#        ${CVPCB_RESOURCES}
         )
     set_target_properties( cvpcb_kiface PROPERTIES
         OUTPUT_NAME     cvpcb
@@ -115,6 +121,7 @@ if( USE_KIWAY_DLLS )
         ${GLEW_LIBRARIES}
         ${CAIRO_LIBRARIES}
         ${PIXMAN_LIBRARY}
+        ${OPENMP_LIBRARIES}
         )
 
     # Only for win32 cross compilation using MXE
@@ -169,6 +176,15 @@ if( USE_KIWAY_DLLS )
         DESTINATION ${KICAD_BIN}
         COMPONENT binary
         )
+
+    if( APPLE )
+        # copies kiface into the bundle
+        add_custom_target( _cvpcb_kiface_copy ALL
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/cvpcb/_cvpcb.kiface "${CMAKE_BINARY_DIR}/cvpcb/cvpcb.app/Contents/MacOS/"
+            DEPENDS cvpcb_kiface
+            COMMENT "Copying kiface into cvpcb"
+        )
+    endif()
 
 else()
 

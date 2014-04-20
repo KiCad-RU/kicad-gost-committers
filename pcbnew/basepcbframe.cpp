@@ -129,7 +129,7 @@ BEGIN_EVENT_TABLE( PCB_BASE_FRAME, EDA_DRAW_FRAME )
 END_EVENT_TABLE()
 
 
-PCB_BASE_FRAME::PCB_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent, ID_DRAWFRAME_TYPE aFrameType,
+PCB_BASE_FRAME::PCB_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrameType,
         const wxString& aTitle, const wxPoint& aPos, const wxSize& aSize,
         long aStyle, const wxString & aFrameName ) :
     EDA_DRAW_FRAME( aKiway, aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName )
@@ -181,7 +181,11 @@ FP_LIB_TABLE* PCB_BASE_FRAME::FootprintLibs() const
 
     if( !tbl )
     {
+        // Stack the project specific FP_LIB_TABLE overlay on top of the global table.
+        // ~FP_LIB_TABLE() will not touch the fallback table, so multiple projects may
+        // stack this way, all using the same global fallback table.
         tbl = new FP_LIB_TABLE( &GFootprintTable );
+
         prj.Elem( PROJECT::FPTBL, tbl );
     }
 

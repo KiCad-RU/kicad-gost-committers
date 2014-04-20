@@ -153,7 +153,7 @@ END_EVENT_TABLE()
 #define FOOTPRINT_EDIT_FRAME_NAME wxT( "ModEditFrame" )
 
 FOOTPRINT_EDIT_FRAME::FOOTPRINT_EDIT_FRAME( KIWAY* aKiway, PCB_EDIT_FRAME* aParent ) :
-    PCB_BASE_FRAME( aKiway, aParent, MODULE_EDITOR_FRAME_TYPE, wxEmptyString,
+    PCB_BASE_FRAME( aKiway, aParent, FRAME_PCB_MODULE_EDITOR, wxEmptyString,
                     wxDefaultPosition, wxDefaultSize,
                     KICAD_DEFAULT_DRAWFRAME_STYLE, GetFootprintEditorFrameName() )
 {
@@ -279,7 +279,7 @@ wxString FOOTPRINT_EDIT_FRAME::getLibPath()
 
         return row->GetFullURI( true );
     }
-    catch( IO_ERROR ioe )
+    catch( const IO_ERROR& ioe )
     {
         return wxEmptyString;
     }
@@ -410,7 +410,9 @@ void FOOTPRINT_EDIT_FRAME::OnUpdateVerticalToolbar( wxUpdateUIEvent& aEvent )
 
 void FOOTPRINT_EDIT_FRAME::OnUpdateLibSelected( wxUpdateUIEvent& aEvent )
 {
-    aEvent.Enable( getLibPath() != wxEmptyString );
+    bool enable = getLibPath() != wxEmptyString;
+    aEvent.Enable( enable );
+    GetMenuBar()->Enable( ID_MODEDIT_SAVE_LIBRARY_AS, enable );
 }
 
 
@@ -637,7 +639,7 @@ void FOOTPRINT_EDIT_FRAME::updateTitle()
             if( !writable )
                 title += _( " [Read Only]" );
         }
-        catch( IO_ERROR ioe )
+        catch( const IO_ERROR& ioe )
         {
             // user may be bewildered as to why after selecting a library it is not showing up
             // in the title, we could show an error message, but that should have been done at time

@@ -1,4 +1,10 @@
-set( MAKE_LINK_MAPS true )
+# the map generation creates on Windows/gcc a lot of useless warnings
+# so disable it on windows
+if( WIN32 AND NOT CMAKE_CROSSCOMPILING )
+    set( MAKE_LINK_MAPS false )
+else()
+    set( MAKE_LINK_MAPS true )
+endif()
 
 add_definitions( -DEESCHEMA )
 
@@ -291,9 +297,10 @@ if( USE_KIWAY_DLLS )
     add_executable( eeschema WIN32 MACOSX_BUNDLE
         ../common/single_top.cpp
         ../common/pgm_base.cpp
+        ${EESCHEMA_RESOURCES}
         )
     set_source_files_properties( ../common/single_top.cpp PROPERTIES
-        COMPILE_DEFINITIONS "TOP_FRAME=SCHEMATIC_FRAME_TYPE;PGM_DATA_FILE_EXT=\"sch\";BUILD_KIWAY_DLL"
+        COMPILE_DEFINITIONS "TOP_FRAME=FRAME_SCH;PGM_DATA_FILE_EXT=\"sch\";BUILD_KIWAY_DLL"
         )
     target_link_libraries( eeschema
         #singletop  # replaces common, giving us restrictive control and link warnings.
@@ -308,7 +315,7 @@ if( USE_KIWAY_DLLS )
     add_library( eeschema_kiface MODULE
         ${EESCHEMA_SRCS}
         ${EESCHEMA_COMMON_SRCS}
-        ${EESCHEMA_RESOURCES}
+#        ${EESCHEMA_RESOURCES}
         )
     target_link_libraries( eeschema_kiface
         common
@@ -362,6 +369,15 @@ if( USE_KIWAY_DLLS )
         COMPONENT binary
         )
 
+    if( APPLE )
+        # copies kiface into the bundle
+        add_custom_target( _eeschema_kiface_copy ALL
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/eeschema/_eeschema.kiface "${CMAKE_BINARY_DIR}/eeschema/eeschema.app/Contents/MacOS/"
+            DEPENDS eeschema_kiface
+            COMMENT "Copying kiface into eeschema"
+        )
+    endif()
+
 else()
     add_executable( eeschema WIN32 MACOSX_BUNDLE
         ../common/single_top.cpp
@@ -381,7 +397,7 @@ else()
         )
 
     set_source_files_properties( ../common/single_top.cpp PROPERTIES
-        COMPILE_DEFINITIONS "TOP_FRAME=SCHEMATIC_FRAME_TYPE;PGM_DATA_FILE_EXT=\"sch\";BUILD_KIWAY_DLL"
+        COMPILE_DEFINITIONS "TOP_FRAME=FRAME_SCH;PGM_DATA_FILE_EXT=\"sch\";BUILD_KIWAY_DLL"
         )
 
     if( APPLE )

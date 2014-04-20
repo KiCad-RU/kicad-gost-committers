@@ -38,6 +38,7 @@ class wxFileName;
 class OUTPUTFORMATTER;
 class MODULE;
 class FP_LIB_TABLE_LEXER;
+class FPID;
 class NETLIST;
 class REPORTER;
 class SEARCH_STACK;
@@ -357,8 +358,6 @@ public:
      */
     void Format( OUTPUTFORMATTER* out, int nestLevel ) const throw( IO_ERROR );
 
-    void Save( const wxFileName& aPath ) const throw( IO_ERROR );
-
     /**
      * Function GetLogicalLibs
      * returns the logical library names, all of them that are pertinent to
@@ -458,6 +457,21 @@ public:
     //-----</PLUGIN API SUBSET, REBASED ON aNickname>---------------------------
 
     /**
+     * Function FootprintLoadWithOptionalNickname
+     * loads a footprint having @a aFootprintId with possibly an empty nickname.
+     *
+     * @param aFootprintId the [nickname] & fooprint name of the footprint to load.
+     *
+     * @return  MODULE* - if found caller owns it, else NULL if not found.
+     *
+     * @throw   IO_ERROR if the library cannot be found or read.  No exception
+     *          is thrown in the case where aFootprintName cannot be found.
+     * @throw   PARSE_ERROR if @a aFootprintId is not parsed OK.
+     */
+    MODULE* FootprintLoadWithOptionalNickname( const FPID& aFootprintId )
+        throw( IO_ERROR, PARSE_ERROR );
+
+    /**
      * Function GetDescription
      * returns the library desicription from @a aNickname, or an empty string
      * if aNickname does not exist.
@@ -502,19 +516,6 @@ public:
     bool IsEmpty( bool aIncludeFallback = true );
 
     /**
-     * Function ConvertFromLegacy
-     * converts the footprint names in \a aNetList from the legacy format to the #FPID format.
-     *
-     * @param aNetList is the #NETLIST object to convert.
-     * @param aLibNames is the list of legacy footprint library names from the currently loaded
-     *                  project.
-     * @param aReporter is the #REPORTER object to dump messages into.
-     * @return true if all footprint names were successfully converted to a valid FPID.
-     */
-    bool ConvertFromLegacy( SEARCH_STACK& aSStack, NETLIST& aNetList,
-            const wxArrayString& aLibNames, REPORTER* aReporter = NULL ) throw( IO_ERROR );
-
-    /**
      * Function ExpandSubstitutions
      * replaces any environment variable references with their values and is
      * here to fully embellish the ROW::uri in a platform independent way.
@@ -544,11 +545,13 @@ public:
      */
     static wxString GetGlobalTableFileName();
 
+#if 0
     /**
      * Function GetFileName
      * @return the footprint library file name.
      */
     static const wxString GetFileName();
+#endif
 
     /**
      * Function GlobalPathEnvVarVariableName
@@ -560,19 +563,24 @@ public:
      */
     static const wxString GlobalPathEnvVariableName();
 
-    static wxString GetProjectTableFileName( const wxString& aProjectFullName );
-
     /**
      * Function Load
      * loads the footprint library table using the path defined in \a aFileName with
      * \a aFallBackTable.
      *
-     * @param aFileName contains the path and possible the file name and extension.
-     * @param aFallBackTable the fall back footprint library table which can be NULL.
+     * @param aFileName contains the full path to the s-expression file.
+     *
      * @throw IO_ERROR if an error occurs attempting to load the footprint library
      *                 table.
      */
-    void Load( const wxFileName& aFileName, FP_LIB_TABLE* aFallBackTable ) throw( IO_ERROR );
+    void Load( const wxString& aFileName ) throw( IO_ERROR );
+
+    /**
+     * Function Save
+     * writes this table to aFileName in s-expression form.
+     * @param aFileName is the name of the file to write to.
+     */
+    void Save( const wxString& aFileName ) const throw( IO_ERROR );
 
 protected:
 

@@ -43,7 +43,7 @@ public:
 
         // see base class KIFACE in kiway.h for doxygen docs
 
-    VTBL_ENTRY bool OnKifaceStart( PGM_BASE* aProgram ) = 0;
+    VTBL_ENTRY bool OnKifaceStart( PGM_BASE* aProgram, int aCtlBits ) = 0;
     /*
     {
         typically call start_common() in your overload
@@ -58,7 +58,7 @@ public:
     }
 
     VTBL_ENTRY  wxWindow* CreateWindow( wxWindow* aParent,
-            int aClassId, KIWAY* aKIWAY, int aCtlBits = 0 ) = 0;
+            int aClassId, KIWAY* aKIWAY, int aCtlBits ) = 0;
 
     VTBL_ENTRY void* IfaceOrAddress( int aDataId ) = 0;
 
@@ -71,12 +71,13 @@ public:
      *
      * @param aKifaceName should point to a C string in permanent storage,
      * which contains the name of the DSO.  Examples: "eeschema", "pcbnew", etc.
-     * This controls the name of the wxConfigBase established in m_kiway_settings,
+     * This controls the name of the wxConfigBase established in m_bm,
      * so it should be lowercase.
      */
     KIFACE_I( const char* aKifaceName, KIWAY::FACE_T aId ) :
         m_id( aId ),
-        m_bm( aKifaceName )
+        m_bm( aKifaceName ),
+        m_start_flags( 0 )
     {
     }
 
@@ -85,7 +86,7 @@ public:
 protected:
 
     /// Common things to do for a top program module, during OnKifaceStart().
-    bool start_common();
+    bool start_common( int aCtlBits );
 
     /// Common things to do for a top program module, during OnKifaceEnd();
     void end_common();
@@ -100,38 +101,36 @@ public:
 
     wxConfigBase* KifaceSettings() const                { return m_bm.m_config; }
 
-    const wxString& GetHelpFileName() const             { return m_bm.m_help_file; }
-    void SetHelpFileName( const wxString& aFileName )   { m_bm.m_help_file = aFileName; }
+    /**
+     * Function StartFlags
+     * returns whatever was passed as @a aCtlBits to OnKifaceStart()
+     */
+    int StartFlags() const                              { return m_start_flags; }
 
     /**
-     * Function GetHelpFile
-     * gets the help file path.
-     * <p>
-     * Return the KiCad help file with path.  The base paths defined in
-     * m_searchPaths are tested for a valid file.  The path returned can
-     * be relative depending on the paths added to m_searchPaths.  See the
-     * documentation for wxPathList for more information. If the help file
-     * for the current locale is not found, an attempt to find the English
-     * version of the help file is made.
-     * wxEmptyString is returned if help file not found.
-     * Help file is searched in directories in this order:
-     *  help/\<canonical name\> like help/en_GB
-     *  help/\<short name\> like help/en
-     *  help/en
-     * </p>
+     * Function IsSingle
+     * is this KIFACE_I running under single_top?
      */
-    wxString GetHelpFile();
+    bool IsSingle() const                               { return m_start_flags & KFCTL_STANDALONE; }
 
-    wxFileHistory& GetFileHistory()             { return m_bm.m_history; }
+    /**
+     * Function GetHelpFileName
+     * returns just the basename portion of the current help file.
+     */
+    const wxString& GetHelpFileName() const             { return m_bm.m_help_file; }
+
+    wxFileHistory& GetFileHistory()                     { return m_bm.m_history; }
 
     /// Only for DSO specific 'non-library' files.
     /// (The library search path is in the PROJECT class.)
-    SEARCH_STACK&       KifaceSearch()          { return m_bm.m_search; }
+    SEARCH_STACK&       KifaceSearch()                  { return m_bm.m_search; }
 
 private:
     KIWAY::FACE_T       m_id;
 
     BIN_MOD             m_bm;
+
+    int                 m_start_flags;      ///< flags provided in OnKifaceStart()
 };
 
 

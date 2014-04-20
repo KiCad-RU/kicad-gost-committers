@@ -137,11 +137,7 @@ bool PCB_EDIT_FRAME::OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu )
     }
 
     item = GetCurItem();
-
-    if( item )
-        flags = item->GetFlags();
-    else
-        flags = 0;
+    flags = item ? item->GetFlags() : 0;
 
     // Add the context menu, which depends on the picked item:
     if( item )
@@ -524,7 +520,7 @@ void PCB_EDIT_FRAME::createPopupMenuForTracks( TRACK* Track, wxMenu* PopMenu )
     {
         if( flags & IS_NEW )
         {
-            msg = AddHotkeyName( _( "End Track" ), g_Board_Editor_Hokeys_Descr, HK_END_TRACK );
+            msg = AddHotkeyName( _( "End Track" ), g_Board_Editor_Hokeys_Descr, HK_LEFT_DCLICK );
             AddMenuItem( PopMenu, ID_POPUP_PCB_END_TRACK, msg, KiBitmap( checked_ok_xpm ) );
         }
 

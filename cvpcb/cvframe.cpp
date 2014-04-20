@@ -107,14 +107,13 @@ END_EVENT_TABLE()
 
 
 CVPCB_MAINFRAME::CVPCB_MAINFRAME( KIWAY* aKiway, wxWindow* aParent ) :
-    KIWAY_PLAYER( aKiway, aParent, CVPCB_FRAME_TYPE, wxT( "CvPCB" ), wxDefaultPosition,
+    KIWAY_PLAYER( aKiway, aParent, FRAME_CVPCB, wxT( "CvPCB" ), wxDefaultPosition,
         wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, CVPCB_MAINFRAME_NAME )
 {
     m_FrameName             = CVPCB_MAINFRAME_NAME;
     m_ListCmp               = NULL;
     m_FootprintList         = NULL;
     m_LibraryList           = NULL;
-    m_DisplayFootprintFrame = NULL;
     m_mainToolBar           = NULL;
     m_modified              = false;
     m_isEESchemaNetlist     = false;
@@ -210,6 +209,9 @@ FP_LIB_TABLE* CVPCB_MAINFRAME::FootprintLibs() const
 
     if( !tbl )
     {
+        // Stack the project specific FP_LIB_TABLE overlay on top of the global table.
+        // ~FP_LIB_TABLE() will not touch the fallback table, so multiple projects may
+        // stack this way, all using the same global fallback table.
         tbl = new FP_LIB_TABLE( &GFootprintTable );
         prj.Elem( PROJECT::FPTBL, tbl );
     }
@@ -299,21 +301,14 @@ void CVPCB_MAINFRAME::OnCloseWindow( wxCloseEvent& Event )
         }
     }
 
-    // Close the help frame
-    if( Pgm().GetHtmlHelpController() )
-    {
-        if( Pgm().GetHtmlHelpController()->GetFrame() )// returns NULL if no help frame active
-            Pgm().GetHtmlHelpController()->GetFrame()->Close( true );
-    }
-
     if( m_NetlistFileName.IsOk() )
     {
         UpdateFileHistory( m_NetlistFileName.GetFullPath() );
     }
 
     // Close module display frame
-    if( m_DisplayFootprintFrame )
-        m_DisplayFootprintFrame->Close( true );
+    if( GetFpViewerFrame() )
+        GetFpViewerFrame()->Close( true );
 
     m_modified = false;
 
@@ -499,46 +494,45 @@ void CVPCB_MAINFRAME::ConfigCvpcb( wxCommandEvent& event )
 
 void CVPCB_MAINFRAME::OnEditFootprintLibraryTable( wxCommandEvent& aEvent )
 {
-    bool tableChanged = false;
-    int r = InvokePcbLibTableEditor( this, &GFootprintTable, FootprintLibs() );
+    bool    tableChanged = false;
+    int     r = InvokePcbLibTableEditor( this, &GFootprintTable, FootprintLibs() );
 
     if( r & 1 )
     {
+        wxString fileName = FP_LIB_TABLE::GetGlobalTableFileName();
+
         try
         {
-            FILE_OUTPUTFORMATTER sf( FP_LIB_TABLE::GetGlobalTableFileName() );
-
-            GFootprintTable.Format( &sf, 0 );
+            GFootprintTable.Save( fileName );
             tableChanged = true;
         }
         catch( const IO_ERROR& ioe )
         {
             wxString msg = wxString::Format( _(
-                "Error occurred saving the global footprint library "
-                "table:\n\n%s" ),
-                GetChars( ioe.errorText ) );
-
+                    "Error occurred saving the global footprint library table:\n'%s'\n%s" ),
+                    GetChars( fileName ),
+                    GetChars( ioe.errorText )
+                    );
             wxMessageBox( msg, _( "File Save Error" ), wxOK | wxICON_ERROR );
         }
     }
 
     if( r & 2 )
     {
-        wxFileName fn = m_NetlistFileName;
-        fn.SetName( FP_LIB_TABLE::GetFileName() );
-        fn.SetExt( wxEmptyString );
+        wxString fileName = Prj().FootprintLibTblName();
 
         try
         {
-            FILE_OUTPUTFORMATTER sf( fn.GetFullPath() );
-            FootprintLibs()->Format( &sf, 0 );
+            FootprintLibs()->Save( fileName );
             tableChanged = true;
         }
-        catch( IO_ERROR& ioe )
+        catch( const IO_ERROR& ioe )
         {
-            wxString msg;
-            msg.Printf( _( "Error occurred saving the global footprint library "
-                           "table:\n\n%s" ), ioe.errorText.GetData() );
+            wxString msg = wxString::Format( _(
+                    "Error occurred saving the project footprint library table:\n'%s'\n%s" ),
+                    GetChars( fileName ),
+                    GetChars( ioe.errorText )
+                    );
             wxMessageBox( msg, _( "File Save Error" ), wxOK | wxICON_ERROR );
         }
     }
@@ -560,7 +554,7 @@ void CVPCB_MAINFRAME::OnKeepOpenOnSave( wxCommandEvent& event )
 void CVPCB_MAINFRAME::DisplayModule( wxCommandEvent& event )
 {
     CreateScreenCmp();
-    m_DisplayFootprintFrame->RedrawScreen( wxPoint( 0, 0 ), false );
+    GetFpViewerFrame()->RedrawScreen( wxPoint( 0, 0 ), false );
 }
 
 
@@ -599,7 +593,9 @@ void CVPCB_MAINFRAME::OnSelectComponent( wxListEvent& event )
     m_FootprintList->SetFootprints( m_footprints, libraryName, component, filter );
 
     // Tell AuiMgr that objects are changed !
-    m_auimgr.Update();
+    if( m_auimgr.GetManagedWindow() )   // Be sure Aui Manager is initialized
+                                        // (could be not the case when starting CvPcb
+        m_auimgr.Update();
 
     if( component == NULL )
         return;
@@ -638,7 +634,7 @@ void CVPCB_MAINFRAME::OnSelectComponent( wxListEvent& event )
             if ( ii >= 0 )
                 m_FootprintList->SetSelection( ii, false );
 
-            if( m_DisplayFootprintFrame )
+            if( GetFpViewerFrame() )
             {
                 CreateScreenCmp();
             }
@@ -843,7 +839,7 @@ int CVPCB_MAINFRAME::ReadSchematicNetlist()
         else
             wxMessageBox( _( "Unknown netlist format." ), wxEmptyString, wxOK | wxICON_ERROR );
     }
-    catch( IO_ERROR& ioe )
+    catch( const IO_ERROR& ioe )
     {
         msg = wxString::Format( _( "Error loading netlist.\n%s" ), ioe.errorText.GetData() );
         wxMessageBox( msg, _( "Netlist Load Error" ), wxOK | wxICON_ERROR );
@@ -917,15 +913,17 @@ bool CVPCB_MAINFRAME::WriteComponentLinkFile( const wxString& aFullFileName )
 
 void CVPCB_MAINFRAME::CreateScreenCmp()
 {
-    if( !m_DisplayFootprintFrame )
+    DISPLAY_FOOTPRINTS_FRAME* fpframe = GetFpViewerFrame();
+
+    if( !fpframe )
     {
-        m_DisplayFootprintFrame = new DISPLAY_FOOTPRINTS_FRAME( &Kiway(), this );
-        m_DisplayFootprintFrame->Show( true );
+        fpframe = new DISPLAY_FOOTPRINTS_FRAME( &Kiway(), this );
+        fpframe->Show( true );
     }
     else
     {
-        if( m_DisplayFootprintFrame->IsIconized() )
-             m_DisplayFootprintFrame->Iconize( false );
+        if( fpframe->IsIconized() )
+             fpframe->Iconize( false );
 
         // The display footprint window might be buried under some other
         // windows, so CreateScreenCmp() on an existing window would not
@@ -933,11 +931,11 @@ void CVPCB_MAINFRAME::CreateScreenCmp()
         // So we want to put it to front, second after our CVPCB_MAINFRAME.
         // We do this by a little dance of bringing it to front then the main
         // frame back.
-        m_DisplayFootprintFrame->Raise();  // Make sure that is visible.
-        Raise();                           // .. but still we want the focus.
+        fpframe->Raise();   // Make sure that is visible.
+        Raise();            // .. but still we want the focus.
     }
 
-    m_DisplayFootprintFrame->InitDisplay();
+    fpframe->InitDisplay();
 }
 
 
@@ -1054,4 +1052,11 @@ COMPONENT* CVPCB_MAINFRAME::GetSelectedComponent()
         return m_netlist.GetComponent( selection );
 
     return NULL;
+}
+
+
+DISPLAY_FOOTPRINTS_FRAME* CVPCB_MAINFRAME::GetFpViewerFrame()
+{
+    // returns the Footprint Viewer frame, if exists, or NULL
+    return (DISPLAY_FOOTPRINTS_FRAME*) wxWindow::FindWindowByName( FOOTPRINTVIEWER_FRAME_NAME );
 }

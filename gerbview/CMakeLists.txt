@@ -1,4 +1,10 @@
-set( MAKE_LINK_MAPS true )
+# the map generation creates on Windows/gcc a lot of useless warnings
+# so disable it on windows
+if( WIN32 AND NOT CMAKE_CROSSCOMPILING )
+    set( MAKE_LINK_MAPS false )
+else()
+    set( MAKE_LINK_MAPS true )
+endif()
 
 add_definitions(-DGERBVIEW)
 
@@ -91,9 +97,10 @@ if( USE_KIWAY_DLLS )
     add_executable( gerbview WIN32 MACOSX_BUNDLE
         ../common/single_top.cpp
         ../common/pgm_base.cpp
+        ${GERBVIEW_RESOURCES}
         )
     set_source_files_properties( ../common/single_top.cpp PROPERTIES
-        COMPILE_DEFINITIONS "TOP_FRAME=GERBER_FRAME_TYPE;BUILD_KIWAY_DLL"
+        COMPILE_DEFINITIONS "TOP_FRAME=FRAME_GERBER;BUILD_KIWAY_DLL"
         )
     target_link_libraries( gerbview
         #singletop  # replaces common, giving us restrictive control and link warnings.
@@ -113,7 +120,7 @@ if( USE_KIWAY_DLLS )
         ${GERBVIEW_SRCS}
         ${DIALOGS_SRCS}
         ${GERBVIEW_EXTRA_SRCS}
-        ${GERBVIEW_RESOURCES}
+#        ${GERBVIEW_RESOURCES}
         )
     set_target_properties( gerbview_kiface PROPERTIES
         OUTPUT_NAME     gerbview
@@ -149,6 +156,15 @@ if( USE_KIWAY_DLLS )
         DESTINATION ${KICAD_BIN}
         COMPONENT binary
         )
+
+    if( APPLE )
+        # copies kiface into the bundle
+        add_custom_target( _gerbview_kiface_copy ALL
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/gerbview/_gerbview.kiface "${CMAKE_BINARY_DIR}/gerbview/gerbview.app/Contents/MacOS/"
+            DEPENDS gerbview_kiface
+            COMMENT "Copying kiface into gerbview"
+        )
+    endif()
 
 else()
 

@@ -101,6 +101,7 @@ as such!  As such, it is OK to use UTF8 characters:
 #include <import_export.h>
 #include <search_stack.h>
 #include <project.h>
+#include <frame_type.h>
 
 
 #define VTBL_ENTRY          virtual
@@ -112,25 +113,21 @@ as such!  As such, it is OK to use UTF8 characters:
 // be mangled.
 #define KIFACE_INSTANCE_NAME_AND_VERSION   "KIFACE_1"
 
-
 #if defined(__linux__)
  #define LIB_ENV_VAR    wxT( "LD_LIBRARY_PATH" )
-
 #elif defined(__WXMAC__)
  #define LIB_ENV_VAR    wxT( "DYLD_LIBRARY_PATH" )
-
 #elif defined(__MINGW32__)
  #define LIB_ENV_VAR    wxT( "PATH" )
 #endif
 
 
 class wxConfigBase;
-
-
-class KIWAY;
 class wxWindow;
-class PGM_BASE;
 class wxConfigBase;
+class PGM_BASE;
+class KIWAY;
+class KIWAY_PLAYER;
 
 
 /**
@@ -151,6 +148,10 @@ struct KIFACE
     // order of functions in this listing unless you recompile all clients of
     // this interface.
 
+#define KFCTL_STANDALONE        (1<<0)  ///< Am running as a standalone Top.
+#define KFCTL_PROJECT_SUITE     (1<<1)  ///< Am running under a project mgr, possibly with others
+
+
     /**
      * Function OnKifaceStart
      * is called just once shortly after the DSO is loaded.  It is the second
@@ -159,7 +160,9 @@ struct KIFACE
      * should do process level initialization here, not project specific since there
      * will be multiple projects open eventually.
      *
-     * @param aProcess is the process block: PGM_BASE*
+     * @param aProgram is the process block: PGM_BASE*
+     *
+     * @param aCtlBits consists of bit flags from the set of KFCTL_* \#defines above.
      *
      * @return bool - true if DSO initialized OK, false if not.  When returning
      *  false, the loader may optionally decide to terminate the process or not,
@@ -167,18 +170,14 @@ struct KIFACE
      *  why it is returning false.  Never return false without having reported
      *  to the UI why.
      */
-    VTBL_ENTRY bool OnKifaceStart( PGM_BASE* aProgram ) = 0;
+    VTBL_ENTRY bool OnKifaceStart( PGM_BASE* aProgram, int aCtlBits ) = 0;
 
     /**
      * Function OnKifaceEnd
      * is called just once just before the DSO is to be unloaded.  It is called
      * before static C++ destructors are called.  A default implementation is supplied.
-     *
-     * @param aProcess is the process block: PGM_BASE*
      */
     VTBL_ENTRY void OnKifaceEnd() = 0;
-
-#define KFCTL_STANDALONE    (1<<0)      ///< Am running as a standalone Top.
 
     /**
      * Function CreateWindow
@@ -194,13 +193,14 @@ struct KIFACE
      *
      * @param aKIWAY tells the window which KIWAY (and PROJECT) it is a participant in.
      *
-     * @param aCtlBits consists of bit flags from the set of KFCTL_* #defines above.
+     * @param aCtlBits consists of bit flags from the set of KFCTL_* \#defines above.
      *
      * @return wxWindow* - and if not NULL, should be cast into the known type using
-     *   dynamic_cast&lt;&gt;().
+     *  and old school cast.  dynamic_cast is problemenatic since it needs typeinfo probably
+     *  not contained in the caller's link image.
      */
     VTBL_ENTRY  wxWindow* CreateWindow( wxWindow* aParent, int aClassId,
-            KIWAY* aKIWAY, int aCtlBits = 0 ) = 0;
+            KIWAY* aKIWAY, int aCtlBits ) = 0;
 
     /**
      * Function IfaceOrAddress
@@ -232,7 +232,7 @@ struct KIFACE
  * are used to hold function pointers and eliminate the need to link to specific
  * object code libraries, speeding development and encouraging clearly defined
  * interface design.  Unlike Microsoft COM, which is a multi-vendor design supporting
- * DLL's built at various points in time.  The KIWAY alchemy is single project, with
+ * DLL's built at various points in time, the KIWAY alchemy is single project, with
  * all components being built at the same time.  So one should expect solid compatibility
  * between all KiCad components, as long at they are compiled at the same time.
  * <p>
@@ -250,15 +250,17 @@ class KIWAY : public wxEvtHandler
 {
 
 public:
-    /// DSO players on *this* KIWAY
+    /// Known KIFACE implementations
     enum FACE_T
     {
-        FACE_SCH,           ///< eeschema DSO
-    //  FACE_LIB,
-        FACE_PCB,           ///< pcbnew DSO
-    //  FACE_MOD,
+        FACE_SCH,               ///< eeschema DSO
+        FACE_PCB,               ///< pcbnew DSO
         FACE_CVPCB,
-        FACE_BMP2CMP,
+
+        /// count of those above here, which is the subset managed in a KIWAY.
+        KIWAY_FACE_COUNT,
+
+        FACE_BMP2CMP = KIWAY_FACE_COUNT,
         FACE_GERBVIEW,
         FACE_PL_EDITOR,
         FACE_PCB_CALCULATOR,
@@ -266,64 +268,114 @@ public:
         FACE_PCAD2KICADSCH,
 #endif
 
-        FACE_COUNT,         ///< how many KIWAY player types
+        FACE_COUNT
     };
 
-    /* from edaappl.h, now pgm_base.h, obsoleted by above FACE_T enum.
-    enum PGM_BASE_T
-    {
-        APP_UNKNOWN,
-        APP_EESCHEMA,
-        APP_PCBNEW,
-        APP_CVPCB,
-        APP_GERBVIEW,
-        APP_KICAD,
-        APP_PL_EDITOR,
-        APP_BM2CMP,
-    };
-    */
+    /**
+     * Function KifaceType
+     * is a simple mapping function which returns the FACE_T which is known to
+     * implement @a aFrameType.
+     *
+     * @return KIWAY::FACE_T - a valid value or FACE_T(-1) if given a bad aFrameType.
+     */
+    static FACE_T KifaceType( FRAME_T aFrameType );
 
-    // Don't change the order of these VTBL_ENTRYs, add new ones at the end,
-    // unless you recompile all of KiCad.
 
-    VTBL_ENTRY      KIFACE*     KiFACE( FACE_T aFaceId, bool doLoad );
-    VTBL_ENTRY      PROJECT&    Prj()  const;
+    // If you change the vtable, recompile all of KiCad.
 
-    KIWAY();
+    /**
+     * Function KiFACE
+     * returns the KIFACE* given a FACE_T.  If it is not already loaded, the
+     * KIFACE is loaded and initialized with a call to KIFACE::OnKifaceStart()
+     */
+    VTBL_ENTRY KIFACE* KiFACE( FACE_T aFaceId, bool doLoad = true );
+
+    /**
+     * Function PlayerCreate
+     * returns the KIWAY_PLAYER* given a FRAME_T.  If it is not already created,
+     * the required KIFACE is found and loaded and initialized if necessary, then
+     * the KIWAY_PLAYER window is created but not shown.  Caller must Show() it.
+     * If it is already created, then the existing KIWAY_PLAYER* pointer is returned.
+     *
+     * @return KIWAY_PLAYER* - a valid opened KIWAY_PLAYER or NULL if there
+     *  is something wrong.
+     */
+    VTBL_ENTRY KIWAY_PLAYER*   PlayerCreate( FRAME_T aFrameType );
+
+    /**
+     * Function PlayerClose
+     * calls the KIWAY_PLAYER::Close( bool force ) function on the window and
+     * if not vetoed, returns true, else false.  If window actually closes, then
+     * this KIWAY marks it as not opened internally.
+     *
+     * @return bool - true the window is closed and not vetoed, else false.
+     */
+    VTBL_ENTRY bool PlayerClose( FRAME_T aFrameType,  bool doForce );
+
+    /**
+     * Function PlayersClose
+     * calls the KIWAY_PLAYER::Close( bool force ) function on all the windows and
+     * if none are vetoed, returns true, else false.  If window actually closes, then
+     * this KIWAY marks it as not opened internally.
+     *
+     * @return bool - true the window is closed and not vetoed, else false.
+     */
+    VTBL_ENTRY bool PlayersClose( bool doForce );
+
+
+    /**
+     * Function Prj
+     * returns the PROJECT associated with this KIWAY.  This is here as an
+     * accessor, so that there is freedom to put the actual PROJECT storage
+     * in a place decided by the implementation, and not known to the caller.
+     */
+    VTBL_ENTRY PROJECT&  Prj()  const;
+
+    KIWAY( PGM_BASE* aProgram, wxFrame* aTop = NULL );
+
+    /// In case aTop may not be known at time of KIWAY construction:
+    void SetTop( wxFrame* aTop );
 
 private:
 
-    /// Get the name of the DSO holding the requested FACE_T.
-    static const wxString dso_name( FACE_T aFaceId );
+    /// Get the full path & name of the DSO holding the requested FACE_T.
+    static const wxString dso_full_path( FACE_T aFaceId );
 
-    // one for each FACE_T
-    static wxDynamicLibrary    s_sch_dso;
-    static wxDynamicLibrary    s_pcb_dso;
-    //static wxDynamicLibrary    s_cvpcb_dso;   // will get merged into pcbnew
+    /// hooked into m_top in SetTop(), marks child frame as closed.
+    void playerDestroyHandler( wxWindowDestroyEvent& event );
 
-    KIFACE*     m_dso_players[FACE_COUNT];
+    static KIFACE*  m_kiface[KIWAY_FACE_COUNT];
+    static int      m_kiface_version[KIWAY_FACE_COUNT];
 
-    PROJECT     m_project;          // do not assume this is here, use Prj().
+    PGM_BASE*       m_program;
+    wxFrame*        m_top;
+
+    KIWAY_PLAYER*   m_player[KIWAY_PLAYER_COUNT];     // from frame_type.h
+
+    PROJECT         m_project;      // do not assume this is here, use Prj().
 };
+
+
+extern KIWAY Kiway;     // provided by single_top.cpp and kicad.cpp
 
 
 /**
  * Function Pointer KIFACE_GETTER_FUNC
  * points to the one and only KIFACE export.  The export's address
  * is looked up via symbolic string and should be extern "C" to avoid name
- * mangling.  That function can also implement process initialization functionality,
- * things to do once per process that is DSO resident.  This function will only be
- * called one time.  The DSO itself however may be asked to support multiple
- * Top windows, i.e. multiple projects within its lifetime.
+ * mangling. This function will only be called one time.  The DSO itself however
+ * may be asked to support multiple Top windows, i.e. multiple projects
+ * within its lifetime.
  *
  * @param aKIFACEversion is where to put the API version implemented by the KIFACE.
  * @param aKIWAYversion tells the KIFACE what KIWAY version will be available.
- * @param aProcess is a pointer to the PGM_BASE for this process.
- * @return KIFACE* - unconditionally.
+ * @param aProgram is a pointer to the PGM_BASE for this process.
+ * @return KIFACE* - unconditionally, cannot fail.
  */
 typedef     KIFACE*  KIFACE_GETTER_FUNC( int* aKIFACEversion, int aKIWAYversion, PGM_BASE* aProgram );
 
-/// No name mangling.  Each TOPMOD will implement this once.
+/// No name mangling.  Each KIFACE (DSO/DLL) will implement this once.
 extern "C" KIFACE* KIFACE_GETTER(  int* aKIFACEversion, int aKIWAYversion, PGM_BASE* aProgram );
+
 
 #endif  // KIWAY_H_

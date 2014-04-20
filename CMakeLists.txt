@@ -95,7 +95,7 @@ mark_as_advanced( KICAD_SKIP_BOOST )    # Normal builders should build Boost.
 # when not defined by user, the default is python.exe under Windows and python2 for others
 # python binary file should be is exec path.
 
-option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." OFF )
+option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." ON )
 
 # This can be set to a custom name to brag about a particular branch in the "About" dialog:
 set( KICAD_REPO_NAME "product" CACHE STRING "Name of the tree from which this build came." )
@@ -170,10 +170,17 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
     endif()
 
     find_package( OpenMP QUIET )
+
     if( OPENMP_FOUND )
         set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}" )
         set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
         add_definitions( -DUSE_OPENMP )
+
+        # MinGW does not include the OpenMP link library and FindOpenMP.cmake does not
+        # set it either.  Not sure this is the most elegant solution but it works.
+        if( MINGW )
+            set( OPENMP_LIBRARIES gomp )
+        endif()
     endif()
 
     if( MINGW )
@@ -393,13 +400,13 @@ check_find_package_result( OPENGL_FOUND "OpenGL" )
 # https://www.mail-archive.com/cmake@cmake.org/msg47501.html
 
 # Handle target used to specify if a target needs wx-widgets or other libraries
-# Always defined, empty if no libraries are to be build
+# Always defined, empty if no libraries are to be built
 add_custom_target( lib-dependencies )
 
 if( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC )
 
-    # This should be build in all cases, if swig exec is not avaiable
-    # will be impossible also enable SCRIPTING being for PCBNEW required immediatly
+    # This should be built in all cases, if swig exec is not avaiable
+    # will be impossible also enable SCRIPTING being for PCBNEW required immediately
 
     include( download_pcre )
     include( download_swig )

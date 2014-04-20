@@ -72,6 +72,7 @@ if( USE_KIWAY_DLLS )
     add_executable( pcb_calculator WIN32 MACOSX_BUNDLE
         ../common/single_top.cpp
         ../common/pgm_base.cpp
+        ${PCB_CALCULATOR_RESOURCES}
         )
     set_source_files_properties( ../common/single_top.cpp PROPERTIES
         COMPILE_DEFINITIONS "TOP_FRAME=0;BUILD_KIWAY_DLL"
@@ -92,7 +93,7 @@ if( USE_KIWAY_DLLS )
     add_library( pcb_calculator_kiface MODULE
         pcb_calculator.cpp
         ${PCB_CALCULATOR_SRCS}
-        ${PCB_CALCULATOR_RESOURCES}
+#        ${PCB_CALCULATOR_RESOURCES}
         )
     set_target_properties( pcb_calculator_kiface PROPERTIES
         OUTPUT_NAME     pcb_calculator
@@ -131,6 +132,15 @@ if( USE_KIWAY_DLLS )
         set_target_properties( pcb_calculator PROPERTIES
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
             )
+    endif()
+
+    if( APPLE )
+        # copies kiface into the bundle
+        add_custom_target( _pcb_calculator_kiface_copy ALL
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/pcb_calculator/_pcb_calculator.kiface "${CMAKE_BINARY_DIR}/pcb_calculator/pcb_calculator.app/Contents/MacOS/"
+            DEPENDS pcb_calculator_kiface
+            COMMENT "Copying kiface into pcb_calculator"
+        )
     endif()
 
 else()
