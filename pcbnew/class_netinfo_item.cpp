@@ -57,9 +57,7 @@ NETINFO_ITEM::NETINFO_ITEM( BOARD_ITEM* aParent, const wxString& aNetName, int a
                                 // general buffer of ratsnest
     m_RatsnestEndIdx   = 0;     // Ending point of ratsnests of this net
 
-    //m_NetClassName = NETCLASS::Default;
-    // temporary workaround for static initialization order fiasco
-    m_NetClassName = wxT("Default");
+    m_NetClassName = NETCLASS::Default;
 
     m_NetClass = NULL;
 }
