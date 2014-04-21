@@ -27,6 +27,7 @@
 #include <macros.h>
 #include <kiway.h>
 #include <kiway_player.h>
+#include <kiway_express.h>
 #include <config.h>
 #include <wx/debug.h>
 #include <wx/stdpaths.h>
@@ -34,6 +35,7 @@
 
 KIFACE* KIWAY::m_kiface[KIWAY_FACE_COUNT];
 int     KIWAY::m_kiface_version[KIWAY_FACE_COUNT];
+
 
 
 KIWAY::KIWAY( PGM_BASE* aProgram, wxFrame* aTop ):
@@ -291,4 +293,39 @@ bool KIWAY::PlayersClose( bool doForce )
     }
 
     return ret;
+}
+
+
+void KIWAY::ExpressMail( FRAME_T aDestination,
+                int aCommand, const std::string& aPayload, wxWindow* aSource )
+{
+    KIWAY_EXPRESS   mail( aDestination, aCommand, aPayload, aSource );
+
+    ProcessEvent( mail );
+}
+
+
+bool KIWAY::ProcessEvent( wxEvent& aEvent )
+{
+    KIWAY_EXPRESS* mail = dynamic_cast<KIWAY_EXPRESS*>( &aEvent );
+
+    if( mail )
+    {
+        FRAME_T dest = mail->Dest();
+
+        // see if recipient is alive
+        KIWAY_PLAYER* alive = Player( dest, false );
+
+        if( alive )
+        {
+#if 1
+            return alive->ProcessEvent( aEvent );
+#else
+            alive->KiwayMailIn( *mail );
+            return true;
+#endif
+        }
+    }
+
+    return false;
 }

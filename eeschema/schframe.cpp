@@ -1105,3 +1105,4 @@ void SCH_EDIT_FRAME::UpdateTitle()
 
     SetTitle( title );
 }
+

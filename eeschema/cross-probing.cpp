@@ -30,6 +30,7 @@
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <kiface_i.h>
+#include <kiway_express.h>
 #include <macros.h>
 #include <eda_dde.h>
 #include <wxEeschemaStruct.h>
@@ -161,10 +162,10 @@ std::string FormatProbeItem( EDA_ITEM* aComponent, SCH_COMPONENT* aPart )
 void SCH_EDIT_FRAME::SendMessageToPCBNEW( EDA_ITEM* aComponent, SCH_COMPONENT* aPart )
 {
 #if 1
-    wxASSERT( aComponent );       // fix the caller
+    wxASSERT( aComponent );     // fix the caller
 
 #else  // WTF?
-    if( objectToSync == NULL )      // caller remains eternally stupid.
+    if( !aComponent )           // caller remains eternally stupid.
         return;
 #endif
 
@@ -176,6 +177,27 @@ void SCH_EDIT_FRAME::SendMessageToPCBNEW( EDA_ITEM* aComponent, SCH_COMPONENT* a
             SendCommand( MSG_TO_PCB, packet.c_str() );
         else
         {
+            // Typically ExpressMail is going to be s-expression packets, but since
+            // we have existing interpreter of the cross probe packet on the other
+            // side in place, we use that here.
+            Kiway().ExpressMail( FRAME_PCB, MAIL_CROSS_PROBE, packet, this );
         }
     }
 }
+
+
+void SCH_EDIT_FRAME::KiwayMailIn( KIWAY_EXPRESS& mail )
+{
+    const std::string& payload = mail.GetPayload();
+
+    switch( mail.Command() )
+    {
+    case MAIL_CROSS_PROBE:
+        ExecuteRemoteCommand( payload.c_str() );
+        break;
+
+    // many many others.
+
+    }
+}
+
