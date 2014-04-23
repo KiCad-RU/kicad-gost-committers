@@ -28,24 +28,12 @@
 
 #include <wx/wx.h>
 #include <frame_type.h>
-
-
-/**
- * Enum MAIL_T
- * is the set of mail types sendable via KIWAY::ExpressMail() and supplied as
- * the @a aCommand parameter to that function.  Such mail will be received in
- * KIWAY_PLAYER::KiwayMailIn( KIWAY_EXPRESS& aEvent ) and aEvent.Command() will
- * match aCommand to ExpressMail().
- */
-enum MAIL_T
-{
-    MAIL_CROSS_PROBE,
-};
+#include <mail_type.h>
 
 
 /**
  * Class KIWAY_EXPRESS
- * carries a payload from one KIWAY_PLAYER to anothing within a PROJECT.
+ * carries a payload from one KIWAY_PLAYER to another within a PROJECT.
  */
 class KIWAY_EXPRESS : public wxEvent
 {
@@ -58,7 +46,7 @@ public:
 
     /**
      * Function Command
-     * returns the EXPRESS_MAIL_T associated with this mail.
+     * returns the MAIL_T associated with this mail.
      */
     MAIL_T Command()
     {
@@ -78,24 +66,24 @@ public:
     //KIWAY_EXPRESS() {}
 
     KIWAY_EXPRESS( FRAME_T aDestination,
-            wxEventType aCommand,
+            MAIL_T aCommand,
             const std::string& aPayload,
             wxWindow* aSource = NULL );
 
     KIWAY_EXPRESS( const KIWAY_EXPRESS& anOther );
 
-    /// Is the wxEventType argument to wxEvent() and identifies the class
-    /// in a hurry.  Allocated at startup by wxNewEventType();
+    /// The wxEventType argument to wxEvent() and identifies an event class
+    /// in a hurry.  These wxEventTypes also allow a common class to be used
+    /// multiple ways.  Should be allocated at startup by wxNewEventType();
     static const wxEventType wxEVENT_ID;
 
     //DECLARE_DYNAMIC_CLASS( KIWAY_EXPRESS )
 
 private:
+    FRAME_T         m_destination;      ///< could have been a bitmap indicating multiple recipients
+    std::string     m_payload;          ///< very often s-expression text, but not always
 
-    void kiway_express( KIWAY_EXPRESS& aEvent );
-
-    FRAME_T         m_destination;
-    std::string     m_payload;
+    // possible new ideas here.
 };
 
 

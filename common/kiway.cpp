@@ -241,14 +241,17 @@ KIWAY_PLAYER* KIWAY::Player( FRAME_T aFrameType, bool doCreate )
     if( doCreate )
     {
         FACE_T face_type = KifaceType( aFrameType );
-
         wxASSERT( face_type != FACE_T(-1) );
 
         KIFACE* kiface = KiFACE( face_type );
+        wxASSERT( kiface );
 
-        KIWAY_PLAYER* frame = (KIWAY_PLAYER*) kiface->CreateWindow( m_top, aFrameType, this, KFCTL_PROJECT_SUITE );
+        if( kiface )
+        {
+            KIWAY_PLAYER* frame = (KIWAY_PLAYER*) kiface->CreateWindow( m_top, aFrameType, this, KFCTL_PROJECT_SUITE );
 
-        return m_player[aFrameType] = frame;
+            return m_player[aFrameType] = frame;
+        }
     }
 
     return NULL;
@@ -297,7 +300,7 @@ bool KIWAY::PlayersClose( bool doForce )
 
 
 void KIWAY::ExpressMail( FRAME_T aDestination,
-                int aCommand, const std::string& aPayload, wxWindow* aSource )
+                MAIL_T aCommand, const std::string& aPayload, wxWindow* aSource )
 {
     KIWAY_EXPRESS   mail( aDestination, aCommand, aPayload, aSource );
 
