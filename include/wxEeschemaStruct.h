@@ -120,7 +120,6 @@ private:
 
     SCH_SHEET_PATH*         m_CurrentSheet;    ///< which sheet we are presently working on.
     wxString                m_DefaultSchematicFileName;
-    int                     m_TextFieldSize;
     PARAM_CFG_ARRAY         m_projectFileParams;
     PARAM_CFG_ARRAY         m_configSettings;
     wxPageSetupDialogData   m_pageSetupData;
@@ -148,11 +147,11 @@ private:
                                                   ///< generator.
 
     bool                    m_forceHVLines;       ///< force H or V directions for wires, bus, line
-    int                     m_defaultLabelSize;   ///< size of a new label
 
 #ifdef KICAD_GOST
     GOST_COMP_MANAGER*    m_GOST_comp_manager;
 #endif
+
     /// An index to the last find item in the found items list #m_foundItems.
     int         m_foundItemIndex;
 
@@ -175,6 +174,11 @@ private:
 
 protected:
     TEMPLATES             m_TemplateFieldNames;
+
+    /**
+     * Initializing accessor for the pin text size
+     */
+    const wxSize &GetLastSheetPinTextSize();
 
     /**
      * Function doAutoSave
@@ -208,9 +212,6 @@ public:
     SCH_SCREEN* GetScreen() const;                  // overload SCH_BASE_FRAME
 
     void OnCloseWindow( wxCloseEvent& Event );
-
-    int GetDefaultLabelSize() const { return m_defaultLabelSize; }
-    void SetDefaultLabelSize( int aLabelSize ) { m_defaultLabelSize = aLabelSize; }
 
     bool GetForceHVLines() const { return m_forceHVLines; }
     void SetForceHVLines( bool aForceHVdirection ) { m_forceHVLines = aForceHVdirection; }
