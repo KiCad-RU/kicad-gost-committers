@@ -46,7 +46,7 @@
 #include <menus_helpers.h>
 
 #include <boost/version.hpp>
-
+#include <typeinfo>
 
 /// The default auto save interval is 10 minutes.
 #define DEFAULT_AUTO_SAVE_INTERVAL 600
@@ -153,9 +153,11 @@ bool EDA_BASE_FRAME::ProcessEvent( wxEvent& aEvent )
 
 bool EDA_BASE_FRAME::Enable( bool enable )
 {
+    // so we can do logging of this state change:
+
 #if defined(DEBUG)
     const char* type_id = typeid( *this ).name();
-    printf( "wxFrame %s: %s\n", type_id, enable ? "enabled" : "disabled" );
+    printf( "wxFrame %-28s: %s\n", type_id, enable ? "enabled" : "disabled" );
 #endif
 
     return wxFrame::Enable( enable );

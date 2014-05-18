@@ -105,7 +105,7 @@ enum pseudokeys {
 #define BITMAPCONVERTER_EXE wxT( "bitmap2component.app/Contents/MacOS/bitmap2component" )
 #define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch.app/Contents/MacOS/pcad2kicadsch" )
 #define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.app/Contents/MacOS/pcb_calculator" )
-#define PL_EDITOR_EXE  wxT( "pcb_calculator.app/Contents/MacOS/pl_editor" )
+#define PL_EDITOR_EXE       wxT( "pl_editor.app/Contents/MacOS/pl_editor" )
 # endif
 #endif
 

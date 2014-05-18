@@ -372,7 +372,7 @@ public:
      */
     virtual void ExecuteRemoteCommand( const char* cmdline );
 
-    void KiwayMailIn( KIWAY_EXPRESS& aEvent );      // virtual overload from KIWAY_PLAYER
+    void KiwayMailIn( KIWAY_EXPRESS& aEvent );      // override virtual from KIWAY_PLAYER
 
     void OnLeftClick( wxDC* aDC, const wxPoint& aPosition );
     void OnLeftDClick( wxDC* aDC, const wxPoint& aPosition );
@@ -802,6 +802,7 @@ private:
     void OnLoadProject( wxCommandEvent& event );
     void OnAppendProject( wxCommandEvent& event );
     void OnOpenPcbnew( wxCommandEvent& event );
+    void OnOpenPcbModuleEditor( wxCommandEvent& event );
     void OnOpenCvpcb( wxCommandEvent& event );
     void OnOpenLibraryEditor( wxCommandEvent& event );
     void OnSetOptions( wxCommandEvent& event );
