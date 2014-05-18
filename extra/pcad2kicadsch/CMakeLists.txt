@@ -55,7 +55,7 @@ if( USE_KIWAY_DLLS )
         ${PCAD2KICADSCH_RESOURCES}
         )
     set_source_files_properties( ../../common/single_top.cpp PROPERTIES
-        COMPILE_DEFINITIONS "TOP_FRAME=0;BUILD_KIWAY_DLL"
+        COMPILE_DEFINITIONS "TOP_FRAME=FRAME_PCAD2KICADSCH;BUILD_KIWAY_DLL"
         )
     target_link_libraries( pcad2kicadsch
         #singletop  # replaces common, giving us restrictive control and link warnings.
@@ -73,7 +73,6 @@ if( USE_KIWAY_DLLS )
     add_library( pcad2kicadsch_kiface MODULE
         pcad2kicad.cpp
         ${PCAD2KICADSCH_SRCS}
-        #${PCAD2KICADSCH_RESOURCES}
         )
     set_target_properties( pcad2kicadsch_kiface PROPERTIES
         OUTPUT_NAME     pcad2kicadsch
