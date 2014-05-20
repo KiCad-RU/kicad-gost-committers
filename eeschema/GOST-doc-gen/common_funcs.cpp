@@ -400,12 +400,29 @@ wxString FindOOInstallationPath()
                 return fullPath;
 
             fullPath = wxString( letter_str ) + wxT( ":\\Program Files (x86)\\LibreOffice " ) +
-                       wxString( ver_str ) + wxT( ".0\\program\\" );
+                       wxString( ver_str ) + wxT( "\\program\\" );
             if( wxFileExists( fullPath + sofficeExe ) )
                 return fullPath;
 
             fullPath = wxString( letter_str ) + wxT( ":\\Program Files\\LibreOffice " ) +
-                       wxString( ver_str ) + wxT( ".0\\program\\" );
+                       wxString( ver_str ) + wxT( "\\program\\" );
+            if( wxFileExists( fullPath + sofficeExe ) )
+                return fullPath;
+        }
+
+        // search for LibreOffice 4.0 - 4.5
+        for( char minor_ver = '0'; minor_ver <= '5'; ver++ )
+        {
+            letter_str[0] = letter;
+            ver_str[0] = minor_ver;
+
+            fullPath = wxString( letter_str ) + wxT( ":\\Program Files (x86)\\LibreOffice 4." ) +
+                       wxString( ver_str ) + wxT( "\\program\\" );
+            if( wxFileExists( fullPath + sofficeExe ) )
+                return fullPath;
+
+            fullPath = wxString( letter_str ) + wxT( ":\\Program Files\\LibreOffice 4." ) +
+                       wxString( ver_str ) + wxT( "\\program\\" );
             if( wxFileExists( fullPath + sofficeExe ) )
                 return fullPath;
         }
