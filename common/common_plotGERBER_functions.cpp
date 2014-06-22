@@ -67,6 +67,12 @@ bool GERBER_PLOTTER::StartPlot()
     if( outputFile == NULL )
         return false;
 
+    if( !attribFunction.IsEmpty() )
+    {
+        fputs( "%TF.GerberVersion,J1*%\n", outputFile );
+        fprintf( outputFile, "%%TF.FileFunction,%s*%%\n", TO_UTF8( attribFunction ) );
+    }
+
     /* Set coordinate format to 3.4 absolute, leading zero omitted */
     fputs( "%FSLAX34Y34*%\n", outputFile );
     fputs( "G04 Gerber Fmt 3.4, Leading zero omitted, Abs format*\n", outputFile );
@@ -325,25 +331,32 @@ void GERBER_PLOTTER::PlotPoly( const std::vector< wxPoint >& aCornerList,
     if( aCornerList.size() <= 1 )
         return;
 
+    // Gerber format does not know filled polygons with thick outline
+    // Thereore, to plot a filled polygon with outline having a thickness,
+    // one should plot outline as thick segments
+
     SetCurrentLineWidth( aWidth );
 
     if( aFill )
+    {
         fputs( "G36*\n", outputFile );
 
-    MoveTo( aCornerList[0] );
+        MoveTo( aCornerList[0] );
 
-    for( unsigned ii = 1; ii < aCornerList.size(); ii++ )
-    {
-        LineTo( aCornerList[ii] );
-    }
+        for( unsigned ii = 1; ii < aCornerList.size(); ii++ )
+            LineTo( aCornerList[ii] );
 
-    if( aFill )
-    {
         FinishTo( aCornerList[0] );
         fputs( "G37*\n", outputFile );
     }
-    else
+
+    if( aWidth > 0 )
     {
+        MoveTo( aCornerList[0] );
+
+        for( unsigned ii = 1; ii < aCornerList.size(); ii++ )
+            LineTo( aCornerList[ii] );
+
         PenFinish();
     }
 }

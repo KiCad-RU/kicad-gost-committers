@@ -214,9 +214,13 @@ if( APPLE )
     set_source_files_properties( "${CMAKE_CURRENT_SOURCE_DIR}/eeschema.icns"
         PROPERTIES MACOSX_PACKAGE_LOCATION Resources
         )
+    set_source_files_properties( "${CMAKE_CURRENT_SOURCE_DIR}/eeschema_doc.icns" PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources
+        )
 
     set( MACOSX_BUNDLE_ICON_FILE eeschema.icns )
     set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.eeschema )
+    set( MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist )
 endif()
 
 
@@ -342,7 +346,7 @@ if( USE_KIWAY_DLLS )
     add_dependencies( eeschema eeschema_kiface )
 
     if( APPLE )
-        set_target_properties( eeschema_kiface PROPERTIES
+        set_target_properties( eeschema PROPERTIES
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
             )
     endif()

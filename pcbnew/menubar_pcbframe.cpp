@@ -315,7 +315,7 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     AddMenuItem( viewMenu, ID_ZOOM_OUT, text, HELP_ZOOM_OUT, KiBitmap( zoom_out_xpm ) );
 
     text = AddHotkeyName( _( "&Fit on Screen" ), g_Pcbnew_Editor_Hokeys_Descr,
-                          HK_ZOOM_AUTO );
+                          HK_ZOOM_AUTO, IS_ACCELERATOR  );
     AddMenuItem( viewMenu, ID_ZOOM_PAGE, text, HELP_ZOOM_FIT,
                  KiBitmap( zoom_fit_in_page_xpm ) );
 
@@ -534,8 +534,8 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
 #if defined(KICAD_SCRIPTING_WXPYTHON)
     AddMenuItem( toolsMenu, ID_TOOLBARH_PCB_SCRIPTING_CONSOLE,
                  _( "&Scripting Console" ),
-                 _( "Show/Hide the Scripting console" ),
-                 KiBitmap( book_xpm ) );
+                 _( "Show/Hide the Python Scripting console" ),
+                 KiBitmap( py_script_xpm ) );
 #endif
 
     wxMenu* designRulesMenu = new wxMenu;

@@ -251,11 +251,11 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_MODEDIT_SELECT_CURRENT_LIB:
         {
-            wxString library = SelectLibrary( getLibNickName() );
+            wxString library = SelectLibrary( GetCurrentLib() );
 
             if( library.size() )
             {
-                setLibNickName( library );
+                Prj().SetRString( PROJECT::PCB_LIB_NICKNAME, library );
                 updateTitle();
             }
         }
@@ -264,6 +264,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_OPEN_MODULE_VIEWER:
         {
             FOOTPRINT_VIEWER_FRAME* viewer = (FOOTPRINT_VIEWER_FRAME*) Kiway().Player( FRAME_PCB_MODULE_VIEWER, false );
+
             if( !viewer )
             {
                 viewer = (FOOTPRINT_VIEWER_FRAME*) Kiway().Player( FRAME_PCB_MODULE_VIEWER, true );
@@ -272,11 +273,6 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             }
             else
             {
-                /*
-                if( viewer->IsIconized() )
-                    viewer->Iconize( false );
-                */
-
                 viewer->Raise();
 
                 // Raising the window does not set the focus on Linux.  This should work on
@@ -293,9 +289,9 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_MODEDIT_NEW_MODULE:
         {
-            Clear_Pcb( true );
-            GetScreen()->ClearUndoRedoList();
-            SetCurItem( NULL );
+            if( ! Clear_Pcb( true ) )
+                break;
+
             SetCrossHairPosition( wxPoint( 0, 0 ) );
 
             MODULE* module = Create_1_Module( wxEmptyString );
@@ -314,40 +310,53 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
                 Zoom_Automatique( false );
             }
+
+            GetScreen()->ClrModify();
         }
         break;
 
     case ID_MODEDIT_NEW_MODULE_FROM_WIZARD:
         {
+            if( GetScreen()->IsModify() && !GetBoard()->IsEmpty() )
+            {
+                if( !IsOK( this,
+                           _( "Current Footprint will be lost and this operation cannot be undone. Continue ?" ) ) )
+                    break;
+            }
+
             FOOTPRINT_WIZARD_FRAME* wizard = (FOOTPRINT_WIZARD_FRAME*) Kiway().Player(
                         FRAME_PCB_FOOTPRINT_WIZARD_MODAL, true );
 
-            wizard->Zoom_Automatique( false );
-
-            if( wizard->ShowModal() )
+            if( wizard->ShowModal( NULL, this ) )
             {
                 // Creates the new footprint from python script wizard
                 MODULE* module = wizard->GetBuiltFootprint();
 
-                if( module )        // i.e. if create module command not aborted
-                {
-                    Clear_Pcb( true );
-                    GetScreen()->ClearUndoRedoList();
-                    SetCurItem( NULL );
-                    SetCrossHairPosition( wxPoint( 0, 0 ) );
+                if( module == NULL )        // i.e. if create module command aborted
+                    break;
 
-                    //  Add the new object to board
-                    module->SetParent( (EDA_ITEM*)GetBoard() );
-                    GetBoard()->m_Modules.Append( module );
+                Clear_Pcb( false );
 
-                    // Initialize data relative to nets and netclasses (for a new
-                    // module the defaults are used)
-                    // This is mandatory to handle and draw pads
-                    GetBoard()->BuildListOfNets();
-                    redraw = true;
-                    module->SetPosition( wxPoint( 0, 0 ) );
-                    module->ClearFlags();
-                }
+                SetCrossHairPosition( wxPoint( 0, 0 ) );
+
+                //  Add the new object to board
+                module->SetParent( (EDA_ITEM*)GetBoard() );
+                GetBoard()->m_Modules.Append( module );
+
+                // Initialize data relative to nets and netclasses (for a new
+                // module the defaults are used)
+                // This is mandatory to handle and draw pads
+                GetBoard()->BuildListOfNets();
+                redraw = true;
+                module->SetPosition( wxPoint( 0, 0 ) );
+                module->ClearFlags();
+
+                Zoom_Automatique( false );
+
+                if( m_Draw3DFrame )
+                    m_Draw3DFrame->NewDisplay();
+
+                GetScreen()->ClrModify();
             }
 
             wizard->Destroy();
@@ -355,9 +364,9 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_MODEDIT_SAVE_LIBMODULE:
-        if( GetBoard()->m_Modules && getLibNickName().size() )
+        if( GetBoard()->m_Modules && GetCurrentLib().size() )
         {
-            Save_Module_In_Library( getLibNickName(), GetBoard()->m_Modules, true, true );
+            Save_Module_In_Library( GetCurrentLib(), GetBoard()->m_Modules, true, true );
             GetScreen()->ClrModify();
         }
         break;
@@ -427,6 +436,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 // and connexions are kept)
                 // and the source_module (old module) is deleted
                 PICKED_ITEMS_LIST pickList;
+
                 pcbframe->Exchange_Module( source_module, newmodule, &pickList );
                 newmodule->SetTimeStamp( module_in_edit->GetLink() );
 
@@ -436,6 +446,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             else        // This is an insert command
             {
                 wxPoint cursor_pos = pcbframe->GetCrossHairPosition();
+
                 pcbframe->SetCrossHairPosition( wxPoint( 0, 0 ) );
                 pcbframe->PlaceModule( newmodule, NULL );
                 pcbframe->SetCrossHairPosition( cursor_pos );
@@ -454,8 +465,6 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         if( ! Clear_Pcb( true ) )
             break;                  // //this command is aborted
 
-        GetScreen()->ClearUndoRedoList();
-        SetCurItem( NULL );
         SetCrossHairPosition( wxPoint( 0, 0 ) );
         Import_Module();
         redraw = true;
@@ -492,12 +501,12 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_MODEDIT_LOAD_MODULE:
         wxLogDebug( wxT( "Loading module from library " ) + getLibPath() );
 
-        GetScreen()->ClearUndoRedoList();
-        SetCurItem( NULL );
-        Clear_Pcb( true );
+        if( ! Clear_Pcb( true ) )
+            break;
+
         SetCrossHairPosition( wxPoint( 0, 0 ) );
 
-        LoadModuleFromLibrary( getLibNickName(), Prj().PcbFootprintLibs(), true );
+        LoadModuleFromLibrary( GetCurrentLib(), Prj().PcbFootprintLibs(), true );
         redraw = true;
 
         if( GetBoard()->m_Modules )
@@ -520,15 +529,16 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 val->SetType( TEXTE_MODULE::TEXT_is_VALUE );        // just in case ...
 
                 if( val->GetLength() == 0 )
-                    val->SetText( L"Val**" );
+                    val->SetText( wxT( "Val**" ) );
             }
         }
 
-        GetScreen()->ClrModify();
         Zoom_Automatique( false );
 
         if( m_Draw3DFrame )
             m_Draw3DFrame->NewDisplay();
+
+        GetScreen()->ClrModify();
 
         break;
 
@@ -543,7 +553,9 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         if( GetBoard()->m_Modules )
         {
             SetCurItem( GetBoard()->m_Modules );
+
             DIALOG_MODULE_MODULE_EDITOR dialog( this, (MODULE*) GetScreen()-> GetCurItem() );
+
             int ret = dialog.ShowModal();
             GetScreen()->GetCurItem()->ClearFlags();
 

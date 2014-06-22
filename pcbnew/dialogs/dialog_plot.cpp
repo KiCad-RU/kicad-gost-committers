@@ -46,8 +46,6 @@ DIALOG_PLOT::DIALOG_PLOT( PCB_EDIT_FRAME* aParent ) :
     m_plotOpts( aParent->GetPlotSettings() )
 {
     m_config = Kiface().KifaceSettings();
-    m_brdSettings = m_board->GetDesignSettings();
-
     Init_Dialog();
 
     GetSizer()->Fit( this );
@@ -70,8 +68,8 @@ void DIALOG_PLOT::Init_Dialog()
 
     // The reasonable width correction value must be in a range of
     // [-(MinTrackWidth-1), +(MinClearanceValue-1)] decimils.
-    m_widthAdjustMinValue   = -(m_board->GetDesignSettings().m_TrackMinWidth - 1);
-    m_widthAdjustMaxValue   = m_board->GetSmallestClearanceValue() - 1;
+    m_widthAdjustMinValue   = -( m_board->GetDesignSettings().m_TrackMinWidth - 1 );
+    m_widthAdjustMaxValue   = m_board->GetDesignSettings().GetSmallestClearanceValue() - 1;
 
     switch( m_plotOpts.GetFormat() )
     {
@@ -101,9 +99,9 @@ void DIALOG_PLOT::Init_Dialog()
         break;
     }
 
-    msg = StringFromValue( g_UserUnit, m_brdSettings.m_SolderMaskMargin, true );
+    msg = StringFromValue( g_UserUnit, m_board->GetDesignSettings().m_SolderMaskMargin, true );
     m_SolderMaskMarginCurrValue->SetLabel( msg );
-    msg = StringFromValue( g_UserUnit, m_brdSettings.m_SolderMaskMinWidth, true );
+    msg = StringFromValue( g_UserUnit, m_board->GetDesignSettings().m_SolderMaskMinWidth, true );
     m_SolderMaskMinWidthCurrValue->SetLabel( msg );
 
     // Set units and value for HPGL pen size (this param in in mils).
@@ -173,6 +171,9 @@ void DIALOG_PLOT::Init_Dialog()
     // Option for using proper Gerber extensions
     m_useGerberExtensions->SetValue( m_plotOpts.GetUseGerberExtensions() );
 
+    // Option for including Gerber attributes (from Gerber X2 format) in the output
+    m_useGerberAttributes->SetValue( m_plotOpts.GetUseGerberAttributes() );
+
     // Option for excluding contents of "Edges Pcb" layer
     m_excludeEdgeLayerOpt->SetValue( m_plotOpts.GetExcludeEdgeLayer() );
 
@@ -187,7 +188,6 @@ void DIALOG_PLOT::Init_Dialog()
     // Options to plot texts on footprints
     m_plotModuleValueOpt->SetValue( m_plotOpts.GetPlotValue() );
     m_plotModuleRefOpt->SetValue( m_plotOpts.GetPlotReference() );
-    m_plotTextOther->SetValue( m_plotOpts.GetPlotOtherText() );
     m_plotInvisibleText->SetValue( m_plotOpts.GetPlotInvisibleText() );
 
     // Options to plot pads and vias holes
@@ -382,6 +382,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_subtractMaskFromSilk->SetValue( false );
         m_useGerberExtensions->Enable( false );
         m_useGerberExtensions->SetValue( false );
+        m_useGerberAttributes->Enable( false );
+        m_useGerberAttributes->SetValue( false );
         m_scaleOpt->Enable( false );
         m_scaleOpt->SetSelection( 1 );
         m_fineAdjustXscaleOpt->Enable( false );
@@ -410,6 +412,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_subtractMaskFromSilk->SetValue( false );
         m_useGerberExtensions->Enable( false );
         m_useGerberExtensions->SetValue( false );
+        m_useGerberAttributes->Enable( false );
+        m_useGerberAttributes->SetValue( false );
         m_scaleOpt->Enable( true );
         m_fineAdjustXscaleOpt->Enable( true );
         m_fineAdjustYscaleOpt->Enable( true );
@@ -436,6 +440,7 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_excludeEdgeLayerOpt->Enable( true );
         m_subtractMaskFromSilk->Enable( true );
         m_useGerberExtensions->Enable( true );
+        m_useGerberAttributes->Enable( true );
         m_scaleOpt->Enable( false );
         m_scaleOpt->SetSelection( 1 );
         m_fineAdjustXscaleOpt->Enable( false );
@@ -465,6 +470,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_subtractMaskFromSilk->SetValue( false );
         m_useGerberExtensions->Enable( false );
         m_useGerberExtensions->SetValue( false );
+        m_useGerberAttributes->Enable( false );
+        m_useGerberAttributes->SetValue( false );
         m_scaleOpt->Enable( true );
         m_fineAdjustXscaleOpt->Enable( false );
         m_fineAdjustYscaleOpt->Enable( false );
@@ -480,7 +487,7 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
 
     case PLOT_FORMAT_DXF:
         m_drillShapeOpt->Enable( true );
-        m_plotModeOpt->Enable( true );
+        m_plotModeOpt->Enable( false );
         m_plotMirrorOpt->Enable( false );
         m_plotMirrorOpt->SetValue( false );
         m_useAuxOriginCheckBox->Enable( true );
@@ -492,6 +499,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_subtractMaskFromSilk->SetValue( false );
         m_useGerberExtensions->Enable( false );
         m_useGerberExtensions->SetValue( false );
+        m_useGerberAttributes->Enable( false );
+        m_useGerberAttributes->SetValue( false );
         m_scaleOpt->Enable( false );
         m_scaleOpt->SetSelection( 1 );
         m_fineAdjustXscaleOpt->Enable( false );
@@ -502,7 +511,7 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_forcePSA4OutputOpt->Enable( false );
         m_forcePSA4OutputOpt->SetValue( false );
 
-        m_PlotOptionsSizer->Show( m_GerberOptionsSizer );
+        m_PlotOptionsSizer->Hide( m_GerberOptionsSizer );
         m_PlotOptionsSizer->Hide( m_HPGLOptionsSizer );
         m_PlotOptionsSizer->Hide( m_PSOptionsSizer );
         break;
@@ -570,7 +579,6 @@ void DIALOG_PLOT::applyPlotSettings()
     tempOptions.SetUseAuxOrigin( m_useAuxOriginCheckBox->GetValue() );
     tempOptions.SetPlotValue( m_plotModuleValueOpt->GetValue() );
     tempOptions.SetPlotReference( m_plotModuleRefOpt->GetValue() );
-    tempOptions.SetPlotOtherText( m_plotTextOther->GetValue() );
     tempOptions.SetPlotInvisibleText( m_plotInvisibleText->GetValue() );
     tempOptions.SetScaleSelection( m_scaleOpt->GetSelection() );
     tempOptions.SetDrillMarksType( static_cast<PCB_PLOT_PARAMS::DrillMarksType>
@@ -670,6 +678,8 @@ void DIALOG_PLOT::applyPlotSettings()
                            (double)m_PSWidthAdjust / IU_PER_MM );
 
     tempOptions.SetUseGerberExtensions( m_useGerberExtensions->GetValue() );
+
+    tempOptions.SetUseGerberAttributes( m_useGerberAttributes->GetValue() );
 
     tempOptions.SetFormat( GetPlotFormat() );
 
@@ -775,6 +785,8 @@ void DIALOG_PLOT::Plot( wxCommandEvent& event )
     // Save the current plot options in the board
     m_parent->SetPlotSettings( m_plotOpts );
 
+    wxBusyCursor dummy;
+
     for( LAYER_NUM layer = FIRST_LAYER; layer < NB_PCB_LAYERS; ++layer )
     {
         if( m_plotOpts.GetLayerSelection() & GetLayerMask( layer ) )
@@ -796,7 +808,7 @@ void DIALOG_PLOT::Plot( wxCommandEvent& event )
             LOCALE_IO toggle;
             BOARD *board = m_parent->GetBoard();
             PLOTTER *plotter = StartPlotBoard( board, &m_plotOpts,
-                                               fn.GetFullPath(),
+                                               layer, fn.GetFullPath(),
                                                wxEmptyString );
 
             // Print diags in messages box:

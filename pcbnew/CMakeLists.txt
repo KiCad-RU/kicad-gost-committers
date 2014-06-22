@@ -36,6 +36,7 @@ include_directories(
     ./exporters
     ../lib_dxf
     ./import_dxf
+    ../utils/idftools
     ${INC_AFTER}
     )
 
@@ -97,6 +98,8 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_netlist_fbp.cpp
     dialogs/dialog_pcb_text_properties.cpp
     dialogs/dialog_pcb_text_properties_base.cpp
+    dialogs/dialog_pns_settings.cpp
+    dialogs/dialog_pns_settings_base.cpp
     dialogs/dialog_non_copper_zones_properties_base.cpp
     dialogs/dialog_pad_properties.cpp
     dialogs/dialog_pad_properties_base.cpp
@@ -115,6 +118,8 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_set_grid.cpp
     dialogs/dialog_set_grid_base.cpp
     dialogs/dialog_target_properties_base.cpp
+    dialogs/dialog_track_via_size.cpp
+    dialogs/dialog_track_via_size_base.cpp
     footprint_wizard.cpp
     footprint_wizard_frame.cpp
     dialogs/dialog_footprint_wizard_list_base.cpp
@@ -132,12 +137,9 @@ set( PCBNEW_EXPORTERS
     exporters/export_gencad.cpp
     exporters/export_idf.cpp
     exporters/export_vrml.cpp
-    exporters/idf_common.cpp
-    exporters/idf.cpp
     exporters/gen_drill_report_files.cpp
     exporters/gen_modules_placefile.cpp
     exporters/gendrill_Excellon_writer.cpp
-    exporters/vrml_board.cpp
     )
 
 set( PCBNEW_AUTOROUTER_SRCS
@@ -381,6 +383,7 @@ if( KICAD_SCRIPTING_MODULES )
         common
         pcad2kicadpcb
         lib_dxf
+        idf3
         ${GITHUB_PLUGIN_LIBRARIES}
         polygon
         bitmaps
@@ -561,6 +564,7 @@ if( USE_KIWAY_DLLS )
         bitmaps
         gal
         lib_dxf
+        idf3
         ${GITHUB_PLUGIN_LIBRARIES}
         ${wxWidgets_LIBRARIES}
         ${OPENGL_LIBRARIES}
@@ -629,6 +633,7 @@ else()  # milestone A) kills this off:
         bitmaps
         gal
         lib_dxf
+        idf3
         ${GITHUB_PLUGIN_LIBRARIES}
         ${wxWidgets_LIBRARIES}
         ${OPENGL_LIBRARIES}

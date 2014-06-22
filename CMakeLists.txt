@@ -216,12 +216,18 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
         set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${PIC_FLAG}" )
         set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PIC_FLAG}" )
 
-        # Thou shalt not link vaporware and tell us it's a valid DSO (apple ld doesn't support it)
         if( NOT APPLE )
+            # Thou shalt not link vaporware and tell us it's a valid DSO (apple ld doesn't support it)
             set( CMAKE_SHARED_LINKER_FLAGS "${TO_LINKER},--no-undefined" )
             set( CMAKE_MODULE_LINKER_FLAGS "${TO_LINKER},--no-undefined" )
 
             set( CMAKE_EXE_LINKER_FLAGS_RELEASE "-s" )
+
+            # Defeat ELF's ability to use the GOT to replace locally implemented functions
+            # with ones from another module.
+            # https://bugs.launchpad.net/kicad/+bug/1322354
+            set( CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${TO_LINKER},-Bsymbolic" )
+            set( CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${TO_LINKER},-Bsymbolic" )
         endif()
 
     endif()
@@ -482,7 +488,7 @@ if( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC )
 
     if( KICAD_BUILD_DYNAMIC AND APPLE )
         add_custom_target( osx_fix_bundles ALL DEPENDS cvpcb eeschema gerbview kicad pcbnew bitmap2component pcb_calculator pl_editor)
-        add_custom_command(TARGET osx_fix_bundles POST_BUILD COMMAND scripts/osx_fixbundle.sh COMMENT "Migrating dylibs to bundles")
+        add_custom_command(TARGET osx_fix_bundles POST_BUILD COMMAND ${PROJECT_SOURCE_DIR}/scripts/osx_fixbundle.sh ${PROJECT_SOURCE_DIR} COMMENT "Migrating dylibs to bundles")
     endif()
 
 endif( KICAD_BUILD_STATIC OR KICAD_BUILD_DYNAMIC)
@@ -529,6 +535,9 @@ endif()
 # Here you can define what libraries of wxWidgets you need for your
 # application. You can figure out what libraries you need here;
 # http://www.wxwidgets.org/manuals/2.8/wx_librarieslist.html
+
+# See line 41 of CMakeModules/FindwxWidgets.cmake
+set( wxWidgets_CONFIG_OPTIONS --static=no )
 
 # On Apple only wxwidgets 2.9 or higher doesn't need to find aui part of base
 # Seems no more needed on wx-3
@@ -729,6 +738,13 @@ if( DOXYGEN_FOUND )
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         DEPENDS Doxyfile
         COMMENT "building doxygen docs into directory Documentation/doxygen/html"
+        )
+    add_custom_target( dev-docs
+        ${CMAKE_COMMAND} -E remove_directory Documentation/development/doxygen
+        COMMAND ${DOXYGEN_EXECUTABLE}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Documentation/development
+        DEPENDS Doxyfile
+        COMMENT "building developer's resource docs into directory Documentation/development/doxygen/html"
         )
 else()
     message( STATUS "WARNING: Doxygen not found - doxygen-docs (Source Docs) target not created" )

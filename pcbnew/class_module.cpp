@@ -424,7 +424,8 @@ EDA_RECT MODULE::GetFootprintRect() const
 
     for( const BOARD_ITEM* item = m_Drawings.GetFirst(); item; item = item->Next() )
     {
-        const EDGE_MODULE *edge = dynamic_cast<const EDGE_MODULE*>( item );
+		const EDGE_MODULE* edge = dyn_cast<const EDGE_MODULE*>( item );
+
         if( edge )
             area.Merge( edge->GetBoundingBox() );
     }
@@ -447,7 +448,7 @@ const EDA_RECT MODULE::GetBoundingBox() const
     // Add the Clearance shape size: (shape around the pads when the
     // clearance is shown.  Not optimized, but the draw cost is small
     // (perhaps smaller than optimization).
-    int biggest_clearance = GetBoard()->GetBiggestClearanceValue();
+    int biggest_clearance = GetBoard()->GetDesignSettings().GetBiggestClearanceValue();
     area.Inflate( biggest_clearance );
 
     return area;

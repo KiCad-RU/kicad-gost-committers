@@ -212,7 +212,7 @@ int POINT_EDITOR::OnSelectionChange( TOOL_EVENT& aEvent )
         PCB_EDIT_FRAME* editFrame = getEditFrame<PCB_EDIT_FRAME>();
         EDA_ITEM* item = selection.items.GetPickedItem( 0 );
 
-        m_editPoints = EDIT_POINTS_FACTORY::Make( item, m_toolMgr->GetView()->GetGAL() );
+        m_editPoints = EDIT_POINTS_FACTORY::Make( item, getView()->GetGAL() );
         if( !m_editPoints )
         {
             setTransitions();
@@ -721,7 +721,7 @@ void POINT_EDITOR::breakOutline( const VECTOR2I& aBreakPoint )
             newSegment->SetStart( wxPoint( nearestPoint.x, nearestPoint.y ) );
             newSegment->SetEnd( wxPoint( seg.B.x, seg.B.y ) );
 
-            getModel<BOARD>( PCB_T )->Add( newSegment );
+            getModel<BOARD>()->Add( newSegment );
             getView()->Add( newSegment );
         }
     }

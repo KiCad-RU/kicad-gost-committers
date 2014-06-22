@@ -163,6 +163,7 @@ set( COMMON_SRCS
     config_params.cpp
     confirm.cpp
     copy_to_clipboard.cpp
+    convert_basic_shapes_to_polygon.cpp
     dialog_shim.cpp
     displlst.cpp
     draw_frame.cpp
@@ -202,6 +203,7 @@ set( COMMON_SRCS
     wildcards_and_files_ext.cpp
     worksheet.cpp
     wxwineda.cpp
+    wxunittext.cpp
     xnode.cpp
     zoom.cpp
     )
@@ -247,7 +249,6 @@ set( PCB_COMMON_SRCS
     base_screen.cpp
     eda_text.cpp
     class_page_info.cpp
-    convert_basic_shapes_to_polygon.cpp
     pcbcommon.cpp
     footprint_info.cpp
     ../pcbnew/basepcbframe.cpp

@@ -67,7 +67,7 @@ const LAYER_WIDGET::ROW PCB_LAYER_WIDGET::s_render_rows[] = {
     RR( _( "Pads Front" ),      PAD_FR_VISIBLE,         WHITE,      _( "Show footprint pads on board's front" ) ),
     RR( _( "Pads Back" ),       PAD_BK_VISIBLE,         WHITE,      _( "Show footprint pads on board's back" ) ),
 
-    RR( _( "Text Front" ),      MOD_TEXT_FR_VISIBLE,    WHITE,      _( "Show footprint text on board's back" ) ),
+    RR( _( "Text Front" ),      MOD_TEXT_FR_VISIBLE,    WHITE,      _( "Show footprint text on board's front" ) ),
     RR( _( "Text Back" ),       MOD_TEXT_BK_VISIBLE,    WHITE,      _( "Show footprint text on board's back" ) ),
     RR( _( "Hidden Text" ),     MOD_TEXT_INVISIBLE,     WHITE,      _( "Show footprint text marked as invisible" ) ),
 
@@ -348,6 +348,14 @@ void PCB_LAYER_WIDGET::OnLayerColorChange( LAYER_NUM aLayer, EDA_COLOR_T aColor 
 {
     myframe->GetBoard()->SetLayerColor( aLayer, aColor );
     myframe->ReCreateLayerBox( false );
+
+    if( myframe->IsGalCanvasActive() )
+    {
+        KIGFX::VIEW* view = myframe->GetGalCanvas()->GetView();
+        view->GetPainter()->GetSettings()->ImportLegacyColors( myframe->GetBoard()->GetColorsSettings() );
+        view->UpdateLayerColor( aLayer );
+    }
+
     myframe->GetCanvas()->Refresh();
 }
 

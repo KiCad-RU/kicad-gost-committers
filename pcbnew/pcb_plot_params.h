@@ -131,6 +131,9 @@ private:
      * appending a suffix to the board name */
     bool        m_useGerberExtensions;
 
+    /// Include attributes from the Gerber X2 format (chapter 5 in revision J1)
+    bool        m_useGerberAttributes;
+
     /// Plot gerbers using auxiliary (drill) origin instead of page coordinates
     bool        m_useAuxOrigin;
 
@@ -151,9 +154,6 @@ private:
 
     /// Enable plotting of part values
     bool        m_plotValue;
-
-    /// Enable plotting of other fields
-    bool        m_plotOtherText;
 
     /// Force plotting of fields marked invisible
     bool        m_plotInvisibleText;
@@ -237,8 +237,6 @@ public:
 
     void        SetPlotInvisibleText( bool aFlag ) { m_plotInvisibleText = aFlag; }
     bool        GetPlotInvisibleText() const { return m_plotInvisibleText; }
-    void        SetPlotOtherText( bool aFlag ) { m_plotOtherText = aFlag; }
-    bool        GetPlotOtherText() const { return m_plotOtherText; }
     void        SetPlotValue( bool aFlag ) { m_plotValue = aFlag; }
     bool        GetPlotValue() const { return m_plotValue; }
     void        SetPlotReference( bool aFlag ) { m_plotReference = aFlag; }
@@ -261,6 +259,9 @@ public:
 
     void        SetOutputDirectory( wxString aDir ) { m_outputDirectory = aDir; };
     wxString    GetOutputDirectory() const { return m_outputDirectory; };
+
+    void        SetUseGerberAttributes( bool aUse ) { m_useGerberAttributes = aUse; };
+    bool        GetUseGerberAttributes() const { return m_useGerberAttributes; };
 
     void        SetUseGerberExtensions( bool aUse ) { m_useGerberExtensions = aUse; };
     bool        GetUseGerberExtensions() const { return m_useGerberExtensions; };

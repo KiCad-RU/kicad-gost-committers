@@ -98,6 +98,10 @@ private:
     ///> Flag determining if anything is being dragged right now
     bool m_dragging;
 
+    ///> Last cursor position (needed for getModificationPoint() to avoid changes
+    ///> of edit reference point).
+    VECTOR2I m_cursor;
+
     ///> Removes and frees a single BOARD_ITEM.
     void remove( BOARD_ITEM* aItem );
 
@@ -126,6 +130,9 @@ private:
     ///> If there are no items currently selected, it tries to choose the item that is under
     ///> the cursor or displays a disambiguation menu if there are multpile items.
     bool makeSelection( const SELECTION_TOOL::SELECTION& aSelection );
+
+    ///> Updates view with the changes in the list.
+    void processChanges( const PICKED_ITEMS_LIST* aList );
 };
 
 #endif

@@ -135,7 +135,7 @@ public:
     virtual void Flush();
 
     /// @copydoc GAL::ClearScreen()
-    virtual void ClearScreen();
+    virtual void ClearScreen( const COLOR4D& aColor );
 
     // -----------------
     // Attribute setting
@@ -309,7 +309,7 @@ private:
     /// Type definition for an graphics group element
     typedef struct
     {
-        GRAPHICS_COMMAND command;                    ///< Command to execute
+        GRAPHICS_COMMAND command;                   ///< Command to execute
         double arguments[MAX_CAIRO_ARGUMENTS];      ///< Arguments for Cairo commands
         bool boolArgument;                          ///< A bool argument
         int intArgument;                            ///< An int argument
@@ -333,6 +333,7 @@ private:
     unsigned int*       bitmapBufferBackup;     ///< Backup storage of the cairo image
     int                 stride;                 ///< Stride value for Cairo
     bool                isInitialized;          ///< Are Cairo image & surface ready to use
+    COLOR4D             backgroundColor;        ///< Background color
 
     // Methods
     void storePath();                           ///< Store the actual path
@@ -388,7 +389,7 @@ private:
     static const cairo_format_t GAL_FORMAT = CAIRO_FORMAT_RGB24;
 
     ///> Opacity of a single layer
-    static const float LAYER_ALPHA = 0.8;
+    static const float LAYER_ALPHA;
 };
 } // namespace KIGFX
 

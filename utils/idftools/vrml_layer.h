@@ -1,5 +1,5 @@
 /*
- * file: vrml_board.h
+ * file: vrml_layer.h
  *
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -24,7 +24,7 @@
  */
 
 /**
- *  @file vrml_board.h
+ *  @file vrml_layer.h
  */
 
 /*
@@ -32,8 +32,12 @@
  *  PCB for VRML output.
  */
 
-#ifndef VRML_BOARD_H
-#define VRML_BOARD_H
+#ifndef VRML_LAYER_H
+#define VRML_LAYER_H
+
+
+#include <wx/glcanvas.h>    // CALLBACK definition, needed on Windows
+                            // alse needed on OSX to define __DARWIN__
 
 #ifdef __WXMAC__
 #  ifdef __DARWIN__
@@ -45,7 +49,7 @@
 #  include <GL/glu.h>
 #endif
 
-#include <cstdio>
+#include <fstream>
 #include <vector>
 #include <list>
 #include <utility>
@@ -58,7 +62,7 @@
 #define M_PI4 ( M_PI / 4.0 )
 #endif
 
-class GLUtesselator;
+struct GLUtesselator;
 
 struct VERTEX_3D
 {
@@ -66,6 +70,7 @@ struct VERTEX_3D
     double  y;
     int i;          // vertex index
     int o;          // vertex order
+    bool pth;       // true for plate-through hole
 };
 
 struct TRIPLET_3D
@@ -84,19 +89,29 @@ struct TRIPLET_3D
 class VRML_LAYER
 {
 private:
+    // Arc parameters
+    int    maxArcSeg;                       // maximum number of arc segments in a small circle
+    double minSegLength;                    // min. segment length
+    double maxSegLength;                    // max. segment length
+
+    // Vertex offsets to work around a suspected GLU tesselator bug
+    double offsetX;
+    double offsetY;
+
     bool    fix;                            // when true, no more vertices may be added by the user
     int     idx;                            // vertex index (number of contained vertices)
     int     ord;                            // vertex order (number of ordered vertices)
+    unsigned int idxout;                    // outline index to first point in 3D outline
     std::vector<VERTEX_3D*> vertices;       // vertices of all contours
     std::vector<std::list<int>*> contours;  // lists of vertices for each contour
+    std::vector<bool>pth;                   // indicates whether a 'contour' is a PTH or not
+    std::vector<bool>solid;                 // indicates whether a 'contour' is a solid or a hole
     std::vector< double > areas;            // area of the contours (positive if winding is CCW)
     std::list<TRIPLET_3D> triplets;         // output facet triplet list (triplet of ORDER values)
     std::list<std::list<int>*> outline;     // indices for outline outputs (index by ORDER values)
     std::vector<int> ordmap;                // mapping of ORDER to INDEX
 
     std::string error;                      // error message
-
-    double maxdev;                          // max. deviation from circle when calculating N sides
 
     int hidx;                               // number of vertices in the holes
     int eidx;                               // index for extra vertices
@@ -116,7 +131,7 @@ private:
 
     // retrieve a vertex given its index; the vertex may be contained in the
     // vertices vector, extra_verts vector, or foreign VRML_LAYER object
-    VERTEX_3D* getVertexByIndex( int index, VRML_LAYER* holes );
+    VERTEX_3D* getVertexByIndex( int aPointIndex, VRML_LAYER* holes );
 
     void    processFan( void );                 // process a GL_TRIANGLE_FAN list
     void    processStrip( void );               // process a GL_TRIANGLE_STRIP list
@@ -124,6 +139,12 @@ private:
 
     void pushVertices( bool holes );            // push the internal vertices
     bool pushOutline( VRML_LAYER* holes );      // push the outline vertices
+
+    // calculate number of sides on an arc (angle is in radians)
+    int calcNSides( double aRadius, double aAngle );
+
+    // returns the number of solid or hole contours
+    int checkNContours( bool holes );
 
 public:
     /// set to true when a fault is encountered during tesselation
@@ -133,8 +154,31 @@ public:
     virtual ~VRML_LAYER();
 
     /**
+     * Function GetArcParams
+     * retieves the parameters used in calculating the number of vertices in an arc
+     *
+     * @param aMaxSeg is the maximum number of segments for an arc with cords of length aMinLength
+     * @param aMinLength is the minimum length of cords in an arc
+     * @param aMaxLength is the maximum length of cords in an arc
+     */
+    void GetArcParams( int& aMaxSeg, double& aMinLength, double& aMaxLength );
+
+    /**
+     * Function SetArcParams
+     * sets the parameters used in calculating the number of vertices in an arc.
+     * The default settings are reasonable for rendering for unit lengths of 1mm
+     *
+     * @param aMaxSeg is the maximum number of segments for an arc with cords of length aMinLength
+     * @param aMinLength is the minimum length of cords in an arc
+     * @param aMaxLength is the maximum length of cords in an arc
+     *
+     * @return bool: true if the parameters were accepted
+     */
+    bool SetArcParams( int aMaxSeg, double aMinLength, double aMaxLength );
+
+    /**
      * Function Clear
-     * erases all data.
+     * erases all data except for arc parameters.
      */
     void Clear( void );
 
@@ -145,37 +189,35 @@ public:
     int GetSize( void );
 
     /**
-     * Function SetMaxDev
-     * sets the maximum deviation from a circle; this parameter is
-     * used for the automatic calculation of segments within a
-     * circle or an arc.
-     *
-     * @param max is the maximum deviation from a perfect circle or arc;
-     * minimum value is 0.000002 units
-     *
-     * @return bool: true if the value was accepted
+     * Function GetNConours
+     * returns the number of stored contours
      */
-    bool SetMaxDev( double max );
+    int GetNContours( void )
+    {
+        return contours.size();
+    }
 
     /**
      * Function NewContour
      * creates a new list of vertices and returns an index to the list
      *
+     * @param aPlatedHole is true if the new contour will represent a plated hole
+     *
      * @return int: index to the list or -1 if the operation failed
      */
-    int NewContour( void );
+    int NewContour( bool aPlatedHole = false );
 
     /**
      * Function AddVertex
      * adds a point to the requested contour
      *
      * @param aContour is an index previously returned by a call to NewContour()
-     * @param x is the X coordinate of the vertex
-     * @param y is the Y coordinate of the vertex
+     * @param aXpos is the X coordinate of the vertex
+     * @param aYpos is the Y coordinate of the vertex
      *
      * @return bool: true if the vertex was added
      */
-    bool AddVertex( int aContour, double x, double y );
+    bool AddVertex( int aContourID, double aXpos, double aYpos );
 
     /**
      * Function EnsureWinding
@@ -183,132 +225,172 @@ public:
      * a solid depending on the value of @param hole
      *
      * @param aContour is an index to a contour as returned by NewContour()
-     * @param hole determines if the contour must be a hole
+     * @param aHoleFlag determines if the contour must be a hole
      *
      * @return bool: true if the operation suceeded
      */
-    bool EnsureWinding( int aContour, bool hole );
+    bool EnsureWinding( int aContourID, bool aHoleFlag );
+
+    /**
+     * Function AppendCircle
+     * adds a circular contour to the specified (empty) contour
+     *
+     * @param aXpos is the X coordinate of the hole center
+     * @param aYpos is the Y coordinate of the hole center
+     * @param aRadius is the radius of the hole
+     * @param aContourID is the contour index
+     * @param aHoleFlag determines if the contour to be created is a cutout
+     *
+     * @return bool: true if the new contour was successfully created
+     */
+    bool AppendCircle( double aXpos, double aYpos, double aRadius,
+                       int aContourID, bool aHoleFlag = false );
 
     /**
      * Function AddCircle
      * creates a circular contour and adds it to the internal list
      *
-     * @param x is the X coordinate of the hole center
-     * @param y is the Y coordinate of the hole center
-     * @param rad is the radius of the hole
-     * @param csides is the number of sides (segments) in a circle;
-     *      use a value of 1 to automatically calculate a suitable number.
-     * @param hole determines if the contour to be created is a cutout
+     * @param aXpos  is the X coordinate of the hole center
+     * @param aYpos is the Y coordinate of the hole center
+     * @param aRadius is the radius of the hole
+     * @param aHoleFlag determines if the contour to be created is a cutout
+     * @param aPlatedHole is true if this is a plated hole
      *
      * @return bool: true if the new contour was successfully created
      */
-    bool AddCircle( double x, double y, double rad, int csides, bool hole = false );
+    bool AddCircle( double aXpos, double aYpos, double aRadius,
+                    bool aHoleFlag = false, bool aPlatedHole = false );
 
     /**
      * Function AddSlot
      * creates and adds a slot feature to the list of contours
      *
-     * @param cx is the X coordinate of the slot
-     * @param cy is the Y coordinate of the slot
-     * @param length is the length of the slot along the major axis
-     * @param width is the width of the slot along the minor axis
-     * @param angle (radians) is the orientation of the slot
-     * @param csides is the number of sides to a circle; use 1 to
-     *  take advantage of automatic calculations.
-     * @param hole determines whether the slot is a hole or a solid
+     * @param aCenterX is the X coordinate of the slot's center
+     * @param aCenterY is the Y coordinate of the slot's center
+     * @param aSlotLength is the length of the slot along the major axis
+     * @param aSlotWidth is the width of the slot along the minor axis
+     * @param aAngle (degrees) is the orientation of the slot
+     * @param aHoleFlag determines whether the slot is a hole or a solid
+     * @param aPlatedHole is true if this is a plated slot
      *
      * @return bool: true if the slot was successfully created
      */
-    bool AddSlot( double cx, double cy, double length, double width,
-            double angle, int csides, bool hole = false );
+    bool AddSlot( double aCenterX, double aCenterY, double aSlotLength, double aSlotWidth,
+                  double aAngle, bool aHoleFlag = false, bool aPlatedHole = false );
+
+    /**
+     * Function AppendArc
+     * adds an arc to the specified contour
+     *
+     * @param aCenterX is the X coordinate of the arc's center
+     * @param aCenterY is the Y coordinate of the arc's center
+     * @param aRadius is the radius of the arc
+     * @param aStartAngle (degrees) is the starting angle of the arc
+     * @param aAngle (degrees) is the measure of the arc
+     * @param aContourID is the contour's index
+     *
+     * @return bool: true if the slot was successfully created
+     */
+    bool AppendArc( double aCenterX, double aCenterY, double aRadius,
+                    double aStartAngle, double aAngle, int aContourID );
 
     /**
      * Function AddArc
-     * creates an arc and adds it to the internal list of contours
+     * creates a slotted arc and adds it to the internal list of contours
      *
-     * @param cx is the X coordinate of the arc's center
-     * @param cy is the Y coordinate of the arc's center
-     * @param startx is the X coordinate of the starting point
-     * @param starty is the Y coordinate of the starting point
-     * @param width is the width of the arc
-     * @param angle is the included angle
-     * @param csides is the number of segments in a circle; use 1
-     *  to take advantage of automatic calculations of this number
-     * @param hole determined whether the arc is to be a hole or a solid
+     * @param aCenterX is the X coordinate of the arc's center
+     * @param aCenterY is the Y coordinate of the arc's center
+     * @param aStartX is the X coordinate of the starting point
+     * @param aStartY is the Y coordinate of the starting point
+     * @param aArcWidth is the width of the arc
+     * @param aAngle is the included angle (degrees)
+     * @param aHoleFlag determines whether the arc is to be a hole or a solid
+     * @param aPlatedHole is true if this is a plated slotted arc
      *
      * @return bool: true if the feature was successfully created
      */
-    bool AddArc( double cx, double cy, double startx, double starty,
-            double width, double angle, int csides, bool hole = false );
-
+    bool AddArc( double aCenterX, double aCenterY,
+                 double aStartX, double aStartY,
+                 double aArcWidth, double aAngle,
+                 bool aHoleFlag = false, bool aPlatedHole = false );
 
     /**
      * Function Tesselate
      * creates a list of outline vertices as well as the
      * vertex sets required to render the surface.
      *
-     * @param holes  is a pointer to cutouts to be imposed on the
-     * surface.
+     * @param holes  is an optional pointer to cutouts to be imposed on the
+     *               surface.
+     * @param aHolesOnly is true if the outline contains only holes
      *
      * @return bool: true if the operation succeeded
      */
-    bool Tesselate( VRML_LAYER* holes );
+    bool Tesselate( VRML_LAYER* holes = NULL, bool aHolesOnly = false );
 
     /**
      * Function WriteVertices
      * writes out the list of vertices required to render a
      * planar surface.
      *
-     * @param z is the Z coordinate of the plane
-     * @param fp is the file to write to
+     * @param aZcoord  is the Z coordinate of the plane
+     * @param aOutFile is the file to write to
+     * @param aPrecision is the precision of the output coordinates
      *
      * @return bool: true if the operation succeeded
      */
-    bool WriteVertices( double z, FILE* fp );
+    bool WriteVertices( double aZcoord, std::ofstream& aOutFile, int aPrecision );
 
     /**
      * Function Write3DVertices
      * writes out the list of vertices required to render an extruded solid
      *
-     * @param top is the Z coordinate of the top plane
-     * @param bottom is the Z coordinate of the bottom plane
-     * @param fp is the file to write to
+     * @param aTopZ is the Z coordinate of the top plane
+     * @param aBottomZ is the Z coordinate of the bottom plane
+     * @param aOutFile is the file to write to
+     * @param aPrecision is the precision of the output coordinates
      *
      * @return bool: true if the operation succeeded
      */
-    bool Write3DVertices( double top, double bottom, FILE* fp );
+    bool Write3DVertices( double aTopZ, double aBottomZ, std::ofstream& aOutFile, int aPrecision );
 
     /**
      * Function WriteIndices
      * writes out the vertex sets required to render a planar
      * surface.
      *
-     * @param top is true if the surface is to be visible from above;
+     * @param aTopFlag is true if the surface is to be visible from above;
      * if false the surface will be visible from below.
-     * @param fp is the file to write to
+     * @param aOutFile is the file to write to
      *
      * @return bool: true if the operation succeeded
      */
-    bool WriteIndices( bool top, FILE* fp );
+    bool WriteIndices( bool aTopFlag, std::ofstream& aOutFile );
 
     /**
      * Function Write3DIndices
      * writes out the vertex sets required to render an extruded solid
      *
-     * @param fp is the file to write to
+     * @param aOutFile is the file to write to
+     * @param aIncludePlatedHoles is true if holes marked as plated should
+     *        be rendered. Default is false since the user will usually
+     *        render these holes in a different color
      *
      * @return bool: true if the operation succeeded
      */
-    bool Write3DIndices( FILE* fp );
+    bool Write3DIndices( std::ofstream& aOutFile, bool aIncludePlatedHoles = false );
 
     /**
      * Function AddExtraVertex
-     * adds an extra vertex as required by the GLU tesselator
+     * adds an extra vertex as required by the GLU tesselator.
+     *
+     * @param aXpos is the X coordinate of the newly created point
+     * @param aYpos is the Y coordinate of the newly created point
+     * @param aPlatedHole is true if this point is part of a plated hole
      *
      * @return VERTEX_3D*: is the new vertex or NULL if a vertex
      * could not be created.
      */
-    VERTEX_3D* AddExtraVertex( double x, double y );
+    VERTEX_3D* AddExtraVertex( double aXpos, double aYpos, bool aPlatedHole );
 
     /**
      * Function glStart
@@ -363,17 +445,19 @@ public:
      * returns a pointer to the requested vertex or
      * NULL if no such vertex exists.
      *
-     * @param ptindex is a vertex index
+     * @param aPointIndex is a vertex index
      *
      * @return VERTEX_3D*: the requested vertex or NULL
      */
-    VERTEX_3D* GetVertexByIndex( int ptindex );
+    VERTEX_3D* GetVertexByIndex( int aPointIndex );
 
     /*
      * Function GetError
      * Returns the error message related to the last failed operation
      */
     const std::string& GetError( void );
+
+    void SetVertexOffsets( double aXoffset, double aYoffset );
 };
 
-#endif    // VRML_BOARD_H
+#endif    // VRML_LAYER_H

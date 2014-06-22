@@ -164,6 +164,7 @@ private:
 
 PLOTTER* StartPlotBoard( BOARD* aBoard,
                          PCB_PLOT_PARAMS* aPlotOpts,
+                         int aLayer,
                          const wxString& aFullFileName,
                          const wxString& aSheetDesc );
 
@@ -203,6 +204,17 @@ void PlotOneBoardLayer( BOARD *aBoard, PLOTTER* aPlotter, LAYER_NUM aLayer,
  */
 void PlotStandardLayer( BOARD* aBoard, PLOTTER* aPlotter, LAYER_MSK aLayerMask,
                         const PCB_PLOT_PARAMS& aPlotOpt );
+
+/**
+ * Function PlotLayerOutlines
+ * plot copper outline of a copper layer.
+ * @param aBoard = the board to plot
+ * @param aPlotter = the plotter to use
+ * @param aLayerMask = the mask to define the layers to plot
+ * @param aPlotOpt = the plot options. Has meaning for some formats only
+ */
+void PlotLayerOutlines( BOARD *aBoard, PLOTTER* aPlotter,
+                        LAYER_MSK aLayerMask, const PCB_PLOT_PARAMS& aPlotOpt );
 
 /**
  * Function PlotSilkScreen
@@ -254,6 +266,16 @@ void BuildPlotFileName( wxFileName*     aFilename,
  */
 extern wxString GetGerberExtension( LAYER_NUM aLayer );
 
+/**
+ * Function GetGerberFileFunction
+ * Returns the "file function" attribute for \a aLayer, as defined in the
+ * Gerber file format specification J1 (chapter 5). The returned string excludes
+ * the "%TF.FileFunction" attribute prefix and the "*%" suffix.
+ * @param aBoard = the board, needed to get the total count of copper layers
+ * @param aLayer = the layer number to create the attribute for
+ * @return The attribute, as a text string
+ */
+extern wxString GetGerberFileFunction( const BOARD *aBoard, LAYER_NUM aLayer );
 
 // PLOTGERB.CPP
 void SelectD_CODE_For_LineDraw( PLOTTER* plotter, int aSize );

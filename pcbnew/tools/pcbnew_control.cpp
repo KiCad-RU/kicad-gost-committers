@@ -61,17 +61,14 @@ bool PCBNEW_CONTROL::Init()
 int PCBNEW_CONTROL::ZoomInOut( TOOL_EVENT& aEvent )
 {
     KIGFX::VIEW* view = m_frame->GetGalCanvas()->GetView();
-    KIGFX::GAL* gal = m_frame->GetGalCanvas()->GetGAL();
+    double zoomScale = 1.0;
 
     if( aEvent.IsAction( &COMMON_ACTIONS::zoomIn ) )
-        m_frame->SetPrevZoom();
+        zoomScale = 1.3;
     else if( aEvent.IsAction( &COMMON_ACTIONS::zoomOut ) )
-        m_frame->SetNextZoom();
+        zoomScale = 0.7;
 
-    double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
-    double zoom = 1.0 / ( zoomFactor * m_frame->GetZoom() );
-
-    view->SetScale( zoom, getViewControls()->GetCursorPosition() );
+    view->SetScale( view->GetScale() * zoomScale, getViewControls()->GetCursorPosition() );
     setTransitions();
 
     return 0;
@@ -81,17 +78,14 @@ int PCBNEW_CONTROL::ZoomInOut( TOOL_EVENT& aEvent )
 int PCBNEW_CONTROL::ZoomInOutCenter( TOOL_EVENT& aEvent )
 {
     KIGFX::VIEW* view = m_frame->GetGalCanvas()->GetView();
-    KIGFX::GAL* gal = m_frame->GetGalCanvas()->GetGAL();
+    double zoomScale = 1.0;
 
-    if( aEvent.IsAction( &COMMON_ACTIONS::zoomInCenter ) )
-        m_frame->SetPrevZoom();
-    else if( aEvent.IsAction( &COMMON_ACTIONS::zoomOutCenter ) )
-        m_frame->SetNextZoom();
+    if( aEvent.IsAction( &COMMON_ACTIONS::zoomIn ) )
+        zoomScale = 1.3;
+    else if( aEvent.IsAction( &COMMON_ACTIONS::zoomOut ) )
+        zoomScale = 0.7;
 
-    double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
-    double zoom = 1.0 / ( zoomFactor * m_frame->GetZoom() );
-
-    view->SetScale( zoom );
+    view->SetScale( view->GetScale() * zoomScale );
     setTransitions();
 
     return 0;
@@ -112,17 +106,13 @@ int PCBNEW_CONTROL::ZoomFitScreen( TOOL_EVENT& aEvent )
 {
     KIGFX::VIEW* view = m_frame->GetGalCanvas()->GetView();
     KIGFX::GAL* gal = m_frame->GetGalCanvas()->GetGAL();
-    BOX2I boardBBox  = getModel<BOARD>( PCB_T )->ViewBBox();
+    BOX2I boardBBox = getModel<BOARD>()->ViewBBox();
     VECTOR2I screenSize = gal->GetScreenPixelSize();
 
     double iuPerX = screenSize.x ? boardBBox.GetWidth() / screenSize.x : 1.0;
     double iuPerY = screenSize.y ? boardBBox.GetHeight() / screenSize.y : 1.0;
 
     double bestZoom = std::max( iuPerX, iuPerY );
-    // This is needed to avoid "jumpy" zooms if first hot key was used and then mouse scroll
-    // (or other way round).
-    m_frame->GetScreen()->SetZoom( bestZoom );
-
     double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
     double zoom = 1.0 / ( zoomFactor * bestZoom );
 
@@ -146,7 +136,7 @@ int PCBNEW_CONTROL::TrackDisplayMode( TOOL_EVENT& aEvent )
     m_frame->m_DisplayPcbTrackFill = DisplayOpt.DisplayPcbTrackFill;
     settings->LoadDisplayOptions( DisplayOpt );
 
-    BOARD* board = getModel<BOARD>( PCB_T );
+    BOARD* board = getModel<BOARD>();
     for( TRACK* track = board->m_Track; track; track = track->Next() )
         track->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
 
@@ -178,7 +168,7 @@ int PCBNEW_CONTROL::ViaDisplayMode( TOOL_EVENT& aEvent )
     m_frame->m_DisplayViaFill = DisplayOpt.DisplayViaFill;
     settings->LoadDisplayOptions( DisplayOpt );
 
-    BOARD* board = getModel<BOARD>( PCB_T );
+    BOARD* board = getModel<BOARD>();
     for( TRACK* track = board->m_Track; track; track = track->Next() )
     {
         if( track->Type() == PCB_VIA_T )
@@ -311,8 +301,19 @@ int PCBNEW_CONTROL::LayerNext( TOOL_EVENT& aEvent )
 {
     PCB_EDIT_FRAME* editFrame = getEditFrame<PCB_EDIT_FRAME>();
     LAYER_NUM layer = editFrame->GetActiveLayer();
-    layer = ( layer + 1 ) % ( LAST_COPPER_LAYER + 1 );
-    assert( IsCopperLayer( layer ) );
+
+    if( ( layer < FIRST_COPPER_LAYER ) || ( layer >= LAST_COPPER_LAYER ) )
+    {
+        setTransitions();
+        return 0;
+    }
+
+    if( getModel<BOARD>()->GetCopperLayerCount() < 2 ) // Single layer
+        layer = LAYER_N_BACK;
+    else if( layer >= getModel<BOARD>()->GetCopperLayerCount() - 2 )
+        layer = LAYER_N_FRONT;
+    else
+        ++layer;
 
     editFrame->SwitchLayer( NULL, layer );
     editFrame->GetGalCanvas()->SetFocus();
@@ -327,8 +328,18 @@ int PCBNEW_CONTROL::LayerPrev( TOOL_EVENT& aEvent )
     PCB_EDIT_FRAME* editFrame = getEditFrame<PCB_EDIT_FRAME>();
     LAYER_NUM layer = editFrame->GetActiveLayer();
 
-    if( --layer < 0 )
-        layer = LAST_COPPER_LAYER;
+    if( ( layer <= FIRST_COPPER_LAYER ) || ( layer > LAST_COPPER_LAYER ) )
+    {
+        setTransitions();
+        return 0;
+    }
+
+    if( getModel<BOARD>()->GetCopperLayerCount() < 2 ) // Single layer
+        layer = LAYER_N_BACK;
+    else if( layer == LAYER_N_FRONT )
+        layer = std::max( LAYER_N_BACK, FIRST_COPPER_LAYER + getModel<BOARD>()->GetCopperLayerCount() - 2 );
+    else
+        --layer;
 
     assert( IsCopperLayer( layer ) );
     editFrame->SwitchLayer( NULL, layer );
@@ -422,20 +433,56 @@ int PCBNEW_CONTROL::GridPrev( TOOL_EVENT& aEvent )
 }
 
 
+int PCBNEW_CONTROL::GridSetOrigin( TOOL_EVENT& aEvent )
+{
+    Activate();
+    getEditFrame<PCB_EDIT_FRAME>()->SetToolID( ID_PCB_PLACE_GRID_COORD_BUTT, wxCURSOR_PENCIL,
+                                               _( "Adjust grid origin" ) );
+
+    KIGFX::VIEW_CONTROLS* controls = getViewControls();
+    controls->ShowCursor( true );
+    controls->SetSnapping( true );
+    controls->SetAutoPan( true );
+
+    while( OPT_TOOL_EVENT evt = Wait() )
+    {
+        if( evt->IsClick( BUT_LEFT ) )
+        {
+            getView()->GetGAL()->SetGridOrigin( controls->GetCursorPosition() );
+            getView()->MarkDirty();
+        }
+
+        else if( evt->IsCancel() )
+            break;
+    }
+
+    controls->SetAutoPan( false );
+    controls->SetSnapping( false );
+    controls->ShowCursor( false );
+    setTransitions();
+    m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
+
+    return 0;
+}
+
+
 // Track & via size control
 int PCBNEW_CONTROL::TrackWidthInc( TOOL_EVENT& aEvent )
 {
-    BOARD* board = getModel<BOARD>( PCB_T );
-    int widthIndex = board->GetTrackWidthIndex() + 1;
+    BOARD* board = getModel<BOARD>();
+    int widthIndex = board->GetDesignSettings().GetTrackWidthIndex() + 1;
 
-    if( widthIndex >= (int) board->m_TrackWidthList.size() )
-        widthIndex = board->m_TrackWidthList.size() - 1;
+    if( widthIndex >= (int) board->GetDesignSettings().m_TrackWidthList.size() )
+        widthIndex = board->GetDesignSettings().m_TrackWidthList.size() - 1;
 
-    board->SetTrackWidthIndex( widthIndex );
+    board->GetDesignSettings().SetTrackWidthIndex( widthIndex );
+    board->GetDesignSettings().UseCustomTrackViaSize( false );
 
     wxUpdateUIEvent dummy;
     getEditFrame<PCB_EDIT_FRAME>()->OnUpdateSelectTrackWidth( dummy );
     setTransitions();
+
+    m_toolMgr->RunAction( COMMON_ACTIONS::trackViaSizeChanged );
 
     return 0;
 }
@@ -443,17 +490,20 @@ int PCBNEW_CONTROL::TrackWidthInc( TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::TrackWidthDec( TOOL_EVENT& aEvent )
 {
-    BOARD* board = getModel<BOARD>( PCB_T );
-    int widthIndex = board->GetTrackWidthIndex() - 1;
+    BOARD* board = getModel<BOARD>();
+    int widthIndex = board->GetDesignSettings().GetTrackWidthIndex() - 1;
 
     if( widthIndex < 0 )
         widthIndex = 0;
 
-    board->SetTrackWidthIndex( widthIndex );
+    board->GetDesignSettings().SetTrackWidthIndex( widthIndex );
+    board->GetDesignSettings().UseCustomTrackViaSize( false );
 
     wxUpdateUIEvent dummy;
     getEditFrame<PCB_EDIT_FRAME>()->OnUpdateSelectTrackWidth( dummy );
     setTransitions();
+
+    m_toolMgr->RunAction( COMMON_ACTIONS::trackViaSizeChanged );
 
     return 0;
 }
@@ -461,17 +511,20 @@ int PCBNEW_CONTROL::TrackWidthDec( TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::ViaSizeInc( TOOL_EVENT& aEvent )
 {
-    BOARD* board = getModel<BOARD>( PCB_T );
-    int sizeIndex = board->GetViaSizeIndex() + 1;
+    BOARD* board = getModel<BOARD>();
+    int sizeIndex = board->GetDesignSettings().GetViaSizeIndex() + 1;
 
-    if( sizeIndex >= (int) board->m_ViasDimensionsList.size() )
-        sizeIndex = board->m_ViasDimensionsList.size() - 1;
+    if( sizeIndex >= (int) board->GetDesignSettings().m_ViasDimensionsList.size() )
+        sizeIndex = board->GetDesignSettings().m_ViasDimensionsList.size() - 1;
 
-    board->SetViaSizeIndex( sizeIndex );
+    board->GetDesignSettings().SetViaSizeIndex( sizeIndex );
+    board->GetDesignSettings().UseCustomTrackViaSize( false );
 
     wxUpdateUIEvent dummy;
     getEditFrame<PCB_EDIT_FRAME>()->OnUpdateSelectViaSize( dummy );
     setTransitions();
+
+    m_toolMgr->RunAction( COMMON_ACTIONS::trackViaSizeChanged );
 
     return 0;
 }
@@ -479,17 +532,20 @@ int PCBNEW_CONTROL::ViaSizeInc( TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::ViaSizeDec( TOOL_EVENT& aEvent )
 {
-    BOARD* board = getModel<BOARD>( PCB_T );
-    int sizeIndex = board->GetViaSizeIndex() - 1;
+    BOARD* board = getModel<BOARD>();
+    int sizeIndex = board->GetDesignSettings().GetViaSizeIndex() - 1;
 
     if( sizeIndex < 0 )
         sizeIndex = 0;
 
-    board->SetViaSizeIndex( sizeIndex );
+    board->GetDesignSettings().SetViaSizeIndex( sizeIndex );
+    board->GetDesignSettings().UseCustomTrackViaSize( false );
 
     wxUpdateUIEvent dummy;
     getEditFrame<PCB_EDIT_FRAME>()->OnUpdateSelectViaSize( dummy );
     setTransitions();
+
+    m_toolMgr->RunAction( COMMON_ACTIONS::trackViaSizeChanged );
 
     return 0;
 }
@@ -572,6 +628,7 @@ void PCBNEW_CONTROL::setTransitions()
     Go( &PCBNEW_CONTROL::GridFast2,          COMMON_ACTIONS::gridFast2.MakeEvent() );
     Go( &PCBNEW_CONTROL::GridNext,           COMMON_ACTIONS::gridNext.MakeEvent() );
     Go( &PCBNEW_CONTROL::GridPrev,           COMMON_ACTIONS::gridPrev.MakeEvent() );
+    Go( &PCBNEW_CONTROL::GridSetOrigin,      COMMON_ACTIONS::gridSetOrigin.MakeEvent() );
 
     // Track & via size control
     Go( &PCBNEW_CONTROL::TrackWidthInc,      COMMON_ACTIONS::trackWidthInc.MakeEvent() );

@@ -151,14 +151,12 @@ bool BRDITEMS_PLOTTER::PlotAllTextsModule( MODULE* aModule )
     for( BOARD_ITEM *item = aModule->GraphicalItems().GetFirst();
          item != NULL; item = item->Next() )
     {
-        textModule = dynamic_cast<TEXTE_MODULE*>( item );
+        textModule = dyn_cast<TEXTE_MODULE*>( item );
+
         if( !textModule )
             continue;
 
-        if( !GetPlotOtherText() )
-            continue;
-
-        if( !textModule->IsVisible() && !GetPlotInvisibleText() )
+        if( !textModule->IsVisible() )
             continue;
 
         textLayer = textModule->GetLayer();
@@ -353,7 +351,7 @@ void BRDITEMS_PLOTTER::Plot_Edges_Modules()
     {
         for( BOARD_ITEM* item = module->GraphicalItems().GetFirst(); item; item = item->Next() )
         {
-            EDGE_MODULE *edge = dynamic_cast<EDGE_MODULE*>( item );
+            EDGE_MODULE* edge = dyn_cast<EDGE_MODULE*>( item );
 
             if( !edge || (( GetLayerMask( edge->GetLayer() ) & m_layerMask ) == 0) )
                 continue;
@@ -396,16 +394,10 @@ void BRDITEMS_PLOTTER::Plot_1_EdgeModule( EDGE_MODULE* aEdge )
     case S_ARC:
     {
         radius = KiROUND( GetLineLength( end, pos ) );
-
         double startAngle  = ArcTangente( end.y - pos.y, end.x - pos.x );
-
         double endAngle = startAngle + aEdge->GetAngle();
 
-        if ( ( GetFormat() == PLOT_FORMAT_DXF ) &&
-             ( m_layerMask & ( SILKSCREEN_LAYER_BACK | COMMENT_LAYER ) ) )
-            m_plotter->ThickArc( pos, -startAngle, -endAngle, radius, thickness, GetMode() );
-        else
-            m_plotter->ThickArc( pos, -endAngle, -startAngle, radius, thickness, GetMode() );
+        m_plotter->ThickArc( pos, -endAngle, -startAngle, radius, thickness, GetMode() );
     }
     break;
 
@@ -539,13 +531,14 @@ void BRDITEMS_PLOTTER::PlotFilledAreas( ZONE_CONTAINER* aZone )
             // Plot the current filled area and its outline
             if( GetMode() == FILLED )
             {
-                // Plot the current filled area polygon
-                if( aZone->GetFillMode() == 0 )    // We are using solid polygons
-                {                               // (if != 0: using segments )
-                    m_plotter->PlotPoly( cornerList, FILLED_SHAPE );
+                // Plot the filled area polygon.
+                // The area can be filled by segments or uses solid polygons
+                if( aZone->GetFillMode() == 0 ) // We are using solid polygons
+                {
+                    m_plotter->PlotPoly( cornerList, FILLED_SHAPE, aZone->GetMinThickness() );
                 }
-                else                            // We are using areas filled by
-                {                               // segments: plot them )
+                else    // We are using areas filled by segments: plot segments and outline
+                {
                     for( unsigned iseg = 0; iseg < aZone->FillSegments().size(); iseg++ )
                     {
                         wxPoint start = aZone->FillSegments()[iseg].m_Start;
@@ -554,11 +547,11 @@ void BRDITEMS_PLOTTER::PlotFilledAreas( ZONE_CONTAINER* aZone )
                                                  aZone->GetMinThickness(),
                                                  GetMode() );
                     }
-                }
 
-                // Plot the current filled area outline
+                // Plot the area outline only
                 if( aZone->GetMinThickness() > 0 )
                     m_plotter->PlotPoly( cornerList, NO_FILL, aZone->GetMinThickness() );
+                }
             }
             else
             {
@@ -684,7 +677,7 @@ void BRDITEMS_PLOTTER::PlotDrillMarks()
 
     for( TRACK *pts = m_board->m_Track; pts != NULL; pts = pts->Next() )
     {
-        const VIA *via = dynamic_cast<const VIA*>( pts );
+        const VIA* via = dyn_cast<const VIA*>( pts );
 
         if( via )
             plotOneDrillMark( PAD_DRILL_CIRCLE, via->GetStart(),

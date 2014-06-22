@@ -295,7 +295,7 @@ void DRC::updatePointers()
 }
 
 
-bool DRC::doNetClass( NETCLASS* nc, wxString& msg )
+bool DRC::doNetClass( NETCLASSPTR nc, wxString& msg )
 {
     bool ret = true;
 
@@ -403,7 +403,7 @@ bool DRC::testNetClasses()
 {
     bool        ret = true;
 
-    NETCLASSES& netclasses = m_pcb->m_NetClasses;
+    NETCLASSES& netclasses = m_pcb->GetDesignSettings().m_NetClasses;
 
     wxString    msg;   // construct this only once here, not in a loop, since somewhat expensive.
 
@@ -412,7 +412,7 @@ bool DRC::testNetClasses()
 
     for( NETCLASSES::const_iterator i = netclasses.begin();  i != netclasses.end();  ++i )
     {
-        NETCLASS* nc = i->second;
+        NETCLASSPTR nc = i->second;
 
         if( !doNetClass( nc, msg ) )
             ret = false;

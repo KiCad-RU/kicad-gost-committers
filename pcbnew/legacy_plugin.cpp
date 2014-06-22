@@ -86,6 +86,8 @@
 #include <trigo.h>
 #include <build_version.h>
 
+#include <boost/make_shared.hpp>
+
 
 typedef LEGACY_PLUGIN::BIU      BIU;
 
@@ -481,7 +483,8 @@ void LEGACY_PLUGIN::loadGENERAL()
             m_board->SetBoundingBox( bbbox );
         }
 
-        /* Read the number of segments of type DRAW, TRACK, ZONE
+        /* This is no more usefull, so this info is no more parsed
+        // Read the number of segments of type DRAW, TRACK, ZONE
         else if( TESTLINE( "Ndraw" ) )
         {
             NbDraw = intParse( line + SZ( "Ndraw" ) );
@@ -500,13 +503,17 @@ void LEGACY_PLUGIN::loadGENERAL()
         else if( TESTLINE( "Nmodule" ) )
         {
             NbMod = intParse( line + SZ( "Nmodule" ) );
-        }
+        }*/
 
         else if( TESTLINE( "Nnets" ) )
         {
-            NbNets = intParse( line + SZ( "Nnets" ) );
+            m_netCodes.resize( intParse( line + SZ( "Nnets" ) ) );
         }
-        */
+
+        else if( TESTLINE( "Nn" ) )     // id "Nnets" for old .brd files
+        {
+            m_netCodes.resize( intParse( line + SZ( "Nn" ) ) );
+        }
 
         else if( TESTLINE( "$EndGENERAL" ) )
             return;     // preferred exit
@@ -632,7 +639,9 @@ void LEGACY_PLUGIN::loadSHEET()
 
 void LEGACY_PLUGIN::loadSETUP()
 {
-    NETCLASS*               netclass_default  = m_board->m_NetClasses.GetDefault();
+    NETCLASSPTR             netclass_default = m_board->GetDesignSettings().GetDefault();
+    // TODO Orson: is it really necessary to first operate on a copy and then apply it?
+    // would not it be better to use reference here and apply all the changes instantly?
     BOARD_DESIGN_SETTINGS   bds = m_board->GetDesignSettings();
     ZONE_SETTINGS           zs  = m_board->GetZoneSettings();
     char*                   line;
@@ -692,7 +701,7 @@ void LEGACY_PLUGIN::loadSETUP()
         else if( TESTLINE( "TrackWidthList" ) )
         {
             BIU tmp = biuParse( line + SZ( "TrackWidthList" ) );
-            m_board->m_TrackWidthList.push_back( tmp );
+            bds.m_TrackWidthList.push_back( tmp );
         }
 
         else if( TESTLINE( "TrackClearence" ) )
@@ -754,7 +763,8 @@ void LEGACY_PLUGIN::loadSETUP()
             if( data )  // DRILL may not be present ?
                 drill = biuParse( data );
 
-            m_board->m_ViasDimensionsList.push_back( VIA_DIMENSION( diameter, drill ) );
+            bds.m_ViasDimensionsList.push_back( VIA_DIMENSION( diameter,
+                                                                                        drill ) );
         }
 
         else if( TESTLINE( "ViaDrill" ) )
@@ -894,7 +904,7 @@ void LEGACY_PLUGIN::loadSETUP()
             //        at all, the global defaults should go into a preferences
             //        file instead so they are there to start new board
             //        projects.
-            m_board->m_NetClasses.GetDefault()->SetParams();
+            m_board->GetDesignSettings().GetDefault()->SetParams( m_board->GetDesignSettings() );
 
             return;     // preferred exit
         }
@@ -907,23 +917,24 @@ void LEGACY_PLUGIN::loadSETUP()
      * Sort lists by by increasing value and remove duplicates
      * (the first value is not tested, because it is the netclass value
      */
-    sort( m_board->m_ViasDimensionsList.begin() + 1, m_board->m_ViasDimensionsList.end() );
-    sort( m_board->m_TrackWidthList.begin() + 1, m_board->m_TrackWidthList.end() );
+    BOARD_DESIGN_SETTINGS& designSettings = m_board->GetDesignSettings();
+    sort( designSettings.m_ViasDimensionsList.begin() + 1, designSettings.m_ViasDimensionsList.end() );
+    sort( designSettings.m_TrackWidthList.begin() + 1, designSettings.m_TrackWidthList.end() );
 
-    for( unsigned ii = 1; ii < m_board->m_ViasDimensionsList.size() - 1; ii++ )
+    for( unsigned ii = 1; ii < designSettings.m_ViasDimensionsList.size() - 1; ii++ )
     {
-        if( m_board->m_ViasDimensionsList[ii] == m_board->m_ViasDimensionsList[ii + 1] )
+        if( designSettings.m_ViasDimensionsList[ii] == designSettings.m_ViasDimensionsList[ii + 1] )
         {
-            m_board->m_ViasDimensionsList.erase( m_board->m_ViasDimensionsList.begin() + ii );
+            designSettings.m_ViasDimensionsList.erase( designSettings.m_ViasDimensionsList.begin() + ii );
             ii--;
         }
     }
 
-    for( unsigned ii = 1; ii < m_board->m_TrackWidthList.size() - 1; ii++ )
+    for( unsigned ii = 1; ii < designSettings.m_TrackWidthList.size() - 1; ii++ )
     {
-        if( m_board->m_TrackWidthList[ii] == m_board->m_TrackWidthList[ii + 1] )
+        if( designSettings.m_TrackWidthList[ii] == designSettings.m_TrackWidthList[ii + 1] )
         {
-            m_board->m_TrackWidthList.erase( m_board->m_TrackWidthList.begin() + ii );
+            designSettings.m_TrackWidthList.erase( designSettings.m_TrackWidthList.begin() + ii );
             ii--;
         }
     }
@@ -1299,13 +1310,15 @@ void LEGACY_PLUGIN::loadPAD( MODULE* aModule )
             char    buf[1024];  // can be fairly long
             int     netcode = intParse( line + SZ( "Ne" ), &data );
 
-            pad->SetNetCode( netcode );
+            // Store the new code mapping
+            pad->SetNetCode( getNetCode( netcode ) );
 
             // read Netname
             ReadDelimitedText( buf, data, sizeof(buf) );
 #ifndef NDEBUG
             if( m_board )
-                assert( m_board->FindNet( netcode )->GetNetname() == FROM_UTF8( StrPurge( buf ) ) );
+                assert( m_board->FindNet( getNetCode( netcode ) )->GetNetname() ==
+                        FROM_UTF8( StrPurge( buf ) ) );
 #endif /* NDEBUG */
         }
 
@@ -1816,6 +1829,7 @@ void LEGACY_PLUGIN::loadNETINFO_ITEM()
 
     NETINFO_ITEM*   net = NULL;
     char*           line;
+    int             netCode = 0;
 
     while( ( line = READLINE( m_reader ) ) != NULL )
     {
@@ -1825,7 +1839,7 @@ void LEGACY_PLUGIN::loadNETINFO_ITEM()
         {
             // e.g. "Na 58 "/cpu.sch/PAD7"\r\n"
 
-            int netCode = intParse( line + SZ( "Na" ), &data );
+            netCode = intParse( line + SZ( "Na" ), &data );
 
             ReadDelimitedText( buf, data, sizeof(buf) );
             net = new NETINFO_ITEM( m_board, FROM_UTF8( buf ), netCode );
@@ -1836,9 +1850,20 @@ void LEGACY_PLUGIN::loadNETINFO_ITEM()
             // net 0 should be already in list, so store this net
             // if it is not the net 0, or if the net 0 does not exists.
             if( net != NULL && ( net->GetNet() > 0 || m_board->FindNet( 0 ) == NULL ) )
+            {
                 m_board->AppendNet( net );
+
+                // Be sure we have room to store the net in m_netCodes
+                if( (int)m_netCodes.size() <= netCode )
+                    m_netCodes.resize( netCode+1 );
+
+                m_netCodes[netCode] = net->GetNet();
+            }
             else
+            {
                 delete net;
+            }
+
             return;     // preferred exit
         }
     }
@@ -2048,24 +2073,21 @@ void LEGACY_PLUGIN::loadTrackList( int aStructType )
         else
             makeType = aStructType;
 
-        TRACK*  newTrack;   // BOARD insert this new one immediately after instantiation
+        TRACK* newTrack;
 
         switch( makeType )
         {
         default:
         case PCB_TRACE_T:
             newTrack = new TRACK( m_board );
-            m_board->m_Track.Append( newTrack );
             break;
 
         case PCB_VIA_T:
             newTrack = new VIA( m_board );
-            m_board->m_Track.Append( newTrack );
             break;
 
         case PCB_ZONE_T:     // this is now deprecated, but exist in old boards
             newTrack = new SEGZONE( m_board );
-            m_board->m_Zone.Append( (SEGZONE*) newTrack );
             break;
         }
 
@@ -2091,8 +2113,10 @@ void LEGACY_PLUGIN::loadTrackList( int aStructType )
                 via->SetLayerPair( LAYER_N_FRONT, LAYER_N_BACK );
         }
 
-        newTrack->SetNetCode( net_code );
+        newTrack->SetNetCode( getNetCode( net_code ) );
         newTrack->SetState( flags, true );
+
+        m_board->Add( newTrack );
     }
 
     THROW_IO_ERROR( "Missing '$EndTRACK'" );
@@ -2109,7 +2133,7 @@ void LEGACY_PLUGIN::loadNETCLASS()
     // yet since that would bypass duplicate netclass name checking within the BOARD.
     // store it temporarily in an auto_ptr until successfully inserted into the BOARD
     // just before returning.
-    auto_ptr<NETCLASS> nc( new NETCLASS( m_board, wxEmptyString ) );
+    NETCLASSPTR nc = boost::make_shared<NETCLASS>( wxEmptyString );
 
     while( ( line = READLINE( m_reader ) ) != NULL )
     {
@@ -2171,11 +2195,7 @@ void LEGACY_PLUGIN::loadNETCLASS()
 
         else if( TESTLINE( "$EndNCLASS" ) )
         {
-            if( m_board->m_NetClasses.Add( nc.get() ) )
-            {
-                nc.release();
-            }
-            else
+            if( !m_board->GetDesignSettings().m_NetClasses.Add( nc ) )
             {
                 // Must have been a name conflict, this is a bad board file.
                 // User may have done a hand edit to the file.
@@ -2241,7 +2261,7 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
             // Init the net code only, not the netname, to be sure
             // the zone net name is the name read in file.
             // (When mismatch, the user will be prompted in DRC, to fix the actual name)
-            zc->BOARD_CONNECTED_ITEM::SetNetCode( netcode );
+            zc->BOARD_CONNECTED_ITEM::SetNetCode( getNetCode( netcode ) );
         }
 
         else if( TESTLINE( "ZLayer" ) )     // layer found
@@ -2980,8 +3000,8 @@ void LEGACY_PLUGIN::saveSHEET( const BOARD* aBoard ) const
 
 void LEGACY_PLUGIN::saveSETUP( const BOARD* aBoard ) const
 {
-    NETCLASS* netclass_default       = aBoard->m_NetClasses.GetDefault();
     const BOARD_DESIGN_SETTINGS& bds = aBoard->GetDesignSettings();
+    NETCLASSPTR netclass_default     = bds.GetDefault();
 
     fprintf( m_fp, "$SETUP\n" );
 
@@ -3005,11 +3025,12 @@ void LEGACY_PLUGIN::saveSETUP( const BOARD* aBoard ) const
     }
 
     // Save current default track width, for compatibility with older Pcbnew version;
-    fprintf( m_fp, "TrackWidth %s\n",  fmtBIU( aBoard->GetCurrentTrackWidth() ).c_str() );
+    fprintf( m_fp, "TrackWidth %s\n",
+             fmtBIU( aBoard->GetDesignSettings().GetCurrentTrackWidth() ).c_str() );
 
     // Save custom tracks width list (the first is not saved here: this is the netclass value
-    for( unsigned ii = 1; ii < aBoard->m_TrackWidthList.size(); ii++ )
-        fprintf( m_fp, "TrackWidthList %s\n", fmtBIU( aBoard->m_TrackWidthList[ii] ).c_str() );
+    for( unsigned ii = 1; ii < aBoard->GetDesignSettings().m_TrackWidthList.size(); ii++ )
+        fprintf( m_fp, "TrackWidthList %s\n", fmtBIU( aBoard->GetDesignSettings().m_TrackWidthList[ii] ).c_str() );
 
     fprintf( m_fp, "TrackClearence %s\n",  fmtBIU( netclass_default->GetClearance() ).c_str() );
 
@@ -3030,10 +3051,10 @@ void LEGACY_PLUGIN::saveSETUP( const BOARD* aBoard ) const
 
     // Save custom vias diameters list (the first is not saved here: this is
     // the netclass value
-    for( unsigned ii = 1; ii < aBoard->m_ViasDimensionsList.size(); ii++ )
+    for( unsigned ii = 1; ii < aBoard->GetDesignSettings().m_ViasDimensionsList.size(); ii++ )
         fprintf( m_fp, "ViaSizeList %s %s\n",
-                 fmtBIU( aBoard->m_ViasDimensionsList[ii].m_Diameter ).c_str(),
-                 fmtBIU( aBoard->m_ViasDimensionsList[ii].m_Drill ).c_str() );
+                 fmtBIU( aBoard->GetDesignSettings().m_ViasDimensionsList[ii].m_Diameter ).c_str(),
+                 fmtBIU( aBoard->GetDesignSettings().m_ViasDimensionsList[ii].m_Drill ).c_str() );
 
     // for old versions compatibility:
     fprintf( m_fp, "MicroViaSize %s\n", fmtBIU( netclass_default->GetuViaDiameter() ).c_str() );
@@ -3093,7 +3114,7 @@ void LEGACY_PLUGIN::saveBOARD_ITEMS( const BOARD* aBoard ) const
     }
 
     // Saved nets do not include netclass names, so save netclasses after nets.
-    saveNETCLASSES( &aBoard->m_NetClasses );
+    saveNETCLASSES( &aBoard->GetDesignSettings().m_NetClasses );
 
     // save the modules
     for( MODULE* m = aBoard->m_Modules;  m;  m = (MODULE*) m->Next() )
@@ -3114,7 +3135,7 @@ void LEGACY_PLUGIN::saveBOARD_ITEMS( const BOARD* aBoard ) const
             savePCB_TARGET( (PCB_TARGET*) gr );
             break;
         case PCB_DIMENSION_T:
-            saveDIMENTION( (DIMENSION*) gr );
+            saveDIMENSION( (DIMENSION*) gr );
             break;
         default:
             THROW_IO_ERROR( wxString::Format( UNKNOWN_GRAPHIC_FORMAT, gr->Type() ) );
@@ -3165,7 +3186,7 @@ void LEGACY_PLUGIN::saveNETCLASSES( const NETCLASSES* aNetClasses ) const
     // the rest will be alphabetical in the *.brd file.
     for( NETCLASSES::const_iterator it = aNetClasses->begin();  it != aNetClasses->end();  ++it )
     {
-        NETCLASS*   netclass = it->second;
+        NETCLASSPTR   netclass = it->second;
         saveNETCLASS( netclass );
     }
 
@@ -3173,7 +3194,7 @@ void LEGACY_PLUGIN::saveNETCLASSES( const NETCLASSES* aNetClasses ) const
 }
 
 
-void LEGACY_PLUGIN::saveNETCLASS( const NETCLASS* nc ) const
+void LEGACY_PLUGIN::saveNETCLASS( const NETCLASSPTR nc ) const
 {
     fprintf( m_fp, "$NCLASS\n" );
     fprintf( m_fp, "Name %s\n", EscapedUTF8( nc->GetName() ).c_str() );
@@ -3366,7 +3387,8 @@ void LEGACY_PLUGIN::savePAD( const D_PAD* me ) const
 
     fprintf( m_fp, "At %s N %08X\n", texttype, me->GetLayerMask() );
 
-    fprintf( m_fp, "Ne %d %s\n", me->GetNetCode(), EscapedUTF8( me->GetNetname() ).c_str() );
+    fprintf( m_fp, "Ne %d %s\n", m_mapping->Translate( me->GetNetCode() ),
+             EscapedUTF8( me->GetNetname() ).c_str() );
 
     fprintf( m_fp, "Po %s\n", fmtBIUPoint( me->GetPos0() ).c_str() );
 
@@ -3633,7 +3655,7 @@ void LEGACY_PLUGIN::saveTRACK( const TRACK* me ) const
                 "-1" :  fmtBIU( drill ).c_str() );
 
     fprintf(m_fp, "De %d %d %d %lX %X\n",
-            me->GetLayer(), type, me->GetNetCode(),
+            me->GetLayer(), type, m_mapping->Translate( me->GetNetCode() ),
             me->GetTimeStamp(), me->GetStatus() );
 }
 
@@ -3647,7 +3669,7 @@ void LEGACY_PLUGIN::saveZONE_CONTAINER( const ZONE_CONTAINER* me ) const
     // just for ZONE_CONTAINER compatibility
     fprintf( m_fp,  "ZInfo %lX %d %s\n",
                     me->GetTimeStamp(),
-                    me->GetIsKeepout() ? 0 : me->GetNetCode(),
+                    me->GetIsKeepout() ? 0 : m_mapping->Translate( me->GetNetCode() ),
                     EscapedUTF8( me->GetIsKeepout() ? wxT("") : me->GetNetname() ).c_str() );
 
     // Save the outline layer info
@@ -3758,7 +3780,7 @@ void LEGACY_PLUGIN::saveZONE_CONTAINER( const ZONE_CONTAINER* me ) const
 }
 
 
-void LEGACY_PLUGIN::saveDIMENTION( const DIMENSION* me ) const
+void LEGACY_PLUGIN::saveDIMENSION( const DIMENSION* me ) const
 {
     // note: COTATION was the previous name of DIMENSION
     // this old keyword is used here for compatibility

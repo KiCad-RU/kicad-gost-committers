@@ -78,6 +78,13 @@ public:
             return items.GetCount();
         }
 
+        /// Alias to make code shorter and clearer
+        template <typename T>
+        T* Item( unsigned int aIndex ) const
+        {
+            return static_cast<T*>( items.GetPickedItem( aIndex ) );
+        }
+
     private:
         /// Clears both the VIEW_GROUP and set of selected items. Please note that it does not
         /// change properties of selected items (e.g. selection flag).
@@ -228,6 +235,16 @@ private:
      * @param aPoint is the point where an item is expected (world coordinates).
      */
     void highlightNet( const VECTOR2I& aPoint );
+
+    /**
+     * Function prefer()
+     * Checks if collector's list contains only single entry of asked types. If so, it returns it.
+     * @param aCollector is the collector that has a list of items to be queried.
+     * @param aTypes is the list of searched/preferred types.
+     * @return Pointer to the preferred item, if there is only one entry of given type or NULL
+     * if there are more entries or no entries at all.
+     */
+    BOARD_ITEM* prefer( GENERAL_COLLECTOR& aCollector, const KICAD_T aTypes[] ) const;
 
     /// Visual representation of selection box
     SELECTION_AREA* m_selArea;

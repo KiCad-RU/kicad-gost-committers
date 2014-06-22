@@ -130,12 +130,15 @@ public:
     static TOOL_ACTION gridFast2;
     static TOOL_ACTION gridNext;
     static TOOL_ACTION gridPrev;
+    static TOOL_ACTION gridSetOrigin;
 
     // Track & via size control
     static TOOL_ACTION trackWidthInc;
     static TOOL_ACTION trackWidthDec;
     static TOOL_ACTION viaSizeInc;
     static TOOL_ACTION viaSizeDec;
+
+    static TOOL_ACTION trackViaSizeChanged;   // notification
 
     // Miscellaneous
     static TOOL_ACTION resetCoords;

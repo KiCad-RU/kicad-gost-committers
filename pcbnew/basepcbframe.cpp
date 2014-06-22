@@ -133,10 +133,10 @@ END_EVENT_TABLE()
 PCB_BASE_FRAME::PCB_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrameType,
         const wxString& aTitle, const wxPoint& aPos, const wxSize& aSize,
         long aStyle, const wxString & aFrameName ) :
-    EDA_DRAW_FRAME( aKiway, aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName ),
-    m_toolManager( TOOL_MANAGER::Instance() )
+    EDA_DRAW_FRAME( aKiway, aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName )
 {
     m_Pcb                 = NULL;
+    m_toolManager         = NULL;
     m_toolDispatcher      = NULL;
 
     m_DisplayPadFill      = true;   // How to draw pads
@@ -158,6 +158,9 @@ PCB_BASE_FRAME::PCB_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrame
     SetGalCanvas( new EDA_DRAW_PANEL_GAL(
             this, -1, wxPoint( 0, 0 ), m_FrameSize,
             EDA_DRAW_PANEL_GAL::GAL_TYPE_CAIRO ) );
+
+    // GAL should not be active yet
+    GetGalCanvas()->StopDrawing();
 
     // Hide by default, it has to be explicitly shown
     GetGalCanvas()->Hide();
@@ -832,7 +835,7 @@ void PCB_BASE_FRAME::LoadSettings( wxConfigBase* aCfg )
     }
 
     // Some more required layers settings
-    view->SetRequired( ITEM_GAL_LAYER( VIAS_HOLES_VISIBLE ), ITEM_GAL_LAYER( VIAS_VISIBLE ) );
+    view->SetRequired( ITEM_GAL_LAYER( VIAS_HOLES_VISIBLE ), ITEM_GAL_LAYER( VIA_THROUGH_VISIBLE ) );
     view->SetRequired( ITEM_GAL_LAYER( PADS_HOLES_VISIBLE ), ITEM_GAL_LAYER( PADS_VISIBLE ) );
     view->SetRequired( NETNAMES_GAL_LAYER( PADS_NETNAMES_VISIBLE ), ITEM_GAL_LAYER( PADS_VISIBLE ) );
 
@@ -851,19 +854,6 @@ void PCB_BASE_FRAME::LoadSettings( wxConfigBase* aCfg )
 
     view->SetLayerTarget( ITEM_GAL_LAYER( GP_OVERLAY ), KIGFX::TARGET_OVERLAY );
     view->SetLayerTarget( ITEM_GAL_LAYER( RATSNEST_VISIBLE ), KIGFX::TARGET_OVERLAY );
-
-    // Apply layer coloring scheme & display options
-    if( view->GetPainter() )
-    {
-        KIGFX::PCB_RENDER_SETTINGS* settings = new KIGFX::PCB_RENDER_SETTINGS();
-
-        // Load layers' colors from PCB data
-        settings->ImportLegacyColors( m_Pcb->GetColorsSettings() );
-        view->GetPainter()->ApplySettings( settings );
-
-        // Load display options (such as filled/outline display of items)
-        settings->LoadDisplayOptions( DisplayOpt );
-    }
 
     // WxWidgets 2.9.1 seems call setlocale( LC_NUMERIC, "" )
     // when reading doubles in config,

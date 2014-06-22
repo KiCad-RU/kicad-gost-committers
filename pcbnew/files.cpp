@@ -170,7 +170,8 @@ void PCB_EDIT_FRAME::Files_io( wxCommandEvent& event )
 
     case ID_NEW_BOARD:
         {
-            Clear_Pcb( true );
+            if( ! Clear_Pcb( true ) )
+                break;
 
             // Clear footprint library table for the new board.
             Prj().PcbFootprintLibs()->Clear();
@@ -356,7 +357,7 @@ bool PCB_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     }
     else
     {
-        GetBoard()->m_NetClasses.Clear();
+        GetDesignSettings().m_NetClasses.Clear();
     }
 
     BOARD* loadedBoard = 0;   // it will be set to non-NULL if loaded OK
@@ -485,7 +486,7 @@ bool PCB_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 #endif
 
     // Update info shown by the horizontal toolbars
-    GetBoard()->SetCurrentNetClass( NETCLASS::Default );
+    GetDesignSettings().SetCurrentNetClass( NETCLASS::Default );
     ReFillLayerWidget();
     ReCreateLayerBox();
 
@@ -678,7 +679,7 @@ bool PCB_EDIT_FRAME::SavePcbFile( const wxString& aFileName, bool aCreateBackupF
 
     // Select default Netclass before writing file.
     // Useful to save default values in headers
-    GetBoard()->SetCurrentNetClass( GetBoard()->m_NetClasses.GetDefault()->GetName() );
+    GetDesignSettings().SetCurrentNetClass( NETCLASS::Default );
 
     try
     {

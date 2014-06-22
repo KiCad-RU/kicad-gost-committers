@@ -1476,9 +1476,10 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard ) throw( IO_ERROR )
     //-----<rules>--------------------------------------------------------
     {
         char        rule[80];
+        NETCLASSPTR defaultClass = aBoard->GetDesignSettings().GetDefault();
 
-        int         defaultTrackWidth   = aBoard->m_NetClasses.GetDefault()->GetTrackWidth();
-        int         defaultClearance    = aBoard->m_NetClasses.GetDefault()->GetClearance();
+        int         defaultTrackWidth   = defaultClass->GetTrackWidth();
+        int         defaultClearance    = defaultClass->GetClearance();
 
         double      clearance = scale( defaultClearance );
 
@@ -1553,6 +1554,10 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard ) throw( IO_ERROR )
             ZONE_CONTAINER* item = (ZONE_CONTAINER*) items[i];
 
             if( item->GetIsKeepout() )
+                continue;
+
+            // Currently, we export only copper layers
+            if( ! IsCopperLayer( item->GetLayer() ) )
                 continue;
 
             COPPER_PLANE*   plane = new COPPER_PLANE( pcb->structure );
@@ -1829,7 +1834,7 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard ) throw( IO_ERROR )
 
     //-----< output vias used in netclasses >-----------------------------------
     {
-        NETCLASSES& nclasses = aBoard->m_NetClasses;
+        NETCLASSES& nclasses = aBoard->GetDesignSettings().m_NetClasses;
 
         // Assume the netclass vias are all the same kind of thru, blind, or buried vias.
         // This is in lieu of either having each netclass via have its own layer pair in
@@ -1853,7 +1858,7 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard ) throw( IO_ERROR )
         // Add the via from the Default netclass first.  The via container
         // in pcb->library preserves the sequence of addition.
 
-        NETCLASS*   netclass = nclasses.GetDefault();
+        NETCLASSPTR netclass = nclasses.GetDefault();
 
         PADSTACK*   via = makeVia( netclass->GetViaDiameter(), netclass->GetViaDrill(),
                                    m_top_via_layer, m_bot_via_layer );
@@ -2039,19 +2044,19 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard ) throw( IO_ERROR )
 
 
     //-----<output NETCLASSs>----------------------------------------------------
-    NETCLASSES& nclasses = aBoard->m_NetClasses;
+    NETCLASSES& nclasses = aBoard->GetDesignSettings().m_NetClasses;
 
     exportNETCLASS( nclasses.GetDefault(), aBoard );
 
     for( NETCLASSES::iterator nc = nclasses.begin(); nc != nclasses.end(); ++nc )
     {
-        NETCLASS* netclass = nc->second;
+        NETCLASSPTR netclass = nc->second;
         exportNETCLASS( netclass, aBoard );
     }
 }
 
 
-void SPECCTRA_DB::exportNETCLASS( NETCLASS* aNetClass, BOARD* aBoard )
+void SPECCTRA_DB::exportNETCLASS( NETCLASSPTR aNetClass, BOARD* aBoard )
 {
     /*  From page 11 of specctra spec:
      *

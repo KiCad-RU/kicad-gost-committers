@@ -168,8 +168,11 @@ public:
     /// @brief Force all remaining objects to be drawn.
     virtual void Flush() = 0;
 
-    /// @brief Clear the screen.
-    virtual void ClearScreen() = 0;
+    /**
+     * @brief Clear the screen.
+     * @param aColor is the color used for clearing.
+     */
+    virtual void ClearScreen( const COLOR4D& aColor ) = 0;
 
     // -----------------
     // Attribute setting
@@ -223,16 +226,6 @@ public:
     inline const COLOR4D& GetStrokeColor() const
     {
         return strokeColor;
-    }
-
-    /**
-     * @brief Set the background color.
-     *
-     * @param aColor is the color for background filling.
-     */
-    inline virtual void SetBackgroundColor( const COLOR4D& aColor )
-    {
-        backgroundColor = aColor;
     }
 
     /**
@@ -827,7 +820,7 @@ public:
     /// Depth level on which the grid is drawn
     static const int GRID_DEPTH = 1024;
 
-    static const double METRIC_UNIT_LENGTH = 1e9;
+    static const double METRIC_UNIT_LENGTH;
 
 protected:
     std::stack<double> depthStack;             ///< Stored depth values
@@ -849,7 +842,6 @@ protected:
     bool               isFillEnabled;          ///< Is filling of graphic objects enabled ?
     bool               isStrokeEnabled;        ///< Are the outlines stroked ?
 
-    COLOR4D            backgroundColor;        ///< The background color
     COLOR4D            fillColor;              ///< The fill color
     COLOR4D            strokeColor;            ///< The color of the outlines
 
@@ -861,6 +853,7 @@ protected:
     GRID_STYLE         gridStyle;              ///< Grid display style
     VECTOR2D           gridSize;               ///< The grid size
     VECTOR2D           gridOrigin;             ///< The grid origin
+    VECTOR2D           gridOffset;             ///< The grid offset to compensate cursor position
     COLOR4D            gridColor;              ///< Color of the grid
     int                gridTick;               ///< Every tick line gets the double width
     double             gridLineWidth;          ///< Line width of the grid
@@ -868,6 +861,7 @@ protected:
                                                ///< below which the grid is not drawn
     int                gridOriginMarkerSize;   ///< Grid origin indicator size (pixels)
 
+    // Cursor settings
     bool               isCursorEnabled;        ///< Is the cursor enabled?
     COLOR4D            cursorColor;            ///< Cursor color
     unsigned int       cursorSize;             ///< Size of the cursor in pixels

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Oct  8 2012)
+// C++ code generated with wxFormBuilder (version Feb 26 2014)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -69,12 +69,12 @@ class DIALOG_PLOT_BASE : public DIALOG_SHIM
 		wxCheckBox* m_plotPads_on_Silkscreen;
 		wxCheckBox* m_plotModuleValueOpt;
 		wxCheckBox* m_plotModuleRefOpt;
-		wxCheckBox* m_plotTextOther;
 		wxCheckBox* m_plotInvisibleText;
 		wxCheckBox* m_plotNoViaOnMaskOpt;
 		wxCheckBox* m_excludeEdgeLayerOpt;
 		wxCheckBox* m_plotMirrorOpt;
 		wxCheckBox* m_plotPSNegativeOpt;
+		wxCheckBox* m_useAuxOriginCheckBox;
 		wxStaticText* m_staticText11;
 		wxChoice* m_drillShapeOpt;
 		wxStaticText* m_staticText12;
@@ -89,8 +89,8 @@ class DIALOG_PLOT_BASE : public DIALOG_SHIM
 		wxStaticText* m_SolderMaskMinWidthCurrValue;
 		wxStaticBoxSizer* m_GerberOptionsSizer;
 		wxCheckBox* m_useGerberExtensions;
+		wxCheckBox* m_useGerberAttributes;
 		wxCheckBox* m_subtractMaskFromSilk;
-		wxCheckBox* m_useAuxOriginCheckBox;
 		wxStaticBoxSizer* m_HPGLOptionsSizer;
 		wxStaticText* m_textPenSize;
 		wxTextCtrl* m_HPGLPenSizeOpt;

@@ -134,8 +134,8 @@ void WX_VIEW_CONTROLS::onWheel( wxMouseEvent& aEvent )
     if( aEvent.ControlDown() || aEvent.ShiftDown() )
     {
         // Scrolling
-        VECTOR2D scrollVec = m_view->ToWorld( m_view->GetScreenPixelSize() *
-                             ( (double) aEvent.GetWheelRotation() * wheelPanSpeed ), false );
+        VECTOR2D scrollVec = m_view->ToWorld( m_view->GetScreenPixelSize(), false ) *
+                             ( (double) aEvent.GetWheelRotation() * wheelPanSpeed );
         double   scrollSpeed;
 
         if( abs( scrollVec.x ) > abs( scrollVec.y ) )
@@ -160,12 +160,12 @@ void WX_VIEW_CONTROLS::onWheel( wxMouseEvent& aEvent )
         // Set scaling speed depending on scroll wheel event interval
         if( timeDiff < 500 && timeDiff > 0 )
         {
-            zoomScale = ( aEvent.GetWheelRotation() > 0.0 ) ? 2.05 - timeDiff / 500 :
+            zoomScale = ( aEvent.GetWheelRotation() > 0 ) ? 2.05 - timeDiff / 500 :
                         1.0 / ( 2.05 - timeDiff / 500 );
         }
         else
         {
-            zoomScale = ( aEvent.GetWheelRotation() > 0.0 ) ? 1.05 : 0.95;
+            zoomScale = ( aEvent.GetWheelRotation() > 0 ) ? 1.05 : 0.95;
         }
 
         VECTOR2D anchor = m_view->ToWorld( VECTOR2D( aEvent.GetX(), aEvent.GetY() ) );
@@ -217,6 +217,11 @@ void WX_VIEW_CONTROLS::onTimer( wxTimerEvent& aEvent )
     {
     case AUTO_PANNING:
     {
+#if wxCHECK_VERSION( 3, 0, 0 )
+        if( !m_parentPanel->HasFocus() )
+            break;
+#endif
+
         double borderSize = std::min( m_autoPanMargin * m_view->GetScreenPixelSize().x,
                                       m_autoPanMargin * m_view->GetScreenPixelSize().y );
 

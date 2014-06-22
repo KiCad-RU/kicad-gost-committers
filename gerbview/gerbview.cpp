@@ -44,7 +44,6 @@
 
 // Colors for layers and items
 COLORS_DESIGN_SETTINGS g_ColorsSettings;
-extern EDA_COLOR_T g_DrawBgColor;
 int g_Default_GERBER_Format;
 
 
@@ -84,13 +83,6 @@ static struct IFACE : public KIFACE_I
         case FRAME_GERBER:
             {
                 GERBVIEW_FRAME* frame = new GERBVIEW_FRAME( aKiway, aParent );
-
-                /* Is this really needed since at this point there is no open file?
-                frame->Zoom_Automatique( true );        // Zoom fit in frame
-
-                if so, why is the constructor not doing it?
-                */
-
                 return frame;
             }
             break;
@@ -152,8 +144,6 @@ bool IFACE::OnKifaceStart( PGM_BASE* aProgram, int aCtlBits )
     // Must be called before creating the main frame in order to
     // display the real hotkeys in menus or tool tips
     ReadHotkeyConfig( wxT("GerberFrame"), s_Gerbview_Hokeys_Descr );
-
-    g_DrawBgColor = BLACK;
 
     return true;
 }

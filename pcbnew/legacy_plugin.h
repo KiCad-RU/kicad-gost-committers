@@ -26,6 +26,7 @@
  */
 
 #include <io_mgr.h>
+#include <boost/shared_ptr.hpp>
 #include <string>
 
 
@@ -125,8 +126,9 @@ protected:
     int             m_loading_format_version;   ///< which BOARD_FORMAT_VERSION am I Load()ing?
     LP_CACHE*       m_cache;
 
-    NETINFO_MAPPING*    m_mapping;  ///< mapping for net codes, so only not empty net codes
+    NETINFO_MAPPING*    m_mapping;  ///< mapping for net codes, so only not empty nets
                                     ///< are stored with consecutive integers as net codes
+    std::vector<int>    m_netCodes; ///< net codes mapping for boards being loaded
 
     /// initialize PLUGIN like a constructor would, and futz with fresh BOARD if needed.
     void    init( const PROPERTIES* aProperties );
@@ -136,6 +138,16 @@ protected:
 
     double  diskToBiu;              ///< convert from disk engineering units to BIUs
                                     ///< with this scale factor
+
+    ///> Converts net code using the mapping table if available,
+    ///> otherwise returns unchanged net code
+    inline int getNetCode( int aNetCode )
+    {
+        if( aNetCode < (int) m_netCodes.size() )
+            return m_netCodes[aNetCode];
+
+        return aNetCode;
+    }
 
     /**
      * Function biuParse
@@ -256,12 +268,12 @@ protected:
 
     void saveNETINFO_ITEM( const NETINFO_ITEM* aNet ) const;
     void saveNETCLASSES( const NETCLASSES* aNetClasses ) const;
-    void saveNETCLASS( const NETCLASS* aNetclass ) const;
+    void saveNETCLASS( const boost::shared_ptr<NETCLASS> aNetclass ) const;
 
     void savePCB_TEXT( const TEXTE_PCB* aText ) const;
     void savePCB_TARGET( const PCB_TARGET* aTarget ) const;
     void savePCB_LINE( const DRAWSEGMENT* aStroke ) const;
-    void saveDIMENTION( const DIMENSION* aDimension ) const;
+    void saveDIMENSION( const DIMENSION* aDimension ) const;
     void saveTRACK( const TRACK* aTrack ) const;
 
     /**

@@ -77,6 +77,11 @@ public:
 
     ~MODULE();
 
+    static inline bool ClassOf( const EDA_ITEM* aItem )
+    {
+        return PCB_MODULE_T == aItem->Type();
+    }
+
     MODULE* Next() const { return static_cast<MODULE*>( Pnext ); }
     MODULE* Back() const { return static_cast<MODULE*>( Pback ); }
 
@@ -463,7 +468,7 @@ public:
     void RunOnChildren( boost::function<void (BOARD_ITEM*)> aFunction );
 
     /// @copydoc VIEW_ITEM::ViewUpdate()
-    void ViewUpdate( int aUpdateFlags );
+    void ViewUpdate( int aUpdateFlags = KIGFX::VIEW_ITEM::ALL );
 
     /**
      * Function CopyNetlistSettings

@@ -147,8 +147,13 @@ int SELECTION_TOOL::Main( TOOL_EVENT& aEvent )
         // drag with LMB? Select multiple objects (or at least draw a selection box) or drag them
         else if( evt->IsDrag( BUT_LEFT ) )
         {
-            if( m_selection.Empty() || m_additive )
+            if( m_additive )
             {
+                selectMultiple();
+            }
+            else if( m_selection.Empty() )
+            {
+                // There is nothing selected, so try to select something
                 if( !selectSingle( getView()->ToWorld( getViewControls()->GetMousePosition() ), false ) )
                 {
                     // If nothings has been selected or user wants to select more
@@ -223,10 +228,11 @@ void SELECTION_TOOL::toggleSelection( BOARD_ITEM* aItem )
 
 bool SELECTION_TOOL::selectSingle( const VECTOR2I& aWhere, bool aAllowDisambiguation )
 {
-    BOARD* pcb = getModel<BOARD>( PCB_T );
+    BOARD* pcb = getModel<BOARD>();
     BOARD_ITEM* item;
     GENERAL_COLLECTORS_GUIDE guide = getEditFrame<PCB_EDIT_FRAME>()->GetCollectorsGuide();
     GENERAL_COLLECTOR collector;
+    const KICAD_T types[] = { PCB_TRACE_T, PCB_VIA_T, PCB_LINE_T, EOT }; // preferred types
 
     collector.Collect( pcb, GENERAL_COLLECTOR::AllBoardItems,
                        wxPoint( aWhere.x, aWhere.y ), guide );
@@ -250,6 +256,15 @@ bool SELECTION_TOOL::selectSingle( const VECTOR2I& aWhere, bool aAllowDisambigua
         {
             if( !selectable( collector[i] ) )
                 collector.Remove( i );
+        }
+
+        // Check if among the selection candidates there is only one instance of preferred type
+        item = prefer( collector, types );
+        if( item )
+        {
+            toggleSelection( item );
+
+            return true;
         }
 
         // Let's see if there is still disambiguation in selection..
@@ -436,11 +451,9 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
         {
             brightBox.reset( new BRIGHT_BOX( current ) );
             getView()->Add( brightBox.get() );
+            // BRIGHT_BOX is removed from view on destruction
         }
     }
-
-    // Removes possible brighten mark
-    getView()->MarkTargetDirty( KIGFX::TARGET_OVERLAY );
 
     return current;
 }
@@ -511,7 +524,7 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
             return false;
     }
 
-    BOARD* board = getModel<BOARD>( PCB_T );
+    BOARD* board = getModel<BOARD>();
 
     switch( aItem->Type() )
     {
@@ -645,7 +658,7 @@ bool SELECTION_TOOL::selectionContains( const VECTOR2I& aPoint ) const
     // Check if the point is located within any of the currently selected items bounding boxes
     for( unsigned int i = 0; i < m_selection.items.GetCount(); ++i )
     {
-        BOARD_ITEM* item = static_cast<BOARD_ITEM*>( m_selection.items.GetPickedItem( i ) );
+        BOARD_ITEM* item = m_selection.Item<BOARD_ITEM>( i );
         BOX2I itemBox = item->ViewBBox();
         itemBox.Inflate( margin.x, margin.y );    // Give some margin for gripping an item
 
@@ -665,7 +678,7 @@ void SELECTION_TOOL::highlightNet( const VECTOR2I& aPoint )
     int net = -1;
 
     // Find a connected item for which we are going to highlight a net
-    collector.Collect( getModel<BOARD>( PCB_T ), GENERAL_COLLECTOR::PadsTracksOrZones,
+    collector.Collect( getModel<BOARD>(), GENERAL_COLLECTOR::PadsTracksOrZones,
                        wxPoint( aPoint.x, aPoint.y ), guide );
     bool enableHighlight = ( collector.GetCount() > 0 );
 
@@ -678,6 +691,38 @@ void SELECTION_TOOL::highlightNet( const VECTOR2I& aPoint )
         render->SetHighlight( enableHighlight, net );
         getView()->UpdateAllLayersColor();
     }
+}
+
+
+BOARD_ITEM* SELECTION_TOOL::prefer( GENERAL_COLLECTOR& aCollector, const KICAD_T aTypes[] ) const
+{
+    BOARD_ITEM* preferred = NULL;
+
+    int typesNr = 0;
+    while( aTypes[typesNr++] != EOT );      // count number of types, excluding the sentinel (EOT)
+
+    for( int i = 0; i < aCollector.GetCount(); ++i )
+    {
+        KICAD_T type = aCollector[i]->Type();
+
+        for( int j = 0; j < typesNr - 1; ++j )      // Check if the item's type is in our list
+        {
+            if( aTypes[j] == type )
+            {
+                if( preferred == NULL )
+                {
+                    preferred = aCollector[i];  // save the first matching item
+                    break;
+                }
+                else
+                {
+                    return NULL;  // there is more than one preferred item, so there is no clear choice
+                }
+            }
+        }
+    }
+
+    return preferred;
 }
 
 
