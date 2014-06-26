@@ -411,7 +411,7 @@ wxString FindOOInstallationPath()
         }
 
         // search for LibreOffice 4.0 - 4.5
-        for( char minor_ver = '0'; minor_ver <= '5'; ver++ )
+        for( char minor_ver = '0'; minor_ver <= '5'; minor_ver++ )
         {
             letter_str[0] = letter;
             ver_str[0] = minor_ver;
