@@ -28,14 +28,10 @@ set(PCAD2KICADSCH_SRCS
     dialogs/pcad2kicad_frame_base.cpp
     )
 
-if(WIN32)
-    if(MINGW)
-        # PCAD2KICADSCH_RESOURCES variable is set by the macro.
-        mingw_resource_compiler(pcad2kicadsch)
-    else(MINGW)
-        set(PCAD2KICADSCH_RESOURCES pcad2kicadsch.rc)
-    endif(MINGW)
-endif(WIN32)
+if(MINGW)
+    # PCAD2KICADSCH_RESOURCES variable is set by the macro.
+    mingw_resource_compiler(pcad2kicadsch)
+endif()
 
 
 if(APPLE)
@@ -102,22 +98,17 @@ if( USE_KIWAY_DLLS )
         DESTINATION ${KICAD_BIN}
         COMPONENT binary
         )
-    install( TARGETS pcad2kicadsch_kiface
-        DESTINATION ${KICAD_BIN}
-        COMPONENT binary
-        )
 
     if( APPLE )
+        # puts the *.kiface into the *.app bundle while linking
         set_target_properties( pcad2kicadsch PROPERTIES
-            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pcad2kicadsch.app/Contents/MacOS/
             )
-
-        # copies kiface into the bundle
-        add_custom_target( _pcad2kicadsch_kiface_copy ALL
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/extra/pcad2kicadsch/_pcad2kicadsch.kiface "${CMAKE_BINARY_DIR}/extra/pcad2kicadsch/pcad2kicadsch.app/Contents/MacOS/"
-            DEPENDS pcad2kicadsch_kiface
-            COMMENT "Copying kiface into pcad2kicadsch"
-        )
+    else()
+        install( TARGETS pcad2kicadsch_kiface
+            DESTINATION ${KICAD_BIN}
+            COMPONENT binary
+            )
     endif()
 else()
     add_executable( pcad2kicadsch WIN32 MACOSX_BUNDLE
@@ -133,12 +124,6 @@ else()
         COMPILE_DEFINITIONS     "COMPILING_DLL"
         )
 
-    if( APPLE )
-        set_target_properties( pcad2kicadsch PROPERTIES
-            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
-            )
-    endif()
-
     target_link_libraries( pcad2kicadsch
         common
         bitmaps
@@ -148,5 +133,11 @@ else()
     install( TARGETS pcad2kicadsch
         DESTINATION ${KICAD_BIN}
         COMPONENT binary
+        )
+endif()
+
+if( APPLE )
+    set_target_properties( pcad2kicadsch PROPERTIES
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
         )
 endif()

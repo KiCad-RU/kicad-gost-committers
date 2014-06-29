@@ -105,6 +105,9 @@ const wxString KIWAY::dso_full_path( FACE_T aFaceId )
     case FACE_CVPCB:            name = KIFACE_PREFIX wxT( "cvpcb" );            break;
     case FACE_GERBVIEW:         name = KIFACE_PREFIX wxT( "gerbview" );         break;
     case FACE_PL_EDITOR:        name = KIFACE_PREFIX wxT( "pl_editor" );        break;
+#if defined( KICAD_GOST )
+    case FACE_PCAD2KICADSCH:    name = KIFACE_PREFIX wxT( "pcad2kicadsch" );    break;
+#endif
     case FACE_PCB_CALCULATOR:   name = KIFACE_PREFIX wxT( "pcb_calculator" );   break;
     case FACE_BMP2CMP:          name = KIFACE_PREFIX wxT( "bitmap2component" ); break;
 
@@ -243,6 +246,11 @@ KIWAY::FACE_T KIWAY::KifaceType( FRAME_T aFrameType )
 
     case FRAME_PL_EDITOR:
         return FACE_PL_EDITOR;
+
+#if defined( KICAD_GOST )
+    case FRAME_PCAD2KICADSCH:
+        return FACE_PCAD2KICADSCH;
+#endif
 
     case FRAME_CALC:
         return FACE_PCB_CALCULATOR;

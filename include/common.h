@@ -84,7 +84,11 @@ enum pseudokeys {
 #define EESCHEMA_EXE        wxT( "eeschema.exe" )
 #define GERBVIEW_EXE        wxT( "gerbview.exe" )
 #define BITMAPCONVERTER_EXE wxT( "bitmap2component.exe" )
+
+#if defined( KICAD_GOST )
 #define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch.exe" )
+#endif
+
 #define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.exe" )
 #define PL_EDITOR_EXE       wxT( "pl_editor.exe" )
 #else
@@ -94,7 +98,11 @@ enum pseudokeys {
 #define EESCHEMA_EXE        wxT( "eeschema" )
 #define GERBVIEW_EXE        wxT( "gerbview" )
 #define BITMAPCONVERTER_EXE wxT( "bitmap2component" )
+
+#if defined( KICAD_GOST )
 #define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch" )
+#endif
+
 #define PCB_CALCULATOR_EXE  wxT( "pcb_calculator" )
 #define PL_EDITOR_EXE       wxT( "pl_editor" )
 #else
@@ -103,7 +111,11 @@ enum pseudokeys {
 #define EESCHEMA_EXE        wxT( "eeschema.app/Contents/MacOS/eeschema" )
 #define GERBVIEW_EXE        wxT( "gerbview.app/Contents/MacOS/gerbview" )
 #define BITMAPCONVERTER_EXE wxT( "bitmap2component.app/Contents/MacOS/bitmap2component" )
+
+#if defined( KICAD_GOST )
 #define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch.app/Contents/MacOS/pcad2kicadsch" )
+#endif
+
 #define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.app/Contents/MacOS/pcb_calculator" )
 #define PL_EDITOR_EXE       wxT( "pl_editor.app/Contents/MacOS/pl_editor" )
 # endif
