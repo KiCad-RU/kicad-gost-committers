@@ -208,6 +208,8 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     m_hasAutoSave = true;
 
     SetForceHVLines( true );
+    SetSpiceAddReferencePrefix( false );
+    SetSpiceUseNetcodeAsNetname( false );
 
     CreateScreens();
 
@@ -964,7 +966,7 @@ void SCH_EDIT_FRAME::OnPrint( wxCommandEvent& event )
 }
 
 
-void SCH_EDIT_FRAME::PrintPage( wxDC* aDC, LAYER_MSK aPrintMask, bool aPrintMirrorMode,
+void SCH_EDIT_FRAME::PrintPage( wxDC* aDC, LSET aPrintMask, bool aPrintMirrorMode,
                                 void* aData )
 {
     GetScreen()->Draw( m_canvas, aDC, GR_DEFAULT_DRAWMODE );
