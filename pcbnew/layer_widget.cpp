@@ -418,29 +418,29 @@ void LAYER_WIDGET::insertLayerRow( int aRow, const ROW& aSpec )
     sbm->Connect( wxEVT_LEFT_DOWN, wxMouseEventHandler( LAYER_WIDGET::OnLeftDownLayers ), NULL, this );
     m_LayersFlexGridSizer->wxSizer::Insert( index+col, sbm, 0, flags );
 
-    // column 1
-    col = 1;
+    // column 1 (COLUMN_COLORBM)
+    col = COLUMN_COLORBM;
     wxBitmapButton* bmb = makeColorButton( m_LayerScrolledWindow, aSpec.color, encodeId( col, aSpec.id ) );
     bmb->Connect( wxEVT_LEFT_DOWN, wxMouseEventHandler( LAYER_WIDGET::OnLeftDownLayers ), NULL, this );
     bmb->Connect( wxEVT_MIDDLE_DOWN, wxMouseEventHandler( LAYER_WIDGET::OnMiddleDownLayerColor ), NULL, this );
     bmb->SetToolTip( _("Left click to select, middle click for color change, right click for menu" ) );
     m_LayersFlexGridSizer->wxSizer::Insert( index+col, bmb, 0, flags );
 
-    // column 2
-    col = 2;
-    wxStaticText* st = new wxStaticText( m_LayerScrolledWindow, encodeId( col, aSpec.id ), aSpec.rowName );
-    shrinkFont( st, m_PointSize );
-    st->Connect( wxEVT_LEFT_DOWN, wxMouseEventHandler( LAYER_WIDGET::OnLeftDownLayers ), NULL, this );
-    st->SetToolTip( aSpec.tooltip );
-    m_LayersFlexGridSizer->wxSizer::Insert( index+col, st, 0, flags );
-
-    // column 3
-    col = 3;
+    // column 2 (COLUMN_COLOR_LYR_CB)
+    col = COLUMN_COLOR_LYR_CB;
     wxCheckBox* cb = new wxCheckBox( m_LayerScrolledWindow, encodeId( col, aSpec.id ), wxEmptyString );
     cb->SetValue( aSpec.state );
     cb->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( LAYER_WIDGET::OnLayerCheckBox ), NULL, this );
     cb->SetToolTip( _( "Enable this for visibility" ) );
     m_LayersFlexGridSizer->wxSizer::Insert( index+col, cb, 0, flags );
+
+    // column 3 (COLUMN_COLOR_LYRNAME)
+    col = COLUMN_COLOR_LYRNAME;
+    wxStaticText* st = new wxStaticText( m_LayerScrolledWindow, encodeId( col, aSpec.id ), aSpec.rowName );
+    shrinkFont( st, m_PointSize );
+    st->Connect( wxEVT_LEFT_DOWN, wxMouseEventHandler( LAYER_WIDGET::OnLeftDownLayers ), NULL, this );
+    st->SetToolTip( aSpec.tooltip );
+    m_LayersFlexGridSizer->wxSizer::Insert( index+col, st, 0, flags );
 }
 
 
@@ -526,7 +526,7 @@ LAYER_WIDGET::LAYER_WIDGET( wxWindow* aParent, wxWindow* aFocusOwner, int aPoint
     m_LayerScrolledWindow->SetScrollRate( 5, 5 );
     m_LayersFlexGridSizer = new wxFlexGridSizer( 0, 4, 0, 1 );
     m_LayersFlexGridSizer->SetFlexibleDirection( wxHORIZONTAL );
-    m_LayersFlexGridSizer->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
+    m_LayersFlexGridSizer->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_NONE );
 
     m_LayerScrolledWindow->SetSizer( m_LayersFlexGridSizer );
     m_LayerScrolledWindow->Layout();
@@ -583,16 +583,6 @@ LAYER_WIDGET::LAYER_WIDGET( wxWindow* aParent, wxWindow* aFocusOwner, int aPoint
 
 wxSize LAYER_WIDGET::GetBestSize() const
 {
-#if 0
-    wxSize layerz  = m_LayersFlexGridSizer->GetMinSize();
-    wxSize renderz = m_RenderFlexGridSizer->GetMinSize();
-
-    wxSize  clientz( std::max(renderz.x,layerz.x), std::max(renderz.y,layerz.y) );
-
-    return ClientToWindowSize( clientz );
-
-#else
-
     // size of m_LayerScrolledWindow --------------
     wxArrayInt widths = m_LayersFlexGridSizer->GetColWidths();
     int totWidth = 0;
@@ -608,20 +598,10 @@ wxSize LAYER_WIDGET::GetBestSize() const
     totWidth += 10;
 
 
-    wxArrayInt heights = m_LayersFlexGridSizer->GetRowHeights();
-    int totHeight = 0;
-    if( heights.GetCount() )
-    {
-        int rowCount = GetLayerRowCount();
-        for( int i=0; i<rowCount;  ++i )
-        {
-            totHeight += heights[i] + m_LayersFlexGridSizer->GetVGap();
-            // printf("heights[%d]:%d\n", i, heights[i] );
-        }
-        totHeight += 2 * heights[0]; // use 2 row heights to approximate tab height
-    }
-    else
-        totHeight += 20;        // not used except before adding rows.
+    /* The minimum height is a small size to properly force computation
+     * of the panel's scrollbars (otherwise it will assume it *has* all
+     * this space) */
+    unsigned totHeight = 32;
 
     wxSize layerz( totWidth, totHeight );
 
@@ -642,35 +622,14 @@ wxSize LAYER_WIDGET::GetBestSize() const
     // account for the parent's frame, this one has void space of 10 PLUS a border:
     totWidth += 20;
 
-
-    heights = m_RenderFlexGridSizer->GetRowHeights();
-    totHeight = 0;
-    if( heights.GetCount() )
-    {
-        int rowCount = GetRenderRowCount();
-        for( int i=0; i<rowCount && i<(int)heights.GetCount();  ++i )
-        {
-            totHeight += heights[i] + m_RenderFlexGridSizer->GetVGap();
-            // printf("heights[%d]:%d\n", i, heights[i] );
-        }
-        totHeight += 2 * heights[0]; // use 2 row heights to approximate tab height
-    }
-    else
-        totHeight += 20;    // not used except before adding rows
-
+    // For totHeight re-use the previous small one
     wxSize renderz( totWidth, totHeight );
 
     renderz += m_RenderingPanel->GetWindowBorderSize();
 
     wxSize clientz( std::max(renderz.x,layerz.x), std::max(renderz.y,layerz.y) );
 
-//    wxSize diffz( GetSize() - GetClientSize() );
-//    clientz += diffz;
-
     return clientz;
-
-#endif
-
 }
 
 
@@ -767,7 +726,7 @@ void LAYER_WIDGET::SetLayerVisible( LAYER_NUM aLayer, bool isVisible )
     int row = findLayerRow( aLayer );
     if( row >= 0 )
     {
-        wxCheckBox* cb = (wxCheckBox*) getLayerComp( row, 3 );
+        wxCheckBox* cb = (wxCheckBox*) getLayerComp( row, COLUMN_COLOR_LYR_CB );
         wxASSERT( cb );
         cb->SetValue( isVisible );      // does not fire an event
     }
@@ -779,7 +738,7 @@ bool LAYER_WIDGET::IsLayerVisible( LAYER_NUM aLayer )
     int row = findLayerRow( aLayer );
     if( row >= 0 )
     {
-        wxCheckBox* cb = (wxCheckBox*) getLayerComp( row, 3 );
+        wxCheckBox* cb = (wxCheckBox*) getLayerComp( row, COLUMN_COLOR_LYR_CB );
         wxASSERT( cb );
         return cb->GetValue();
     }
@@ -852,6 +811,8 @@ void LAYER_WIDGET::UpdateLayouts()
 {
     m_LayersFlexGridSizer->Layout();
     m_RenderFlexGridSizer->Layout();
+    m_LayerPanel->Layout();
+    m_RenderingPanel->Layout();
     FitInside();
 }
 
