@@ -71,23 +71,22 @@ void CVPCB_MAINFRAME::SetNewPkg( const wxString& aFootprintName )
     COMPONENT* component;
     bool       hasFootprint = false;
     int        componentIndex;
-    wxString   description;
 
     if( m_netlist.IsEmpty() )
         return;
 
     // If no component is selected, select the first one
-    if( m_ListCmp->GetFirstSelected() < 0 )
+    if( m_compListBox->GetFirstSelected() < 0 )
     {
         componentIndex = 0;
-        m_ListCmp->SetSelection( componentIndex, true );
+        m_compListBox->SetSelection( componentIndex, true );
     }
 
     // iterate over the selection
-    while( m_ListCmp->GetFirstSelected() != -1 )
+    while( m_compListBox->GetFirstSelected() != -1 )
     {
         // Get the component for the current iteration
-        componentIndex = m_ListCmp->GetFirstSelected();
+        componentIndex = m_compListBox->GetFirstSelected();
         component = m_netlist.GetComponent( componentIndex );
 
         if( component == NULL )
@@ -110,12 +109,12 @@ void CVPCB_MAINFRAME::SetNewPkg( const wxString& aFootprintName )
         // create the new component description
 
 #if defined(KICAD_GOST)
-        description.Printf( CMP_FORMAT, componentIndex + 1,
+        wxString   description = wxString::Format( CMP_FORMAT, componentIndex + 1,
                             GetChars( component->GetReference() ),
                             GetChars( FormFullString( component ) ),
                             GetChars( FROM_UTF8( component->GetFPID().Format().c_str() ) ) );
 #else
-        description.Printf( CMP_FORMAT, componentIndex + 1,
+        wxString   description = wxString::Format( CMP_FORMAT, componentIndex + 1,
                             GetChars( component->GetReference() ),
                             GetChars( component->GetValue() ),
                             GetChars( FROM_UTF8( component->GetFPID().Format().c_str() ) ) );
@@ -131,18 +130,18 @@ void CVPCB_MAINFRAME::SetNewPkg( const wxString& aFootprintName )
         }
 
         // Set the new description and deselect the processed component
-        m_ListCmp->SetString( componentIndex, description );
-        m_ListCmp->SetSelection( componentIndex, false );
+        m_compListBox->SetString( componentIndex, description );
+        m_compListBox->SetSelection( componentIndex, false );
     }
 
     // Mark this "session" as modified
     m_modified = true;
 
     // select the next component, if there is one
-    if( componentIndex < (m_ListCmp->GetCount() - 1) )
+    if( componentIndex < (m_compListBox->GetCount() - 1) )
         componentIndex++;
 
-    m_ListCmp->SetSelection( componentIndex, true );
+    m_compListBox->SetSelection( componentIndex, true );
 
     // update the statusbar
     DisplayStatus();
@@ -195,7 +194,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
 
     ReadSchematicNetlist();
 
-    if( m_ListCmp == NULL )
+    if( m_compListBox == NULL )
         return false;
 
     LoadProjectFile( m_NetlistFileName.GetFullPath() );
@@ -204,7 +203,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
     BuildFOOTPRINTS_LISTBOX();
     BuildLIBRARY_LISTBOX();
 
-    m_ListCmp->Clear();
+    m_compListBox->Clear();
     m_undefinedComponentCnt = 0;
 
     if( m_netlist.AnyFootprintsLinked() )
@@ -325,18 +324,18 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
         COMPONENT* component = m_netlist.GetComponent( i );
 
 #if defined(KICAD_GOST)
-        msg.Printf( CMP_FORMAT, m_ListCmp->GetCount() + 1,
+        msg.Printf( CMP_FORMAT, m_compListBox->GetCount() + 1,
                     GetChars( component->GetReference() ),
                     GetChars( FormFullString( component ) ),
                     GetChars( FROM_UTF8( component->GetFPID().Format().c_str() ) ) );
 #else
-        msg.Printf( CMP_FORMAT, m_ListCmp->GetCount() + 1,
+        msg.Printf( CMP_FORMAT, m_compListBox->GetCount() + 1,
                     GetChars( component->GetReference() ),
                     GetChars( component->GetValue() ),
                     GetChars( FROM_UTF8( component->GetFPID().Format().c_str() ) ) );
 #endif
 
-        m_ListCmp->AppendLine( msg );
+        m_compListBox->AppendLine( msg );
 
         if( component->GetFPID().empty() )
         {
@@ -346,7 +345,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
     }
 
     if( !m_netlist.IsEmpty() )
-        m_ListCmp->SetSelection( 0, true );
+        m_compListBox->SetSelection( 0, true );
 
     DisplayStatus();
 
