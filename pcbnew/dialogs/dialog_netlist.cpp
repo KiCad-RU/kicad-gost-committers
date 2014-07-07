@@ -27,7 +27,6 @@
  */
 
 #include <fctsys.h>
-//#include <pgm_base.h>
 #include <project.h>
 #include <kiface_i.h>
 #include <confirm.h>
@@ -433,11 +432,17 @@ bool DIALOG_NETLIST::verifyFootprints( const wxString&         aNetlistFilename,
         return false;
     }
 
-
 #if defined( DEBUG )
-    m_MessageWindow->Clear();
-    WX_TEXT_CTRL_REPORTER rpt( m_MessageWindow );
-    netlist.Show( 0, rpt );
+    {
+        m_MessageWindow->Clear();
+        WX_TEXT_CTRL_REPORTER rpt( m_MessageWindow );
+
+        STRING_FORMATTER sf;
+
+        netlist.Format( "netlist_stuff", &sf, 0 );
+
+        rpt.Report( FROM_UTF8( sf.GetString().c_str() ) );
+    }
 #endif
 
     BOARD* pcb = m_parent->GetBoard();
