@@ -41,7 +41,6 @@
 #include <wildcards_and_files_ext.h>
 #include <menus_helpers.h>
 
-#define USE_KIFACE              1
 
 #define TreeFrameWidthEntry     wxT( "LeftWinWidth" )
 
@@ -126,6 +125,57 @@ wxConfigBase* KICAD_MANAGER_FRAME::config()
 }
 
 
+void KICAD_MANAGER_FRAME::SetProjectFileName( const wxString& aFullProjectProFileName )
+{
+    m_project_file_name = aFullProjectProFileName;
+
+    wxASSERT( wxFileName( m_project_file_name ).IsAbsolute() ||
+              wxFileName( m_project_file_name ).GetName() == NAMELESS_PROJECT  wxT( ".pro" ) );
+}
+
+
+const wxString KICAD_MANAGER_FRAME::GetProjectFileName()
+{
+    return m_project_file_name;
+}
+
+
+const wxString KICAD_MANAGER_FRAME::SchFileName()
+{
+   wxFileName   fn( GetProjectFileName() );
+
+   fn.SetExt( SchematicFileExtension );
+
+   return fn.GetFullName();
+}
+
+
+const wxString KICAD_MANAGER_FRAME::PcbFileName()
+{
+   wxFileName   fn( GetProjectFileName() );
+
+   fn.SetExt( PcbFileExtension );
+
+   return fn.GetFullName();
+}
+
+
+const wxString KICAD_MANAGER_FRAME::PcbLegacyFileName()
+{
+   wxFileName   fn( GetProjectFileName() );
+
+   fn.SetExt( LegacyPcbFileExtension );
+
+   return fn.GetFullName();
+}
+
+
+void KICAD_MANAGER_FRAME::ReCreateTreePrj()
+{
+    m_LeftWin->ReCreateTreePrj();
+}
+
+
 const SEARCH_STACK& KICAD_MANAGER_FRAME::sys_search()
 {
     return Pgm().SysSearch();
@@ -159,7 +209,7 @@ void KICAD_MANAGER_FRAME::OnCloseWindow( wxCloseEvent& Event )
     {
         int px, py;
 
-        UpdateFileHistory( m_ProjectFileName.GetFullPath(), &Pgm().GetFileHistory() );
+        UpdateFileHistory( GetProjectFileName(), &Pgm().GetFileHistory() );
 
         if( !IsIconized() )   // save main frame position and size
         {
@@ -199,11 +249,14 @@ void KICAD_MANAGER_FRAME::TERMINATE_HANDLER::OnTerminate( int pid, int status )
 
 
 void KICAD_MANAGER_FRAME::Execute( wxWindow* frame, const wxString& execFile,
-                                   const wxString& param )
+                                   wxString params )
 {
+    if( params.size() )
+        AddDelimiterString( params );
+
     TERMINATE_HANDLER* callback = new TERMINATE_HANDLER( execFile );
 
-    long pid = ExecuteFile( frame, execFile, param, callback );
+    long pid = ExecuteFile( frame, execFile, params, callback );
 
     if( pid > 0 )
     {
@@ -216,6 +269,54 @@ void KICAD_MANAGER_FRAME::Execute( wxWindow* frame, const wxString& execFile,
     {
         delete callback;
     }
+}
+
+
+void KICAD_MANAGER_FRAME::RunEeschema( const wxString& aProjectSchematicFileName )
+{
+    KIWAY_PLAYER* frame = Kiway.Player( FRAME_SCH, false );
+    if( !frame )
+    {
+        frame = Kiway.Player( FRAME_SCH, true );
+        frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectSchematicFileName ) );
+        frame->Show( true );
+    }
+    frame->Raise();
+}
+
+
+void KICAD_MANAGER_FRAME::OnRunEeschema( wxCommandEvent& event )
+{
+    wxFileName fn( m_project_file_name );
+
+    fn.SetExt( SchematicFileExtension );
+
+    RunEeschema( fn.GetFullPath() );
+}
+
+
+void KICAD_MANAGER_FRAME::RunPcbNew( const wxString& aProjectBoardFileName )
+{
+    KIWAY_PLAYER* frame = Kiway.Player( FRAME_PCB, false );
+    if( !frame )
+    {
+        frame = Kiway.Player( FRAME_PCB, true );
+        frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectBoardFileName ) );
+        frame->Show( true );
+    }
+    frame->Raise();
+}
+
+
+void KICAD_MANAGER_FRAME::OnRunPcbNew( wxCommandEvent& event )
+{
+    wxFileName  kicad_board( PcbFileName() );
+    wxFileName  legacy_board( PcbLegacyFileName() );
+
+    wxFileName& board = ( !legacy_board.FileExists() || kicad_board.FileExists() ) ?
+                            kicad_board : legacy_board;
+
+    RunPcbNew( board.GetFullPath() );
 }
 
 
@@ -236,39 +337,12 @@ void KICAD_MANAGER_FRAME::OnRunPageLayoutEditor( wxCommandEvent& event )
 }
 
 
-void KICAD_MANAGER_FRAME::OnRunPcbNew( wxCommandEvent& event )
-{
-    wxFileName  legacy_board( m_ProjectFileName );
-    wxFileName  kicad_board( m_ProjectFileName );
-
-    legacy_board.SetExt( LegacyPcbFileExtension );
-    kicad_board.SetExt( KiCadPcbFileExtension );
-
-    wxFileName& board = ( !legacy_board.FileExists() || kicad_board.FileExists() ) ?
-                            kicad_board : legacy_board;
-
-#if USE_KIFACE
-    KIWAY_PLAYER* frame = Kiway.Player( FRAME_PCB, false );
-    if( !frame )
-    {
-        frame = Kiway.Player( FRAME_PCB, true );
-        frame->OpenProjectFiles( std::vector<wxString>( 1, board.GetFullPath() ) );
-        frame->Show( true );
-    }
-    frame->Raise();
-#else
-    Execute( this, PCBNEW_EXE, QuoteFullPath( board ) );
-#endif
-}
-
-
 void KICAD_MANAGER_FRAME::OnRunCvpcb( wxCommandEvent& event )
 {
-    wxFileName fn( m_ProjectFileName );
+    wxFileName fn( m_project_file_name );
 
     fn.SetExt( NetlistFileExtension );
 
-#if USE_KIFACE
     KIWAY_PLAYER* frame = Kiway.Player( FRAME_CVPCB, false );
     if( !frame )
     {
@@ -277,41 +351,14 @@ void KICAD_MANAGER_FRAME::OnRunCvpcb( wxCommandEvent& event )
         frame->Show( true );
     }
     frame->Raise();
-#else
-    Execute( this, CVPCB_EXE, QuoteFullPath( fn ) );
-#endif
 }
 
-
-void KICAD_MANAGER_FRAME::OnRunEeschema( wxCommandEvent& event )
-{
-    wxFileName fn( m_ProjectFileName );
-
-    fn.SetExt( SchematicFileExtension );
-
-#if USE_KIFACE
-    KIWAY_PLAYER* frame = Kiway.Player( FRAME_SCH, false );
-    if( !frame )
-    {
-        frame = Kiway.Player( FRAME_SCH, true );
-        frame->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
-        frame->Show( true );
-    }
-    frame->Raise();
-#else
-    Execute( this, EESCHEMA_EXE, QuoteFullPath( fn ) );
-#endif
-}
 
 void KICAD_MANAGER_FRAME::OnRunGerbview( wxCommandEvent& event )
 {
     // Gerbview is called without any file to open, because we do not know
     // the list and the name of files to open (if any...).
-#if USE_KIFACE && 0
-
-#else
     Execute( this, GERBVIEW_EXE, wxEmptyString );
-#endif
 }
 
 
@@ -392,7 +439,7 @@ void KICAD_MANAGER_FRAME::PrintPrjInfo()
     wxString msg = wxString::Format( _(
             "Working dir: %s\nProject: %s\n" ),
             GetChars( wxGetCwd() ),
-            GetChars( m_ProjectFileName.GetFullPath() )
+            GetChars( GetProjectFileName() )
             );
     PrintMsg( msg );
 }

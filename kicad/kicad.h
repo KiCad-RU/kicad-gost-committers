@@ -120,28 +120,6 @@ enum id_kicad_frm {
  */
 class KICAD_MANAGER_FRAME : public EDA_BASE_FRAME
 {
-protected:
-    wxConfigBase*       config();       // override EDA_BASE_FRAME virtual
-
-    const SEARCH_STACK& sys_search();   // override EDA_BASE_FRAME virtual
-
-    wxString help_name();               // override EDA_BASE_FRAME virtual
-
-
-public:
-    TREE_PROJECT_FRAME* m_LeftWin;
-    LAUNCHER_PANEL*     m_Launcher;
-    wxTextCtrl*         m_MessagesBox;
-    wxAuiToolBar*       m_VToolBar;  // Vertical toolbar (not used)
-    wxString            m_BoardFileName;
-    wxString            m_SchematicRootFileName;
-    wxFileName          m_ProjectFileName;
-
-private:
-    int m_leftWinWidth;
-
-    void language_change( wxCommandEvent& event );
-
 public:
     KICAD_MANAGER_FRAME( wxWindow* parent, const wxString& title,
                              const wxPoint& pos, const wxSize& size );
@@ -211,7 +189,7 @@ public:
     void OnUpdateDefaultPdfBrowser( wxUpdateUIEvent& event );
     void OnUpdatePreferredPdfBrowser( wxUpdateUIEvent& event );
 
-    void CreateNewProject( const wxString aPrjFullFileName, bool aTemplateSelector );
+    void CreateNewProject( const wxString& aPrjFullFileName, bool aTemplateSelector );
 
     void LoadSettings( wxConfigBase* aCfg );
 
@@ -225,7 +203,7 @@ public:
      * @param param = parameters to be passed to the executable.
      */
     void Execute( wxWindow* frame, const wxString& execFile,
-                  const wxString& param = wxEmptyString );
+                  wxString param = wxEmptyString );
 
     class TERMINATE_HANDLER : public wxProcess
     {
@@ -249,7 +227,43 @@ public:
     void OnChangeWatchedPaths(wxCommandEvent& aEvent );
 #endif
 
+    void SetProjectFileName( const wxString& aFullProjectProFileName );
+    const wxString GetProjectFileName();
+
+    // read only accessors
+    const wxString SchFileName();
+    const wxString PcbFileName();
+    const wxString PcbLegacyFileName();
+
+    void ReCreateTreePrj();
+
+    /// Call this only for a PCB associated with the current project.  That is,
+    /// it must have the same path and name as the project *.pro file.
+    void RunPcbNew( const wxString& aProjectBoardFileName );
+
+    /// Call this only for a SCH associated with the current project.  That is,
+    /// it must have the same path and name as the project *.pro file.
+    void RunEeschema( const wxString& aProjectSchematicFileName );
+
     DECLARE_EVENT_TABLE()
+
+private:
+
+    wxConfigBase*       config();       // override EDA_BASE_FRAME virtual
+
+    const SEARCH_STACK& sys_search();   // override EDA_BASE_FRAME virtual
+
+    wxString help_name();               // override EDA_BASE_FRAME virtual
+
+    TREE_PROJECT_FRAME* m_LeftWin;
+    LAUNCHER_PANEL*     m_Launcher;
+    wxTextCtrl*         m_MessagesBox;
+    wxAuiToolBar*       m_VToolBar;             // Vertical toolbar (not used)
+    wxString            m_project_file_name;
+
+    int m_leftWinWidth;
+
+    void language_change( wxCommandEvent& event );
 };
 
 

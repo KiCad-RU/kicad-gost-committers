@@ -158,15 +158,15 @@ bool PGM_KICAD::OnPgmInit( wxApp* aWxApp )
     bool prjloaded = false;    // true when the project is loaded
 
     if( App().argc > 1 )
-        frame->m_ProjectFileName = App().argv[1];
+        frame->SetProjectFileName( App().argv[1] );
 
     else if( GetFileHistory().GetCount() )
     {
         // Try to open the last opened project,
         // if a project name is not given when starting Kicad
-        frame->m_ProjectFileName = GetFileHistory().GetHistoryFile( 0 );
+        frame->SetProjectFileName( GetFileHistory().GetHistoryFile( 0 ) );
 
-        if( !frame->m_ProjectFileName.FileExists() )
+        if( !wxFileExists( frame->GetProjectFileName() ) )
             GetFileHistory().RemoveFileFromHistory( 0 );
         else
         {
@@ -177,12 +177,12 @@ bool PGM_KICAD::OnPgmInit( wxApp* aWxApp )
         }
     }
 
-    if( !frame->m_ProjectFileName.FileExists() )
+    if( !wxFileExists( frame->GetProjectFileName() ) )
     {
         wxFileName namelessProject( wxGetCwd(), NAMELESS_PROJECT,
                                     ProjectFileExtension );
 
-        frame->m_ProjectFileName = namelessProject;
+        frame->SetProjectFileName( namelessProject.GetFullPath() );
     }
 
     if( !prjloaded )
@@ -214,36 +214,17 @@ void PGM_KICAD::OnPgmExit()
 
 void PGM_KICAD::MacOpenFile( const wxString& aFileName )
 {
-#if 0   // I'm tired, need a rest.
+#if defined(__WXMAC__)
 
-    KICAD_MANAGER_FRAME* frame = (KICAD_MANAGER_FRAME*) GetTopWindow();
+    KICAD_MANAGER_FRAME* frame = (KICAD_MANAGER_FRAME*) App().GetTopWindow();
 
-    wxFileName fn = aFileName;
-
-    frame->m_ProjectFileName = fn;
-
-    if( !frame->m_ProjectFileName.FileExists() && m_fileHistory.GetCount() )
-    {
-        m_fileHistory.RemoveFileFromHistory( 0 );
-        return;
-    }
+    frame->SetProjectFileName( aFileName );
 
     wxCommandEvent loadEvent;
+
     loadEvent.SetId( wxID_ANY );
 
     frame->OnLoadProject( loadEvent );
-
-    wxString title = GetTitle() + wxT( " " ) + GetBuildVersion() +
-                     wxT( " " ) + frame->m_ProjectFileName.GetFullPath();
-
-    if( !fn.IsDirWritable() )
-        title += _( " [Read Only]" );
-
-    frame->SetTitle( title );
-
-    frame->m_LeftWin->ReCreateTreePrj();
-
-    frame->PrintPrjInfo();
 #endif
 }
 
