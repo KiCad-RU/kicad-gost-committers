@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2013 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2007-2014 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -250,6 +250,34 @@ void COMPONENT_DB::AddNewVariant( int aVariant )
     SortCByteArray( &m_variantIndexes );
 }
 
+bool COMPONENT_DB::ValidateKiCadCompRefs()
+{
+    SCH_SHEET_LIST  sheetList;
+    wxString        str;
+
+    sheetList.GetComponents( m_cmplist, false );
+    m_cmplist.RemoveSubComponentsFromList();
+
+    unsigned int index = 0;
+
+    while( index < m_cmplist.GetCount() )
+    {
+        str = m_cmplist[index].GetRef();
+
+        if( str.Find( wxT( '?' ), true ) != wxNOT_FOUND )
+        {
+            wxMessageBox( _( "Unspecified component reference: " ) + str +
+                          _( "\n\nThe Component Manager does not support components with unspecified reference."
+                             "\n\nThe Component Manager is going to be closed." ), wxT( "" ), wxICON_ERROR);
+
+            return false;
+        }
+
+        index++;
+    }
+
+    return true;
+}
 
 void COMPONENT_DB::ValidateKiCadAttrs()
 {

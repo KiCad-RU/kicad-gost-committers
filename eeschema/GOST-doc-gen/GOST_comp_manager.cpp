@@ -63,6 +63,12 @@ GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
                               wxLIST_FORMAT_LEFT,
                               listClientSize.GetWidth() * 1/4 );
 
+    if( !m_componentDB->ValidateKiCadCompRefs() )
+    {
+        Destroy();
+        return;
+    }
+
     m_componentDB->ValidateKiCadAttrs();
     m_componentDB->LoadFromKiCad();
 
@@ -972,6 +978,13 @@ void GOST_COMP_MANAGER::OnActivate( wxActivateEvent& event )
         //printf("focus reacquired\n");
         if( !m_ignoreLostFocus_flag )
         {
+            if( !m_componentDB->ValidateKiCadCompRefs() )
+            {
+                    event.Skip();
+                    Destroy();
+                    return;
+            }
+
             if( !m_componentDB->CompareDB() )
             {
                 delete m_componentDB;
