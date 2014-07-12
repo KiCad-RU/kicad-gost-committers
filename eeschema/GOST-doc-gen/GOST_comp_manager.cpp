@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2013 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2007-2014 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -30,7 +30,6 @@
 
 #include <GOST_comp_manager.h>
 #include <component_db.h>
-#include <pgm_base.h>
 
 using namespace GOST_DOC_GEN;
 
@@ -169,16 +168,13 @@ void GOST_COMP_MANAGER::FormCheckListBoxContent( int aDBitem )
     m_onItemChangedCheckListCtrlLock = false;
 }
 
-void sch_highlight_part( const wxString part_ref )
+void GOST_COMP_MANAGER::SchHighlightPart( const wxString part_ref )
 {
 #ifdef GOSTDOC_IS_STANDALONE_APP
-    char      cmd[1024];
-    sprintf( cmd, "$PART: \"%s\"", TO_UTF8( pComponent->m_RefDes ) );
-    SendCommand( MSG_TO_SCH, cmd );
+    std::string packet = StrPrintf( "$PART: \"%s\"", TO_UTF8( part_ref ) );
+    SendCommand( MSG_TO_SCH, packet.c_str() );
 #else
-    SCH_EDIT_FRAME* frame;
-    frame = (SCH_EDIT_FRAME*)Pgm().App().GetTopWindow();
-    frame->FindComponentAndItem( part_ref, true, FIND_COMPONENT_ONLY, wxEmptyString, false );
+    m_schEditFrame->FindComponentAndItem( part_ref, true, FIND_COMPONENT_ONLY, wxEmptyString, false );
 #endif
 }
 
@@ -203,9 +199,8 @@ void GOST_COMP_MANAGER::OnClickListCtrl( wxListEvent& event )
     pComponent = (COMPONENT *)m_componentDB->m_AllComponents[item];
 
     // point the cursor in EESchema to the selected component
-    if(pComponent){
-        sch_highlight_part( pComponent->m_RefDes );
-    }
+    if( pComponent )
+        SchHighlightPart( pComponent->m_RefDes );
 
     // point the cursor in Pcbnew to the selected component
     // commented because hangs up under Ununtu 10.04 (wxWidgets 2.8.10 Unicode)

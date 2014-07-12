@@ -1,6 +1,6 @@
 /* This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2013 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2007-2014 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -83,6 +83,7 @@ private:
     void OnSize( wxSizeEvent & event );
 
     void DisableComboBoxes();
+    void SchHighlightPart( const wxString part_ref );
     void FormCheckListBoxContent( int aDBitem );
     void FormFullListString( int aItem, int aList_str_ind, bool aNew_string );
     void FormConstPartString( int aItem, int aList_str_ind, bool aNew_string );
