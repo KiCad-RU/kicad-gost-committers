@@ -37,16 +37,10 @@
 #include <class_drawpanel.h>
 #include <confirm.h>
 #include <base_units.h>
-#ifdef PCBNEW
-    #include <wxBasePcbFrame.h>
-    #include <class_board.h>
-    #include <pcbnew.h>
-#else
-    #include <wxstruct.h>
-    #include <class_base_screen.h>
-    #include <layers_id_colors_and_visibility.h>
-    #include <gerbview_frame.h>
-#endif
+#include <wxBasePcbFrame.h>
+#include <class_board.h>
+#include <pcbnew.h>
+
 #include <printout_controler.h>
 
 
@@ -89,7 +83,6 @@ BOARD_PRINTOUT_CONTROLLER::BOARD_PRINTOUT_CONTROLLER( const PRINT_PARAMETERS& aP
 
 bool BOARD_PRINTOUT_CONTROLLER::OnPrintPage( int aPage )
 {
-#ifdef PCBNEW
     LSET lset = m_PrintParams.m_PrintMaskLayer;
 
     // compute layer mask from page number if we want one page per layer
@@ -115,11 +108,6 @@ bool BOARD_PRINTOUT_CONTROLLER::OnPrintPage( int aPage )
     DrawPage();
 
     m_PrintParams.m_PrintMaskLayer = lset;
-#else   // GERBVIEW
-    // in gerbview, draw layers are printed on separate pages
-    m_PrintParams.m_Flags = aPage-1;    // = gerber draw layer id
-    DrawPage();
-#endif
 
     return true;
 }
@@ -154,16 +142,9 @@ void BOARD_PRINTOUT_CONTROLLER::DrawPage()
 
     wxBusyCursor  dummy;
 
-#if defined (PCBNEW)
     BOARD * brd = ((PCB_BASE_FRAME*) m_Parent)->GetBoard();
     boardBoundingBox = brd->ComputeBoundingBox();
     wxString titleblockFilename = brd->GetFileName();
-#elif defined (GERBVIEW)
-    boardBoundingBox = ((GERBVIEW_FRAME*) m_Parent)->GetGerberLayoutBoundingBox();
-    wxString titleblockFilename;    // TODO see if we uses the gerber file name
-#else
-    #error BOARD_PRINTOUT_CONTROLLER::DrawPage() works only for PCBNEW or GERBVIEW
-#endif
 
     // Use the page size as the drawing area when the board is shown or the user scale
     // is less than 1.
@@ -362,12 +343,6 @@ void BOARD_PRINTOUT_CONTROLLER::DrawPage()
         GRForceBlackPen( true );
 
 
-#if defined (GERBVIEW)
-    // In B&W mode, do not force black pen for Gerbview
-    // because negative objects need a white pen, not a black pen
-    // B&W mode is handled in print page
-    GRForceBlackPen( false );
-#endif
     m_Parent->PrintPage( dc, m_PrintParams.m_PrintMaskLayer, printMirror,
                          &m_PrintParams );
 
