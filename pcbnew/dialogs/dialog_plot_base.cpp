@@ -230,7 +230,7 @@ DIALOG_PLOT_BASE::DIALOG_PLOT_BASE( wxWindow* parent, wxWindowID id, const wxStr
 	bSizerGbrOpt->Add( m_useGerberExtensions, 0, wxALL, 2 );
 	
 	m_useGerberAttributes = new wxCheckBox( this, wxID_ANY, _("Include extended attributes"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_useGerberAttributes->SetToolTip( _("Include extended attributes for non-image data in the Gerber file") );
+	m_useGerberAttributes->SetToolTip( _("Include extended attributes (X2 Gerber files format) in the Gerber file") );
 	
 	bSizerGbrOpt->Add( m_useGerberAttributes, 0, wxALL, 2 );
 	
@@ -245,8 +245,8 @@ DIALOG_PLOT_BASE::DIALOG_PLOT_BASE( wxWindow* parent, wxWindowID id, const wxStr
 	wxString m_rbGerberFormatChoices[] = { _("4.5 (unit  mm)"), _("4.6 (unit mm)") };
 	int m_rbGerberFormatNChoices = sizeof( m_rbGerberFormatChoices ) / sizeof( wxString );
 	m_rbGerberFormat = new wxRadioBox( this, wxID_ANY, _("Format"), wxDefaultPosition, wxDefaultSize, m_rbGerberFormatNChoices, m_rbGerberFormatChoices, 1, wxRA_SPECIFY_COLS );
-	m_rbGerberFormat->SetSelection( 1 );
-	m_rbGerberFormat->SetToolTip( _("Precision of coordinates in Gerber files/\nUse the highter value if possible.") );
+	m_rbGerberFormat->SetSelection( 0 );
+	m_rbGerberFormat->SetToolTip( _("Precision of coordinates in Gerber files.\nUse the highter value if possible.") );
 	
 	m_GerberOptionsSizer->Add( m_rbGerberFormat, 1, wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	

@@ -336,6 +336,11 @@ void PCB_PAINTER::draw( const VIA* aVia, int aLayer )
     VECTOR2D center( aVia->GetStart() );
     double   radius;
 
+    // Only draw the via if at least one of the layers it crosses is being displayed
+    BOARD*  brd =  aVia->GetBoard( );
+    if( !( brd->GetVisibleLayers() & aVia->GetLayerSet() ).any() )
+        return;
+
     // Choose drawing settings depending on if we are drawing via's pad or hole
     if( aLayer == ITEM_GAL_LAYER( VIA_THROUGH_VISIBLE ) )
     {
@@ -521,11 +526,11 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
     else if( aLayer == F_Paste || aLayer == B_Paste )
     {
         // Drawing solderpaste
-        int solderpasteMargin = aPad->GetLocalSolderPasteMargin();
+        wxSize solderpasteMargin = aPad->GetSolderPasteMargin();
 
         m_gal->Translate( VECTOR2D( aPad->GetOffset() ) );
-        size  = VECTOR2D( aPad->GetSize().x / 2.0 + solderpasteMargin,
-                          aPad->GetSize().y / 2.0 + solderpasteMargin );
+        size  = VECTOR2D( aPad->GetSize().x / 2.0 + solderpasteMargin.x,
+                          aPad->GetSize().y / 2.0 + solderpasteMargin.y );
         shape = aPad->GetShape();
     }
     else
