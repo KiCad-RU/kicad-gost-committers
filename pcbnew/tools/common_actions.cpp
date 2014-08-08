@@ -109,6 +109,18 @@ TOOL_ACTION COMMON_ACTIONS::setAnchor( "pcbnew.InteractiveDrawing.setAnchor",
         "Place the footprint anchor", "Place the footprint anchor",
         AF_ACTIVATE );
 
+TOOL_ACTION COMMON_ACTIONS::incWidth( "pcbnew.InteractiveDrawing.incWidth",
+        AS_CONTEXT, '+',
+        "Increase the line width", "Increase the line width" );
+
+TOOL_ACTION COMMON_ACTIONS::decWidth( "pcbnew.InteractiveDrawing.decWidth",
+        AS_CONTEXT, '-',
+        "Decrease the line width", "Decrease the line width" );
+
+TOOL_ACTION COMMON_ACTIONS::arcPosture( "pcbnew.InteractiveDrawing.arcPosture",
+        AS_CONTEXT, '/',
+        "Switch the arc posture", "Switch the arc posture" );
+
 
 // View Controls
 TOOL_ACTION COMMON_ACTIONS::zoomIn( "pcbnew.Control.zoomIn",
@@ -314,7 +326,7 @@ TOOL_ACTION COMMON_ACTIONS::moduleTextOutlines( "pcbnew.ModuleEditor.textOutline
 
 // Miscellaneous
 TOOL_ACTION COMMON_ACTIONS::selectionTool( "pcbnew.Control.selectionTool",
-        AS_GLOBAL, ' ',
+        AS_GLOBAL, 0,
         "", "", AF_ACTIVATE );
 
 TOOL_ACTION COMMON_ACTIONS::resetCoords( "pcbnew.Control.resetCoords",

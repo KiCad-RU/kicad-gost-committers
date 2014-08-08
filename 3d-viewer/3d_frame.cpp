@@ -28,6 +28,7 @@
 #include <fctsys.h>
 #include <kiface_i.h>
 #include <pgm_base.h>
+#include <macros.h>
 
 #include <3d_viewer.h>
 #include <3d_canvas.h>
@@ -107,7 +108,70 @@ EDA_3D_FRAME::EDA_3D_FRAME( KIWAY* aKiway, PCB_BASE_FRAME* aParent,
     ReCreateMainToolbar();
 
     // Make a EDA_3D_CANVAS
-    int attrs[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
+    // Note: We try to use anti aliasing if the graphic card allows that,
+    // but only on wxWidgets >= 3.0.0 (this option does not exist on wxWidgets 2.8)
+    int attrs[] = { // This array should be 2*n+1
+                    // Sadly wxwidgets / glx < 13 allowed
+                    // a thing named "boolean attributes" that don't take a value.
+                    // (See src/unix/glx11.cpp -> wxGLCanvasX11::ConvertWXAttrsToGL() ).
+                    // To avoid problems due to this, just specify those attributes twice.
+                    // Only WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_STEREO are such boolean
+                    // attributes.
+
+                    // Boolean attributes (using itself at padding):
+                    WX_GL_RGBA, WX_GL_RGBA,
+                    WX_GL_DOUBLEBUFFER, WX_GL_DOUBLEBUFFER,
+
+                    // Normal attributes with values:
+                    WX_GL_DEPTH_SIZE, 16,
+                    WX_GL_STENCIL_SIZE, 1,
+#if wxCHECK_VERSION( 3, 0, 0 )
+                    WX_GL_SAMPLE_BUFFERS, 1,    // Enable multisampling support (antialiasing).
+                    WX_GL_SAMPLES, 0,           // Disable AA for the start.
+#endif
+                    0 };                        // NULL termination
+
+
+#if wxCHECK_VERSION( 3, 0, 0 )
+
+    // Check if the canvas supports multisampling.
+    if( EDA_3D_CANVAS::IsDisplaySupported( attrs ) )
+    {
+        // Check for possible sample sizes, start form the top.
+        int maxSamples = 8; // Any higher doesn't change anything.
+        int samplesOffset = 0;
+
+        for( unsigned int ii = 0; ii < DIM( attrs ); ii += 2 )
+        {
+            if( attrs[ii] == WX_GL_SAMPLES )
+            {
+                samplesOffset = ii+1;
+                break;
+            }
+        }
+
+        attrs[samplesOffset] = maxSamples;
+
+        for( ; maxSamples > 0 && !EDA_3D_CANVAS::IsDisplaySupported( attrs );
+            maxSamples = maxSamples>>1 )
+        {
+            attrs[samplesOffset] = maxSamples;
+        }
+    }
+    else
+    {
+        // Disable multisampling
+        for( unsigned int ii = 0; ii < DIM( attrs ); ii += 2 )
+        {
+            if( attrs[ii] == WX_GL_SAMPLE_BUFFERS )
+            {
+                attrs[ii+1] = 0;
+                break;
+            }
+        }
+    }
+#endif
+
     m_canvas = new EDA_3D_CANVAS( this, attrs );
 
     m_auimgr.SetManagedWindow( this );
@@ -410,7 +474,7 @@ void EDA_3D_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_MENU3D_SOLDER_MASK_ONOFF:
         g_Parm_3D_Visu.SetFlag( FL_SOLDERMASK, isChecked );
-       NewDisplay(GL_ID_TECH_LAYERS);
+        NewDisplay(GL_ID_TECH_LAYERS);
         return;
 
     case ID_MENU3D_SOLDER_PASTE_ONOFF:
@@ -485,7 +549,7 @@ void EDA_3D_FRAME::On3DGridSelection( wxCommandEvent& event )
 }
 
 
-void EDA_3D_FRAME::NewDisplay( GLuint aGlList )
+void EDA_3D_FRAME::NewDisplay( int aGlList )
 {
     m_reloadRequest = false;
 
@@ -521,15 +585,15 @@ void EDA_3D_FRAME::Set3DBgColor()
 
     newcolor = wxGetColourFromUser( this, oldcolor );
 
-    if( !newcolor.IsOk() )     // Happens on cancel dialog
+    if( !newcolor.IsOk() )     // Cancel command
         return;
 
     if( newcolor != oldcolor )
     {
-        g_Parm_3D_Visu.m_BgColor.m_Red = (double) newcolor.Red() / 255.0;
+        g_Parm_3D_Visu.m_BgColor.m_Red      = (double) newcolor.Red() / 255.0;
         g_Parm_3D_Visu.m_BgColor.m_Green    = (double) newcolor.Green() / 255.0;
         g_Parm_3D_Visu.m_BgColor.m_Blue     = (double) newcolor.Blue() / 255.0;
-        NewDisplay();
+        m_canvas->Redraw();
     }
 }
 

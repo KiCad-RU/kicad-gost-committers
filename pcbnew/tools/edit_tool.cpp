@@ -102,7 +102,6 @@ int EDIT_TOOL::Main( TOOL_EVENT& aEvent )
     PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
     controls->ShowCursor( true );
     controls->SetSnapping( true );
-    controls->SetAutoPan( true );
     controls->ForceCursorPosition( false );
 
     // Main loop: keep receiving events
@@ -159,14 +158,14 @@ int EDIT_TOOL::Main( TOOL_EVENT& aEvent )
             }
             else    // Prepare to start dragging
             {
-                if( m_selectionTool->CheckLock() )
+                if( m_selectionTool->CheckLock() || selection.Empty() )
                     break;
 
                 // Save items, so changes can be undone
                 editFrame->OnModify();
                 editFrame->SaveCopyInUndoList( selection.items, UR_CHANGED );
 
-                if( evt->Modifier( MD_CTRL ) )
+                if( selection.Size() == 1 )
                 {
                     // Set the current cursor position to the first dragged item origin, so the
                     // movement vector could be computed later
@@ -188,6 +187,7 @@ int EDIT_TOOL::Main( TOOL_EVENT& aEvent )
                                                          wxPoint( origin.x, origin.y );
                 }
 
+                controls->SetAutoPan( true );
                 m_dragging = true;
             }
 

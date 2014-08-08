@@ -940,7 +940,14 @@ void SCH_EDIT_FRAME::OnDragItem( wxCommandEvent& aEvent )
     SCH_SCREEN* screen = GetScreen();
     SCH_ITEM* item = screen->GetCurItem();
 
-    INSTALL_UNBUFFERED_DC( dc, m_canvas );
+    // The easiest way to handle a menu or a hot key drag command
+    // is to simulate a block drag command
+    //
+    // When a drag item is requested, some items use a BLOCK_DRAG_ITEM drag type
+    // an some items use a BLOCK_DRAG drag type  (mainly a junction)
+    // a BLOCK_DRAG collects all items in a block (here a 2x2 rect centered on the cursor)
+    // and BLOCK_DRAG_ITEM drag only the selected item
+    BLOCK_COMMAND_T dragType = BLOCK_DRAG_ITEM;
 
     if( item == NULL )
     {
@@ -958,6 +965,11 @@ void SCH_EDIT_FRAME::OnDragItem( wxCommandEvent& aEvent )
         // Exit if no item found at the current location or the item is already being edited.
         if( (item == NULL) || (item->GetFlags() != 0) )
             return;
+
+        // When a junction or a node is found, a BLOCK_DRAG is better
+        if( m_collectedItems.IsCorner() || m_collectedItems.IsNode( false )
+            || m_collectedItems.IsDraggableJunction() )
+            dragType = BLOCK_DRAG;
     }
 
     switch( item->Type() )
@@ -966,10 +978,6 @@ void SCH_EDIT_FRAME::OnDragItem( wxCommandEvent& aEvent )
     case SCH_BUS_WIRE_ENTRY_T:
     case SCH_LINE_T:
     case SCH_JUNCTION_T:
-        if( item->GetLayer() == LAYER_BUS )
-            break;
-
-        // Fall thru if item is not on bus layer.
     case SCH_COMPONENT_T:
     case SCH_LABEL_T:
     case SCH_GLOBAL_LABEL_T:
@@ -977,11 +985,11 @@ void SCH_EDIT_FRAME::OnDragItem( wxCommandEvent& aEvent )
     case SCH_SHEET_T:
         m_canvas->MoveCursorToCrossHair();
 
-        // The easiest way to handle a drag component or sheet command
-        // is to simulate a block drag command
         if( screen->m_BlockLocate.GetState() == STATE_NO_BLOCK )
         {
-            if( !HandleBlockBegin( &dc, BLOCK_DRAG, GetCrossHairPosition() ) )
+            INSTALL_UNBUFFERED_DC( dc, m_canvas );
+
+            if( !HandleBlockBegin( &dc, dragType, GetCrossHairPosition() ) )
                 break;
 
             // Give a non null size to the search block:
