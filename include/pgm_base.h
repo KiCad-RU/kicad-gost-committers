@@ -38,7 +38,6 @@
 
 class wxConfigBase;
 class wxSingleInstanceChecker;
-class wxHtmlHelpController;
 class wxApp;
 class wxMenu;
 
@@ -85,8 +84,6 @@ public:
     virtual void MacOpenFile( const wxString& aFileName ) = 0;
 
     //----<Cross Module API>-----------------------------------------------------
-
-    VTBL_ENTRY wxHtmlHelpController* HtmlHelpController();
 
     VTBL_ENTRY wxConfigBase* CommonSettings() const                 { return m_common_settings; }
 
@@ -180,6 +177,12 @@ public:
     VTBL_ENTRY bool LockFile( const wxString& aFileName );
 
     /**
+     * Function ReleaseFile
+     * Release the current file marked in use.
+     */
+    VTBL_ENTRY void ReleaseFile();
+
+    /**
      * Function App
      * returns a bare naked wxApp, which may come from wxPython, SINGLE_TOP, or kicad.exe.
      * Use this function instead of wxGetApp().
@@ -208,8 +211,6 @@ protected:
      * @return bool - true if success, false if failure and program is to terminate.
      */
     bool initPgm();
-
-    void initHtmlHelpController();
 
     /**
      * Function loadCommonSettings
@@ -262,8 +263,6 @@ protected:
     wxString        m_pdf_browser;
     wxString        m_editor_name;
     wxSize          m_help_size;
-
-    wxHtmlHelpController*   m_html_ctrl;
 
     wxApp*          m_wx_app;
 

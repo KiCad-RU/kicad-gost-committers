@@ -263,7 +263,6 @@ PGM_BASE::PGM_BASE()
 {
     m_pgm_checker = NULL;
     m_file_checker = NULL;
-    m_html_ctrl = NULL;
     m_locale = NULL;
     m_common_settings = NULL;
 
@@ -296,16 +295,13 @@ void PGM_BASE::destroy()
 
     delete m_locale;
     m_locale = 0;
+}
 
-    /*
-    // Close the help frame
-    if( m_html_ctrl && m_html_ctrl->GetFrame() )    // returns NULL if no help frame active
-        m_html_ctrl->GetFrame()->Close( true );
-    }
-    */
-
-    delete m_html_ctrl;
-    m_html_ctrl = 0;
+void PGM_BASE::ReleaseFile()
+{
+    // Release the current file marked in use.
+    delete m_file_checker;
+    m_file_checker = 0;
 }
 
 
@@ -364,6 +360,8 @@ bool PGM_BASE::initPgm()
 {
     wxFileName pgm_name( App().argv[0] );
 
+    wxConfigBase::DontCreateOnDemand();
+
     wxInitAllImageHandlers();
 
     m_pgm_checker = new wxSingleInstanceChecker( pgm_name.GetName().Lower() + wxT( "-" ) + wxGetUserId() );
@@ -419,40 +417,6 @@ bool PGM_BASE::initPgm()
     SetLocaleTo_Default();
 
     return true;
-}
-
-
-void PGM_BASE::initHtmlHelpController()
-{
-#if defined ONLINE_HELP_FILES_FORMAT_IS_HTML
-
-    if( !m_html_ctrl )
-        m_html_ctrl = new wxHtmlHelpController(
-                            wxHF_TOOLBAR | wxHF_CONTENTS |
-                            wxHF_PRINT | wxHF_OPEN_FILES
-                            // | wxHF_SEARCH
-                            );
-
-    wxASSERT( m_html_ctrl );    // may not leave here as NULL
-
-#elif defined ONLINE_HELP_FILES_FORMAT_IS_PDF
-    m_html_ctrl = NULL;
-
-#else
-    #error Help files format not defined
-#endif
-}
-
-
-wxHtmlHelpController* PGM_BASE::HtmlHelpController()
-{
-    if( !m_html_ctrl )
-        initHtmlHelpController();
-
-    // there should not be calls to this unless ONLINE_HELP_FILES_FORMAT_IS_HTML is defined
-    wxASSERT( m_html_ctrl );
-
-    return m_html_ctrl;
 }
 
 
@@ -536,7 +500,9 @@ void PGM_BASE::saveCommonSettings()
     // process startup: initPgm(), so test before using:
     if( m_common_settings )
     {
-        m_common_settings->Write( workingDirKey, wxGetCwd() );
+        wxString cur_dir = wxGetCwd();
+
+        m_common_settings->Write( workingDirKey, cur_dir );
     }
 }
 

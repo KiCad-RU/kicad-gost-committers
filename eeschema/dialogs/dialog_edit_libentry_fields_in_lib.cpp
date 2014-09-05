@@ -54,7 +54,7 @@ static int s_SelectedRow;
 class DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB : public DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB_BASE
 {
 public:
-    DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB( LIB_EDIT_FRAME* aParent, LIB_COMPONENT* aLibEntry );
+    DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB( LIB_EDIT_FRAME* aParent, LIB_PART*      aLibEntry );
     //~DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB() {}
 
 private:
@@ -125,7 +125,7 @@ private:
     }
 
     LIB_EDIT_FRAME*    m_parent;
-    LIB_COMPONENT*     m_libEntry;
+    LIB_PART*          m_libEntry;
     bool               m_skipCopyFromPanel;
 
     /// a copy of the edited component's LIB_FIELDs
@@ -135,13 +135,17 @@ private:
 
 void LIB_EDIT_FRAME::InstallFieldsEditorDialog( wxCommandEvent& event )
 {
-    if( m_component == NULL )
+    if( !GetCurLib() )
         return;
 
     m_canvas->EndMouseCapture( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor() );
 
-    DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB dlg( this, m_component );
+    DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB dlg( this, GetCurPart() );
 
+    // This dialog itself subsequently can invoke a KIWAY_PLAYER as a quasimodal
+    // frame. Therefore this dialog as a modal frame parent, MUST be run under
+    // quasimodal mode for the quasimodal frame support to work.  So don't use
+    // the QUASIMODAL macros here.
     int abort = dlg.ShowQuasiModal();
 
     if( abort )
@@ -156,7 +160,7 @@ void LIB_EDIT_FRAME::InstallFieldsEditorDialog( wxCommandEvent& event )
 
 DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB(
     LIB_EDIT_FRAME* aParent,
-    LIB_COMPONENT*  aLibEntry ) :
+    LIB_PART*       aLibEntry ) :
     DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB_BASE( aParent )
 {
     m_parent   = aParent;

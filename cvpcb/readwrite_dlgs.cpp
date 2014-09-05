@@ -198,7 +198,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles()
     if( m_compListBox == NULL )
         return false;
 
-    LoadProjectFile( m_NetlistFileName.GetFullPath() );
+    LoadProjectFile();
     LoadFootprintFiles();
 
     BuildFOOTPRINTS_LISTBOX();

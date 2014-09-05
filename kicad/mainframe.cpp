@@ -149,7 +149,7 @@ const wxString KICAD_MANAGER_FRAME::SchFileName()
 
    fn.SetExt( SchematicFileExtension );
 
-   return fn.GetFullName();
+   return fn.GetFullPath();
 }
 
 
@@ -159,7 +159,7 @@ const wxString KICAD_MANAGER_FRAME::PcbFileName()
 
    fn.SetExt( PcbFileExtension );
 
-   return fn.GetFullName();
+   return fn.GetFullPath();
 }
 
 
@@ -169,7 +169,7 @@ const wxString KICAD_MANAGER_FRAME::PcbLegacyFileName()
 
    fn.SetExt( LegacyPcbFileExtension );
 
-   return fn.GetFullName();
+   return fn.GetFullPath();
 }
 
 
@@ -298,8 +298,22 @@ void KICAD_MANAGER_FRAME::OnRunEeschema( wxCommandEvent& event )
 }
 
 
+void KICAD_MANAGER_FRAME::OnRunSchLibEditor( wxCommandEvent& event )
+{
+    KIWAY_PLAYER* frame = Kiway.Player( FRAME_SCH_LIB_EDITOR, false );
+    if( !frame )
+    {
+        frame = Kiway.Player( FRAME_SCH_LIB_EDITOR, true );
+        // frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectSchematicFileName ) );
+        frame->Show( true );
+    }
+    frame->Raise();
+}
+
+
 void KICAD_MANAGER_FRAME::RunPcbNew( const wxString& aProjectBoardFileName )
 {
+#if 0   // line 171 of modview_frame.cpp breaks this code
     KIWAY_PLAYER* frame = Kiway.Player( FRAME_PCB, false );
     if( !frame )
     {
@@ -307,6 +321,16 @@ void KICAD_MANAGER_FRAME::RunPcbNew( const wxString& aProjectBoardFileName )
         frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectBoardFileName ) );
         frame->Show( true );
     }
+#else
+    KIWAY_PLAYER* frame = Kiway.Player( FRAME_PCB, true );
+
+    if( !frame->IsVisible() )
+    {
+        frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectBoardFileName ) );
+        frame->Show( true );
+    }
+
+#endif
     frame->Raise();
 }
 
@@ -320,6 +344,19 @@ void KICAD_MANAGER_FRAME::OnRunPcbNew( wxCommandEvent& event )
                             kicad_board : legacy_board;
 
     RunPcbNew( board.GetFullPath() );
+}
+
+
+void KICAD_MANAGER_FRAME::OnRunPcbFpEditor( wxCommandEvent& event )
+{
+    KIWAY_PLAYER* frame = Kiway.Player( FRAME_PCB_MODULE_EDITOR, false );
+    if( !frame )
+    {
+        frame = Kiway.Player( FRAME_PCB_MODULE_EDITOR, true );
+//        frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectBoardFileName ) );
+        frame->Show( true );
+    }
+    frame->Raise();
 }
 
 
@@ -383,7 +420,7 @@ void KICAD_MANAGER_FRAME::OnOpenFileInTextEditor( wxCommandEvent& event )
 #endif
 
     mask = _( "Text file (" ) + mask + wxT( ")|" ) + mask;
-    wxString default_dir = wxGetCwd();
+    wxString default_dir = wxFileName( Prj().GetProjectFullName() ).GetPathWithSep();
 
     wxFileDialog dlg( this, _( "Load File to Edit" ), default_dir,
                       wxEmptyString, mask, wxFD_OPEN );

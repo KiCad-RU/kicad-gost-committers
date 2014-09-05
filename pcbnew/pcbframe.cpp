@@ -35,7 +35,6 @@
 #include <class_drawpanel.h>
 #include <confirm.h>
 #include <wxPcbStruct.h>
-#include <pcbcommon.h>      // enum PCB_VISIBLE
 #include <collectors.h>
 #include <build_version.h>
 #include <macros.h>
@@ -193,7 +192,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_MENU_PCB_SHOW_DESIGN_RULES_DIALOG, PCB_EDIT_FRAME::ShowDesignRulesEditor )
 
     // Horizontal toolbar
-    EVT_TOOL( ID_TO_LIBRARY, PCB_EDIT_FRAME::Process_Special_Functions )
+    EVT_TOOL( ID_RUN_LIBRARY, PCB_EDIT_FRAME::Process_Special_Functions )
     EVT_TOOL( ID_SHEET_SET, EDA_DRAW_FRAME::Process_PageSettings )
     EVT_TOOL( wxID_CUT, PCB_EDIT_FRAME::Process_Special_Functions )
     EVT_TOOL( wxID_COPY, PCB_EDIT_FRAME::Process_Special_Functions )
@@ -309,8 +308,6 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_COMMAND( wxID_ANY, LAYER_WIDGET::EVT_LAYER_COLOR_CHANGE, PCB_EDIT_FRAME::OnLayerColorChange )
 END_EVENT_TABLE()
 
-
-///////****************************///////////:
 
 #define PCB_EDIT_FRAME_NAME wxT( "PcbFrame" )
 
@@ -476,6 +473,8 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_auimgr.Update();
 
     setupTools();
+
+    Zoom_Automatique( true );
 }
 
 
@@ -487,6 +486,8 @@ PCB_EDIT_FRAME::~PCB_EDIT_FRAME()
         m_Macros[i].m_Record.clear();
 
     delete m_drc;
+
+    Pgm().ReleaseFile();        // Release the lock on PCB file
 }
 
 
@@ -588,11 +589,14 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
 {
     m_canvas->SetAbortRequest( true );
 
-    if( GetScreen()->IsModify() && !GetBoard()->IsEmpty() )
+    if( GetScreen()->IsModify() )
     {
-        wxString msg;
-        msg.Printf( _("Save the changes in\n<%s>\nbefore closing?"),
-                    GetChars( GetBoard()->GetFileName() ) );
+        wxString msg = wxString::Format( _(
+                "Save the changes in\n"
+                "'%s'\n"
+                "before closing?" ),
+                GetChars( GetBoard()->GetFileName() )
+                );
 
         int ii = DisplayExitDialog( this, msg );
         switch( ii )
@@ -621,10 +625,10 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
     // Remove the auto save file on a normal close of Pcbnew.
     if( fn.FileExists() && !wxRemoveFile( fn.GetFullPath() ) )
     {
-        wxString msg;
-
-        msg.Printf( _( "The auto save file <%s> could not be removed!" ),
-                    GetChars( fn.GetFullPath() ) );
+        wxString msg = wxString::Format( _(
+                "The auto save file '%s' could not be removed!" ),
+                GetChars( fn.GetFullPath() )
+                );
 
         wxMessageBox( msg, Pgm().App().GetAppName(), wxOK | wxICON_ERROR, this );
     }
@@ -979,6 +983,7 @@ void PCB_EDIT_FRAME::UpdateTitle()
     SetTitle( title );
 }
 
+
 #if defined(KICAD_SCRIPTING_WXPYTHON)
 void PCB_EDIT_FRAME::ScriptingConsoleEnableDisable( wxCommandEvent& aEvent )
 {
@@ -1017,6 +1022,7 @@ void PCB_EDIT_FRAME::ScriptingConsoleEnableDisable( wxCommandEvent& aEvent )
     m_auimgr.Update();
 }
 #endif
+
 
 void PCB_EDIT_FRAME::OnSelectAutoPlaceMode( wxCommandEvent& aEvent )
 {
