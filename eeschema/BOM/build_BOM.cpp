@@ -53,7 +53,7 @@ void BOM_LISTER::CreateCsvBOMListByValues( FILE* aFile )
 
     SCH_SHEET_LIST sheetList;
 
-    sheetList.GetComponents( m_cmplist, false );
+    sheetList.GetComponents( m_libs, m_cmplist, false );
 
     // sort component list by ref and remove sub components
     m_cmplist.RemoveSubComponentsFromList();
@@ -65,14 +65,14 @@ void BOM_LISTER::CreateCsvBOMListByValues( FILE* aFile )
 
     while( index < m_cmplist.GetCount() )
     {
-        SCH_COMPONENT*  component = m_cmplist[index].GetComponent();
+        SCH_COMPONENT*  component = m_cmplist[index].GetComp();
         wxString        referenceListStr;
         int             qty = 1;
         referenceListStr.append( m_cmplist[index].GetRef() );
 
         for( unsigned int ii = index + 1; ii < m_cmplist.GetCount(); )
         {
-            if( *( m_cmplist[ii].GetComponent() ) == *component )
+            if( *( m_cmplist[ii].GetComp() ) == *component )
             {
                 referenceListStr.append( wxT( " " ) + m_cmplist[ii].GetRef() );
                 m_cmplist.RemoveItem( ii );
@@ -337,7 +337,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceHumanReadable( FILE* aFile )
     if( m_cmplist.GetCount() == 0 )    // Build component list
     {
         SCH_SHEET_LIST sheetList;
-        sheetList.GetComponents( m_cmplist, false );
+        sheetList.GetComponents( m_libs, m_cmplist, false );
 
         // sort component list
         m_cmplist.SortByReferenceOnly();
@@ -362,7 +362,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceHumanReadable( FILE* aFile )
     // Print list of items
     for( unsigned ii = 0; ii < m_cmplist.GetCount(); ii++ )
     {
-        EDA_ITEM* item = m_cmplist[ii].GetComponent();
+        EDA_ITEM* item = m_cmplist[ii].GetComp();
 
         if( item == NULL )
             continue;
@@ -374,7 +374,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceHumanReadable( FILE* aFile )
 
         bool            isMulti = false;
 
-        LIB_COMPONENT*  entry = CMP_LIBRARY::FindLibraryComponent( comp->GetLibName() );
+        LIB_PART*       entry = m_libs->FindLibPart( comp->GetPartName() );
 
         if( entry )
             isMulti = entry->IsMulti();
@@ -383,7 +383,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceHumanReadable( FILE* aFile )
 
         if( isMulti && m_includeSubComponents )
         {
-            subReference = LIB_COMPONENT::SubReference( m_cmplist[ii].GetUnit() );
+            subReference = LIB_PART::SubReference( m_cmplist[ii].GetUnit() );
             CmpName += TO_UTF8( subReference );
         }
 
@@ -458,7 +458,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceCsvForm( FILE* aFile )
     if( m_cmplist.GetCount() == 0 )    // Build component list
     {
         SCH_SHEET_LIST sheetList;
-        sheetList.GetComponents( m_cmplist, false );
+        sheetList.GetComponents( m_libs, m_cmplist, false );
 
         // sort component list
         m_cmplist.SortByReferenceOnly();
@@ -504,7 +504,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceCsvForm( FILE* aFile )
     // Print list of items, by reference
     for( unsigned ii = 0; ii < m_cmplist.GetCount(); ii++ )
     {
-        EDA_ITEM* item = m_cmplist[ii].GetComponent();
+        EDA_ITEM* item = m_cmplist[ii].GetComp();
 
         if( item == NULL )
             continue;
@@ -514,7 +514,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceCsvForm( FILE* aFile )
 
         SCH_COMPONENT*  comp = (SCH_COMPONENT*) item;
 
-        LIB_COMPONENT*  entry = CMP_LIBRARY::FindLibraryComponent( comp->GetLibName() );
+        LIB_PART*       entry = m_libs->FindLibPart( comp->GetPartName() );
 
         bool            isMulti = false;
 
@@ -525,7 +525,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceCsvForm( FILE* aFile )
 
         if( isMulti && includeSubComponents )
             // Add unit ident, for mutiple parts per package
-            cmpName += LIB_COMPONENT::SubReference( m_cmplist[ii].GetUnit() );
+            cmpName += LIB_PART::SubReference( m_cmplist[ii].GetUnit() );
 
         if( groupRefs )
         {
@@ -649,7 +649,7 @@ int BOM_LISTER::PrintComponentsListByValue( FILE* aFile )
     if( m_cmplist.GetCount() == 0 )    // Build component list
     {
         SCH_SHEET_LIST sheetList;
-        sheetList.GetComponents( m_cmplist, false );
+        sheetList.GetComponents( m_libs, m_cmplist, false );
 
         if( !m_includeSubComponents )
         {
@@ -675,7 +675,7 @@ int BOM_LISTER::PrintComponentsListByValue( FILE* aFile )
     std::string cmpName;
     for( unsigned ii = 0; ii < m_cmplist.GetCount(); ii++ )
     {
-        EDA_ITEM* schItem = m_cmplist[ii].GetComponent();
+        EDA_ITEM* schItem = m_cmplist[ii].GetComp();
 
         if( schItem == NULL )
             continue;
@@ -686,7 +686,7 @@ int BOM_LISTER::PrintComponentsListByValue( FILE* aFile )
         SCH_COMPONENT*  drawLibItem = (SCH_COMPONENT*) schItem;
 
         bool            isMulti = false;
-        LIB_COMPONENT*  entry   = CMP_LIBRARY::FindLibraryComponent( drawLibItem->GetLibName() );
+        LIB_PART*       entry   = m_libs->FindLibPart( drawLibItem->GetPartName() );
 
         if( entry )
             isMulti = entry->IsMulti();
@@ -695,7 +695,7 @@ int BOM_LISTER::PrintComponentsListByValue( FILE* aFile )
 
         if( isMulti && m_includeSubComponents )
             // Add unit ident, for mutiple parts per package
-            cmpName += TO_UTF8( LIB_COMPONENT::SubReference( m_cmplist[ii].GetUnit() ) );
+            cmpName += TO_UTF8( LIB_PART::SubReference( m_cmplist[ii].GetUnit() ) );
 
         fprintf( m_outFile, "| %-12s %-10s",
                  TO_UTF8( drawLibItem->GetField( VALUE )->GetText() ),

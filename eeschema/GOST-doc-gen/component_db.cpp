@@ -47,7 +47,7 @@
 
 namespace GOST_DOC_GEN {
 
-COMPONENT_DB::COMPONENT_DB()
+COMPONENT_DB::COMPONENT_DB( PART_LIBS* aLibs )
 {
     m_designName         = wxT( "" );
     m_designation        = wxT( "" );
@@ -62,6 +62,7 @@ COMPONENT_DB::COMPONENT_DB()
     m_dbgEna             = false;
     m_notInstalledStr    = wxT( "" );
     m_modified           = false;
+    m_libs               = aLibs;
 }
 
 
@@ -255,7 +256,7 @@ bool COMPONENT_DB::ValidateKiCadCompRefs()
     SCH_SHEET_LIST  sheetList;
     wxString        str;
 
-    sheetList.GetComponents( m_cmplist, false );
+    sheetList.GetComponents( m_libs, m_cmplist, false );
     m_cmplist.RemoveSubComponentsFromList();
 
     unsigned int index = 0;
@@ -286,18 +287,18 @@ void COMPONENT_DB::ValidateKiCadAttrs()
     bool            warnAttrValueDuplication_flag = false;
     bool            copyValueAttrPosition;
 
-    sheetList.GetComponents( m_cmplist, false );
+    sheetList.GetComponents( m_libs, m_cmplist, false );
     m_cmplist.RemoveSubComponentsFromList();
 
     unsigned int index = 0;
 
     while( index < m_cmplist.GetCount() )
     {
-        SCH_COMPONENT* component = m_cmplist[index].GetComponent();
+        SCH_COMPONENT* component = m_cmplist[index].GetComp();
 
         copyValueAttrPosition = false;
 
-        if( component->GetField( VALUE )->GetText() == component->GetLibName()
+        if( component->GetField( VALUE )->GetText() == component->GetPartName()
             && !warnAttrValueDuplication_flag )
         {
             int res = wxMessageBox( _( "Some components have equal 'Chip Name' and 'Value' attributes!\n"
@@ -313,7 +314,7 @@ void COMPONENT_DB::ValidateKiCadAttrs()
             warnAttrValueDuplication_flag = true;
         }
 
-        if( component->GetField( VALUE )->GetText() == component->GetLibName() )
+        if( component->GetField( VALUE )->GetText() == component->GetPartName() )
         {
             // workaround for eeschema bug (Value field is assigned to Chip Name field by default
             // on the component adding from a library)
@@ -348,7 +349,7 @@ void COMPONENT_DB::ValidateKiCadAttrs()
                              component,
                              wxT( "Type" ) );
 
-            field.SetText( component->GetLibName() );
+            field.SetText( component->GetPartName() );
 
             if( copyValueAttrPosition )
             {
@@ -364,7 +365,7 @@ void COMPONENT_DB::ValidateKiCadAttrs()
         else if( pSch_field->GetText() == wxEmptyString )
         {
             m_modified = true;
-            pSch_field->SetText( component->GetLibName() );
+            pSch_field->SetText( component->GetPartName() );
 
             if( copyValueAttrPosition )
             {
@@ -429,7 +430,7 @@ void COMPONENT_DB::LoadFromKiCad()
     wxString        str;
     COMPONENT*      pComp;
 
-    sheetList.GetComponents( m_cmplist, false );
+    sheetList.GetComponents( m_libs, m_cmplist, false );
     m_cmplist.RemoveSubComponentsFromList();
 
     unsigned int index = 0;
@@ -444,7 +445,7 @@ void COMPONENT_DB::LoadFromKiCad()
 
     while( index < m_cmplist.GetCount() )
     {
-        SCH_COMPONENT* component = m_cmplist[index].GetComponent();
+        SCH_COMPONENT* component = m_cmplist[index].GetComp();
 
         str = m_cmplist[index].GetRef();
         ZeroInserting( &str );
@@ -484,7 +485,7 @@ bool COMPONENT_DB::CompareDB()
     wxString        str;
     COMPONENT*      pComp;
 
-    sheetList.GetComponents( m_cmplist, false );
+    sheetList.GetComponents( m_libs, m_cmplist, false );
     m_cmplist.RemoveSubComponentsFromList();
 
     if( m_cmplist.GetCount() != m_AllComponents.GetCount() )
@@ -503,7 +504,7 @@ bool COMPONENT_DB::CompareDB()
 
     while( index < m_cmplist.GetCount() )
     {
-        SCH_COMPONENT* component = m_cmplist[index].GetComponent();
+        SCH_COMPONENT* component = m_cmplist[index].GetComp();
 
         str = m_cmplist[index].GetRef();
         ZeroInserting( &str );
@@ -669,7 +670,7 @@ void COMPONENT_DB::FormRefDes( COMPONENT_ARRAY* aTitle_group_components,
         else if( qty==2 )
             (*aResult) += ( (COMPONENT*) (*aTitle_group_components)[cur_pos] )->m_RefDes +
                          wxT( "," ) +
-                         ( (COMPONENT*) (*aTitle_group_components)[cur_pos + 1] )->m_RefDes + 
+                         ( (COMPONENT*) (*aTitle_group_components)[cur_pos + 1] )->m_RefDes +
                          wxT( "," );
         else
             (*aResult) += ( (COMPONENT*) (*aTitle_group_components)[cur_pos] )->m_RefDes +

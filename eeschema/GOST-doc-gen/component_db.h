@@ -59,7 +59,7 @@ class COMPONENT_DB
 {
 // Construction
 public:
-    COMPONENT_DB();
+    COMPONENT_DB( PART_LIBS* aLibs );
     COMPONENT_ARRAY m_AllComponents;
 
     wxString        m_designName;
@@ -121,6 +121,7 @@ private:
                                                int aAttrIndex,
                                                wxString aAttrName );
 
+    PART_LIBS*         m_libs;
     SCH_REFERENCE_LIST m_cmplist;              // a flat list of components in the full hierarchy
     bool               m_dbgEna;
     bool               m_modified;

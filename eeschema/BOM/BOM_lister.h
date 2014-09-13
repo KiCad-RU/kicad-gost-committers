@@ -37,6 +37,7 @@ class BOM_LISTER
 {
 private:
     BOM_LABEL_LIST      m_labelList;            // a list of global and hierarchical labels
+    PART_LIBS*          m_libs;
     SCH_REFERENCE_LIST  m_cmplist;              // a flat list of components in the full hierarchy
     FILE*               m_outFile;              // the output file for BOM generation
     char                m_separatorSymbol;      // the separator used for csv files ( usually \t ; or , )
@@ -53,7 +54,7 @@ private:
     std::vector <int>   m_fieldIDactive;        // list of field IDs to print
 
 public:
-    BOM_LISTER()
+    BOM_LISTER( PART_LIBS* aLibs )
     {
         m_outFile = NULL;
         m_separatorSymbol   = '\t';
@@ -62,6 +63,7 @@ public:
         m_csvForm = true;
         m_printLocation     = false;
         m_groupReferences   = false;
+        m_libs              = aLibs;
     }
 
     // Accessors:

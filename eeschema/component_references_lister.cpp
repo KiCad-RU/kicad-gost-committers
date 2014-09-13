@@ -264,8 +264,8 @@ bool SCH_REFERENCE_LIST::sortByValueOnly( const SCH_REFERENCE& item1,
                                           const SCH_REFERENCE& item2 )
 {
     // First, group by type according to reference text part (R, C, etc.)
-    wxString text1 = item1.GetComponent()->GetField( REFERENCE )->GetText();
-    wxString text2 = item2.GetComponent()->GetField( REFERENCE )->GetText();
+    wxString text1 = item1.GetComp()->GetField( REFERENCE )->GetText();
+    wxString text2 = item2.GetComp()->GetField( REFERENCE )->GetText();
     wxString refNameStr1, refNameStr2;
     int refNumber1, refNumber2;
 
@@ -282,8 +282,8 @@ bool SCH_REFERENCE_LIST::sortByValueOnly( const SCH_REFERENCE& item1,
 
     // We can compare here 2 values relative to components of the same type
     // assuming references are correctly chosen
-    text1 = item1.GetComponent()->GetField( VALUE )->GetText();
-    text2 = item2.GetComponent()->GetField( VALUE )->GetText();
+    text1 = item1.GetComp()->GetField( VALUE )->GetText();
+    text2 = item2.GetComp()->GetField( VALUE )->GetText();
 
     double value1, value2;
 
@@ -303,8 +303,8 @@ bool SCH_REFERENCE_LIST::sortByValueOnly( const SCH_REFERENCE& item1,
         return value1 < value2;
 
     // Inside a group of components of same value, it could be good to group per footprints
-    text1 = item1.GetComponent()->GetField( FOOTPRINT )->GetText();
-    text2 = item2.GetComponent()->GetField( FOOTPRINT )->GetText();
+    text1 = item1.GetComp()->GetField( FOOTPRINT )->GetText();
+    text2 = item2.GetComp()->GetField( FOOTPRINT )->GetText();
     ii = text1.CmpNoCase( text2 );
 
     if( ii != 0 )

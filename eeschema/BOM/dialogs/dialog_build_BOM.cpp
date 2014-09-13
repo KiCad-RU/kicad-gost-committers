@@ -478,7 +478,7 @@ void DIALOG_BUILD_BOM::CreateSpreadSheetPartsShortList( )
         return;
     }
 
-    BOM_LISTER bom_lister;
+    BOM_LISTER bom_lister( Prj().SchLibs() );
     bom_lister.SetCvsFormOn( s_ExportSeparatorSymbol );
 
     // Set the list of fields to add to list
@@ -515,7 +515,7 @@ void DIALOG_BUILD_BOM::CreateSpreadSheetPartsFullList( bool aIncludeSubComponent
         return;
     }
 
-    BOM_LISTER bom_lister;
+    BOM_LISTER bom_lister( Prj().SchLibs() );
     bom_lister.SetCvsFormOn( s_ExportSeparatorSymbol );
 
     // Set group refs option (hight priority):
@@ -558,7 +558,7 @@ void DIALOG_BUILD_BOM::CreatePartsAndLabelsFullList( bool aIncludeSubComponents 
         return;
     }
 
-    BOM_LISTER bom_lister;
+    BOM_LISTER bom_lister( Prj().SchLibs() );
     bom_lister.SetIncludeSubCmp( aIncludeSubComponents );
     bom_lister.SetCvsFormOff();
     bom_lister.SetPrintLocation( s_Add_Location );

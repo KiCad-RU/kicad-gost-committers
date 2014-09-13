@@ -31,6 +31,8 @@
 #include <GOST_comp_manager.h>
 #include <component_db.h>
 
+#include <project.h>
+
 using namespace GOST_DOC_GEN;
 
 GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
@@ -43,7 +45,7 @@ GOST_COMP_MANAGER::GOST_COMP_MANAGER( wxWindow* parent ) :
     // skip comparing DB the first time because the DB has not written back yet
     m_ignoreLostFocus_flag = true;
 
-    m_componentDB = new COMPONENT_DB();
+    m_componentDB = new COMPONENT_DB( m_schEditFrame->Prj().SchLibs() );
 
     wxSize listClientSize = m_listCtrl->GetClientSize();
     m_listCtrl->InsertColumn( TABLE_REFDES_COL,
@@ -988,7 +990,7 @@ void GOST_COMP_MANAGER::OnActivate( wxActivateEvent& event )
             if( !m_componentDB->CompareDB() )
             {
                 delete m_componentDB;
-                m_componentDB = new COMPONENT_DB();
+                m_componentDB = new COMPONENT_DB( m_schEditFrame->Prj().SchLibs() );
 
                 m_componentDB->LoadFromKiCad();
 
