@@ -165,6 +165,8 @@ public:
                      int               aVariant,
                      wxArrayString*    aSpecification_positions );
 
+    wxString GetCompIndexDesignation( wxString designation );
+
 private:
     void ChangeWordForm( wxString* aStr, int aType );
 

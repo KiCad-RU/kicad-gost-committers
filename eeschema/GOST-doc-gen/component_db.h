@@ -121,6 +121,8 @@ private:
                                                int aAttrIndex,
                                                wxString aAttrName );
 
+    void            ExtractDesignName( wxString& designName );
+
     PART_LIBS*         m_libs;
     SCH_REFERENCE_LIST m_cmplist;              // a flat list of components in the full hierarchy
     bool               m_dbgEna;

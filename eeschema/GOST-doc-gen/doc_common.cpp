@@ -106,7 +106,7 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
 
         // fill 'designation' field
         aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION,
-                            aComponentDB->m_designation + wxT( "ПЭ3" ), 0 );
+                            GetCompIndexDesignation( aComponentDB->m_designation ), 0 );
     }
 
     aDocIface->SelectTable( m_current_sheet );
@@ -1319,6 +1319,19 @@ bool DOC_COMMON::Form_a_set( COMMON_DOC_IFACE* aDocIface,
     }
 
     return result;
+}
+
+wxString DOC_COMMON::GetCompIndexDesignation( wxString designation )
+{
+    int idx;
+
+    idx = designation.Find( wxT( 'Э' ), true );
+    if ( idx != wxNOT_FOUND && idx > 3)
+        designation.insert( idx, 1, wxT( 'П' ) );
+    else
+        designation += wxT( "ПЭ3" );
+
+    return designation;
 }
 
 } // namespace GOST_DOC_GEN

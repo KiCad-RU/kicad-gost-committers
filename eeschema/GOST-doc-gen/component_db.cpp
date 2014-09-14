@@ -437,6 +437,7 @@ void COMPONENT_DB::LoadFromKiCad()
 
     TITLE_BLOCK tb   = g_RootSheet->GetScreen()->GetTitleBlock();
     m_designName     = tb.GetTitle();
+    ExtractDesignName( m_designName );
     m_companyName    = tb.GetCompany();
     m_designation    = tb.GetComment1();
     m_developerField = tb.GetComment2();
@@ -496,6 +497,7 @@ bool COMPONENT_DB::CompareDB()
     // update fields from the title block
     TITLE_BLOCK tb   = g_RootSheet->GetScreen()->GetTitleBlock();
     m_designName     = tb.GetTitle();
+    ExtractDesignName( m_designName );
     m_companyName    = tb.GetCompany();
     m_designation    = tb.GetComment1();
     m_developerField = tb.GetComment2();
@@ -895,6 +897,17 @@ void COMPONENT_DB::ExtractPartOfComponentsDB( COMPONENT_ARRAY*  aResult,
         if( add_ena )
             aResult->Add( pComponent );
     }
+}
+
+void COMPONENT_DB::ExtractDesignName( wxString& designName )
+{
+    int idx;
+
+    idx = designName.Find( wxT( "\\nСхема электрическая" ) );
+    if ( idx != wxNOT_FOUND )
+        designName.Remove( idx );
+
+    designName.Replace( wxT( "\\n" ), wxT( " " ) );
 }
 
 } // namespace GOST_DOC_GEN
