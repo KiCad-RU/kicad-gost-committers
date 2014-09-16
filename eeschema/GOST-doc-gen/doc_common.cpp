@@ -1325,11 +1325,14 @@ wxString DOC_COMMON::GetCompIndexDesignation( wxString designation )
 {
     int idx;
 
-    idx = designation.Find( wxT( 'Э' ), true );
-    if ( idx != wxNOT_FOUND && idx > 3)
-        designation.insert( idx, 1, wxT( 'П' ) );
-    else
-        designation += wxT( "ПЭ3" );
+    if ( designation != wxEmptyString )
+    {
+        idx = designation.Find( wxT( 'Э' ), true );
+        if ( idx != wxNOT_FOUND && idx > 3)
+            designation.insert( idx, 1, wxT( 'П' ) );
+        else
+            designation += wxT( "ПЭ3" );
+    }
 
     return designation;
 }
