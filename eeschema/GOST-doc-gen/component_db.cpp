@@ -907,7 +907,8 @@ void COMPONENT_DB::ExtractDesignName( wxString& designName )
     if ( idx != wxNOT_FOUND )
         designName.Remove( idx );
 
-    designName.Replace( wxT( "\\n" ), wxT( " " ) );
+    designName.Append( wxT( "\nПеречень элементов" ) );
+    designName.Replace( wxT( "\\n" ), wxT( "\n" ) );
 }
 
 } // namespace GOST_DOC_GEN
