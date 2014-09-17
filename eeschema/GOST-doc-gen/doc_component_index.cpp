@@ -66,11 +66,13 @@ bool DOC_COMPONENT_INDEX::CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
     m_current_sheet   = 0;
 
     // fill 'design name' field
-    aDocIface->PutCell( ADDR_DESIGN_NAME, aComponentDB->m_designName, 0 );
+    aDocIface->PutCell( ADDR_DESIGN_NAME,
+                        aComponentDB->m_designName + wxT( "\nПеречень элементов" ),
+                        0 );
 
     // fill 'designation' field
     aDocIface->PutCell( ADDR_DESIGNATION,
-                        GetCompIndexDesignation( aComponentDB->m_designation ), 0 );
+                        ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( "ПЭ3" ) ), 0 );
 
     // fill 'first use' field
     aDocIface->PutCell( ADDR_FIRST_USE, aComponentDB->m_designation, 0 );
@@ -211,7 +213,7 @@ bool DOC_COMPONENT_INDEX::CreateNewCompIndexDoc( COMPONENT_DB* aComponentDB,
 
     // fill 'designation' field
     aDocIface->PutCell( ADDR_LASTSHEET_DESIGNATION,
-                        GetCompIndexDesignation( aComponentDB->m_designation ), 0 );
+                        ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( "ПЭ3" ) ), 0 );
 
     // fill 'sheets qty' field
     aDocIface->SelectTable( 0 );

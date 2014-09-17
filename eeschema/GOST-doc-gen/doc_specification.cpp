@@ -191,7 +191,9 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     // fill 'design name' field
     aDocIface->PutCell( ADDR_DESIGN_NAME, aComponentDB->m_designName, 0 );
     // fill 'designation' field
-    aDocIface->PutCell( ADDR_DESIGNATION, aComponentDB->m_designation, 0 );
+    aDocIface->PutCell( ADDR_DESIGNATION,
+                        ChangeSuffixOfDesignation( aComponentDB->m_designation ),
+                        0 );
     // fill 'first use' field
     aDocIface->PutCell( ADDR_FIRST_USE, aComponentDB->m_specFirstUse, 0 );
 
@@ -237,7 +239,7 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
         OO_PrintSpecificationDocRow( aDocIface,
                                      aComponentDB->m_assemblyDrawingFmt,
                                      0,
-                                     aComponentDB->m_designation + wxT( " СБ" ),
+                                     ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( " СБ" ) ),
                                      wxT( "Сборочный чертеж" ),
                                      wxT( "" ),
                                      wxT( "" ),
@@ -252,7 +254,7 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
             OO_PrintSpecificationDocRow( aDocIface,
                                          aComponentDB->m_circuitDrawingFmt,
                                          0,
-                                         aComponentDB->m_designation + wxT( " Э3" ),
+                                         ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( " Э3" ) ),
                                          wxT( "Схема электрическая_принципиальная" ),
                                          wxT( "" ),
                                          wxT( "" ),
@@ -261,7 +263,7 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                          aComponentDB );
         else
             OO_PrintSpecificationDocRow( aDocIface, wxT( "*" ), 0,
-                                         aComponentDB->m_designation + wxT( " Э3" ),
+                                         ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( " Э3" ) ),
                                          wxT( "Схема электрическая_принципиальная" ),
                                          wxT( "" ),
                                          wxT( "*) " ) + aComponentDB->m_circuitDrawingFmt, 0, 1,
@@ -271,7 +273,8 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                      wxT( "" ), wxT( "" ), wxT( "" ), 0, 1, aComponentDB );
 
         OO_PrintSpecificationDocRow( aDocIface,
-                                     wxT( "A4" ), 0, aComponentDB->m_designation + wxT( " ПЭ3" ),
+                                     wxT( "A4" ), 0,
+                                     ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( " ПЭ3" ) ),
                                      wxT( "Перечень элементов" ), wxT( "" ),
                                      wxT( "" ), 0, 1, aComponentDB );
     }
@@ -584,7 +587,8 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
     // fill 'designation' field
     aDocIface->PutCell( ADDR_LASTSHEET_DESIGNATION,
-                        aComponentDB->m_designation, 0 );
+                        ChangeSuffixOfDesignation( aComponentDB->m_designation ),
+                        0 );
 
     // fill 'sheets qty' field
     aDocIface->SelectTable( 0 );

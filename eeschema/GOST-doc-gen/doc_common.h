@@ -113,7 +113,7 @@ namespace GOST_DOC_GEN {
 #define ADDR_MIDSHEET_NUMBER        wxT( "3:G3" )
 #define ADDR_MIDSHEET_DESIGNATION   wxT( "3:F1" )
 
-#define ADDR_LASTSHEET_NUMBER       wxT( "3:I5" )
+#define ADDR_LASTSHEET_NUMBER       wxT( "3:G3" )
 #define ADDR_LASTSHEET_DESIGNATION  wxT( "3:F1" )
 #endif
 
@@ -165,7 +165,7 @@ public:
                      int               aVariant,
                      wxArrayString*    aSpecification_positions );
 
-    wxString GetCompIndexDesignation( wxString designation );
+    wxString ChangeSuffixOfDesignation( wxString designation, wxString suffix=wxEmptyString );
 
 private:
     void ChangeWordForm( wxString* aStr, int aType );

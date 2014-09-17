@@ -907,7 +907,6 @@ void COMPONENT_DB::ExtractDesignName( wxString& designName )
     if ( idx != wxNOT_FOUND )
         designName.Remove( idx );
 
-    designName.Append( wxT( "\nПеречень элементов" ) );
     designName.Replace( wxT( "\\n" ), wxT( "\n" ) );
 }
 

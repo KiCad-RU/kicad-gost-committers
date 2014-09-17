@@ -106,7 +106,7 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
 
         // fill 'designation' field
         aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION,
-                            GetCompIndexDesignation( aComponentDB->m_designation ), 0 );
+                            ChangeSuffixOfDesignation( aComponentDB->m_designation ), 0 );
     }
 
     aDocIface->SelectTable( m_current_sheet );
@@ -1321,7 +1321,7 @@ bool DOC_COMMON::Form_a_set( COMMON_DOC_IFACE* aDocIface,
     return result;
 }
 
-wxString DOC_COMMON::GetCompIndexDesignation( wxString designation )
+wxString DOC_COMMON::ChangeSuffixOfDesignation( wxString designation, wxString suffix )
 {
     int idx;
 
@@ -1329,9 +1329,9 @@ wxString DOC_COMMON::GetCompIndexDesignation( wxString designation )
     {
         idx = designation.Find( wxT( 'Э' ), true );
         if ( idx != wxNOT_FOUND && idx > 3)
-            designation.insert( idx, 1, wxT( 'П' ) );
-        else
-            designation += wxT( "ПЭ3" );
+            designation.Remove( idx );
+        designation.Trim();
+        designation += suffix;
     }
 
     return designation;
