@@ -153,10 +153,12 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                                    COMMON_DOC_IFACE* aDocIface )
 {
     COMPONENT_ARRAY singleVariantComponents, AllVariantsComponents;
-    int             variant;
+    int             variant, idx;
     wxString        str, var_str, fileName;
     wxArrayString   specification_positions;
     bool            comps_absent;
+    wxString        designation;
+    wxString        sch_type = wxT( "Схема электрическая_" );
 
     wxProgressDialog progressDlg( wxT( "Generating specification document..." ),
                                   wxT( "Please wait a moment" ), 1 );
@@ -184,6 +186,49 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     Specification_GeneratePosList( aComponentDB, &aComponentDB->m_AllComponents,
                                    &specification_positions );
 
+    // check type of the schematic by designation ending
+    if( aComponentDB->m_designation != wxEmptyString )
+    {
+        idx = aComponentDB->m_designation.Find( wxT( 'Э' ), true);
+        if( idx != wxNOT_FOUND && idx > 3 )
+        {
+            designation = aComponentDB->m_designation;
+            switch( designation[ idx + 1 ].GetValue() )
+            {
+            case '1':
+                sch_type += wxT( "структурная" );
+                break;
+            case '2':
+                sch_type += wxT( "функциональная" );
+                break;
+            case '3':
+                sch_type += wxT( "принципиальная" );
+                break;
+            case '4':
+                sch_type += wxT( "соединений" );
+                break;
+            case '5':
+                sch_type += wxT( "подключения" );
+                break;
+            case '6':
+                sch_type += wxT( "общая" );
+                break;
+            case '7':
+                sch_type += wxT( "расположения" );
+                break;
+            }
+        }
+    }
+
+    if( designation == wxEmptyString )
+    {
+        // by default
+        if( aComponentDB->m_designation != wxEmptyString )
+            designation = aComponentDB->m_designation.Trim() + wxT( " Э3" );
+        sch_type += wxT( "принципиальная" );
+
+    }
+
     progressDlg.Pulse();
 
     aDocIface->SelectTable( 0 );
@@ -192,7 +237,7 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     aDocIface->PutCell( ADDR_DESIGN_NAME, aComponentDB->m_designName, 0 );
     // fill 'designation' field
     aDocIface->PutCell( ADDR_DESIGNATION,
-                        ChangeSuffixOfDesignation( aComponentDB->m_designation ),
+                        ChangeSuffixOfDesignation( designation ),
                         0 );
     // fill 'first use' field
     aDocIface->PutCell( ADDR_FIRST_USE, aComponentDB->m_specFirstUse, 0 );
@@ -239,7 +284,7 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
         OO_PrintSpecificationDocRow( aDocIface,
                                      aComponentDB->m_assemblyDrawingFmt,
                                      0,
-                                     ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( " СБ" ) ),
+                                     ChangeSuffixOfDesignation( designation, wxT( " СБ" ) ),
                                      wxT( "Сборочный чертеж" ),
                                      wxT( "" ),
                                      wxT( "" ),
@@ -254,8 +299,8 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
             OO_PrintSpecificationDocRow( aDocIface,
                                          aComponentDB->m_circuitDrawingFmt,
                                          0,
-                                         ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( " Э3" ) ),
-                                         wxT( "Схема электрическая_принципиальная" ),
+                                         designation,
+                                         sch_type,
                                          wxT( "" ),
                                          wxT( "" ),
                                          0,
@@ -263,8 +308,8 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
                                          aComponentDB );
         else
             OO_PrintSpecificationDocRow( aDocIface, wxT( "*" ), 0,
-                                         ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( " Э3" ) ),
-                                         wxT( "Схема электрическая_принципиальная" ),
+                                         designation,
+                                         sch_type,
                                          wxT( "" ),
                                          wxT( "*) " ) + aComponentDB->m_circuitDrawingFmt, 0, 1,
                                          aComponentDB );
@@ -274,7 +319,7 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
         OO_PrintSpecificationDocRow( aDocIface,
                                      wxT( "A4" ), 0,
-                                     ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( " ПЭ3" ) ),
+                                     ChangeSuffixOfDesignation( designation, wxT( "П" ), true ),
                                      wxT( "Перечень элементов" ), wxT( "" ),
                                      wxT( "" ), 0, 1, aComponentDB );
     }
@@ -587,7 +632,7 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
 
     // fill 'designation' field
     aDocIface->PutCell( ADDR_LASTSHEET_DESIGNATION,
-                        ChangeSuffixOfDesignation( aComponentDB->m_designation ),
+                        ChangeSuffixOfDesignation( designation ),
                         0 );
 
     // fill 'sheets qty' field

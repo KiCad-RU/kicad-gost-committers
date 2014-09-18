@@ -1321,20 +1321,27 @@ bool DOC_COMMON::Form_a_set( COMMON_DOC_IFACE* aDocIface,
     return result;
 }
 
-wxString DOC_COMMON::ChangeSuffixOfDesignation( wxString designation, wxString suffix )
+wxString DOC_COMMON::ChangeSuffixOfDesignation( wxString aDesignation, wxString aSuffix, bool aInsert )
 {
     int idx;
 
-    if ( designation != wxEmptyString )
+    if( aDesignation != wxEmptyString )
     {
-        idx = designation.Find( wxT( 'Э' ), true );
-        if ( idx != wxNOT_FOUND && idx > 3)
-            designation.Remove( idx );
-        designation.Trim();
-        designation += suffix;
+        idx = aDesignation.Find( wxT( 'Э' ), true );
+        if( idx != wxNOT_FOUND && idx > 3)
+        {
+            if( aInsert )
+                aDesignation.insert( idx, aSuffix );
+            else
+            {
+                aDesignation.Remove( idx );
+                aDesignation.Trim();
+                aDesignation += aSuffix;
+            }
+        }
     }
 
-    return designation;
+    return aDesignation;
 }
 
 } // namespace GOST_DOC_GEN

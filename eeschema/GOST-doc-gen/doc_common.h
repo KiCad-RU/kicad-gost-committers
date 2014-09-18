@@ -165,7 +165,9 @@ public:
                      int               aVariant,
                      wxArrayString*    aSpecification_positions );
 
-    wxString ChangeSuffixOfDesignation( wxString designation, wxString suffix=wxEmptyString );
+    wxString ChangeSuffixOfDesignation( wxString aDesignation,
+                                        wxString aSuffix=wxEmptyString,
+                                        bool     aInsert=false );
 
 private:
     void ChangeWordForm( wxString* aStr, int aType );
