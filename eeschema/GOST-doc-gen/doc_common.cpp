@@ -106,7 +106,7 @@ void DOC_COMMON::OO_PrintCompIndexDocRow( COMMON_DOC_IFACE* aDocIface,
 
         // fill 'designation' field
         aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION,
-                            ChangeSuffixOfDesignation( aComponentDB->m_designation ), 0 );
+                            ChangeSuffixOfDesignation( aComponentDB->m_designation, wxT( "П" ), true ), 0 );
     }
 
     aDocIface->SelectTable( m_current_sheet );
@@ -479,7 +479,9 @@ void DOC_COMMON::OO_AttachNewSpecificationSheet( COMMON_DOC_IFACE* aDocIface,
                         wxString::Format( wxT( "%d" ), m_current_sheet + 1 ),
                         0 );
     // fill 'designation' field
-    aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION, aComponentDB->m_designation, 0 );
+    aDocIface->PutCell( ADDR_MIDSHEET_DESIGNATION,
+                        ChangeSuffixOfDesignation( aComponentDB->m_designation ),
+                        0 );
 }
 
 
