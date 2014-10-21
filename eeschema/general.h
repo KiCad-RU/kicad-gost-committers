@@ -1,3 +1,27 @@
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2007 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2014 KiCad Developers, see CHANGELOG.TXT for contributors.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, you may find one here:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * or you may search the http://www.gnu.org website for the version 2 license,
+ * or you may write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
 /**
  * @file general.h
  */
@@ -36,8 +60,12 @@ class SCH_SHEET;
 #define GR_DEFAULT_DRAWMODE GR_COPY
 
 // this enum is for color management
+// Using here "LAYER" in name is due to historical reasons.
+// Eeschema does not actually use layers. It just uses "LAYER_XX" as identifier
+// mainly for item color
 typedef enum {
-    LAYER_WIRE,
+    LAYER_FIRST,
+    LAYER_WIRE = LAYER_FIRST,
     LAYER_BUS,
     LAYER_JUNCTION,
     LAYER_LOCLABEL,
@@ -61,12 +89,13 @@ typedef enum {
     LAYER_ERC_ERR,
     LAYER_DEVICE_BACKGROUND,
     LAYER_GRID,
-    NB_SCH_LAYERS
-} LayerNumber;
+    LAYER_BACKGROUND,
+    LAYERSCH_ID_COUNT
+} LAYERSCH_ID;
 
-inline LayerNumber operator++( LayerNumber& a )
+inline LAYERSCH_ID operator++( LAYERSCH_ID& a )
 {
-    a = LayerNumber( int( a ) + 1 );
+    a = LAYERSCH_ID( int( a ) + 1 );
     return a;
 }
 
@@ -104,14 +133,13 @@ void SetDefaultTextSize( int aSize );
 int GetDefaultBusThickness();
 void SetDefaultBusThickness( int aThickness );
 
-EDA_COLOR_T GetLayerColor( LayerNumber aLayer );
+EDA_COLOR_T GetLayerColor( LAYERSCH_ID aLayer );
+void        SetLayerColor( EDA_COLOR_T aColor, LAYERSCH_ID aLayer );
 
 // Color to draw selected items
 EDA_COLOR_T GetItemSelectedColor();
 
 // Color to draw items flagged invisible, in libedit (they are invisible in Eeschema
 EDA_COLOR_T GetInvisibleItemColor();
-
-void        SetLayerColor( EDA_COLOR_T aColor, int aLayer );
 
 #endif    // _GENERAL_H_

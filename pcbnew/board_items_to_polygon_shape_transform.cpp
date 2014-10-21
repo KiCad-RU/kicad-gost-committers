@@ -168,9 +168,12 @@ void MODULE::TransformGraphicShapesWithClearanceToPolygonSet(
         switch( item->Type() )
         {
         case PCB_MODULE_TEXT_T:
-            if( ((TEXTE_MODULE*)item)->GetLayer() == aLayer )
-                texts.push_back( (TEXTE_MODULE *) item );
-            break;
+            {
+                TEXTE_MODULE* text = static_cast<TEXTE_MODULE*>( item );
+                if( text->GetLayer() == aLayer )
+                    texts.push_back( text );
+                break;
+            }
 
         case PCB_MODULE_EDGE_T:
             outline = (EDGE_MODULE*) item;
@@ -247,7 +250,7 @@ void MODULE::TransformGraphicShapesWithClearanceToPolygonSet(
             NEGATE( size.x );
 
         DrawGraphicText( NULL, NULL, textmod->GetTextPosition(), BLACK,
-                         textmod->GetText(), textmod->GetDrawRotation(), size,
+                         textmod->GetShownText(), textmod->GetDrawRotation(), size,
                          textmod->GetHorizJustify(), textmod->GetVertJustify(),
                          textmod->GetThickness(), textmod->IsItalic(),
                          true, addTextSegmToPoly );
@@ -376,7 +379,7 @@ void TEXTE_PCB::TransformShapeWithClearanceToPolygonSet(
 
     if( IsMultilineAllowed() )
     {
-        wxArrayString* list = wxStringSplit( GetText(), '\n' );
+        wxArrayString* list = wxStringSplit( GetShownText(), '\n' );
         std::vector<wxPoint> positions;
         positions.reserve( list->Count() );
         GetPositionsOfLinesOfMultilineText( positions, list->Count() );
@@ -396,7 +399,7 @@ void TEXTE_PCB::TransformShapeWithClearanceToPolygonSet(
     else
     {
         DrawGraphicText( NULL, NULL, GetTextPosition(), color,
-                         GetText(), GetOrientation(), size,
+                         GetShownText(), GetOrientation(), size,
                          GetHorizJustify(), GetVertJustify(),
                          GetThickness(), IsItalic(),
                          true, addTextSegmToPoly );

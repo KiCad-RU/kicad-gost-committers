@@ -42,17 +42,6 @@ if( MINGW )
     mingw_resource_compiler(pcb_calculator)
 endif()
 
-
-if( APPLE )
-    set( PCB_CALCULATOR_RESOURCES pcb_calculator.icns )
-    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/pcb_calculator.icns" PROPERTIES
-        MACOSX_PACKAGE_LOCATION Resources
-        )
-    set( MACOSX_BUNDLE_ICON_FILE pcb_calculator.icns )
-    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.pcb_calculator )
-    set( MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist )
-endif()
-
 # auto-generate pcb_calculator_datafile.h and pcb_calculator_datafile_keywords.cpp
 # for the storage data file format.
 make_lexer(
@@ -64,6 +53,17 @@ make_lexer(
     # Pass header file with dependency on *_lexer.h as extra_arg
     datafile_read_write.h
    )
+
+if( APPLE )
+    # setup bundle
+    set( PCB_CALCULATOR_RESOURCES pcb_calculator.icns )
+    set_source_files_properties( "${CMAKE_CURRENT_SOURCE_DIR}/pcb_calculator.icns" PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources
+        )
+    set( MACOSX_BUNDLE_ICON_FILE pcb_calculator.icns )
+    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.kicad )
+    set( MACOSX_BUNDLE_NAME pcb_calculator )
+endif()
 
 
 if( USE_KIWAY_DLLS )
@@ -118,16 +118,38 @@ if( USE_KIWAY_DLLS )
     add_dependencies( pcb_calculator pcb_calculator_kiface )
 
     # these 2 binaries are a matched set, keep them together
-    install( TARGETS pcb_calculator
-        DESTINATION ${KICAD_BIN}
-        COMPONENT binary
-        )
     if( APPLE )
-        # puts the *.kiface into the *.app bundle while linking
+        set_target_properties( pcb_calculator PROPERTIES
+            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+            )
+
+        # puts binaries into the *.app bundle while linking
         set_target_properties( pcb_calculator_kiface PROPERTIES
-            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pcb_calculator.app/Contents/MacOS/
+            LIBRARY_OUTPUT_DIRECTORY ${OSX_BUNDLE_BUILD_KIFACE_DIR}
+            )
+        # put individual bundle outside of main bundle as a first step
+        # will be pulled into the main bundle when creating main bundle
+        install( TARGETS pcb_calculator
+            DESTINATION ${KICAD_BIN}
+            COMPONENT binary
+            )
+        install( CODE "
+            # override default embedded path settings
+            ${OSX_BUNDLE_OVERRIDE_PATHS}
+
+            # do all the work
+            include( BundleUtilities )
+            fixup_bundle( ${KICAD_BIN}/pcb_calculator.app/Contents/MacOS/pcb_calculator
+                \"\"
+                \"\"
+                )
+            " COMPONENT Runtime
             )
     else()
+        install( TARGETS pcb_calculator
+            DESTINATION ${KICAD_BIN}
+            COMPONENT binary
+            )
         install( TARGETS pcb_calculator_kiface
             DESTINATION ${KICAD_BIN}
             COMPONENT binary
@@ -159,11 +181,4 @@ else()
         COMPONENT binary
         )
 
-endif()
-
-
-if( APPLE )
-    set_target_properties( pcb_calculator PROPERTIES
-        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
-        )
 endif()

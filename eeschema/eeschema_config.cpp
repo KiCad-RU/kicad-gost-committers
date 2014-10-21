@@ -172,20 +172,20 @@ void LIB_EDIT_FRAME::Process_Config( wxCommandEvent& event )
     {
     // Hotkey IDs
     case ID_PREFERENCES_HOTKEY_SHOW_EDITOR:
-        InstallHotkeyFrame( this, s_Eeschema_Hokeys_Descr );
+        InstallHotkeyFrame( this, g_Eeschema_Hokeys_Descr );
         break;
 
     case ID_PREFERENCES_HOTKEY_EXPORT_CONFIG:
-        ExportHotkeyConfigToFile( s_Eeschema_Hokeys_Descr );
+        ExportHotkeyConfigToFile( g_Eeschema_Hokeys_Descr );
         break;
 
     case ID_PREFERENCES_HOTKEY_IMPORT_CONFIG:
-        ImportHotkeyConfigFromFile( s_Eeschema_Hokeys_Descr );
+        ImportHotkeyConfigFromFile( g_Eeschema_Hokeys_Descr );
         break;
 
     case ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST:
         // Display current hotkey list for LibEdit.
-        DisplayHotkeyList( this, s_Libedit_Hokeys_Descr );
+        DisplayHotkeyList( this, g_Libedit_Hokeys_Descr );
         break;
 
     default:
@@ -281,20 +281,20 @@ void SCH_EDIT_FRAME::Process_Config( wxCommandEvent& event )
 
     // Hotkey IDs
     case ID_PREFERENCES_HOTKEY_EXPORT_CONFIG:
-        ExportHotkeyConfigToFile( s_Eeschema_Hokeys_Descr );
+        ExportHotkeyConfigToFile( g_Eeschema_Hokeys_Descr );
         break;
 
     case ID_PREFERENCES_HOTKEY_IMPORT_CONFIG:
-        ImportHotkeyConfigFromFile( s_Eeschema_Hokeys_Descr );
+        ImportHotkeyConfigFromFile( g_Eeschema_Hokeys_Descr );
         break;
 
     case ID_PREFERENCES_HOTKEY_SHOW_EDITOR:
-        InstallHotkeyFrame( this, s_Eeschema_Hokeys_Descr );
+        InstallHotkeyFrame( this, g_Eeschema_Hokeys_Descr );
         break;
 
     case ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST:
         // Display current hotkey list for eeschema.
-        DisplayHotkeyList( this, s_Schematic_Hokeys_Descr );
+        DisplayHotkeyList( this, g_Schematic_Hokeys_Descr );
         break;
 
     default:
@@ -307,6 +307,7 @@ void SCH_EDIT_FRAME::OnPreferencesOptions( wxCommandEvent& event )
 {
     wxArrayString units;
     GRIDS grid_list = GetScreen()->GetGrids();
+    bool saveProjectConfig = false;
 
     DIALOG_EESCHEMA_OPTIONS dlg( this );
 
@@ -322,7 +323,7 @@ void SCH_EDIT_FRAME::OnPreferencesOptions( wxCommandEvent& event )
     dlg.SetRepeatVertical( g_RepeatStep.y );
     dlg.SetRepeatLabel( g_RepeatDeltaLabel );
     dlg.SetAutoSaveInterval( GetAutoSaveInterval() / 60 );
-    dlg.SetRefIdSeparator( LIB_PART::GetSubpartIdSeparator( ),
+    dlg.SetRefIdSeparator( LIB_PART::GetSubpartIdSeparator(),
                            LIB_PART::GetSubpartFirstId() );
 
     dlg.SetShowGrid( IsGridVisible() );
@@ -336,15 +337,7 @@ void SCH_EDIT_FRAME::OnPreferencesOptions( wxCommandEvent& event )
     dlg.Layout();
     dlg.Fit();
     dlg.SetMinSize( dlg.GetSize() );
-
-    const TEMPLATE_FIELDNAMES&  tfnames = m_TemplateFieldNames.GetTemplateFieldNames();
-
-    for( unsigned i=0; i<tfnames.size(); ++i )
-    {
-        DBG(printf("dlg.SetFieldName(%d, '%s')\n", i, TO_UTF8( tfnames[i].m_Name) );)
-
-        dlg.SetFieldName( i, tfnames[i].m_Name );
-    }
+    dlg.SetTemplateFields( m_TemplateFieldNames.GetTemplateFieldNames() );
 
     if( dlg.ShowModal() == wxID_CANCEL )
         return;
@@ -356,19 +349,33 @@ void SCH_EDIT_FRAME::OnPreferencesOptions( wxCommandEvent& event )
 
     int sep, firstId;
     dlg.GetRefIdSeparator( sep, firstId);
+
     if( sep != (int)LIB_PART::GetSubpartIdSeparator() ||
         firstId != (int)LIB_PART::GetSubpartFirstId() )
     {
         LIB_PART::SetSubpartIdNotation( sep, firstId );
-        SaveProjectSettings( true );
+        saveProjectConfig = true;
     }
 
     SetDefaultBusThickness( dlg.GetBusWidth() );
     SetDefaultLineThickness( dlg.GetLineWidth() );
-    SetDefaultTextSize( dlg.GetTextSize() );
-    g_RepeatStep.x = dlg.GetRepeatHorizontal();
-    g_RepeatStep.y = dlg.GetRepeatVertical();
-    g_RepeatDeltaLabel = dlg.GetRepeatLabel();
+
+    if( dlg.GetTextSize() != GetDefaultTextSize() )
+    {
+        SetDefaultTextSize( dlg.GetTextSize() );
+        saveProjectConfig = true;
+    }
+
+    if( g_RepeatStep.x != dlg.GetRepeatHorizontal() ||
+        g_RepeatStep.y != dlg.GetRepeatVertical() ||
+        g_RepeatDeltaLabel != dlg.GetRepeatLabel() )
+    {
+        g_RepeatStep.x = dlg.GetRepeatHorizontal();
+        g_RepeatStep.y = dlg.GetRepeatVertical();
+        g_RepeatDeltaLabel = dlg.GetRepeatLabel();
+        saveProjectConfig = true;
+    }
+
     SetAutoSaveInterval( dlg.GetAutoSaveInterval() * 60 );
     SetGridVisibility( dlg.GetShowGrid() );
     m_showAllPins = dlg.GetShowHiddenPins();
@@ -379,28 +386,22 @@ void SCH_EDIT_FRAME::OnPreferencesOptions( wxCommandEvent& event )
     SetForceHVLines( dlg.GetEnableHVBusOrientation() );
     m_showPageLimits = dlg.GetShowPageLimits();
 
-    wxString templateFieldName;
-
-    // @todo this will change when the template field editor is redone to
-    // look like the component field property editor, showing visibility and value also
-
+    // Delete all template fieldnames and then restore them using the template field data from
+    // the options dialog
     DeleteAllTemplateFieldNames();
+    TEMPLATE_FIELDNAMES newFieldNames = dlg.GetTemplateFields();
 
-    for( int i=0; i<8; ++i )    // no. fields in this dialog window
+    for( TEMPLATE_FIELDNAMES::iterator dlgfld = newFieldNames.begin();
+         dlgfld != newFieldNames.end(); ++dlgfld )
     {
-        templateFieldName = dlg.GetFieldName( i );
-
-        if( !templateFieldName.IsEmpty() )
-        {
-            TEMPLATE_FIELDNAME  fld( dlg.GetFieldName( i ) );
-
-            // @todo set visibility and value also from a better editor
-
-            AddTemplateFieldName( fld );
-        }
+        TEMPLATE_FIELDNAME fld = *dlgfld;
+        AddTemplateFieldName( fld );
     }
 
     SaveSettings( config() );  // save values shared by eeschema applications.
+
+    if( saveProjectConfig )
+        SaveProjectSettings( true );
 
     m_canvas->Refresh( true );
 }
@@ -534,7 +535,6 @@ static const wxChar SimulatorCommandEntry[] =       wxT( "SimCmdLine" );
 // Library editor wxConfig entry names.
 static const wxChar lastLibExportPathEntry[] =      wxT( "LastLibraryExportPath" );
 static const wxChar lastLibImportPathEntry[] =      wxT( "LastLibraryImportPath" );
-static const wxChar libeditdrawBgColorEntry[] =     wxT( "LibeditBgColor" );
 static const wxChar defaultPinNumSizeEntry[] =      wxT( "LibeditPinNumSize" );
 static const wxChar defaultPinNameSizeEntry[] =     wxT( "LibeditPinNameSize" );
 static const wxChar DefaultPinLengthEntry[] =       wxT( "DefaultPinLength" );
@@ -549,9 +549,6 @@ PARAM_CFG_ARRAY& SCH_EDIT_FRAME::GetConfigurationSettings()
                                                     &m_showPageLimits, true ) );
     m_configSettings.push_back( new PARAM_CFG_INT( true, wxT( "Units" ),
                                                    (int*)&g_UserUnit, MILLIMETRES ) );
-    m_configSettings.push_back( new PARAM_CFG_SETCOLOR( true, wxT( "SchEditorBgColor" ),
-                                                        &m_drawBgColor,
-                                                        WHITE ) );
 
     m_configSettings.push_back( new PARAM_CFG_BOOL( true, wxT( "PrintMonochrome" ),
                                                     &m_printMonochrome, true ) );
@@ -570,7 +567,8 @@ void SCH_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )
 
     wxConfigLoadSetups( aCfg, GetConfigurationSettings() );
 
-    m_GridColor = GetLayerColor( LAYER_GRID );
+    SetGridColor( GetLayerColor( LAYER_GRID ) );
+    SetDrawBgColor( GetLayerColor( LAYER_BACKGROUND ) );
 
     SetDefaultBusThickness( aCfg->Read( DefaultBusWidthEntry, DEFAULTBUSTHICKNESS ) );
     SetDefaultLineThickness( aCfg->Read( DefaultDrawLineWidthEntry, DEFAULTDRAWLINETHICKNESS ) );
@@ -713,10 +711,7 @@ void SCH_EDIT_FRAME::SaveSettings( wxConfigBase* aCfg )
 
     // Save template fieldnames
     STRING_FORMATTER sf;
-
     m_TemplateFieldNames.Format( &sf, 0 );
-
-    DBG(printf("saving formatted template fieldnames:'%s'\n", sf.GetString().c_str() );)
 
     wxString record = FROM_UTF8( sf.GetString().c_str() );
     record.Replace( wxT("\n"), wxT(""), true );   // strip all newlines
@@ -732,8 +727,8 @@ void LIB_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )
 
     wxConfigPathChanger cpc( aCfg, m_configPath );
 
-    EDA_COLOR_T itmp = ColorByName( aCfg->Read( libeditdrawBgColorEntry, wxT("WHITE") ) );
-    SetDrawBgColor( itmp );
+    SetGridColor( GetLayerColor( LAYER_GRID ) );
+    SetDrawBgColor( GetLayerColor( LAYER_BACKGROUND ) );
 
     wxString pro_dir = Prj().GetProjectFullName();
 
@@ -753,7 +748,6 @@ void LIB_EDIT_FRAME::SaveSettings( wxConfigBase* aCfg )
 
     wxConfigPathChanger cpc( aCfg, m_configPath );
 
-    aCfg->Write( libeditdrawBgColorEntry, ColorGetName( GetDrawBgColor() ) );
     aCfg->Write( lastLibExportPathEntry, m_lastLibExportPath );
     aCfg->Write( lastLibImportPathEntry, m_lastLibImportPath );
     aCfg->Write( DefaultPinLengthEntry, (long) GetDefaultPinLength() );

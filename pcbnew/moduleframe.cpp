@@ -86,7 +86,6 @@ BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_TOOL( ID_MODEDIT_DELETE_PART, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
     EVT_TOOL( ID_MODEDIT_NEW_MODULE, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
     EVT_TOOL( ID_MODEDIT_NEW_MODULE_FROM_WIZARD, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
-    EVT_TOOL( ID_MODEDIT_LOAD_MODULE, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
     EVT_TOOL( ID_MODEDIT_IMPORT_PART, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
     EVT_TOOL( ID_MODEDIT_EXPORT_PART, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
     EVT_TOOL( ID_MODEDIT_CREATE_NEW_LIB_AND_SAVE_CURRENT_PART,
@@ -137,6 +136,11 @@ BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_PCB_DRAWINGS_WIDTHS_SETUP, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
     EVT_MENU( ID_PCB_PAD_SETUP, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
     EVT_MENU( ID_PCB_USER_GRID_SETUP, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
+
+    // Menu Help
+    EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
 
     // Menu 3D Frame
     EVT_MENU( ID_MENU_PCB_SHOW_3D_FRAME, FOOTPRINT_EDIT_FRAME::Show3D_Frame )
@@ -457,7 +461,7 @@ void FOOTPRINT_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
 {
     if( GetScreen()->IsModify() )
     {
-        int ii = DisplayExitDialog( this, _( "Save the changes in the module before closing?" ) );
+        int ii = DisplayExitDialog( this, _( "Save the changes to the footprint before closing?" ) );
 
         switch( ii )
         {
@@ -478,7 +482,7 @@ void FOOTPRINT_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
             }
             else
             {
-                DisplayError( this, _( "Library is not set, the module could not be saved." ) );
+                DisplayError( this, _( "Library is not set, the footprint could not be saved." ) );
             }
             // fall through: cancel the close because of an error
 
@@ -668,7 +672,7 @@ void FOOTPRINT_EDIT_FRAME::OnModify()
 
 void FOOTPRINT_EDIT_FRAME::updateTitle()
 {
-    wxString title   = _( "Module Editor " );
+    wxString title   = _( "Footprint Editor " );
 
     wxString nickname = GetCurrentLib();
 
@@ -684,7 +688,7 @@ void FOOTPRINT_EDIT_FRAME::updateTitle()
             bool writable = Prj().PcbFootprintLibs()->IsFootprintLibWritable( nickname );
 
             // no exception was thrown, this means libPath is valid, but it may be read only.
-            title = _( "Module Editor (active library: " ) + nickname + wxT( ")" );
+            title = _( "Footprint Editor (active library: " ) + nickname + wxT( ")" );
 
             if( !writable )
                 title += _( " [Read Only]" );

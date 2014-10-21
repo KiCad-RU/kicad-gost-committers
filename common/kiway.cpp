@@ -116,7 +116,14 @@ const wxString KIWAY::dso_full_path( FACE_T aFaceId )
         return wxEmptyString;
     }
 
+#ifndef __WXMAC__
     wxFileName fn = wxStandardPaths::Get().GetExecutablePath();
+#else
+    // we have the dso's in main OSX bundle kicad.app/Contents/PlugIns
+    wxFileName fn = Pgm().GetExecutablePath();
+    fn.AppendDir( wxT( "Contents" ) );
+    fn.AppendDir( wxT( "PlugIns" ) );
+#endif
 
     fn.SetName( name );
 

@@ -217,7 +217,7 @@ static bool scriptingSetup()
 {
     wxString path_frag;
 
- #ifdef __MINGW32__
+#if defined( __MINGW32__ )
     // force python environment under Windows:
     const wxString python_us( "python27_us" );
 
@@ -256,41 +256,38 @@ static bool scriptingSetup()
     // (and remove the fixed paths from <src>/scripting/kicadplugins.i)
 
     // wizard plugins are stored in kicad/bin/plugins.
-    // so add this path to python scripting defualt search paths
+    // so add this path to python scripting default search paths
     // which are ( [KICAD_PATH] is an environment variable to define)
     // [KICAD_PATH]/scripting/plugins
     // Add this default search path:
     path_frag = Pgm().GetExecutablePath() + wxT( "scripting/plugins" );
- #else
+#elif defined( __WXMAC__ )
+    // User plugin folder is ~/Library/Application Support/kicad/scripting/plugins
+    path_frag = GetOSXKicadUserDataDir() + wxT( "/scripting/plugins" );
+
+    // Add default paths to PYTHONPATH
+    wxString pypath;
+    // User scripting folder (~/Library/Application Support/kicad/scripting/plugins)
+    pypath = GetOSXKicadUserDataDir() + wxT( "/scripting/plugins" );
+    // Machine scripting folder (/Library/Application Support/kicad/scripting/plugins)
+    pypath += wxT( ":" ) + GetOSXKicadMachineDataDir() + wxT( "/scripting/plugins" );
+    // Bundle scripting folder (<kicad.app>/Contents/SharedSupport/scripting/plugins)
+    pypath += wxT( ":" ) + GetOSXKicadDataDir() + wxT( "/scripting/plugins" );
+    // Bundle wxPython folder (<kicad.app>/Contents/Frameworks/python/site-packages)
+    pypath += wxT( ":" ) + Pgm().GetExecutablePath() + wxT( "Contents/Frameworks/python/site-packages" );
+    // Original content of $PYTHONPATH
+    if( wxGetenv("PYTHONPATH") != NULL )
+    {
+        pypath = wxString( wxGetenv("PYTHONPATH") ) + wxT( ":" ) + pypath;
+    }
+
+    // set $PYTHONPATH
+    wxSetEnv( "PYTHONPATH", pypath );
+#else
     // Add this default search path:
     path_frag = wxT( "/usr/local/kicad/bin/scripting/plugins" );
+#endif
 
-  #ifdef  __WXMAC__
-    // OSX
-    // System Library first
-    // User Library then
-    // (TODO) Bundle package ? where to place ? Shared Support ?
-    path_frag = wxT( "/Library/Application Support/kicad/scripting" );
-    path_frag = wxString( wxGetenv("HOME") ) + wxT( "/Library/Application Support/kicad/scripting" );
-
-    // Get pcbnew.app/Contents directory
-    wxFileName bundledir( wxStandardPaths::Get().GetExecutablePath() ) ;
-    bundledir.RemoveLastDir();
-
-    // Prepend in PYTHONPATH the content of the bundle libraries !
-    wxSetEnv( "PYTHONPATH", ((wxGetenv("PYTHONPATH") != NULL ) ? (wxString(wxGetenv("PYTHONPATH")) + ":") : wxString("")) +
-            bundledir.GetPath() +
-            "/Frameworks/wxPython/lib/python2.6/site-packages/wx-3.0-osx_cocoa" + ":" +
-            "/Library/Application Support/kicad/" + ":" +
-            bundledir.GetPath() + "/PlugIns" + ":" +
-            wxString( wxGetenv("HOME") )  + "/Library/Application Support/kicad/"
-            );
-  #endif
- #endif
-
-    // On linux and osx, 2 others paths are
-    // [HOME]/.kicad_plugins/
-    // [HOME]/.kicad/scripting/plugins/
     if( !pcbnewInitPythonScripting( TO_UTF8( path_frag ) ) )
     {
         wxLogSysError( wxT( "pcbnewInitPythonScripting() failed." ) );
@@ -336,11 +333,11 @@ bool IFACE::OnKifaceStart( PGM_BASE* aProgram, int aCtlBits )
                 "You have run Pcbnew for the first time using the "
                 "new footprint library table method for finding "
                 "footprints.  Pcbnew has either copied the default "
-                "table or created an empty table in your home "
+                "table or created an empty table in the kicad configuration "
                 "folder.  You must first configure the library "
                 "table to include all footprint libraries not "
                 "included with KiCad.  See the \"Footprint Library "
-                "Table\" section of the CvPcb documentation for "
+                "Table\" section of the CvPcb or Pcbnew documentation for "
                 "more information." ) );
         }
     }

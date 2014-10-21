@@ -127,7 +127,7 @@ wxString SCH_BASE_FRAME::SelectComponentFromLibrary( const wxString& aLibname,
 
     if( !aHistoryList.empty() )
     {
-        // This is good for a transition for experineced users: giving them a History. Ideally,
+        // This is good for a transition for experienced users: giving them a History. Ideally,
         // we actually make this part even faster to access with a popup on ALT-a or something.
         // the history is under a node named  "-- History --"
         // However, because it is translatable, and we need to have a node name starting by "-- "
@@ -185,10 +185,6 @@ SCH_COMPONENT* SCH_EDIT_FRAME::Load_Component( wxDC*           aDC,
         return NULL;
     }
 
-#ifndef KICAD_KEEPCASE
-    name.MakeUpper();
-#endif
-
     m_canvas->SetIgnoreMouseEvents( false );
     m_canvas->MoveCursorToCrossHair();
 
@@ -211,6 +207,9 @@ SCH_COMPONENT* SCH_EDIT_FRAME::Load_Component( wxDC*           aDC,
     // Note if part is found, and if name is an alias of a component,
     // alias exists because its root component was found
     component->SetPartName( name );
+
+    // Be sure the link to the corresponding LIB_PART is OK:
+    component->Resolve( Prj().SchLibs() );
 
     // Set the component value that can differ from component name in lib, for aliases
     component->GetField( VALUE )->SetText( name );

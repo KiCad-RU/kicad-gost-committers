@@ -164,7 +164,7 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
     static wxString      lastComponentName;
 
     // Ask for a component name or key words
-    DIALOG_GET_COMPONENT dlg( this, HistoryList, _( "Load Module" ), aUseFootprintViewer );
+    DIALOG_GET_COMPONENT dlg( this, HistoryList, _( "Load Footprint" ), aUseFootprintViewer );
 
     dlg.SetComponentName( lastComponentName );
 
@@ -530,7 +530,6 @@ void FOOTPRINT_EDIT_FRAME::OnSaveLibraryAs( wxCommandEvent& aEvent )
         PLUGIN::RELEASER dst( IO_MGR::PluginFind( dstType ) );
 
         wxArrayString mods = cur->FootprintEnumerate( curLibPath );
-
         for( unsigned i = 0;  i < mods.size();  ++i )
         {
             std::auto_ptr<MODULE> m( cur->FootprintLoad( curLibPath, mods[i] ) );

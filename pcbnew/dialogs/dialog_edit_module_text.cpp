@@ -113,6 +113,11 @@ void DialogEditModuleText::initDlg( )
 
     m_ModuleInfoText->SetLabel( msg );
 
+    // Create a list of not allowed layers.
+    // could be slightly dependent of the type of footprint text.
+    LSET forbiddenLayers( LSET::AllCuMask() );
+    forbiddenLayers.set( Edge_Cuts ).set( Margin ).set( F_Paste ).set( B_Paste ).set( F_Mask ).set( B_Mask );
+
     switch( m_currentText->GetType() )
     {
     case TEXTE_MODULE::TEXT_is_VALUE:
@@ -123,7 +128,7 @@ void DialogEditModuleText::initDlg( )
         m_TextDataTitle->SetLabel( _( "Text:" ) );
         break;
 
-    default:
+    case TEXTE_MODULE::TEXT_is_REFERENCE:
         m_TextDataTitle->SetLabel( _( "Reference:" ) );
         break;
     }
@@ -154,7 +159,20 @@ void DialogEditModuleText::initDlg( )
         m_Orient->SetSelection( 1 );
 
     if( !m_currentText->IsVisible() )
-        m_Show->SetSelection( 1 );;
+        m_Show->SetSelection( 1 );
+
+    // Configure the layers list selector
+    m_LayerSelectionCtrl->SetLayersHotkeys( false );
+    m_LayerSelectionCtrl->SetLayerSet( forbiddenLayers );
+    m_LayerSelectionCtrl->SetBoardFrame( m_parent );
+    m_LayerSelectionCtrl->Resync();
+
+    if( m_LayerSelectionCtrl->SetLayerSelection( m_currentText->GetLayer() ) < 0 )
+    {
+        wxMessageBox( _( "This item has an illegal layer id.\n"
+                        "Now, forced on the front silk screen layer. Please, fix it" ) );
+        m_LayerSelectionCtrl->SetLayerSelection( F_SilkS );
+    }
 }
 
 
@@ -162,7 +180,7 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
 {
     wxString msg;
 
-    if ( m_module)
+    if( m_module )
         m_parent->SaveCopyInUndoList( m_module, UR_CHANGED );
 
 #ifndef USE_WX_OVERLAY
@@ -222,6 +240,10 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
     m_currentText->SetOrientation( text_orient );
 
     m_currentText->SetDrawCoord();
+
+    LAYER_NUM layer = m_LayerSelectionCtrl->GetLayerSelection();
+    m_currentText->SetLayer( ToLAYER_ID( layer ) );
+    m_currentText->SetMirrored( IsBackLayer( m_currentText->GetLayer() ) );
 
 #ifndef USE_WX_OVERLAY
     if( m_dc )     // Display new text

@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2004 Jean-Pierre Charras, jp.charras ar wanadoo.fr
  * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
  *
@@ -32,11 +32,8 @@
 #include <confirm.h>
 #include <class_sch_screen.h>
 #include <wxstruct.h>
-#include <sch_item_struct.h>
 #include <wxEeschemaStruct.h>
 
-#include <general.h>
-#include <netlist.h>
 #include <class_library.h>
 #include <sch_component.h>
 #include <sch_sheet.h>
@@ -69,7 +66,8 @@ bool SCH_EDIT_FRAME::CreateArchiveLibrary( const wxString& aFileName )
     libCache->SetCache();
 
     /* examine all screens (not sheets) used and build the list of components
-     * found in lib complex hierarchies are not a problem because we just want
+     * found in lib.
+     * Complex hierarchies are not a problem because we just want
      * to know used components in libraries
      */
     for( SCH_SCREEN* screen = screens.GetFirst(); screen; screen = screens.GetNext() )

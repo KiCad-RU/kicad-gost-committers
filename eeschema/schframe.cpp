@@ -328,7 +328,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     m_printMonochrome = true;
     m_printSheetReference = true;
     SetShowPageLimits( true );
-    m_HotkeysZoomAndGridList = s_Schematic_Hokeys_Descr;
+    m_HotkeysZoomAndGridList = g_Schematic_Hokeys_Descr;
     m_dlgFindReplace = NULL;
     m_findReplaceData = new wxFindReplaceData( wxFR_DOWN );
     m_undoItem = NULL;
@@ -426,9 +426,8 @@ SCH_EDIT_FRAME::~SCH_EDIT_FRAME()
     m_undoItem = NULL;
     g_RootSheet = NULL;
     m_findReplaceData = NULL;
-
-    Pgm().ReleaseFile();        // Release the lock on root file
 }
+
 
 void SCH_EDIT_FRAME::SetRepeatItem( SCH_ITEM* aItem )
 {
@@ -1086,7 +1085,8 @@ void SCH_EDIT_FRAME::OnPrint( wxCommandEvent& event )
     if( fn.GetName() != NAMELESS_PROJECT )
     {
         // was: wxGetApp().WriteProjectConfig( fn.GetFullPath(), GROUP, GetProjectFileParametersList() );
-        Prj().ConfigSave( Kiface().KifaceSearch(), GROUP_SCH, GetProjectFileParametersList() );
+        Prj().ConfigSave( Kiface().KifaceSearch(), GROUP_SCH_EDITOR,
+                          GetProjectFileParametersList() );
     }
 }
 

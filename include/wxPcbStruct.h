@@ -514,6 +514,19 @@ public:
      */
     void ReCreateLayerBox( bool aForceResizeToolbar = true );
 
+
+    /**
+     * Function SetCurrentNetClass
+     * Must be called after a netclass selection (or after a netclass parameter change
+     * calls BOARD_DESIGN_SETTINGS::SetCurrentNetClass() and update trace width and via size
+     * combo boxes on main toolbar
+     * Initialize vias and tracks values displayed in comb boxes of the auxiliary toolbar
+     * and some others parameters (netclass name ....)
+     * @param aNetClassName = the new netclass name
+     * @return true if lists of tracks and vias sizes are modified
+     */
+    bool SetCurrentNetClass( const wxString& aNetClassName );
+
     /**
      * Function OnModify
      * must be called after a board change to set the modified flag.
@@ -855,8 +868,11 @@ public:
      */
     bool Clear_Pcb( bool aQuery );
 
-    /// @copydoc PCB_BASE_FRAME::SetBoard()
+    ///> @copydoc PCB_BASE_FRAME::SetBoard()
     void SetBoard( BOARD* aBoard );
+
+    ///> @copydoc PCB_BASE_FRAME::SetPageSettings()
+    void SetPageSettings( const PAGE_INFO& aPageSettings ); // overload
 
     // Drc control
 
@@ -918,12 +934,15 @@ public:
      * @param aMMtoWRMLunit = the VRML scaling factor:
      *      1.0 to export in mm. 0.001 for meters
      * @param aExport3DFiles = true to copy 3D shapes in the subir a3D_Subdir
-     * @param a3D_Subdir = sub directory where 3D shapes files are copied
-     * used only when aExport3DFiles == true
+     * @param aUseRelativePaths set to true to use relative paths instead of absolute paths
+     *                          in the board VRML file URLs.
+     * @param a3D_Subdir = sub directory where 3D shapes files are copied.  This is only used
+     *                     when aExport3DFiles == true
      * @return true if Ok.
      */
     bool ExportVRML_File( const wxString & aFullFileName, double aMMtoWRMLunit,
-                          bool aExport3DFiles, const wxString & a3D_Subdir );
+                          bool aExport3DFiles, bool aUseRelativePaths,
+                          const wxString & a3D_Subdir );
 
     /**
      * Function ExportToIDF3

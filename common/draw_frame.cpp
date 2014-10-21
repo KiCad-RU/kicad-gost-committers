@@ -24,7 +24,7 @@
  */
 
 /**
- * @file drawframe.cpp
+ * @file draw_frame.cpp
  */
 
 #include <fctsys.h>
@@ -47,6 +47,7 @@
 #include <math/box2.h>
 
 #include <wx/fontdlg.h>
+#include <wx/snglinst.h>
 #include <view/view.h>
 #include <view/view_controls.h>
 #include <gal/graphics_abstraction_layer.h>
@@ -69,10 +70,11 @@ BEGIN_EVENT_TABLE( EDA_DRAW_FRAME, KIWAY_PLAYER )
     EVT_MOUSEWHEEL( EDA_DRAW_FRAME::OnMouseEvent )
     EVT_MENU_OPEN( EDA_DRAW_FRAME::OnMenuOpen )
     EVT_ACTIVATE( EDA_DRAW_FRAME::OnActivate )
-    EVT_MENU_RANGE( ID_ZOOM_IN, ID_ZOOM_REDRAW, EDA_DRAW_FRAME::OnZoom )
-    EVT_MENU_RANGE( ID_OFFCENTER_ZOOM_IN, ID_OFFCENTER_ZOOM_OUT, EDA_DRAW_FRAME::OnZoom )
+    EVT_MENU_RANGE( ID_ZOOM_BEGIN, ID_ZOOM_END, EDA_DRAW_FRAME::OnZoom )
+
     EVT_MENU_RANGE( ID_POPUP_ZOOM_START_RANGE, ID_POPUP_ZOOM_END_RANGE,
                     EDA_DRAW_FRAME::OnZoom )
+
     EVT_MENU_RANGE( ID_POPUP_GRID_LEVEL_1000, ID_POPUP_GRID_USER,
                     EDA_DRAW_FRAME::OnSelectGrid )
 
@@ -97,6 +99,8 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent,
                                 long aStyle, const wxString & aFrameName ) :
     KIWAY_PLAYER( aKiway, aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName )
 {
+    m_file_checker        = NULL;
+
     m_drawToolBar         = NULL;
     m_optionsToolBar      = NULL;
     m_gridSelectBox       = NULL;
@@ -116,8 +120,8 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent,
     m_showOriginAxis      = false;      // true to draw the grid origin
     m_cursorShape         = 0;
     m_LastGridSizeId      = 0;
-    m_DrawGrid            = true;       // hide/Show grid. default = show
-    m_GridColor           = DARKGRAY;   // Grid color
+    m_drawGrid            = true;       // hide/Show grid. default = show
+    m_gridColor           = DARKGRAY;   // Default grid color
     m_showPageLimits      = false;
     m_drawBgColor         = BLACK;      // the background color of the draw canvas:
                                         // BLACK for Pcbnew, BLACK or WHITE for eeschema
@@ -179,6 +183,25 @@ EDA_DRAW_FRAME::~EDA_DRAW_FRAME()
     m_currentScreen = NULL;
 
     m_auimgr.UnInit();
+
+    ReleaseFile();
+}
+
+
+void EDA_DRAW_FRAME::ReleaseFile()
+{
+    delete m_file_checker;
+    m_file_checker = 0;
+}
+
+
+bool EDA_DRAW_FRAME::LockFile( const wxString& aFileName )
+{
+    delete m_file_checker;
+
+    m_file_checker = ::LockFile( aFileName );
+
+    return bool( m_file_checker );
 }
 
 

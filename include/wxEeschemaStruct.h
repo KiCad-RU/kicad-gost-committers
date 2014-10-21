@@ -119,6 +119,7 @@ class SCH_EDIT_FRAME : public SCH_BASE_FRAME
 private:
     SCH_SHEET_PATH*         m_CurrentSheet;    ///< which sheet we are presently working on.
     wxString                m_DefaultSchematicFileName;
+
     PARAM_CFG_ARRAY         m_projectFileParams;
     PARAM_CFG_ARRAY         m_configSettings;
     wxPageSetupDialogData   m_pageSetupData;
@@ -273,8 +274,6 @@ public:
      * Function LoadProjectFile
      * loads the KiCad project file (*.pro) settings specific to Eeschema.
      *
-     * @param aFileName The project file name to load.
-     * @param aForceReread Force the project file to be reread if true.
      * @return True if the project file was loaded correctly.
      */
     bool LoadProjectFile();
@@ -648,18 +647,6 @@ public:
      */
     void OnSaveProject( wxCommandEvent& aEvent );
 
-    /**
-     * Function OpenProjectFiles
-     * loads an entire project into the schematic editor.
-     *
-     * This function loads  schematic root file and it's subhierarchies, the project
-     * configuration, and the component libraries which are not already loaded.
-     *
-     * @param aFileSet is a list of one file, the top level schematic.
-     *
-     * @return bool - true if the project loaded properly, else false.
-     */
-    //bool LoadOneEEProject( const wxString& aFileName, bool aIsNew );
     bool OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl = 0 );  // virtual from KIWAY_PLAYER
 
     /**
@@ -679,7 +666,7 @@ public:
      * @param aFullFileName A reference to a wxString object containing the absolute path
      *                      and file name to load.
      * @param append True if loaded file is being appended to the currently open file instead
- *                   of replacing it.
+     *               of replacing it.
      * @return True if \a aFullFileName has been loaded (at least partially.)
      */
     bool LoadOneEEFile( SCH_SCREEN* aScreen, const wxString& aFullFileName, bool append = false );
@@ -710,8 +697,8 @@ public:
      * @param aForceVisibilityState = Set to true to change the footprint field visibility
      *                                state to \a aVisibilityState.  False retains the
      *                                current footprint field visibility state.
-     * @param aVisiblityState True to show the footprint field or false to hide the footprint
-     *                        field if \a aForceVisibilityState is true.
+     * @param aVisibilityState True to show the footprint field or false to hide the footprint
+     *                         field if \a aForceVisibilityState is true.
      * @return bool = true if success.
      */
     bool ProcessCmpToFootprintLinkFile( const wxString& aFullFilename,
@@ -1014,16 +1001,20 @@ private:
      * if libname != "", search in lib "libname"
      * else search in all loaded libs
      *
+     * @param aDC is the device context to draw upon.
+     * @param aLibName is the library name to load the component from.
      * @param aHistoryList     list remembering recently used component names.
      * @param aHistoryLastUnit remembering last unit in last component.
+     * @param aUseLibBrowser is the flag to determine if the library browser should be launched.
+     * @return a pointer the SCH_COMPONENT object selected or NULL if no component was selected.
      * (TODO(hzeller): This really should be a class doing history, but didn't
      *  want to change too much while other refactoring is going on)
      */
-    SCH_COMPONENT* Load_Component( wxDC*           DC,
-                                   const wxString& libname,
+    SCH_COMPONENT* Load_Component( wxDC*           aDC,
+                                   const wxString& aLibName,
                                    wxArrayString&  aHistoryList,
                                    int&            aHistoryLastUnit,
-                                   bool            UseLibBrowser );
+                                   bool            aUseLibBrowser );
 
     /**
      * Function EditComponent

@@ -262,7 +262,6 @@ static LANGUAGE_DESCR s_Languages[] =
 PGM_BASE::PGM_BASE()
 {
     m_pgm_checker = NULL;
-    m_file_checker = NULL;
     m_locale = NULL;
     m_common_settings = NULL;
 
@@ -290,18 +289,8 @@ void PGM_BASE::destroy()
     delete m_pgm_checker;
     m_pgm_checker = 0;
 
-    delete m_file_checker;
-    m_file_checker = 0;
-
     delete m_locale;
     m_locale = 0;
-}
-
-void PGM_BASE::ReleaseFile()
-{
-    // Release the current file marked in use.
-    delete m_file_checker;
-    m_file_checker = 0;
 }
 
 
@@ -405,7 +394,7 @@ bool PGM_BASE::initPgm()
     SetLanguagePath();
 
     // OS specific instantiation of wxConfigBase derivative:
-    m_common_settings = new wxConfig( KICAD_COMMON );
+    m_common_settings = GetNewConfig( KICAD_COMMON );
 
     ReadPdfBrowserInfos();      // needs m_common_settings
 
@@ -423,38 +412,30 @@ bool PGM_BASE::initPgm()
 
 bool PGM_BASE::setExecutablePath()
 {
-#ifdef __APPLE__        // Apple MacOSx
-
-    // Derive path from location of the app bundle
-    CFBundleRef mainBundle = CFBundleGetMainBundle();
-
-    if( mainBundle == NULL )
-        return false;
-
-    CFURLRef urlref = CFBundleCopyBundleURL( mainBundle );
-
-    if( urlref == NULL )
-        return false;
-
-    CFStringRef str = CFURLCopyFileSystemPath( urlref, kCFURLPOSIXPathStyle );
-
-    if( str == NULL )
-        return false;
-
-    char* native_str = NULL;
-    int   len = CFStringGetMaximumSizeForEncoding( CFStringGetLength( str ),
-                                                   kCFStringEncodingUTF8 ) + 1;
-    native_str = new char[len];
-
-    CFStringGetCString( str, native_str, len, kCFStringEncodingUTF8 );
-    m_bin_dir = FROM_UTF8( native_str );
-    delete[] native_str;
-
-#else
     m_bin_dir = wxStandardPaths::Get().GetExecutablePath();
 
-#endif
+#ifdef __WXMAC__
+    // On OSX Pgm().GetExecutablePath() will always point to main
+    // bundle directory, e.g., /Applications/kicad.app/
 
+    wxFileName fn( m_bin_dir );
+    if( fn.GetName() == wxT( "kicad" ) )
+    {
+        // kicad launcher, so just remove the Contents/MacOS part
+        fn.RemoveLastDir();
+        fn.RemoveLastDir();
+    }
+    else
+    {
+        // standalone binaries live in Contents/Applications/<standalone>.app/Contents/MacOS
+        fn.RemoveLastDir();
+        fn.RemoveLastDir();
+        fn.RemoveLastDir();
+        fn.RemoveLastDir();
+        fn.RemoveLastDir();
+    }
+    m_bin_dir = fn.GetPath() + wxT( "/" );
+#else
     // Use unix notation for paths. I am not sure this is a good idea,
     // but it simplifies compatibility between Windows and Unices.
     // However it is a potential problem in path handling under Windows.
@@ -463,6 +444,7 @@ bool PGM_BASE::setExecutablePath()
     // Remove file name form command line:
     while( m_bin_dir.Last() != '/' && !m_bin_dir.IsEmpty() )
         m_bin_dir.RemoveLast();
+#endif
 
     return true;
 }
@@ -677,36 +659,3 @@ void PGM_BASE::AddMenuLanguageList( wxMenu* MasterMenu )
     }
 }
 
-
-bool PGM_BASE::LockFile( const wxString& aFileName )
-{
-    // first make absolute and normalize, to avoid that different lock files
-    // for the same file can be created
-    wxFileName fn( aFileName );
-
-    fn.MakeAbsolute();
-
-    // semaphore to protect the edition of the file by more than one instance
-    if( m_file_checker != NULL )
-    {
-        // it means that we had an open file and we are opening a different one
-        delete m_file_checker;
-    }
-
-    wxString lockFileName = fn.GetFullPath() + wxT( ".lock" );
-
-    lockFileName.Replace( wxT( "/" ), wxT( "_" ) );
-
-    // We can have filenames coming from Windows, so also convert Windows separator
-    lockFileName.Replace( wxT( "\\" ), wxT( "_" ) );
-
-    m_file_checker = new wxSingleInstanceChecker( lockFileName );
-
-    if( m_file_checker &&
-        m_file_checker->IsAnotherRunning() )
-    {
-        return false;
-    }
-
-    return true;
-}

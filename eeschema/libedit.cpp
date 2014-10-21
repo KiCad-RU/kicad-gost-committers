@@ -320,7 +320,7 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
     if( GetScreen()->IsModify() )
     {
         if( IsOK( this, _( "Include last component changes?" ) ) )
-            SaveOnePart( lib );
+            SaveOnePart( lib, false );
     }
 
     if( newFile )
@@ -642,11 +642,7 @@ void LIB_EDIT_FRAME::CreateNewLibraryPart( wxCommandEvent& event )
         return;
     }
 
-#ifndef KICAD_KEEPCASE
-    name = dlg.GetName().MakeUpper();
-#else
     name = dlg.GetName();
-#endif
     name.Replace( wxT( " " ), wxT( "_" ) );
 
     PART_LIB* lib = GetCurLib();
@@ -716,7 +712,7 @@ void LIB_EDIT_FRAME::CreateNewLibraryPart( wxCommandEvent& event )
 }
 
 
-void LIB_EDIT_FRAME::SaveOnePart( PART_LIB* aLib )
+bool LIB_EDIT_FRAME::SaveOnePart( PART_LIB* aLib, bool aPromptUser )
 {
     wxString    msg;
     LIB_PART*   part = GetCurPart();
@@ -725,13 +721,13 @@ void LIB_EDIT_FRAME::SaveOnePart( PART_LIB* aLib )
 
     LIB_PART* old_part = aLib->FindPart( part->GetName() );
 
-    if( old_part )
+    if( old_part && aPromptUser )
     {
         msg.Printf( _( "Part '%s' already exists. Change it?" ),
                     GetChars( part->GetName() ) );
 
         if( !IsOK( this, msg ) )
-            return;
+            return false;
     }
 
     m_drawItem = m_lastDrawItem = NULL;
@@ -746,4 +742,6 @@ void LIB_EDIT_FRAME::SaveOnePart( PART_LIB* aLib )
                 GetChars( aLib->GetName() ) );
 
     SetStatusText( msg );
+
+    return true;
 }

@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2009 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2009 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -1496,7 +1496,7 @@ void SCH_COMPONENT::GetMsgPanelInfo( MSG_PANEL_ITEMS& aList )
 
         wxString msg = part->IsPower() ? _( "Power symbol" ) : _( "Value" );
 
-        aList.push_back( MSG_PANEL_ITEM( msg, GetField( VALUE )->GetText(), DARKCYAN ) );
+        aList.push_back( MSG_PANEL_ITEM( msg, GetField( VALUE )->GetShownText(), DARKCYAN ) );
 
         // Display component reference in library and library
         aList.push_back( MSG_PANEL_ITEM( _( "Component" ), GetPartName(), BROWN ) );
@@ -1508,7 +1508,7 @@ void SCH_COMPONENT::GetMsgPanelInfo( MSG_PANEL_ITEMS& aList )
 
         // Display the current associated footprint, if exists.
         if( !GetField( FOOTPRINT )->IsVoid() )
-            msg = GetField( FOOTPRINT )->GetText();
+            msg = GetField( FOOTPRINT )->GetShownText();
         else
             msg = _( "<Unknown>" );
 
@@ -1683,7 +1683,7 @@ wxString SCH_COMPONENT::GetSelectMenuText() const
     wxString tmp;
     tmp.Printf( _( "Component %s, %s" ),
                 GetChars( GetPartName() ),
-                GetChars( GetField( REFERENCE )->GetText() ) );
+                GetChars( GetField( REFERENCE )->GetShownText() ) );
     return tmp;
 }
 

@@ -486,8 +486,6 @@ PCB_EDIT_FRAME::~PCB_EDIT_FRAME()
         m_Macros[i].m_Record.clear();
 
     delete m_drc;
-
-    Pgm().ReleaseFile();        // Release the lock on PCB file
 }
 
 
@@ -502,10 +500,32 @@ void PCB_EDIT_FRAME::SetBoard( BOARD* aBoard )
         drawPanel->DisplayBoard( aBoard );
         aBoard->GetRatsnest()->Recalculate();
 
+        // reload the worksheet
+        SetPageSettings( aBoard->GetPageSettings() );
+
+        // update the tool manager with the new board and its view.
+        if( m_toolManager )
+        {
+            m_toolManager->SetEnvironment( aBoard, drawPanel->GetView(),
+                                           drawPanel->GetViewControls(), this );
+            m_toolManager->ResetTools( TOOL_BASE::MODEL_RELOAD );
+        }
+    }
+}
+
+
+void PCB_EDIT_FRAME::SetPageSettings( const PAGE_INFO& aPageSettings )
+{
+    PCB_BASE_FRAME::SetPageSettings( aPageSettings );
+
+    if( IsGalCanvasActive() )
+    {
+        PCB_DRAW_PANEL_GAL* drawPanel = static_cast<PCB_DRAW_PANEL_GAL*>( GetGalCanvas() );
+
         // Prepare worksheet template
         KIGFX::WORKSHEET_VIEWITEM* worksheet;
-        worksheet = new KIGFX::WORKSHEET_VIEWITEM( &aBoard->GetPageSettings(),
-                                                   &aBoard->GetTitleBlock() );
+        worksheet = new KIGFX::WORKSHEET_VIEWITEM( &m_Pcb->GetPageSettings(),
+                                                   &m_Pcb->GetTitleBlock() );
         worksheet->SetSheetName( std::string( GetScreenDesc().mb_str() ) );
 
         BASE_SCREEN* screen = GetScreen();
@@ -518,14 +538,6 @@ void PCB_EDIT_FRAME::SetBoard( BOARD* aBoard )
 
         // PCB_DRAW_PANEL_GAL takes ownership of the worksheet
         drawPanel->SetWorksheet( worksheet );
-
-        // update the tool manager with the new board and its view.
-        if( m_toolManager )
-        {
-            m_toolManager->SetEnvironment( aBoard, drawPanel->GetView(),
-                                           drawPanel->GetViewControls(), this );
-            m_toolManager->ResetTools( TOOL_BASE::MODEL_RELOAD );
-        }
     }
 }
 
@@ -675,14 +687,16 @@ void PCB_EDIT_FRAME::UseGalCanvas( bool aEnable )
 
     if( aEnable )
     {
+        SetBoard( m_Pcb );
         m_toolManager->ResetTools( TOOL_BASE::GAL_SWITCH );
         GetGalCanvas()->GetView()->RecacheAllItems( true );
         GetGalCanvas()->SetEventDispatcher( m_toolDispatcher );
         GetGalCanvas()->StartDrawing();
-        SetBoard( m_Pcb );
     }
     else
     {
+        m_toolManager->ResetTools( TOOL_BASE::GAL_SWITCH );
+
         // Redirect all events to the legacy canvas
         GetGalCanvas()->SetEventDispatcher( NULL );
     }
@@ -1066,4 +1080,18 @@ void PCB_EDIT_FRAME::ToPlotter( wxCommandEvent& event )
     DIALOG_PLOT dlg( this );
 
     dlg.ShowModal();
+}
+
+
+bool PCB_EDIT_FRAME::SetCurrentNetClass( const wxString& aNetClassName )
+{
+    bool change = GetDesignSettings().SetCurrentNetClass( aNetClassName );
+
+    if( change )
+    {
+        updateTraceWidthSelectBox();
+        updateViaSizeSelectBox();
+    }
+
+    return change;
 }

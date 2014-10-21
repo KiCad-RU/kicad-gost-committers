@@ -179,13 +179,13 @@ set( COMMON_SRCS
     grid_tricks.cpp
     gr_basic.cpp
     hotkeys_basic.cpp
-    hotkey_grid_table.cpp
     html_messagebox.cpp
     kiface_i.cpp
     kiway.cpp
     kiway_express.cpp
     kiway_holder.cpp
     kiway_player.cpp
+    lockfile.cpp
     msgpanel.cpp
     netlist_keywords.cpp
     newstroke_font.cpp

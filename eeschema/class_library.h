@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2004 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
  *
@@ -209,11 +209,27 @@ public:
      *
      * The object can be either a part or an alias.
      *
-     * @param aEntryName - Name of entry to search for.
+     * @param aEntryName - Name of entry to search for (case sensitive).
      * @param aLibraryName - Name of the library to search.
      * @return The entry object if found, otherwise NULL.
      */
     LIB_ALIAS* FindLibraryEntry( const wxString& aEntryName,
+            const wxString& aLibraryName = wxEmptyString );
+
+    /**
+     * Function FindLibraryNearEntries
+     * Searches all libraries in the list for an entry, using a case insensitive comparison.
+     * Helper function used in dialog to find all candidates.
+     * During a long time, eeschema was using a case insensitive search.
+     * Therefore, for old schematics (<= 2013), or libs, for some components,
+     * the chip name (name of alias in lib) can be broken.
+     * This function can be used to display a list of candidates, in component properties dialog.
+     *
+     * @param aEntryName - Name of entries to search for (case insensitive).
+     * @param aLibraryName - Name of the library to search.
+     * @param aCandidates - a std::vector to store candidates
+     */
+    void FindLibraryNearEntries( std::vector<LIB_ALIAS*>& aCandidates, const wxString& aEntryName,
             const wxString& aLibraryName = wxEmptyString );
 
     /**
@@ -332,13 +348,7 @@ public:
      * @param aMakeUpperCase - Force entry names to upper case.
      */
     void GetEntryNames( wxArrayString& aNames, bool aSort = true,
-                        bool aMakeUpperCase =
-#ifdef KICAD_KEEPCASE
-                                              false
-#else
-                                              true
-#endif
-                        );
+                        bool aMakeUpperCase = false );
 
     /**
      * Load string array with entry names matching name and/or key word.
@@ -377,7 +387,7 @@ public:
     /**
      * Find entry by name.
      *
-     * @param aName - Name of entry, case insensitive.
+     * @param aName - Name of entry, case sensitive.
      * @return Entry if found.  NULL if not found.
      */
     LIB_ALIAS* FindEntry( const wxString& aName );
@@ -388,7 +398,7 @@ public:
      * This is a helper for FindEntry so casting a LIB_ALIAS pointer to
      * a LIB_PART pointer is not required.
      *
-     * @param aName - Name of part, case insensitive.
+     * @param aName - Name of part, case sensitive.
      * @return LIB_PART* - part if found, else NULL.
      */
     LIB_PART* FindPart( const wxString& aName );
@@ -396,7 +406,7 @@ public:
     /**
      * Find alias by \a nName.
      *
-     * @param aName - Name of alias, case insensitive.
+     * @param aName - Name of alias, case sensitive.
      * @return Alias if found.  NULL if not found.
      */
     LIB_ALIAS* FindAlias( const wxString& aName )

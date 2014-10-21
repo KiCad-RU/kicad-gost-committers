@@ -45,6 +45,7 @@
 
 class wxAboutDialogInfo;
 class SEARCH_STACK;
+class wxSingleInstanceChecker;
 
 
 // Flag for special keys
@@ -92,7 +93,6 @@ enum pseudokeys {
 #define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.exe" )
 #define PL_EDITOR_EXE       wxT( "pl_editor.exe" )
 #else
-#ifndef __WXMAC__
 #define CVPCB_EXE           wxT( "cvpcb" )
 #define PCBNEW_EXE          wxT( "pcbnew" )
 #define EESCHEMA_EXE        wxT( "eeschema" )
@@ -105,20 +105,6 @@ enum pseudokeys {
 
 #define PCB_CALCULATOR_EXE  wxT( "pcb_calculator" )
 #define PL_EDITOR_EXE       wxT( "pl_editor" )
-#else
-#define CVPCB_EXE           wxT( "cvpcb.app/Contents/MacOS/cvpcb" )
-#define PCBNEW_EXE          wxT( "pcbnew.app/Contents/MacOS/pcbnew" )
-#define EESCHEMA_EXE        wxT( "eeschema.app/Contents/MacOS/eeschema" )
-#define GERBVIEW_EXE        wxT( "gerbview.app/Contents/MacOS/gerbview" )
-#define BITMAPCONVERTER_EXE wxT( "bitmap2component.app/Contents/MacOS/bitmap2component" )
-
-#if defined( KICAD_GOST )
-#define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch.app/Contents/MacOS/pcad2kicadsch" )
-#endif
-
-#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.app/Contents/MacOS/pcb_calculator" )
-#define PL_EDITOR_EXE       wxT( "pl_editor.app/Contents/MacOS/pl_editor" )
-# endif
 #endif
 
 
@@ -633,9 +619,57 @@ wxString FindFileInSearchPaths( const SEARCH_STACK& aStack,
  */
 wxString SearchHelpFileFullPath( const SEARCH_STACK& aSearchStack, const wxString& aBaseName );
 
+/**
+ * Function LockFile
+ * tests to see if aFileName can be locked (is not already locked) and only then
+ * returns a wxSingleInstanceChecker protecting aFileName.  Caller owns the return value.
+ */
+wxSingleInstanceChecker* LockFile( const wxString& aFileName );
+
 
 /// Put aPriorityPath in front of all paths in the value of aEnvVar.
 const wxString PrePendPath( const wxString& aEnvVar, const wxString& aPriorityPath );
 
+/**
+ * Function GetNewConfig
+ *
+ * Use this function instead of creating a new wxConfig so we can put config files in
+ * a more proper place for each platform. This is generally $HOME/.config/kicad/ in Linux
+ * according to the FreeDesktop specification at
+ * http://standards.freedesktop.org/basedir-spec/basedir-spec-0.6.html
+ * The config object created here should be destroyed by the caller.
+ *
+ * @param aProgName is the name of the program calling this function - can be obtained by
+ *  calling Pgm().App().GetAppName().  This will be the actual file name of the config file.
+ * @return A pointer to a new wxConfigBase derived object is returned.  The caller is in charge
+ *  of deleting it.
+ */
+wxConfigBase* GetNewConfig( const wxString& aProgName );
+
+/**
+ * Function GetKicadConfigPath
+ * @return A wxString containing the config path for Kicad
+ */
+wxString GetKicadConfigPath();
+
+#ifdef __WXMAC__
+/**
+ * OSX specific function GetOSXKicadUserDataDir
+ * @return A wxString pointing to the user data directory for Kicad
+ */
+wxString GetOSXKicadUserDataDir();
+
+/**
+ * OSX specific function GetOSXMachineDataDir
+ * @return A wxString pointing to the machine data directory for Kicad
+ */
+wxString GetOSXKicadMachineDataDir();
+
+/**
+ * OSX specific function GetOSXKicadDataDir
+ * @return A wxString pointing to the bundle data directory for Kicad
+ */
+wxString GetOSXKicadDataDir();
+#endif
 
 #endif  // INCLUDE__COMMON_H_

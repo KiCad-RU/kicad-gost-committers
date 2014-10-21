@@ -41,6 +41,7 @@
 #include <vector>
 #include <build_version.h>
 #include <macros.h>
+#include <common.h>
 
 #include <wx/dir.h>
 #include <wx/filename.h>
@@ -74,6 +75,7 @@ void KICAD_MANAGER_FRAME::CreateNewProject( const wxString& aPrjFullFileName,
         wxFileName  templatePath;
         wxString    envStr;
 
+#ifndef __WXMAC__
         wxGetEnv( wxT( "KICAD" ), &envStr );
 
         // Add a new tab for system templates
@@ -101,6 +103,10 @@ void KICAD_MANAGER_FRAME::CreateNewProject( const wxString& aPrjFullFileName,
                 sep + wxT( ".." ) + sep + wxT( "share" ) + sep + wxT( "template" ) + sep;
             }
         }
+#else
+        // Use what is provided in the bundle data dir
+        templatePath = GetOSXKicadDataDir() + sep + wxT( "template" );
+#endif
 
         ps->AddPage( _( "System Templates" ), templatePath );
 
@@ -287,6 +293,32 @@ void KICAD_MANAGER_FRAME::OnLoadProject( wxCommandEvent& event )
 #endif
 
     PrintPrjInfo();
+}
+
+/* Creates a new project folder, copy a template into this new folder.
+ * and open this new projrct as working project
+ */
+void KICAD_MANAGER_FRAME::OnCreateProjectFromTemplate( wxCommandEvent& event )
+{
+    wxString    default_dir = wxFileName( Prj().GetProjectFullName() ).GetPathWithSep();
+    wxString    title = _("New Project Folder");
+    wxDirDialog dlg( this, title, default_dir );
+
+    if( dlg.ShowModal() == wxID_CANCEL )
+        return;
+
+    // Buils the project .pro filename, from the new project folder name
+    wxFileName fn;
+    fn.AssignDir( dlg.GetPath() );
+    fn.SetName( dlg.GetPath().AfterLast( SEP() ) );
+    fn.SetExt( wxT( "pro" ) );
+
+    // Launch the template selector dialog, and copy files
+    CreateNewProject( fn.GetFullPath(), true );
+
+    // Initialize the project
+    event.SetId( wxID_ANY );
+    OnLoadProject( event );
 }
 
 

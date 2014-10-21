@@ -48,6 +48,12 @@ EDIT_TOOL::EDIT_TOOL() :
 }
 
 
+void EDIT_TOOL::Reset( RESET_REASON aReason )
+{
+    m_dragging = false;
+}
+
+
 bool EDIT_TOOL::Init()
 {
     // Find the selection tool, so they can cooperate
@@ -483,7 +489,7 @@ void EDIT_TOOL::remove( BOARD_ITEM* aItem )
                 DisplayError( getEditFrame<PCB_BASE_FRAME>(), _( "Cannot delete VALUE!" ) );
                 return;
 
-            default:    // suppress warnings
+            case TEXTE_MODULE::TEXT_is_DIVERS:    // suppress warnings
                 break;
             }
         }

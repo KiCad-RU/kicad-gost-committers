@@ -80,7 +80,7 @@ int FOOTPRINT_EDIT_FRAME::BlockCommand( int key )
     switch( key )
     {
     default:
-        cmd = key & 0x255;
+        cmd = key & 0xFF;
         break;
 
     case - 1:
@@ -400,6 +400,11 @@ void CopyMarkedItems( MODULE* module, wxPoint offset )
     if( module == NULL )
         return;
 
+    // Reference and value cannot be copied, they are unique.
+    // Ensure they are not selected
+    module->Reference().ClearFlags();
+    module->Value().ClearFlags();
+
     for( D_PAD* pad = module->Pads();  pad;  pad = pad->Next() )
     {
         if( !pad->IsSelected() )
@@ -440,6 +445,12 @@ void MoveMarkedItems( MODULE* module, wxPoint offset )
     if( module == NULL )
         return;
 
+    if( module->Reference().IsSelected() )
+        module->Reference().MoveTransformWithModule( offset );
+
+    if( module->Value().IsSelected() )
+        module->Value().MoveTransformWithModule( offset );
+
     D_PAD* pad = module->Pads();
 
     for( ; pad != NULL; pad = pad->Next() )
@@ -461,12 +472,8 @@ void MoveMarkedItems( MODULE* module, wxPoint offset )
         switch( item->Type() )
         {
         case PCB_MODULE_TEXT_T:
-        {
-            TEXTE_MODULE* tm = (TEXTE_MODULE*) item;
-            tm->Offset( offset );
-            tm->SetPos0( tm->GetPos0() + offset );
-        }
-        break;
+            static_cast<TEXTE_MODULE*>( item )->MoveTransformWithModule( offset );
+            break;
 
         case PCB_MODULE_EDGE_T:
         {
@@ -481,9 +488,9 @@ void MoveMarkedItems( MODULE* module, wxPoint offset )
         default:
             ;
         }
-
-        item->ClearFlags();
     }
+
+    ClearMarkItems( module );
 }
 
 
@@ -522,6 +529,9 @@ void DeleteMarkedItems( MODULE* module )
 
         item->DeleteStructure();
     }
+
+    // Ref and value can be flagged, but cannot be deleted
+    ClearMarkItems( module );
 }
 
 
@@ -537,6 +547,12 @@ void MirrorMarkedItems( MODULE* module, wxPoint offset, bool force_all )
 
     if( module == NULL )
         return;
+
+    if( module->Reference().IsSelected() || force_all )
+        module->Reference().MirrorTransformWithModule( offset.x );
+
+    if( module->Value().IsSelected() || force_all )
+        module->Value().MirrorTransformWithModule( offset.x );
 
     for( D_PAD* pad = module->Pads();  pad;  pad = pad->Next() )
     {
@@ -588,22 +604,15 @@ void MirrorMarkedItems( MODULE* module, wxPoint offset, bool force_all )
             break;
 
         case PCB_MODULE_TEXT_T:
-            {
-                TEXTE_MODULE* tm = (TEXTE_MODULE*) item;
-                tmp = tm->GetTextPosition();
-                SETMIRROR( tmp.x );
-                tm->SetTextPosition( tmp );
-                tmp.y = tm->GetPos0().y;
-                tm->SetPos0( tmp );
-            }
+            static_cast<TEXTE_MODULE*>( item )->MirrorTransformWithModule( offset.x );
             break;
 
         default:
             break;
         }
-
-        item->ClearFlags();
     }
+
+    ClearMarkItems( module );
 }
 
 
@@ -617,6 +626,12 @@ void RotateMarkedItems( MODULE* module, wxPoint offset, bool force_all )
 
     if( module == NULL )
         return;
+
+    if( module->Reference().IsSelected() || force_all )
+        module->Reference().RotateTransformWithModule( offset, 900 );
+
+    if( module->Value().IsSelected() || force_all )
+        module->Value().RotateTransformWithModule( offset, 900 );
 
     for( D_PAD* pad = module->Pads();  pad;  pad = pad->Next() )
     {
@@ -633,7 +648,7 @@ void RotateMarkedItems( MODULE* module, wxPoint offset, bool force_all )
 
     for( EDA_ITEM* item = module->GraphicalItems();  item;  item = item->Next() )
     {
-        if( !item->IsSelected() && !force_all)
+        if( !item->IsSelected() && !force_all )
             continue;
 
         switch( item->Type() )
@@ -655,33 +670,27 @@ void RotateMarkedItems( MODULE* module, wxPoint offset, bool force_all )
         break;
 
         case PCB_MODULE_TEXT_T:
-        {
-            TEXTE_MODULE* tm = (TEXTE_MODULE*) item;
-            wxPoint pos = tm->GetTextPosition();
-            ROTATE( pos );
-            tm->SetTextPosition( pos );
-            tm->SetPos0( tm->GetTextPosition() );
-            tm->SetOrientation( tm->GetOrientation() + 900 );
-        }
-        break;
+            static_cast<TEXTE_MODULE*>( item )->RotateTransformWithModule( offset, 900 );
+            break;
 
         default:
-            ;
+            break;
         }
-
-        item->ClearFlags();
     }
+
+    ClearMarkItems( module );
 }
 
 
 void ClearMarkItems( MODULE* module )
 {
-    EDA_ITEM* item;
-
     if( module == NULL )
         return;
 
-    item = module->GraphicalItems();
+    module->Reference().ClearFlags();
+    module->Value().ClearFlags();
+
+    EDA_ITEM* item = module->GraphicalItems();
 
     for( ; item != NULL; item = item->Next() )
     {
@@ -709,6 +718,24 @@ int MarkItemsInBloc( MODULE* module, EDA_RECT& Rect )
 
     if( module == NULL )
         return 0;
+
+    ClearMarkItems( module );   // Just in case ...
+
+    pos = module->Reference().GetTextPosition();
+
+    if( Rect.Contains( pos ) )
+    {
+        module->Reference().SetFlags( SELECTED );
+        ItemsCount++;
+    }
+
+    pos = module->Value().GetTextPosition();
+
+    if( Rect.Contains( pos ) )
+    {
+        module->Value().SetFlags( SELECTED );
+        ItemsCount++;
+    }
 
     pad = module->Pads();
 
@@ -742,7 +769,7 @@ int MarkItemsInBloc( MODULE* module, EDA_RECT& Rect )
             break;
 
         case PCB_MODULE_TEXT_T:
-            pos = ( (TEXTE_MODULE*) item )->GetTextPosition();
+            pos = static_cast<TEXTE_MODULE*>( item )->GetTextPosition();
 
             if( Rect.Contains( pos ) )
             {

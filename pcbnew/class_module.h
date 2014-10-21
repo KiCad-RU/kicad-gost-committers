@@ -365,7 +365,7 @@ public:
      */
     const wxString& GetReference() const
     {
-        return m_Reference->m_Text;
+        return m_Reference->GetText();
     }
 
     /**
@@ -375,16 +375,16 @@ public:
      */
     void SetReference( const wxString& aReference )
     {
-        m_Reference->m_Text = aReference;
+        m_Reference->SetText( aReference );
     }
 
     /**
      * Function GetValue
      * @return const wxString& - the value text.
      */
-    const wxString& GetValue()
+    const wxString& GetValue() const
     {
-        return m_Value->m_Text;
+        return m_Value->GetText();
     }
 
     /**
@@ -393,7 +393,7 @@ public:
      */
     void SetValue( const wxString& aValue )
     {
-        m_Value->m_Text = aValue;
+        m_Value->SetText( aValue );
     }
 
     /// read/write accessors:

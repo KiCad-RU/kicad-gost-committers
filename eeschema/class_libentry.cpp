@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2004 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
  *
@@ -452,7 +452,7 @@ void LIB_PART::PlotLibFields( PLOTTER* aPlotter, int aUnit, int aConvert,
         // The reference is a special case: we shoud change the basic text
         // to add '?' and the part id
         LIB_FIELD& field = (LIB_FIELD&) item;
-        wxString tmp = field.GetText();
+        wxString tmp = field.GetShownText();
         if( field.GetId() == REFERENCE )
         {
             wxString text = field.GetFullText( aUnit );
@@ -795,11 +795,6 @@ bool LIB_PART::Load( LINE_READER& aLineReader, wxString& aErrorMsg )
     if( componentName[0] != '~' )
     {
         m_name = FROM_UTF8( componentName );
-
-#ifndef KICAD_KEEPCASE
-        m_name = m_name.MakeUpper();
-#endif
-
         value.SetText( m_name );
     }
     else
