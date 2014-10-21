@@ -756,9 +756,9 @@ add_subdirectory( qa )
 
 #add_subdirectory( new )
 
-#if( USE_PCAD2KICAD )
+if( KICAD_GOST )
 add_subdirectory( extra/pcad2kicadsch )
-#endif( USE_PCAD2KICAD )
+endif( KICAD_GOST )
 
 # Make all libs and executables depend on ExternalProject_Add( boost ),
 # except perhaps bitmap lib.  This allows a multi-threaded build to succeed.
