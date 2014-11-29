@@ -57,6 +57,7 @@ PadDrill=0.600000000000
 PadDrillOvalY=0.600000000000
 PadSizeH=1.500000000000
 PadSizeV=1.500000000000
+PageLayoutDescrFile=gost_landscape.kicad_wks
 PcbTextSizeV=1.500000000000
 PcbTextSizeH=1.500000000000
 PcbTextThickness=0.300000000000
