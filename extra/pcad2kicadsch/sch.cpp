@@ -148,7 +148,6 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
 {
     XNODE*          iNode;
     SCH_SHEET*      sheet;
-    bool            isJunction;
 
     // Defaut measurement units
     iNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
@@ -157,7 +156,6 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
         m_defaultMeasurementUnit = FindNodeGetContent( iNode, wxT( "fileUnits" ) );
 
     // Allways also library file
-    isJunction = false;
     aActualConversion = wxT( "SCHLIB" );
 
     DoLibrary( aXmlDoc, aStatusBar, aActualConversion );
