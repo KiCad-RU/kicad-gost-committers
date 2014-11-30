@@ -46,6 +46,7 @@
 class wxAboutDialogInfo;
 class SEARCH_STACK;
 class wxSingleInstanceChecker;
+class REPORTER;
 
 
 // Flag for special keys
@@ -603,8 +604,8 @@ wxString FindFileInSearchPaths( const SEARCH_STACK& aStack,
  * <p>
  * Return the KiCad help file with path and extension.
  * Help files can be html (.html ext) or pdf (.pdf ext) files.
- * A <BaseName>.html file is searched and if not found,
- * <BaseName>.pdf file is searched in the same path.
+ * A \<BaseName\>.html file is searched and if not found,
+ * \<BaseName\>.pdf file is searched in the same path.
  * If the help file for the current locale is not found, an attempt to find
  * the English version of the help file is made.
  * Help file is searched in directories in this order:
@@ -618,6 +619,19 @@ wxString FindFileInSearchPaths( const SEARCH_STACK& aStack,
  * @return  wxEmptyString is returned if aBaseName is not found, else the full path & filename.
  */
 wxString SearchHelpFileFullPath( const SEARCH_STACK& aSearchStack, const wxString& aBaseName );
+
+/**
+ * Helper function EnsureFileDirectoryExists
+ * make \a aTargetFullFileName absolute and creates the path of this file if it doesn't yet exist.
+ * @param aTargetFullFileName  the wxFileName containing the full path and file name to modify.  The path
+ *                    may be absolute or relative to \a aBaseFilename .
+ * @param aBaseFilename a full filename. Only its path is used to set the aTargetFullFileName path.
+ * @param aReporter a point to a REPORTER object use to show messages (can be NULL)
+ * @return true if \a aOutputDir already exists or was successfully created.
+ */
+bool EnsureFileDirectoryExists( wxFileName*     aTargetFullFileName,
+                                  const wxString& aBaseFilename,
+                                  REPORTER*       aReporter = NULL );
 
 /**
  * Function LockFile

@@ -30,7 +30,7 @@
 //    a closed loop as assumed for all other outlines.
 // 3. a scheme is needed to tell a castellated edge from a plain board edge
 
-#include <iostream>
+
 #include <sstream>
 #include <string>
 #include <iomanip>
@@ -848,7 +848,7 @@ bool VRML_LAYER::Tesselate( VRML_LAYER* holes, bool aHolesOnly )
         std::ostringstream ostr;
         ostr << "Tesselate():FAILED: " << holes->GetError();
         error = ostr.str();
-        return NULL;
+        return false;
     }
 
     if( Fault )

@@ -84,9 +84,10 @@ const wxString GetGerberExtension( LAYER_NUM aLayer )
 }
 
 
-wxString GetGerberFileFunction( const BOARD *aBoard, LAYER_NUM aLayer )
+wxString GetGerberFileFunction( const BOARD *aBoard, LAYER_NUM aLayer,
+                                bool aUseX1CompatibilityMode )
 {
-    wxString attrib = wxEmptyString;
+    wxString attrib;
 
     switch( aLayer )
     {
@@ -178,11 +179,18 @@ wxString GetGerberFileFunction( const BOARD *aBoard, LAYER_NUM aLayer )
             attrib += wxString( wxT( ",Mixed" ) );
             break;
         default:
-            ;   // do nothing (but avoid a warning for unhandled LAYER_T values from GCC)
+            break;   // do nothing (but avoid a warning for unhandled LAYER_T values from GCC)
         }
     }
 
-    return attrib;
+    wxString fileFct;
+
+    if( aUseX1CompatibilityMode )
+        fileFct.Printf( "G04 #@! TF.FileFunction,%s*", GetChars( attrib ) );
+    else
+        fileFct.Printf( "%%TF.FileFunction,%s*%%", GetChars( attrib ) );
+
+    return fileFct;
 }
 
 
@@ -211,56 +219,6 @@ void BuildPlotFileName( wxFileName*     aFilename,
 
     if( !suffix.IsEmpty() )
         aFilename->SetName( aFilename->GetName() + wxT( "-" ) + suffix );
-}
-
-
-bool EnsureOutputDirectory( wxFileName*     aOutputDir,
-                            const wxString& aBoardFilename,
-                            REPORTER*       aReporter )
-{
-    wxString msg;
-    wxString boardFilePath = wxFileName( aBoardFilename ).GetPath();
-
-    if( !aOutputDir->MakeAbsolute( boardFilePath ) )
-    {
-        if( aReporter )
-        {
-            msg.Printf( _( "*** Error: cannot make path '%s' absolute with respect to '%s'! ***" ),
-                        GetChars( aOutputDir->GetPath() ),
-                        GetChars( boardFilePath ) );
-            aReporter->Report( msg );
-        }
-
-        return false;
-    }
-
-    wxString outputPath( aOutputDir->GetPath() );
-
-    if( !wxFileName::DirExists( outputPath ) )
-    {
-        if( wxMkdir( outputPath ) )
-        {
-            if( aReporter )
-            {
-                msg.Printf( _( "Output directory '%s' created.\n" ), GetChars( outputPath ) );
-                aReporter->Report( msg );
-                return true;
-            }
-        }
-        else
-        {
-            if( aReporter )
-            {
-                msg.Printf( _( "*** Error: cannot create output directory '%s'! ***\n" ),
-                            GetChars( outputPath ) );
-                aReporter->Report( msg );
-            }
-
-            return false;
-        }
-    }
-
-    return true;
 }
 
 
@@ -313,7 +271,7 @@ bool PLOT_CONTROLLER::OpenPlotfile( const wxString &aSuffix,
     wxFileName outputDir = wxFileName::DirName( outputDirName );
     wxString boardFilename = m_board->GetFileName();
 
-    if( EnsureOutputDirectory( &outputDir, boardFilename ) )
+    if( EnsureFileDirectoryExists( &outputDir, boardFilename ) )
     {
         wxFileName fn( boardFilename );
         BuildPlotFileName( &fn, outputDirName, aSuffix, GetDefaultPlotExtension( aFormat ) );

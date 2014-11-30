@@ -73,6 +73,8 @@ ZONE_CONTAINER::ZONE_CONTAINER( BOARD* aBoard ) :
 ZONE_CONTAINER::ZONE_CONTAINER( const ZONE_CONTAINER& aZone ) :
     BOARD_CONNECTED_ITEM( aZone )
 {
+    m_smoothedPoly = NULL;
+
     // Should the copy be on the same net?
     SetNetCode( aZone.GetNetCode() );
     m_Poly = new CPolyLine( *aZone.m_Poly );
@@ -260,7 +262,7 @@ void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
         const CPolyPt& corner = m_FilledPolysList.GetCorner( ic );
         wxPoint  coord( corner.x + offset.x, corner.y + offset.y );
         CornersBuffer.push_back( coord );
-        CornersTypeBuffer.push_back( (char) corner.m_utility );
+        CornersTypeBuffer.push_back( (char) corner.m_flags );
 
         // the last corner of a filled area is found: draw it
         if( (corner.end_contour) || (ic == imax) )
@@ -271,9 +273,9 @@ void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
              * just draw filled polygons but with outlines thickness = m_ZoneMinThickness
              * So DO NOT use draw filled polygons with outlines having a thickness  > 0
              * Note: Extra segments ( added to joint holes with external outline) flagged by
-             * m_utility != 0 are not drawn
+             * m_flags != 0 are not drawn
              * Note not all polygon libraries provide a flag for these extra-segments, therefore
-             * the m_utility member can be always 0
+             * the m_flags member can be always 0
              */
             {
                 // Draw outlines:
@@ -483,11 +485,8 @@ bool ZONE_CONTAINER::HitTest( const EDA_RECT& aRect, bool aContained, int aAccur
 {
     EDA_RECT arect = aRect;
     arect.Inflate( aAccuracy );
-    CRect rect = m_Poly->GetBoundingBox();
-    EDA_RECT bbox;
-
-    bbox.SetOrigin( rect.left,  rect.bottom );
-    bbox.SetEnd(    rect.right, rect.top    );
+    EDA_RECT bbox = m_Poly->GetBoundingBox();
+    bbox.Normalize();
 
     if( aContained )
          return arect.Contains( bbox );
@@ -609,7 +608,7 @@ void ZONE_CONTAINER::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
         msg.Empty();
 
         if( GetDoNotAllowVias() )
-            AccumulateDescription( msg, _("No via") );
+            AccumulateDescription( msg, _( "No via" ) );
 
         if( GetDoNotAllowTracks() )
             AccumulateDescription( msg, _("No track") );
@@ -664,16 +663,16 @@ void ZONE_CONTAINER::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     else
         msg = _( "Polygons" );
 
-    aList.push_back( MSG_PANEL_ITEM( _( "Fill mode" ), msg, BROWN ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Fill Mode" ), msg, BROWN ) );
 
     // Useful for statistics :
     msg.Printf( wxT( "%d" ), (int) m_Poly->m_HatchLines.size() );
-    aList.push_back( MSG_PANEL_ITEM( _( "Hatch lines" ), msg, BLUE ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Hatch Lines" ), msg, BLUE ) );
 
     if( m_FilledPolysList.GetCornersCount() )
     {
         msg.Printf( wxT( "%d" ), (int) m_FilledPolysList.GetCornersCount() );
-        aList.push_back( MSG_PANEL_ITEM( _( "Corners in DrawList" ), msg, BLUE ) );
+        aList.push_back( MSG_PANEL_ITEM( _( "Corner Count" ), msg, BLUE ) );
     }
 }
 

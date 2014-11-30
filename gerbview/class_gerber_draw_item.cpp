@@ -225,7 +225,9 @@ D_CODE* GERBER_DRAW_ITEM::GetDcodeDescr()
 {
     if( (m_DCode < FIRST_DCODE) || (m_DCode > LAST_DCODE) )
         return NULL;
-    GERBER_IMAGE* gerber = g_GERBER_List[m_Layer];
+
+    GERBER_IMAGE* gerber = g_GERBER_List.GetGbrImage( m_Layer );
+
     if( gerber == NULL )
         return NULL;
 
@@ -553,7 +555,7 @@ void GERBER_DRAW_ITEM::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 
     // Display graphic layer number
     msg.Printf( wxT( "%d" ), GetLayer() + 1 );
-    aList.push_back( MSG_PANEL_ITEM( _( "Graphic layer" ), msg, BROWN ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Graphic Layer" ), msg, BROWN ) );
 
     // Display item rotation
     // The full rotation is Image rotation + m_lyrRotation

@@ -108,9 +108,11 @@ public:
      * @param aActionName is the name of action to be invoked.
      * @param aNow decides if the action has to be run immediately or after the current coroutine
      * is preemptied.
+     * @param aParam is an optional parameter that might be used by the invoked action. Its meaning
+     * depends on the action.
      * @return False if the action was not found.
      */
-    bool RunAction( const std::string& aActionName, bool aNow = false );
+    bool RunAction( const std::string& aActionName, bool aNow = false, void* aParam = NULL );
 
     /**
      * Function RunAction()
@@ -119,8 +121,10 @@ public:
      * @param aAction is the action to be invoked.
      * @param aNow decides if the action has to be run immediately or after the current coroutine
      * is preemptied.
+     * @param aParam is an optional parameter that might be used by the invoked action. Its meaning
+     * depends on the action.
      */
-    void RunAction( const TOOL_ACTION& aAction, bool aNow = false );
+    void RunAction( const TOOL_ACTION& aAction, bool aNow = false, void* aParam = NULL );
 
     /**
      * Function FindTool()
@@ -252,11 +256,12 @@ public:
 
     /**
      * Sets behaviour of the tool's context popup menu.
+     * @param aTool - the parent tool
      * @param aMenu - the menu structure, defined by the tool
      * @param aTrigger - when the menu is activated:
-     * CMENU_NOW: opens the menu right now
-     * CMENU_BUTTON: opens the menu when RMB is pressed
-     * CMENU_OFF: menu is disabled.
+     *  CMENU_NOW: opens the menu right now
+     *  CMENU_BUTTON: opens the menu when RMB is pressed
+     *  CMENU_OFF: menu is disabled.
      * May be called from a coroutine context.
      */
     void ScheduleContextMenu( TOOL_BASE* aTool, CONTEXT_MENU* aMenu,
@@ -309,7 +314,7 @@ private:
     /**
      * Function dispatchStandardEvents()
      * Handles specific events, that are intended for TOOL_MANAGER rather than tools.
-     * @aEvent is the event to be processed.
+     * @param aEvent is the event to be processed.
      * @return False if the event was processed and should not go any further.
      */
     bool dispatchStandardEvents( TOOL_EVENT& aEvent );
@@ -350,7 +355,7 @@ private:
      * Makes a tool active, so it can receive events and react to them. Activated tool is pushed
      * on the active tools stack, so the last activated tool receives events first.
      *
-     * @param aToolId is the name of tool to be run.
+     * @param aName is the name of tool to be run.
      */
     bool runTool( const std::string& aName );
 
@@ -359,7 +364,7 @@ private:
      * Makes a tool active, so it can receive events and react to them. Activated tool is pushed
      * on the active tools stack, so the last activated tool receives events first.
      *
-     * @param aToolId is the tool to be run.
+     * @param aTool is the tool to be run.
      */
     bool runTool( TOOL_BASE* aTool );
 
@@ -379,7 +384,7 @@ private:
      * Returns information about a tool registration status.
      *
      * @param aTool is the tool to be checked.
-     * @return True if the tool is in the registered tools list, false otherwise.
+     * @return true if the tool is in the registered tools list, false otherwise.
      */
     bool isRegistered( TOOL_BASE* aTool ) const
     {

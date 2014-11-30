@@ -37,9 +37,6 @@ option( USE_PYTHON_GOSTDOCGEN "enable/disable building Python based GOST documen
 
 option( USE_PCAD2KICAD "PCad to Kicad converter (default ON). Warning, this is experimental" ON )
 
-#option( USE_KIWAY_DLLS "Build the major modules as KIFACE DLLs or DSOs, will soon be the norm." ON )
-set( USE_KIWAY_DLLS true )  # this is now mandatory, the code is the same anyways, the old code is gone.
-
 # The desire is to migrate designs *away from* case independence, and to create designs which use
 # literally (case specific) interpreted component names.  But for backwards compatibility,
 # you may turn OFF this option if you really must.  (Remember that with KiCad using text
@@ -243,8 +240,8 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 
     if( APPLE )
 
-        set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -D__ASSERTMACROS__ -mmacosx-version-min=10.5" )
-        set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__ASSERTMACROS__ -mmacosx-version-min=10.5" )
+        set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -D__ASSERTMACROS__" )
+        set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__ASSERTMACROS__" )
 
         # Allows .dylib relocation in the future - needed by fixbundle
         set( CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -headerpad_max_install_names")
@@ -255,6 +252,12 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 
         if( NOT CMAKE_CXX_COMPILER )
             EXEC_PROGRAM( wx-config ARGS --cxx OUTPUT_VARIABLE CMAKE_CXX_COMPILER )
+        endif()
+
+        # There seems to be no consistent behavior when -mmacosx-min-version is
+        # not specified, so force user to set minimum OSX version to build for
+        if( NOT CMAKE_OSX_DEPLOYMENT_TARGET )
+            message( FATAL_ERROR "Please specify target OS X version using -DCMAKE_OSX_DEPLOYMENT_TARGET=10.x" )
         endif()
 
     endif()
@@ -306,18 +309,13 @@ if( USE_WX_GRAPHICS_CONTEXT )
 endif()
 
 
-# Allow user to override the default settings for adding images to menu items.  By default
-# images in menu items are enabled on all platforms except OSX.  This can be over ridden by
-# defining -DUSE_IMAGES_IN_MENUS=ON/OFF to force the preferred behavior.
-if( NOT DEFINED USE_IMAGES_IN_MENUS )
-    if( NOT APPLE )
-        set( USE_IMAGES_IN_MENUS ON )
-    endif()
+# By default images in menu items are enabled on all platforms except OSX.
+if( NOT APPLE )
+    set( USE_IMAGES_IN_MENUS ON CACHE BOOL "Enable images in menus" )
 else()
-    if( USE_IMAGES_IN_MENUS )
-        set( USE_IMAGES_IN_MENUS ON )
-    endif()
+    set( USE_IMAGES_IN_MENUS OFF CACHE BOOL "Enable images in menus" )
 endif()
+
 
 
 # KIFACE_SUFFIX is the file extension used for top level program modules which
@@ -340,42 +338,22 @@ set( KIFACE_PREFIX  "_" )
 
 #================================================
 # Locations for install targets.
-set( KICAD_BIN bin
-    CACHE PATH "Location of KiCad binaries." )
-
-set( KICAD_FP_LIB_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}"
-     CACHE PATH "Default path where footprint libraries are installed." )
-
-if( UNIX AND NOT APPLE )
+#================================================
+if( NOT APPLE )
     # Everything without leading / is relative to CMAKE_INSTALL_PREFIX.
+    set( KICAD_BIN bin
+        CACHE PATH "Location of KiCad binaries." )
     set( KICAD_PLUGINS lib/kicad/plugins
         CACHE PATH "Location of KiCad plugins." )
     set( KICAD_DATA share/kicad
         CACHE PATH "Location of KiCad data files." )
     set( KICAD_DOCS share/doc/kicad
         CACHE PATH "Location of KiCad documentation files." )
-    set( KICAD_FP_LIB_INSTALL_PATH "${KICAD_FP_LIB_INSTALL_PATH}/share/kicad/modules" )
-endif()
-
-if( MINGW )
-    # Everything without leading / is relative to CMAKE_INSTALL_PREFIX.
-    set( KICAD_PLUGINS ${KICAD_BIN}/plugins
-        CACHE PATH "Location of KiCad plugins." )
-    set( KICAD_DATA share
-        CACHE PATH "Location of KiCad data files." )
-    set( KICAD_DOCS doc
-        CACHE PATH "Location of KiCad documentation files." )
-    set( KICAD_FP_LIB_INSTALL_PATH "${KICAD_FP_LIB_INSTALL_PATH}/modules" )
-endif()
-
-set(KICAD_INTERNAT ${KICAD_DATA}/internat
-    CACHE PATH "Location of KiCad i18n files.")
-set( KICAD_DEMOS ${KICAD_DATA}/demos
-    CACHE PATH "Location of KiCad demo files." )
-set( KICAD_TEMPLATE ${KICAD_DATA}/template
-    CACHE PATH "Location of KiCad template files." )
-
-if( APPLE )
+    set( KICAD_DEMOS ${KICAD_DATA}/demos
+        CACHE PATH "Location of KiCad demo files." )
+    set( KICAD_TEMPLATE ${KICAD_DATA}/template
+        CACHE PATH "Location of KiCad template files." )
+else()
     # everything without leading / is relative to CMAKE_INSTALL_PREFIX.
     # CMAKE_INSTALL_PREFIX is root of .dmg image
     set( KICAD_BIN ${CMAKE_INSTALL_PREFIX}
@@ -410,10 +388,6 @@ if( APPLE )
         CACHE PATH "Location of KiCad documentation files." FORCE )
     set( KICAD_DEMOS demos
         CACHE PATH "Location of KiCad demo files." FORCE )
-
-    # used to set DEFAULT_FP_LIB_PATH in config.h.cmake, but then never used
-    # set it to correct value just in case (see common.cpp)
-    set( KICAD_FP_LIB_INSTALL_PATH "~/Library/Preferences/kicad" )
 
     # Override default paths for fixup_bundle
     set( OSX_BUNDLE_OVERRIDE_PATHS "
@@ -593,7 +567,9 @@ if( KICAD_SKIP_BOOST )
         message( FATAL_ERROR "Boost 1.54+ libraries are required." )
     endif()
 
-    add_custom_target( boost )      # it is required to meet some further dependencies
+    # Keeps CMake from complaining about undefined boost dependencies even though Boost was
+    # found.  Sigh!!!!!
+    add_custom_target( boost )
 
     message( WARNING "
 WARNING: You decided to skip building boost library.

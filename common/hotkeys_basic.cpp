@@ -548,6 +548,9 @@ int EDA_BASE_FRAME::ReadHotkeyConfigFile( const wxString&           aFilename,
 {
     wxFile cfgfile( aFilename );
 
+    if( !cfgfile.IsOpened() )       // There is a problem to open file
+        return 0;
+
     // get length
     cfgfile.SeekEnd();
     wxFileOffset size = cfgfile.Tell();
@@ -770,7 +773,7 @@ void AddHotkeyConfigMenu( wxMenu* aMenu )
 
     // Append HotkeySubmenu to menu
     AddMenuItem( aMenu, HotkeySubmenu,
-                 ID_PREFERENCES_HOTKEY_SUBMENU, _( "&Hotkeys" ),
+                 wxID_ANY, _( "&Hotkeys" ),
                  _( "Hotkeys configuration and preferences" ),
                  KiBitmap( hotkeys_xpm ) );
 }

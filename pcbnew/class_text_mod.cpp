@@ -254,11 +254,9 @@ void TEXTE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
     if( panel == NULL )
         return;
 
-    MODULE* module = static_cast<MODULE*>( m_Parent );
-
-    /* parent must *not* be NULL (a module text without a footprint
+    /* parent must *not* be NULL (a footprint text without a footprint
        parent has no sense) */
-    wxASSERT( module );
+    wxASSERT( m_Parent );
 
     BOARD* brd = GetBoard( );
 
@@ -384,7 +382,7 @@ void TEXTE_MODULE::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     };
 
     Line = module->GetReference();
-    aList.push_back( MSG_PANEL_ITEM( _( "Module" ), Line, DARKCYAN ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Footprint" ), Line, DARKCYAN ) );
 
     Line = GetShownText();
     aList.push_back( MSG_PANEL_ITEM( _( "Text" ), Line, BROWN ) );
@@ -410,16 +408,16 @@ void TEXTE_MODULE::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     aList.push_back( MSG_PANEL_ITEM( _( "Mirror" ), msg, DARKGREEN ) );
 
     msg.Printf( wxT( "%.1f" ), m_Orient / 10.0 );
-    aList.push_back( MSG_PANEL_ITEM( _( "Orient" ), msg, DARKGREEN ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Angle" ), msg, DARKGREEN ) );
 
     msg = ::CoordinateToString( m_Thickness );
     aList.push_back( MSG_PANEL_ITEM( _( "Thickness" ), msg, DARKGREEN ) );
 
     msg = ::CoordinateToString( m_Size.x );
-    aList.push_back( MSG_PANEL_ITEM( _( "H Size" ), msg, RED ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Width" ), msg, RED ) );
 
     msg = ::CoordinateToString( m_Size.y );
-    aList.push_back( MSG_PANEL_ITEM( _( "V Size" ), msg, RED ) );
+    aList.push_back( MSG_PANEL_ITEM( _( "Height" ), msg, RED ) );
 }
 
 

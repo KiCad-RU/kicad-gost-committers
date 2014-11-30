@@ -75,7 +75,7 @@ namespace PCB { struct IFACE; }     // KIFACE_I is in pcbnew.cpp
  */
 class PCB_EDIT_FRAME : public PCB_BASE_EDIT_FRAME
 {
-    friend class PCB::IFACE;
+    friend struct PCB::IFACE;
     friend class PCB_LAYER_WIDGET;
 
     void updateTraceWidthSelectBox();
@@ -100,13 +100,6 @@ class PCB_EDIT_FRAME : public PCB_BASE_EDIT_FRAME
         throw( IO_ERROR, PARSE_ERROR );
 
 protected:
-
-#ifdef KICAD_SCRIPTING_WXPYTHON
-    // Panel used to let user talk with internal scripting
-    wxWindow* m_pythonPanel;
-    bool m_pythonPanelShow;                   ///< Visibility flag for Python Console
-#endif
-
     PCB_LAYER_WIDGET* m_Layers;
 
     DRC* m_drc;                                 ///< the DRC controller, see drc.cpp
@@ -129,6 +122,24 @@ protected:
     void createPopUpMenuForTexts( TEXTE_PCB* Text, wxMenu* menu );
     void createPopUpBlockMenu( wxMenu* menu );
     void createPopUpMenuForMarkers( MARKER_PCB* aMarker, wxMenu* aPopMenu );
+
+
+    // Has meaning only if DKICAD_SCRIPTING_WXPYTHON option is on
+    /**
+     * @return the frame name identifier for the python console frame
+     */
+    static const wxChar * pythonConsoleNameId()
+    {
+        return wxT( "PythonConsole" );
+    }
+
+    /**
+     * @return a pointer to the python console frame, or NULL if not exist
+     */
+    static wxWindow * findPythonConsole()
+    {
+       return FindWindowByName( pythonConsoleNameId() );
+    }
 
     /**
      * Function syncLayerWidgetLayer

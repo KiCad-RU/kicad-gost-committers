@@ -228,19 +228,6 @@ void PlotSilkScreen( BOARD* aBoard, PLOTTER* aPlotter, LSET aLayerMask,
 
 
 /**
- * Function EnsureOutputDirectory (helper function)
- * make \a OutputDir absolute and creates the path if it doesn't exist.
- * @param aOutputDir  the wxFileName containing the full path and file name to modify.  The path
- *                    may be absolute or relative to \a aBoardFilename .
- * @param aBoardFilename the board full path and filename.
- * @param aReporter a point to a REPORTER object use to show messages (can be NULL)
- * @return true if \a aOutputDir already exists or was successfully created.
- */
-bool EnsureOutputDirectory( wxFileName*     aOutputDir,
-                            const wxString& aBoardFilename,
-                            REPORTER*       aReporter = NULL );
-
-/**
  * Function BuildPlotFileName (helper function)
  * Complete a plot filename: forces the output directory,
  * add a suffix to the name and sets the specified extension
@@ -271,9 +258,12 @@ const wxString GetGerberExtension( LAYER_NUM aLayer );
  * the "%TF.FileFunction" attribute prefix and the "*%" suffix.
  * @param aBoard = the board, needed to get the total count of copper layers
  * @param aLayer = the layer number to create the attribute for
+ * @param aUseX1CompatibilityMode = true to use a file function attribute like G04 comment
+ *      , compatible with X1 (rx274) notation (G04#@!TF.FileFunction)
  * @return The attribute, as a text string
  */
-extern wxString GetGerberFileFunction( const BOARD *aBoard, LAYER_NUM aLayer );
+extern wxString GetGerberFileFunction( const BOARD *aBoard, LAYER_NUM aLayer,
+                                       bool aUseX1CompatibilityMode );
 
 // PLOTGERB.CPP
 void SelectD_CODE_For_LineDraw( PLOTTER* plotter, int aSize );

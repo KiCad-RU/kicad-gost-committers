@@ -212,7 +212,7 @@ bool DIALOG_GEN_MODULE_POSITION::CreateFiles()
     wxString    boardFilename = m_parent->GetBoard()->GetFileName();
     WX_TEXT_CTRL_REPORTER reporter( m_messagesBox );
 
-    if( !EnsureOutputDirectory( &outputDir, boardFilename, &reporter ) )
+    if( !EnsureFileDirectoryExists( &outputDir, boardFilename, &reporter ) )
     {
         msg.Printf( _( "Could not write plot files to folder \"%s\"." ),
                     GetChars( outputDir.GetPath() ) );
@@ -493,7 +493,7 @@ int PCB_EDIT_FRAME::DoGenFootprintsPositionFile( const wxString& aFullFileName,
 
         const wxString& ref = list[ii].m_Reference;
         const wxString& val = list[ii].m_Value;
-        const wxString& pkg = list[ii].m_Module->GetFPID().Format();
+        const wxString& pkg = list[ii].m_Module->GetFPID().GetFootprintName();
 
         sprintf( line, "%-8.8s %-16.16s %-16.16s",
                  TO_UTF8( ref ), TO_UTF8( val ), TO_UTF8( pkg ) );
@@ -554,9 +554,9 @@ void PCB_EDIT_FRAME::GenFootprintsReport( wxCommandEvent& event )
     wxString msg;
     if( success )
     {
-        msg.Printf( _( "Module report file created:\n'%s'" ),
+        msg.Printf( _( "Footprint report file created:\n'%s'" ),
                     GetChars( fn.GetFullPath() ) );
-        wxMessageBox( msg, _( "Module Report" ), wxICON_INFORMATION );
+        wxMessageBox( msg, _( "Footprint Report" ), wxICON_INFORMATION );
     }
 
     else

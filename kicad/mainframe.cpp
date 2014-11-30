@@ -42,7 +42,7 @@
 #include <menus_helpers.h>
 
 
-#define TreeFrameWidthEntry     wxT( "LeftWinWidth" )
+#define TREE_FRAME_WIDTH_ENTRY     wxT( "LeftWinWidth" )
 
 
 KICAD_MANAGER_FRAME::KICAD_MANAGER_FRAME( wxWindow* parent,
@@ -437,12 +437,16 @@ void KICAD_MANAGER_FRAME::OnRunCvpcb( wxCommandEvent& event )
     frame->Raise();
 }
 
-
+#include <wx/filefn.h>
 void KICAD_MANAGER_FRAME::OnRunGerbview( wxCommandEvent& event )
 {
     // Gerbview is called without any file to open, because we do not know
     // the list and the name of files to open (if any...).
+    // however we run it in the path of the project
+    wxString cwd = wxGetCwd();
+    wxSetWorkingDirectory( Prj().GetProjectPath() );
     Execute( this, GERBVIEW_EXE, wxEmptyString );
+    wxSetWorkingDirectory( cwd );
 }
 
 
@@ -464,7 +468,7 @@ void KICAD_MANAGER_FRAME::OnOpenFileInTextEditor( wxCommandEvent& event )
 #endif
 
     mask = _( "Text file (" ) + mask + wxT( ")|" ) + mask;
-    wxString default_dir = wxFileName( Prj().GetProjectFullName() ).GetPathWithSep();
+    wxString default_dir = Prj().GetProjectPath();
 
     wxFileDialog dlg( this, _( "Load File to Edit" ), default_dir,
                       wxEmptyString, mask, wxFD_OPEN );
@@ -503,28 +507,25 @@ void KICAD_MANAGER_FRAME::ClearMsg()
 void KICAD_MANAGER_FRAME::LoadSettings( wxConfigBase* aCfg )
 {
     EDA_BASE_FRAME::LoadSettings( aCfg );
-    aCfg->Read( TreeFrameWidthEntry, &m_leftWinWidth );
+    aCfg->Read( TREE_FRAME_WIDTH_ENTRY, &m_leftWinWidth );
 }
 
 
 void KICAD_MANAGER_FRAME::SaveSettings( wxConfigBase* aCfg )
 {
     EDA_BASE_FRAME::SaveSettings( aCfg );
-    aCfg->Write( TreeFrameWidthEntry, m_LeftWin->GetSize().x );
+    aCfg->Write( TREE_FRAME_WIDTH_ENTRY, m_LeftWin->GetSize().x );
 }
 
 
 /**
  * a minor helper function:
- * Prints the Current Working Dir name and the projet name on the text panel.
+ * Prints the Current Project full name on the text panel.
  */
 void KICAD_MANAGER_FRAME::PrintPrjInfo()
 {
-    wxString msg = wxString::Format( _(
-            "Working dir: %s\nProject: %s\n" ),
-            GetChars( wxGetCwd() ),
-            GetChars( GetProjectFileName() )
-            );
+    wxString msg = wxString::Format( _( "Project name:\n%s\n" ),
+                        GetChars( GetProjectFileName() ) );
     PrintMsg( msg );
 }
 
