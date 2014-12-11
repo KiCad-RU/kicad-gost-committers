@@ -109,7 +109,7 @@ static EDA_HOTKEY HkFlipItem( wxT( "Flip Item" ), HK_FLIP_ITEM, 'F' );
 static EDA_HOTKEY HkRotateItem( wxT( "Rotate Item" ), HK_ROTATE_ITEM, 'R' );
 static EDA_HOTKEY HkMoveItem( wxT( "Move Item" ), HK_MOVE_ITEM, 'M' );
 static EDA_HOTKEY HkCopyItem( wxT( "Copy Item" ), HK_COPY_ITEM, 'C' );
-static EDA_HOTKEY HkDragFootprint( wxT( "Drag Footprint" ), HK_DRAG_ITEM, 'G' );
+static EDA_HOTKEY HkDragFootprint( wxT( "Drag Item" ), HK_DRAG_ITEM, 'G' );
 static EDA_HOTKEY HkGetAndMoveFootprint( wxT( "Get and Move Footprint" ), HK_GET_AND_MOVE_FOOTPRINT, 'T' );
 static EDA_HOTKEY HkLock_Unlock_Footprint( wxT( "Lock/Unlock Footprint" ), HK_LOCK_UNLOCK_FOOTPRINT, 'L' );
 static EDA_HOTKEY HkDelete( wxT( "Delete Track or Footprint" ), HK_DELETE, WXK_DELETE );
@@ -126,6 +126,10 @@ static EDA_HOTKEY HkCanvasOpenGL( wxT( "Switch to OpenGL Canvas" ),
 static EDA_HOTKEY HkCanvasCairo( wxT( "Switch to Cairo Canvas" ),
                                  HK_CANVAS_CAIRO, WXK_F12 );
 
+static EDA_HOTKEY HkZoneFillOrRefill( wxT( "Fill or Refill All Zones" ),
+                                 HK_ZONE_FILL_OR_REFILL, 'B' );
+static EDA_HOTKEY HkZoneRemoveFilled( wxT( "Remove Filled Areas in All Zones" ),
+                                 HK_ZONE_REMOVE_FILLED, 'N' );
 /* Fit on Screen */
 #if !defined( __WXMAC__ )
 static EDA_HOTKEY HkZoomAuto( wxT( "Zoom Auto" ), HK_ZOOM_AUTO, WXK_HOME );
@@ -291,6 +295,7 @@ EDA_HOTKEY* board_edit_Hotkey_List[] =
     &HkRecordMacros8,          &HkCallMacros8,    &HkRecordMacros9,          &HkCallMacros9,
     &HkSwitchHighContrastMode,
     &HkCanvasDefault,          &HkCanvasCairo,               &HkCanvasOpenGL,
+    &HkZoneFillOrRefill,       &HkZoneRemoveFilled,
     NULL
 };
 

@@ -272,14 +272,15 @@ public:
      * keep arc radius when approximated by segments
      */
     void TransformSolidAreasShapesToPolygonSet( CPOLYGONS_LIST& aCornerBuffer,
-                                                int                    aCircleToSegmentsCount,
-                                                double                 aCorrectionFactor );
+                                                int             aCircleToSegmentsCount,
+                                                double          aCorrectionFactor );
     /**
      * Function BuildFilledSolidAreasPolygons
      * Build the filled solid areas data from real outlines (stored in m_Poly)
-     * The solid areas can be more thna one on copper layers, and do not have holes
+     * The solid areas can be more than one on copper layers, and do not have holes
       ( holes are linked by overlapping segments to the main outline)
      * in order to have drawable (and plottable) filled polygons
+     * @return true if OK, false if the solid polygons cannot be built
      * @param aPcb: the current board (can be NULL for non copper zones)
      * @param aCornerBuffer: A reference to a buffer to store polygon corners, or NULL
      * if NULL (default:
@@ -287,13 +288,14 @@ public:
      * - on copper layers, tracks and other items shapes of other nets are
      * removed from solid areas
      * if not null:
-     * Only the zone outline (with holes, if any) are stored in aCornerBuffer
-     * with holes linked. Therfore only one polygon is created
-     * @return true if OK, false if the solid areas cannot be calculated
-     * This function calls AddClearanceAreasPolygonsToPolysList()
-     * to add holes for pads and tracks and other items not in net.
+     * Only the zone outline (with holes, if any) is stored in aOutlineBuffer
+     * with holes linked. Therefore only one polygon is created
+     *
+     * When aOutlineBuffer is not null, his function calls
+     * AddClearanceAreasPolygonsToPolysList() to add holes for pads and tracks
+     * and other items not in net.
      */
-    bool BuildFilledSolidAreasPolygons( BOARD* aPcb, CPOLYGONS_LIST* aCornerBuffer = NULL );
+    bool BuildFilledSolidAreasPolygons( BOARD* aPcb, CPOLYGONS_LIST* aOutlineBuffer = NULL );
 
     /**
      * Function CopyPolygonsFromKiPolygonListToFilledPolysList
@@ -302,6 +304,14 @@ public:
      * @param aKiPolyList = a KI_POLYGON_SET containing polygons.
      */
     void CopyPolygonsFromKiPolygonListToFilledPolysList( KI_POLYGON_SET& aKiPolyList );
+
+    /**
+     * Function CopyPolygonsFromClipperPathsToFilledPolysList
+     * Copy polygons stored in aKiPolyList to m_FilledPolysList
+     * The previous m_FilledPolysList contents is replaced.
+     * @param aClipperPolyList = a ClipperLib::Paths containing polygons.
+     */
+    void CopyPolygonsFromClipperPathsToFilledPolysList( ClipperLib::Paths& aClipperPolyList );
 
     /**
      * Function CopyPolygonsFromFilledPolysListToKiPolygonList
