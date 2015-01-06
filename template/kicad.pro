@@ -71,3 +71,5 @@ BoardOutlineThickness=0.100000000000
 ModuleOutlineThickness=0.150000000000
 [schematic_editor]
 PageLayoutDescrFile=gost_landscape.kicad_wks
+SubpartIdSeparator=46
+SubpartFirstId=49
