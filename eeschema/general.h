@@ -42,11 +42,11 @@ class SCH_SHEET;
 
 ///< The thickness to draw busses that do not have a specific width
 //</ (can be changed in preference menu)
-#define DEFAULTBUSTHICKNESS 12
+#define DEFAULTBUSTHICKNESS 24
 
 ///< The thickness to draw lines that thickness is set to 0 (default thickness)
 ///< (can be changed in preference menu)
-#define DEFAULTDRAWLINETHICKNESS 6
+#define DEFAULTDRAWLINETHICKNESS 12
 
 ///< The default pin len value when creating pins(can be changed in preference menu)
 #define DEFAULTPINLENGTH 200
