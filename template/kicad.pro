@@ -73,3 +73,4 @@ ModuleOutlineThickness=0.150000000000
 PageLayoutDescrFile=gost_landscape.kicad_wks
 SubpartIdSeparator=46
 SubpartFirstId=49
+LabSize=98

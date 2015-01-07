@@ -52,10 +52,10 @@ class SCH_SHEET;
 #define DEFAULTPINLENGTH 200
 
 ///< The default pin len value when creating pins(can be changed in preference menu)
-#define DEFAULTPINNUMSIZE 50
+#define DEFAULTPINNUMSIZE 71
 
 ///< The default pin len value when creating pins(can be changed in preference menu)
-#define DEFAULTPINNAMESIZE 50
+#define DEFAULTPINNAMESIZE 71
 
 #define GR_DEFAULT_DRAWMODE GR_COPY
 
