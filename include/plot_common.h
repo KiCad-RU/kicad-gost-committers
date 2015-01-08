@@ -38,6 +38,12 @@
 #include <common.h>         // PAGE_INFO
 #include <eda_text.h>       // FILL_T
 
+#if defined(KICAD_GOST)
+/* Set dashed line parameters in mils */
+#define DASHEDLINE_MARK_LENGTH		80
+#define DASHEDLINE_SPACE_LENGTH		40
+#endif
+
 /**
  * Enum PlotFormat
  * is the set of supported output plot formats.  They should be kept in order
@@ -811,6 +817,9 @@ protected:
     bool m_graphics_changed;        // true if a pen/brush parameter is modified
                                     // color, pen size, fil mode ...
                                     // the new SVG stype must be output on file
+#if defined(KICAD_GOST)
+    bool m_dashed;
+#endif
 
     /**
      * function emitSetRGBColor()

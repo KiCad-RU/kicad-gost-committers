@@ -132,7 +132,15 @@ void PDF_PLOTTER::SetDash( bool dashed )
 {
     wxASSERT( workFile );
     if( dashed )
+#if defined(KICAD_GOST)
+    {
+        fprintf( workFile, "[%d %d] 0 d\n",
+                 (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH ),
+                 (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH ) );
+    }
+#else
         fputs( "[200] 100 d\n", workFile );
+#endif
     else
         fputs( "[] 0 d\n", workFile );
 }

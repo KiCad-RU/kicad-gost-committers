@@ -160,6 +160,9 @@ static wxString XmlEsc( const wxString& aStr, bool isAttribute = false )
 
 SVG_PLOTTER::SVG_PLOTTER()
 {
+#if defined(KICAD_GOST)
+    m_dashed = false;
+#endif
     m_graphics_changed = true;
     SetTextMode( PLOTTEXTMODE_STROKE );
     m_fillMode = NO_FILL;               // or FILLED_SHAPE or FILLED_WITH_BG_BODYCOLOR
@@ -281,6 +284,9 @@ void SVG_PLOTTER::emitSetRGBColor( double r, double g, double b )
  */
 void SVG_PLOTTER::SetDash( bool dashed )
 {
+#if defined(KICAD_GOST)
+    m_dashed = dashed;
+#endif
 }
 
 
@@ -466,6 +472,14 @@ void SVG_PLOTTER::PenTo( const wxPoint& pos, char plume )
     {
         if( penState != 'Z' )
         {
+#if defined(KICAD_GOST)
+            if( m_dashed )
+            {
+                fprintf( outputFile, "\" style=\"stroke-dasharray:%d,%d",
+                         (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH ),
+                         (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH ) );
+            }
+#endif
             fputs( "\" />\n", outputFile );
             penState        = 'Z';
             penLastpos.x    = -1;

@@ -469,7 +469,15 @@ void PS_PLOTTER::SetDash( bool dashed )
 {
     wxASSERT( outputFile );
     if( dashed )
+#if defined(KICAD_GOST)
+    {
+        fprintf( outputFile, "[%d %d] 0 setdash\n",
+                 (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH ),
+                 (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH ) );
+    }
+#else
         fputs( "dashedline\n", outputFile );
+#endif
     else
         fputs( "solidline\n", outputFile );
 }
