@@ -89,8 +89,9 @@ bool RPC_DOC_IFACE::Connect()
     {
         connection_str = wxT( "soffice" );
 
-        // use the system Python
-        pythonExecutable = wxT( "python" );
+        // use environment var KIGOSTPYTHON path or use the system Python
+        if ( !wxGetEnv( wxT( "KIGOSTPYTHON" ), &pythonExecutable ) )
+            pythonExecutable = wxT( "python" );
     }
 #endif
 

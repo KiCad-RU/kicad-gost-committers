@@ -110,11 +110,10 @@ long RefDesPostfix( wxString aIn )
 void SplitString( wxString aIn, wxArrayString* aResult, int aMax_len, int aSplit_ena )
 {
     wxString    str, split_ena_str;
-    int         cur_pos, i, separator_len;
+    int         i, separator_len;
     bool        next_str;
 
     aResult->Clear();
-    cur_pos = 0;
     str     = wxT( "" );
     split_ena_str = wxT( "_@()" );
 
