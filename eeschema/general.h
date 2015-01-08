@@ -42,20 +42,36 @@ class SCH_SHEET;
 
 ///< The thickness to draw busses that do not have a specific width
 //</ (can be changed in preference menu)
+#if defined(KICAD_GOST)
 #define DEFAULTBUSTHICKNESS 24
+#else
+#define DEFAULTBUSTHICKNESS 12
+#endif
 
 ///< The thickness to draw lines that thickness is set to 0 (default thickness)
 ///< (can be changed in preference menu)
+#if defined(KICAD_GOST)
 #define DEFAULTDRAWLINETHICKNESS 12
+#else
+#define DEFAULTDRAWLINETHICKNESS 6
+#endif
 
 ///< The default pin len value when creating pins(can be changed in preference menu)
 #define DEFAULTPINLENGTH 200
 
 ///< The default pin len value when creating pins(can be changed in preference menu)
+#if defined(KICAD_GOST)
 #define DEFAULTPINNUMSIZE 71
+#else
+#define DEFAULTPINNUMSIZE 50
+#endif
 
 ///< The default pin len value when creating pins(can be changed in preference menu)
+#if defined(KICAD_GOST)
 #define DEFAULTPINNAMESIZE 71
+#else
+#define DEFAULTPINNAMESIZE 50
+#endif
 
 #define GR_DEFAULT_DRAWMODE GR_COPY
 
