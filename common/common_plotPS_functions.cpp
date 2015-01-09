@@ -472,8 +472,8 @@ void PS_PLOTTER::SetDash( bool dashed )
 #if defined(KICAD_GOST)
     {
         fprintf( outputFile, "[%d %d] 0 setdash\n",
-                 (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH ),
-                 (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH ) );
+                 (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH - currentPenWidth ),
+                 (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH + currentPenWidth ) );
     }
 #else
         fputs( "dashedline\n", outputFile );

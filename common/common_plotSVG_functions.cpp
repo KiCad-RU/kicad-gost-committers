@@ -476,8 +476,8 @@ void SVG_PLOTTER::PenTo( const wxPoint& pos, char plume )
             if( m_dashed )
             {
                 fprintf( outputFile, "\" style=\"stroke-dasharray:%d,%d",
-                         (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH ),
-                         (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH ) );
+                         (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH - currentPenWidth ),
+                         (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH + currentPenWidth ) );
             }
 #endif
             fputs( "\" />\n", outputFile );

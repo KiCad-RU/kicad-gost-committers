@@ -135,8 +135,8 @@ void PDF_PLOTTER::SetDash( bool dashed )
 #if defined(KICAD_GOST)
     {
         fprintf( workFile, "[%d %d] 0 d\n",
-                 (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH ),
-                 (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH ) );
+                 (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH - currentPenWidth ),
+                 (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH + currentPenWidth ) );
     }
 #else
         fputs( "[200] 100 d\n", workFile );
