@@ -922,6 +922,7 @@ void GOST_COMP_MANAGER::OnSettingsSwitchToEnglish( wxCommandEvent& event )
         m_combo_Name->Append( wxT("Zener") );
         m_combo_Name->Append( wxT("Choke") );
         m_combo_Name->Append( wxT("Transformer") );
+        m_combo_Name->Append( wxT("Transistor") );
 
         m_combo_Type->Append( wxT("tantalum type C") );
 
@@ -946,6 +947,7 @@ void GOST_COMP_MANAGER::OnSettingsSwitchToEnglish( wxCommandEvent& event )
         m_combo_Name->Append( wxT("Стабилитрон") );
         m_combo_Name->Append( wxT("Дроссель") );
         m_combo_Name->Append( wxT("Трансформатор") );
+        m_combo_Name->Append( wxT("Транзистор") );
 
         m_combo_Type->Append( wxT("танталовый тип C") );
 

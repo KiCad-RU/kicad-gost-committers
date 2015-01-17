@@ -327,7 +327,7 @@ void DOC_COMMON::PrintTitleGroup( COMMON_DOC_IFACE* aDocIface,
             if( qty==2 )
                 ref_des_group += wxT( "," );
             else
-                ref_des_group += wxT( "..." );
+                ref_des_group += wxT( "-" );
 
             ref_des_group +=
                 ( (COMPONENT*) (*aTitle_group_components)[ref_des_base_i + qty - 1] )->m_RefDes;
