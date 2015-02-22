@@ -78,9 +78,9 @@ static EDA_HOTKEY HkSwitch2InnerLayer3( wxT( "Switch to Inner layer 3" ),
 static EDA_HOTKEY HkSwitch2InnerLayer4( wxT( "Switch to Inner layer 4" ),
                                         HK_SWITCH_LAYER_TO_INNER4, WXK_F8 );
 static EDA_HOTKEY HkSwitch2InnerLayer5( wxT( "Switch to Inner layer 5" ),
-                                        HK_SWITCH_LAYER_TO_INNER5, WXK_F9 );
+                                        HK_SWITCH_LAYER_TO_INNER5, GR_KB_SHIFT+WXK_F5 );
 static EDA_HOTKEY HkSwitch2InnerLayer6( wxT( "Switch to Inner layer 6" ),
-                                        HK_SWITCH_LAYER_TO_INNER6, WXK_F10 );
+                                        HK_SWITCH_LAYER_TO_INNER6, GR_KB_SHIFT+WXK_F6 );
 
 static EDA_HOTKEY HkSwitch2NextCopperLayer( wxT( "Switch to Next Layer" ),
                                             HK_SWITCH_LAYER_TO_NEXT, '+' );
@@ -108,6 +108,11 @@ static EDA_HOTKEY HkEditBoardItem( wxT( "Edit Item" ), HK_EDIT_ITEM, 'E' );
 static EDA_HOTKEY HkFlipItem( wxT( "Flip Item" ), HK_FLIP_ITEM, 'F' );
 static EDA_HOTKEY HkRotateItem( wxT( "Rotate Item" ), HK_ROTATE_ITEM, 'R' );
 static EDA_HOTKEY HkMoveItem( wxT( "Move Item" ), HK_MOVE_ITEM, 'M' );
+static EDA_HOTKEY HkMoveItemExact( wxT( "Move Item Exactly" ), HK_MOVE_ITEM_EXACT, 'M' + GR_KB_CTRL );
+static EDA_HOTKEY HkDuplicateItem( wxT( "Duplicate Item" ), HK_DUPLICATE_ITEM, 'D' + GR_KB_CTRL );
+static EDA_HOTKEY HkDuplicateItemAndIncrement( wxT( "Duplicate Item and Increment" ),
+                                   HK_DUPLICATE_ITEM_AND_INCREMENT, 'D' + GR_KB_SHIFTCTRL );
+static EDA_HOTKEY HkCreateArray( wxT( "Create Array" ), HK_CREATE_ARRAY, 'N' + GR_KB_CTRL );
 static EDA_HOTKEY HkCopyItem( wxT( "Copy Item" ), HK_COPY_ITEM, 'C' );
 static EDA_HOTKEY HkDragFootprint( wxT( "Drag Item" ), HK_DRAG_ITEM, 'G' );
 static EDA_HOTKEY HkGetAndMoveFootprint( wxT( "Get and Move Footprint" ), HK_GET_AND_MOVE_FOOTPRINT, 'T' );
@@ -278,7 +283,9 @@ EDA_HOTKEY* board_edit_Hotkey_List[] =
     &HkPlaceItem,              &HkCopyItem,
     &HkMoveItem,
     &HkFlipItem,
-    &HkRotateItem,             &HkDragFootprint,
+    &HkRotateItem,             &HkMoveItemExact,
+    &HkDuplicateItem,          &HkDuplicateItemAndIncrement, &HkCreateArray,
+    &HkDragFootprint,
     &HkGetAndMoveFootprint,    &HkLock_Unlock_Footprint,     &HkSavefile, &HkSavefileAs,
     &HkLoadfile,               &HkFindItem,                  &HkEditBoardItem,
     &HkSwitch2CopperLayer,     &HkSwitch2InnerLayer1,
@@ -302,8 +309,8 @@ EDA_HOTKEY* board_edit_Hotkey_List[] =
 // List of hotkey descriptors for the module editor
 EDA_HOTKEY* module_edit_Hotkey_List[] = {
     &HkMoveItem,               &HkRotateItem,                &HkEditBoardItem,
-    &HkDelete,
-    &HkSaveModule,
+    &HkMoveItemExact,          &HkDuplicateItem,             &HkDuplicateItemAndIncrement,
+    &HkCreateArray,            &HkDelete,                    &HkSaveModule,
     NULL
  };
 

@@ -117,7 +117,7 @@ public:
     // m_Start, m_End, and m_Angle.
     // No Set...() function for these attributes.
 
-    const wxPoint& GetCenter() const        { return m_Start; }
+    const wxPoint GetCenter() const;        //override
     const wxPoint& GetArcStart() const      { return m_End; }
     const wxPoint GetArcEnd() const;
 
@@ -157,8 +157,11 @@ public:
      */
     MODULE* GetParentModule() const;
 
-    const std::vector<wxPoint>& GetBezierPoints() const { return m_BezierPoints; };
-    const std::vector<wxPoint>& GetPolyPoints() const   { return m_PolyPoints; };
+    // Accessors:
+    const std::vector<wxPoint>& GetBezierPoints() const { return m_BezierPoints; }
+    const std::vector<wxPoint>& GetPolyPoints() const   { return m_PolyPoints; }
+    // same accessor, to add/change corners of the polygon
+    std::vector<wxPoint>& GetPolyPoints()               { return m_PolyPoints; }
 
     void SetBezierPoints( const std::vector<wxPoint>& aPoints )
     {

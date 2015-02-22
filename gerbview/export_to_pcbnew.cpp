@@ -142,6 +142,8 @@ GBR_TO_PCB_EXPORTER::GBR_TO_PCB_EXPORTER( GERBVIEW_FRAME* aFrame, const wxString
 {
     m_gerbview_frame    = aFrame;
     m_pcb_file_name     = aFileName;
+    m_fp                = NULL;
+    m_pcbCopperLayersCount = 2;
 }
 
 
@@ -172,7 +174,7 @@ void GERBVIEW_FRAME::ExportDataInPcbnewFormat( wxCommandEvent& event )
     }
 
     wxString        fileName;
-    wxString        path = wxGetCwd();;
+    wxString        path = wxGetCwd();
 
     wxFileDialog    filedlg( this, _( "Board file name:" ),
                              path, fileName, PcbFileWildcard,

@@ -29,7 +29,7 @@
 #define _DIALOG_BUILD_BOM_H_
 
 #include <dialog_build_BOM_base.h>
-#include <wxEeschemaStruct.h>
+#include <schframe.h>
 
 class SCH_COMPONENT;
 class wxConfig;

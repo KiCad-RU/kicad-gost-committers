@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -155,8 +155,9 @@ void ZONE_CONTAINER::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE aDrawMod
         return;
 
     GRSetDrawMode( DC, aDrawMode );
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)panel->GetDisplayOptions();
 
-    if( DisplayOpt.ContrastModeDisplay )
+    if( displ_opts->m_ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
             ColorTurnToDarkDarkGray( &color );
@@ -215,15 +216,16 @@ void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
 {
     static std::vector <char>    CornersTypeBuffer;
     static std::vector <wxPoint> CornersBuffer;
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)panel->GetDisplayOptions();
 
     // outline_mode is false to show filled polys,
     // and true to show polygons outlines only (test and debug purposes)
-    bool outline_mode = DisplayOpt.DisplayZonesMode == 2 ? true : false;
+    bool outline_mode = displ_opts->m_DisplayZonesMode == 2 ? true : false;
 
     if( DC == NULL )
         return;
 
-    if( DisplayOpt.DisplayZonesMode == 1 )     // Do not show filled areas
+    if( displ_opts->m_DisplayZonesMode == 1 )     // Do not show filled areas
         return;
 
     if( m_FilledPolysList.GetCornersCount() == 0 )  // Nothing to draw
@@ -238,7 +240,7 @@ void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
 
     GRSetDrawMode( DC, aDrawMode );
 
-    if( DisplayOpt.ContrastModeDisplay )
+    if( displ_opts->m_ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
             ColorTurnToDarkDarkGray( &color );
@@ -293,7 +295,7 @@ void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
                         // Draw only basic outlines, not extra segments.
                         if( CornersTypeBuffer[ie] == 0 )
                         {
-                            if( !DisplayOpt.DisplayPcbTrackFill || GetState( FORCE_SKETCH ) )
+                            if( !displ_opts->m_DisplayPcbTrackFill || GetState( FORCE_SKETCH ) )
                                 GRCSegm( panel->GetClipBox(), DC,
                                          x0, y0, x1, y1,
                                          m_ZoneMinThickness, color );
@@ -323,7 +325,7 @@ void ZONE_CONTAINER::DrawFilledArea( EDA_DRAW_PANEL* panel,
             wxPoint start = m_FillSegmList[ic].m_Start + offset;
             wxPoint end   = m_FillSegmList[ic].m_End + offset;
 
-            if( !DisplayOpt.DisplayPcbTrackFill || GetState( FORCE_SKETCH ) )
+            if( !displ_opts->m_DisplayPcbTrackFill || GetState( FORCE_SKETCH ) )
                 GRCSegm( panel->GetClipBox(), DC, start.x, start.y, end.x, end.y,
                          m_ZoneMinThickness, color );
             else
@@ -374,8 +376,9 @@ void ZONE_CONTAINER::DrawWhileCreateOutline( EDA_DRAW_PANEL* panel, wxDC* DC,
     LAYER_ID    curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
     BOARD*      brd   = GetBoard();
     EDA_COLOR_T color = brd->GetLayerColor( m_Layer );
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)panel->GetDisplayOptions();
 
-    if( DisplayOpt.ContrastModeDisplay )
+    if( displ_opts->m_ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
             ColorTurnToDarkDarkGray( &color );
@@ -622,27 +625,21 @@ void ZONE_CONTAINER::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     {
         if( GetNetCode() >= 0 )
         {
-            NETINFO_ITEM* equipot = GetNet();
+            NETINFO_ITEM* net = GetNet();
 
-            if( equipot )
-                msg = equipot->GetNetname();
-            else
-                msg = wxT( "<noname>" );
+            if( net )
+                msg = net->GetNetname();
+            else    // Should not occur
+                msg = _( "<unknown>" );
         }
-        else // a netcode < 0 is an error
-        {
-            msg = wxT( " [" );
-            msg << GetNetname() + wxT( "]" );
-            msg << wxT( " <" ) << _( "Not Found" ) << wxT( ">" );
-        }
+        else    // a netcode < 0 is an error
+            msg = wxT( "<error>" );
 
         aList.push_back( MSG_PANEL_ITEM( _( "NetName" ), msg, RED ) );
 
-#if 1
         // Display net code : (useful in test or debug)
         msg.Printf( wxT( "%d" ), GetNetCode() );
         aList.push_back( MSG_PANEL_ITEM( _( "NetCode" ), msg, RED ) );
-#endif
 
         // Display priority level
         msg.Printf( wxT( "%d" ), GetPriority() );

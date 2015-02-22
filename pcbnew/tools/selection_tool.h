@@ -70,6 +70,8 @@ struct SELECTION
         return static_cast<T*>( items.GetPickedItem( aIndex ) );
     }
 
+    VECTOR2I GetCenter() const;
+
 private:
     /// Clears both the VIEW_GROUP and set of selected items. Please note that it does not
     /// change properties of selected items (e.g. selection flag).
@@ -103,7 +105,7 @@ public:
      *
      * The main loop.
      */
-    int Main( TOOL_EVENT& aEvent );
+    int Main( const TOOL_EVENT& aEvent );
 
     /**
      * Function GetSelection()
@@ -152,25 +154,25 @@ public:
     bool CheckLock();
 
     ///> Select a single item under cursor event handler.
-    int CursorSelection( TOOL_EVENT& aEvent );
+    int CursorSelection( const TOOL_EVENT& aEvent );
 
     ///> Clear current selection event handler.
-    int ClearSelection( TOOL_EVENT& aEvent );
+    int ClearSelection( const TOOL_EVENT& aEvent );
 
     ///> Item selection event handler.
-    int SelectItem( TOOL_EVENT& aEvent );
+    int SelectItem( const TOOL_EVENT& aEvent );
 
     ///> Item unselection event handler.
-    int UnselectItem( TOOL_EVENT& aEvent );
+    int UnselectItem( const TOOL_EVENT& aEvent );
 
     ///> Event sent after an item is selected.
-    const TOOL_EVENT SelectedEvent;
+    static const TOOL_EVENT SelectedEvent;
 
     ///> Event sent after an item is unselected.
-    const TOOL_EVENT UnselectedEvent;
+    static const TOOL_EVENT UnselectedEvent;
 
     ///> Event sent after selection is cleared.
-    const TOOL_EVENT ClearedEvent;
+    static const TOOL_EVENT ClearedEvent;
 
 private:
     /**
@@ -197,10 +199,10 @@ private:
     void findCallback( BOARD_ITEM* aItem );
 
     ///> Find an item.
-    int find( TOOL_EVENT& aEvent );
+    int find( const TOOL_EVENT& aEvent );
 
     ///> Find an item and start moving.
-    int findMove( TOOL_EVENT& aEvent );
+    int findMove( const TOOL_EVENT& aEvent );
 
     ///> Sets up handlers for various events.
     void setTransitions();

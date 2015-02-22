@@ -1,8 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2014 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,21 +21,25 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-/**
- * @file eelibs_read_libraryfiles.cpp
- * @brief Functions to handle reading component library files.
- */
+#ifndef AUTOSEL_H
+#define AUTOSEL_H
 
-#include <fctsys.h>
-#include <kiway.h>
-#include <confirm.h>
-#include <macros.h>
-#include <pgm_base.h>
-#include <wxEeschemaStruct.h>
+// A helper class to handle info read in .equ files, which gives a footprint FPID
+// corresponding to a component value.
+// Each line is something like:
+// 'FT232BL'		'QFP:LQFP-32_7x7mm_Pitch0.8mm'
+//
 
-#include <general.h>
-#include <class_library.h>
-#include <wildcards_and_files_ext.h>
 
-#include <html_messagebox.h>
+class FOOTPRINT_EQUIVALENCE
+{
+public:
+    wxString    m_ComponentValue;   // The value of a component
+    wxString    m_FootprintFPID;    // the footprint FPID corresponding to this value
 
+    FOOTPRINT_EQUIVALENCE() {}
+};
+
+typedef boost::ptr_vector< FOOTPRINT_EQUIVALENCE > FOOTPRINT_EQUIVALENCE_LIST;
+
+#endif      // ifndef AUTOSEL_H

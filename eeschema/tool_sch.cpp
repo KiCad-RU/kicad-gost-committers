@@ -29,7 +29,7 @@
 
 #include <fctsys.h>
 #include <class_drawpanel.h>
-#include <wxEeschemaStruct.h>
+#include <schframe.h>
 #include <kiface_i.h>
 
 #include <general.h>
@@ -146,7 +146,7 @@ void SCH_EDIT_FRAME::ReCreateHToolbar()
                             HELP_ANNOTATE );
 
     m_mainToolBar->AddTool( ID_GET_ERC, wxEmptyString, KiBitmap( erc_xpm ),
-                            _( "Perform electrical rule check" ) );
+                            _( "Perform electrical rules check" ) );
 
     m_mainToolBar->AddTool( ID_GET_NETLIST, wxEmptyString, KiBitmap( netlist_xpm ),
                             _( "Generate netlist" ) );

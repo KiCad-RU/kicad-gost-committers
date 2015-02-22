@@ -408,6 +408,15 @@ void D_PAD::SetPadName( const wxString& name )
 }
 
 
+void D_PAD::IncrementPadName( bool aSkipUnconnectable, bool aFillSequenceGaps )
+{
+    bool skip = aSkipUnconnectable && ( GetAttribute() == PAD_HOLE_NOT_PLATED );
+
+    if( !skip )
+        SetPadName( GetParent()->GetNextPadName( aFillSequenceGaps ) );
+}
+
+
 void D_PAD::Copy( D_PAD* source )
 {
     if( source == NULL )
@@ -678,7 +687,7 @@ void D_PAD::GetOblongDrillGeometry( wxPoint& aStartPoint,
     // of an equivalent segment which have the same position and width as the hole
     int delta_cx, delta_cy;
 
-    wxSize halfsize = GetDrillSize();;
+    wxSize halfsize = GetDrillSize();
     halfsize.x /= 2;
     halfsize.y /= 2;
 

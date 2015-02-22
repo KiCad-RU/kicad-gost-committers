@@ -1,10 +1,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
- * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2012 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2015 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,6 +54,9 @@
 #include <dialog_global_edit_tracks_and_vias.h>
 #include <invoke_pcb_dialog.h>
 
+#include <dialog_move_exact.h>
+#include <dialog_create_array.h>
+
 #include <tool/tool_manager.h>
 #include <tools/common_actions.h>
 
@@ -64,6 +67,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     INSTALL_UNBUFFERED_DC( dc, m_canvas );
     MODULE* module;
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)GetDisplayOptions();
 
     m_canvas->CrossHairOff( &dc );
 
@@ -109,6 +113,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_PCB_DELETE_ZONE:
     case ID_POPUP_PCB_MOVE_ZONE_CORNER:
     case ID_POPUP_PCB_DRAG_ZONE_OUTLINE_SEGMENT:
+    case ID_POPUP_PCB_PLACE_DRAGGED_ZONE_OUTLINE_SEGMENT:
     case ID_POPUP_PCB_MOVE_ZONE_OUTLINES:
     case ID_POPUP_PCB_ADD_ZONE_CORNER:
     case ID_POPUP_PCB_DELETE_TRACKSEG:
@@ -442,7 +447,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
             settings.m_CurrentViaType = v_type;
 
-            if( DisplayOpt.ContrastModeDisplay )
+            if( displ_opts->m_ContrastModeDisplay )
                 m_canvas->Refresh();
         }
         break;
@@ -608,6 +613,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_POPUP_PCB_PLACE_ZONE_OUTLINES:
     case ID_POPUP_PCB_PLACE_ZONE_CORNER:
+    case ID_POPUP_PCB_PLACE_DRAGGED_ZONE_OUTLINE_SEGMENT:
         {
             m_canvas->MoveCursorToCrossHair();
             ZONE_CONTAINER* zone_cont = (ZONE_CONTAINER*) GetCurItem();
@@ -967,7 +973,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             {
                 // if user changed colors and we are in high contrast mode, then redraw
                 // because the PAD_SMD pads may change color.
-                if( DisplayOpt.ContrastModeDisplay && GetActiveLayer() != itmp )
+                if( displ_opts->m_ContrastModeDisplay && GetActiveLayer() != itmp )
                 {
                     m_canvas->Refresh();
                 }
@@ -1010,7 +1016,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_TOOLBARH_PCB_SELECT_LAYER:
         SetActiveLayer( ToLAYER_ID( m_SelLayerBox->GetLayerSelection() ) );
 
-        if( DisplayOpt.ContrastModeDisplay )
+        if( displ_opts->m_ContrastModeDisplay )
             m_canvas->Refresh( true );
         break;
 
@@ -1185,6 +1191,19 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         }
         break;
 
+    case ID_POPUP_PCB_MOVE_EXACT:
+        moveExact();
+        break;
+
+    case ID_POPUP_PCB_DUPLICATE_ITEM:
+    case ID_POPUP_PCB_DUPLICATE_ITEM_AND_INCREMENT:
+        duplicateItem( id == ID_POPUP_PCB_DUPLICATE_ITEM_AND_INCREMENT );
+        break;
+
+    case ID_POPUP_PCB_CREATE_ARRAY:
+        createArray();
+        break;
+
     case ID_MENU_PCB_CLEAN:
         Clean_Pcb();
         break;
@@ -1310,6 +1329,7 @@ void PCB_EDIT_FRAME::RemoveStruct( BOARD_ITEM* Item, wxDC* DC )
 void PCB_EDIT_FRAME::SwitchLayer( wxDC* DC, LAYER_ID layer )
 {
     LAYER_ID curLayer = GetActiveLayer();
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)GetDisplayOptions();
 
     // Check if the specified layer matches the present layer
     if( layer == curLayer )
@@ -1354,7 +1374,7 @@ void PCB_EDIT_FRAME::SwitchLayer( wxDC* DC, LAYER_ID layer )
 
                 if( Other_Layer_Route( (TRACK*) GetScreen()->GetCurItem(), DC ) )
                 {
-                    if( DisplayOpt.ContrastModeDisplay )
+                    if( displ_opts->m_ContrastModeDisplay )
                         m_canvas->Refresh();
                 }
 
@@ -1373,7 +1393,7 @@ void PCB_EDIT_FRAME::SwitchLayer( wxDC* DC, LAYER_ID layer )
 
     SetActiveLayer( layer );
 
-    if( DisplayOpt.ContrastModeDisplay )
+    if( displ_opts->m_ContrastModeDisplay )
         m_canvas->Refresh();
 }
 
@@ -1386,6 +1406,7 @@ void PCB_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
         return;
 
     INSTALL_UNBUFFERED_DC( dc, m_canvas );
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)GetDisplayOptions();
 
     // Stop the current command and deselect the current tool.
     m_canvas->EndMouseCapture( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor() );
@@ -1416,7 +1437,7 @@ void PCB_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
     case ID_PCB_ZONES_BUTT:
         SetToolID( id, wxCURSOR_PENCIL, _( "Add zones" ) );
 
-        if( DisplayOpt.DisplayZonesMode != 0 )
+        if( displ_opts->m_DisplayZonesMode != 0 )
             DisplayInfoMessage( this, _( "Warning: zone display is OFF!!!" ) );
 
         if( !GetBoard()->IsHighLightNetON() && (GetBoard()->GetHighLightNetCode() > 0 ) )
@@ -1479,5 +1500,216 @@ void PCB_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
             Compile_Ratsnest( &dc, true );
 
         break;
+    }
+}
+
+
+void PCB_EDIT_FRAME::moveExact()
+{
+    wxPoint translation;
+    double rotation = 0;
+
+    DIALOG_MOVE_EXACT dialog( this, translation, rotation );
+    int ret = dialog.ShowModal();
+
+    if( ret == wxID_OK )
+    {
+        BOARD_ITEM* item = GetScreen()->GetCurItem();
+
+        // When a pad is modified, the full footprint is saved
+        BOARD_ITEM* itemToSave = item;
+
+        if( item->Type() == PCB_PAD_T )
+            itemToSave = item->GetParent();
+
+        // Could be moved or rotated
+        SaveCopyInUndoList( itemToSave, UR_CHANGED );
+
+        item->Move( translation );
+        item->Rotate( item->GetPosition(), rotation );
+        m_canvas->Refresh();
+    }
+
+    m_canvas->MoveCursorToCrossHair();
+}
+
+
+void PCB_EDIT_FRAME::duplicateItem( bool aIncrement )
+{
+    BOARD_ITEM* item = GetScreen()->GetCurItem();
+    bool editingModule = NULL != dynamic_cast<FOOTPRINT_EDIT_FRAME*>( this );
+    int move_cmd = 0;
+
+    if( item->Type() == PCB_PAD_T && !editingModule )
+    {
+        // If it is not the module editor, then duplicate the parent module instead
+        item = static_cast<MODULE*>( item )->GetParent();
+    }
+
+    BOARD_ITEM* new_item = GetBoard()->DuplicateAndAddItem( item, aIncrement );
+
+    SaveCopyInUndoList( new_item, UR_NEW );
+
+    if( new_item )
+    {
+        switch( new_item->Type() )
+        {
+        case PCB_MODULE_T:
+            move_cmd = ID_POPUP_PCB_MOVE_MODULE_REQUEST;
+            break;
+        case PCB_TEXT_T:
+            move_cmd = ID_POPUP_PCB_MOVE_TEXTEPCB_REQUEST;
+            break;
+        case PCB_LINE_T:
+            move_cmd = ID_POPUP_PCB_MOVE_DRAWING_REQUEST;
+            break;
+        case PCB_ZONE_AREA_T:
+            move_cmd = ID_POPUP_PCB_MOVE_ZONE_OUTLINES;
+            break;
+        case PCB_TRACE_T:
+            move_cmd = ID_POPUP_PCB_MOVE_TRACK_SEGMENT;
+            break;
+        case PCB_TARGET_T:
+            move_cmd = ID_POPUP_PCB_MOVE_MIRE_REQUEST;
+            break;
+        case PCB_DIMENSION_T:
+            move_cmd = ID_POPUP_PCB_MOVE_TEXT_DIMENSION_REQUEST;
+            break;
+        case PCB_PAD_T:
+            move_cmd = ID_POPUP_PCB_MOVE_PAD_REQUEST;
+            break;
+        default:
+            break;
+        }
+
+        if( move_cmd )
+        {
+            SetMsgPanel( new_item );
+            SetCurItem( new_item );
+
+            m_canvas->MoveCursorToCrossHair();
+
+            // pick up the item and start moving
+            PostCommandMenuEvent( move_cmd );
+        }
+    }
+}
+
+
+void PCB_BASE_EDIT_FRAME::createArray()
+{
+    BOARD_ITEM* item = GetScreen()->GetCurItem();
+
+    if( !item )
+        return;
+
+    bool editingModule = NULL != dynamic_cast<FOOTPRINT_EDIT_FRAME*>( this );
+
+    BOARD* board = GetBoard();
+    // Remember it is valid only in the module editor
+    MODULE* module = static_cast<MODULE*>( item->GetParent() );
+
+    DIALOG_CREATE_ARRAY::ARRAY_OPTIONS* array_opts = NULL;
+
+    const wxPoint rotPoint = item->GetCenter();
+
+    DIALOG_CREATE_ARRAY dialog( this, rotPoint, &array_opts );
+    int ret = dialog.ShowModal();
+
+    if( ret == DIALOG_CREATE_ARRAY::CREATE_ARRAY_OK && array_opts != NULL )
+    {
+        PICKED_ITEMS_LIST newItemsList;
+
+        if( item->Type() == PCB_PAD_T && !editingModule )
+        {
+            // If it is not the module editor, then duplicate the parent module instead
+            item = static_cast<MODULE*>( item )->GetParent();
+        }
+
+        if( editingModule )
+        {
+            // modedit saves everything upfront
+            SaveCopyInUndoList( board->m_Modules, UR_MODEDIT );
+        }
+        else
+        {
+            // We may also change the original item
+            SaveCopyInUndoList( item, UR_CHANGED );
+        }
+
+        wxString cachedString;
+
+        if( item->Type() == PCB_MODULE_T )
+        {
+            cachedString = static_cast<MODULE*>( item )->GetReferencePrefix();
+        }
+        else if( EDA_TEXT* text = dynamic_cast<EDA_TEXT*>( item ) )
+        {
+            // Copy the text (not just take a reference
+            cachedString = text->GetText();
+        }
+
+        for( int ptN = 0; ptN < array_opts->GetArraySize(); ptN++ )
+        {
+            BOARD_ITEM* new_item = NULL;
+
+            if( ptN == 0 )
+            {
+                new_item = item;
+            }
+            else
+            {
+                if( editingModule )
+                    new_item = module->DuplicateAndAddItem( item, true );
+                else
+                    new_item = board->DuplicateAndAddItem( item, true );
+
+                if( new_item )
+                {
+                    array_opts->TransformItem( ptN, new_item, rotPoint );
+                    newItemsList.PushItem( new_item );
+                }
+            }
+
+            if( !new_item || !array_opts->ShouldRenumberItems() )
+                continue;
+
+            // Renumber items
+            switch( new_item->Type() )
+            {
+            case PCB_MODULE_TEXT_T:
+            case PCB_TEXT_T:
+            {
+                EDA_TEXT* text = dynamic_cast<EDA_TEXT*>( new_item );
+                text->SetText( array_opts->InterpolateNumberIntoString( ptN, cachedString ) );
+
+                break;
+            }
+            case PCB_MODULE_T:
+            {
+                const wxString padName = array_opts->GetItemNumber( ptN );
+                static_cast<MODULE*>( new_item )->SetReference( cachedString + padName );
+
+                break;
+            }
+            case PCB_PAD_T:
+            {
+                const wxString padName = array_opts->GetItemNumber( ptN );
+                static_cast<D_PAD*>( new_item )->SetPadName( padName );
+
+                break;
+            }
+            default:
+                break;
+            }
+        }
+
+        if( !editingModule )
+        {
+            // pcbnew saves the new items like this
+            SaveCopyInUndoList( newItemsList, UR_NEW );
+        }
+
+        m_canvas->Refresh();
     }
 }

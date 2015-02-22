@@ -379,7 +379,7 @@ void FP_LIB_TABLE::Parse( FP_LIB_TABLE_LEXER* in ) throw( IO_ERROR, PARSE_ERROR 
 
 
 void FP_LIB_TABLE::Format( OUTPUTFORMATTER* out, int nestLevel ) const
-    throw( IO_ERROR )
+    throw( IO_ERROR, boost::interprocess::lock_exception )
 {
     out->Print( nestLevel, "(fp_lib_table\n" );
 
@@ -391,7 +391,7 @@ void FP_LIB_TABLE::Format( OUTPUTFORMATTER* out, int nestLevel ) const
 
 
 void FP_LIB_TABLE::ROW::Format( OUTPUTFORMATTER* out, int nestLevel ) const
-    throw( IO_ERROR )
+    throw( IO_ERROR, boost::interprocess::lock_exception )
 {
     out->Print( nestLevel, "(lib (name %s)(type %s)(uri %s)(options %s)(descr %s))\n",
                 out->Quotew( GetNickName() ).c_str(),
@@ -639,6 +639,9 @@ const FP_LIB_TABLE::ROW* FP_LIB_TABLE::FindRow( const wxString& aNickname )
 
 const wxString FP_LIB_TABLE::ExpandSubstitutions( const wxString& aString )
 {
+// Duplicate code: the same is now in common.cpp, due to the fact it is used
+// in many other places than FP_LIB_TABLE
+#if 0
     static MUTEX    getenv_mutex;
 
     MUTLOCK lock( getenv_mutex );
@@ -646,6 +649,9 @@ const wxString FP_LIB_TABLE::ExpandSubstitutions( const wxString& aString )
     // We reserve the right to do this another way, by providing our own member
     // function.
     return wxExpandEnvVars( aString );
+#else
+    return ExpandEnvVarSubstitutions( aString );
+#endif
 }
 
 
@@ -659,7 +665,7 @@ bool FP_LIB_TABLE::IsEmpty( bool aIncludeFallback )
 
 
 MODULE* FP_LIB_TABLE::FootprintLoadWithOptionalNickname( const FPID& aFootprintId )
-    throw( IO_ERROR, PARSE_ERROR )
+    throw( IO_ERROR, PARSE_ERROR, boost::interprocess::lock_exception )
 {
     wxString   nickname = aFootprintId.GetLibNickname();
     wxString   fpname   = aFootprintId.GetFootprintName();

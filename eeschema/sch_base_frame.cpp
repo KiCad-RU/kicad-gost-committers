@@ -35,6 +35,10 @@ SCH_BASE_FRAME::SCH_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent,
     EDA_DRAW_FRAME( aKiway, aParent, aWindowType, aTitle, aPosition,
             aSize, aStyle, aFrameName )
 {
+    m_zoomLevelCoeff = 11.0;     // Adjusted to roughly displays zoom level = 1
+                                // when the screen shows a 1:1 image
+                                // obviously depends on the monitor,
+                                // but this is an acceptable value
 }
 
 
@@ -64,6 +68,10 @@ SCH_SCREEN* SCH_BASE_FRAME::GetScreen() const
     return (SCH_SCREEN*) EDA_DRAW_FRAME::GetScreen();
 }
 
+const wxString SCH_BASE_FRAME::GetZoomLevelIndicator() const
+{
+    return EDA_DRAW_FRAME::GetZoomLevelIndicator();
+}
 
 void SCH_BASE_FRAME::SetPageSettings( const PAGE_INFO& aPageSettings )
 {
@@ -151,6 +159,10 @@ void SCH_BASE_FRAME::UpdateStatusBar()
     case UNSCALED_UNITS:
         absformatter = wxT( "X %f  Y %f" );
         locformatter = wxT( "dx %f  dy %f  d %f" );
+        break;
+
+    case DEGREES:
+        wxASSERT( false );
         break;
     }
 

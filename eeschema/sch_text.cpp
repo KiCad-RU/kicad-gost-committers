@@ -1,8 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2009 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +35,7 @@
 #include <eeschema_id.h>
 #include <class_drawpanel.h>
 #include <drawtxt.h>
-#include <wxEeschemaStruct.h>
+#include <schframe.h>
 #include <plot_common.h>
 #include <base_units.h>
 #include <msgpanel.h>
@@ -558,7 +559,7 @@ bool SCH_TEXT::IsSelectStateChanged( const wxRect& aRect )
     if( aRect.Contains( m_Pos ) )
         SetFlags( SELECTED );
     else
-        SetFlags( SELECTED );
+        ClearFlags( SELECTED );
 
     return previousState != IsSelected();
 }
@@ -668,19 +669,18 @@ void SCH_TEXT::Plot( PLOTTER* aPlotter )
     if( m_MultilineAllowed )
     {
         std::vector<wxPoint> positions;
-        wxArrayString* list = wxStringSplit( GetShownText(), '\n' );
-        positions.reserve( list->Count() );
+        wxArrayString strings_list;
+        wxStringSplit( GetShownText(), strings_list, '\n' );
+        positions.reserve( strings_list.Count() );
 
-        GetPositionsOfLinesOfMultilineText(positions, list->Count() );
+        GetPositionsOfLinesOfMultilineText(positions, strings_list.Count() );
 
-        for( unsigned ii = 0; ii < list->Count(); ii++ )
+        for( unsigned ii = 0; ii < strings_list.Count(); ii++ )
         {
-            wxString& txt = list->Item( ii );
+            wxString& txt = strings_list.Item( ii );
             aPlotter->Text( positions[ii], color, txt, m_Orient, m_Size, m_HJustify,
                             m_VJustify, thickness, m_Italic, m_Bold );
         }
-
-        delete (list);
     }
     else
     {

@@ -49,7 +49,6 @@ our error message.
 Load() TODO's
 
 *) verify zone fill clearances are correct
-*) there is a problem with ARC line segments
 
 */
 
@@ -373,7 +372,7 @@ EVIA::EVIA( CPTREE& aVia )
 
     string ext = attribs.get<string>( "extent" );
 
-    sscanf( ext.c_str(), "%u-%u", &layer_front_most, &layer_back_most );
+    sscanf( ext.c_str(), "%d-%d", &layer_front_most, &layer_back_most );
 
     drill = attribs.get<double>( "drill" );
     diam  = attribs.get_optional<double>( "diameter" );
@@ -952,6 +951,7 @@ ELAYER::ELAYER( CPTREE& aLayer )
     number = attribs.get<int>( "number" );
     name   = attribs.get<string>( "name" );
     color  = attribs.get<int>( "color" );
+    fill   = 1;    // Temporary value.
     visible = parseOptionalBool( attribs, "visible" );
     active  = parseOptionalBool( attribs, "active" );
 }
@@ -993,6 +993,7 @@ struct ERULES
 
     ERULES() :
         psElongationLong    ( 100 ),
+        psElongationOffset  ( 0 ),
         rvPadTop            ( 0.25 ),
         // rvPadBottom      ( 0.25 ),
         rlMinPadTop         ( Mils2iu( 10 ) ),
@@ -1055,6 +1056,26 @@ static inline unsigned long timeStamp( CPTREE& aTree )
 {
     // in this case from a unique tree memory location
     return (unsigned long)(void*) &aTree;
+}
+
+
+/// Convert an Eagle curve end to a KiCad center for S_ARC
+wxPoint kicad_arc_center( wxPoint start, wxPoint end, double angle )
+{
+    // Eagle give us start and end.
+    // S_ARC wants start to give the center, and end to give the start.
+    double dx = end.x - start.x, dy = end.y - start.y;
+    wxPoint mid = (start + end) / 2;
+
+    double dlen = sqrt( dx*dx + dy*dy );
+    double dist = dlen / ( 2 * tan( DEG2RAD( angle ) / 2 ) );
+
+    wxPoint center(
+        mid.x + dist * ( dy / dlen ),
+        mid.y - dist * ( dx / dlen )
+    );
+
+    return center;
 }
 
 
@@ -1349,16 +1370,33 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
             EWIRE       w( gr->second );
             LAYER_ID    layer = kicad_layer( w.layer );
 
+            wxPoint start( kicad_x( w.x1 ), kicad_y( w.y1 ) );
+            wxPoint end(   kicad_x( w.x2 ), kicad_y( w.y2 ) );
+            int     width = kicad( w.width );
+
             if( layer != UNDEFINED_LAYER )
             {
                 DRAWSEGMENT* dseg = new DRAWSEGMENT( m_board );
                 m_board->Add( dseg, ADD_APPEND );
 
+                if( !w.curve )
+                {
+                    dseg->SetStart( start );
+                    dseg->SetEnd( end );
+                }
+                else
+                {
+                    wxPoint center = kicad_arc_center( start, end, *w.curve);
+
+                    dseg->SetShape( S_ARC );
+                    dseg->SetStart( center );
+                    dseg->SetEnd( start );
+                    dseg->SetAngle( *w.curve * -10.0 ); // KiCad rotates the other way
+                }
+
                 dseg->SetTimeStamp( timeStamp( gr->second ) );
                 dseg->SetLayer( layer );
-                dseg->SetStart( wxPoint( kicad_x( w.x1 ), kicad_y( w.y1 ) ) );
-                dseg->SetEnd( wxPoint( kicad_x( w.x2 ), kicad_y( w.y2 ) ) );
-                dseg->SetWidth( kicad( w.width ) );
+                dseg->SetWidth( width );
             }
             m_xpath->pop();
         }
@@ -1949,20 +1987,9 @@ void EAGLE_PLUGIN::packageWire( MODULE* aModule, CPTREE& aTree ) const
         else
         {
             dwg = new EDGE_MODULE( aModule, S_ARC );
-            // Eagle give us start and end.
-            // S_ARC wants start to give the centre, and end to give the start
-            double dx = end.x - start.x, dy = end.y - start.y;
-            wxPoint mid = (start + end) / 2;
+            wxPoint center = kicad_arc_center( start, end, *w.curve);
 
-            double dlen = sqrt( dx*dx + dy*dy );
-            double dist = dlen / ( 2 * tan( DEG2RAD( *w.curve ) / 2 ) );
-
-            wxPoint centre(
-                mid.x + dist * ( dy / dlen ),
-                mid.y - dist * ( dx / dlen )
-            );
-
-            dwg->SetStart0( centre );
+            dwg->SetStart0( center );
             dwg->SetEnd0( start );
             dwg->SetAngle( *w.curve * -10.0 ); // KiCad rotates the other way
         }

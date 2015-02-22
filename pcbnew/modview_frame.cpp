@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2012 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2012-2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2008-2015 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,14 +30,12 @@
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <kiway.h>
-#include <gr_basic.h>
 #include <class_drawpanel.h>
 #include <pcb_draw_panel_gal.h>
 #include <wxPcbStruct.h>
 #include <3d_viewer.h>
 #include <dialog_helpers.h>
 #include <msgpanel.h>
-#include <macros.h>
 #include <fp_lib_table.h>
 #include <fpid.h>
 #include <confirm.h>
@@ -133,6 +131,10 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
             wxDefaultPosition, wxDefaultSize, 0, NULL, wxLB_HSCROLL );
 
     SetBoard( new BOARD() );
+    // In viewer, the default net clearance is not known (it depends on the actual board).
+    // So we do not show the default clearance, by setting it to 0
+    // The footprint or pad specific clearance will be shown
+    GetBoard()->GetDesignSettings().GetDefault()->SetClearance(0);
 
     // Ensure all layers and items are visible:
     GetBoard()->SetVisibleAlls();
@@ -549,7 +551,7 @@ void FOOTPRINT_VIEWER_FRAME::OnActivate( wxActivateEvent& event )
     EDA_DRAW_FRAME::OnActivate( event );
 
     // Ensure we do not have old selection:
-    if( ! m_FrameIsActive )
+    if( !event.GetActive() )
         return;
 
     // Ensure we have the right library list:

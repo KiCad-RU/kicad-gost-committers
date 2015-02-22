@@ -114,8 +114,8 @@ CONTEXT_MENU& CONTEXT_MENU::operator=( const CONTEXT_MENU& aMenu )
 
 void CONTEXT_MENU::setupEvents()
 {
-    Connect( wxEVT_MENU_HIGHLIGHT, wxEventHandler( CONTEXT_MENU::onMenuEvent ), NULL, this );
-    Connect( wxEVT_COMMAND_MENU_SELECTED, wxEventHandler( CONTEXT_MENU::onMenuEvent ), NULL, this );
+    Connect( wxEVT_MENU_HIGHLIGHT, wxMenuEventHandler( CONTEXT_MENU::onMenuEvent ), NULL, this );
+    Connect( wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler( CONTEXT_MENU::onMenuEvent ), NULL, this );
 }
 
 
@@ -132,7 +132,7 @@ void CONTEXT_MENU::SetTitle( const wxString& aTitle )
     else
     {
         InsertSeparator( 0 );
-        Insert( 0, new wxMenuItem( this, -1, aTitle, wxEmptyString, wxITEM_NORMAL ) );
+        Insert( 0, new wxMenuItem( this, wxID_NONE, aTitle, wxEmptyString, wxITEM_NORMAL ) );
         m_titleSet = true;
     }
 }
@@ -194,7 +194,7 @@ void CONTEXT_MENU::Clear()
 }
 
 
-void CONTEXT_MENU::onMenuEvent( wxEvent& aEvent )
+void CONTEXT_MENU::onMenuEvent( wxMenuEvent& aEvent )
 {
     OPT_TOOL_EVENT evt;
 
@@ -219,6 +219,22 @@ void CONTEXT_MENU::onMenuEvent( wxEvent& aEvent )
         }
         else
         {
+        // Under Linux, every submenu can have a separate event handler, under
+        // Windows all submenus are handled by the main menu.
+#ifdef __WINDOWS__
+            if( !evt )
+            {
+                // Try to find the submenu which holds the selected item
+                wxMenu* menu = NULL;
+                FindItem( m_selected, &menu );
+
+                if( menu && menu != this )
+                {
+                    menu->ProcessEvent( aEvent );
+                    return;
+                }
+            }
+#endif
             evt = m_customHandler( aEvent );
 
             // Handling non-action menu entries (e.g. items in clarification list)

@@ -25,6 +25,8 @@
 #include <collectors.h>
 #include <pcbnew.h>
 
+#include <tools/common_actions.h>
+#include <pcb_draw_panel_gal.h>
 
 /* Execute a remote command send by Eeschema via a socket,
  * port KICAD_PCB_PORT_SERVICE_NUMBER
@@ -45,6 +47,7 @@ void PCB_EDIT_FRAME::ExecuteRemoteCommand( const char* cmdline )
     wxPoint         pos;
 
     strncpy( line, cmdline, sizeof(line) - 1 );
+    line[sizeof(line) - 1] = 0;
 
     idcmd = strtok( line, " \n\r" );
     text  = strtok( NULL, " \n\r" );
@@ -126,8 +129,17 @@ void PCB_EDIT_FRAME::ExecuteRemoteCommand( const char* cmdline )
 
     if( module )  // if found, center the module on screen, and redraw the screen.
     {
-        SetCrossHairPosition( pos );
-        RedrawScreen( pos, false );
+        if( IsGalCanvasActive() )
+        {
+            GetGalCanvas()->GetView()->SetCenter( VECTOR2D( module->GetPosition() ) );
+            m_toolManager->RunAction( COMMON_ACTIONS::selectionClear, true );
+            m_toolManager->RunAction( COMMON_ACTIONS::selectItem, true, module );
+        }
+        else
+        {
+            SetCrossHairPosition( pos );
+            RedrawScreen( pos, false );
+        }
     }
 }
 

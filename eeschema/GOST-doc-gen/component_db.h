@@ -34,7 +34,7 @@
 #include <common_funcs.h>
 
 #include <component.h>
-#include <netlist.h>
+#include <sch_reference_list.h>
 
 namespace GOST_DOC_GEN {
 

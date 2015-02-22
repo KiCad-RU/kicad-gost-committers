@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Nov  6 2013)
+// C++ code generated with wxFormBuilder (version Jun  5 2014)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -26,9 +26,8 @@ DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP::DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP( 
 	m_staticTextUnit->Wrap( -1 );
 	optionsSizer->Add( m_staticTextUnit, 0, wxTOP|wxRIGHT|wxLEFT, 5 );
 	
-	wxString unitChoiceChoices[] = { _("1"), _("2"), _("3"), _("4"), _("5"), _("6"), _("7"), _("8"), _("9"), _("10"), _("11"), _("12"), _("13"), _("14"), _("15"), _("16"), _("17"), _("18"), _("19"), _("20"), _("21"), _("22"), _("23"), _("24"), _("25"), _("26") };
-	int unitChoiceNChoices = sizeof( unitChoiceChoices ) / sizeof( wxString );
-	unitChoice = new wxChoice( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, unitChoiceNChoices, unitChoiceChoices, 0 );
+	wxArrayString unitChoiceChoices;
+	unitChoice = new wxChoice( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, unitChoiceChoices, 0 );
 	unitChoice->SetSelection( 0 );
 	optionsSizer->Add( unitChoice, 0, wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT, 5 );
 	
@@ -74,7 +73,7 @@ DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP::DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP( 
 	chipnameTextCtrl->SetMaxLength( 32 ); 
 	chipnameTextCtrl->SetToolTip( _("The name of the symbol in the library from which this component came") );
 	
-	sbSizerChipName->Add( chipnameTextCtrl, 0, wxEXPAND|wxBOTTOM, 5 );
+	sbSizerChipName->Add( chipnameTextCtrl, 0, wxEXPAND|wxTOP|wxBOTTOM, 5 );
 	
 	wxBoxSizer* bSizerChpinameButt;
 	bSizerChpinameButt = new wxBoxSizer( wxHORIZONTAL );
@@ -150,16 +149,16 @@ DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP::DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP( 
 	int m_FieldHJustifyCtrlNChoices = sizeof( m_FieldHJustifyCtrlChoices ) / sizeof( wxString );
 	m_FieldHJustifyCtrl = new wxRadioBox( this, wxID_ANY, _("Horiz. Justify"), wxDefaultPosition, wxDefaultSize, m_FieldHJustifyCtrlNChoices, m_FieldHJustifyCtrlChoices, 1, wxRA_SPECIFY_COLS );
 	m_FieldHJustifyCtrl->SetSelection( 2 );
-	bSizerJustification->Add( m_FieldHJustifyCtrl, 1, wxRIGHT|wxLEFT, 5 );
+	bSizerJustification->Add( m_FieldHJustifyCtrl, 1, wxBOTTOM|wxRIGHT|wxLEFT|wxEXPAND, 5 );
 	
 	wxString m_FieldVJustifyCtrlChoices[] = { _("Bottom"), _("Center"), _("Top") };
 	int m_FieldVJustifyCtrlNChoices = sizeof( m_FieldVJustifyCtrlChoices ) / sizeof( wxString );
 	m_FieldVJustifyCtrl = new wxRadioBox( this, wxID_ANY, _("Vert. Justify"), wxDefaultPosition, wxDefaultSize, m_FieldVJustifyCtrlNChoices, m_FieldVJustifyCtrlChoices, 1, wxRA_SPECIFY_COLS );
 	m_FieldVJustifyCtrl->SetSelection( 2 );
-	bSizerJustification->Add( m_FieldVJustifyCtrl, 1, wxRIGHT|wxLEFT, 5 );
+	bSizerJustification->Add( m_FieldVJustifyCtrl, 1, wxBOTTOM|wxRIGHT|wxLEFT|wxEXPAND, 5 );
 	
 	
-	fieldEditBoxSizer->Add( bSizerJustification, 0, wxEXPAND|wxBOTTOM, 5 );
+	fieldEditBoxSizer->Add( bSizerJustification, 1, wxEXPAND|wxBOTTOM, 5 );
 	
 	wxBoxSizer* bSizerStyle;
 	bSizerStyle = new wxBoxSizer( wxHORIZONTAL );
@@ -189,7 +188,7 @@ DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP::DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP( 
 	bSizerStyle->Add( m_StyleRadioBox, 1, wxEXPAND|wxALL, 5 );
 	
 	
-	fieldEditBoxSizer->Add( bSizerStyle, 1, wxEXPAND, 5 );
+	fieldEditBoxSizer->Add( bSizerStyle, 1, wxEXPAND|wxBOTTOM, 5 );
 	
 	wxBoxSizer* fieldNameBoxSizer;
 	fieldNameBoxSizer = new wxBoxSizer( wxVERTICAL );
@@ -212,7 +211,7 @@ DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP::DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP( 
 	fieldValueTextCtrl->SetMaxLength( 0 ); 
 	fieldValueTextCtrl->SetToolTip( _("The name of the currently selected field\nSome fixed fields names are not editable") );
 	
-	fieldNameBoxSizer->Add( fieldValueTextCtrl, 0, wxEXPAND, 5 );
+	fieldNameBoxSizer->Add( fieldValueTextCtrl, 0, wxEXPAND|wxBOTTOM, 5 );
 	
 	m_show_datasheet_button = new wxButton( this, wxID_ANY, _("Show in Browser"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_show_datasheet_button->SetToolTip( _("If your datasheet is an http:// link or a complete file path, then it may show in your browser by pressing this button.") );

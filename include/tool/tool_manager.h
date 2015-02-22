@@ -30,8 +30,6 @@
 #include <typeinfo>
 #include <map>
 
-#include <math/vector2d.h>
-
 #include <tool/tool_base.h>
 
 class TOOL_BASE;
@@ -169,7 +167,7 @@ public:
      * Propagates an event to tools that requested events of matching type(s).
      * @param aEvent is the event to be processed.
      */
-    bool ProcessEvent( TOOL_EVENT& aEvent );
+    bool ProcessEvent( const TOOL_EVENT& aEvent );
 
     /**
      * Puts an event to the event queue to be processed at the end of event processing cycle.
@@ -309,7 +307,7 @@ private:
      * Function dispatchInternal
      * Passes an event at first to the active tools, then to all others.
      */
-    void dispatchInternal( TOOL_EVENT& aEvent );
+    void dispatchInternal( const TOOL_EVENT& aEvent );
 
     /**
      * Function dispatchStandardEvents()
@@ -317,7 +315,7 @@ private:
      * @param aEvent is the event to be processed.
      * @return False if the event was processed and should not go any further.
      */
-    bool dispatchStandardEvents( TOOL_EVENT& aEvent );
+    bool dispatchStandardEvents( const TOOL_EVENT& aEvent );
 
     /**
      * Function dispatchActivation()
@@ -325,13 +323,13 @@ private:
      * @param aEvent is an event to be tested.
      * @return True if a tool was invoked, false otherwise.
      */
-    bool dispatchActivation( TOOL_EVENT& aEvent );
+    bool dispatchActivation( const TOOL_EVENT& aEvent );
 
     /**
      * Function dispatchContextMenu()
      * Handles context menu related events.
      */
-    void dispatchContextMenu( TOOL_EVENT& aEvent );
+    void dispatchContextMenu( const TOOL_EVENT& aEvent );
 
     /**
      * Function invokeTool()

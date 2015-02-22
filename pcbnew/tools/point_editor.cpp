@@ -119,20 +119,35 @@ public:
                 int cornersCount = outline->GetCornersCount();
 
                 for( int i = 0; i < cornersCount; ++i )
+                {
                     points->AddPoint( outline->GetPos( i ) );
+
+                    if( outline->IsEndContour( i ) )
+                        points->AddBreak();
+                }
 
                 // Lines have to be added after creating edit points,
                 // as they use EDIT_POINT references
                 for( int i = 0; i < cornersCount - 1; ++i )
                 {
-                    points->AddLine( points->Point( i ), points->Point( i + 1 ) );
-                    points->Line( i ).SetConstraint(
-                            new EC_SNAPLINE( points->Line( i ),
+                    if( points->IsContourEnd( i ) )
+                    {
+                        points->AddLine( points->Point( i ),
+                                         points->Point( points->GetContourStartIdx( i ) ) );
+                    }
+                    else
+                    {
+                        points->AddLine( points->Point( i ), points->Point( i + 1 ) );
+                    }
+
+                    points->Line( i ).SetConstraint( new EC_SNAPLINE( points->Line( i ),
                             boost::bind( &KIGFX::GAL::GetGridPoint, aGal, _1 ) ) );
                 }
 
                 // The last missing line, connecting the last and the first polygon point
-                points->AddLine( points->Point( cornersCount - 1 ), points->Point( 0 ) );
+                points->AddLine( points->Point( cornersCount - 1 ),
+                                 points->Point( points->GetContourStartIdx( cornersCount - 1 ) ) );
+
                 points->Line( points->LinesSize() - 1 ).SetConstraint(
                         new EC_SNAPLINE( points->Line( points->LinesSize() - 1 ),
                         boost::bind( &KIGFX::GAL::GetGridPoint, aGal, _1 ) ) );
@@ -204,7 +219,7 @@ bool POINT_EDITOR::Init()
 }
 
 
-int POINT_EDITOR::OnSelectionChange( TOOL_EVENT& aEvent )
+int POINT_EDITOR::OnSelectionChange( const TOOL_EVENT& aEvent )
 {
     const SELECTION& selection = m_selectionTool->GetSelection();
 
@@ -782,8 +797,8 @@ void POINT_EDITOR::breakOutline( const VECTOR2I& aBreakPoint )
 
 void POINT_EDITOR::setTransitions()
 {
-    Go( &POINT_EDITOR::OnSelectionChange, m_selectionTool->SelectedEvent );
-    Go( &POINT_EDITOR::OnSelectionChange, m_selectionTool->UnselectedEvent );
+    Go( &POINT_EDITOR::OnSelectionChange, SELECTION_TOOL::SelectedEvent );
+    Go( &POINT_EDITOR::OnSelectionChange, SELECTION_TOOL::UnselectedEvent );
 }
 
 

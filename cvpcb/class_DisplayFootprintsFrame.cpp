@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2007-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2007-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,14 +53,12 @@
 #include <3d_viewer.h>
 
 
-DISPLAY_OPTIONS DisplayOpt;      // General display options
-
-
 BEGIN_EVENT_TABLE( DISPLAY_FOOTPRINTS_FRAME, PCB_BASE_FRAME )
     EVT_CLOSE( DISPLAY_FOOTPRINTS_FRAME::OnCloseWindow )
     EVT_SIZE( DISPLAY_FOOTPRINTS_FRAME::OnSize )
     EVT_TOOL( ID_OPTIONS_SETUP, DISPLAY_FOOTPRINTS_FRAME::InstallOptionsDisplay )
     EVT_TOOL( ID_CVPCB_SHOW3D_FRAME, DISPLAY_FOOTPRINTS_FRAME::Show3D_Frame )
+
     EVT_TOOL( ID_TB_OPTIONS_SHOW_MODULE_TEXT_SKETCH,
               DISPLAY_FOOTPRINTS_FRAME::OnSelectOptionToolbar)
     EVT_TOOL( ID_TB_OPTIONS_SHOW_MODULE_EDGE_SKETCH,
@@ -100,10 +98,11 @@ DISPLAY_FOOTPRINTS_FRAME::DISPLAY_FOOTPRINTS_FRAME( KIWAY* aKiway, CVPCB_MAINFRA
     GetScreen()->SetGrid( ID_POPUP_GRID_LEVEL_1000 + m_LastGridSizeId );
 
     // Initialize some display options
-    DisplayOpt.DisplayPadIsol = false;      // Pad clearance has no meaning here
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)GetDisplayOptions();
+    displ_opts->m_DisplayPadIsol = false;      // Pad clearance has no meaning here
 
     // Track and via clearance has no meaning here.
-    DisplayOpt.ShowTrackClearanceMode = DO_NOT_SHOW_CLEARANCE;
+    displ_opts->m_ShowTrackClearanceMode = DO_NOT_SHOW_CLEARANCE;
 
     SetSize( m_FramePos.x, m_FramePos.y, m_FrameSize.x, m_FrameSize.y );
     ReCreateHToolbar();
@@ -248,16 +247,14 @@ void DISPLAY_FOOTPRINTS_FRAME::ReCreateHToolbar()
 
 void DISPLAY_FOOTPRINTS_FRAME::OnUpdateTextDrawMode( wxUpdateUIEvent& aEvent )
 {
-    wxString msgTextsFill[3] = { _( "Show texts in line mode" ),
-                                 _( "Show texts in filled mode" ),
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)GetDisplayOptions();
+
+    wxString msgTextsFill[2] = { _( "Show texts in filled mode" ),
                                  _( "Show texts in sketch mode" ) };
 
-    unsigned i = m_DisplayModText + 1;
+    unsigned i = displ_opts->m_DisplayModTextFill == SKETCH ? 0 : 1;
 
-    if ( i > 2 )
-        i = 0;
-
-    aEvent.Check( m_DisplayModText == 0 );
+    aEvent.Check( displ_opts->m_DisplayModTextFill == SKETCH );
     m_optionsToolBar->SetToolShortHelp( ID_TB_OPTIONS_SHOW_MODULE_TEXT_SKETCH, msgTextsFill[i] );
 
 }
@@ -265,16 +262,14 @@ void DISPLAY_FOOTPRINTS_FRAME::OnUpdateTextDrawMode( wxUpdateUIEvent& aEvent )
 
 void DISPLAY_FOOTPRINTS_FRAME::OnUpdateLineDrawMode( wxUpdateUIEvent& aEvent )
 {
-    wxString msgEdgesFill[3] = { _( "Show outlines in line mode" ),
-                                 _( "Show outlines in filled mode" ),
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)GetDisplayOptions();
+
+    wxString msgEdgesFill[2] = { _( "Show outlines in filled mode" ),
                                  _( "Show outlines in sketch mode" ) };
 
-    int i = m_DisplayModEdge + 1;
+    int i = displ_opts->m_DisplayModEdgeFill == SKETCH ? 0 : 1;
 
-    if ( i > 2 )
-        i = 0;
-
-    aEvent.Check( m_DisplayModEdge == 0 );
+    aEvent.Check( displ_opts->m_DisplayModEdgeFill == SKETCH );
     m_optionsToolBar->SetToolShortHelp( ID_TB_OPTIONS_SHOW_MODULE_EDGE_SKETCH, msgEdgesFill[i] );
 }
 
@@ -298,24 +293,17 @@ bool DISPLAY_FOOTPRINTS_FRAME::OnRightClick( const wxPoint& MousePos, wxMenu* Po
 void DISPLAY_FOOTPRINTS_FRAME::OnSelectOptionToolbar( wxCommandEvent& event )
 {
     int        id = event.GetId();
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)GetDisplayOptions();
 
     switch( id )
     {
     case ID_TB_OPTIONS_SHOW_MODULE_TEXT_SKETCH:
-        m_DisplayModText++;
-
-        if( m_DisplayModText > 2 )
-            m_DisplayModText = 0;
-
+        displ_opts->m_DisplayModTextFill = displ_opts->m_DisplayModTextFill == FILLED ? SKETCH : FILLED;
         m_canvas->Refresh( );
         break;
 
     case ID_TB_OPTIONS_SHOW_MODULE_EDGE_SKETCH:
-        m_DisplayModEdge++;
-
-        if( m_DisplayModEdge > 2 )
-            m_DisplayModEdge = 0;
-
+        displ_opts->m_DisplayModEdgeFill = displ_opts->m_DisplayModEdgeFill == FILLED ? SKETCH : FILLED;
         m_canvas->Refresh();
         break;
 

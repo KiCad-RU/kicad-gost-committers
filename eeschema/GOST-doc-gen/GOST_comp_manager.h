@@ -29,7 +29,7 @@
 #define _GOST_COMP_MANAGER_H_
 
 #include <netlist.h>
-#include <wxEeschemaStruct.h>
+#include <schframe.h>
 #include <dialogs/frame_GOST_doc_gen_base.h>
 
 #define TABLE_REFDES_COL       0

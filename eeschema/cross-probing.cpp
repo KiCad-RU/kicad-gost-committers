@@ -33,7 +33,7 @@
 #include <kiway_express.h>
 #include <macros.h>
 #include <eda_dde.h>
-#include <wxEeschemaStruct.h>
+#include <schframe.h>
 
 #include <general.h>
 #include <eeschema_id.h>
@@ -62,6 +62,7 @@ void SCH_EDIT_FRAME::ExecuteRemoteCommand( const char* cmdline )
     char     line[1024];
 
     strncpy( line, cmdline, sizeof(line) - 1 );
+    line[ sizeof(line) - 1 ] = '\0';
 
     char* idcmd = strtok( line, " \n\r" );
     char* text  = strtok( NULL, "\"\n\r" );

@@ -148,6 +148,8 @@ public:
     VRML_LAYER  bot_tin;
     VRML_LAYER  plated_holes;
 
+    bool plainPCB;
+
     double scale;           // board internal units to output scaling
     double minLineWidth;    // minimum width of a VRML line segment
     int    precision;       // precision of output units
@@ -183,7 +185,11 @@ public:
         colors[ VRML_COLOR_TIN ]    = VRML_COLOR( .749, .756, .761, .749, .756, .761,
                                                   0, 0, 0, 0.8, 0, 0.8 );
 
-        precision = 5;
+        plainPCB = false;
+        SetScale( 1.0 );
+        SetOffset( 0.0, 0.0 );
+        s_text_layer = F_Cu;
+        s_text_width = 1;
     }
 
     VRML_COLOR& GetColor( VRML_COLOR_INDEX aIndex )
@@ -402,6 +408,9 @@ static void write_layers( MODEL_VRML& aModel, std::ofstream& output_file, BOARD*
                   - ( Millimeter2iu( ART_OFFSET / 2.0 ) ) * aModel.scale;
     write_triangle_bag( output_file, aModel.GetColor( VRML_COLOR_PCB ),
                         &aModel.board, false, false, brdz, -brdz, aModel.precision );
+
+    if( aModel.plainPCB )
+        return;
 
     // VRML_LAYER top_copper;
     aModel.top_copper.Tesselate( &aModel.holes );
@@ -630,14 +639,15 @@ static void export_vrml_pcbtext( MODEL_VRML& aModel, TEXTE_PCB* text )
 
     if( text->IsMultilineAllowed() )
     {
-        wxArrayString* list = wxStringSplit( text->GetShownText(), '\n' );
+        wxArrayString strings_list;
+        wxStringSplit( text->GetShownText(), strings_list, '\n' );
         std::vector<wxPoint> positions;
-        positions.reserve( list->Count() );
-        text->GetPositionsOfLinesOfMultilineText( positions, list->Count() );
+        positions.reserve( strings_list.Count() );
+        text->GetPositionsOfLinesOfMultilineText( positions, strings_list.Count() );
 
-        for( unsigned ii = 0; ii < list->Count(); ii++ )
+        for( unsigned ii = 0; ii < strings_list.Count(); ii++ )
         {
-            wxString txt = list->Item( ii );
+            wxString& txt = strings_list.Item( ii );
             DrawGraphicText( NULL, NULL, positions[ii], color,
                              txt, text->GetOrientation(), size,
                              text->GetHorizJustify(), text->GetVertJustify(),
@@ -645,8 +655,6 @@ static void export_vrml_pcbtext( MODEL_VRML& aModel, TEXTE_PCB* text )
                              true,
                              vrml_text_callback );
         }
-
-        delete (list);
     }
     else
     {
@@ -791,6 +799,9 @@ static void export_round_padstack( MODEL_VRML& aModel, BOARD* pcb,
     if( thru && hole > 0 )
         aModel.holes.AddCircle( x, -y, hole, true );
 
+    if( aModel.plainPCB )
+        return;
+
     while( 1 )
     {
         if( layer == B_Cu )
@@ -846,7 +857,8 @@ static void export_vrml_tracks( MODEL_VRML& aModel, BOARD* pcb )
         {
             export_vrml_via( aModel, pcb, (const VIA*) track );
         }
-        else if( track->GetLayer() == B_Cu || track->GetLayer() == F_Cu )
+        else if( ( track->GetLayer() == B_Cu || track->GetLayer() == F_Cu )
+                   && !aModel.plainPCB )
             export_vrml_line( aModel, track->GetLayer(),
                               track->GetStart().x * aModel.scale,
                               track->GetStart().y * aModel.scale,
@@ -881,11 +893,11 @@ static void export_vrml_zones( MODEL_VRML& aModel, BOARD* aPcb )
         const CPOLYGONS_LIST& poly = zone->GetFilledPolysList();
         int nvert = poly.GetCornersCount();
         int i = 0;
+        bool cutout = false;
 
         while( i < nvert )
         {
             int seg = vl->NewContour();
-            bool first = true;
 
             if( seg < 0 )
                 break;
@@ -906,10 +918,10 @@ static void export_vrml_zones( MODEL_VRML& aModel, BOARD* aPcb )
 
             // KiCad ensures that the first polygon is the outline
             // and all others are holes
-             vl->EnsureWinding( seg, first ? false : true );
+             vl->EnsureWinding( seg, cutout );
 
-            if( first )
-                first = false;
+             if( !cutout )
+                 cutout = true;
 
             ++i;
         }
@@ -1102,7 +1114,8 @@ static void export_vrml_pad( MODEL_VRML& aModel, BOARD* pcb, D_PAD* aPad )
     {
         bool pth = false;
 
-        if( aPad->GetAttribute() != PAD_HOLE_NOT_PLATED )
+        if( ( aPad->GetAttribute() != PAD_HOLE_NOT_PLATED )
+            && !aModel.plainPCB )
             pth = true;
 
         if( aPad->GetDrillShape() == PAD_DRILL_OBLONG )
@@ -1126,6 +1139,9 @@ static void export_vrml_pad( MODEL_VRML& aModel, BOARD* pcb, D_PAD* aPad )
 
         }
     }
+
+    if( aModel.plainPCB )
+        return;
 
     // The pad proper, on the selected layers
     LSET layer_mask = aPad->GetLayerSet();
@@ -1188,29 +1204,32 @@ static void export_vrml_module( MODEL_VRML& aModel, BOARD* aPcb, MODULE* aModule
                                 bool aExport3DFiles, bool aUseRelativePaths,
                                 const wxString& a3D_Subdir )
 {
-    // Reference and value
-    if( aModule->Reference().IsVisible() )
-        export_vrml_text_module( &aModule->Reference() );
-
-    if( aModule->Value().IsVisible() )
-        export_vrml_text_module( &aModule->Value() );
-
-    // Export module edges
-    for( EDA_ITEM* item = aModule->GraphicalItems(); item; item = item->Next() )
+    if( !aModel.plainPCB )
     {
-        switch( item->Type() )
+        // Reference and value
+        if( aModule->Reference().IsVisible() )
+            export_vrml_text_module( &aModule->Reference() );
+
+        if( aModule->Value().IsVisible() )
+            export_vrml_text_module( &aModule->Value() );
+
+        // Export module edges
+        for( EDA_ITEM* item = aModule->GraphicalItems(); item; item = item->Next() )
         {
-        case PCB_MODULE_TEXT_T:
-            export_vrml_text_module( static_cast<TEXTE_MODULE*>( item ) );
-            break;
+            switch( item->Type() )
+            {
+                case PCB_MODULE_TEXT_T:
+                    export_vrml_text_module( static_cast<TEXTE_MODULE*>( item ) );
+                    break;
 
-        case PCB_MODULE_EDGE_T:
-            export_vrml_edge_module( aModel, static_cast<EDGE_MODULE*>( item ),
-                                     aModule->GetOrientation() );
-            break;
+                case PCB_MODULE_EDGE_T:
+                    export_vrml_edge_module( aModel, static_cast<EDGE_MODULE*>( item ),
+                                             aModule->GetOrientation() );
+                    break;
 
-        default:
-            break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -1340,13 +1359,14 @@ static void export_vrml_module( MODEL_VRML& aModel, BOARD* aPcb, MODULE* aModule
 
 bool PCB_EDIT_FRAME::ExportVRML_File( const wxString& aFullFileName, double aMMtoWRMLunit,
                                       bool aExport3DFiles, bool aUseRelativePaths,
-                                      const wxString& a3D_Subdir )
+                                      bool aUsePlainPCB, const wxString& a3D_Subdir )
 {
     wxString        msg;
     BOARD*          pcb = GetBoard();
     bool            ok  = true;
 
     MODEL_VRML model3d;
+    model3d.plainPCB = aUsePlainPCB;
 
     model_vrml = &model3d;
     std::ofstream output_file;
@@ -1387,13 +1407,15 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString& aFullFileName, double aMMt
         export_vrml_board( model3d, pcb );
 
         // Drawing and text on the board
-        export_vrml_drawings( model3d, pcb );
+        if( !aUsePlainPCB )
+            export_vrml_drawings( model3d, pcb );
 
         // Export vias and trackage
         export_vrml_tracks( model3d, pcb );
 
         // Export zone fills
-        export_vrml_zones( model3d, pcb);
+        if( !aUsePlainPCB )
+            export_vrml_zones( model3d, pcb);
 
         /* scaling factor to convert 3D models to board units (decimils)
          * Usually we use Wings3D to create thems.

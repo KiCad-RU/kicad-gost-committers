@@ -152,7 +152,7 @@ public:
     }
 
 protected:
-    OPT_TOOL_EVENT handleCustomEvent( const wxEvent& aEvent )
+    OPT_TOOL_EVENT handleCustomEvent( const wxMenuEvent& aEvent )
     {
 #if ID_POPUP_PCB_SELECT_VIASIZE1 < ID_POPUP_PCB_SELECT_WIDTH1
 #error You have changed event ids order, it breaks code. Check the source code for more details.
@@ -183,7 +183,7 @@ protected:
             bds.SetTrackWidthIndex( 0 );
         }
 
-        else if( id > ID_POPUP_PCB_SELECT_VIASIZE1 )     // via size has changed
+        else if( id >= ID_POPUP_PCB_SELECT_VIASIZE1 )     // via size has changed
         {
             assert( id < ID_POPUP_PCB_SELECT_WIDTH_END_RANGE );
 
@@ -338,11 +338,14 @@ PNS_ITEM* ROUTER_TOOL::pickSingleItem( const VECTOR2I& aWhere, int aNet, int aLa
     }
 
     PNS_ITEM* rv = NULL;
+    PCB_EDIT_FRAME* frame = getEditFrame<PCB_EDIT_FRAME> ();
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)frame->GetDisplayOptions();
+
     for( int i = 0; i < 4; i++ )
     {
         PNS_ITEM* item = prioritized[i];
 
-        if( DisplayOpt.ContrastModeDisplay )
+        if( displ_opts->m_ContrastModeDisplay )
             if( item && !item->Layers().Overlaps( tl ) )
                 item = NULL;
 
@@ -722,7 +725,7 @@ void ROUTER_TOOL::performRouting()
 }
 
 
-int ROUTER_TOOL::Main( TOOL_EVENT& aEvent )
+int ROUTER_TOOL::Main( const TOOL_EVENT& aEvent )
 {
     VIEW_CONTROLS* ctls = getViewControls();
     PCB_EDIT_FRAME* frame = getEditFrame<PCB_EDIT_FRAME>();

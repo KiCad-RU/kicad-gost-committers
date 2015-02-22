@@ -130,7 +130,6 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
                         const wxPoint& offset )
 {
     int         ux0, uy0, dx, dy, radius, StAngle, EndAngle;
-    int         typeaff;
     LAYER_ID    curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
 
     MODULE* module = (MODULE*) m_Parent;
@@ -144,14 +143,13 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
         return;
 
     EDA_COLOR_T color = brd->GetLayerColor( m_Layer );
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)panel->GetDisplayOptions();
 
-    if(( draw_mode & GR_ALLOW_HIGHCONTRAST ) && DisplayOpt.ContrastModeDisplay )
+    if(( draw_mode & GR_ALLOW_HIGHCONTRAST ) && displ_opts && displ_opts->m_ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
             ColorTurnToDarkDarkGray( &color );
     }
-
-    PCB_BASE_FRAME* frame = (PCB_BASE_FRAME*) panel->GetParent();
 
     ux0 = m_Start.x - offset.x;
     uy0 = m_Start.y - offset.y;
@@ -160,25 +158,15 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
     dy = m_End.y - offset.y;
 
     GRSetDrawMode( DC, draw_mode );
-    typeaff = frame->m_DisplayModEdge;
+    bool filled = displ_opts ? displ_opts->m_DisplayModEdgeFill : FILLED;
 
     if( IsCopperLayer( m_Layer ) )
-    {
-        typeaff = frame->m_DisplayPcbTrackFill;
-
-        if( !typeaff )
-            typeaff = SKETCH;
-    }
-
-    if( DC->LogicalToDeviceXRel( m_Width ) <= MIN_DRAW_WIDTH )
-        typeaff = LINE;
+        filled = displ_opts ? displ_opts->m_DisplayPcbTrackFill : FILLED;
 
     switch( m_Shape )
     {
     case S_SEGMENT:
-        if( typeaff == LINE )
-            GRLine( panel->GetClipBox(), DC, ux0, uy0, dx, dy, 0, color );
-        else if( typeaff == FILLED )
+        if( filled )
             GRLine( panel->GetClipBox(), DC, ux0, uy0, dx, dy, m_Width, color );
         else
             // SKETCH Mode
@@ -189,21 +177,14 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
     case S_CIRCLE:
         radius = KiROUND( Distance( ux0, uy0, dx, dy ) );
 
-        if( typeaff == LINE )
+        if( filled )
         {
-            GRCircle( panel->GetClipBox(), DC, ux0, uy0, radius, color );
+            GRCircle( panel->GetClipBox(), DC, ux0, uy0, radius, m_Width, color );
         }
-        else
+        else        // SKETCH Mode
         {
-            if( typeaff == FILLED )
-            {
-                GRCircle( panel->GetClipBox(), DC, ux0, uy0, radius, m_Width, color );
-            }
-            else        // SKETCH Mode
-            {
-                GRCircle( panel->GetClipBox(), DC, ux0, uy0, radius + (m_Width / 2), color );
-                GRCircle( panel->GetClipBox(), DC, ux0, uy0, radius - (m_Width / 2), color );
-            }
+            GRCircle( panel->GetClipBox(), DC, ux0, uy0, radius + (m_Width / 2), color );
+            GRCircle( panel->GetClipBox(), DC, ux0, uy0, radius - (m_Width / 2), color );
         }
 
         break;
@@ -224,11 +205,7 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
                 EXCHG( StAngle, EndAngle );
         }
 
-        if( typeaff == LINE )
-        {
-            GRArc( panel->GetClipBox(), DC, ux0, uy0, StAngle, EndAngle, radius, color );
-        }
-        else if( typeaff == FILLED )
+        if( filled )
         {
             GRArc( panel->GetClipBox(), DC, ux0, uy0, StAngle, EndAngle, radius, m_Width, color );
         }

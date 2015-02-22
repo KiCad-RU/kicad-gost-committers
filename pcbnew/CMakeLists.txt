@@ -46,6 +46,8 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_cleaning_options.cpp
     dialogs/dialog_copper_zones.cpp
     dialogs/dialog_copper_zones_base.cpp
+    dialogs/dialog_create_array.cpp
+    dialogs/dialog_create_array_base.cpp
     dialogs/dialog_design_rules.cpp
     dialogs/dialog_design_rules_base.cpp
     dialogs/dialog_dimension_editor_base.cpp
@@ -96,12 +98,16 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_layer_selection_base.cpp
     dialogs/dialog_layers_setup.cpp
     dialogs/dialog_layers_setup_base.cpp
+    dialogs/dialog_modedit_options.cpp
+    dialogs/dialog_modedit_options_base.cpp
     dialogs/dialog_netlist.cpp
     dialogs/dialog_netlist_fbp.cpp
     dialogs/dialog_pcb_text_properties.cpp
     dialogs/dialog_pcb_text_properties_base.cpp
     dialogs/dialog_pns_settings.cpp
     dialogs/dialog_pns_settings_base.cpp
+    dialogs/dialog_move_exact.cpp
+    dialogs/dialog_move_exact_base.cpp
     dialogs/dialog_non_copper_zones_properties.cpp
     dialogs/dialog_non_copper_zones_properties_base.cpp
     dialogs/dialog_pad_properties.cpp
@@ -120,6 +126,7 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_SVG_print_base.cpp
     dialogs/dialog_select_pretty_lib.cpp
     dialogs/dialog_select_pretty_lib_base.cpp
+    dialogs/dialog_select_dirlist_base.cpp
     dialogs/dialog_set_grid.cpp
     dialogs/dialog_set_grid_base.cpp
     dialogs/dialog_target_properties_base.cpp
@@ -129,6 +136,8 @@ set( PCBNEW_DIALOGS
     footprint_wizard_frame.cpp
     dialogs/dialog_footprint_wizard_list_base.cpp
     dialogs/dialog_footprint_wizard_list.cpp
+    dialogs/wizard_add_fplib_base.cpp
+    dialogs/wizard_add_fplib.cpp
     )
 
 set( PCBNEW_IMPORT_DXF
@@ -368,6 +377,10 @@ if( UNIX AND NOT APPLE )
     list( APPEND PCBNEW_EXTRA_LIBS rt )
 endif()
 
+if( KICAD_USE_WEBKIT AND BUILD_GITHUB_PLUGIN )
+    set( WEBVIEWER_WXLIB "webviewer" )
+endif()
+
 
 if( KICAD_SCRIPTING_MODULES )
 
@@ -375,6 +388,7 @@ if( KICAD_SCRIPTING_MODULES )
 
     set( CMAKE_SWIG_FLAGS ${SWIG_FLAGS} )
     set_source_files_properties( scripting/pcbnew.i PROPERTIES CPLUSPLUS ON )
+
     swig_add_module( pcbnew
         python
         scripting/pcbnew.i
@@ -383,6 +397,7 @@ if( KICAD_SCRIPTING_MODULES )
         ${PCBNEW_SRCS}
         ${PCBNEW_COMMON_SRCS}
         )
+
     swig_link_libraries( pcbnew
         3d-viewer
         pcbcommon
@@ -393,6 +408,7 @@ if( KICAD_SCRIPTING_MODULES )
         idf3
         ${GITHUB_PLUGIN_LIBRARIES}
         polygon
+        ${WEBVIEWER_WXLIB}
         bitmaps
         gal
         ${GLEW_LIBRARIES}
@@ -559,6 +575,7 @@ target_link_libraries( pcbnew_kiface
     common
     pcad2kicadpcb
     polygon
+    ${WEBVIEWER_WXLIB}    # before bitmaps, because it uses some bitmaps defined in bitmap
     bitmaps
     gal
     lib_dxf

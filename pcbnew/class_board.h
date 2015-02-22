@@ -301,6 +301,16 @@ public:
      */
     BOARD_ITEM* Remove( BOARD_ITEM* aBoardItem );
 
+    BOARD_ITEM* DuplicateAndAddItem( const BOARD_ITEM* aItem,
+                                     bool aIncrementReferences );
+
+    /**
+     * Function GetNextModuleReferenceWithPrefix
+     * Get the next available module reference with this prefix
+     */
+    wxString GetNextModuleReferenceWithPrefix( const wxString& aPrefix,
+                                               bool aFillSequenceGaps );
+
     /**
      * Function GetRatsnest()
      * returns list of missing connections between components/tracks.
@@ -622,6 +632,18 @@ public:
     void ConvertBrdLayerToPolygonalContours( LAYER_ID aLayer, CPOLYGONS_LIST& aOutlines );
 
     /**
+     * Function GetLayerID
+     * returns the ID of a layer given by aLayerName.  Copper layers may
+     * have custom names.
+     *
+     * @param aLayerName = A layer name, like wxT("B.Cu"), etc.
+     *
+     * @return LAYER_ID -   the layer id, which for copper layers may
+     *                      be custom, else standard.
+     */
+    const LAYER_ID GetLayerID( wxString aLayerName ) const;
+
+    /**
      * Function GetLayerName
      * returns the name of a layer given by aLayer.  Copper layers may
      * have custom names.
@@ -661,7 +683,15 @@ public:
         return LSET::Name( aLayerId );
     }
 
-    bool SetLayer( LAYER_ID aIndex, const LAYER& aLayer );
+    /**
+     * Function SetLayerDescr
+     * returns the type of the copper layer given by aLayer.
+     *
+     * @param aIndex A layer index in m_Layer
+     * @param aLayer A reference to a LAYER description.
+     * @return false if the index was out of range.
+     */
+    bool SetLayerDescr( LAYER_ID aIndex, const LAYER& aLayer );
 
     /**
      * Function GetLayerType

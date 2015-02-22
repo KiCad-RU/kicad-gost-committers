@@ -193,6 +193,19 @@ protected:
      */
     void duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone );
 
+    /**
+     * Function moveExact
+     * Move the selected item exactly
+     */
+    void moveExact();
+
+    /**
+     * Function duplicateItems
+     * Duplicate selected item if possible and start a move
+     * @param aIncrement increment the item number if appropriate
+     */
+    void duplicateItem( bool aIncrement );
+
     // protected so that PCB::IFACE::CreateWindow() is the only factory.
     PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent );
 
@@ -367,9 +380,6 @@ public:
      * to define a configuration setting that needs to be loaded at run time,
      * this is the place to define it.
      *
-     * @todo: Define the configuration variables as member variables instead of
-     *        global variables or move them to the object class where they are
-     *        used.
      * @return - Reference to the list of applications settings.
      */
     PARAM_CFG_ARRAY& GetConfigurationSettings();
@@ -461,6 +471,15 @@ public:
      * @return Event id of a suitable copy event, zero when no copyable item found.
      */
     int OnHotkeyCopyItem();
+
+    /**
+     * Function OnHotkeyDuplicateOrArrayItem
+     * Duplicate an item (optionally incrementing if necessary and possible)
+     * or invoke array dialog and create an array
+     * @param aIdCommand = the hotkey command id
+     * @return true if item duplicated or arrayed
+     */
+    bool OnHotkeyDuplicateOrArrayItem( int aIdCommand );
 
     /**
      * Function OnHotkeyMoveItem
@@ -851,12 +870,14 @@ public:
     /**
      * Function AppendBoardFile
      * appends a board file onto the current one, creating God knows what.
+     * the main purpose is only to allow panelizing boards.
      */
     bool AppendBoardFile( const wxString& aFullFileName, int aCtl );
 
     /**
      * Function SavePcbFile
      * writes the board data structures to \a a aFileName
+     * Creates backup when requested and update flags (modified and saved flgs)
      *
      * @param aFileName The file name to write or wxEmptyString to prompt user for
      *                  file name.
@@ -867,8 +888,18 @@ public:
      */
     bool SavePcbFile( const wxString& aFileName, bool aCreateBackupFile = CREATE_BACKUP_FILE );
 
-    int SavePcbFormatAscii( FILE* File );
-    bool WriteGeneralDescrPcb( FILE* File );
+    /**
+     * Function SavePcbCopy
+     * writes the board data structures to \a a aFileName
+     * but unlike SavePcbFile, does not make anything else
+     * (no backup, borad fliename change, no flag changes ...)
+     * Used under a project mgr to save under a new name the current board
+     *
+     * When not under a project mgr, the full SavePcbFile is used.
+     * @param aFileName The file name to write.
+     * @return True if file was saved successfully.
+     */
+    bool SavePcbCopy( const wxString& aFileName );
 
     // BOARD handling
 
@@ -938,7 +969,7 @@ public:
      * @todo Use mm inside the file.  A general scale transform is applied to the whole
      *       file (1.0 to have the actual WRML unit im mm, 0.001 to have the actual WRML
      *       unit in meters.
-     * @note For 3D models built by a 3D modeler, the unit is 0,1 inches.  A specfic scale
+     * @note For 3D models built by a 3D modeler, the unit is 0,1 inches.  A specific scale
      *       is applied to 3D models to convert them to internal units.
      *
      * @param aFullFileName = the full filename of the file to create
@@ -947,13 +978,16 @@ public:
      * @param aExport3DFiles = true to copy 3D shapes in the subir a3D_Subdir
      * @param aUseRelativePaths set to true to use relative paths instead of absolute paths
      *                          in the board VRML file URLs.
+     * @param aUsePlainPCB set to true to export a board with no copper or silkskreen;
+     *                          this is useful for generating a VRML file which can be
+     *                          converted to a STEP model.
      * @param a3D_Subdir = sub directory where 3D shapes files are copied.  This is only used
      *                     when aExport3DFiles == true
      * @return true if Ok.
      */
     bool ExportVRML_File( const wxString & aFullFileName, double aMMtoWRMLunit,
                           bool aExport3DFiles, bool aUseRelativePaths,
-                          const wxString & a3D_Subdir );
+                          bool aUsePlainPCB, const wxString & a3D_Subdir );
 
     /**
      * Function ExportToIDF3
@@ -1599,12 +1633,15 @@ public:
     void Edit_Gap( wxDC* DC, MODULE* Module );
 
     /**
-     * Function Create_MuWaveBasicShape
-     * create a footprint with pad_count pads for micro wave applications.
-     * This footprint has pad_count pads:
+     * Function CreateMuWaveBaseFootprint
+     * create a basic footprint for micro wave applications.
+     * @param aValue = the text value
+     * @param aTextSize = the size of ref and value texts ( <= 0 to use board default values )
+     * @param aPadCount = number of pads
+     * Pads settings are:
      *  PAD_SMD, rectangular, H size = V size = current track width.
      */
-    MODULE* Create_MuWaveBasicShape( const wxString& name, int pad_count );
+    MODULE* CreateMuWaveBaseFootprint( const wxString& aValue, int aTextSize, int aPadCount );
 
     /**
      * Create_MuWaveComponent

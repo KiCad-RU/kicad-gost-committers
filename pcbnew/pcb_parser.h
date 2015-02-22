@@ -69,14 +69,23 @@ class PCB_PARSER : public PCB_LEXER
     std::vector<int>    m_netCodes;         ///< net codes mapping for boards being loaded
 
     ///> Converts net code using the mapping table if available,
-    ///> otherwise returns unchanged net code
+    ///> otherwise returns unchanged net code if < 0 or if is is out of range
     inline int getNetCode( int aNetCode )
     {
-        if( aNetCode < (int) m_netCodes.size() )
+        if( ( aNetCode >= 0 ) && ( aNetCode < (int) m_netCodes.size() ) )
             return m_netCodes[aNetCode];
 
         return aNetCode;
     }
+
+    /**
+     * function pushValueIntoMap
+     * Add aValue value in netcode mapping (m_netCodes) at index aIndex
+     * ensure there is room in m_netCodes for that, and add room if needed.
+     * @param aIndex = the index ( expected >=0 )of the location to use in m_netCodes
+     * @param aValue = the netcode value to map
+     */
+    void pushValueIntoMap( int aIndex, int aValue );
 
     /**
      * Function init
@@ -163,7 +172,7 @@ class PCB_PARSER : public PCB_LEXER
      * @throw PARSE_ERROR if the coordinate pair syntax is incorrect.
      * @return A wxPoint object containing the coordinate pair.
      */
-    wxPoint parseXY() throw( PARSE_ERROR );
+    wxPoint parseXY() throw( PARSE_ERROR, IO_ERROR );
 
     void parseXY( int* aX, int* aY ) throw( PARSE_ERROR );
 
@@ -174,9 +183,9 @@ class PCB_PARSER : public PCB_LEXER
      * @throw PARSE_ERROR if the text syntax is not valid.
      * @param aText A point to the #EDA_TEXT object to save the parsed settings into.
      */
-    void parseEDA_TEXT( EDA_TEXT* aText ) throw( PARSE_ERROR );
+    void parseEDA_TEXT( EDA_TEXT* aText ) throw( PARSE_ERROR, IO_ERROR );
 
-    S3D_MASTER* parse3DModel() throw( PARSE_ERROR );
+    S3D_MASTER* parse3DModel() throw( PARSE_ERROR, IO_ERROR );
 
     /**
      * Function parseDouble
@@ -210,7 +219,7 @@ class PCB_PARSER : public PCB_LEXER
         return KiROUND( parseDouble() * IU_PER_MM );
     }
 
-    inline int parseBoardUnits( const char* aExpected ) throw( PARSE_ERROR )
+    inline int parseBoardUnits( const char* aExpected ) throw( PARSE_ERROR, IO_ERROR )
     {
         // Use here KiROUND, not KIROUND (see comments about them)
         // when having a function as argument, because it will be called twice
@@ -218,7 +227,7 @@ class PCB_PARSER : public PCB_LEXER
         return KiROUND( parseDouble( aExpected ) * IU_PER_MM );
     }
 
-    inline int parseBoardUnits( PCB_KEYS_T::T aToken ) throw( PARSE_ERROR )
+    inline int parseBoardUnits( PCB_KEYS_T::T aToken ) throw( PARSE_ERROR, IO_ERROR )
     {
         return parseBoardUnits( GetTokenText( aToken ) );
     }

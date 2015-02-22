@@ -151,6 +151,12 @@ set( BMAPS_MID
     annotate_down_right
     annotate_right_down
     annotate
+    array_line
+    array_module
+    array_pad
+    array_text
+    array_target
+    array_zone
     auto_associe
     auto_delete_track
     auto_track_width
@@ -168,6 +174,7 @@ set( BMAPS_MID
     browse_files
     cancel
     change_entry_orient
+    contrast_mode
     create_cmp_file
     checked_ok
     component_select_unit
@@ -216,6 +223,12 @@ set( BMAPS_MID
     drag_track_segment
     drc_off
     drc
+    duplicate_line
+    duplicate_module
+    duplicate_pad
+    duplicate_target
+    duplicate_text
+    duplicate_zone
     edges_sketch
     edit_comp_footprint
     edit_component
@@ -253,11 +266,9 @@ set( BMAPS_MID
     gbr_select_mode2
     gerber_file
     gerber_recent_files
-    gerber_open_dcode_file
     gerbview_show_negative_objects
     gerbview_drill_file
     gerbview_clear_layers
-    gerber_open_dcode_file
     gerbview_open_recent_drill_files
     general_deletions
     general_ratsnest
@@ -364,9 +375,11 @@ set( BMAPS_MID
     move_polygon
     move_rectangle
     move_sheet
+    move_target
     move_text
     move_track_segment
     move_track
+    move_zone
     move
     mw_add_gap
     mw_add_line
@@ -457,6 +470,8 @@ set( BMAPS_MID
     reload
     reset_text
     resize_sheet
+    rescue_pcbnew
+    revert_pcbnew
     right
     rotate_field
     rotate_glabel
@@ -551,6 +566,7 @@ set( BMAPS_BIG
     libedit_icon
     viewlibs_icon
     icon_pagelayout_editor
+    wizard_add_fplib_icon
     )
 
 

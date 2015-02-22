@@ -361,9 +361,9 @@ bool EXCELLON_WRITER::GenDrillReportFile( const wxString& aFullFileName )
         }
 
         if( gen_NPTH_holes )
-            sprintf( line, "\nTotal unplated holes count %d\n\n\n", totalHoleCount );
+            sprintf( line, "\nTotal unplated holes count %u\n\n\n", totalHoleCount );
         else
-            sprintf( line, "\nTotal plated holes count %d\n\n\n", totalHoleCount );
+            sprintf( line, "\nTotal plated holes count %u\n\n\n", totalHoleCount );
 
         fputs( line, m_file );
 
@@ -428,7 +428,7 @@ bool EXCELLON_WRITER::PlotDrillMarks( PLOTTER* aPlotter )
             wxSize oblong_size;
             oblong_size = m_holeListBuffer[ii].m_Hole_Size;
             aPlotter->FlashPadOval( pos, oblong_size,
-                                    m_holeListBuffer[ii].m_Hole_Orient, LINE );
+                                    m_holeListBuffer[ii].m_Hole_Orient, SKETCH );
         }
     }
 

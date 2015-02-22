@@ -33,12 +33,14 @@
 
 
 #include <vector>
+#include <boost/interprocess/exceptions.hpp>
 
 #include <draw_frame.h>
 #include <base_struct.h>
 #include <eda_text.h>                // EDA_DRAW_MODE_T
 #include <richio.h>
 #include <class_pcb_screen.h>
+#include <pcbstruct.h>
 
 
 /* Forward declarations of classes. */
@@ -66,13 +68,7 @@ class TOOL_DISPATCHER;
 class PCB_BASE_FRAME : public EDA_DRAW_FRAME
 {
 public:
-    bool m_DisplayPadFill;          // How show pads
-    bool m_DisplayViaFill;          // How show vias
-    bool m_DisplayPadNum;           // show pads numbers
-
-    int  m_DisplayModEdge;          // How to display module drawings (line/ filled / sketch)
-    int  m_DisplayModText;          // How to display module texts (line/ filled / sketch)
-    bool m_DisplayPcbTrackFill;     // false : tracks are show in sketch mode, true = filled.
+    DISPLAY_OPTIONS m_DisplayOptions;
     EDA_UNITS_T m_UserGridUnit;
     wxRealPoint m_UserGridSize;
 
@@ -108,7 +104,7 @@ protected:
      *                 occurs while reading footprint library files.
      */
     MODULE* loadFootprint( const FPID& aFootprintId )
-        throw( IO_ERROR, PARSE_ERROR );
+        throw( IO_ERROR, PARSE_ERROR, boost::interprocess::lock_exception );
 
 public:
     PCB_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrameType,
@@ -156,6 +152,16 @@ public:
     virtual BOARD_DESIGN_SETTINGS& GetDesignSettings() const;
     virtual void SetDesignSettings( const BOARD_DESIGN_SETTINGS& aSettings );
 
+    /**
+     * Function GetDisplayOptions
+     * returns the display options current in use
+     * Display options are relative to the way tracks, vias, outlines
+     * and other things are shown (for instance solid or sketch mode)
+     * Must be overloaded in frames which have display options
+     * (board editor and footprint editor)
+     */
+    void* GetDisplayOptions() { return &m_DisplayOptions; }
+
     const ZONE_SETTINGS& GetZoneSettings() const;
     void SetZoneSettings( const ZONE_SETTINGS& aSettings );
 
@@ -200,6 +206,14 @@ public:
      * @return the "best" zoom to show the entire board or footprint on the screen.
      */
     virtual double BestZoom();
+
+    /**
+     * Function GetZoomLevelIndicator
+     * returns a human readable value which can be displayed as zoom
+     * level indicator in dialogs.
+     * Virtual from the base class
+     */
+    const wxString GetZoomLevelIndicator() const;
 
     virtual void Show3D_Frame( wxCommandEvent& event );
 
@@ -264,22 +278,6 @@ public:
     void CursorGoto( const wxPoint& aPos, bool aWarp = true );
 
     /**
-     * Function Save_Module_In_Library
-     *  Save in an existing library a given footprint
-     * @param aLibName = name of the library to use
-     * @param aModule = the given footprint
-     * @param aOverwrite = true to overwrite an existing footprint, false to
-     *                     abort if an existing footprint with same name is found
-     * @param aDisplayDialog = true to display a dialog to enter or confirm the
-     *                         footprint name
-     * @return : true if OK, false if abort
-     */
-    bool Save_Module_In_Library( const wxString& aLibName,
-                                 MODULE*         aModule,
-                                 bool            aOverwrite,
-                                 bool            aDisplayDialog );
-
-    /**
      * Function SelectLibrary
      * puts up a dialog and allows the user to pick a library, for unspecified use.
      *
@@ -303,17 +301,19 @@ public:
     virtual void OnModify();
 
     // Modules (footprints)
+
     /**
-     * Function Create_1_Module
-     * Creates a new module or footprint : A new module contains 2 texts :
-     *  First = REFERENCE
-     *  Second = VALUE: "VAL**"
-     * the new module is added to the board module list
-     * @param aModuleName = name of the new footprint
-     *                  (will be the component reference in board)
-     * @return a pointer to the new module
+     * Function CreateNewModule
+     * Creates a new module or footprint, at position 0,0
+     * The new module contains only 2 texts: a reference and a value:
+     *  Reference = REF**
+     *  Value = "VAL**" or Footprint name in lib
+     * Note: they are dummy texts, which will be replaced by the actual texts
+     * when the fooprint is placed on a board and a netlist is read
+     * @param aModuleName = name of the new footprint in library
+     * @return a reference to the new module
      */
-    MODULE* Create_1_Module( const wxString& aModuleName );
+    MODULE* CreateNewModule( const wxString& aModuleName );
 
     void Edit_Module( MODULE* module, wxDC* DC );
     void Rotate_Module( wxDC* DC, MODULE* module, double angle, bool incremental );
@@ -335,7 +335,6 @@ public:
     void DeleteTextModule( TEXTE_MODULE* Text );
     void PlaceTexteModule( TEXTE_MODULE* Text, wxDC* DC );
     void StartMoveTexteModule( TEXTE_MODULE* Text, wxDC* DC );
-    TEXTE_MODULE* CreateTextModule( MODULE* Module, wxDC* DC );
 
     /**
      * Function ResetTextSize

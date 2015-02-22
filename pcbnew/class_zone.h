@@ -2,8 +2,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -342,13 +342,15 @@ public:
      * Used in filling zones calculations
      * Circles (vias) and arcs (ends of tracks) are approximated by segments
      * @param aCornerBuffer = a buffer to store the polygon
-     * @param aClearanceValue = the clearance around the pad
-     * @param aAddClearance = true to add a clearance area to the polygon
-     *                      false to create the outline polygon.
+     * @param aMinClearanceValue = the min clearance around outlines
+     * @param aUseNetClearance = true to use a clearance which is the max value between
+     *          aMinClearanceValue and the net clearance
+     *          false to use aMinClearanceValue only
+     * if both aMinClearanceValue = 0 and aUseNetClearance = false: create the zone outline polygon.
      */
     void TransformOutlinesShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer,
-                                               int                    aClearanceValue,
-                                               bool                   aAddClearance );
+                                               int                    aMinClearanceValue,
+                                               bool                   aUseNetClearance );
     /**
      * Function HitTestForCorner
      * tests if the given wxPoint near a corner
@@ -576,7 +578,6 @@ public:
     void SetDoNotAllowVias( bool aEnable ) { m_doNotAllowVias = aEnable; }
     void SetDoNotAllowTracks( bool aEnable ) { m_doNotAllowTracks = aEnable; }
 
-
 #if defined(DEBUG)
     virtual void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); }    // override
 #endif
@@ -630,8 +631,8 @@ private:
     /// The index of the corner being moved or -1 if no corner is selected.
     int                   m_CornerSelection;
 
-    int                   m_localFlgs;                ///< Flags used in polygon calculations.
-
+    /// Variable used in polygon calculations.
+    int                   m_localFlgs;
 
     /** Segments used to fill the zone (#m_FillMode ==1 ), when fill zone by segment is used.
      *  In this case the segments have #m_ZoneMinThickness width.

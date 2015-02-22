@@ -1,15 +1,10 @@
-update=30/03/2013 13:45:59
+update=11/01/2015 18:31:38
 version=1
-last_client=pcbnew
+last_client=kicad
 [general]
 version=1
 RootSch=
 BoardNm=
-[cvpcb]
-version=1
-NetIExt=net
-[cvpcb/libraries]
-EquName1=devcms
 [eeschema]
 version=1
 LibDir=
@@ -74,3 +69,6 @@ PageLayoutDescrFile=gost_landscape.kicad_wks
 SubpartIdSeparator=46
 SubpartFirstId=49
 LabSize=98
+[cvpcb]
+version=1
+NetIExt=net

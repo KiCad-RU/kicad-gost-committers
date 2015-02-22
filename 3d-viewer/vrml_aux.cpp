@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2014 Mario Luzeiro <mrluzeiro@gmail.com>
- * Copyright (C) 1992-2014 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,9 +28,13 @@
 
 #include "vrml_aux.h"
 
-char SkipGetChar( FILE* File )
+
+static int SkipGetChar ( FILE* File );
+
+
+static int SkipGetChar( FILE* File )
 {
-    char    c;
+    int    c;
     bool    re_parse;
 
     if( ( c = fgetc( File ) ) == EOF )
@@ -90,13 +94,13 @@ char SkipGetChar( FILE* File )
 }
 
 
-char* GetNextTag( FILE* File, char* tag )
+bool GetNextTag( FILE* File, char* tag, size_t len )
 {
-    char c = SkipGetChar( File );
+    int c = SkipGetChar( File );
 
     if( c == EOF )
     {
-        return NULL;
+        return false;
     }
 
     tag[0]  = c;
@@ -105,9 +109,10 @@ char* GetNextTag( FILE* File, char* tag )
     // DBG( printf( "tag[0] %c\n", tag[0] ) );
     if( (c != '}') && (c != ']') )
     {
+        len--;
         char* dst = &tag[1];
 
-        while( fscanf( File, "%c", dst ) )
+        while( fscanf( File, "%c", dst ) && len > 0 )
         {
             if( (*dst == ' ') || (*dst == '[') || (*dst == '{')
                 || (*dst == '\t') || (*dst == '\n')|| (*dst == '\r') )
@@ -117,6 +122,7 @@ char* GetNextTag( FILE* File, char* tag )
             }
 
             dst++;
+            len--;
         }
 
 
@@ -130,13 +136,13 @@ char* GetNextTag( FILE* File, char* tag )
         }
     }
 
-    return tag;
+    return true;
 }
 
 
 int read_NotImplemented( FILE* File, char closeChar )
 {
-    char c;
+    int c;
 
     // DBG( printf( "look for %c\n", closeChar) );
     while( ( c = fgetc( File ) ) != EOF )
@@ -189,7 +195,7 @@ int parseVertex( FILE* File, glm::vec3& dst_vertex )
     dst_vertex.y    = b;
     dst_vertex.z    = c;
 
-    char s = SkipGetChar( File );
+    int s = SkipGetChar( File );
 
     if( s != EOF )
     {

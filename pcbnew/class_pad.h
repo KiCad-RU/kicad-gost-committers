@@ -103,6 +103,15 @@ public:
     void SetPadName( const wxString& name );    // Change pad name
     const wxString GetPadName() const;
 
+    /**
+     * Function IncrementPadName
+     *
+     * Increments the pad name to the next available name in the module.
+     *
+     * @param aSkipUnconnectable skips any pads that are not connectable (for example NPTH)
+     */
+    void IncrementPadName( bool aSkipUnconnectable, bool aFillSequenceGaps );
+
     bool PadNameEqual( const D_PAD* other ) const
     {
         return m_NumPadName == other->m_NumPadName; // hide tricks behind sensible API
@@ -207,7 +216,7 @@ public:
     void TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer,
                                                int aClearanceValue,
                                                int aCircleToSegmentsCount,
-                                               double aCorrectionFactor ) const;;
+                                               double aCorrectionFactor ) const;
 
      /**
      * Function GetClearance

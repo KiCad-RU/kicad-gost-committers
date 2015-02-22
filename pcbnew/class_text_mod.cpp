@@ -268,6 +268,7 @@ void TEXTE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
      * hiding.
      * If the whole module side is disabled this isn't even called */
     LAYER_ID text_layer = GetLayer();
+
     if( (IsFrontLayer( text_layer ) && !brd->IsElementVisible( MOD_TEXT_FR_VISIBLE )) ||
         (IsBackLayer( text_layer ) && !brd->IsElementVisible( MOD_TEXT_BK_VISIBLE )) )
         return;
@@ -287,12 +288,10 @@ void TEXTE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
     }
 
     // Draw mode compensation for the width
-    PCB_BASE_FRAME* frame = static_cast<PCB_BASE_FRAME*>( panel->GetParent() );
+    DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)panel->GetDisplayOptions();
     int width = m_Thickness;
-    if( ( frame->m_DisplayModText == LINE )
-        || ( DC->LogicalToDeviceXRel( width ) <= MIN_DRAW_WIDTH ) )
-        width = 0;
-    else if( frame->m_DisplayModText == SKETCH )
+
+    if( displ_opts && displ_opts->m_DisplayModTextFill == SKETCH )
         width = -width;
 
     GRSetDrawMode( DC, draw_mode );

@@ -70,6 +70,13 @@ GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
 {
     m_colorsSettings = &g_ColorsSettings;
     m_gerberLayout = NULL;
+    m_zoomLevelCoeff = ZOOM_FACTOR( 110 );   // Adjusted to roughly displays zoom level = 1
+                                        // when the screen shows a 1:1 image
+                                        // obviously depends on the monitor,
+                                        // but this is an acceptable value
+
+    PAGE_INFO pageInfo( wxT( "GERBER" ) );
+    SetPageSettings( pageInfo );
 
     m_FrameName = GERBVIEW_FRAME_NAME;
     m_show_layer_manager_tools = true;
@@ -94,7 +101,7 @@ GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
 
     SetVisibleLayers( -1 );         // All draw layers visible.
 
-    SetScreen( new GBR_SCREEN( GetGerberLayout()->GetPageSettings().GetSizeIU() ) );
+    SetScreen( new GBR_SCREEN( GetPageSettings().GetSizeIU() ) );
 
     // Create the PCB_LAYER_WIDGET *after* SetLayout():
     wxFont  font = wxSystemSettings::GetFont( wxSYS_DEFAULT_GUI_FONT );
@@ -262,11 +269,6 @@ void GERBVIEW_FRAME::LoadSettings( wxConfigBase* aCfg )
     aCfg->SetPath( wxT( "drl_files" ) );
     m_drillFileHistory.Load( *aCfg );
     aCfg->SetPath( wxT( ".." ) );
-
-    // WxWidgets 2.9.1 seems call setlocale( LC_NUMERIC, "" )
-    // when reading doubles in config,
-    // but forget to back to current locale. So we call SetLocaleTo_Default
-    SetLocaleTo_Default();
 }
 
 
@@ -720,8 +722,7 @@ void GERBVIEW_FRAME::setActiveLayer( int aLayer, bool doLayerWidgetUpdate )
 
 void GERBVIEW_FRAME::SetPageSettings( const PAGE_INFO& aPageSettings )
 {
-    wxASSERT( m_gerberLayout );
-    m_gerberLayout->SetPageSettings( aPageSettings );
+    m_paper = aPageSettings;
 
     if( GetScreen() )
         GetScreen()->InitDataPoints( aPageSettings.GetSizeIU() );
@@ -730,19 +731,16 @@ void GERBVIEW_FRAME::SetPageSettings( const PAGE_INFO& aPageSettings )
 
 const PAGE_INFO& GERBVIEW_FRAME::GetPageSettings() const
 {
-    wxASSERT( m_gerberLayout );
-    return m_gerberLayout->GetPageSettings();
+    return m_paper;
 }
 
 
 const wxSize GERBVIEW_FRAME::GetPageSizeIU() const
 {
-    wxASSERT( m_gerberLayout );
-
     // this function is only needed because EDA_DRAW_FRAME is not compiled
     // with either -DPCBNEW or -DEESCHEMA, so the virtual is used to route
     // into an application specific source file.
-    return m_gerberLayout->GetPageSettings().GetSizeIU();
+    return GetPageSettings().GetSizeIU();
 }
 
 
@@ -848,6 +846,10 @@ void GERBVIEW_FRAME::UpdateStatusBar()
         case UNSCALED_UNITS:
             formatter = wxT( "Ro %f Th %f" );
             break;
+
+        case DEGREES:
+            wxASSERT( false );
+            break;
         }
 
         line.Printf( formatter, To_User_Unit( g_UserUnit, ro ), theta );
@@ -865,17 +867,21 @@ void GERBVIEW_FRAME::UpdateStatusBar()
     {
     case INCHES:
         absformatter = wxT( "X %.6f  Y %.6f" );
-        locformatter = wxT( "dx %.6f  dy %.6f  d %.6f" );
+        locformatter = wxT( "dx %.6f  dy %.6f  dist %.4f" );
         break;
 
     case MILLIMETRES:
         absformatter = wxT( "X %.5f  Y %.5f" );
-        locformatter = wxT( "dx %.5f  dy %.5f  d %.5f" );
+        locformatter = wxT( "dx %.5f  dy %.5f  dist %.3f" );
         break;
 
     case UNSCALED_UNITS:
         absformatter = wxT( "X %f  Y %f" );
         locformatter = wxT( "dx %f  dy %f  d %f" );
+        break;
+
+    case DEGREES:
+        wxASSERT( false );
         break;
     }
 
@@ -896,3 +902,8 @@ void GERBVIEW_FRAME::UpdateStatusBar()
     }
 }
 
+
+const wxString GERBVIEW_FRAME::GetZoomLevelIndicator() const
+{
+    return EDA_DRAW_FRAME::GetZoomLevelIndicator();
+}

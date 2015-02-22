@@ -120,6 +120,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
 
     EVT_MENU( ID_APPEND_FILE, PCB_EDIT_FRAME::Files_io )
     EVT_MENU( ID_SAVE_BOARD_AS, PCB_EDIT_FRAME::Files_io )
+    EVT_MENU( ID_COPY_BOARD_AS, PCB_EDIT_FRAME::Files_io )
     EVT_MENU_RANGE( wxID_FILE1, wxID_FILE9, PCB_EDIT_FRAME::OnFileHistory )
 
     EVT_MENU( ID_GEN_PLOT, PCB_EDIT_FRAME::ToPlotter )
@@ -369,15 +370,6 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     // LoadSettings() *after* creating m_LayersManager, because LoadSettings()
     // initialize parameters in m_LayersManager
     LoadSettings( config() );
-
-    // Be sure options are updated
-    m_DisplayPcbTrackFill = DisplayOpt.DisplayPcbTrackFill;
-    m_DisplayPadFill = DisplayOpt.DisplayPadFill;
-    m_DisplayViaFill = DisplayOpt.DisplayViaFill;
-    m_DisplayPadNum  = DisplayOpt.DisplayPadNum;
-
-    m_DisplayModEdge = DisplayOpt.DisplayModEdge;
-    m_DisplayModText = DisplayOpt.DisplayModText;
 
     SetSize( m_FramePos.x, m_FramePos.y, m_FrameSize.x, m_FrameSize.y );
 
@@ -702,24 +694,26 @@ void PCB_EDIT_FRAME::UseGalCanvas( bool aEnable )
 void PCB_EDIT_FRAME::SwitchCanvas( wxCommandEvent& aEvent )
 {
     int id = aEvent.GetId();
+    bool use_gal = false;
 
     switch( id )
     {
     case ID_MENU_CANVAS_DEFAULT:
-        Compile_Ratsnest( NULL, true );
-        UseGalCanvas( false );
         break;
 
     case ID_MENU_CANVAS_CAIRO:
-        GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_CAIRO );
-        UseGalCanvas( true );
+        use_gal = GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_CAIRO );
         break;
 
     case ID_MENU_CANVAS_OPENGL:
-        GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_OPENGL );
-        UseGalCanvas( true );
+        use_gal = GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_OPENGL );
         break;
     }
+
+    if( !use_gal )
+        Compile_Ratsnest( NULL, true );
+
+    UseGalCanvas( use_gal );
 }
 
 
@@ -731,8 +725,7 @@ void PCB_EDIT_FRAME::ShowDesignRulesEditor( wxCommandEvent& event )
     if( returncode == wxID_OK )     // New rules, or others changes.
     {
         ReCreateLayerBox();
-        updateTraceWidthSelectBox();
-        updateViaSizeSelectBox();
+        ReCreateAuxiliaryToolbar();
         OnModify();
     }
 }
@@ -764,11 +757,6 @@ void PCB_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )
     aCfg->Read( PCB_MAGNETIC_TRACKS_OPT, &g_MagneticTrackOption );
     aCfg->Read( SHOW_MICROWAVE_TOOLS, &m_show_microwave_tools );
     aCfg->Read( SHOW_LAYER_MANAGER_TOOLS, &m_show_layer_manager_tools );
-
-    // WxWidgets 2.9.1 seems call setlocale( LC_NUMERIC, "" )
-    // when reading doubles in cfg,
-    // but forget to back to current locale. So we call SetLocaleTo_Default
-    SetLocaleTo_Default( );
 }
 
 
@@ -876,8 +864,7 @@ void PCB_EDIT_FRAME::unitsChangeRefresh()
 {
     PCB_BASE_FRAME::unitsChangeRefresh();    // Update the grid size select box.
 
-    updateTraceWidthSelectBox();
-    updateViaSizeSelectBox();
+    ReCreateAuxiliaryToolbar();
 }
 
 
@@ -1064,8 +1051,7 @@ bool PCB_EDIT_FRAME::SetCurrentNetClass( const wxString& aNetClassName )
 
     if( change )
     {
-        updateTraceWidthSelectBox();
-        updateViaSizeSelectBox();
+        ReCreateAuxiliaryToolbar();
     }
 
     return change;

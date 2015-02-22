@@ -50,6 +50,26 @@ option( KICAD_KEEPCASE
     ON
     )
 
+# The footprint library wizard uses wxWebview, which needs a system webkit to be built
+# The default build option in wxWidgets is to build wxWebview, but it could be not built
+# if web kit devel tools are missing
+# So this option disable use of wxWebview, if building wxWebview creates issues
+# see:
+# http://docs.wxwidgets.org/3.0/classwx_web_view.html
+# * No issues on Windows.
+# * needs webkitgtk-devel package installed on Linux, and wxWidgets rebuilt with this package.
+# * Seems also OK on OSX.
+# This option has effect only if BUILD_GITHUB_PLUGIN is ON
+#
+# This option is set to OFF because Kicad developers cannot be sure the use of Webkit does no open
+# a security issue when runnig Kicad.
+# the probability is low, but not zero.
+option( KICAD_USE_WEBKIT
+    "Use system web kit to build a web viewer in footprint library wizard to easily select github libraries (default ON)."
+    OFF
+    )
+
+
 option( USE_WX_GRAPHICS_CONTEXT
     "Use wxGraphicsContext for rendering (default OFF).  Warning, this is experimental" )
 
@@ -88,7 +108,6 @@ option( KICAD_SKIP_BOOST
     )
 mark_as_advanced( KICAD_SKIP_BOOST )    # Normal builders should build Boost.
 
-
 # when option KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES is enabled:
 # PYTHON_EXECUTABLE can be defined when invoking cmake
 # ( use -DPYTHON_EXECUTABLE=<python path>/python.exe or python2 )
@@ -96,6 +115,18 @@ mark_as_advanced( KICAD_SKIP_BOOST )    # Normal builders should build Boost.
 # python binary file should be is exec path.
 
 option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." ON )
+
+# When KICAD_USE_WEBKIT in on, the Kicad web viewer has access to the www.
+# Kicad developers cannot be sure the use of Web viewer does no open a security issue when runnig Kicad.
+# the probability is low, but not zero.
+#so warn the user:
+if( KICAD_USE_WEBKIT )
+    message( STATUS "by setting KICAD_USE_WEBKIT ON, you are building a web viewer inside Kicad.
+Kicad developers cannot be sure the Web access does no open a security issue,
+when running a Web Viewer inside Kicad. The probability is low, but not zero.
+You are warned" )
+endif()
+
 
 # This can be set to a custom name to brag about a particular branch in the "About" dialog:
 set( KICAD_REPO_NAME "product" CACHE STRING "Name of the tree from which this build came." )
@@ -114,7 +145,7 @@ LINK_DIRECTORIES( ${LINK_DIRECTORIES_PATH} )
 if( UNIX )
     set( KICAD_USER_CONFIG_DIR $ENV{HOME} CACHE PATH "Location of user specific KiCad config files" )
 elseif( MINGW )
-    set( KICAD_USER_CONFIG_DIR $ENV{%APPDATA%} CACHE PATH "Location of user specific KiCad config files" )
+    set( KICAD_USER_CONFIG_DIR $ENV{APPDATA} CACHE PATH "Location of user specific KiCad config files" )
 endif()
 mark_as_advanced( KICAD_USER_CONFIG_DIR )
 
@@ -438,7 +469,14 @@ add_definitions( -DWX_COMPATIBILITY )
 # See line 41 of CMakeModules/FindwxWidgets.cmake
 set( wxWidgets_CONFIG_OPTIONS --static=no )
 
-find_package( wxWidgets 3.0.0 COMPONENTS gl aui adv html core net base xml REQUIRED )
+if( KICAD_USE_WEBKIT AND BUILD_GITHUB_PLUGIN )
+    set( webkitlib "webview" )
+    add_definitions( -DKICAD_USE_WEBKIT )
+else()
+    set( webkitlib "" )
+endif()
+
+find_package( wxWidgets 3.0.0 COMPONENTS gl aui adv html core net base xml ${webkitlib} stc REQUIRED )
 
 # Include wxWidgets macros.
 include( ${wxWidgets_USE_FILE} )
@@ -633,7 +671,6 @@ if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_PYTHON_GOSTDOCGEN OR
     # FindPythonInterp unless the user specifically defined a custom path.
     if( NOT PYTHON_SITE_PACKAGE_PATH )
         execute_process( COMMAND ${PYTHON_EXECUTABLE} -c "import distutils.sysconfig;print\"%s\"%distutils.sysconfig.get_python_lib(plat_specific=0, standard_lib=0, prefix='')"
-#        execute_process( COMMAND ${PYTHON_EXECUTABLE} -c "import distutils.sysconfig;print\"%s\"%distutils.sysconfig.get_python_lib()"
             OUTPUT_VARIABLE PYTHON_SITE_PACKAGE_PATH
             OUTPUT_STRIP_TRAILING_WHITESPACE
             )
@@ -659,6 +696,41 @@ if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_PYTHON_GOSTDOCGEN OR
     message( STATUS "Python module install path: ${PYTHON_DEST}" )
 
     find_package( PythonLibs 2.6 )
+
+    if( KICAD_SCRIPTING_WXPYTHON )
+        # Check to see if the correct version of wxPython is installed based on the version of
+        # wxWidgets found.  At least the major an minor version should match.
+        set( _wxpy_version "${wxWidgets_VERSION_MAJOR}.${wxWidgets_VERSION_MINOR}" )
+        set( _py_cmd "import wxversion;print wxversion.checkInstalled('${_wxpy_version}')" )
+
+        # Add user specified Python site package path.
+        if( PYTHON_SITE_PACKAGE_PATH )
+            set( _py_cmd
+                "import sys;sys.path.insert(0, \"${PYTHON_SITE_PACKAGE_PATH}\");${_py_cmd}" )
+        endif()
+
+        execute_process( COMMAND ${PYTHON_EXECUTABLE} -c "${_py_cmd}"
+            RESULT_VARIABLE WXPYTHON_VERSION_RESULT
+            OUTPUT_VARIABLE WXPYTHON_VERSION_FOUND
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+
+        # message( STATUS "WXPYTHON_VERSION_FOUND: ${WXPYTHON_VERSION_FOUND}" )
+        # message( STATUS "WXPYTHON_VERSION_RESULT: ${WXPYTHON_VERSION_RESULT}" )
+
+        # Check to see if any version of wxPython is installed on the system.
+        if( WXPYTHON_VERSION_RESULT GREATER 0 )
+            message( FATAL_ERROR "wxPython does not appear to be installed on the system." )
+        endif()
+
+        if( NOT WXPYTHON_VERSION_FOUND STREQUAL "True" )
+            message( FATAL_ERROR
+                "wxPython version ${_wxpy_version} does not appear to be installed on the system." )
+        endif()
+
+        set( WXPYTHON_VERSION ${_wxpy_version} CACHE STRING "wxPython version found." )
+        message( STATUS "wxPython version ${_wxpy_version} found." )
+    endif()
 
     #message( STATUS "PYTHON_INCLUDE_DIRS:${PYTHON_INCLUDE_DIRS}" )
 
@@ -720,6 +792,9 @@ add_subdirectory( cvpcb )
 add_subdirectory( eeschema )
 add_subdirectory( gerbview )
 add_subdirectory( lib_dxf )
+if( KICAD_USE_WEBKIT )
+    add_subdirectory( webviewer )
+endif()
 add_subdirectory( pcbnew )
 add_subdirectory( polygon )
 add_subdirectory( pagelayout_editor )
@@ -801,6 +876,9 @@ else()
     message( STATUS "WARNING: Doxygen not found - doxygen-docs (Source Docs) target not created" )
 endif()
 
+# Generate config.h.
+configure_file( ${PROJECT_SOURCE_DIR}/CMakeModules/config.h.cmake
+    ${CMAKE_BINARY_DIR}/config.h )
 
 #================================================
 # "make uninstall" rules
@@ -820,10 +898,6 @@ add_custom_target( uninstall
 
 install( FILES INSTALL.txt
     DESTINATION ${KICAD_DOCS}
-    COMPONENT resources )
-
-install( FILES resources/freeroute.jnlp
-    DESTINATION ${KICAD_BIN}
     COMPONENT resources )
 
 ###

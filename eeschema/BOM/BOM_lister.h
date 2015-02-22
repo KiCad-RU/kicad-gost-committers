@@ -28,7 +28,7 @@
 #ifndef _BOM_LISTER_H_
 #define _BOM_LISTER_H_
 
-#include <netlist.h>
+#include <sch_reference_list.h>
 
 
 // A helper class to build item lists for BOM,

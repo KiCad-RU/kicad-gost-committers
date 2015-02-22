@@ -6,11 +6,11 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
  *
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,6 +54,10 @@
 #include <class_track.h>
 #include <class_zone.h>
 #include <class_marker_pcb.h>
+#include <class_drawsegment.h>
+#include <class_pcb_text.h>
+#include <class_mire.h>
+#include <class_dimension.h>
 
 
 /* This is an odd place for this, but CvPcb won't link if it is
@@ -303,7 +307,7 @@ void BOARD::PopHighLight()
 }
 
 
-bool BOARD::SetLayer( LAYER_ID aIndex, const LAYER& aLayer )
+bool BOARD::SetLayerDescr( LAYER_ID aIndex, const LAYER& aLayer )
 {
     if( unsigned( aIndex ) < DIM( m_Layer ) )
     {
@@ -314,6 +318,32 @@ bool BOARD::SetLayer( LAYER_ID aIndex, const LAYER& aLayer )
     return false;
 }
 
+#include <stdio.h>
+
+const LAYER_ID BOARD::GetLayerID(wxString aLayerName) const
+{
+
+    // Look for the BOARD specific copper layer names
+    for( LAYER_NUM layer = 0; layer < LAYER_ID_COUNT; ++layer )
+    {
+        if ( IsCopperLayer( layer ) &&
+             ( m_Layer[ layer ].m_name == aLayerName) )
+        {
+            return ToLAYER_ID( layer );
+        }
+    }
+
+    // Otherwise fall back to the system standard layer names
+    for ( LAYER_NUM layer = 0; layer < LAYER_ID_COUNT; ++layer )
+    {
+        if ( GetStandardLayerName( ToLAYER_ID( layer ) ) == aLayerName )
+        {
+            return ToLAYER_ID( layer );
+        }
+    }
+
+    return UNDEFINED_LAYER;
+}
 
 const wxString BOARD::GetLayerName( LAYER_ID aLayer ) const
 {
@@ -330,7 +360,6 @@ const wxString BOARD::GetLayerName( LAYER_ID aLayer ) const
 
     return GetStandardLayerName( aLayer );
 }
-
 
 bool BOARD::SetLayerName( LAYER_ID aLayer, const wxString& aLayerName )
 {
@@ -1212,10 +1241,12 @@ SEARCH_RESULT BOARD::Visit( INSPECTOR* inspector, const void* testData,
 NETINFO_ITEM* BOARD::FindNet( int aNetcode ) const
 {
     // the first valid netcode is 1 and the last is m_NetInfo.GetCount()-1.
-    // zero is reserved for "no connection" and is not used.
+    // zero is reserved for "no connection" and is not actually a net.
     // NULL is returned for non valid netcodes
 
-    if( aNetcode == NETINFO_LIST::UNCONNECTED )
+    wxASSERT( m_NetInfo.GetNetCount() > 0 );    // net zero should exist
+
+    if( aNetcode == NETINFO_LIST::UNCONNECTED && m_NetInfo.GetNetCount() == 0 )
         return &NETINFO_LIST::ORPHANED;
     else
         return m_NetInfo.GetNetItem( aNetcode );
@@ -2177,7 +2208,6 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
     wxString       msg;
     D_PAD*         pad;
     MODULE*        footprint;
-    COMPONENT_NET  net;
 
     if( !IsEmpty() )
     {
@@ -2373,24 +2403,21 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
         // At this point, the component footprint is updated.  Now update the nets.
         for( pad = footprint->Pads();  pad;  pad = pad->Next() )
         {
-            net = component->GetNet( pad->GetPadName() );
+            COMPONENT_NET net = component->GetNet( pad->GetPadName() );
 
             if( !net.IsValid() )                // Footprint pad had no net.
             {
-                if( !pad->GetNetname().IsEmpty() )
+                if( aReporter && aReporter->ReportAll() && !pad->GetNetname().IsEmpty() )
                 {
-                    if( aReporter && aReporter->ReportAll() )
-                    {
-                        msg.Printf( _( "Clearing component \"%s:%s\" pin \"%s\" net name.\n" ),
-                                    GetChars( footprint->GetReference() ),
-                                    GetChars( footprint->GetPath() ),
-                                    GetChars( pad->GetPadName() ) );
-                        aReporter->Report( msg );
-                    }
-
-                    if( !aNetlist.IsDryRun() )
-                        pad->SetNetCode( NETINFO_LIST::UNCONNECTED );
+                    msg.Printf( _( "Clearing component \"%s:%s\" pin \"%s\" net name.\n" ),
+                                GetChars( footprint->GetReference() ),
+                                GetChars( footprint->GetPath() ),
+                                GetChars( pad->GetPadName() ) );
+                    aReporter->Report( msg );
                 }
+
+                if( !aNetlist.IsDryRun() )
+                    pad->SetNetCode( NETINFO_LIST::UNCONNECTED );
             }
             else                                 // Footprint pad has a net.
             {
@@ -2459,14 +2486,14 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
         }
     }
 
+    // We need the pad list, for next tests.
+    // padlist is the list of pads, sorted by netname.
+    BuildListOfNets();
+    std::vector<D_PAD*> padlist = GetPads();
+
     // If needed, remove the single pad nets:
     if( aDeleteSinglePadNets && !aNetlist.IsDryRun() )
     {
-        BuildListOfNets();
-
-        std::vector<D_PAD*> padlist = GetPads();
-
-        // padlist is the list of pads, sorted by netname.
         int         count = 0;
         wxString    netname;
         D_PAD*      pad = NULL;
@@ -2483,17 +2510,41 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
             {
                 if( previouspad && count == 1 )
                 {
-                    if( aReporter && aReporter->ReportAll() )
+                    // First, see if we have a copper zone attached to this pad.
+                    // If so, this is not really a single pad net
+
+                    for( int ii = 0; ii < GetAreaCount(); ii++ )
                     {
-                        msg.Printf( _( "Remove single pad net \"%s\" on \"%s\" pad '%s'\n" ),
-                                    GetChars( previouspad->GetNetname() ),
-                                    GetChars( previouspad->GetParent()->GetReference() ),
-                                    GetChars( previouspad->GetPadName() ) );
-                        aReporter->Report( msg );
+                        ZONE_CONTAINER* zone = GetArea( ii );
+
+                        if( !zone->IsOnCopperLayer() )
+                            continue;
+
+                        if( zone->GetIsKeepout() )
+                            continue;
+
+                        if( zone->GetNet() == previouspad->GetNet() )
+                        {
+                            count++;
+                            break;
+                        }
                     }
 
-                    previouspad->SetNetCode( NETINFO_LIST::UNCONNECTED );
+                    if( count == 1 )    // Really one pad, and nothing else
+                    {
+                        if( aReporter && aReporter->ReportAll() )
+                        {
+                            msg.Printf( _( "Remove single pad net \"%s\" on \"%s\" pad '%s'\n" ),
+                                        GetChars( previouspad->GetNetname() ),
+                                        GetChars( previouspad->GetParent()->GetReference() ),
+                                        GetChars( previouspad->GetPadName() ) );
+                            aReporter->Report( msg );
+                        }
+
+                        previouspad->SetNetCode( NETINFO_LIST::UNCONNECTED );
+                    }
                 }
+
                 netname = pad->GetNetname();
                 count = 1;
             }
@@ -2515,6 +2566,10 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
     // They should exist in footprints, otherwise the footprint is wrong
     // note also references or time stamps are updated, so we use only
     // the reference to find a footprint
+    //
+    // Also verify if zones have acceptable nets, i.e. nets with pads.
+    // Zone with no pad belongs to a "dead" net which happens after changes in schematic
+    // when no more pad use this net name.
     if( aReporter && aReporter->ReportErrors() )
     {
         wxString padname;
@@ -2529,7 +2584,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
             // Explore all pins/pads in component
             for( unsigned jj = 0; jj < component->GetNetCount(); jj++ )
             {
-                net = component->GetNet( jj );
+                COMPONENT_NET net = component->GetNet( jj );
                 padname = net.GetPinName();
 
                 if( footprint->FindPadByName( padname ) )
@@ -2543,7 +2598,104 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                 aReporter->Report( msg );
             }
         }
+
+        // Test copper zones to detect "dead" nets (nets without any pad):
+        for( int ii = 0; ii < GetAreaCount(); ii++ )
+        {
+            ZONE_CONTAINER* zone = GetArea( ii );
+
+            if( !zone->IsOnCopperLayer() || zone->GetIsKeepout() )
+                continue;
+
+            if( zone->GetNet()->GetNodesCount() == 0 )
+            {
+                msg.Printf( _( "* Warning: copper zone (net name '%s'): net has no pad*\n" ),
+                           GetChars( zone->GetNet()->GetNetname() ) );
+                aReporter->Report( msg );
+            }
+        }
     }
+}
+
+
+BOARD_ITEM* BOARD::DuplicateAndAddItem( const BOARD_ITEM* aItem,
+                                        bool aIncrementReferences )
+{
+    BOARD_ITEM* new_item = NULL;
+
+    switch( aItem->Type() )
+    {
+    case PCB_MODULE_T:
+    {
+        MODULE* new_module = new MODULE( *static_cast<const MODULE*>( aItem ) );
+
+        if( aIncrementReferences )
+        {
+            // Take the next available module number
+            new_module->IncrementReference( true );
+        }
+
+        new_item = new_module;
+        break;
+    }
+    case PCB_TEXT_T:
+    case PCB_LINE_T:
+    case PCB_TRACE_T:
+    case PCB_VIA_T:
+    case PCB_ZONE_AREA_T:
+    case PCB_TARGET_T:
+    case PCB_DIMENSION_T:
+        new_item = static_cast<BOARD_ITEM*>( aItem->Clone() );
+        break;
+
+    default:
+        // Un-handled item for duplication
+        wxASSERT_MSG( false, "Duplication not supported for items of class "
+                      + aItem->GetClass() );
+        break;
+    }
+
+    if( new_item )
+        Add( new_item );
+
+    return new_item;
+}
+
+
+wxString BOARD::GetNextModuleReferenceWithPrefix( const wxString& aPrefix,
+                                                  bool aFillSequenceGaps )
+{
+    wxString nextRef;
+
+    std::set<int> usedNumbers;
+
+    for( MODULE* module = m_Modules; module; module = module->Next() )
+    {
+        const wxString ref = module->GetReference();
+        wxString remainder;
+
+        // ONly interested in modules with the right prefix
+        if( !ref.StartsWith( aPrefix, &remainder ) )
+            continue;
+
+        // the suffix must be a number
+        if( !remainder.IsNumber() )
+            continue;
+
+        long number;
+        if( remainder.ToCLong( &number ) )
+            usedNumbers.insert( number );
+    }
+
+    int nextNum = 1;
+
+    if( usedNumbers.size() )
+    {
+        nextNum = getNextNumberInSequence( usedNumbers, aFillSequenceGaps );
+        nextRef = wxString::Format( wxT( "%s%i" ), aPrefix, nextNum );
+    }
+
+    return nextRef;
 }
 
 

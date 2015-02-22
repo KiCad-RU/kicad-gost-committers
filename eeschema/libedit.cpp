@@ -40,7 +40,6 @@
 
 #include <eeschema_id.h>
 #include <general.h>
-#include <protos.h>
 #include <libeditframe.h>
 #include <class_library.h>
 #include <template_fieldnames.h>
@@ -73,7 +72,7 @@ void LIB_EDIT_FRAME::DisplayLibInfos()
 void LIB_EDIT_FRAME::SelectActiveLibrary( PART_LIB* aLibrary )
 {
     if( !aLibrary )
-        aLibrary = SelectLibraryFromList( this );
+        aLibrary = SelectLibraryFromList();
 
     if( aLibrary )
     {
@@ -335,7 +334,7 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
             default_path = search->LastVisitedPath();
 
         wxFileDialog dlg( this, _( "Part Library Name:" ), default_path,
-                          wxEmptyString, SchematicLibraryFileExtension,
+                          wxEmptyString, SchematicLibraryFileWildcard,
                           wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
 
         if( dlg.ShowModal() == wxID_CANCEL )

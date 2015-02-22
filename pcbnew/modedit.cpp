@@ -39,6 +39,7 @@
 #include <kicad_device_context.h>
 #include <macros.h>
 #include <invoke_pcb_dialog.h>
+#include <class_pcb_layer_widget.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -54,6 +55,8 @@
 #include <tool/tool_manager.h>
 
 #include <dialog_edit_module_for_Modedit.h>
+#include <dialog_move_exact.h>
+#include <dialog_create_array.h>
 #include <wildcards_and_files_ext.h>
 #include <menus_helpers.h>
 #include <footprint_wizard_frame.h>
@@ -63,10 +66,13 @@
 
 
 // Functions defined in block_module_editor, but used here
-// These 2 functions are used in modedit to rotate or mirror the whole footprint
-// so they are called with force_all = true
+// These 3 functions are used in modedit to rotate, mirror or move the
+// whole footprint so they are called with force_all = true
 void MirrorMarkedItems( MODULE* module, wxPoint offset, bool force_all = false );
 void RotateMarkedItems( MODULE* module, wxPoint offset, bool force_all = false );
+void MoveMarkedItemsExactly( MODULE* module, const wxPoint& centre,
+                             const wxPoint& translation, double rotation,
+                             bool force_all = false );
 
 
 BOARD_ITEM* FOOTPRINT_EDIT_FRAME::ModeditLocateAndDisplay( int aHotKeyCode )
@@ -119,8 +125,8 @@ BOARD_ITEM* FOOTPRINT_EDIT_FRAME::ModeditLocateAndDisplay( int aHotKeyCode )
     {
         wxMenu      itemMenu;
 
-        // Give a title to the selection menu. This is also a cancel menu item *
-        wxMenuItem* item_title = new wxMenuItem( &itemMenu, -1, _( "Selection Clarification" ) );
+        // Give a title to the selection menu. It also allow to close the popup menu without any action
+        wxMenuItem* item_title = new wxMenuItem( &itemMenu, wxID_NONE, _( "Selection Clarification" ) );
 
 #ifdef __WINDOWS__
         wxFont      bold_font( *wxNORMAL_FONT );
@@ -194,7 +200,6 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 {
     int        id = event.GetId();
     wxPoint    pos;
-    bool       redraw = false;
 
     INSTALL_UNBUFFERED_DC( dc, m_canvas );
 
@@ -299,7 +304,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
             SetCrossHairPosition( wxPoint( 0, 0 ) );
 
-            MODULE* module = Create_1_Module( wxEmptyString );
+            MODULE* module = CreateNewModule( wxEmptyString );
 
             if( module )        // i.e. if create module command not aborted
             {
@@ -307,7 +312,6 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 // module the defaults are used)
                 // This is mandatory to handle and draw pads
                 GetBoard()->BuildListOfNets();
-                redraw = true;
                 module->SetPosition( wxPoint( 0, 0 ) );
 
                 if( GetBoard()->m_Modules )
@@ -316,8 +320,8 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 Zoom_Automatique( false );
             }
 
-            if( IsGalCanvasActive() )
-                updateView();
+            updateView();
+            m_canvas->Refresh();
 
             GetScreen()->ClrModify();
         }
@@ -348,18 +352,18 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 SetCrossHairPosition( wxPoint( 0, 0 ) );
 
                 //  Add the new object to board
-                module->SetParent( (EDA_ITEM*)GetBoard() );
-                GetBoard()->m_Modules.Append( module );
+                GetBoard()->Add( module, ADD_APPEND );
 
                 // Initialize data relative to nets and netclasses (for a new
                 // module the defaults are used)
                 // This is mandatory to handle and draw pads
                 GetBoard()->BuildListOfNets();
-                redraw = true;
                 module->SetPosition( wxPoint( 0, 0 ) );
                 module->ClearFlags();
 
                 Zoom_Automatique( false );
+                updateView();
+                m_canvas->Refresh();
 
                 if( m_Draw3DFrame )
                     m_Draw3DFrame->NewDisplay();
@@ -374,7 +378,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_MODEDIT_SAVE_LIBMODULE:
         if( GetBoard()->m_Modules && GetCurrentLib().size() )
         {
-            Save_Module_In_Library( GetCurrentLib(), GetBoard()->m_Modules, true, true );
+            SaveFootprintInLibrary( GetCurrentLib(), GetBoard()->m_Modules, true, true );
             GetScreen()->ClrModify();
         }
         break;
@@ -491,13 +495,13 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
         SetCrossHairPosition( wxPoint( 0, 0 ) );
         Import_Module();
-        redraw = true;
 
         if( GetBoard()->m_Modules )
             GetBoard()->m_Modules->ClearFlags();
 
         GetScreen()->ClrModify();
         Zoom_Automatique( false );
+        m_canvas->Refresh();
 
         if( m_Draw3DFrame )
             m_Draw3DFrame->NewDisplay();
@@ -531,7 +535,6 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         SetCrossHairPosition( wxPoint( 0, 0 ) );
 
         LoadModuleFromLibrary( GetCurrentLib(), Prj().PcbFootprintLibs(), true );
-        redraw = true;
 
         if( GetBoard()->m_Modules )
              GetBoard()->m_Modules->ClearFlags();
@@ -563,7 +566,9 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             m_Draw3DFrame->NewDisplay();
 
         GetScreen()->ClrModify();
+
         updateView();
+        m_canvas->Refresh();
 
         break;
 
@@ -599,24 +604,22 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_PCB_ROTATE_MODULE_COUNTERCLOCKWISE:
         m_canvas->MoveCursorToCrossHair();
         Rotate_Module( NULL, (MODULE*) GetScreen()->GetCurItem(), 900, true );
-        redraw = true;
+        m_canvas->Refresh();
         break;
 
     case ID_POPUP_PCB_ROTATE_MODULE_CLOCKWISE:
         m_canvas->MoveCursorToCrossHair();
         Rotate_Module( NULL, (MODULE*) GetScreen()->GetCurItem(), -900, true );
-        redraw = true;
+        m_canvas->Refresh();
         break;
 
     case ID_POPUP_PCB_EDIT_MODULE_PRMS:
         {
             DIALOG_MODULE_MODULE_EDITOR dialog( this, (MODULE*) GetScreen()->GetCurItem() );
-            int ret = dialog.ShowModal();
+            dialog.ShowModal();
             GetScreen()->GetCurItem()->ClearFlags();
             m_canvas->MoveCursorToCrossHair();
-
-            if( ret > 0 )
-                m_canvas->Refresh();
+            m_canvas->Refresh();
         }
         break;
 
@@ -635,6 +638,22 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         DeletePad( (D_PAD*) GetScreen()->GetCurItem(), false );
         SetCurItem( NULL );
         m_canvas->MoveCursorToCrossHair();
+        break;
+
+    case ID_POPUP_PCB_DUPLICATE_ITEM:
+        duplicateItems( false );
+        break;
+
+    case ID_POPUP_PCB_DUPLICATE_ITEM_AND_INCREMENT:
+        duplicateItems( true );
+        break;
+
+    case ID_POPUP_PCB_MOVE_EXACT:
+        moveExact();
+        break;
+
+    case ID_POPUP_PCB_CREATE_ARRAY:
+        createArray();
         break;
 
     case ID_POPUP_PCB_IMPORT_PAD_SETTINGS:
@@ -695,6 +714,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_MODEDIT_ENTER_EDGE_WIDTH:
         {
             EDGE_MODULE* edge = NULL;
+
             if( GetScreen()->GetCurItem()
               && ( GetScreen()->GetCurItem()->Type() == PCB_MODULE_EDGE_T ) )
             {
@@ -736,9 +756,10 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_MODEDIT_MODULE_ROTATE:
     case ID_MODEDIT_MODULE_MIRROR:
+    case ID_MODEDIT_MODULE_MOVE_EXACT:
         SaveCopyInUndoList( GetBoard()->m_Modules, UR_MODEDIT );
         Transform( (MODULE*) GetScreen()->GetCurItem(), id );
-        redraw = true;
+        m_canvas->Refresh();
         break;
 
     case ID_PCB_DRAWINGS_WIDTHS_SETUP:
@@ -800,6 +821,12 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         HandleBlockEnd( &dc );
         break;
 
+    case ID_POPUP_MOVE_BLOCK_EXACT:
+        GetScreen()->m_BlockLocate.SetCommand( BLOCK_MOVE_EXACT );
+        GetScreen()->m_BlockLocate.SetMessageBlock( this );
+        HandleBlockEnd( &dc );
+        break;
+
     case ID_GEN_IMPORT_DXF_FILE:
         InvokeDXFDialogModuleImport( this, GetBoard()->m_Modules );
         m_canvas->Refresh();
@@ -810,9 +837,72 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                       wxT( "FOOTPRINT_EDIT_FRAME::Process_Special_Functions error" ) );
         break;
     }
+}
 
-    if( redraw )
+
+void FOOTPRINT_EDIT_FRAME::moveExact()
+{
+    wxPoint translation;
+    double rotation = 0;
+
+    DIALOG_MOVE_EXACT dialog( this, translation, rotation );
+    int ret = dialog.ShowModal();
+
+    if( ret == wxID_OK )
+    {
+        SaveCopyInUndoList( GetBoard()->m_Modules, UR_MODEDIT );
+
+        BOARD_ITEM* item = GetScreen()->GetCurItem();
+
+        item->Move( translation );
+        item->Rotate( item->GetPosition(), rotation );
         m_canvas->Refresh();
+    }
+
+    m_canvas->MoveCursorToCrossHair();
+}
+
+
+void FOOTPRINT_EDIT_FRAME::duplicateItems( bool aIncrement )
+{
+    SaveCopyInUndoList( GetBoard()->m_Modules, UR_MODEDIT );
+
+    BOARD_ITEM* item = GetScreen()->GetCurItem();
+    MODULE* module = static_cast<MODULE*>( item->GetParent() );
+
+    int move_cmd = 0;
+
+    BOARD_ITEM* new_item = module->DuplicateAndAddItem(
+            item, aIncrement );
+
+    if( new_item )
+    {
+        switch( new_item->Type() )
+        {
+        case PCB_PAD_T:
+            move_cmd = ID_POPUP_PCB_MOVE_PAD_REQUEST;
+            break;
+        case PCB_MODULE_TEXT_T:
+            move_cmd = ID_POPUP_PCB_MOVE_TEXTMODULE_REQUEST;
+            break;
+        case PCB_MODULE_EDGE_T:
+            move_cmd = ID_POPUP_PCB_MOVE_EDGE;
+            break;
+        default:
+            break;
+        }
+
+        if( move_cmd )
+        {
+            SetMsgPanel( new_item );
+            SetCurItem( new_item );
+
+            m_canvas->MoveCursorToCrossHair();
+
+            // pick up the item and start moving
+            PostCommandMenuEvent( move_cmd );
+        }
+    }
 }
 
 
@@ -827,6 +917,23 @@ void FOOTPRINT_EDIT_FRAME::Transform( MODULE* module, int transform )
     case ID_MODEDIT_MODULE_MIRROR:
         MirrorMarkedItems( module, wxPoint(0,0), true );
         break;
+
+    case ID_MODEDIT_MODULE_MOVE_EXACT:
+    {
+        wxPoint translation;
+        double rotation = 0;
+
+        DIALOG_MOVE_EXACT dialog( this, translation, rotation  );
+        int ret = dialog.ShowModal();
+
+        if( ret == wxID_OK )
+        {
+            MoveMarkedItemsExactly( module, wxPoint(0, 0),
+                                    translation, rotation, true );
+        }
+
+        break;
+    }
 
     default:
         DisplayInfoMessage( this, wxT( "Not available" ) );
@@ -908,6 +1015,9 @@ void FOOTPRINT_EDIT_FRAME::SetActiveLayer( LAYER_ID aLayer )
     PCB_BASE_FRAME::SetActiveLayer( aLayer );
 
     GetGalCanvas()->SetHighContrastLayer( aLayer );
+
+    m_Layers->SelectLayer( GetActiveLayer() );
+    m_Layers->OnLayerSelected();
 
     if( IsGalCanvasActive() )
         GetGalCanvas()->Refresh();

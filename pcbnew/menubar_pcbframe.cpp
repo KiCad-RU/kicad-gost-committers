@@ -111,24 +111,39 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "Save current board" ),
                  KiBitmap( save_xpm ) );
 
-    if( Kiface().IsSingle() )      // not when under a project mgr
+    // Save as menu:
+    // under a project mgr we do not want to modify the board filename
+    // to keep consistency with the project mgr which expects files names same as prj name
+    // for main files
+    // when not under a project mgr, we are free to change filenames, cwd ...
+    if( Kiface().IsSingle() )      // not when under a project mgr (pcbnew is run as stand alone)
     {
         text = AddHotkeyName( _( "Sa&ve As..." ), g_Board_Editor_Hokeys_Descr, HK_SAVE_BOARD_AS );
         AddMenuItem( filesMenu, ID_SAVE_BOARD_AS, text,
                      _( "Save the current board as..." ),
                      KiBitmap( save_as_xpm ) );
-        filesMenu->AppendSeparator();
     }
+    // under a project mgr, we can save a copy of the board,
+    // but do not change the current board file name
+    else
+    {
+        text = AddHotkeyName( _( "Sa&ve Copy As..." ), g_Board_Editor_Hokeys_Descr, HK_SAVE_BOARD_AS );
+        AddMenuItem( filesMenu, ID_COPY_BOARD_AS, text,
+                     _( "Save a copy of the current board as..." ),
+                     KiBitmap( save_as_xpm ) );
+    }
+
+    filesMenu->AppendSeparator();
 
     AddMenuItem( filesMenu, ID_MENU_READ_BOARD_BACKUP_FILE,
                  _( "Revert to Last" ),
                  _( "Clear board and get previous backup version of board" ),
-                 KiBitmap( help_xpm ) );
+                 KiBitmap( revert_pcbnew_xpm ) );
 
     AddMenuItem( filesMenu, ID_MENU_RECOVER_BOARD_AUTOSAVE,
             _( "Rescue" ),
             _( "Clear board and get last rescue file automatically saved by Pcbnew" ),
-            KiBitmap( help_xpm ) );
+            KiBitmap( rescue_pcbnew_xpm ) );
     filesMenu->AppendSeparator();
 
     //----- Fabrication Outputs submenu -----------------------------------------
@@ -510,8 +525,8 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  KiBitmap( save_setup_xpm ) );
 
     AddMenuItem( configmenu, ID_CONFIG_READ,
-                 _( "&Read Preferences" ),
-                 _( "Read application preferences" ),
+                 _( "Load Prefe&rences" ),
+                 _( "Load application preferences" ),
                  KiBitmap( read_setup_xpm ) );
 
     //----- Tools menu ----------------------------------------------------------

@@ -26,7 +26,7 @@
  * @file component_db.cpp
  */
 
-#include <wxEeschemaStruct.h>
+#include <schframe.h>
 #include <general.h>
 #include <sch_sheet.h>
 #include <template_fieldnames.h>

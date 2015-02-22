@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2013-2015 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -72,7 +72,6 @@ EDA_BASE_FRAME::EDA_BASE_FRAME( wxWindow* aParent, FRAME_T aFrameType,
 
     m_Ident = aFrameType;
     m_mainToolBar = NULL;
-    m_FrameIsActive = true;
     m_hasAutoSave = false;
     m_autoSaveState = false;
     m_autoSaveInterval = -1;
@@ -624,6 +623,13 @@ void EDA_BASE_FRAME::CopyVersionInfoToClipboard( wxCommandEvent&  event )
 
     tmp << wxT( "         BUILD_GITHUB_PLUGIN=" );
 #ifdef BUILD_GITHUB_PLUGIN
+    tmp << wxT( "ON\n" );
+#else
+    tmp << wxT( "OFF\n" );
+#endif
+
+    tmp << wxT( "         KICAD_USE_WEBKIT=" );
+#ifdef KICAD_USE_WEBKIT
     tmp << wxT( "ON\n" );
 #else
     tmp << wxT( "OFF\n" );

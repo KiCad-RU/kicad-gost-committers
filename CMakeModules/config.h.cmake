@@ -61,6 +61,20 @@
 /// The install prefix defined in CMAKE_INSTALL_PREFIX.
 #define DEFAULT_INSTALL_PATH            "@CMAKE_INSTALL_PREFIX@"
 
+/// The install prefix used for KiCad's libraries.
+/// These paths are only intended to be reasonable default values that work if
+/// the user installs KiCad in the default path for a given platform.
+#if defined( APPLE )
+#define KICAD_DATA_PATH                 "/Library/Application Support/kicad"
+#else
+#define KICAD_DATA_PATH                 "@CMAKE_INSTALL_PREFIX@/@KICAD_DATA@"
+#endif
+
+/// The wxPython version found during configuration.
+#if defined( KICAD_SCRIPTING_WXPYTHON )
+#define WXPYTHON_VERSION                "@WXPYTHON_VERSION@"
+#endif
+
 /// When defined, build the GITHUB_PLUGIN for pcbnew.
 #cmakedefine BUILD_GITHUB_PLUGIN
 

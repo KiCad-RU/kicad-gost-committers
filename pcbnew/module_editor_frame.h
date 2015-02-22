@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@
 #include <pcb_base_edit_frame.h>
 #include <io_mgr.h>
 
-
+class PCB_LAYER_WIDGET;
 class FP_LIB_TABLE;
 
 namespace PCB { struct IFACE; }     // A KIFACE_I coded in pcbnew.c
@@ -60,12 +60,31 @@ public:
     const PCB_PLOT_PARAMS& GetPlotSettings() const;             // overload PCB_BASE_FRAME, get parent's
     void SetPlotSettings( const PCB_PLOT_PARAMS& aSettings );   // overload
 
+    void LoadSettings( wxConfigBase* aCfg );         // Virtual
+    void SaveSettings( wxConfigBase* aCfg );         // Virtual
+
+    /**
+     * Function GetConfigurationSettings
+     * returns the footprçint editor settings list.
+     *
+     * Currently, only the settings that are needed at start
+     * up by the main window are defined here.  There are other locally used
+     * settings that are scattered throughout the Pcbnew source code.  If you need
+     * to define a configuration setting that needs to be loaded at run time,
+     * this is the place to define it.
+     *
+     * @return - Reference to the list of applications settings.
+     */
+    PARAM_CFG_ARRAY& GetConfigurationSettings();
+
     void InstallOptionsFrame( const wxPoint& pos );
 
     void OnCloseWindow( wxCloseEvent& Event );
     void CloseModuleEditor( wxCommandEvent& Event );
 
     void Process_Special_Functions( wxCommandEvent& event );
+
+    void ProcessPreferences( wxCommandEvent& event );
 
     /**
      * Function RedrawActiveWindoow
@@ -126,10 +145,14 @@ public:
      */
     bool OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition, EDA_ITEM* aItem = NULL );
 
+    BOARD_ITEM* PrepareItemForHotkey( bool failIfCurrentlyEdited );
+
     bool OnHotkeyEditItem( int aIdCommand );
     bool OnHotkeyDeleteItem( int aIdCommand );
     bool OnHotkeyMoveItem( int aIdCommand );
+    bool OnHotkeyMoveItemExact();
     bool OnHotkeyRotateItem( int aIdCommand );
+    bool OnHotkeyDuplicateItem( int aIdCommand );
 
     /**
      * Function Show3D_Frame
@@ -141,6 +164,7 @@ public:
     void OnVerticalToolbar( wxCommandEvent& aEvent );
 
     void OnUpdateVerticalToolbar( wxUpdateUIEvent& aEvent );
+    void OnUpdateOptionsToolbar( wxUpdateUIEvent& aEvent );
     void OnUpdateLibSelected( wxUpdateUIEvent& aEvent );
     void OnUpdateModuleSelected( wxUpdateUIEvent& aEvent );
     void OnUpdateLibAndModuleSelected( wxUpdateUIEvent& aEvent );
@@ -157,6 +181,22 @@ public:
      * called from the main toolbar to load a footprint from board mainly to edit it.
      */
     void LoadModuleFromBoard( wxCommandEvent& event );
+
+    /**
+     * Function SaveFootprintInLibrary
+     * Save in an existing library a given footprint
+     * @param aLibName = name of the library to use
+     * @param aModule = the given footprint
+     * @param aOverwrite = true to overwrite an existing footprint, false to
+     *                     abort if an existing footprint with same name is found
+     * @param aDisplayDialog = true to display a dialog to enter or confirm the
+     *                         footprint name
+     * @return : true if OK, false if abort
+     */
+    bool SaveFootprintInLibrary( const wxString& aLibName,
+                                 MODULE*         aModule,
+                                 bool            aOverwrite,
+                                 bool            aDisplayDialog );
 
     /**
      * Virtual Function OnModify()
@@ -416,6 +456,43 @@ public:
      */
     bool DeleteModuleFromCurrentLibrary();
 
+    /**
+     * Function IsElementVisible
+     * tests whether a given element category is visible. Keep this as an
+     * inline function.
+     * @param aElement is from the enum by the same name
+     * @return bool - true if the element is visible.
+     * @see enum PCB_VISIBLE
+     */
+    bool IsElementVisible( int aElement ) const;
+
+    /**
+     * Function SetElementVisibility
+     * changes the visibility of an element category
+     * @param aElement is from the enum by the same name
+     * @param aNewState = The new visibility state of the element category
+     * @see enum PCB_VISIBLE
+     */
+    void SetElementVisibility( int aElement, bool aNewState );
+
+    /**
+     * Function IsGridVisible() , virtual
+     * @return true if the grid must be shown
+     */
+    virtual bool IsGridVisible() const;
+
+    /**
+     * Function SetGridVisibility() , virtual
+     * It may be overloaded by derived classes
+     * if you want to store/retrieve the grid visibility in configuration.
+     * @param aVisible = true if the grid must be shown
+     */
+    virtual void SetGridVisibility( bool aVisible );
+
+    /**
+     * Function GetGridColor() , virtual
+     * @return the color of the grid
+     */
     virtual EDA_COLOR_T GetGridColor() const;
 
     ///> @copydoc PCB_BASE_FRAME::SetActiveLayer()
@@ -433,6 +510,8 @@ protected:
 
     PCB_LAYER_WIDGET* m_Layers;
 
+    PARAM_CFG_ARRAY   m_configSettings;         ///< List of footprint editor configuration settings.
+
     /**
      * Function UpdateTitle
      * updates window title according to getLibNickName().
@@ -447,6 +526,30 @@ protected:
 
     void restoreLastFootprint();
     void retainLastFootprint();
+
+    /**
+     * Creates a new text for the footprint
+     * @param aModule is the owner of the text
+     * @param aDC is the current DC (can be NULL )
+     * @return a pointer to the new text, or NULL if aborted
+     */
+    TEXTE_MODULE* CreateTextModule( MODULE* aModule, wxDC* aDC );
+
+private:
+
+    /**
+     * Function moveExact
+     * Move the selected item exactly, popping up a dialog to allow the
+     * user the enter the move delta
+     */
+    void moveExact();
+
+    /**
+     * Function duplicateItems
+     * Duplicate the item under the cursor
+     * @param aIncrement increment the number of pad (if that is what is selected)
+     */
+    void duplicateItems( bool aIncrement );
 };
 
 #endif      // MODULE_EDITOR_FRAME_H_
