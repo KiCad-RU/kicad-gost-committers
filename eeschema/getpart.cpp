@@ -222,7 +222,7 @@ SCH_COMPONENT* SCH_EDIT_FRAME::Load_Component( wxDC*           aDC,
     SetMsgPanel( items );
     component->Draw( m_canvas, aDC, wxPoint( 0, 0 ), g_XorMode );
     component->SetFlags( IS_NEW );
-    MoveItem( (SCH_ITEM*) component, aDC );
+    PrepareMoveItem( (SCH_ITEM*) component, aDC );
 
     return component;
 }
@@ -296,11 +296,11 @@ void SCH_EDIT_FRAME::OnSelectUnit( wxCommandEvent& aEvent )
 
     if( LIB_PART* part = Prj().SchLibs()->FindLibPart( component->GetPartName() ) )
     {
-        wxCHECK_RET( (unit >= 1) && (unit <= part->GetUnitCount()),
+        int unitCount = part->GetUnitCount();
+
+        wxCHECK_RET( (unit >= 1) && (unit <= unitCount),
                      wxString::Format( wxT( "Cannot select unit %d from component " ), unit ) +
                      part->GetName() );
-
-        int unitCount = part->GetUnitCount();
 
         if( unitCount <= 1 || component->GetUnit() == unit )
             return;

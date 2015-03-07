@@ -50,13 +50,10 @@
 /* class PL_EDITOR_FRAME */
 /*************************/
 
-#define PL_EDITOR_FRAME_NAME wxT( "PlEditorFrame" )
-
 PL_EDITOR_FRAME::PL_EDITOR_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     EDA_DRAW_FRAME( aKiway, aParent, FRAME_PL_EDITOR, wxT( "PlEditorFrame" ),
             wxDefaultPosition, wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, PL_EDITOR_FRAME_NAME )
 {
-    m_FrameName = PL_EDITOR_FRAME_NAME;
     m_zoomLevelCoeff = 290.0;   // Adjusted to roughly displays zoom level = 1
                                 // when the screen shows a 1:1 image
                                 // obviously depends on the monitor,
@@ -709,6 +706,7 @@ WORKSHEET_DATAITEM* PL_EDITOR_FRAME::Locate( const wxPoint& aPosition )
     // because the locate requirements are very basic.
     std::vector <WS_DRAW_ITEM_BASE*> list;
     drawList.Locate( list, aPosition );
+
     if( list.size() == 0 )
         return NULL;
 
@@ -776,7 +774,7 @@ void PL_EDITOR_FRAME::OnNewPageLayout()
     GetScreen()->ClrModify();
     m_propertiesPagelayout->CopyPrmsFromGeneralToPanel();
     RebuildDesignTree();
-    Zoom_Automatique( true );
+    Zoom_Automatique( false );
     m_canvas->Refresh();
 }
 

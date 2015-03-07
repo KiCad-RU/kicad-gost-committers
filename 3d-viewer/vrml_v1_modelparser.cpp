@@ -36,34 +36,35 @@
 #include "modelparsers.h"
 #include "vrml_aux.h"
 
+#define BUFLINE_SIZE 512
+
 VRML1_MODEL_PARSER::VRML1_MODEL_PARSER( S3D_MASTER* aMaster ) :
     S3D_MODEL_PARSER( aMaster )
 {
     m_model = NULL;
     m_file  = NULL;
+    m_Materials = NULL;
+    m_normalPerVertex = true;
+    colorPerVertex = true;
 }
 
 
 VRML1_MODEL_PARSER::~VRML1_MODEL_PARSER()
 {
     for( unsigned int idx = 0; idx < childs.size(); idx++ )
-    {
         delete childs[idx];
-    }
 }
 
 
 void VRML1_MODEL_PARSER::Load( const wxString& aFilename, double aVrmlunits_to_3Dunits )
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     // DBG( printf( "Load %s\n", GetChars(aFilename) ) );
     m_file = wxFopen( aFilename, wxT( "rt" ) );
 
     if( m_file == NULL )
-    {
         return;
-    }
 
     float vrmlunits_to_3Dunits = aVrmlunits_to_3Dunits;
     glScalef( vrmlunits_to_3Dunits, vrmlunits_to_3Dunits, vrmlunits_to_3Dunits );
@@ -119,7 +120,7 @@ void VRML1_MODEL_PARSER::Load( const wxString& aFilename, double aVrmlunits_to_3
 
 int VRML1_MODEL_PARSER::read_separator()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     // DBG( printf( "Separator\n" ) );
 
@@ -158,9 +159,7 @@ int VRML1_MODEL_PARSER::read_separator()
             read_NotImplemented( m_file, '}' );
         }
         else
-        {
             break;
-        }
     }
 
     return 0;
@@ -169,7 +168,7 @@ int VRML1_MODEL_PARSER::read_separator()
 
 int VRML1_MODEL_PARSER::readMaterial()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
     S3D_MATERIAL* material = NULL;
 
     // DBG( printf( "  readMaterial\n" ) );
@@ -226,7 +225,7 @@ int VRML1_MODEL_PARSER::readMaterial()
 
 int VRML1_MODEL_PARSER::readCoordinate3()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     // DBG( printf( "  readCoordinate3\n" ) );
 
@@ -254,7 +253,7 @@ int VRML1_MODEL_PARSER::readCoordinate3()
 
 int VRML1_MODEL_PARSER::readIndexedFaceSet()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     // DBG( printf( "  readIndexedFaceSet\n" ) );
 

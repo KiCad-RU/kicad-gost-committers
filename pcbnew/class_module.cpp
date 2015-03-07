@@ -57,7 +57,7 @@ MODULE::MODULE( BOARD* parent ) :
     m_Attributs    = MOD_DEFAULT;
     m_Layer        = F_Cu;
     m_Orient       = 0;
-    m_ModuleStatus = 0;
+    m_ModuleStatus = MODULE_PADS_LOCKED;
     flag = 0;
     m_CntRot90 = m_CntRot180 = 0;
     m_Surface  = 0.0;
@@ -1035,13 +1035,11 @@ void MODULE::MoveAnchorPosition( const wxPoint& aMoveVector )
      * but:
      * - the footprint position is not modified.
      * - the relative (local) coordinates of these items are modified
+     * - Draw coordinates are updated
      */
 
-    wxPoint footprintPos = GetPosition();
 
-    /* Update the relative coordinates:
-     * The coordinates are relative to the anchor point.
-     * Calculate deltaX and deltaY from the anchor. */
+    // Update (move) the relative coordinates relative to the new anchor point.
     wxPoint moveVector = aMoveVector;
     RotatePoint( &moveVector, -GetOrientation() );
 
@@ -1055,7 +1053,7 @@ void MODULE::MoveAnchorPosition( const wxPoint& aMoveVector )
     for( D_PAD* pad = Pads(); pad; pad = pad->Next() )
     {
         pad->SetPos0( pad->GetPos0() + moveVector );
-        pad->SetPosition( pad->GetPos0() + footprintPos );
+        pad->SetDrawCoord();
     }
 
     // Update the draw element coordinates.
@@ -1100,13 +1098,8 @@ void MODULE::SetOrientation( double newangle )
 
     for( D_PAD* pad = m_Pads;  pad;  pad = pad->Next() )
     {
-        pt = pad->GetPos0();
-
         pad->SetOrientation( pad->GetOrientation() + angleChange );
-
-        RotatePoint( &pt, m_Orient );
-
-        pad->SetPosition( GetPosition() + pt );
+        pad->SetDrawCoord();
     }
 
     // Update of the reference and value.
@@ -1247,4 +1240,21 @@ bool MODULE::IncrementReference( bool aFillSequenceGaps )
     }
 
     return success;
+}
+
+
+double MODULE::PadCoverageRatio() const
+{
+    double padArea = 0.0;
+    double moduleArea = GetFootprintRect().GetArea();
+
+    for( D_PAD* pad = m_Pads; pad; pad = pad->Next() )
+        padArea += pad->GetBoundingBox().GetArea();
+
+    if( moduleArea == 0.0 )
+        return 1.0;
+
+    double ratio = padArea / moduleArea;
+
+    return std::min( ratio, 1.0 );
 }

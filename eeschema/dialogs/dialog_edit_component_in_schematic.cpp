@@ -117,8 +117,8 @@ private:
     void deleteFieldButtonHandler( wxCommandEvent& event );
     void moveUpButtonHandler( wxCommandEvent& event );
     void showButtonHandler( wxCommandEvent& event );
-	void OnTestChipName( wxCommandEvent& event );
-	void OnSelectChipName( wxCommandEvent& event );
+    void OnTestChipName( wxCommandEvent& event );
+    void OnSelectChipName( wxCommandEvent& event );
 
     SCH_FIELD* findField( const wxString& aFieldName );
 
@@ -186,8 +186,6 @@ DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::DIALOG_EDIT_COMPONENT_IN_SCHEMATIC( wxWindow
     m_staticTextUnitSize->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
     m_staticTextUnitPosX->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
     m_staticTextUnitPosY->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-
-    copySelectedFieldToPanel();
 
     wxToolTip::Enable( true );
 
@@ -757,6 +755,8 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::InitBuffers( SCH_COMPONENT* aComponent 
 
     // resume editing at the last row edited, last time dialog was up.
     setSelectedFieldNdx( s_SelectedRow );
+
+    copySelectedFieldToPanel();
 }
 
 

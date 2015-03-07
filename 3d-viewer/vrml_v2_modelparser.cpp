@@ -39,6 +39,7 @@
 #include "modelparsers.h"
 #include "vrml_aux.h"
 
+#define BUFLINE_SIZE 512
 
 /**
  * Trace mask used to enable or disable the trace output of the VRML V2 parser code.
@@ -71,7 +72,7 @@ VRML2_MODEL_PARSER::~VRML2_MODEL_PARSER()
 
 void VRML2_MODEL_PARSER::Load( const wxString& aFilename, double aVrmlunits_to_3Dunits )
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     wxLogTrace( traceVrmlV2Parser, wxT( "Load %s" ), GetChars( aFilename ) );
     m_file = wxFopen( aFilename, wxT( "rt" ) );
@@ -140,7 +141,7 @@ void VRML2_MODEL_PARSER::Load( const wxString& aFilename, double aVrmlunits_to_3
 
 int VRML2_MODEL_PARSER::read_Transform()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -253,15 +254,14 @@ int VRML2_MODEL_PARSER::read_Transform()
 }
 
 
-/**
- * Read the DEF for a Coordinate
- */
 int VRML2_MODEL_PARSER::read_DEF_Coordinate()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     // Get the name of the definition.
-    GetNextTag( m_file, text, sizeof(text) );
+    if( !GetNextTag( m_file, text, sizeof(text) ) )
+        return -1;
+
     std::string coordinateName = text;
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
@@ -289,9 +289,10 @@ int VRML2_MODEL_PARSER::read_DEF_Coordinate()
 
 int VRML2_MODEL_PARSER::read_DEF()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
-    GetNextTag( m_file, text, sizeof(text) );
+    if( !GetNextTag( m_file, text, sizeof(text) ) )
+        return -1;
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -345,10 +346,12 @@ int VRML2_MODEL_PARSER::read_DEF()
 
 int VRML2_MODEL_PARSER::read_USE()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     // Get the name of the definition.
-    GetNextTag( m_file, text, sizeof(text) );
+    if( !GetNextTag( m_file, text, sizeof(text) ) )
+        return -1;
+
     std::string coordinateName = text;
 
     // Look for it in our coordinate map.
@@ -370,7 +373,7 @@ int VRML2_MODEL_PARSER::read_USE()
 
 int VRML2_MODEL_PARSER::read_Shape()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -420,7 +423,7 @@ int VRML2_MODEL_PARSER::read_Shape()
 
 int VRML2_MODEL_PARSER::read_Appearance()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -448,7 +451,7 @@ int VRML2_MODEL_PARSER::read_Appearance()
 int VRML2_MODEL_PARSER::read_material()
 {
     S3D_MATERIAL* material = NULL;
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     if( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -512,7 +515,7 @@ int VRML2_MODEL_PARSER::read_material()
 
 int VRML2_MODEL_PARSER::read_Material()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
     glm::vec3 vertex;
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
@@ -592,7 +595,7 @@ int VRML2_MODEL_PARSER::read_Material()
 
 int VRML2_MODEL_PARSER::read_IndexedFaceSet()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     m_normalPerVertex = false;
     colorPerVertex = false;
@@ -669,7 +672,7 @@ int VRML2_MODEL_PARSER::read_IndexedFaceSet()
 
 int VRML2_MODEL_PARSER::read_IndexedLineSet()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -785,7 +788,7 @@ int VRML2_MODEL_PARSER::read_coordIndex()
 
 int VRML2_MODEL_PARSER::read_Color()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -812,7 +815,7 @@ int VRML2_MODEL_PARSER::read_Color()
 
 int VRML2_MODEL_PARSER::read_Normal()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -845,7 +848,7 @@ int VRML2_MODEL_PARSER::read_Normal()
 
 int VRML2_MODEL_PARSER::read_Coordinate()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {
@@ -874,7 +877,7 @@ int VRML2_MODEL_PARSER::read_Coordinate()
  */
 int VRML2_MODEL_PARSER::read_CoordinateDef()
 {
-    char text[128];
+    char text[BUFLINE_SIZE];
 
     while( GetNextTag( m_file, text, sizeof(text) ) )
     {

@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -51,6 +51,7 @@ LIB_POLYLINE::LIB_POLYLINE( LIB_PART*      aParent ) :
     m_Width = 0;
     m_isFillable = true;
     m_typeName   = _( "PolyLine" );
+    m_ModifyIndex = 0;
 }
 
 
@@ -94,9 +95,9 @@ bool LIB_POLYLINE::Load( LINE_READER& aLineReader, wxString& aErrorMsg )
         return false;
     }
 
-    p = strtok( line + 2, " \t\n" );
-    p = strtok( NULL, " \t\n" );
-    p = strtok( NULL, " \t\n" );
+    strtok( line + 2, " \t\n" );     // Skip field
+    strtok( NULL, " \t\n" );         // Skip field
+    strtok( NULL, " \t\n" );         // Skip field
     p = strtok( NULL, " \t\n" );
 
     for( i = 0; i < ccount; i++ )

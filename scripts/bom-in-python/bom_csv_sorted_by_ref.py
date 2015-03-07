@@ -1,18 +1,21 @@
 #
 # Example python script to generate a BOM from a KiCad generic netlist
 #
+# Example: Ungrouped (One component per row) CSV output
+#
+
 """
     @package
     Generate a csv list file.
-    Components are sorted by ref and grouped by value
+    Components are sorted by ref
     One component per line
     Fields are (if exist)
-    Ref, Quantity, value, Part, footprint, 'Description', 'Vendor'
+    Ref, value, Part, footprint, Datasheet, Manufacturer, Vendor
 """
 
 from __future__ import print_function
 
-# Import the KiCad python helper module and the csv formatter
+# Import the KiCad python helper module
 import kicad_netlist_reader
 import csv
 import sys
@@ -27,12 +30,11 @@ try:
     f = open(sys.argv[2], 'w')
 except IOError:
     e = "Can't open output file for writing: " + sys.argv[2]
-    print(__file__, ":", e, sys.stderr)
+    print( __file__, ":", e, sys.stderr )
     f = sys.stdout
 
-# Create a new csv writer object to use as the output formatter, although we
-# are created a tab delimited list instead!
-out = csv.writer(f, lineterminator='\n', delimiter='\t', quoting=csv.QUOTE_NONE)
+# Create a new csv writer object to use as the output formatter
+out = csv.writer(f, lineterminator='\n', delimiter=',', quotechar="\"", quoting=csv.QUOTE_ALL)
 
 # override csv.writer's writerow() to support utf8 encoding:
 def writerow( acsvwriter, columns ):
@@ -48,9 +50,10 @@ writerow( out, ['Source:', net.getSource()] )
 writerow( out, ['Date:', net.getDate()] )
 writerow( out, ['Tool:', net.getTool()] )
 writerow( out, ['Component Count:', len(components)] )
-writerow( out, ['Ref', 'Value', 'Part', 'Documentation', 'Description', 'Vendor'] )
+writerow( out, ['Ref', 'Value', 'Footprint', 'Datasheet', 'Manufacturer', 'Vendor'] )
 
-# Output all of the component information
+# Output all of the component information (One component per row)
 for c in components:
-    writerow( out, [c.getRef(), c.getValue(), c.getLibName() + ":" + c.getPartName(),
-        c.getDatasheet(), c.getDescription(), c.getField("Vendor")])
+    writerow( out, [c.getRef(), c.getValue(), c.getFootprint(), c.getDatasheet(),
+        c.getField("Manufacturer"), c.getField("Vendor")])
+

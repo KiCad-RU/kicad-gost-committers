@@ -30,6 +30,7 @@
 #ifndef  WX_EESCHEMA_STRUCT_H
 #define  WX_EESCHEMA_STRUCT_H
 
+
 #include <sch_base_frame.h>
 #include <config_params.h>
 #include <class_undoredo_container.h>
@@ -107,6 +108,8 @@ enum SCH_SEARCH_T {
     FIND_FIELD              ///< Find a component field.
 };
 
+
+#define SCH_EDIT_FRAME_NAME wxT( "SchematicFrame" )
 
 /**
  * Schematic editor (Eeschema) main window.
@@ -209,7 +212,8 @@ protected:
 
     void updateFindReplaceView( wxFindDialogEvent& aEvent );
 
-    void backAnnotateFootprints( const std::string& aChangedSetOfReferences ) throw( IO_ERROR );
+    void backAnnotateFootprints( const std::string& aChangedSetOfReferences )
+        throw( IO_ERROR, boost::bad_pointer );
 
 public:
     SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent );
@@ -856,13 +860,13 @@ private:
     SCH_JUNCTION* AddJunction( wxDC* aDC, const wxPoint& aPosition, bool aPutInUndoList = false );
 
     /**
-     * Function MoveItem
+     * Function PrepareMoveItem
      * start moving \a aItem using the mouse.
      *
      * @param aItem A pointer to an SCH_ITEM to move.
      * @param aDC The device context to draw \a aItem.
      */
-    void MoveItem( SCH_ITEM* aItem, wxDC* aDC );
+    void PrepareMoveItem( SCH_ITEM* aItem, wxDC* aDC );
 
     // Text, label, glabel
     SCH_TEXT* CreateNewText( wxDC* aDC, int aType );
@@ -957,8 +961,6 @@ public:
     wxPoint GetLastSheetPinPosition() const { return m_lastSheetPinPosition; }
 
 private:
-    void StartMoveSheet( SCH_SHEET* sheet, wxDC* DC );
-
     /**
      * Function CreateSheetPin
      * creates a new SCH_SHEET_PIN object and add it to \a aSheet at the current cursor position.

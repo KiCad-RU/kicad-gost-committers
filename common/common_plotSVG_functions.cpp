@@ -160,14 +160,12 @@ static wxString XmlEsc( const wxString& aStr, bool isAttribute = false )
 
 SVG_PLOTTER::SVG_PLOTTER()
 {
-#if defined(KICAD_GOST)
-    m_dashed = false;
-#endif
     m_graphics_changed = true;
     SetTextMode( PLOTTEXTMODE_STROKE );
     m_fillMode = NO_FILL;               // or FILLED_SHAPE or FILLED_WITH_BG_BODYCOLOR
     m_pen_rgb_color = 0;                // current color value (black)
     m_brush_rgb_color = 0;              // current color value (black)
+    m_dashed = false;
 }
 
 
@@ -230,7 +228,24 @@ void SVG_PLOTTER::setSVGPlotStyle()
     double pen_w = userToDeviceSize( GetCurrentLineWidth() );
     fprintf( outputFile, "\nstroke:#%6.6lX; stroke-width:%g; stroke-opacity:1; \n",
              m_pen_rgb_color, pen_w  );
-    fputs( "stroke-linecap:round; stroke-linejoin:round;\">\n", outputFile );
+    fputs( "stroke-linecap:round; stroke-linejoin:round;", outputFile );
+
+    if( m_dashed )
+    {
+#if defined(KICAD_GOST)
+        double segm_len = userToDeviceSize( DASHEDLINE_MARK_LENGTH - currentPenWidth );
+        double space_len = userToDeviceSize( DASHEDLINE_SPACE_LENGTH + currentPenWidth );
+#else
+        // Use a simple dash shape: a segment + a space
+        #define DASH_SIZE 0.3     // length in mm of a dash
+        double segm_len = DASH_SIZE * 10000/2.54 * m_IUsPerDecimil;
+        // Use a space to the same len as segment, between segments
+        double space_len = segm_len + pen_w;
+#endif
+        fprintf( outputFile, "stroke-dasharray:%g,%g;", segm_len, space_len );
+    }
+
+    fputs( "\">\n", outputFile );
 
     m_graphics_changed = false;
 }
@@ -284,9 +299,14 @@ void SVG_PLOTTER::emitSetRGBColor( double r, double g, double b )
  */
 void SVG_PLOTTER::SetDash( bool dashed )
 {
-#if defined(KICAD_GOST)
-    m_dashed = dashed;
-#endif
+    if( m_dashed != dashed )
+    {
+        m_graphics_changed = true;
+        m_dashed = dashed;
+    }
+
+    if( m_graphics_changed )
+        setSVGPlotStyle();
 }
 
 
@@ -472,14 +492,6 @@ void SVG_PLOTTER::PenTo( const wxPoint& pos, char plume )
     {
         if( penState != 'Z' )
         {
-#if defined(KICAD_GOST)
-            if( m_dashed )
-            {
-                fprintf( outputFile, "\" style=\"stroke-dasharray:%d,%d",
-                         (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH - currentPenWidth ),
-                         (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH + currentPenWidth ) );
-            }
-#endif
             fputs( "\" />\n", outputFile );
             penState        = 'Z';
             penLastpos.x    = -1;

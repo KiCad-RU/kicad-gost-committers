@@ -71,6 +71,7 @@ public:
         m_DisplayPolarCood      = false;
         m_DisplayDCodes = true;
         m_IsPrinting = false;
+        m_DisplayNegativeObjects = false;
     }
 };
 
@@ -79,6 +80,8 @@ public:
  * Class GERBVIEW_FRAME
  * is the main window used in GerbView.
  */
+
+#define GERBVIEW_FRAME_NAME wxT( "GerberFrame" )
 
 class GERBVIEW_FRAME : public EDA_DRAW_FRAME    // PCB_BASE_FRAME
 {

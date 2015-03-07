@@ -177,7 +177,6 @@ const EDA_RECT D_PAD::GetBoundingBox() const
         area.SetOrigin( m_Pos.x-dx, m_Pos.y-dy );
         area.SetSize( 2*dx, 2*dy );
         break;
-        break;
 
     case PAD_RECT:
         //Use two corners and track their rotation
@@ -838,6 +837,9 @@ void D_PAD::Rotate( const wxPoint& aRotCentre, double aAngle )
 {
     RotatePoint( &m_Pos, aRotCentre, aAngle );
     m_Orient += aAngle;
+    NORMALIZE_ANGLE_360( m_Orient );
+
+    SetLocalCoord();
 }
 
 

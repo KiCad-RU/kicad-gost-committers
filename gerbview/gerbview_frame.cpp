@@ -62,8 +62,6 @@ static const wxString   cfgShowBorderAndTitleBlock( wxT( "ShowBorderAndTitleBloc
 /* class GERBVIEW_FRAME for GerbView */
 /*************************************/
 
-#define GERBVIEW_FRAME_NAME wxT( "GerberFrame" )
-
 GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     EDA_DRAW_FRAME( aKiway, aParent, FRAME_GERBER, wxT( "GerbView" ),
         wxDefaultPosition, wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, GERBVIEW_FRAME_NAME )
@@ -78,7 +76,6 @@ GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     PAGE_INFO pageInfo( wxT( "GERBER" ) );
     SetPageSettings( pageInfo );
 
-    m_FrameName = GERBVIEW_FRAME_NAME;
     m_show_layer_manager_tools = true;
 
     m_showAxis = true;                      // true to show X and Y axis on screen
@@ -178,7 +175,7 @@ GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     m_auimgr.Update();
 
     setActiveLayer( 0, true );
-    Zoom_Automatique( true );           // Gives a default zoom value
+    Zoom_Automatique( false );           // Gives a default zoom value
 }
 
 

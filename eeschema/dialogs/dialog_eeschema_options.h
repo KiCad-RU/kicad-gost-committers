@@ -44,13 +44,13 @@ protected:
      * edit panel
      * selectedField = -1 when no valid item selected
      */
-    size_t selectedField;
+    int selectedField;
 
     /** @brief return true if aFieldId is a valid field selection
      */
-    bool fieldSelectionValid( size_t aFieldId )
+    bool fieldSelectionValid( int aFieldId )
     {
-        return ( aFieldId >= 0 ) && ( aFieldId < templateFields.size() );
+        return ( aFieldId >= 0 ) && ( aFieldId < int( templateFields.size() ) );
     }
 
     /**
@@ -65,7 +65,7 @@ protected:
      * Process the wxWidgets @a event produced when the user click on
      * the check box which controls the field visibility
      */
-	void OnVisibleFieldClick( wxCommandEvent& event );
+    void OnVisibleFieldClick( wxCommandEvent& event );
 
     /**
      * Function OnAddButtonClick
