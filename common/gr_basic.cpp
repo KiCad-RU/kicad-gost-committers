@@ -388,7 +388,11 @@ void GRLine( EDA_RECT* aClipBox, wxDC* aDC, wxPoint aStart, wxPoint aEnd, int aW
 void GRDashedLineTo( EDA_RECT* ClipBox, wxDC* DC, int x2, int y2, int width, EDA_COLOR_T Color )
 {
     s_DC_lastcolor = UNSPECIFIED_COLOR;
+#if defined(KICAD_GOST)
+    GRSetColorPen( DC, Color, width, wxPENSTYLE_LONG_DASH );
+#else
     GRSetColorPen( DC, Color, width, wxPENSTYLE_SHORT_DASH );
+#endif
     WinClipAndDrawLine( ClipBox, DC, GRLastMoveToX, GRLastMoveToY, x2, y2, width );
     s_DC_lastcolor = UNSPECIFIED_COLOR;
     GRSetColorPen( DC, Color, width );
@@ -409,7 +413,11 @@ void GRDashedLine( EDA_RECT* ClipBox,
     GRLastMoveToX  = x2;
     GRLastMoveToY  = y2;
     s_DC_lastcolor = UNSPECIFIED_COLOR;
+#if defined(KICAD_GOST)
+    GRSetColorPen( DC, Color, width, wxPENSTYLE_LONG_DASH );
+#else
     GRSetColorPen( DC, Color, width, wxPENSTYLE_SHORT_DASH );
+#endif
     WinClipAndDrawLine( ClipBox, DC, x1, y1, x2, y2, width );
     s_DC_lastcolor = UNSPECIFIED_COLOR;
     GRSetColorPen( DC, Color, width );
