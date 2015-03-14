@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2015 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2015 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2015 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
@@ -62,7 +62,7 @@ MODULE::MODULE( BOARD* parent ) :
     m_CntRot90 = m_CntRot180 = 0;
     m_Surface  = 0.0;
     m_Link     = 0;
-    m_LastEditTime  = time( NULL );
+    m_LastEditTime  = 0;
     m_LocalClearance = 0;
     m_LocalSolderMaskMargin  = 0;
     m_LocalSolderPasteMargin = 0;
@@ -545,20 +545,19 @@ const EDA_RECT MODULE::GetBoundingBox() const
 void MODULE::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 {
     int      nbpad;
-    char     bufcar[512], Line[512];
     wxString msg;
 
     aList.push_back( MSG_PANEL_ITEM( m_Reference->GetShownText(), m_Value->GetShownText(), DARKCYAN ) );
 
     // Display last date the component was edited (useful in Module Editor).
-    time_t edit_time = m_LastEditTime;
-    strcpy( Line, ctime( &edit_time ) );
-    strtok( Line, " \n\r" );
-    strcpy( bufcar, strtok( NULL, " \n\r" ) ); strcat( bufcar, " " );
-    strcat( bufcar, strtok( NULL, " \n\r" ) ); strcat( bufcar, ", " );
-    strtok( NULL, " \n\r" );
-    strcat( bufcar, strtok( NULL, " \n\r" ) );
-    msg = FROM_UTF8( bufcar );
+    wxDateTime date( m_LastEditTime );
+
+    if( m_LastEditTime && date.IsValid() )
+    // Date format: see http://www.cplusplus.com/reference/ctime/strftime
+        msg = date.Format( wxT( "%b %d, %Y" ) ); // Abbreviated_month_name Day, Year
+    else
+        msg = _( "Unknown" );
+
     aList.push_back( MSG_PANEL_ITEM( _( "Last Change" ), msg, BROWN ) );
 
     // display schematic path

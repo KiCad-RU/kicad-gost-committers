@@ -332,7 +332,7 @@ bool PNS_DP_GATEWAYS::FitGateways( PNS_DP_GATEWAYS& aEntry, PNS_DP_GATEWAYS& aTa
 
     int bestScore = -1000;
     DP_CANDIDATE best;
-    bool found;
+    bool found = false;
 
     BOOST_FOREACH( DP_CANDIDATE c, candidates )
     {
@@ -385,7 +385,6 @@ void PNS_DP_GATEWAYS::BuildFromPrimitivePair( PNS_DP_PRIMITIVE_PAIR aPair, bool 
         p0_n = aPair.AnchorN();
 
         shP = aPair.PrimP()->Shape();
-
     }
     else if( aPair.PrimP()->OfKind( PNS_ITEM::SEGMENT ) && aPair.PrimN()->OfKind( PNS_ITEM::SEGMENT ) )
     {
@@ -395,6 +394,9 @@ void PNS_DP_GATEWAYS::BuildFromPrimitivePair( PNS_DP_PRIMITIVE_PAIR aPair, bool 
     }
 
     majorDirection = ( p0_p - p0_n ).Perpendicular();
+
+    if( shP == NULL )
+        return;
 
     switch( shP->Type() )
     {

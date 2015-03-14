@@ -63,7 +63,13 @@ PLOTTER::PLOTTER( )
     // Temporary init to avoid not initialized vars, will be set later
     m_IUsPerDecimil = 1;        // will be set later to the actual value
     iuPerDeviceUnit = 1;        // will be set later to the actual value
-
+#if defined(KICAD_GOST)
+    m_dashMarkLength_mm = 2.0;  // Dashed line parameter in mm: segment
+    m_dashGapLength_mm = 1.0;   // Dashed line parameter in mm: gap
+#else
+    m_dashMarkLength_mm = 0.5;  // Dashed line parameter in mm: segment
+    m_dashGapLength_mm = 0.25;   // Dashed line parameter in mm: gap
+#endif
 }
 
 PLOTTER::~PLOTTER()
@@ -71,9 +77,7 @@ PLOTTER::~PLOTTER()
     // Emergency cleanup, but closing the file is
     // usually made in EndPlot().
     if( outputFile )
-    {
         fclose( outputFile );
-    }
 }
 
 
@@ -126,11 +130,23 @@ DPOINT PLOTTER::userToDeviceSize( const wxSize& size )
 }
 
 
-double PLOTTER::userToDeviceSize( double size )
+double PLOTTER::userToDeviceSize( double size ) const
 {
     return size * plotScale * iuPerDeviceUnit;
 }
 
+
+double PLOTTER::GetDashMarkLenIU() const
+{
+    double mark = userToDeviceSize( m_dashMarkLength_mm*10000/25.4*m_IUsPerDecimil - GetCurrentLineWidth() );
+    return ( mark < 0.0 ) ? 0.0 : mark;
+}
+
+
+double PLOTTER::GetDashGapLenIU() const
+{
+    return userToDeviceSize( m_dashGapLength_mm*10000/25.4*m_IUsPerDecimil + GetCurrentLineWidth() );
+}
 
 void PLOTTER::Arc( const wxPoint& centre, double StAngle, double EndAngle, int radius,
                    FILL_T fill, int width )

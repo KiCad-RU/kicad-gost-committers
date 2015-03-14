@@ -228,7 +228,7 @@ void PSLIKE_PLOTTER::FlashPadTrapez( const wxPoint& aPadPos, const wxPoint *aCor
 
 
 /**
- * Write on a stream a string escaped for postscript/PDF
+ * Write on a stream a string escaped for postscript/PDF
  */
 void PSLIKE_PLOTTER::fputsPostscriptString(FILE *fout, const wxString& txt)
 {
@@ -469,15 +469,8 @@ void PS_PLOTTER::SetDash( bool dashed )
 {
     wxASSERT( outputFile );
     if( dashed )
-#if defined(KICAD_GOST)
-    {
         fprintf( outputFile, "[%d %d] 0 setdash\n",
-                 (int) userToDeviceSize( DASHEDLINE_MARK_LENGTH - currentPenWidth ),
-                 (int) userToDeviceSize( DASHEDLINE_SPACE_LENGTH + currentPenWidth ) );
-    }
-#else
-        fputs( "dashedline\n", outputFile );
-#endif
+                 (int) GetDashMarkLenIU(), (int) GetDashGapLenIU() );
     else
         fputs( "solidline\n", outputFile );
 }

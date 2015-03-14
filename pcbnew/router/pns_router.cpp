@@ -72,7 +72,7 @@ PNS_PCBNEW_CLEARANCE_FUNC::PNS_PCBNEW_CLEARANCE_FUNC( PNS_ROUTER *aRouter ) :
 
     PNS_TOPOLOGY topo( world );
     m_clearanceCache.resize( brd->GetNetCount() );
-    
+
     for( unsigned int i = 0; i < brd->GetNetCount(); i++ )
     {
         NETINFO_ITEM* ni = brd->FindNet( i );
@@ -84,11 +84,11 @@ PNS_PCBNEW_CLEARANCE_FUNC::PNS_PCBNEW_CLEARANCE_FUNC( PNS_ROUTER *aRouter ) :
 
         wxString netClassName = ni->GetClassName();
         NETCLASSPTR nc = brd->GetDesignSettings().m_NetClasses.Find( netClassName );
-        
+
         int clearance = nc->GetClearance();
         ent.clearance = clearance;
         m_clearanceCache[i] = ent;
-        
+
         TRACE( 1, "Add net %d netclass %s clearance %d", i % netClassName.mb_str() %
             clearance );
     }
@@ -161,6 +161,7 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
         break;
 
     case PAD_SMD:
+    case PAD_HOLE_NOT_PLATED:
     case PAD_CONN:
         {
             LSET lmsk = aPad->GetLayerSet();
@@ -333,7 +334,6 @@ void PNS_ROUTER::SyncWorld()
     m_world->SetClearanceFunctor( m_clearanceFunc );
     m_world->SetMaxClearance( 4 * worstClearance );
 }
-    
 
 
 PNS_ROUTER::PNS_ROUTER()
@@ -947,7 +947,7 @@ void PNS_ROUTER::DumpLog()
 bool PNS_ROUTER::IsPlacingVia() const
 {
     if( !m_placer )
-        return NULL;
+        return false;
 
     return m_placer->IsPlacingVia();
 }

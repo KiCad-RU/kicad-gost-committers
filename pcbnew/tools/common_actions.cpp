@@ -48,6 +48,14 @@ TOOL_ACTION COMMON_ACTIONS::selectionClear( "pcbnew.InteractiveSelection.Clear",
         AS_GLOBAL, 0,
         "", "" );    // No description, it is not supposed to be shown anywhere
 
+TOOL_ACTION COMMON_ACTIONS::selectConnection( "pcbnew.InteractiveSelection.SelectConnection",
+        AS_GLOBAL, 0,
+        "copper connection", "Selects whole copper connection." );
+
+TOOL_ACTION COMMON_ACTIONS::selectNet( "pcbnew.InteractiveSelection.SelectNet",
+        AS_GLOBAL, 0,
+        "whole net", "Selects all tracks & vias belonging to the same net." );
+
 TOOL_ACTION COMMON_ACTIONS::find( "pcbnew.InteractiveSelection.Find",
         AS_GLOBAL, 0,                                    // it is handled by wxWidgets hotkey system
         "Find an item", "Searches the document for an item" );
@@ -144,14 +152,6 @@ TOOL_ACTION COMMON_ACTIONS::drawZone( "pcbnew.InteractiveDrawing.zone",
 TOOL_ACTION COMMON_ACTIONS::drawKeepout( "pcbnew.InteractiveDrawing.keepout",
         AS_GLOBAL, 0,
         "Add a keepout area", "Add a keepout area", AF_ACTIVATE );
-
-TOOL_ACTION COMMON_ACTIONS::placeTarget( "pcbnew.InteractiveDrawing.placeTarget",
-        AS_GLOBAL, 0,
-        "Add layer alignment target", "Add layer alignment target", AF_ACTIVATE );
-
-TOOL_ACTION COMMON_ACTIONS::placeModule( "pcbnew.InteractiveDrawing.placeModule",
-        AS_GLOBAL, 'O',
-        "Add modules", "Add modules", AF_ACTIVATE );
 
 TOOL_ACTION COMMON_ACTIONS::placeDXF( "pcbnew.InteractiveDrawing.placeDXF",
         AS_GLOBAL, 0,
@@ -353,6 +353,15 @@ TOOL_ACTION COMMON_ACTIONS::zoneUnfill( "pcbnew.EditorControl.zoneUnfill",
 TOOL_ACTION COMMON_ACTIONS::zoneUnfillAll( "pcbnew.EditorControl.zoneUnfillAll",
         AS_GLOBAL, int( 'N' ),
         "Unfill all", "Unfill all zones" );
+
+
+TOOL_ACTION COMMON_ACTIONS::placeTarget( "pcbnew.EditorControl.placeTarget",
+        AS_GLOBAL, 0,
+        "Add layer alignment target", "Add layer alignment target", AF_ACTIVATE );
+
+TOOL_ACTION COMMON_ACTIONS::placeModule( "pcbnew.EditorControl.placeModule",
+        AS_GLOBAL, 'O',
+        "Add modules", "Add modules", AF_ACTIVATE );
 
 
 // Module editor tools

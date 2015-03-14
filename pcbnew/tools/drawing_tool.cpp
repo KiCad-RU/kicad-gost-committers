@@ -22,9 +22,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <boost/bind.hpp>
-#include <cstdio>
-
 #include "drawing_tool.h"
 #include "common_actions.h"
 
@@ -47,7 +44,6 @@
 #include <class_edge_mod.h>
 #include <class_pcb_text.h>
 #include <class_dimension.h>
-#include <class_mire.h>
 #include <class_zone.h>
 #include <class_module.h>
 
@@ -83,18 +79,17 @@ int DRAWING_TOOL::DrawLine( const TOOL_EVENT& aEvent )
     {
         m_frame->SetToolID( ID_MODEDIT_LINE_TOOL, wxCURSOR_PENCIL, _( "Add graphic line" ) );
 
-        MODULE* module = m_board->m_Modules;
-        EDGE_MODULE* line = new EDGE_MODULE( module );
+        EDGE_MODULE* line = new EDGE_MODULE( m_board->m_Modules );
 
         while( drawSegment( S_SEGMENT, reinterpret_cast<DRAWSEGMENT*&>( line ), startingPoint  ) )
         {
             if( line )
             {
                 m_frame->OnModify();
-                m_frame->SaveCopyInUndoList( module, UR_MODEDIT );
+                m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
+                line->SetParent( m_board->m_Modules );
                 line->SetLocalCoord();
-                line->SetParent( module );
-                module->GraphicalItems().PushFront( line );
+                m_board->m_Modules->GraphicalItems().PushFront( line );
                 startingPoint = line->GetEnd();
             }
             else
@@ -102,7 +97,7 @@ int DRAWING_TOOL::DrawLine( const TOOL_EVENT& aEvent )
                 startingPoint = boost::none;
             }
 
-            line = new EDGE_MODULE( module );
+            line = new EDGE_MODULE( m_board->m_Modules );
         }
     }
     else
@@ -142,21 +137,20 @@ int DRAWING_TOOL::DrawCircle( const TOOL_EVENT& aEvent )
     {
         m_frame->SetToolID( ID_MODEDIT_CIRCLE_TOOL, wxCURSOR_PENCIL, _( "Add graphic circle" ) );
 
-        MODULE* module = m_board->m_Modules;
-        EDGE_MODULE* circle = new EDGE_MODULE( module );
+        EDGE_MODULE* circle = new EDGE_MODULE( m_board->m_Modules );
 
         while( drawSegment( S_CIRCLE, reinterpret_cast<DRAWSEGMENT*&>( circle ) ) )
         {
             if( circle )
             {
                 m_frame->OnModify();
-                m_frame->SaveCopyInUndoList( module, UR_MODEDIT );
+                m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
+                circle->SetParent( m_board->m_Modules );
                 circle->SetLocalCoord();
-                circle->SetParent( module );
-                module->GraphicalItems().PushFront( circle );
+                m_board->m_Modules->GraphicalItems().PushFront( circle );
             }
 
-            circle = new EDGE_MODULE( module );
+            circle = new EDGE_MODULE( m_board->m_Modules );
         }
     }
     else
@@ -191,21 +185,20 @@ int DRAWING_TOOL::DrawArc( const TOOL_EVENT& aEvent )
     {
         m_frame->SetToolID( ID_MODEDIT_ARC_TOOL, wxCURSOR_PENCIL, _( "Add graphic arc" ) );
 
-        MODULE* module = m_board->m_Modules;
-        EDGE_MODULE* arc = new EDGE_MODULE( module );
+        EDGE_MODULE* arc = new EDGE_MODULE( m_board->m_Modules );
 
         while( drawArc( reinterpret_cast<DRAWSEGMENT*&>( arc ) ) )
         {
             if( arc )
             {
                 m_frame->OnModify();
-                m_frame->SaveCopyInUndoList( module, UR_MODEDIT );
+                m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
+                arc->SetParent( m_board->m_Modules );
                 arc->SetLocalCoord();
-                arc->SetParent( module );
-                module->GraphicalItems().PushFront( arc );
+                m_board->m_Modules->GraphicalItems().PushFront( arc );
             }
 
-            arc = new EDGE_MODULE( module );
+            arc = new EDGE_MODULE( m_board->m_Modules );
         }
     }
     else
@@ -342,6 +335,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
                         preview.Add( dimension );
 
                         m_controls->SetAutoPan( true );
+                        m_controls->CaptureCursor( true );
                     }
                 }
                 break;
@@ -378,6 +372,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
             {
                 step = SET_ORIGIN;
                 m_controls->SetAutoPan( false );
+                m_controls->CaptureCursor( false );
             }
         }
 
@@ -413,6 +408,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
     m_controls->ShowCursor( false );
     m_controls->SetSnapping( false );
     m_controls->SetAutoPan( false );
+    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     setTransitions();
@@ -438,213 +434,14 @@ int DRAWING_TOOL::DrawKeepout( const TOOL_EVENT& aEvent )
 }
 
 
-int DRAWING_TOOL::PlaceTarget( const TOOL_EVENT& aEvent )
-{
-    PCB_TARGET* target = new PCB_TARGET( m_board );
-
-    // Init the new item attributes
-    target->SetLayer( Edge_Cuts );
-    target->SetWidth( m_board->GetDesignSettings().m_EdgeSegmentWidth );
-    target->SetSize( Millimeter2iu( 5 ) );
-    VECTOR2I cursorPos = m_controls->GetCursorPosition();
-    target->SetPosition( wxPoint( cursorPos.x, cursorPos.y ) );
-
-    // Add a VIEW_GROUP that serves as a preview for the new item
-    KIGFX::VIEW_GROUP preview( m_view );
-    preview.Add( target );
-    m_view->Add( &preview );
-    preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
-    m_controls->SetSnapping( true );
-    m_controls->SetAutoPan( true );
-
-    Activate();
-    m_frame->SetToolID( ID_PCB_MIRE_BUTT, wxCURSOR_PENCIL, _( "Add layer alignment target" ) );
-
-    // Main loop: keep receiving events
-    while( OPT_TOOL_EVENT evt = Wait() )
-    {
-        cursorPos = m_controls->GetCursorPosition();
-
-        if( evt->IsCancel() || evt->IsActivate() )
-            break;
-
-        else if( evt->IsAction( &COMMON_ACTIONS::incWidth ) )
-        {
-            target->SetWidth( target->GetWidth() + WIDTH_STEP );
-            preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::decWidth ) )
-        {
-            int width = target->GetWidth();
-
-            if( width > WIDTH_STEP )
-            {
-                target->SetWidth( width - WIDTH_STEP );
-                preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-            }
-        }
-
-        else if( evt->IsClick( BUT_LEFT ) )
-        {
-            assert( target->GetSize() > 0 );
-            assert( target->GetWidth() > 0 );
-
-            m_view->Add( target );
-            m_board->Add( target );
-            target->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-
-            m_frame->OnModify();
-            m_frame->SaveCopyInUndoList( target, UR_NEW );
-
-            preview.Remove( target );
-
-            // Create next PCB_TARGET
-            target = new PCB_TARGET( *target );
-            preview.Add( target );
-        }
-
-        else if( evt->IsMotion() )
-        {
-            target->SetPosition( wxPoint( cursorPos.x, cursorPos.y ) );
-            preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-        }
-    }
-
-    delete target;
-
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_view->Remove( &preview );
-
-    setTransitions();
-    m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
-
-    return 0;
-}
-
-
-int DRAWING_TOOL::PlaceModule( const TOOL_EVENT& aEvent )
-{
-    MODULE* module = NULL;
-
-    // Add a VIEW_GROUP that serves as a preview for the new item
-    KIGFX::VIEW_GROUP preview( m_view );
-    m_view->Add( &preview );
-
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
-    m_controls->ShowCursor( true );
-    m_controls->SetSnapping( true );
-    m_controls->SetAutoPan( true );
-
-    Activate();
-    m_frame->SetToolID( ID_PCB_MODULE_BUTT, wxCURSOR_HAND, _( "Add module" ) );
-
-    // Main loop: keep receiving events
-    while( OPT_TOOL_EVENT evt = Wait() )
-    {
-        VECTOR2I cursorPos = m_controls->GetCursorPosition();
-
-        if( evt->IsCancel() || evt->IsActivate() )
-        {
-            if( module )
-            {
-                m_board->Delete( module );  // it was added by LoadModuleFromLibrary()
-                module = NULL;
-
-                preview.Clear();
-                preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-                m_controls->ShowCursor( true );
-            }
-            else
-                break;
-
-            if( evt->IsActivate() )  // now finish unconditionally
-                break;
-        }
-
-        else if( module && evt->Category() == TC_COMMAND )
-        {
-            if( evt->IsAction( &COMMON_ACTIONS::rotate ) )
-            {
-                module->Rotate( module->GetPosition(), m_frame->GetRotationAngle() );
-                preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-            }
-            else if( evt->IsAction( &COMMON_ACTIONS::flip ) )
-            {
-                module->Flip( module->GetPosition() );
-                preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-            }
-        }
-
-        else if( evt->IsClick( BUT_LEFT ) )
-        {
-            if( !module )
-            {
-                // Init the new item attributes
-                module = m_frame->LoadModuleFromLibrary( wxEmptyString,
-                                                         m_frame->Prj().PcbFootprintLibs(),
-                                                         true, NULL );
-                if( module == NULL )
-                    continue;
-
-                m_controls->ShowCursor( false );
-                module->SetPosition( wxPoint( cursorPos.x, cursorPos.y ) );
-
-                // Add all the drawable parts to preview
-                preview.Add( module );
-                module->RunOnChildren( boost::bind( &KIGFX::VIEW_GROUP::Add, &preview, _1 ) );
-
-                preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-            }
-            else
-            {
-                module->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, m_view, _1 ) );
-                m_view->Add( module );
-                module->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-
-                m_frame->OnModify();
-                m_frame->SaveCopyInUndoList( module, UR_NEW );
-
-                // Remove from preview
-                preview.Remove( module );
-                module->RunOnChildren( boost::bind( &KIGFX::VIEW_GROUP::Remove, &preview, _1 ) );
-                module = NULL;  // to indicate that there is no module that we currently modify
-
-                m_controls->ShowCursor( true );
-            }
-        }
-
-        else if( module && evt->IsMotion() )
-        {
-            module->SetPosition( wxPoint( cursorPos.x, cursorPos.y ) );
-            preview.ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
-        }
-    }
-
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_view->Remove( &preview );
-
-    setTransitions();
-    m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
-
-    return 0;
-}
-
-
 int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
 {
     DIALOG_DXF_IMPORT dlg( m_frame );
     int dlgResult = dlg.ShowModal();
 
     const std::list<BOARD_ITEM*>& list = dlg.GetImportedItems();
-    MODULE* module = m_board->m_Modules;
 
-    if( dlgResult != wxID_OK || module == NULL || list.empty() )
+    if( dlgResult != wxID_OK || m_board->m_Modules == NULL || list.empty() )
     {
         setTransitions();
 
@@ -672,7 +469,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
         {
             if( m_editModules )
             {
-                converted = new EDGE_MODULE( module );
+                converted = new EDGE_MODULE( m_board->m_Modules );
                 *static_cast<DRAWSEGMENT*>( converted ) = *static_cast<DRAWSEGMENT*>( item );
                 converted->Move( wxPoint( delta.x, delta.y ) );
                 preview.Add( converted );
@@ -690,7 +487,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
         {
             if( m_editModules )
             {
-                converted = new TEXTE_MODULE( module );
+                converted = new TEXTE_MODULE( m_board->m_Modules );
                 *static_cast<TEXTE_PCB*>( converted ) = *static_cast<TEXTE_PCB*>( item );
                 converted->Move( wxPoint( delta.x, delta.y ) );
                 preview.Add( converted );
@@ -760,16 +557,15 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
         else if( evt->IsClick( BUT_LEFT ) )
         {
             // Place the drawing
-
             if( m_editModules )
             {
-                m_frame->SaveCopyInUndoList( module, UR_MODEDIT );
-                module->SetLastEditTime();
+                m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
+                m_board->m_Modules->SetLastEditTime();
 
                 for( KIGFX::VIEW_GROUP::iter it = preview.Begin(), end = preview.End(); it != end; ++it )
                 {
                     BOARD_ITEM* item = static_cast<BOARD_ITEM*>( *it );
-                    module->Add( item );
+                    m_board->m_Modules->Add( item );
 
                     switch( item->Type() )
                     {
@@ -818,6 +614,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
     m_controls->ShowCursor( false );
     m_controls->SetSnapping( false );
     m_controls->SetAutoPan( false );
+    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     setTransitions();
@@ -834,25 +631,23 @@ int DRAWING_TOOL::SetAnchor( const TOOL_EVENT& aEvent )
     m_frame->SetToolID( ID_MODEDIT_ANCHOR_TOOL, wxCURSOR_PENCIL,
                         _( "Place the footprint anchor" ) );
 
-    KIGFX::VIEW_CONTROLS* controls = getViewControls();
-    controls->ShowCursor( true );
-    controls->SetSnapping( true );
-    controls->SetAutoPan( true );
+    m_controls->ShowCursor( true );
+    m_controls->SetSnapping( true );
+    m_controls->SetAutoPan( true );
+    m_controls->CaptureCursor( false );
 
     while( OPT_TOOL_EVENT evt = Wait() )
     {
         if( evt->IsClick( BUT_LEFT ) )
         {
-            MODULE* module = m_board->m_Modules;
-
-            m_frame->SaveCopyInUndoList( module, UR_MODEDIT );
+            m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
 
             // set the new relative internal local coordinates of footprint items
-            VECTOR2I cursorPos = controls->GetCursorPosition();
-            wxPoint moveVector = module->GetPosition() - wxPoint( cursorPos.x, cursorPos.y );
-            module->MoveAnchorPosition( moveVector );
+            VECTOR2I cursorPos = m_controls->GetCursorPosition();
+            wxPoint moveVector = m_board->m_Modules->GetPosition() - wxPoint( cursorPos.x, cursorPos.y );
+            m_board->m_Modules->MoveAnchorPosition( moveVector );
 
-            module->ViewUpdate();
+            m_board->m_Modules->ViewUpdate();
 
             // Usually, we do not need to change twice the anchor position,
             // so deselect the active tool
@@ -863,9 +658,10 @@ int DRAWING_TOOL::SetAnchor( const TOOL_EVENT& aEvent )
             break;
     }
 
-    controls->SetAutoPan( false );
-    controls->SetSnapping( false );
-    controls->ShowCursor( false );
+    m_controls->SetAutoPan( false );
+    m_controls->CaptureCursor( false );
+    m_controls->SetSnapping( false );
+    m_controls->ShowCursor( false );
 
     setTransitions();
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
@@ -912,6 +708,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
 
         preview.Add( aGraphic );
         m_controls->SetAutoPan( true );
+        m_controls->CaptureCursor( true );
 
         started = true;
     }
@@ -975,6 +772,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
 
                     preview.Add( aGraphic );
                     m_controls->SetAutoPan( true );
+                    m_controls->CaptureCursor( true );
 
                     started = true;
                 }
@@ -1035,6 +833,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
     m_controls->ShowCursor( false );
     m_controls->SetSnapping( false );
     m_controls->SetAutoPan( false );
+    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     return started;
@@ -1114,6 +913,7 @@ bool DRAWING_TOOL::drawArc( DRAWSEGMENT*& aGraphic )
                     preview.Add( &helperLine );
 
                     m_controls->SetAutoPan( true );
+                    m_controls->CaptureCursor( true );
                 }
             }
             break;
@@ -1216,6 +1016,7 @@ bool DRAWING_TOOL::drawArc( DRAWSEGMENT*& aGraphic )
     m_controls->ShowCursor( false );
     m_controls->SetSnapping( false );
     m_controls->SetAutoPan( false );
+    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     return ( step > SET_ORIGIN );
@@ -1275,6 +1076,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout )
                 delete zone;
                 zone = NULL;
                 m_controls->SetAutoPan( false );
+                m_controls->CaptureCursor( false );
 
                 if( direction45 )
                 {
@@ -1328,6 +1130,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout )
 
                 numPoints = 0;
                 m_controls->SetAutoPan( false );
+                m_controls->CaptureCursor( false );
 
                 if( direction45 )
                 {
@@ -1347,6 +1150,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout )
                     zoneInfo.m_CurrentZone_Layer = m_frame->GetScreen()->m_Active_Layer;
 
                     m_controls->SetAutoPan( true );
+                    m_controls->CaptureCursor( true );
 
                     // Show options dialog
                     ZONE_EDIT_T dialogResult;
@@ -1363,6 +1167,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout )
                     if( dialogResult == ZONE_ABORT )
                     {
                         m_controls->SetAutoPan( false );
+                        m_controls->CaptureCursor( false );
                         continue;
                     }
 
@@ -1422,6 +1227,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout )
     m_controls->ShowCursor( false );
     m_controls->SetSnapping( false );
     m_controls->SetAutoPan( false );
+    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     setTransitions();
@@ -1435,7 +1241,6 @@ int DRAWING_TOOL::placeTextModule()
 {
     TEXTE_MODULE* text = new TEXTE_MODULE( NULL );
     const BOARD_DESIGN_SETTINGS& dsnSettings = m_frame->GetDesignSettings();
-    MODULE* module = m_board->m_Modules;
 
     // Add a VIEW_GROUP that serves as a preview for the new item
     KIGFX::VIEW_GROUP preview( m_view );
@@ -1445,6 +1250,7 @@ int DRAWING_TOOL::placeTextModule()
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
     m_controls->SetAutoPan( true );
+    m_controls->CaptureCursor( true );
 
     Activate();
     m_frame->SetToolID( ID_PCB_ADD_TEXT_BUTT, wxCURSOR_PENCIL, _( "Add text" ) );
@@ -1501,8 +1307,8 @@ int DRAWING_TOOL::placeTextModule()
                     continue;
 
                 m_controls->ShowCursor( false );
-                text->SetParent( module );   // it has to set after the settings dialog
-                                             // otherwise the dialog stores it in undo buffer
+                text->SetParent( m_board->m_Modules );  // it has to set after the settings dialog
+                                                        // otherwise the dialog stores it in undo buffer
                 preview.Add( text );
             }
             else
@@ -1514,8 +1320,8 @@ int DRAWING_TOOL::placeTextModule()
                 text->ClearFlags();
 
                 // Module has to be saved before any modification is made
-                m_frame->SaveCopyInUndoList( module, UR_MODEDIT );
-                module->GraphicalItems().PushFront( text );
+                m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
+                m_board->m_Modules->GraphicalItems().PushFront( text );
 
                 m_view->Add( text );
                 text->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
@@ -1542,6 +1348,7 @@ int DRAWING_TOOL::placeTextModule()
     m_controls->ShowCursor( false );
     m_controls->SetSnapping( false );
     m_controls->SetAutoPan( false );
+    m_controls->CaptureCursor( true );
     m_view->Remove( &preview );
 
     setTransitions();
@@ -1563,6 +1370,7 @@ int DRAWING_TOOL::placeTextPcb()
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
     m_controls->SetAutoPan( true );
+    m_controls->CaptureCursor( true );
 
     Activate();
     m_frame->SetToolID( ID_PCB_ADD_TEXT_BUTT, wxCURSOR_PENCIL, _( "Add text" ) );
@@ -1650,6 +1458,7 @@ int DRAWING_TOOL::placeTextPcb()
     m_controls->ShowCursor( false );
     m_controls->SetSnapping( false );
     m_controls->SetAutoPan( false );
+    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     setTransitions();
@@ -1690,8 +1499,6 @@ void DRAWING_TOOL::setTransitions()
     Go( &DRAWING_TOOL::DrawZone,         COMMON_ACTIONS::drawZone.MakeEvent() );
     Go( &DRAWING_TOOL::DrawKeepout,      COMMON_ACTIONS::drawKeepout.MakeEvent() );
     Go( &DRAWING_TOOL::PlaceText,        COMMON_ACTIONS::placeText.MakeEvent() );
-    Go( &DRAWING_TOOL::PlaceTarget,      COMMON_ACTIONS::placeTarget.MakeEvent() );
-    Go( &DRAWING_TOOL::PlaceModule,      COMMON_ACTIONS::placeModule.MakeEvent() );
     Go( &DRAWING_TOOL::PlaceDXF,         COMMON_ACTIONS::placeDXF.MakeEvent() );
     Go( &DRAWING_TOOL::SetAnchor,        COMMON_ACTIONS::setAnchor.MakeEvent() );
 }
@@ -1709,3 +1516,5 @@ int DRAWING_TOOL::getSegmentWidth( unsigned int aLayer ) const
         return m_board->GetDesignSettings().m_DrawSegmentWidth;
 }
 
+
+const int DRAWING_TOOL::WIDTH_STEP = 100000;

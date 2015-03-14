@@ -38,12 +38,6 @@
 #include <class_page_info.h>
 #include <eda_text.h>       // FILL_T
 
-#if defined(KICAD_GOST)
-/* Set dashed line parameters in mils */
-#define DASHEDLINE_MARK_LENGTH      80
-#define DASHEDLINE_SPACE_LENGTH     40
-#endif
-
 /**
  * Enum PlotFormat
  * is the set of supported output plot formats.  They should be kept in order
@@ -88,6 +82,10 @@ enum PlotTextMode {
  */
 class PLOTTER
 {
+private:
+    double m_dashMarkLength_mm ;     ///< Dashed line parameter in mm: segment
+    double m_dashGapLength_mm;       ///< Dashed line parameter in mm: gap
+
 public:
     static const int DEFAULT_LINE_WIDTH = -1;
 
@@ -402,7 +400,11 @@ protected:
      * Modifies size according to the plotter scale factors
      * (simple double version)
      */
-    virtual double userToDeviceSize( double size );
+    virtual double userToDeviceSize( double size ) const;
+
+    double GetDashMarkLenIU() const;
+
+    double GetDashGapLenIU() const;
 
     /// Plot scale - chosen by the user (even implicitly with 'fit in a4')
     double        plotScale;
@@ -679,6 +681,7 @@ public:
     {
         // Avoid non initialized variables:
         pageStreamHandle = streamLengthHandle = fontResDictHandle = 0;
+        pageTreeHandle = 0;
     }
 
     virtual PlotFormat GetPlotterType() const
