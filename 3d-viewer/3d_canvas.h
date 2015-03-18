@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2012 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,7 +44,7 @@
 
 #include <3d_struct.h>
 #include <class_module.h>
- 
+
 class BOARD_DESIGN_SETTINGS;
 class EDA_3D_FRAME;
 class CPOLYGONS_LIST;
@@ -78,7 +78,9 @@ class EDA_3D_CANVAS : public wxGLCanvas
 {
 private:
     bool            m_init;
-    GLuint          m_glLists[GL_ID_END];    // GL lists
+    bool            m_reportWarnings;       // true to report all wranings when build the 3D scene
+                                            // false to report errors only
+    GLuint          m_glLists[GL_ID_END];   // GL lists
     wxGLContext*    m_glRC;
     wxRealPoint     m_draw3dOffset;     // offset to draw the 3D mesh.
     double          m_ZBottom;          // position of the back layer
@@ -132,10 +134,16 @@ public:
     /**
      * Function CreateDrawGL_List
      * Prepares the parameters of the OpenGL draw list
-     * creates the OpenGL draw list items (board, grid ...
+     * creates the OpenGL draw list items (board, grid ...)
+     * @param aErrorMessages = a wxString which will filled with error messages,
+     * if any
+     * @param aShowWarnings = true to show all messages, false to show errors only
      */
-    void   CreateDrawGL_List();
+    void   CreateDrawGL_List( wxString* aErrorMessages, bool aShowWarnings );
     void   InitGL();
+
+    void ReportWarnings( bool aReport ) { m_reportWarnings = aReport; }
+
     void   SetLights();
 
     void   SetOffset(double aPosX, double aPosY)
@@ -196,28 +204,38 @@ private:
      * Helper function SetGLEpoxyColor
      * Initialize the color to draw the epoxy body board in realistic mode.
      */
-    void setGLEpoxyColor( double aTransparency = 1.0 );
+    void setGLEpoxyColor( float aTransparency = 1.0 );
 
     /**
      * Helper function SetGLSolderMaskColor
      * Initialize the color to draw the solder mask layers in realistic mode.
      */
-    void setGLSolderMaskColor( double aTransparency = 1.0 );
+    void setGLSolderMaskColor( float aTransparency = 1.0 );
 
     /**
      * Function BuildBoard3DView
      * Called by CreateDrawGL_List()
      * Populates the OpenGL GL_ID_BOARD draw list with board items only on copper layers.
      * 3D footprint shapes, tech layers and aux layers are not on this list
+     * Fills aErrorMessages with error messages created by some calculation function
+     * @param aBoardList =
+     * @param aBodyOnlyList =
+     * @param aErrorMessages = a wxString to add error and warning messages
+     * created by the build process (can be NULL)
+     * @param aShowWarnings = true to show all messages, false to show errors only
      */
-    void   BuildBoard3DView(GLuint aBoardList, GLuint aBodyOnlyList);
+    void   BuildBoard3DView( GLuint aBoardList, GLuint aBodyOnlyList,
+                             wxString* aErrorMessages, bool aShowWarnings );
 
     /**
      * Function BuildTechLayers3DView
      * Called by CreateDrawGL_List()
      * Populates the OpenGL GL_ID_TECH_LAYERS draw list with items on tech layers
+     * @param aErrorMessages = a wxString to add error and warning messages
+     * created by the build process (can be NULL)
+     * @param aShowWarnings = true to show all messages, false to show errors only
      */
-    void   BuildTechLayers3DView();
+    void   BuildTechLayers3DView( wxString* aErrorMessages, bool aShowWarnings );
 
     /**
      * Function BuildShadowList
@@ -301,7 +319,15 @@ private:
                                std::vector<S3D_MODEL_PARSER *>& model_parsers_list,
                                std::vector<wxString>& model_filename_list );
 
-    void   GenerateFakeShadowsTextures();
+    /**
+     * function GenerateFakeShadowsTextures
+     * creates shadows of the board an footprints
+     * for aesthetical purpose
+     * @param aErrorMessages = a wxString to add error and warning messages
+     * created by the build process (can be NULL)
+     * @param aShowWarnings = true to show all messages, false to show errors only
+     */
+    void   GenerateFakeShadowsTextures( wxString* aErrorMessages, bool aShowWarnings );
 
     DECLARE_EVENT_TABLE()
 };

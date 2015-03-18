@@ -49,6 +49,13 @@ DIALOG_LIB_EDIT_PIN::DIALOG_LIB_EDIT_PIN( EDA_DRAW_FRAME* parent, LIB_PIN* aPin 
     // Set tab order
     m_textPadName->MoveAfterInTabOrder(m_textPinName);
     m_sdbSizerButtonsOK->SetDefault();
+
+    GetSizer()->SetSizeHints( this );
+
+    // On some windows manager (Unity, XFCE), this dialog is
+    // not always raised, depending on this dialog is run.
+    // Force it to be raised
+    Raise();
 }
 
 
