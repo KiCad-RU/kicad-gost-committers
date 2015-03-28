@@ -59,6 +59,14 @@ public:
     {
         m_parent = aParent;
         SetTitle( aTitle );
+
+        // Avoid not initialized members:
+        m_textshape = 0;
+        m_textsize = 0;
+        m_textorient = 0;
+        m_textHjustify = GR_TEXT_HJUSTIFY_CENTER;
+        m_textVjustify = GR_TEXT_VJUSTIFY_CENTER;
+        m_text_invisible = false;
     }
 
     // ~DIALOG_EDIT_ONE_FIELD() {};
@@ -66,14 +74,27 @@ public:
     /**
      * Function TransfertDataToField
      * Converts fields from dialog window to variables to be used by child classes
+     *
+     * @param aIncludeText Whether the valies transferred should include the actual
+     * item text. If this is false, formatting will be transferred, but text will
+     * not.
      */
-    virtual void TransfertDataToField();
+    virtual void TransfertDataToField( bool aIncludeText = true );
 
     void SetTextField( const wxString& aText )
     {
          m_TextValue->SetValue( aText );
     }
 
+    /**
+     * Function SetPowerWarning
+     * Disables the Text field and displays the "Power component values cannot
+     * be modified!" warning, if aWarn is true. Performs the inverse if aWarn
+     * is false (this, however, is the default).
+     *
+     * @param aWarn whether or not to produce the warning
+     */
+    void SetPowerWarning( bool aWarn );
 
 protected:
     /**
@@ -135,7 +156,7 @@ public:
 
     ~DIALOG_LIB_EDIT_ONE_FIELD() {};
 
-    void TransfertDataToField();
+    void TransfertDataToField( bool aIncludeText = true );
 
     /**
      * Function GetTextField
@@ -178,7 +199,7 @@ public:
 
     // ~DIALOG_SCH_EDIT_ONE_FIELD() {};
 
-    void TransfertDataToField();
+    void TransfertDataToField( bool aIncludeText = true );
 
     /**
      * Function GetTextField

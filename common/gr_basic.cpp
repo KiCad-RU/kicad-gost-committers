@@ -207,15 +207,10 @@ void GRResetPenAndBrush( wxDC* DC )
  */
 void GRSetColorPen( wxDC* DC, EDA_COLOR_T Color, int width, wxPenStyle style )
 {
-    if( width < 0 )
-        width = 0;
-
-#ifdef __WXMAC__
-    // Under OSX when wxPen is set to 0, cocoa follows the request drawing nothing &
-    // in the bitmap world the minimum is enough to light a pixel, in vectorial one not
+    // Under OSX and while printing when wxPen is set to 0, renderer follows the request drawing
+    // nothing & in the bitmap world the minimum is enough to light a pixel, in vectorial one not
     if( width <= 1 )
         width = DC->DeviceToLogicalXRel( 1 );
-#endif
 
     if( s_ForceBlackPen )
     {
@@ -225,7 +220,8 @@ void GRSetColorPen( wxDC* DC, EDA_COLOR_T Color, int width, wxPenStyle style )
     if(   s_DC_lastcolor != Color
        || s_DC_lastwidth != width
        || s_DC_lastpenstyle != style
-       || s_DC_lastDC != DC  )
+       || s_DC_lastDC != DC
+       || s_ForceBlackPen )
     {
         wxPen    pen;
 
@@ -252,7 +248,7 @@ void GRSetBrush( wxDC* DC, EDA_COLOR_T Color, bool fill )
 
     if(   s_DC_lastbrushcolor != Color
        || s_DC_lastbrushfill  != fill
-       || s_DC_lastDC != DC  )
+       || s_DC_lastDC != DC )
     {
         wxBrush brush;
 
@@ -341,7 +337,7 @@ void GRSetDrawMode( wxDC* DC, GR_DRAWMODE draw_mode )
 
         DC->SetLogicalFunction( wxINVERT );
 #endif
-    else
+    else if( draw_mode & GR_COPY )
         DC->SetLogicalFunction( wxCOPY );
 
 #ifdef USE_WX_OVERLAY
@@ -514,8 +510,8 @@ void GRCSegm( EDA_RECT* ClipBox, wxDC* DC, int x1, int y1, int x2, int y2,
         return;
     }
 
+    GRSetBrush( DC, Color, NOT_FILLED );
     GRSetColorPen( DC, Color, aPenSize );
-    GRSetBrush( DC, Color, false );
 
     int radius = (width + 1) >> 1;
     int dx = x2 - x1;
@@ -659,12 +655,10 @@ static void GRSPoly( EDA_RECT* ClipBox, wxDC* DC, int n, wxPoint Points[],
     if( !IsGRSPolyDrawable( ClipBox, n, Points ) )
         return;
 
-    GRSetColorPen( DC, Color, width );
-
     if( Fill && ( n > 2 ) )
     {
         GRSetBrush( DC, BgColor, FILLED );
-
+        GRSetColorPen( DC, Color, width );
 
         /* clip before send the filled polygon to wxDC, because under linux
          * (GTK?) polygons having large coordinates are incorrectly drawn
@@ -695,13 +689,12 @@ static void GRSClosedPoly( EDA_RECT* aClipBox, wxDC* aDC,
     if( !IsGRSPolyDrawable( aClipBox, aPointCount, aPoints ) )
         return;
 
-    GRSetColorPen( aDC, aColor, aWidth );
-
     if( aFill && ( aPointCount > 2 ) )
     {
         GRLastMoveToX = aPoints[aPointCount - 1].x;
         GRLastMoveToY = aPoints[aPointCount - 1].y;
         GRSetBrush( aDC, aBgColor, FILLED );
+        GRSetColorPen( aDC, aColor, aWidth );
         ClipAndDrawPoly( aClipBox, aDC, aPoints, aPointCount );
     }
     else
@@ -774,8 +767,8 @@ void GRCircle( EDA_RECT* ClipBox, wxDC* DC, int xc, int yc, int r, int width, ED
             return;
     }
 
+    GRSetBrush( DC, Color, NOT_FILLED );
     GRSetColorPen( DC, Color, width );
-    GRSetBrush( DC, Color, false );
     DC->DrawEllipse( xc - r, yc - r, r + r, r + r );
 }
 
@@ -803,18 +796,22 @@ void GRFilledCircle( EDA_RECT* ClipBox, wxDC* DC, int x, int y, int r,
         y0 = ClipBox->GetY();
         xm = ClipBox->GetRight();
         ym = ClipBox->GetBottom();
-        if( x < (x0 - r) )
+
+        if( x < ( x0 - r ) )
             return;
-        if( y < (y0 - r) )
+
+        if( y < ( y0 - r ) )
             return;
-        if( x > (r + xm) )
+
+        if( x > ( r + xm ) )
             return;
-        if( y > (r + ym) )
+
+        if( y > ( r + ym ) )
             return;
     }
 
-    GRSetColorPen( DC, Color, width );
     GRSetBrush( DC, BgColor, FILLED );
+    GRSetColorPen( DC, Color, width );
     DC->DrawEllipse( x - r, y - r, r + r, r + r );
 }
 
@@ -860,8 +857,8 @@ void GRArc1( EDA_RECT* ClipBox, wxDC* DC, int x1, int y1, int x2, int y2,
             return;
     }
 
-    GRSetColorPen( DC, Color, width );
     GRSetBrush( DC, Color );
+    GRSetColorPen( DC, Color, width );
     DC->DrawArc( x1, y1, x2, y2, xc, yc );
 }
 
@@ -972,8 +969,8 @@ void GRArc( EDA_RECT* ClipBox, wxDC* DC, int xc, int yc, double StAngle,
     y2 = 0;
     RotatePoint( &x2, &y2, StAngle );
 
+    GRSetBrush( DC, Color, NOT_FILLED );
     GRSetColorPen( DC, Color );
-    GRSetBrush( DC, Color, false );
     DC->DrawArc( xc + x1, yc - y1, xc + x2, yc - y2, xc, yc );
 }
 
@@ -1023,8 +1020,8 @@ void GRArc( EDA_RECT* ClipBox,
     y2 = 0;
     RotatePoint( &x2, &y2, StAngle );
 
-    GRSetColorPen( DC, Color, width );
     GRSetBrush( DC, Color );
+    GRSetColorPen( DC, Color, width );
     DC->DrawArc( x + x1, y - y1, x + x2, y - y2, x, y );
 }
 
@@ -1116,6 +1113,7 @@ void GRSFilledRect( EDA_RECT* aClipBox, wxDC* aDC, int x1, int y1, int x2, int y
     points[2] = wxPoint(x2, y2);
     points[3] = wxPoint(x2, y1);
     points[4] = points[0];
+
     GRSetBrush( aDC, aBgColor, FILLED );
     GRSetColorPen( aDC, aBgColor, aWidth );
 

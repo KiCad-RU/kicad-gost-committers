@@ -28,9 +28,9 @@ if(KICAD_GOST)
 endif()
 
 include_directories( BEFORE ${INC_BEFORE} )
-
 include_directories(
     ./dialogs
+    ./netlist_exporters
     ${BOM_INCLUDE_DIR}
     ${GOST_DOC_GEN_INCLUDE_DIR}
     ../common
@@ -74,6 +74,8 @@ set( EESCHEMA_DLGS
     dialogs/dialog_libedit_options.cpp
     dialogs/dialog_lib_edit_pin.cpp
     dialogs/dialog_lib_edit_pin_base.cpp
+    dialogs/dialog_lib_edit_pin_table.cpp
+    dialogs/dialog_lib_edit_pin_table_base.cpp
     dialogs/dialog_lib_new_component.cpp
     dialogs/dialog_lib_new_component_base.cpp
     dialogs/dialog_netlist.cpp
@@ -187,6 +189,13 @@ set( EESCHEMA_SRCS
     transform.cpp
     viewlib_frame.cpp
     viewlibs.cpp
+
+    netlist_exporters/netlist_exporter.cpp
+    netlist_exporters/netlist_exporter_cadstar.cpp
+    netlist_exporters/netlist_exporter_generic.cpp
+    netlist_exporters/netlist_exporter_kicad.cpp
+    netlist_exporters/netlist_exporter_orcadpcb2.cpp
+    netlist_exporters/netlist_exporter_pspice.cpp
     )
 
 
