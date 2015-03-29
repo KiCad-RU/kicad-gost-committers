@@ -195,7 +195,7 @@ static EDA_HOTKEY HkSwitchTrackWidthToNext( _HKI( "Switch Track Width To Next" )
                                             HK_SWITCH_TRACK_WIDTH_TO_NEXT, 'W' + GR_KB_CTRL );
 
 static EDA_HOTKEY HkSwitchTrackWidthToPrevious( _HKI( "Switch Track Width To Previous" ),
-                                                HK_SWITCH_TRACK_WIDTH_TO_PREVIOUS, 'Q'
+                                                HK_SWITCH_TRACK_WIDTH_TO_PREVIOUS, 'T'
                                                 + GR_KB_CTRL );
 
 static EDA_HOTKEY HkSwitchGridToFastGrid1( _HKI( "Switch Grid To Fast Grid1" ),
