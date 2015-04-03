@@ -480,9 +480,20 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     //----- Preferences and configuration menu------------------------------------
     wxMenu* configmenu = new wxMenu;
 
+    AddMenuItem( configmenu, ID_PCB_LIB_WIZARD,
+                _( "&Footprint Libraries Wizard" ), _( "Add footprint libraries with wizard" ),
+                KiBitmap( wizard_add_fplib_small_xpm ) );
+
     AddMenuItem( configmenu, ID_PCB_LIB_TABLE_EDIT,
-                _( "Footprint Li&braries" ), _( "Configure footprint libraries" ),
+                _( "Footprint Li&braries Manager" ), _( "Configure footprint libraries" ),
                 KiBitmap( library_table_xpm ) );
+
+    // Path configuration edit dialog.
+    AddMenuItem( configmenu,
+                 ID_PREFERENCES_CONFIGURE_PATHS,
+                 _( "Configure Pa&ths" ),
+                 _( "Edit path configuration environment variables" ),
+                 KiBitmap( editor_xpm ) );
 
     // Colors and Visibility are also handled by the layers manager toolbar
     AddMenuItem( configmenu, ID_MENU_PCB_SHOW_HIDE_LAYERS_MANAGER_DIALOG,

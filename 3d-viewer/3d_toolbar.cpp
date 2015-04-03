@@ -178,13 +178,17 @@ void EDA_3D_FRAME::CreateMenuBar()
     AddMenuItem( renderOptionsMenu, ID_MENU3D_FL_RENDER_SMOOTH_NORMALS,
         _( "Render Smooth Normals" ),
         KiBitmap( green_xpm ), wxITEM_CHECK );
-    
+
     AddMenuItem( renderOptionsMenu, ID_MENU3D_FL_RENDER_USE_MODEL_NORMALS,
         _( "Use Model Normals" ),
         KiBitmap( green_xpm ), wxITEM_CHECK );
 
     AddMenuItem( renderOptionsMenu, ID_MENU3D_FL_RENDER_MATERIAL,
         _( "Render Material Properties" ),
+        KiBitmap( green_xpm ), wxITEM_CHECK );
+
+    AddMenuItem( renderOptionsMenu, ID_MENU3D_FL_RENDER_SHOW_MODEL_BBOX,
+        _( "Show Model Bounding Boxes" ),
         KiBitmap( green_xpm ), wxITEM_CHECK );
 
     prefsMenu->AppendSeparator();
@@ -299,6 +303,9 @@ void EDA_3D_FRAME::SetMenuBarOptionsState()
 
     item = menuBar->FindItem( ID_MENU3D_FL_RENDER_MATERIAL );
     item->Check( GetPrm3DVisu().GetFlag( FL_RENDER_MATERIAL ) );
+
+    item = menuBar->FindItem( ID_MENU3D_FL_RENDER_SHOW_MODEL_BBOX );
+    item->Check( GetPrm3DVisu().GetFlag( FL_RENDER_SHOW_MODEL_BBOX ) );
 
     item = menuBar->FindItem( ID_MENU3D_SHOW_BOARD_BODY );
     item->Check( GetPrm3DVisu().GetFlag( FL_SHOW_BOARD_BODY ) );
