@@ -44,6 +44,8 @@ public:
     wxString    m_net;
     wxString    m_lineType; // Wire, Bus, ...
     TTEXTVALUE  m_labelText;
+    wxString    m_start_endStyle;
+    wxString    m_end_endStyle;
 
     SCH_LINE( wxString aLineType = wxT( '?' ) );
     ~SCH_LINE();

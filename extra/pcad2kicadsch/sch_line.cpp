@@ -38,11 +38,13 @@ namespace PCAD2KICAD {
 
 SCH_LINE::SCH_LINE( wxString aLineType )
 {
-    m_objType  = wxT( "line" );
-    m_lineType = aLineType;
-    m_toX      = 0;
-    m_toY      = 0;
-    m_net      = wxEmptyString;
+    m_objType        = wxT( "line" );
+    m_lineType       = aLineType;
+    m_toX            = 0;
+    m_toY            = 0;
+    m_net            = wxEmptyString;
+    m_start_endStyle = wxT( "Rounded" );
+    m_end_endStyle   = wxT( "Rounded" );
     InitTTextValue( &m_labelText );
 }
 
@@ -70,12 +72,32 @@ void SCH_LINE::Parse( XNODE*   aNode, int aSymbolIndex,
 
         lNode = lNode->GetNext();
 
+        if( lNode && lNode->GetName() == wxT( "endStyle" ) )
+        {
+            m_start_endStyle = lNode->GetNodeContent();
+            m_start_endStyle.Trim( false );
+            m_start_endStyle.Trim( true );
+            lNode = lNode->GetNext();
+        }
+
         while( lNode && lNode->GetName() != wxT( "pt" ) )
             lNode = lNode->GetNext();
 
         if( lNode )
+        {
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &m_toX, &m_toY, aActualConversion );
+
+            lNode = lNode->GetNext();
+
+            if( lNode && lNode->GetName() == wxT( "endStyle" ) )
+            {
+                m_end_endStyle = lNode->GetNodeContent();
+                m_end_endStyle.Trim( false );
+                m_end_endStyle.Trim( true );
+                lNode = lNode->GetNext();
+            }
+        }
     }
 
     if( FindNode( aNode, wxT( "netNameRef" ) ) )
@@ -141,6 +163,7 @@ void SCH_LINE::SetPosOffset( int aX_offs, int aY_offs )
 void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
 {
     wxString lt;
+    int prevX;
 
     if( aFileType == wxT( 'L' ) )
         aFile->Write( wxString::Format( wxT( "P 2 %d 0 %d %d %d %d %d N\n" ),
@@ -154,7 +177,34 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
     if( aFileType == wxT( 'S' ) )
     {
         if( m_lineType == wxT( 'W' ) )
+        {
             lt = wxT( "Wire" );
+
+            if( m_start_endStyle == wxT( "RightLead" ) ||
+                m_start_endStyle == wxT( "LeftLead" ) )
+            {
+                // place wires to bus entries
+                prevX = m_positionX;
+
+                if( m_toX > m_positionX )
+                    m_positionX += 100;
+                else
+                    m_positionX -= 100;
+
+                aFile->Write( wxT( "Entry " ) + lt + wxT( " Line\n" ) );
+
+                if( (m_start_endStyle == wxT( "RightLead" )) != (m_toX > m_positionX) )
+                {
+                    aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
+                                                    m_positionX, m_positionY, prevX, m_positionY + 100 ) );
+                }
+                else
+                {
+                    aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
+                                                    m_positionX, m_positionY, prevX, m_positionY - 100 ) );
+                }
+            }
+        }
 
         if( m_lineType == wxT( 'B' ) )
             lt = wxT( "Bus" );
