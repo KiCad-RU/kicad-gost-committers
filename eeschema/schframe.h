@@ -740,6 +740,9 @@ public:
 
     // General search:
 
+    bool IsSearchCacheObsolete( const SCH_FIND_REPLACE_DATA& aSearchCriteria );
+
+
 private:
 
     /**

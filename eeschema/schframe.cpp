@@ -283,7 +283,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
 
     EVT_MENU_RANGE( ID_POPUP_GENERAL_START_RANGE, ID_POPUP_GENERAL_END_RANGE,
                     SCH_EDIT_FRAME::Process_Special_Functions )
-    EVT_MENU_RANGE( ID_POPUP_SCH_SELECT_UNIT1, ID_POPUP_SCH_SELECT_UNIT26,
+    EVT_MENU_RANGE( ID_POPUP_SCH_SELECT_UNIT1, ID_POPUP_SCH_SELECT_UNIT_CMP_MAX,
                     SCH_EDIT_FRAME::OnSelectUnit )
     EVT_MENU_RANGE( ID_POPUP_SCH_CHANGE_TYPE_TEXT, ID_POPUP_SCH_CHANGE_TYPE_TEXT_TO_COMMENT,
                     SCH_EDIT_FRAME::OnConvertTextType )
@@ -728,8 +728,7 @@ void SCH_EDIT_FRAME::OnModify()
     GetScreen()->SetModify();
     GetScreen()->SetSave();
 
-    if( m_dlgFindReplace == NULL )
-        m_foundItems.SetForceSearch();
+    m_foundItems.SetForceSearch();
 }
 
 
@@ -1017,9 +1016,10 @@ void SCH_EDIT_FRAME::OnOpenCvpcb( wxCommandEvent& event )
         if( !player )
         {
             player = Kiway().Player( FRAME_CVPCB, true );
-            player->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
             player->Show( true );
+            player->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
         }
+
         player->Raise();
     }
 }
