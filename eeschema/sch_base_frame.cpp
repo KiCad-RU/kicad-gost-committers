@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2012 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,6 +28,9 @@
 #include <base_units.h>
 #include <kiway.h>
 
+// Sttaic members:
+
+
 SCH_BASE_FRAME::SCH_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent,
         FRAME_T aWindowType, const wxString& aTitle,
         const wxPoint& aPosition, const wxSize& aSize, long aStyle,
@@ -35,10 +38,12 @@ SCH_BASE_FRAME::SCH_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent,
     EDA_DRAW_FRAME( aKiway, aParent, aWindowType, aTitle, aPosition,
             aSize, aStyle, aFrameName )
 {
-    m_zoomLevelCoeff = 11.0;     // Adjusted to roughly displays zoom level = 1
+    m_zoomLevelCoeff = 11.0;    // Adjusted to roughly displays zoom level = 1
                                 // when the screen shows a 1:1 image
                                 // obviously depends on the monitor,
                                 // but this is an acceptable value
+    m_repeatStep = wxPoint( DEFAULT_REPEAT_OFFSET_X, DEFAULT_REPEAT_OFFSET_Y );
+    m_repeatDeltaLabel = DEFAULT_REPEAT_LABEL_INC;
 }
 
 
@@ -148,17 +153,17 @@ void SCH_BASE_FRAME::UpdateStatusBar()
     {
     case INCHES:
         absformatter = wxT( "X %.3f  Y %.3f" );
-        locformatter = wxT( "dx %.3f  dy %.3f  d %.3f" );
+        locformatter = wxT( "dx %.3f  dy %.3f  dist %.3f" );
         break;
 
     case MILLIMETRES:
         absformatter = wxT( "X %.2f  Y %.2f" );
-        locformatter = wxT( "dx %.2f  dy %.2f  d %.2f" );
+        locformatter = wxT( "dx %.2f  dy %.2f  dist %.2f" );
         break;
 
     case UNSCALED_UNITS:
         absformatter = wxT( "X %f  Y %f" );
-        locformatter = wxT( "dx %f  dy %f  d %f" );
+        locformatter = wxT( "dx %f  dy %f  dist %f" );
         break;
 
     case DEGREES:

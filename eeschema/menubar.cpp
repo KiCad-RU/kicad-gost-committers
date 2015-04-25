@@ -102,7 +102,7 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     }
 
     AddMenuItem( fileMenu,
-                 ID_APPEND_PROJECT, _( "&Append Schematic Sheet" ),
+                 ID_APPEND_PROJECT, _( "App&end Schematic Sheet" ),
                  _( "Append schematic sheet to current project" ),
                  KiBitmap( open_document_xpm ) );
 
@@ -125,7 +125,7 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     {
         AddMenuItem( fileMenu,
                      ID_SAVE_ONE_SHEET_UNDER_NEW_NAME,
-                     _( "Save Current Sheet &As" ),
+                     _( "Save C&urrent Sheet As" ),
                      _( "Save current schematic sheet as..." ),
                      KiBitmap( save_as_xpm ) );
     }
@@ -156,7 +156,7 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     // Plot to Clipboard (Windows only)
 
     AddMenuItem( choice_plot_fmt, ID_GEN_COPY_SHEET_TO_CLIPBOARD,
-                 _( "Plot to &Clipboard" ),
+                 _( "Plot to C&lipboard" ),
                  _( "Export drawings to clipboard" ),
                  KiBitmap( copy_button_xpm ) );
 
@@ -183,8 +183,8 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     // Quit
     AddMenuItem( fileMenu,
                  wxID_EXIT,
-                 _( "&Quit" ),
-                 _( "Quit Eeschema" ),
+                 _( "&Close" ),
+                 _( "Close Eeschema" ),
                  KiBitmap( exit_xpm ) );
 
     // Menu Edit:
@@ -335,7 +335,7 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                  KiBitmap( add_hierarchical_label_xpm ) );
 
 
-    text = AddHotkeyName( _( "H&ierarchical &Sheet" ), g_Schematic_Hokeys_Descr,
+    text = AddHotkeyName( _( "Hierarchical &Sheet" ), g_Schematic_Hokeys_Descr,
                           HK_ADD_HIER_SHEET, IS_ACCELERATOR );    // add an accelerator, not a shortcut
     AddMenuItem( placeMenu, ID_SHEET_SYMBOL_BUTT, text,
                  HELP_PLACE_SHEET,
@@ -355,20 +355,20 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
 
     placeMenu->AppendSeparator();
 
-    text = AddHotkeyName( _( "Graphic Polyline" ), g_Schematic_Hokeys_Descr,
+    text = AddHotkeyName( _( "Graphic Pol&yline" ), g_Schematic_Hokeys_Descr,
                           HK_ADD_GRAPHIC_POLYLINE, IS_ACCELERATOR );    // add an accelerator, not a shortcut
     AddMenuItem( placeMenu, ID_LINE_COMMENT_BUTT, text,
                  HELP_PLACE_GRAPHICLINES,
                  KiBitmap( add_dashed_line_xpm ) );
 
-    text = AddHotkeyName( _( "Graphic Text" ), g_Schematic_Hokeys_Descr,
+    text = AddHotkeyName( _( "&Graphic Text" ), g_Schematic_Hokeys_Descr,
                           HK_ADD_GRAPHIC_TEXT, IS_ACCELERATOR );    // add an accelerator, not a shortcut
     AddMenuItem( placeMenu, ID_TEXT_COMMENT_BUTT, text,
                  HELP_PLACE_GRAPHICTEXTS,
                  KiBitmap( add_text_xpm ) );
 
     // Graphic image
-    AddMenuItem( placeMenu, ID_ADD_IMAGE_BUTT, _( "Image" ),
+    AddMenuItem( placeMenu, ID_ADD_IMAGE_BUTT, _( "&Image" ),
                  HELP_PLACE_GRAPHICIMAGES,
                  KiBitmap( image_xpm ) );
 

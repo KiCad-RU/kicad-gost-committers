@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Nov  5 2014)
+// C++ code generated with wxFormBuilder (version Jun  5 2014)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -22,9 +22,9 @@ class DIALOG_SHIM;
 #include <wx/settings.h>
 #include <wx/choice.h>
 #include <wx/sizer.h>
+#include <wx/textctrl.h>
 #include <wx/panel.h>
 #include <wx/checkbox.h>
-#include <wx/textctrl.h>
 #include <wx/scrolwin.h>
 #include <wx/button.h>
 #include <wx/dialog.h>
@@ -192,6 +192,9 @@ class DIALOG_LAYERS_SETUP_BASE : public DIALOG_SHIM
 		wxChoice* m_PresetsChoice;
 		wxStaticText* m_staticTextCopperLayers;
 		wxChoice* m_CopperLayersChoice;
+		wxStaticText* m_staticTextBrdThickness;
+		wxTextCtrl* m_textCtrlBrdThickness;
+		wxStaticText* m_staticTextBrdThicknessUnit;
 		wxStaticText* m_staticTextLayers;
 		wxPanel* m_TitlePanel;
 		wxScrolledWindow* m_LayersListPanel;
@@ -396,11 +399,12 @@ class DIALOG_LAYERS_SETUP_BASE : public DIALOG_SHIM
 		wxPanel* m_DrawingsPanel;
 		wxCheckBox* m_DrawingsCheckBox;
 		wxStaticText* m_DrawingsStaticText;
-		wxStdDialogButtonSizer* m_sdbSizer2;
-		wxButton* m_sdbSizer2OK;
-		wxButton* m_sdbSizer2Cancel;
+		wxStdDialogButtonSizer* m_sdbSizer;
+		wxButton* m_sdbSizerOK;
+		wxButton* m_sdbSizerCancel;
 		
 		// Virtual event handlers, overide them in your derived class
+		virtual void OnSize( wxSizeEvent& event ) { event.Skip(); }
 		virtual void OnPresetsChoice( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnCopperLayersChoice( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnCheckBox( wxCommandEvent& event ) { event.Skip(); }
