@@ -51,6 +51,8 @@
 #include <view/view.h>
 #include <view/view_controls.h>
 #include <gal/graphics_abstraction_layer.h>
+#include <tool/tool_manager.h>
+#include <tool/tool_dispatcher.h>
 
 /**
  * Definition for enabling and disabling scroll bar setting trace output.  See the
@@ -110,6 +112,8 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent,
     m_canvas              = NULL;
     m_galCanvas           = NULL;
     m_galCanvasActive     = false;
+    m_toolManager         = NULL;
+    m_toolDispatcher      = NULL;
     m_messagePanel        = NULL;
     m_currentScreen       = NULL;
     m_toolId              = ID_NO_TOOL_SELECTED;
@@ -180,6 +184,10 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent,
 
 EDA_DRAW_FRAME::~EDA_DRAW_FRAME()
 {
+    delete m_toolManager;
+    delete m_toolDispatcher;
+    delete m_galCanvas;
+
     delete m_currentScreen;
     m_currentScreen = NULL;
 
@@ -361,7 +369,7 @@ void EDA_DRAW_FRAME::OnSelectGrid( wxCommandEvent& event )
 
     if( event.GetEventType() == wxEVT_COMMAND_COMBOBOX_SELECTED )
     {
-        if( m_gridSelectBox == NULL )
+        if( m_gridSelectBox == NULL )   // Should no happen
             return;
 
         /*
@@ -379,47 +387,17 @@ void EDA_DRAW_FRAME::OnSelectGrid( wxCommandEvent& event )
     else
     {
         eventId = event.GetId();
-
-        /* Update the grid select combobox if the grid size was changed
-         * by menu event.
-         */
-        if( m_gridSelectBox != NULL )
-        {
-            for( size_t i = 0; i < m_gridSelectBox->GetCount(); i++ )
-            {
-                clientData = (int*) m_gridSelectBox->wxItemContainer::GetClientData( i );
-
-                if( clientData && eventId == *clientData )
-                {
-                    m_gridSelectBox->SetSelection( i );
-                    break;
-                }
-            }
-        }
     }
 
-    // Be sure m_LastGridSizeId is up to date.
-    m_LastGridSizeId = eventId - ID_POPUP_GRID_LEVEL_1000;
+    int idx = eventId - ID_POPUP_GRID_LEVEL_1000;
 
-    BASE_SCREEN* screen = GetScreen();
+    // Notify GAL
+    TOOL_MANAGER* mgr = GetToolManager();
 
-    if( screen->GetGridId() == eventId )
-        return;
-
-    /*
-     * This allows for saving non-sequential command ID offsets used that
-     * may be used in the grid size combobox.  Do not use the selection
-     * index returned by GetSelection().
-     */
-    screen->SetGrid( eventId );
-    SetCrossHairPosition( RefPos( true ) );
-
-    if( IsGalCanvasActive() )
-    {
-        GetGalCanvas()->GetGAL()->SetGridSize( VECTOR2D( screen->GetGrid().m_Size.x,
-                                                         screen->GetGrid().m_Size.y ) );
-        GetGalCanvas()->GetView()->MarkTargetDirty( KIGFX::TARGET_NONCACHED );
-    }
+    if( mgr && IsGalCanvasActive() )
+        mgr->RunAction( "common.Control.gridPreset", true, idx );
+    else
+        SetPresetGrid( idx );
 
     m_canvas->Refresh();
 }
@@ -448,22 +426,14 @@ void EDA_DRAW_FRAME::OnSelectZoom( wxCommandEvent& event )
             return;
 
         GetScreen()->SetZoom( selectedZoom );
-
-        if( IsGalCanvasActive() )
-        {
-            // Apply computed view settings to GAL
-            KIGFX::VIEW* view = GetGalCanvas()->GetView();
-            KIGFX::GAL* gal = GetGalCanvas()->GetGAL();
-
-            double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
-            double zoom = 1.0 / ( zoomFactor * GetZoom() );
-
-            view->SetScale( zoom );
-            GetGalCanvas()->Refresh();
-        }
-        else
-            RedrawScreen( GetScrollCenterPosition(), false );
+        RedrawScreen( GetScrollCenterPosition(), false );
     }
+
+    // Notify GAL
+    TOOL_MANAGER* mgr = GetToolManager();
+
+    if( mgr && IsGalCanvasActive() )
+        mgr->RunAction( "common.Control.zoomPreset", true, id );
 }
 
 
@@ -556,33 +526,49 @@ wxPoint EDA_DRAW_FRAME::GetGridPosition( const wxPoint& aPosition ) const
 
 void EDA_DRAW_FRAME::SetNextGrid()
 {
-    if( m_gridSelectBox )
-    {
-        m_gridSelectBox->SetSelection( ( m_gridSelectBox->GetSelection() + 1 ) %
-                                       m_gridSelectBox->GetCount() );
+    BASE_SCREEN * screen = GetScreen();
+    int grid_cnt = screen->GetGridCount();
 
-        wxCommandEvent cmd( wxEVT_COMMAND_COMBOBOX_SELECTED );
-        //        cmd.SetEventObject( this );
-        OnSelectGrid( cmd );
-    }
+    int new_grid_idx = screen->GetGridId() - ID_POPUP_GRID_LEVEL_1000 + 1;
+
+    if( new_grid_idx >= grid_cnt )
+        new_grid_idx = 0;
+
+   SetPresetGrid( new_grid_idx );
 }
 
 
 void EDA_DRAW_FRAME::SetPrevGrid()
 {
+    BASE_SCREEN * screen = GetScreen();
+    int grid_cnt = screen->GetGridCount();
+
+    int new_grid_idx = screen->GetGridId() - ID_POPUP_GRID_LEVEL_1000 - 1;
+
+    if( new_grid_idx < 0 )
+        new_grid_idx = grid_cnt - 1;
+
+    SetPresetGrid( new_grid_idx );
+}
+
+
+void EDA_DRAW_FRAME::SetPresetGrid( int aIndex )
+{
     if( m_gridSelectBox )
     {
-        int cnt = m_gridSelectBox->GetSelection();
+        if( aIndex < 0 || aIndex >= (int) m_gridSelectBox->GetCount() )
+        {
+            wxASSERT_MSG( false, "Invalid grid index" );
+            return;
+        }
 
-        if( --cnt < 0 )
-            cnt = m_gridSelectBox->GetCount() - 1;
-
-        m_gridSelectBox->SetSelection( cnt );
-
-        wxCommandEvent cmd( wxEVT_COMMAND_COMBOBOX_SELECTED );
-        //        cmd.SetEventObject( this );
-        OnSelectGrid( cmd );
+        m_gridSelectBox->SetSelection( aIndex );
     }
+
+    // Be sure m_LastGridSizeId is up to date.
+    m_LastGridSizeId = aIndex;
+    GetScreen()->SetGrid( aIndex + ID_POPUP_GRID_LEVEL_1000 );
+    SetCrossHairPosition( RefPos( true ) );
 }
 
 
@@ -1018,38 +1004,29 @@ void EDA_DRAW_FRAME::UseGalCanvas( bool aEnable )
     KIGFX::GAL* gal = GetGalCanvas()->GetGAL();
 
     double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
+    BASE_SCREEN* screen = GetScreen();
 
     // Display the same view after canvas switching
-    if( aEnable )
+    if( aEnable )       // Switch to GAL rendering
     {
-        BASE_SCREEN* screen = GetScreen();
-
-        // Switch to GAL rendering
-        if( !IsGalCanvasActive() )
-        {
-            // Set up viewport
-            double zoom = 1.0 / ( zoomFactor * m_canvas->GetZoom() );
-            view->SetScale( zoom );
-            view->SetCenter( VECTOR2D( m_canvas->GetScreenCenterLogicalPosition() ) );
-        }
+        // Set up viewport
+        double zoom = 1.0 / ( zoomFactor * m_canvas->GetZoom() );
+        view->SetScale( zoom );
+        view->SetCenter( VECTOR2D( m_canvas->GetScreenCenterLogicalPosition() ) );
 
         // Set up grid settings
         gal->SetGridVisibility( IsGridVisible() );
-        gal->SetGridSize( VECTOR2D( screen->GetGridSize().x, screen->GetGridSize().y ) );
+        gal->SetGridSize( VECTOR2D( screen->GetGridSize() ) );
         gal->SetGridOrigin( VECTOR2D( GetGridOrigin() ) );
     }
-    else
+    else                // Switch to standard rendering
     {
-        // Switch to standard rendering
-        if( IsGalCanvasActive() )
-        {
-            // Change view settings only if GAL was active previously
-            double zoom = 1.0 / ( zoomFactor * view->GetScale() );
-            m_canvas->SetZoom( zoom );
+        // Change view settings only if GAL was active previously
+        double zoom = 1.0 / ( zoomFactor * view->GetScale() );
+        m_canvas->SetZoom( zoom );
 
-            VECTOR2D center = view->GetCenter();
-            RedrawScreen( wxPoint( center.x, center.y ), false );
-        }
+        VECTOR2D center = view->GetCenter();
+        AdjustScrollBars( wxPoint( center.x, center.y ) );
     }
 
     m_canvas->SetEvtHandlerEnabled( !aEnable );

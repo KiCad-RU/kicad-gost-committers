@@ -33,6 +33,7 @@
 #include <gestfich.h>
 #include <schframe.h>
 #include <invoke_sch_dialog.h>
+#include <kiface_i.h>
 
 #include <general.h>
 #include <netlist.h>
@@ -41,6 +42,7 @@
 #include <wildcards_and_files_ext.h>
 #include <wx/tokenzr.h>
 #include <dialog_eeschema_config_fbp.h>
+#include <eeschema_config.h>
 
 
 class SCH_EDIT_FRAME;
@@ -54,6 +56,7 @@ public:
             wxString* aCallersProjectSpecificLibPaths, wxArrayString* aCallersLibNames );
 
 private:
+    wxConfigBase*   m_config;
     wxString*       m_callers_project_specific_lib_paths;
     wxArrayString*  m_callers_lib_names;
 
@@ -123,6 +126,12 @@ DIALOG_EESCHEMA_CONFIG::DIALOG_EESCHEMA_CONFIG( wxWindow* aParent,
     // select the first path after the current project's path
     if( libpaths->GetCount() > 1 )
         m_DefaultLibraryPathslistBox->Select( 1 );
+
+    // Load setting for cache rescue
+    m_config = Kiface().KifaceSettings();
+    bool rescueNeverShow = false;
+    m_config->Read( RESCUE_NEVER_SHOW_KEY, &rescueNeverShow, false );
+    m_cbRescue->SetValue( !rescueNeverShow );
 
     wxString msg = wxString::Format( _(
         "Project '%s'" ),
@@ -240,6 +249,8 @@ void DIALOG_EESCHEMA_CONFIG::OnOkClick( wxCommandEvent& event )
         // Recreate lib list
         *m_callers_lib_names = list;
     }
+
+    m_config->Write( RESCUE_NEVER_SHOW_KEY, ! m_cbRescue->GetValue() );
 
     EndModal( wxID_OK );
 }
