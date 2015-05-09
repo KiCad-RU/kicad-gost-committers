@@ -353,6 +353,18 @@ struct EDA_HOTKEY_CONFIG g_Viewlib_Hokeys_Descr[] =
     { NULL,                NULL,                 NULL }
 };
 
+
+EDA_HOTKEY* SCH_EDIT_FRAME::GetHotKeyDescription( int aCommand ) const
+{
+    EDA_HOTKEY* HK_Descr = GetDescriptorFromCommand( aCommand, common_Hotkey_List );
+
+    if( HK_Descr == NULL )
+        HK_Descr = GetDescriptorFromCommand( aCommand, schematic_Hotkey_List );
+
+    return HK_Descr;
+}
+
+
 /*
  * Hot keys. Some commands are relative to the item under the mouse cursor
  * Commands are case insensitive
@@ -428,7 +440,7 @@ bool SCH_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
     case HK_ZOOM_CENTER:
     case HK_ZOOM_AUTO:
     case HK_MOVEBLOCK_TO_DRAGBLOCK:          // Switch to drag mode, when block moving
-    case HK_SAVE_BLOCK:                      // Copy block to clip board.
+    case HK_SAVE_BLOCK:                      // Copy block to paste buffer.
         cmd.SetId( hotKey->m_IdMenuEvent );
         GetEventHandler()->ProcessEvent( cmd );
         break;
@@ -578,6 +590,17 @@ bool SCH_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
 
     // Hot key handled.
     return true;
+}
+
+
+EDA_HOTKEY* LIB_EDIT_FRAME::GetHotKeyDescription( int aCommand ) const
+{
+    EDA_HOTKEY* HK_Descr = GetDescriptorFromCommand( aCommand, common_Hotkey_List );
+
+    if( HK_Descr == NULL )
+        HK_Descr = GetDescriptorFromCommand( aCommand, libEdit_Hotkey_List );
+
+    return HK_Descr;
 }
 
 
@@ -748,6 +771,18 @@ bool LIB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
     // Hot key handled.
     return true;
 }
+
+
+EDA_HOTKEY* LIB_VIEW_FRAME::GetHotKeyDescription( int aCommand ) const
+{
+    EDA_HOTKEY* HK_Descr = GetDescriptorFromCommand( aCommand, common_Hotkey_List );
+
+    if( HK_Descr == NULL )
+        HK_Descr = GetDescriptorFromCommand( aCommand, viewlib_Hotkey_List );
+
+    return HK_Descr;
+}
+
 
 bool LIB_VIEW_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
                                      EDA_ITEM* aItem )

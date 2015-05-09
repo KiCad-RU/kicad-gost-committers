@@ -31,9 +31,9 @@
 
 #ifndef KICAD_BUILD_VERSION
 #if defined KICAD_GOST
-#   define KICAD_BUILD_VERSION "(after 2015-apr-15 BZR ???? GOST (bzr????-testing))"
+#   define KICAD_BUILD_VERSION "(after 2015-may-01 BZR ???? GOST (bzr????-testing))"
 #else
-#   define KICAD_BUILD_VERSION "(after 2015-apr-15 BZR unknown)"
+#   define KICAD_BUILD_VERSION "(after 2015-may-01 BZR unknown)"
 #endif
 #endif
 

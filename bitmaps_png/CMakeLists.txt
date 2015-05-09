@@ -337,6 +337,7 @@ set( BMAPS_MID
     library_table
     libview
     lines90
+    list_nets
     load_module_board
     load_module_lib
     local_ratsnest
@@ -535,6 +536,8 @@ set( BMAPS_MID
     up
     use_3D_copper_thickness
     via
+    via_buried
+    via_microvia
     via_sketch
     warning
     web_support

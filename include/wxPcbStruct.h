@@ -125,6 +125,12 @@ protected:
     void createPopUpBlockMenu( wxMenu* menu );
     void createPopUpMenuForMarkers( MARKER_PCB* aMarker, wxMenu* aPopMenu );
 
+    /**
+     * an helper function to enable some menus only active when the display
+     * is switched to GAL mode and which do nothing in legacy mode
+     */
+    void enableGALSpecificMenus();
+
 
     // Has meaning only if DKICAD_SCRIPTING_WXPYTHON option is on
     /**
@@ -430,6 +436,9 @@ public:
     {
         m_useCmpFileForFpNames = aUseCmpfile;
     }
+
+    ///> @copydoc EDA_DRAW_FRAME::GetHotKeyDescription()
+    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const;
 
     /**
      * Function OnHotKey.
