@@ -62,6 +62,7 @@ public:
     SELECT_MENU()
     {
         Add( COMMON_ACTIONS::selectConnection );
+        Add( COMMON_ACTIONS::selectCopper );
         Add( COMMON_ACTIONS::selectNet );
     }
 };
@@ -88,7 +89,7 @@ bool SELECTION_TOOL::Init()
     m_selection.group = new KIGFX::VIEW_GROUP;
 
     m_menu.AddMenu( new SELECT_MENU, _( "Select..." ), false,
-            (SELECTION_CONDITION) SELECTION_CONDITIONS::OnlyConnectedItems &&
+            ( SELECTION_CONDITIONS::OnlyType( PCB_VIA_T ) || SELECTION_CONDITIONS::OnlyType( PCB_TRACE_T ) ) &&
             SELECTION_CONDITIONS::Count( 1 ) );
 
     m_menu.AddSeparator( SELECTION_CONDITIONS::ShowAlways, 1000 );
@@ -257,6 +258,11 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
         else if( evt->IsAction( &COMMON_ACTIONS::selectConnection ) )
         {
             selectConnection( *evt );
+        }
+
+        else if( evt->IsAction( &COMMON_ACTIONS::selectCopper ) )
+        {
+            selectCopper( *evt );
         }
 
         else if( evt->IsAction( &COMMON_ACTIONS::selectNet ) )
@@ -459,6 +465,7 @@ void SELECTION_TOOL::SetTransitions()
     Go( &SELECTION_TOOL::find, COMMON_ACTIONS::find.MakeEvent() );
     Go( &SELECTION_TOOL::findMove, COMMON_ACTIONS::findMove.MakeEvent() );
     Go( &SELECTION_TOOL::selectConnection, COMMON_ACTIONS::selectConnection.MakeEvent() );
+    Go( &SELECTION_TOOL::selectCopper, COMMON_ACTIONS::selectCopper.MakeEvent() );
     Go( &SELECTION_TOOL::selectNet, COMMON_ACTIONS::selectNet.MakeEvent() );
 }
 
@@ -561,6 +568,35 @@ int SELECTION_TOOL::UnselectItem( const TOOL_EVENT& aEvent )
 
 
 int SELECTION_TOOL::selectConnection( const TOOL_EVENT& aEvent )
+{
+    BOARD_CONNECTED_ITEM* item = m_selection.Item<BOARD_CONNECTED_ITEM>( 0 );
+    int segmentCount;
+
+    if( item->Type() != PCB_TRACE_T && item->Type() != PCB_VIA_T )
+        return 0;
+
+    clearSelection();
+    TRACK* trackList = getModel<BOARD>()->MarkTrace( static_cast<TRACK*>( item ), &segmentCount,
+                                                        NULL, NULL, true );
+
+    if( segmentCount == 0 )
+        return 0;
+
+    for( int i = 0; i < segmentCount; ++i )
+    {
+        select( trackList );
+        trackList = trackList->Next();
+    }
+
+    // Inform other potentially interested tools
+    TOOL_EVENT selectEvent( SelectedEvent );
+    m_toolMgr->ProcessEvent( selectEvent );
+
+    return 0;
+}
+
+
+int SELECTION_TOOL::selectCopper( const TOOL_EVENT& aEvent )
 {
     std::list<BOARD_CONNECTED_ITEM*> itemsList;
     RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
@@ -690,7 +726,7 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
         wxString text;
         BOARD_ITEM* item = ( *aCollector )[i];
         text = item->GetSelectMenuText();
-        menu.Add( text, i );
+        menu.Add( text, i + 1 );
     }
 
     menu.SetTitle( _( "Clarify selection" ) );
@@ -706,9 +742,9 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
             int id = *evt->GetCommandId();
 
             // User has pointed an item, so show it in a different way
-            if( id >= 0 && id < limit )
+            if( id > 0 && id <= limit )
             {
-                current = ( *aCollector )[id];
+                current = ( *aCollector )[id - 1];
                 current->SetBrightened();
             }
             else
@@ -721,8 +757,8 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
             boost::optional<int> id = evt->GetCommandId();
 
             // User has selected an item, so this one will be returned
-            if( id && ( *id >= 0 ) )
-                current = ( *aCollector )[*id];
+            if( id && ( *id > 0 ) )
+                current = ( *aCollector )[*id - 1];
 
             break;
         }

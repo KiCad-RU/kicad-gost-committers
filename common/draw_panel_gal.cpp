@@ -52,7 +52,7 @@
 EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWindowId,
                                         const wxPoint& aPosition, const wxSize& aSize,
                                         GalType aGalType ) :
-    wxWindow( aParentWindow, aWindowId, aPosition, aSize )
+    wxScrolledCanvas( aParentWindow, aWindowId, aPosition, aSize )
 {
     m_parent     = aParentWindow;
     m_gal        = NULL;
@@ -63,6 +63,8 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
 
     SwitchBackend( aGalType );
     SetBackgroundStyle( wxBG_STYLE_CUSTOM );
+    ShowScrollbars( wxSHOW_SB_ALWAYS, wxSHOW_SB_ALWAYS );
+    EnableScrolling( false, false );    // otherwise Zoom Auto disables GAL canvas
 
     m_painter = new KIGFX::PCB_PAINTER( m_gal );
 
@@ -80,7 +82,11 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
         wxEVT_LEFT_UP, wxEVT_LEFT_DOWN, wxEVT_LEFT_DCLICK,
         wxEVT_RIGHT_UP, wxEVT_RIGHT_DOWN, wxEVT_RIGHT_DCLICK,
         wxEVT_MIDDLE_UP, wxEVT_MIDDLE_DOWN, wxEVT_MIDDLE_DCLICK,
-        wxEVT_MOTION, wxEVT_MOUSEWHEEL, wxEVT_CHAR, KIGFX::WX_VIEW_CONTROLS::EVT_REFRESH_MOUSE
+        wxEVT_MOTION, wxEVT_MOUSEWHEEL, wxEVT_CHAR,
+#ifdef USE_OSX_MAGNIFY_EVENT
+        wxEVT_MAGNIFY,
+#endif        
+        KIGFX::WX_VIEW_CONTROLS::EVT_REFRESH_MOUSE
     };
 
     BOOST_FOREACH( wxEventType eventType, events )
@@ -109,13 +115,13 @@ EDA_DRAW_PANEL_GAL::~EDA_DRAW_PANEL_GAL()
 void EDA_DRAW_PANEL_GAL::onPaint( wxPaintEvent& WXUNUSED( aEvent ) )
 {
     m_pendingRefresh = false;
-    m_lastRefresh = wxGetLocalTimeMillis();
 
     if( m_drawing )
         return;
 
     m_drawing = true;
 
+    m_viewControls->UpdateScrollbars();
     m_view->UpdateItems();
     m_gal->BeginDrawing();
     m_gal->ClearScreen( m_painter->GetSettings()->GetBackgroundColor() );
@@ -134,6 +140,7 @@ void EDA_DRAW_PANEL_GAL::onPaint( wxPaintEvent& WXUNUSED( aEvent ) )
     m_gal->DrawCursor( m_viewControls->GetCursorPosition() );
     m_gal->EndDrawing();
 
+    m_lastRefresh = wxGetLocalTimeMillis();
     m_drawing = false;
 }
 
@@ -298,8 +305,8 @@ bool EDA_DRAW_PANEL_GAL::SwitchBackend( GalType aGalType )
     }
     catch( std::runtime_error& err )
     {
-            DisplayError( m_parent, wxString( err.what() ) );
-            return false;
+        DisplayError( m_parent, wxString( err.what() ) );
+        return false;
     }
 
     return true;

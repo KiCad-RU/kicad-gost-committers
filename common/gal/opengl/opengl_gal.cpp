@@ -70,6 +70,10 @@ OPENGL_GAL::OPENGL_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener,
     isGrouping               = false;
     groupCounter             = 0;
 
+#ifdef RETINA_OPENGL_PATCH
+    SetViewWantsBestResolution( true );
+#endif
+
     // Connecting the event handlers
     Connect( wxEVT_PAINT,           wxPaintEventHandler( OPENGL_GAL::onPaint ) );
 
@@ -85,6 +89,9 @@ OPENGL_GAL::OPENGL_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener,
     Connect( wxEVT_RIGHT_UP,        wxMouseEventHandler( OPENGL_GAL::skipMouseEvent ) );
     Connect( wxEVT_RIGHT_DCLICK,    wxMouseEventHandler( OPENGL_GAL::skipMouseEvent ) );
     Connect( wxEVT_MOUSEWHEEL,      wxMouseEventHandler( OPENGL_GAL::skipMouseEvent ) );
+#ifdef USE_OSX_MAGNIFY_EVENT
+    Connect( wxEVT_MAGNIFY,         wxMouseEventHandler( OPENGL_GAL::skipMouseEvent ) );
+#endif
 #if defined _WIN32 || defined _WIN64
     Connect( wxEVT_ENTER_WINDOW,    wxMouseEventHandler( OPENGL_GAL::skipMouseEvent ) );
 #endif
@@ -122,10 +129,16 @@ void OPENGL_GAL::BeginDrawing()
     SetCurrent( *glContext );
     clientDC = new wxClientDC( this );
 
+#ifdef RETINA_OPENGL_PATCH
+    const float scaleFactor = GetBackingScaleFactor();
+#else
+    const float scaleFactor = 1.0f;
+#endif
+
     // Set up the view port
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
-    glViewport( 0, 0, (GLsizei) screenSize.x, (GLsizei) screenSize.y );
+    glViewport( 0, 0, (GLsizei) screenSize.x * scaleFactor, (GLsizei) screenSize.y * scaleFactor );
 
     // Create the screen transformation
     glOrtho( 0, (GLint) screenSize.x, 0, (GLsizei) screenSize.y,
@@ -528,8 +541,14 @@ void OPENGL_GAL::ResizeScreen( int aWidth, int aHeight )
 {
     screenSize = VECTOR2I( aWidth, aHeight );
 
+#ifdef RETINA_OPENGL_PATCH
+    const float scaleFactor = GetBackingScaleFactor();
+#else
+    const float scaleFactor = 1.0f;
+#endif
+
     // Resize framebuffers
-    compositor.Resize( aWidth, aHeight );
+    compositor.Resize( aWidth * scaleFactor, aHeight * scaleFactor );
     isFramebufferInitialized = false;
 
     wxGLCanvas::SetSize( aWidth, aHeight );
@@ -731,6 +750,7 @@ void OPENGL_GAL::DrawCursor( const VECTOR2D& aCursorPosition )
     // Now we should only store the position of the mouse cursor
     // The real drawing routines are in blitCursor()
     VECTOR2D screenCursor = worldScreenMatrix * aCursorPosition;
+
     cursorPosition = screenWorldMatrix * VECTOR2D( screenCursor.x, screenSize.y - screenCursor.y );
 }
 

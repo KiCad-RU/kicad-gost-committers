@@ -55,6 +55,10 @@ TOOL_ACTION COMMON_ACTIONS::selectionClear( "pcbnew.InteractiveSelection.Clear",
 
 TOOL_ACTION COMMON_ACTIONS::selectConnection( "pcbnew.InteractiveSelection.SelectConnection",
         AS_GLOBAL, 0,
+        _( "trivial connection" ), _( "Selects a connection between two junctions." ) );
+
+TOOL_ACTION COMMON_ACTIONS::selectCopper( "pcbnew.InteractiveSelection.SelectCopper",
+        AS_GLOBAL, 0,
         _( "copper connection" ), _( "Selects whole copper connection." ) );
 
 TOOL_ACTION COMMON_ACTIONS::selectNet( "pcbnew.InteractiveSelection.SelectNet",
@@ -126,7 +130,7 @@ TOOL_ACTION COMMON_ACTIONS::remove( "pcbnew.InteractiveEdit.remove",
 
 TOOL_ACTION COMMON_ACTIONS::properties( "pcbnew.InteractiveEdit.properties",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_EDIT_ITEM ),
-        _( "Properties..." ), _( "Displays properties window" ), editor_xpm );
+        _( "Properties..." ), _( "Displays item properties dialog" ), editor_xpm );
 
 
 // Drawing tool actions
@@ -287,6 +291,10 @@ TOOL_ACTION COMMON_ACTIONS::layerNext( "pcbnew.Control.layerNext",
 
 TOOL_ACTION COMMON_ACTIONS::layerPrev( "pcbnew.Control.layerPrev",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_SWITCH_LAYER_TO_PREVIOUS ),
+        "", "" );
+
+TOOL_ACTION COMMON_ACTIONS::layerToggle( "pcbnew.Control.layerToggle",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_ADD_THROUGH_VIA ),
         "", "" );
 
 TOOL_ACTION COMMON_ACTIONS::layerAlphaInc( "pcbnew.Control.layerAlphaInc",

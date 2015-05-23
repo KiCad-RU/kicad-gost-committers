@@ -2,8 +2,9 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 Torsten Hueter, torstenhtr <at> gmx.de
- * Copyright (C) 2013 CERN
+ * Copyright (C) 2013-2015 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
+ * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,11 +35,15 @@ using namespace KIGFX;
 
 const wxEventType WX_VIEW_CONTROLS::EVT_REFRESH_MOUSE = wxNewEventType();
 
-WX_VIEW_CONTROLS::WX_VIEW_CONTROLS( VIEW* aView, wxWindow* aParentPanel ) :
-    VIEW_CONTROLS( aView ), m_state( IDLE ), m_parentPanel( aParentPanel )
+WX_VIEW_CONTROLS::WX_VIEW_CONTROLS( VIEW* aView, wxScrolledCanvas* aParentPanel ) :
+    VIEW_CONTROLS( aView ), m_state( IDLE ), m_parentPanel( aParentPanel ), m_scrollScale( 1.0, 1.0 )
 {
     m_parentPanel->Connect( wxEVT_MOTION,
                             wxMouseEventHandler( WX_VIEW_CONTROLS::onMotion ), NULL, this );
+#ifdef USE_OSX_MAGNIFY_EVENT
+    m_parentPanel->Connect( wxEVT_MAGNIFY,
+                            wxMouseEventHandler( WX_VIEW_CONTROLS::onMagnify ), NULL, this );
+#endif
     m_parentPanel->Connect( wxEVT_MOUSEWHEEL,
                             wxMouseEventHandler( WX_VIEW_CONTROLS::onWheel ), NULL, this );
     m_parentPanel->Connect( wxEVT_MIDDLE_UP,
@@ -55,52 +60,12 @@ WX_VIEW_CONTROLS::WX_VIEW_CONTROLS( VIEW* aView, wxWindow* aParentPanel ) :
 #endif
     m_parentPanel->Connect( wxEVT_LEAVE_WINDOW,
                             wxMouseEventHandler( WX_VIEW_CONTROLS::onLeave ), NULL, this );
+    m_parentPanel->Connect( wxEVT_SCROLLWIN_THUMBTRACK,
+                            wxScrollWinEventHandler( WX_VIEW_CONTROLS::onScroll ), NULL, this );
 
     m_panTimer.SetOwner( this );
     this->Connect( wxEVT_TIMER,
                    wxTimerEventHandler( WX_VIEW_CONTROLS::onTimer ), NULL, this );
-}
-
-
-void VIEW_CONTROLS::ShowCursor( bool aEnabled )
-{
-    m_view->GetGAL()->SetCursorEnabled( aEnabled );
-}
-
-
-void VIEW_CONTROLS::setCenter( const VECTOR2D& aCenter )
-{
-    if( !m_panBoundary.Contains( aCenter ) )
-    {
-        VECTOR2D newCenter( aCenter );
-
-        if( aCenter.x < m_panBoundary.GetLeft() )
-            newCenter.x = m_panBoundary.GetLeft();
-        else if( aCenter.x > m_panBoundary.GetRight() )
-            newCenter.x = m_panBoundary.GetRight();
-
-        if( aCenter.y < m_panBoundary.GetTop() )
-            newCenter.y = m_panBoundary.GetTop();
-        else if( aCenter.y > m_panBoundary.GetBottom() )
-            newCenter.y = m_panBoundary.GetBottom();
-
-        m_view->SetCenter( newCenter );
-    }
-    else
-    {
-        m_view->SetCenter( aCenter );
-    }
-}
-
-
-void VIEW_CONTROLS::setScale( double aScale, const VECTOR2D& aAnchor )
-{
-    if( aScale < m_minScale )
-        aScale = m_minScale;
-    else if( aScale > m_maxScale )
-        aScale = m_maxScale;
-
-    m_view->SetScale( aScale, aAnchor );
 }
 
 
@@ -118,7 +83,7 @@ void WX_VIEW_CONTROLS::onMotion( wxMouseEvent& aEvent )
             VECTOR2D   d = m_dragStartPoint - VECTOR2D( aEvent.GetX(), aEvent.GetY() );
             VECTOR2D   delta = m_view->ToWorld( d, false );
 
-            setCenter( m_lookStartPoint + delta );
+            m_view->SetCenter( m_lookStartPoint + delta );
             aEvent.StopPropagation();
         }
         else
@@ -148,34 +113,64 @@ void WX_VIEW_CONTROLS::onWheel( wxMouseEvent& aEvent )
         VECTOR2D delta( aEvent.ControlDown() ? -scrollSpeed : 0.0,
                         aEvent.ShiftDown() ? -scrollSpeed : 0.0 );
 
-        setCenter( m_view->GetCenter() + delta );
+        m_view->SetCenter( m_view->GetCenter() + delta );
     }
     else
     {
         // Zooming
         wxLongLong  timeStamp   = wxGetLocalTimeMillis();
         double      timeDiff    = timeStamp.ToDouble() - m_timeStamp.ToDouble();
+        int         rotation    = aEvent.GetWheelRotation();
+        double      zoomScale;
+
+#ifdef __APPLE__
+        // The following is to support Apple pointer devices (MagicMouse &
+        // Macbook touchpad), which send events more frequently, but with smaller
+        // wheel rotation.
+        //
+        // It should not break other platforms, but I prefer to be safe than
+        // sorry. If you find a device that behaves in the same way on another
+        // platform, feel free to remove #ifdef directives.
+        if( timeDiff > 0 && timeDiff < 100 && std::abs( rotation ) < 20 )
+        {
+            aEvent.Skip();
+            return;
+        }
+#endif
 
         m_timeStamp = timeStamp;
-        double zoomScale;
 
         // Set scaling speed depending on scroll wheel event interval
         if( timeDiff < 500 && timeDiff > 0 )
         {
-            zoomScale = ( aEvent.GetWheelRotation() > 0 ) ? 2.05 - timeDiff / 500 :
-                        1.0 / ( 2.05 - timeDiff / 500 );
+            zoomScale = 2.05 - timeDiff / 500;
+
+            if( rotation < 0 )
+                zoomScale = 1.0 / zoomScale;
         }
         else
         {
-            zoomScale = ( aEvent.GetWheelRotation() > 0 ) ? 1.05 : 0.95;
+            zoomScale = ( rotation > 0 ) ? 1.05 : 0.95;
         }
 
         VECTOR2D anchor = m_view->ToWorld( VECTOR2D( aEvent.GetX(), aEvent.GetY() ) );
-        setScale( m_view->GetScale() * zoomScale, anchor );
+        m_view->SetScale( m_view->GetScale() * zoomScale, anchor );
     }
 
     aEvent.Skip();
 }
+
+
+#ifdef USE_OSX_MAGNIFY_EVENT
+void WX_VIEW_CONTROLS::onMagnify( wxMouseEvent& aEvent )
+{
+    // Scale based on the magnification from our underlying magnification event.
+    VECTOR2D anchor = m_view->ToWorld( VECTOR2D( aEvent.GetX(), aEvent.GetY() ) );
+    m_view->SetScale( m_view->GetScale() * ( aEvent.GetMagnification() + 1.0f ), anchor );
+
+    aEvent.Skip();
+}
+#endif
 
 
 void WX_VIEW_CONTROLS::onButton( wxMouseEvent& aEvent )
@@ -270,7 +265,7 @@ void WX_VIEW_CONTROLS::onTimer( wxTimerEvent& aEvent )
             dir = dir.Resize( borderSize );
 
         dir = m_view->ToWorld( dir, false );
-        setCenter( m_view->GetCenter() + dir * m_autoPanSpeed );
+        m_view->SetCenter( m_view->GetCenter() + dir * m_autoPanSpeed );
 
         // Notify tools that the cursor position has changed in the world coordinates
         wxMouseEvent moveEvent( EVT_REFRESH_MOUSE );
@@ -295,6 +290,21 @@ void WX_VIEW_CONTROLS::onTimer( wxTimerEvent& aEvent )
     case DRAG_PANNING:
         break;
     }
+}
+
+
+void WX_VIEW_CONTROLS::onScroll( wxScrollWinEvent& aEvent )
+{
+    VECTOR2D center = m_view->GetCenter();
+    const BOX2I& boundary = m_view->GetBoundary();
+
+    if( aEvent.GetOrientation() == wxHORIZONTAL )
+        center.x = (double) aEvent.GetPosition() * boundary.GetWidth() / m_scrollScale.x + boundary.GetLeft();
+    else if( aEvent.GetOrientation() == wxVERTICAL )
+        center.y = (double) aEvent.GetPosition() * boundary.GetHeight() / m_scrollScale.y + boundary.GetTop();
+
+    m_view->SetCenter( center );
+    m_parentPanel->Refresh();
 }
 
 
@@ -392,4 +402,27 @@ bool WX_VIEW_CONTROLS::handleAutoPanning( const wxMouseEvent& aEvent )
 
     wxASSERT_MSG( false, wxT( "This line should never be reached" ) );
     return false;    // Should not be reached, just avoid the compiler warnings..
+}
+
+
+void WX_VIEW_CONTROLS::UpdateScrollbars()
+{
+    const BOX2D viewport = m_view->GetViewport();
+    const BOX2I& boundary = m_view->GetBoundary();
+
+    m_scrollScale.x = 2e3 * boundary.GetWidth() / viewport.GetWidth();
+    m_scrollScale.y = 2e3 * boundary.GetHeight() / viewport.GetHeight();
+
+    // Another example of wxWidgets being broken by design: scroll position is determined by the
+    // left (or top, if vertical) edge of the slider. Fortunately, slider size seems to be constant
+    // (at least for wxGTK 3.0), so we have to add its size to allow user to scroll the workspace
+    // till the end.
+    m_parentPanel->SetScrollbars( 1, 1,
+#ifdef __LINUX__
+            m_scrollScale.x + 1623, m_scrollScale.y + 1623,
+#else
+            m_scrollScale.x, m_scrollScale.y,
+#endif
+            ( viewport.Centre().x - boundary.GetLeft() ) / boundary.GetWidth() * m_scrollScale.x,
+            ( viewport.Centre().y - boundary.GetTop() ) / boundary.GetHeight() * m_scrollScale.y );
 }
