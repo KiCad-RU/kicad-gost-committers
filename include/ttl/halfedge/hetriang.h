@@ -42,7 +42,7 @@
 #ifndef _HE_TRIANG_H_
 #define _HE_TRIANG_H_
 
-#define TTL_USE_NODE_ID   // Each node gets it's own unique id
+//#define TTL_USE_NODE_ID   // Each node gets it's own unique id
 #define TTL_USE_NODE_FLAG // Each node gets a flag (can be set to true or false)
 
 #include <list>
@@ -52,6 +52,9 @@
 #include <ttl/ttl_util.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
+#include <layers_id_colors_and_visibility.h>
+
+class BOARD_CONNECTED_ITEM;
 
 namespace ttl
 {
@@ -103,8 +106,14 @@ protected:
     /// Tag for quick connection resolution
     int m_tag;
 
-    /// Reference count
-    unsigned int m_refCount;
+    /// List of board items that share this node
+    std::list<const BOARD_CONNECTED_ITEM*> m_parents;
+
+    /// Layers that are occupied by this node
+    LSET m_layers;
+
+    /// Recomputes the layers used by this node
+    void updateLayers();
 
 public:
     /// Constructor
@@ -115,8 +124,9 @@ public:
 #ifdef TTL_USE_NODE_ID
         m_id( id_count++ ),
 #endif
-        m_x( aX ), m_y( aY ), m_tag( -1 ), m_refCount( 0 )
+        m_x( aX ), m_y( aY ), m_tag( -1 )
     {
+        m_layers.reset();
     }
 
     /// Destructor
@@ -168,20 +178,33 @@ public:
     }
 #endif
 
-    inline void IncRefCount()
-    {
-        m_refCount++;
-    }
-
-    inline void DecRefCount()
-    {
-        m_refCount--;
-    }
-
     inline unsigned int GetRefCount() const
     {
-        return m_refCount;
+        return m_parents.size();
     }
+
+    inline void AddParent( const BOARD_CONNECTED_ITEM* aParent )
+    {
+        m_parents.push_back( aParent );
+        m_layers.reset();   // mark as needs updating
+    }
+
+    inline void RemoveParent( const BOARD_CONNECTED_ITEM* aParent )
+    {
+        m_parents.remove( aParent );
+        m_layers.reset();   // mark as needs updating
+    }
+
+    const LSET& GetLayers()
+    {
+        if( m_layers.none() )
+            updateLayers();
+
+        return m_layers;
+    }
+
+    // Tag used for unconnected items.
+    static const int TAG_UNCONNECTED = -1;
 };
 
 

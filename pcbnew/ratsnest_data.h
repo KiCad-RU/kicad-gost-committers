@@ -71,6 +71,9 @@ typedef boost::shared_ptr<hed::EDGE_MST> RN_EDGE_MST_PTR;
 bool operator==( const RN_NODE_PTR& aFirst, const RN_NODE_PTR& aSecond );
 bool operator!=( const RN_NODE_PTR& aFirst, const RN_NODE_PTR& aSecond );
 
+struct RN_NODE_OR_FILTER;
+struct RN_NODE_AND_FILTER;
+
 ///> General interface for filtering out nodes in search functions.
 struct RN_NODE_FILTER : public std::unary_function<const RN_NODE_PTR&, bool>
 {
@@ -80,7 +83,13 @@ struct RN_NODE_FILTER : public std::unary_function<const RN_NODE_PTR&, bool>
     {
         return true;        // By default everything passes
     }
+
+    friend RN_NODE_AND_FILTER operator&&( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILTER& aFilter2 );
+    friend RN_NODE_OR_FILTER operator||( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILTER& aFilter2 );
 };
+
+RN_NODE_AND_FILTER operator&&( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILTER& aFilter2 );
+RN_NODE_OR_FILTER operator||( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILTER& aFilter2 );
 
 ///> Filters out nodes that have the flag set.
 struct WITHOUT_FLAG : public RN_NODE_FILTER
@@ -90,6 +99,55 @@ struct WITHOUT_FLAG : public RN_NODE_FILTER
         return !aNode->GetFlag();
     }
 };
+
+///> Filters out nodes with a specific tag
+struct DIFFERENT_TAG : public RN_NODE_FILTER
+{
+    DIFFERENT_TAG( int aTag ) :
+        m_tag( aTag )
+    {}
+
+    bool operator()( const RN_NODE_PTR& aNode ) const
+    {
+        return aNode->GetTag() != m_tag;
+    }
+
+    private:
+        int m_tag;
+};
+
+struct RN_NODE_AND_FILTER : public RN_NODE_FILTER
+{
+    RN_NODE_AND_FILTER( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILTER& aFilter2 ) :
+        m_filter1( aFilter1 ), m_filter2( aFilter2 )
+    {}
+
+    bool operator()( const RN_NODE_PTR& aNode ) const
+    {
+        return m_filter1( aNode ) && m_filter2( aNode );
+    }
+
+    private:
+        const RN_NODE_FILTER& m_filter1;
+        const RN_NODE_FILTER& m_filter2;
+};
+
+struct RN_NODE_OR_FILTER : public RN_NODE_FILTER
+{
+    RN_NODE_OR_FILTER( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILTER& aFilter2 ) :
+        m_filter1( aFilter1 ), m_filter2( aFilter2 )
+    {}
+
+    bool operator()( const RN_NODE_PTR& aNode ) const
+    {
+        return m_filter1( aNode ) || m_filter2( aNode );
+    }
+
+    private:
+        const RN_NODE_FILTER& m_filter1;
+        const RN_NODE_FILTER& m_filter2;
+};
+
 
 ///> Functor comparing if two nodes are equal by their coordinates. It is required to make set of
 ///> shared pointers work properly.
@@ -207,27 +265,17 @@ protected:
 class RN_POLY
 {
 public:
-    RN_POLY( const CPolyPt* aBegin, const CPolyPt* aEnd, const ZONE_CONTAINER* aParent,
-          RN_LINKS& aConnections, const BOX2I& aBBox );
+    RN_POLY( const CPolyPt* aBegin, const CPolyPt* aEnd,
+             RN_LINKS& aConnections, const BOX2I& aBBox );
 
     /**
      * Function GetNode()
      * Returns node representing a polygon (it has the same coordinates as the first point of its
      * bounding polyline.
      */
-    const RN_NODE_PTR& GetNode() const
+    inline const RN_NODE_PTR& GetNode() const
     {
         return m_node;
-    }
-
-    /**
-     * Function GetParent()
-     * Returns pointer to zone that is the owner of subpolygon.
-     * @return Pointer to zone that is the owner of subpolygon.
-     */
-    const ZONE_CONTAINER* GetParent() const
-    {
-        return m_parent;
     }
 
     /**
@@ -239,9 +287,6 @@ public:
     bool HitTest( const RN_NODE_PTR& aNode ) const;
 
 private:
-    ///> Owner of this subpolygon.
-    const ZONE_CONTAINER* m_parent;
-
     ///> Pointer to the first point of polyline bounding the polygon.
     const CPolyPt* m_begin;
 
@@ -447,15 +492,11 @@ public:
                                             const RN_NODE_FILTER& aFilter, int aNumber = -1 ) const;
 
     /**
-     * Function AddSimpleNode()
-     * Changes drawing mode for a node to simple (i.e. one ratsnest line per node).
+     * Function AddSimple()
+     * Changes drawing mode for an item to simple (i.e. one ratsnest line per node).
      * @param aNode is a node that changes its drawing mode.
      */
-    inline void AddSimpleNode( RN_NODE_PTR& aNode )
-    {
-        m_simpleNodes.push_back( aNode );
-        aNode->SetFlag( true );
-    }
+    void AddSimple( const BOARD_CONNECTED_ITEM* aItem );
 
     /**
      * Function AddBlockedNode()
@@ -475,10 +516,7 @@ public:
      * ratsnest line per node).
      * @return list of nodes for which ratsnest is drawn in simple mode.
      */
-    inline const std::deque<RN_NODE_PTR>& GetSimpleNodes() const
-    {
-        return m_simpleNodes;
-    }
+    boost::unordered_set<RN_NODE_PTR> GetSimpleNodes() const;
 
     /**
      * Function ClearSimple()
@@ -517,21 +555,29 @@ protected:
     ///> Vector of edges that makes ratsnest for a given net.
     boost::shared_ptr< std::vector<RN_EDGE_MST_PTR> > m_rnEdges;
 
-    ///> List of nodes for which ratsnest is drawn in simple mode.
-    std::deque<RN_NODE_PTR> m_simpleNodes;
-
     ///> List of nodes which will not be used as ratsnest target nodes.
     std::deque<RN_NODE_PTR> m_blockedNodes;
 
+    ///> Map that stores items to be computed in simple mode, keyed by their tags.
+    boost::unordered_map<int, const BOARD_CONNECTED_ITEM*> m_simpleItems;
+
     ///> Flag indicating necessity of recalculation of ratsnest for a net.
     bool m_dirty;
+
+    typedef struct
+    {
+        ///> Subpolygons belonging to a zone
+        std::deque<RN_POLY> m_Polygons;
+
+        ///> Connections to other nodes
+        std::deque<RN_EDGE_MST_PTR> m_Edges;
+    } RN_ZONE_DATA;
 
     ///> Helper typedefs
     typedef boost::unordered_map<const D_PAD*, RN_NODE_PTR> PAD_NODE_MAP;
     typedef boost::unordered_map<const VIA*, RN_NODE_PTR> VIA_NODE_MAP;
     typedef boost::unordered_map<const TRACK*, RN_EDGE_MST_PTR> TRACK_EDGE_MAP;
-    typedef boost::unordered_map<const ZONE_CONTAINER*, std::deque<RN_POLY> > ZONE_POLY_MAP;
-    typedef boost::unordered_map<const ZONE_CONTAINER*, std::deque<RN_EDGE_MST_PTR> > ZONE_EDGE_MAP;
+    typedef boost::unordered_map<const ZONE_CONTAINER*, RN_ZONE_DATA> ZONE_DATA_MAP;
 
     ///> Map that associates nodes in the ratsnest model to respective nodes.
     PAD_NODE_MAP m_pads;
@@ -543,10 +589,7 @@ protected:
     TRACK_EDGE_MAP m_tracks;
 
     ///> Map that associates groups of subpolygons in the ratsnest model to respective zones.
-    ZONE_POLY_MAP m_zonePolygons;
-
-    ///> Map that associates groups of edges in the ratsnest model to respective zones.
-    ZONE_EDGE_MAP m_zoneConnections;
+    ZONE_DATA_MAP m_zones;
 
     ///> Visibility flag.
     bool m_visible;
@@ -556,7 +599,7 @@ protected:
 /**
  * Class RN_DATA
  *
- * Stores information about unconnected items for the whole PCB.
+ * Stores information about unconnected items for a board.
  */
 class RN_DATA
 {
@@ -595,16 +638,6 @@ public:
      * @param aItem is an item to be drawn in simple node.
      */
     void AddSimple( const BOARD_ITEM* aItem );
-
-    /**
-     * Function AddSimple()
-     * Allows to draw a ratsnest line using a position expressed in world coordinates and a
-     * net code (so there is no need to have a real BOARD_ITEM to draw ratsnest line).
-     * It is used for drawing quick, temporary ratsnest, eg. while moving an item.
-     * @param aPosition is the point for which ratsnest line are going to be drawn.
-     * @param aNetCode determines the net code for which the ratsnest line are going to be drawn.
-     */
-    void AddSimple( const VECTOR2I& aPosition, int aNetCode );
 
     /**
      * Function AddBlocked()

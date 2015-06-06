@@ -605,12 +605,6 @@ void CPolyLine::UnHatch()
 }
 
 
-int CPolyLine::GetEndContour( int ic )
-{
-    return m_CornersList[ic].end_contour;
-}
-
-
 const EDA_RECT CPolyLine::GetBoundingBox()
 {
     int xmin    = INT_MAX;
@@ -659,18 +653,28 @@ const EDA_RECT CPolyLine::GetBoundingBox( int icont )
 }
 
 
-int CPolyLine::GetContoursCount()
+int CPolyLine::GetContoursCount() const
 {
-    int ncont = 0;
+    return m_CornersList.GetContoursCount();
+}
 
-    if( !m_CornersList.GetCornersCount() )
+
+
+int CPOLYGONS_LIST::GetContoursCount() const
+{
+    if( !m_cornersList.size() )
         return 0;
 
-    for( unsigned ic = 0; ic < m_CornersList.GetCornersCount(); ic++ )
-        if( m_CornersList[ic].end_contour )
+    // count the number of corners flagged end_contour
+    int ncont = 0;
+
+    for( unsigned ic = 0; ic < m_cornersList.size(); ic++ )
+        if( m_cornersList[ic].end_contour )
             ncont++;
 
-    if( !m_CornersList[m_CornersList.GetCornersCount() - 1].end_contour )
+    // The last corner can be not yet flagged end_contour.
+    // It was not counted, but the polygon exists, so count it
+    if( !m_cornersList[m_cornersList.size() - 1].end_contour )
         ncont++;
 
     return ncont;
@@ -746,10 +750,10 @@ int CPolyLine::GetContourSize( int icont )
 }
 
 
-int CPolyLine::GetClosed()
+bool CPolyLine::GetClosed()
 {
     if( m_CornersList.GetCornersCount() == 0 )
-        return 0;
+        return false;
     else
         return m_CornersList[m_CornersList.GetCornersCount() - 1].end_contour;
 }
@@ -795,7 +799,7 @@ void CPolyLine::Hatch()
             max_y = m_CornersList[ic].y;
     }
 
-    // Calculate spacing betwwen 2 hatch lines
+    // Calculate spacing between 2 hatch lines
     int spacing;
 
     if( m_hatchStyle == DIAGONAL_EDGE )
@@ -1440,7 +1444,23 @@ void CPOLYGONS_LIST::ImportFrom( ClipperLib::Paths& aPolygons )
  * aInflateValue = the Inflate value. when < 0, this is a deflate transform
  * aLinkHoles = if true, aResult contains only one polygon,
  * with holes linked by overlapping segments
+ *
+ * Important Note:
+ * Inflating a polygon with acute angles or a non convex polygon gives non optimal shapes
+ * for your purposes (creating a clearance area from zones).
+ * So when inflating a polygon, we combine it with a "thick outline"
+ * with a thickness = aInflateValue*2.
+ * the inflated polygon shape is much better to build a polygon
+ * from a polygon + clearance area
+ *
+ * Generic algos (Clipper, Boost Polygon) can inflate polygons, but the result is
+ * not always suitable (they work fine only for polygons with non acute angle)
+ *
+ * To deflate polygons, the same calculation is made, but instead of adding the "thick outline"
+ * we substract it.
  */
+#include <convert_basic_shapes_to_polygon.h>
+
 void CPOLYGONS_LIST::InflateOutline( CPOLYGONS_LIST& aResult, int aInflateValue, bool aLinkHoles )
 {
     KI_POLYGON_SET polyset_outline;
@@ -1456,12 +1476,68 @@ void CPOLYGONS_LIST::InflateOutline( CPOLYGONS_LIST& aResult, int aInflateValue,
     }
 
     // inflate main outline
+    unsigned icnt = 0;
+    int width = std::abs( aInflateValue * 2 );
+
     if( polyset_outline.size() )
-        polyset_outline += aInflateValue;
+    {
+        CPOLYGONS_LIST outlines;
+
+        for( ; icnt < GetCornersCount(); icnt++ )
+        {
+            unsigned ii = icnt+1;
+
+            if( IsEndContour( icnt ) )
+                ii = 0;
+
+            TransformRoundedEndsSegmentToPolygon( outlines,
+                            GetPos( icnt ), GetPos( ii ), 16, width );
+
+            if( IsEndContour( icnt ) )
+                break;
+        }
+
+        KI_POLYGON_SET thicklines;
+        outlines.ExportTo( thicklines );
+
+        if( aInflateValue > 0 )     // Inflate main outline
+            polyset_outline += thicklines;
+        else if( aInflateValue < 0 )    // Actually a deflate transform
+            polyset_outline -= thicklines;   // deflate main outline
+
+    }
 
     // deflate outline holes
     if( outlineHoles.size() )
-        outlineHoles -= aInflateValue;
+    {
+        int deflateValue = -aInflateValue;
+
+        CPOLYGONS_LIST outlines;
+        icnt += 1;   // points the first point of the first hole
+        unsigned firstpoint = icnt;
+
+        for( ; icnt < GetCornersCount(); icnt++ )
+        {
+            unsigned ii = icnt+1;
+
+            if( IsEndContour( icnt ) || ii >= GetCornersCount() )
+            {
+                ii = firstpoint;
+                firstpoint = icnt+1;
+            }
+
+            TransformRoundedEndsSegmentToPolygon( outlines,
+                            GetPos( icnt ), GetPos( ii ), 16, width );
+        }
+
+        KI_POLYGON_SET thicklines;
+        outlines.ExportTo( thicklines );
+
+        if( deflateValue > 0 )     // Inflate holes
+            outlineHoles += thicklines;
+        else if( deflateValue < 0 )    // deflate holes
+            outlineHoles -= thicklines;
+    }
 
     // Copy modified polygons
     if( !aLinkHoles )
@@ -1477,6 +1553,7 @@ void CPOLYGONS_LIST::InflateOutline( CPOLYGONS_LIST& aResult, int aInflateValue,
         aResult.ImportFrom( polyset_outline );
     }
 }
+
 
 /**
  * Function ConvertPolysListWithHolesToOnePolygon
@@ -1566,7 +1643,7 @@ void ConvertPolysListWithHolesToOnePolygon( const CPOLYGONS_LIST& aPolysListWith
 bool CPolyLine::IsPolygonSelfIntersecting()
 {
     // first, check for sides intersecting other sides
-    int                n_cont  = GetContoursCount();
+    int n_cont  = GetContoursCount();
 
     // make bounding rect for each contour
     std::vector<EDA_RECT> cr;
