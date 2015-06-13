@@ -1,9 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2013 jp.charras at wanadoo.fr
- * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2015 KiCad Developers
+ * Copyright (C) 2015 CERN
+ * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,24 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef NETLIST_EXPORTER_ORCADPCB2_H
-#define NETLIST_EXPORTER_ORCADPCB2_H
 
-#include "netlist_exporter.h"
+#include <geometry/shape.h>
 
-/**
- * Class NETLIST_EXPORTER_ORCADPCB2
- * generates a netlist compatible with OrCAD
- */
-class NETLIST_EXPORTER_ORCADPCB2 : public NETLIST_EXPORTER
+bool SHAPE::Parse( std::stringstream& aStream )
 {
-public:
-    NETLIST_EXPORTER_ORCADPCB2( NETLIST_OBJECT_LIST* aMasterList, PART_LIBS* aLibs ) :
-        NETLIST_EXPORTER( aMasterList, aLibs )
-    {
-    }
-
-    bool WriteNetlist( const wxString& aOutFileName, unsigned aNetlistOptions );
+    assert ( false );
+    return false;
 };
 
-#endif
+const std::string SHAPE::Format( ) const
+{
+    assert ( false );
+    return std::string("");
+};

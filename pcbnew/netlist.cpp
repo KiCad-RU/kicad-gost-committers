@@ -64,7 +64,6 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
 {
     wxString        msg;
     NETLIST         netlist;
-    NETLIST_READER* netlistReader;
     KIGFX::VIEW*    view = GetGalCanvas()->GetView();
     BOARD*          board = GetBoard();
 
@@ -75,17 +74,16 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
 
     try
     {
-        netlistReader = NETLIST_READER::GetNetlistReader( &netlist, aNetlistFileName,
-                                                          aCmpFileName );
+        std::auto_ptr<NETLIST_READER> netlistReader( NETLIST_READER::GetNetlistReader(
+            &netlist, aNetlistFileName, aCmpFileName ) );
 
-        if( netlistReader == NULL )
+        if( !netlistReader.get() )
         {
             msg.Printf( _( "Cannot open netlist file \"%s\"." ), GetChars( aNetlistFileName ) );
             wxMessageBox( msg, _( "Netlist Load Error." ), wxOK | wxICON_ERROR, this );
             return;
         }
 
-        std::auto_ptr< NETLIST_READER > nlr( netlistReader );
         SetLastNetListRead( aNetlistFileName );
         netlistReader->LoadNetlist();
         loadFootprints( netlist, aReporter );
@@ -246,7 +244,7 @@ void PCB_EDIT_FRAME::loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
         {
             if( aReporter )
             {
-                msg.Printf( _( "* Warning: component '%s' has footprint '%s' and should be '%s'\n" ),
+                msg.Printf( _( "* Warning: component '%s': board footprint '%s', netlist footprint '%s'\n" ),
                             GetChars( component->GetReference() ),
                             GetChars( fpOnBoard->GetFPID().Format() ),
                             GetChars( component->GetFPID().Format() ) );

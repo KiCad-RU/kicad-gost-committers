@@ -315,8 +315,12 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_POPUP_SCH_LEAVE_SHEET:
-        m_CurrentSheet->Pop();
-        DisplayCurrentSheet();
+        if( m_CurrentSheet->Last() != g_RootSheet )
+        {
+            m_CurrentSheet->Pop();
+            DisplayCurrentSheet();
+        }
+
         break;
 
     case wxID_COPY:         // really this is a Save block for paste
@@ -951,7 +955,7 @@ void SCH_EDIT_FRAME::OnEditItem( wxCommandEvent& aEvent )
     }
 
     case SCH_SHEET_T:
-        EditSheet( (SCH_SHEET*) item, &dc );
+        EditSheet( (SCH_SHEET*) item, m_CurrentSheet, &dc );
         break;
 
     case SCH_SHEET_PIN_T:

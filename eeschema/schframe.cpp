@@ -27,7 +27,6 @@
  */
 
 #include <fctsys.h>
-#include <kiway.h>
 #include <kiface_i.h>
 #include <pgm_base.h>
 #include <gr_basic.h>
@@ -190,6 +189,23 @@ PART_LIBS* PROJECT::SchLibs()
     return libs;
 }
 
+/*
+NETLIST_OBJECT_LIST* PROJECT::Netlist()
+{
+    NETLIST_OBJECT_LIST* netlist = (NETLIST_OBJECT_LIST*)  GetElem( PROJECT::ELEM_SCH_NETLIST );
+
+    wxASSERT( !libs || dynamic_cast<NETLIST_OBJECT_LIST*>( netlist ) );
+
+    if( !netlist )
+    {
+        netlist = new NETLIST_OBJECT_LIST();
+
+        // Make PROJECT the new NETLIST_OBJECT_LIST owner.
+        SetElem( PROJECT::ELEM_SCH_NETLIST, netlist );
+    }
+}
+*/
+
 //-----</SCH "data on demand" functions>------------------------------------------
 
 
@@ -301,6 +317,9 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_UPDATE_UI( ID_NO_TOOL_SELECTED, SCH_EDIT_FRAME::OnUpdateSelectTool )
     EVT_UPDATE_UI_RANGE( ID_SCHEMATIC_VERTICAL_TOOLBAR_START, ID_SCHEMATIC_VERTICAL_TOOLBAR_END,
                          SCH_EDIT_FRAME::OnUpdateSelectTool )
+    EVT_UPDATE_UI( ID_SAVE_PROJECT, SCH_EDIT_FRAME::OnUpdateSave )
+    EVT_UPDATE_UI( ID_UPDATE_ONE_SHEET, SCH_EDIT_FRAME::OnUpdateSaveSheet )
+    EVT_UPDATE_UI( ID_POPUP_SCH_LEAVE_SHEET, SCH_EDIT_FRAME::OnUpdateHierarchySheet )
 
     /* Search dialog events. */
     EVT_FIND_CLOSE( wxID_ANY, SCH_EDIT_FRAME::OnFindDialogClose )
@@ -766,6 +785,27 @@ void SCH_EDIT_FRAME::OnUpdateHiddenPins( wxUpdateUIEvent& aEvent )
 }
 
 
+void SCH_EDIT_FRAME::OnUpdateSave( wxUpdateUIEvent& aEvent )
+{
+    SCH_SHEET_LIST sheetList;
+
+    aEvent.Enable( sheetList.IsModified() );
+}
+
+
+void SCH_EDIT_FRAME::OnUpdateSaveSheet( wxUpdateUIEvent& aEvent )
+{
+    aEvent.Enable( GetScreen()->IsModify() );
+
+}
+
+
+void SCH_EDIT_FRAME::OnUpdateHierarchySheet( wxUpdateUIEvent& aEvent )
+{
+    aEvent.Enable( m_CurrentSheet->Last() != g_RootSheet );
+}
+
+
 void SCH_EDIT_FRAME::OnAnnotate( wxCommandEvent& event )
 {
     InvokeDialogAnnotate( this );
@@ -1006,10 +1046,16 @@ void SCH_EDIT_FRAME::OnOpenCvpcb( wxCommandEvent& event )
 
     if( Kiface().IsSingle() )
     {
+        /* the CVPCB executable is now gone, only the *.kiface remains, that is because
+         * CVPCB can now read the netlist ONLY from the Kiway.  This removes cvpcb's
+         * use of the *.cmp file altogether, and also its use of reading the *.net file
+         * from disk.
         ExecuteFile( this, CVPCB_EXE, QuoteFullPath( fn ) );
+        */
     }
     else
     {
+#if 0
         KIWAY_PLAYER* player = Kiway().Player( FRAME_CVPCB, false );  // test open already.
 
         if( !player )
@@ -1020,6 +1066,23 @@ void SCH_EDIT_FRAME::OnOpenCvpcb( wxCommandEvent& event )
         }
 
         player->Raise();
+#else
+        if( prepareForNetlist() )
+        {
+            KIWAY_PLAYER* player = Kiway().Player( FRAME_CVPCB, false );  // test open already.
+
+            if( !player )
+            {
+                player = Kiway().Player( FRAME_CVPCB, true );
+                player->Show( true );
+                // player->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
+            }
+
+            sendNetlist();
+
+            player->Raise();
+        }
+#endif
     }
 }
 
@@ -1195,7 +1258,7 @@ void SCH_EDIT_FRAME::addCurrentItemToList( wxDC* aDC )
             // the m_mouseCaptureCallback function.
             m_canvas->SetMouseCapture( NULL, NULL );
 
-            if( !EditSheet( (SCH_SHEET*)item, aDC ) )
+            if( !EditSheet( (SCH_SHEET*)item, m_CurrentSheet, aDC ) )
             {
                 screen->SetCurItem( NULL );
                 item->Draw( m_canvas, aDC, wxPoint( 0, 0 ), g_XorMode );
@@ -1254,6 +1317,8 @@ void SCH_EDIT_FRAME::addCurrentItemToList( wxDC* aDC )
         EDA_CROSS_HAIR_MANAGER( m_canvas, aDC );  // Erase schematic cursor
         undoItem->Draw( m_canvas, aDC, wxPoint( 0, 0 ), GR_DEFAULT_DRAWMODE );
     }
+
+    m_canvas->Refresh();
 }
 
 
