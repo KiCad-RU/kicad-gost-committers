@@ -56,8 +56,8 @@ void PCAD2KICAD_FRAME::OnLib( wxCommandEvent& event )
     SCH             sch;
     wxXmlDocument   xmlDoc;
 
-    wxFileDialog    fileDlg( this, wxT( "Open lia file" ), wxEmptyString, wxEmptyString,
-                             wxT( "P-Cad 200x ASCII schematic library |*.lia" ) );
+    wxFileDialog    fileDlg( this, _( "Open lia file" ), wxEmptyString, wxEmptyString,
+                             _( "P-Cad 200x ASCII schematic library |*.lia" ) );
     int             diag = fileDlg.ShowModal();
 
     if( diag != wxID_OK )
@@ -85,13 +85,13 @@ void PCAD2KICAD_FRAME::OnLib( wxCommandEvent& event )
 
     sch.Parse( m_statusBar, &xmlDoc, m_actualConversion );
 
-    m_statusBar->SetStatusText( wxT( "Generating output file.... " ) );
+    m_statusBar->SetStatusText( _( "Generating output file.... " ) );
     wxFileName outFile( fileName );
 
     outFile.SetExt( wxT( "lib" ) );
     sch.WriteToFile( outFile.GetFullPath(), wxT( 'L' ) );
 
-    m_statusBar->SetStatusText( wxT( "Done." ) );
+    m_statusBar->SetStatusText( _( "Done." ) );
 }
 
 
@@ -100,8 +100,8 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     SCH             sch;
     wxXmlDocument   xmlDoc;
 
-    wxFileDialog    fileDlg( this, wxT( "Open sch file" ), wxEmptyString, wxEmptyString,
-                             wxT( "P-Cad 200x ASCII schematic |*.sch" ) );
+    wxFileDialog    fileDlg( this, _( "Open sch file" ), wxEmptyString, wxEmptyString,
+                             _( "P-Cad 200x ASCII schematic |*.sch" ) );
     int             diag = fileDlg.ShowModal();
 
     if( diag != wxID_OK )
@@ -129,7 +129,7 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
 
     sch.Parse( m_statusBar, &xmlDoc, m_actualConversion );
 
-    m_statusBar->SetStatusText( wxT( "Generating output file.... " ) );
+    m_statusBar->SetStatusText( _( "Generating output file.... " ) );
     wxFileName outFile( fileName );
 
     // we convert also library for schematics file
@@ -138,7 +138,7 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     outFile.SetExt( wxT( "KiCad" ) );
     sch.WriteToFile( outFile.GetFullPath(), wxT( 'S' ) );
 
-    m_statusBar->SetStatusText( wxT( "Done." ) );
+    m_statusBar->SetStatusText( _( "Done." ) );
 }
 
 
@@ -153,8 +153,8 @@ PCAD2KICAD_FRAME::PCAD2KICAD_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     // SetIcon( icon );
 
     wxMenu *menu_help = new wxMenu;
-    menu_help->Append( wxID_ABOUT, wxT( "&About pcad2kicadsch ..." ) );
-    m_menubar->Append( menu_help, wxT( "&Help" ) );
+    menu_help->Append( wxID_ABOUT, _( "&About pcad2kicadsch ..." ) );
+    m_menubar->Append( menu_help, _( "&Help" ) );
 
     Connect( wxID_ABOUT, wxEVT_COMMAND_MENU_SELECTED,
              wxCommandEventHandler( PCAD2KICAD_FRAME::OnAbout ) );
@@ -174,7 +174,7 @@ void PCAD2KICAD_FRAME::OnAbout( wxCommandEvent& event )
 
     wxString description;
     description
-        << wxT( "An utility which allows schematic capture and schematic library file conversion "
+        << _( "An utility which allows schematic capture and schematic library file conversion "
                 "from P-CAD 200x ASCII to KiCad." );
 
     wxString copyright;
