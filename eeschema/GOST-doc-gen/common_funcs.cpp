@@ -355,7 +355,7 @@ wxString GetResourceFile( wxString aFileName )
 
     if( res == wxEmptyString )
     {
-        wxMessageBox( wxT( "Unable to open file: " ) + aFileName,
+        wxMessageBox( _( "Unable to open file: " ) + aFileName,
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
     }

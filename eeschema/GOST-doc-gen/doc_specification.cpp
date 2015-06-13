@@ -160,8 +160,8 @@ bool DOC_SPECIFICATION::CreateNewSpecificationDoc( COMPONENT_DB* aComponentDB,
     wxString        designation;
     wxString        sch_type = wxT( "Схема электрическая_" );
 
-    wxProgressDialog progressDlg( wxT( "Generating specification document..." ),
-                                  wxT( "Please wait a moment" ), 1 );
+    wxProgressDialog progressDlg( _( "Generating specification document..." ),
+                                  _( "Please wait a moment" ), 1 );
 
     if ( !aDocIface->Connect() )
         return false;
