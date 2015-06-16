@@ -76,7 +76,7 @@ void SCH_MODULE::Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
                                                             &propValue );
     propValue.Trim( false );
     m_name.text = propValue;
-    aStatusBar->SetStatusText( wxT( "Creating Component : " ) + m_name.text );
+    aStatusBar->SetStatusText( _( "Creating Component : " ) + m_name.text );
 
     lNode = FindNode( aNode, wxT( "compHeader" ) );
 
