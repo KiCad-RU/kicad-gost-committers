@@ -65,8 +65,8 @@ bool OO_PYTHON_UNO_IFACE::Connect()
 
     /*if( !wxExecute( connection_str, wxEXEC_ASYNC ) )
         // for some reason this check does not work in Linux, however it works in Windows
-        wxMessageBox( wxT( "Unable to launch the process: " ) + connection_str
-                      + wxT( ".\nPlease make sure that OpenOffice / LibreOffice is installed." ),
+        wxMessageBox( _( "Unable to launch the process: " ) + connection_str
+                      + _( ".\nPlease make sure that OpenOffice / LibreOffice is installed." ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         // continue anyway in order to allow a user to run soffice from command shell

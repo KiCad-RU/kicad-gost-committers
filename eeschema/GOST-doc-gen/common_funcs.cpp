@@ -428,7 +428,7 @@ wxString FindOOInstallationPath()
         }
     }
 
-    wxMessageBox( wxT( "Unable to find OpenOffice or LibreOffice installation path" ),
+    wxMessageBox( _( "Unable to find OpenOffice or LibreOffice installation path" ),
                   wxEmptyString,
                   wxOK | wxICON_ERROR );
 

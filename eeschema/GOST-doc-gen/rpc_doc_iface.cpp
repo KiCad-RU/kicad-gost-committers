@@ -64,7 +64,7 @@ bool RPC_DOC_IFACE::Connect()
     pythonExecutable = OOInstallationPath + wxT( "python.exe" );
     if ( !wxFileExists( pythonExecutable ) )
     {
-        wxMessageBox( wxT( "Unable to find OpenOffice or LibreOffice embedded Python" ),
+        wxMessageBox( _( "Unable to find OpenOffice or LibreOffice embedded Python" ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         return false;
@@ -79,7 +79,7 @@ bool RPC_DOC_IFACE::Connect()
         pythonExecutable = OOInstallationPath + wxT( "python" );
         if ( !wxFileExists( pythonExecutable ) )
         {
-            wxMessageBox( wxT( "Unable to find OpenOffice or LibreOffice embedded Python" ),
+            wxMessageBox( _( "Unable to find OpenOffice or LibreOffice embedded Python" ),
                           wxEmptyString,
                           wxOK | wxICON_ERROR );
             return false;
@@ -102,8 +102,8 @@ bool RPC_DOC_IFACE::Connect()
 
     if( !wxExecute( connection_str, wxEXEC_ASYNC ) )
         // for some reason this check does not work in Linux, however it works in Windows
-        wxMessageBox( wxT( "Unable to launch the process: " ) + connection_str
-                      + wxT( ".\nPlease make sure that OpenOffice / LibreOffice is installed." ),
+        wxMessageBox( _( "Unable to launch the process: " ) + connection_str
+                      + _( ".\nPlease make sure that OpenOffice / LibreOffice is installed." ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         // continue anyway in order to allow a user to run soffice from command shell
@@ -152,7 +152,7 @@ bool RPC_DOC_IFACE::Connect()
 
     if( !connected )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to connect to RPC document server" ),
+        wxMessageBox( _( "RPC_DOC_IFACE: Unable to connect to RPC document server" ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         return false;
@@ -168,7 +168,7 @@ bool RPC_DOC_IFACE::Connect()
 
     if( strcmp( m_buffer, "OK______" ) )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to connect to office" ),
+        wxMessageBox( _( "RPC_DOC_IFACE: Unable to connect to office" ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
 
@@ -191,7 +191,7 @@ void RPC_DOC_IFACE::Disconnect()
 
     if( strcmp( m_buffer, "BYE_____" ) )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to disconnect from RPC document server" ),
+        wxMessageBox( _( "RPC_DOC_IFACE: Unable to disconnect from RPC document server" ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
     }
@@ -212,8 +212,8 @@ bool RPC_DOC_IFACE::LoadDocument( wxString aUrl )
 
     if( strcmp( m_buffer, "OK______" ) )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to load document\n"
-                           "RPC command: " + loadDocument ),
+        wxMessageBox( _( "RPC_DOC_IFACE: Unable to load document\n"
+                         "RPC command: " ) + loadDocument,
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         return false;
@@ -235,8 +235,8 @@ bool RPC_DOC_IFACE::AppendDocument( wxString aUrl )
 
     if( strcmp( m_buffer, "OK______" ) )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to append document\n"
-                           "RPC command: " + appendDocument ),
+        wxMessageBox( _( "RPC_DOC_IFACE: Unable to append document\n"
+                         "RPC command: " ) + appendDocument,
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
         return false;
@@ -256,7 +256,7 @@ void RPC_DOC_IFACE::SelectTable( int aIndex )
 
     if( strcmp( m_buffer, "OK______" ) )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to select table" ),
+        wxMessageBox( _( "RPC_DOC_IFACE: Unable to select table" ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
     }
@@ -277,7 +277,7 @@ void RPC_DOC_IFACE::PutCell( wxString aCellAddr,
 
     if( strcmp( m_buffer, "OK______" ) )
     {
-        wxMessageBox( wxT( "RPC_DOC_IFACE: Unable to put cell" ),
+        wxMessageBox( _( "RPC_DOC_IFACE: Unable to put cell" ),
                       wxEmptyString,
                       wxOK | wxICON_ERROR );
     }
