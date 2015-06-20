@@ -85,7 +85,7 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
         wxEVT_MOTION, wxEVT_MOUSEWHEEL, wxEVT_CHAR,
 #ifdef USE_OSX_MAGNIFY_EVENT
         wxEVT_MAGNIFY,
-#endif        
+#endif
         KIGFX::WX_VIEW_CONTROLS::EVT_REFRESH_MOUSE
     };
 
@@ -132,7 +132,7 @@ void EDA_DRAW_PANEL_GAL::onPaint( wxPaintEvent& WXUNUSED( aEvent ) )
 
         // Grid has to be redrawn only when the NONCACHED target is redrawn
         if( m_view->IsTargetDirty( KIGFX::TARGET_NONCACHED ) )
-                m_gal->DrawGrid();
+            m_gal->DrawGrid();
 
         m_view->Redraw();
     }

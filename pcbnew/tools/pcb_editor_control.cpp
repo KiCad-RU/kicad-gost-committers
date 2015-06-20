@@ -29,7 +29,9 @@
 #include <tool/tool_manager.h>
 
 #include "selection_tool.h"
+#include "picker_tool.h"
 
+#include <painter.h>
 #include <project.h>
 #include <pcbnew_id.h>
 #include <wxPcbStruct.h>
@@ -39,9 +41,14 @@
 #include <class_module.h>
 #include <class_mire.h>
 #include <ratsnest_data.h>
+#include <collectors.h>
+#include <zones_functions_for_undo_redo.h>
 
 #include <view/view_group.h>
 #include <view/view_controls.h>
+#include <origin_viewitem.h>
+
+#include <boost/bind.hpp>
 
 
 class ZONE_CONTEXT_MENU : public CONTEXT_MENU
@@ -50,10 +57,26 @@ public:
     ZONE_CONTEXT_MENU()
     {
         SetIcon( add_zone_xpm );
+        SetUpdateHandler( boost::bind( &ZONE_CONTEXT_MENU::update, this ) );
         Add( COMMON_ACTIONS::zoneFill );
         Add( COMMON_ACTIONS::zoneFillAll );
         Add( COMMON_ACTIONS::zoneUnfill );
         Add( COMMON_ACTIONS::zoneUnfillAll );
+        Add( COMMON_ACTIONS::zoneMerge );
+    }
+
+private:
+    void update()
+    {
+        SELECTION_TOOL* selTool = getToolManager()->GetTool<SELECTION_TOOL>();
+
+        // lines like this make me really think about a better name for SELECTION_CONDITIONS class
+        bool mergeEnabled = ( SELECTION_CONDITIONS::MoreThan( 1 ) &&
+                              /*SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) &&*/
+                              SELECTION_CONDITIONS::SameNet() &&
+                              SELECTION_CONDITIONS::SameLayer() )( selTool->GetSelection() );
+
+        Enable( getMenuId( COMMON_ACTIONS::zoneMerge ), mergeEnabled );
     }
 };
 
@@ -61,12 +84,27 @@ public:
 PCB_EDITOR_CONTROL::PCB_EDITOR_CONTROL() :
     TOOL_INTERACTIVE( "pcbnew.EditorControl" ), m_frame( NULL )
 {
+    m_placeOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D( 0.8, 0.0, 0.0, 1.0 ),
+                                                KIGFX::ORIGIN_VIEWITEM::CROSS );
+}
+
+
+PCB_EDITOR_CONTROL::~PCB_EDITOR_CONTROL()
+{
+    delete m_placeOrigin;
 }
 
 
 void PCB_EDITOR_CONTROL::Reset( RESET_REASON aReason )
 {
     m_frame = getEditFrame<PCB_EDIT_FRAME>();
+
+    if( aReason == MODEL_RELOAD || aReason == GAL_SWITCH )
+    {
+        m_placeOrigin->SetPosition( getModel<BOARD>()->GetAuxOrigin() );
+        getView()->Remove( m_placeOrigin );
+        getView()->Add( m_placeOrigin );
+    }
 }
 
 
@@ -454,6 +492,102 @@ int PCB_EDITOR_CONTROL::ZoneUnfillAll( const TOOL_EVENT& aEvent )
 }
 
 
+int PCB_EDITOR_CONTROL::ZoneMerge( const TOOL_EVENT& aEvent )
+{
+    SELECTION selection = m_toolMgr->GetTool<SELECTION_TOOL>()->GetSelection();
+    BOARD* board = getModel<BOARD>();
+    RN_DATA* ratsnest = board->GetRatsnest();
+    KIGFX::VIEW* view = getView();
+
+    if( selection.Size() < 2 )
+        return 0;
+
+    PICKED_ITEMS_LIST changes;
+    int netcode = -1;
+
+    // Loop through all combinations
+    for( int ia1 = 0; ia1 < selection.Size() - 1; ++ia1 )
+    {
+        ZONE_CONTAINER* curr_area = dynamic_cast<ZONE_CONTAINER*>( selection.Item<EDA_ITEM>( ia1 ) );
+
+        if( !curr_area )
+            continue;
+
+        netcode = curr_area->GetNetCode();
+
+        EDA_RECT b1 = curr_area->Outline()->GetBoundingBox();
+        bool mod_ia1 = false;
+
+        for( int ia2 = selection.Size() - 1; ia2 > ia1; --ia2 )
+        {
+            ZONE_CONTAINER* area2 = dynamic_cast<ZONE_CONTAINER*>( selection.Item<EDA_ITEM>( ia2 ) );
+
+            if( !area2 )
+                continue;
+
+            if( area2->GetNetCode() != netcode )
+                continue;
+
+            if( curr_area->GetPriority() != area2->GetPriority() )
+                continue;
+
+            if( curr_area->GetIsKeepout() != area2->GetIsKeepout() )
+                continue;
+
+            if( curr_area->GetLayer() != area2->GetLayer() )
+                continue;
+
+            EDA_RECT b2 = area2->Outline()->GetBoundingBox();
+
+            if( b1.Intersects( b2 ) )
+            {
+                EDA_ITEM* backup = curr_area->Clone();
+                bool ret = board->TestAreaIntersection( curr_area, area2 );
+
+                if( ret && board->CombineAreas( &changes, curr_area, area2 ) )
+                {
+                    mod_ia1 = true;
+                    selection.items.RemovePicker( ia2 );
+
+                    ITEM_PICKER picker( curr_area, UR_CHANGED );
+                    picker.SetLink( backup );
+                    changes.PushItem( picker );
+                }
+                else
+                {
+                    delete backup;
+                }
+            }
+        }
+
+        if( mod_ia1 )
+            --ia1;     // if modified, we need to check it again
+    }
+
+    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_frame->SaveCopyInUndoList( changes, UR_UNSPECIFIED );
+
+    for( unsigned i = 0; i < changes.GetCount(); ++i )
+    {
+        ITEM_PICKER picker = changes.GetItemWrapper( i );
+        BOARD_ITEM* item = static_cast<BOARD_ITEM*>( picker.GetItem() );
+
+        if( picker.GetStatus() == UR_DELETED )
+        {
+            view->Remove( item );
+            ratsnest->Remove( item );
+        }
+        else if( picker.GetStatus() == UR_CHANGED )
+        {
+            item->ViewUpdate( KIGFX::VIEW_ITEM::ALL );
+            m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, item );
+        }
+    }
+
+    return 0;
+}
+
+
 int PCB_EDITOR_CONTROL::SelectionCrossProbe( const TOOL_EVENT& aEvent )
 {
     SELECTION_TOOL* selTool = m_toolMgr->GetTool<SELECTION_TOOL>();
@@ -461,6 +595,83 @@ int PCB_EDITOR_CONTROL::SelectionCrossProbe( const TOOL_EVENT& aEvent )
 
     if( selection.Size() == 1 )
         m_frame->SendMessageToEESCHEMA( selection.Item<BOARD_ITEM>( 0 ) );
+
+    return 0;
+}
+
+
+static bool setDrillOrigin( KIGFX::VIEW* aView, PCB_BASE_FRAME* aFrame,
+                            KIGFX::ORIGIN_VIEWITEM* aItem, const VECTOR2D& aPosition )
+{
+    aFrame->SetAuxOrigin( wxPoint( aPosition.x, aPosition.y ) );
+    aItem->SetPosition( aPosition );
+    aView->MarkDirty();
+
+    return true;
+}
+
+
+int PCB_EDITOR_CONTROL::DrillOrigin( const TOOL_EVENT& aEvent )
+{
+    PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
+    assert( picker );
+
+    m_frame->SetToolID( ID_PCB_PLACE_OFFSET_COORD_BUTT, wxCURSOR_PENCIL, _( "Adjust zero" ) );
+    picker->SetClickHandler( boost::bind( setDrillOrigin, getView(), m_frame, m_placeOrigin, _1 ) );
+    picker->Activate();
+
+    return 0;
+}
+
+/**
+ * Function highlightNet()
+ * Looks for a BOARD_CONNECTED_ITEM in a given spot, and if one is found - it enables
+ * highlight for its net.
+ * @param aPoint is the point where an item is expected (world coordinates).
+ */
+static bool highlightNet( TOOL_MANAGER* aToolMgr, const VECTOR2D& aPosition )
+{
+    KIGFX::RENDER_SETTINGS* render = aToolMgr->GetView()->GetPainter()->GetSettings();
+    GENERAL_COLLECTORS_GUIDE guide = static_cast<PCB_BASE_FRAME*>( aToolMgr->GetEditFrame() )->GetCollectorsGuide();
+    BOARD* board = static_cast<BOARD*>( aToolMgr->GetModel() );
+    GENERAL_COLLECTOR collector;
+    int net = -1;
+
+    // Find a connected item for which we are going to highlight a net
+    collector.Collect( board, GENERAL_COLLECTOR::PadsTracksOrZones,
+                       wxPoint( aPosition.x, aPosition.y ), guide );
+    bool enableHighlight = ( collector.GetCount() > 0 );
+
+    // Obtain net code for the clicked item
+    if( enableHighlight )
+        net = static_cast<BOARD_CONNECTED_ITEM*>( collector[0] )->GetNetCode();
+
+    if( enableHighlight != render->GetHighlight() || net != render->GetHighlightNetCode() )
+    {
+        render->SetHighlight( enableHighlight, net );
+        aToolMgr->GetView()->UpdateAllLayersColor();
+    }
+
+    return true;
+}
+
+
+int PCB_EDITOR_CONTROL::HighlightNet( const TOOL_EVENT& aEvent )
+{
+    highlightNet( m_toolMgr, getView()->ToWorld( getViewControls()->GetMousePosition() ) );
+
+    return 0;
+}
+
+
+int PCB_EDITOR_CONTROL::HighlightNetCursor( const TOOL_EVENT& aEvent )
+{
+    PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
+    assert( picker );
+
+    m_frame->SetToolID( ID_PCB_HIGHLIGHT_BUTT, wxCURSOR_PENCIL, _( "Highlight net" ) );
+    picker->SetClickHandler( boost::bind( highlightNet, m_toolMgr, _1 ) );
+    picker->Activate();
 
     return 0;
 }
@@ -479,12 +690,17 @@ void PCB_EDITOR_CONTROL::SetTransitions()
     Go( &PCB_EDITOR_CONTROL::ZoneFillAll,        COMMON_ACTIONS::zoneFillAll.MakeEvent() );
     Go( &PCB_EDITOR_CONTROL::ZoneUnfill,         COMMON_ACTIONS::zoneUnfill.MakeEvent() );
     Go( &PCB_EDITOR_CONTROL::ZoneUnfillAll,      COMMON_ACTIONS::zoneUnfillAll.MakeEvent() );
+    Go( &PCB_EDITOR_CONTROL::ZoneMerge,          COMMON_ACTIONS::zoneMerge.MakeEvent() );
 
     // Placing tools
     Go( &PCB_EDITOR_CONTROL::PlaceTarget,        COMMON_ACTIONS::placeTarget.MakeEvent() );
     Go( &PCB_EDITOR_CONTROL::PlaceModule,        COMMON_ACTIONS::placeModule.MakeEvent() );
 
+    // Other
     Go( &PCB_EDITOR_CONTROL::SelectionCrossProbe, SELECTION_TOOL::SelectedEvent );
+    Go( &PCB_EDITOR_CONTROL::DrillOrigin,         COMMON_ACTIONS::drillOrigin.MakeEvent() );
+    Go( &PCB_EDITOR_CONTROL::HighlightNet,        COMMON_ACTIONS::highlightNet.MakeEvent() );
+    Go( &PCB_EDITOR_CONTROL::HighlightNetCursor,  COMMON_ACTIONS::highlightNetCursor.MakeEvent() );
 }
 
 

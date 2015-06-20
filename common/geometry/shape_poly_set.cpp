@@ -447,16 +447,19 @@ void SHAPE_POLY_SET::fractureSingle( ClipperLib::Paths& paths )
     paths.clear();
     Path newPath;
     newPath.push_back(prev);
-    FractureEdge *e;
+    FractureEdge *e, *e_next;
     IntPoint p;
 
-    for( e = root; e->m_next != root; e=e->m_next)
-    {
+    e = root;
+
+    do {
         p = e->m_p1;
         newPath.push_back(p);
         prev = p;
+        e_next = e->m_next;
         delete e;
-    }
+        e = e_next;
+    } while(e->m_next != root);
 
     p = e->m_p1;
 
@@ -515,11 +518,12 @@ bool SHAPE_POLY_SET::Parse( std::stringstream& aStream )
 
     aStream >> tmp;
 
-    unsigned int n_polys = atoi( tmp.c_str() );
-    if(n_polys < 0)
+    int n_polys = atoi( tmp.c_str() );
+
+    if( n_polys < 0 )
         return false;
 
-    for( unsigned i = 0; i < n_polys; i++ )
+    for( int i = 0; i < n_polys; i++ )
     {
         ClipperLib::Paths paths;
 
@@ -528,17 +532,18 @@ bool SHAPE_POLY_SET::Parse( std::stringstream& aStream )
             return false;
 
         aStream >> tmp;
-        unsigned int n_outlines = atoi( tmp.c_str() );
-        if(n_outlines < 0)
+        int n_outlines = atoi( tmp.c_str() );
+
+        if( n_outlines < 0 )
             return false;
 
-        for( unsigned j = 0; j < n_outlines; j++)
+        for( int j = 0; j < n_outlines; j++ )
         {
             ClipperLib::Path outline;
 
             aStream >> tmp;
-            unsigned int n_vertices = atoi( tmp.c_str() );
-            for( unsigned v = 0; v < n_vertices; v++)
+            int n_vertices = atoi( tmp.c_str() );
+            for( int v = 0; v < n_vertices; v++ )
             {
                 ClipperLib::IntPoint p;
 

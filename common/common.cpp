@@ -295,17 +295,6 @@ double RoundTo0( double x, double precision )
     return (double) ix / precision;
 }
 
-wxString FormatDateLong( const wxDateTime &aDate )
-{
-    // GetInfo was introduced only on wx 2.9; for portability reason an
-    // hardcoded format is used on wx 2.8
-#if wxCHECK_VERSION( 2, 9, 0 )
-    return aDate.Format( wxLocale::GetInfo( wxLOCALE_LONG_DATE_FMT ) );
-#else
-    return aDate.Format( wxT("%d %b %Y") );
-#endif
-}
-
 
 wxConfigBase* GetNewConfig( const wxString& aProgName )
 {
@@ -426,10 +415,10 @@ bool EnsureFileDirectoryExists( wxFileName*     aTargetFullFileName,
     {
         if( aReporter )
         {
-            msg.Printf( _( "*** Error: cannot make path '%s' absolute with respect to '%s'! ***" ),
+            msg.Printf( _( "Cannot make path '%s' absolute with respect to '%s'." ),
                         GetChars( aTargetFullFileName->GetPath() ),
                         GetChars( baseFilePath ) );
-            aReporter->Report( msg );
+            aReporter->Report( msg, REPORTER::RPT_ERROR );
         }
 
         return false;
@@ -445,7 +434,7 @@ bool EnsureFileDirectoryExists( wxFileName*     aTargetFullFileName,
             if( aReporter )
             {
                 msg.Printf( _( "Output directory '%s' created.\n" ), GetChars( outputPath ) );
-                aReporter->Report( msg );
+                aReporter->Report( msg, REPORTER::RPT_INFO );
                 return true;
             }
         }
@@ -453,9 +442,9 @@ bool EnsureFileDirectoryExists( wxFileName*     aTargetFullFileName,
         {
             if( aReporter )
             {
-                msg.Printf( _( "*** Error: cannot create output directory '%s'! ***\n" ),
+                msg.Printf( _( "Cannot create output directory '%s'.\n" ),
                             GetChars( outputPath ) );
-                aReporter->Report( msg );
+                aReporter->Report( msg, REPORTER::RPT_ERROR );
             }
 
             return false;

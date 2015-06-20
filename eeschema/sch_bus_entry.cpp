@@ -51,6 +51,8 @@ SCH_BUS_ENTRY_BASE::SCH_BUS_ENTRY_BASE( KICAD_T aType, const wxPoint& pos, char 
 
     if( shape == '/' )
         m_size.y = -100;
+
+    m_isDanglingStart = m_isDanglingEnd = true;
 }
 
 SCH_BUS_WIRE_ENTRY::SCH_BUS_WIRE_ENTRY( const wxPoint& pos, char shape ) :
@@ -195,11 +197,17 @@ void SCH_BUS_ENTRY_BASE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint&
     GRLine( clipbox, aDC, m_pos.x + aOffset.x, m_pos.y + aOffset.y,
             m_End().x + aOffset.x, m_End().y + aOffset.y, GetPenSize(), color );
 
-    if( m_isDanglingStart ) {
+
+    // Draw pin targets if part is being dragged
+    bool dragging = ( aPanel->GetScreen()->GetCurItem() == this );
+
+    if( m_isDanglingStart || dragging )
+    {
         GRCircle( clipbox, aDC, m_pos.x + aOffset.x, m_pos.y + aOffset.y, TARGET_BUSENTRY_RADIUS, 0, color );
     }
 
-    if( m_isDanglingEnd ) {
+    if( m_isDanglingEnd || dragging )
+    {
         GRCircle( clipbox, aDC, m_End().x + aOffset.x, m_End().y + aOffset.y, TARGET_BUSENTRY_RADIUS, 0, color );
     }
 }
@@ -252,6 +260,12 @@ bool SCH_BUS_ENTRY_BASE::IsDanglingStateChanged( std::vector<DANGLING_END_ITEM>&
     // when the end position is found.
     wxPoint seg_start;
 
+    // Special case: if both items are wires, show as dangling. This is because
+    // a bus entry between two wires will look like a connection, but does NOT
+    // actually represent one. We need to clarify this for the user.
+    bool start_is_wire = false;
+    bool end_is_wire = false;
+
     BOOST_FOREACH( DANGLING_END_ITEM& each_item, aItemList )
     {
         if( each_item.GetItem() == this )
@@ -263,16 +277,28 @@ bool SCH_BUS_ENTRY_BASE::IsDanglingStateChanged( std::vector<DANGLING_END_ITEM>&
         case BUS_START_END:
             seg_start = each_item.GetPosition();
             break;
+
         case WIRE_END_END:
+            if( IsPointOnSegment( seg_start, each_item.GetPosition(), m_pos ) )
+                start_is_wire = true;
+            if( IsPointOnSegment( seg_start, each_item.GetPosition(), m_End() ) )
+                end_is_wire = true;
+            // Fall through
+
         case BUS_END_END:
             if( IsPointOnSegment( seg_start, each_item.GetPosition(), m_pos ) )
                 m_isDanglingStart = false;
             if( IsPointOnSegment( seg_start, each_item.GetPosition(), m_End() ) )
                 m_isDanglingEnd = false;
+            break;
         default:
             break;
         }
     }
+
+    // See above: show as dangling if joining two wires
+    if( start_is_wire && end_is_wire )
+        m_isDanglingStart = m_isDanglingEnd = true;
 
     return (previousStateStart != m_isDanglingStart) || (previousStateEnd != m_isDanglingEnd);
 }

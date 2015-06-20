@@ -1,9 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun  5 2014)
+// C++ code generated with wxFormBuilder (version Jun  6 2014)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
 ///////////////////////////////////////////////////////////////////////////
+
+#include "wx_html_report_panel.h"
 
 #include "dialog_plot_base.h"
 
@@ -51,7 +53,7 @@ DIALOG_PLOT_BASE::DIALOG_PLOT_BASE( wxWindow* parent, wxWindowID id, const wxStr
 	m_outputDirectoryName->SetMaxLength( 0 ); 
 	m_outputDirectoryName->SetToolTip( _("Target directory for plot files. Can be absolute or relative to the board file location.") );
 	
-	bSizer29->Add( m_outputDirectoryName, 1, wxALIGN_CENTER_VERTICAL|wxEXPAND|wxRIGHT|wxLEFT, 5 );
+	bSizer29->Add( m_outputDirectoryName, 1, wxEXPAND|wxRIGHT|wxLEFT, 5 );
 	
 	m_browseButton = new wxButton( this, wxID_ANY, _("Browse..."), wxDefaultPosition, wxDefaultSize, 0 );
 	bSizer29->Add( m_browseButton, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5 );
@@ -249,7 +251,7 @@ DIALOG_PLOT_BASE::DIALOG_PLOT_BASE( wxWindow* parent, wxWindowID id, const wxStr
 	m_rbGerberFormat->SetSelection( 0 );
 	m_rbGerberFormat->SetToolTip( _("Resolution of coordinates in Gerber files.\nUse the higher value if possible.") );
 	
-	m_GerberOptionsSizer->Add( m_rbGerberFormat, 1, wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+	m_GerberOptionsSizer->Add( m_rbGerberFormat, 1, wxEXPAND|wxALL, 5 );
 	
 	
 	m_PlotOptionsSizer->Add( m_GerberOptionsSizer, 0, wxALL|wxEXPAND, 3 );
@@ -363,13 +365,13 @@ DIALOG_PLOT_BASE::DIALOG_PLOT_BASE( wxWindow* parent, wxWindowID id, const wxStr
 	
 	bSizer12->Add( bUpperSizer, 0, wxEXPAND, 5 );
 	
-	wxStaticBoxSizer* sbSizerMsg;
-	sbSizerMsg = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Messages:") ), wxVERTICAL );
+	wxBoxSizer* sbSizerMsg;
+	sbSizerMsg = new wxBoxSizer( wxVERTICAL );
 	
-	m_messagesBox = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
-	m_messagesBox->SetMinSize( wxSize( -1,150 ) );
+	m_messagesPanel = new WX_HTML_REPORT_PANEL( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
+	m_messagesPanel->SetMinSize( wxSize( -300,150 ) );
 	
-	sbSizerMsg->Add( m_messagesBox, 1, wxEXPAND, 5 );
+	sbSizerMsg->Add( m_messagesPanel, 1, wxEXPAND | wxALL, 5 );
 	
 	
 	bSizer12->Add( sbSizerMsg, 1, wxEXPAND, 5 );
@@ -389,6 +391,12 @@ DIALOG_PLOT_BASE::DIALOG_PLOT_BASE( wxWindow* parent, wxWindowID id, const wxStr
 	
 	
 	bSizer12->Add( bSizerButtons, 0, wxALIGN_RIGHT|wxRIGHT|wxLEFT, 5 );
+	
+	wxBoxSizer* bSizer221;
+	bSizer221 = new wxBoxSizer( wxVERTICAL );
+	
+	
+	bSizer12->Add( bSizer221, 1, wxEXPAND, 5 );
 	
 	
 	m_MainSizer->Add( bSizer12, 1, wxALL|wxEXPAND, 5 );

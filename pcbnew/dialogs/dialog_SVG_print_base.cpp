@@ -1,9 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Nov  6 2013)
+// C++ code generated with wxFormBuilder (version Jun  6 2014)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
 ///////////////////////////////////////////////////////////////////////////
+
+#include "wx_html_report_panel.h"
 
 #include "dialog_SVG_print_base.h"
 
@@ -106,10 +108,10 @@ DIALOG_SVG_PRINT_base::DIALOG_SVG_PRINT_base( wxWindow* parent, wxWindowID id, c
 	bButtonsSizer->Add( m_rbFileOpt, 0, wxALL, 5 );
 	
 	m_buttonCreateFile = new wxButton( this, wxID_PRINT_BOARD, _("Plot"), wxDefaultPosition, wxDefaultSize, 0 );
-	bButtonsSizer->Add( m_buttonCreateFile, 0, wxALL|wxALIGN_CENTER_HORIZONTAL|wxEXPAND, 5 );
+	bButtonsSizer->Add( m_buttonCreateFile, 0, wxALL|wxEXPAND, 5 );
 	
 	m_buttonQuit = new wxButton( this, wxID_CANCEL, _("Close"), wxDefaultPosition, wxDefaultSize, 0 );
-	bButtonsSizer->Add( m_buttonQuit, 0, wxALL|wxALIGN_CENTER_HORIZONTAL|wxEXPAND, 5 );
+	bButtonsSizer->Add( m_buttonQuit, 0, wxALL|wxEXPAND, 5 );
 	
 	
 	bUpperSizer->Add( bButtonsSizer, 0, wxEXPAND, 5 );
@@ -117,14 +119,16 @@ DIALOG_SVG_PRINT_base::DIALOG_SVG_PRINT_base( wxWindow* parent, wxWindowID id, c
 	
 	bMainSizer->Add( bUpperSizer, 0, wxEXPAND, 5 );
 	
-	m_staticText2 = new wxStaticText( this, wxID_ANY, _("Messages:"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText2->Wrap( -1 );
-	bMainSizer->Add( m_staticText2, 0, wxTOP|wxRIGHT|wxLEFT, 5 );
+	wxBoxSizer* bSizer5;
+	bSizer5 = new wxBoxSizer( wxVERTICAL );
 	
-	m_messagesBox = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
-	m_messagesBox->SetMinSize( wxSize( -1,150 ) );
+	m_messagesPanel = new WX_HTML_REPORT_PANEL( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
+	m_messagesPanel->SetMinSize( wxSize( 300,150 ) );
 	
-	bMainSizer->Add( m_messagesBox, 1, wxBOTTOM|wxRIGHT|wxLEFT|wxEXPAND, 5 );
+	bSizer5->Add( m_messagesPanel, 1, wxEXPAND | wxALL, 5 );
+	
+	
+	bMainSizer->Add( bSizer5, 1, wxEXPAND, 5 );
 	
 	
 	this->SetSizer( bMainSizer );

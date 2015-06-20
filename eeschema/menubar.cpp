@@ -70,7 +70,7 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                      ID_NEW_PROJECT,
                      _( "&New Schematic Project" ),
                      _( "Clear current schematic hierarchy and start a new schematic root sheet" ),
-                     KiBitmap( new_xpm ) );
+                     KiBitmap( new_sch_xpm ) );
 
         text = AddHotkeyName( _( "&Open Schematic Project" ), g_Schematic_Hokeys_Descr, HK_LOAD_SCH );
         AddMenuItem( fileMenu,
@@ -490,12 +490,15 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
 
     toolsMenu->AppendSeparator();
 
-    // Run CvPcb
-    AddMenuItem( toolsMenu,
-                 ID_RUN_CVPCB,
-                 _( "A&ssign Component Footprint" ),
-                 _( "Run CvPcb" ),
-                 KiBitmap( cvpcb_xpm ) );
+    if( !Kiface().IsSingle() )   // only with a functional KIWAY, not single_top
+    {
+        // Run CvPcb
+        AddMenuItem( toolsMenu,
+                     ID_RUN_CVPCB,
+                     _( "A&ssign Component Footprint" ),
+                     _( "Run CvPcb" ),
+                     KiBitmap( cvpcb_xpm ) );
+    }
 
     // Run Pcbnew
     AddMenuItem( toolsMenu,

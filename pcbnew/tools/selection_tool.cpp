@@ -146,7 +146,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
         {
             if( evt->Modifier( MD_CTRL ) && !m_editModules )
             {
-                highlightNet( evt->Position() );
+                m_toolMgr->RunAction( COMMON_ACTIONS::highlightNet, true );
             }
             else
             {
@@ -462,7 +462,6 @@ void SELECTION_TOOL::SetTransitions()
     Go( &SELECTION_TOOL::ClearSelection, COMMON_ACTIONS::selectionClear.MakeEvent() );
     Go( &SELECTION_TOOL::SelectItem, COMMON_ACTIONS::selectItem.MakeEvent() );
     Go( &SELECTION_TOOL::UnselectItem, COMMON_ACTIONS::unselectItem.MakeEvent() );
-    Go( &SELECTION_TOOL::SelectItem, COMMON_ACTIONS::selectItem.MakeEvent() );
     Go( &SELECTION_TOOL::find, COMMON_ACTIONS::find.MakeEvent() );
     Go( &SELECTION_TOOL::findMove, COMMON_ACTIONS::findMove.MakeEvent() );
     Go( &SELECTION_TOOL::selectConnection, COMMON_ACTIONS::selectConnection.MakeEvent() );
@@ -652,7 +651,9 @@ void SELECTION_TOOL::findCallback( BOARD_ITEM* aItem )
     {
         clearSelection();
         select( aItem );
-        getView()->SetCenter( VECTOR2D( aItem->GetPosition() ) );
+        EDA_RECT bbox = aItem->GetBoundingBox();
+        BOX2D viewport( VECTOR2D( bbox.GetOrigin() ), VECTOR2D( bbox.GetSize() ) );
+        getView()->SetViewport( viewport );
 
         // Inform other potentially interested tools
         m_toolMgr->ProcessEvent( SelectedEvent );
@@ -1004,30 +1005,6 @@ bool SELECTION_TOOL::selectionContains( const VECTOR2I& aPoint ) const
 }
 
 
-void SELECTION_TOOL::highlightNet( const VECTOR2I& aPoint )
-{
-    KIGFX::RENDER_SETTINGS* render = getView()->GetPainter()->GetSettings();
-    GENERAL_COLLECTORS_GUIDE guide = m_frame->GetCollectorsGuide();
-    GENERAL_COLLECTOR collector;
-    int net = -1;
-
-    // Find a connected item for which we are going to highlight a net
-    collector.Collect( getModel<BOARD>(), GENERAL_COLLECTOR::PadsTracksOrZones,
-                       wxPoint( aPoint.x, aPoint.y ), guide );
-    bool enableHighlight = ( collector.GetCount() > 0 );
-
-    // Obtain net code for the clicked item
-    if( enableHighlight )
-        net = static_cast<BOARD_CONNECTED_ITEM*>( collector[0] )->GetNetCode();
-
-    if( enableHighlight != render->GetHighlight() || net != render->GetHighlightNetCode() )
-    {
-        render->SetHighlight( enableHighlight, net );
-        getView()->UpdateAllLayersColor();
-    }
-}
-
-
 static double calcArea( BOARD_ITEM* aItem )
 {
     switch( aItem -> Type() )
@@ -1325,16 +1302,8 @@ bool SELECTION_TOOL::SanitizeSelection()
         }
     }
 
-    while( !rejected.empty () )
-    {
-        BOARD_ITEM* item = *rejected.begin();
-        int itemIdx = m_selection.items.FindItem( item );
-
-        if( itemIdx >= 0 )
-            m_selection.items.RemovePicker( itemIdx );
-
-        rejected.erase( item );
-    }
+    BOOST_FOREACH( BOARD_ITEM* item, rejected )
+        unselect( item );
 
     return true;
 }

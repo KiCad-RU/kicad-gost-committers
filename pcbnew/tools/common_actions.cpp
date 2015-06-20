@@ -75,23 +75,23 @@ TOOL_ACTION COMMON_ACTIONS::findMove( "pcbnew.InteractiveSelection.FindMove",
 
 // Edit tool actions
 TOOL_ACTION COMMON_ACTIONS::editFootprintInFpEditor( "pcbnew.InteractiveEdit.editFootprintInFpEditor",
-        AS_CONTEXT, TOOL_ACTION::LegacyHotKey( HK_EDIT_MODULE_WITH_MODEDIT ),
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_EDIT_MODULE_WITH_MODEDIT ),
         _( "Open in Footprint Editor" ),
         _( "Opens the selected footprint in the Footprint Editor" ),
         module_editor_xpm );
 
 TOOL_ACTION COMMON_ACTIONS::copyPadToSettings( "pcbnew.InteractiveEdit.copyPadToSettings",
-        AS_CONTEXT, 0,
+        AS_GLOBAL, 0,
         _( "Copy pad settings to Current Settings" ),
         _( "Copies the properties of selected pad to the current template pad settings." ) );
 
 TOOL_ACTION COMMON_ACTIONS::copySettingsToPads( "pcbnew.InteractiveEdit.copySettingsToPads",
-        AS_CONTEXT, 0,
+        AS_GLOBAL, 0,
         _( "Copy Current Settings to pads" ),
         _( "Copies the current template pad settings to the selected pad(s)." ) );
 
-TOOL_ACTION COMMON_ACTIONS::globalEditPads ( "pcbnew.InteractiveEdit.globalPadEdit",
-        AS_CONTEXT, 0,
+TOOL_ACTION COMMON_ACTIONS::globalEditPads( "pcbnew.InteractiveEdit.globalPadEdit",
+        AS_GLOBAL, 0,
         _( "Global Pad Edition" ),
         _( "Changes pad properties globally." ), global_options_pad_xpm );
 
@@ -374,6 +374,10 @@ TOOL_ACTION COMMON_ACTIONS::zoneUnfillAll( "pcbnew.EditorControl.zoneUnfillAll",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_ZONE_REMOVE_FILLED ),
         _( "Unfill all" ), _( "Unfill all zones" ) );
 
+TOOL_ACTION COMMON_ACTIONS::zoneMerge( "pcbnew.EditorControl.zoneMerge",
+        AS_GLOBAL, 0,
+        _( "Merge zones" ), _( "Merge zones" ) );
+
 
 TOOL_ACTION COMMON_ACTIONS::placeTarget( "pcbnew.EditorControl.placeTarget",
         AS_GLOBAL, 0,
@@ -382,6 +386,18 @@ TOOL_ACTION COMMON_ACTIONS::placeTarget( "pcbnew.EditorControl.placeTarget",
 TOOL_ACTION COMMON_ACTIONS::placeModule( "pcbnew.EditorControl.placeModule",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_ADD_MODULE ),
         _( "Add modules" ), _( "Add modules" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION COMMON_ACTIONS::drillOrigin( "pcbnew.EditorControl.drillOrigin",
+        AS_GLOBAL, 0,
+        "", "" );
+
+TOOL_ACTION COMMON_ACTIONS::highlightNet( "pcbnew.EditorControl.highlightNet",
+        AS_GLOBAL, 0,
+        "", "" );
+
+TOOL_ACTION COMMON_ACTIONS::highlightNetCursor( "pcbnew.EditorControl.highlightNetCursor",
+        AS_GLOBAL, 0,
+        "", "" );
 
 
 // Module editor tools
@@ -415,6 +431,8 @@ TOOL_ACTION COMMON_ACTIONS::selectionTool( "pcbnew.Control.selectionTool",
         AS_GLOBAL, 0,
         "", "", NULL, AF_ACTIVATE );
 
+TOOL_ACTION COMMON_ACTIONS::pickerTool( "pcbnew.Picker", AS_GLOBAL, 0, "", "", NULL, AF_ACTIVATE );
+
 TOOL_ACTION COMMON_ACTIONS::resetCoords( "pcbnew.Control.resetCoords",
         AS_GLOBAL, ' ',
         "", "" );
@@ -427,8 +445,12 @@ TOOL_ACTION COMMON_ACTIONS::switchUnits( "pcbnew.Control.switchUnits",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_SWITCH_UNITS ),
         "", "" );
 
+TOOL_ACTION COMMON_ACTIONS::deleteItemCursor( "pcbnew.Control.deleteItemCursor",
+        AS_GLOBAL, 0,
+        "", "" );
+
 TOOL_ACTION COMMON_ACTIONS::showHelp( "pcbnew.Control.showHelp",
-        AS_GLOBAL, '?',
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_HELP ),
         "", "" );
 
 TOOL_ACTION COMMON_ACTIONS::toBeDone( "pcbnew.Control.toBeDone",
@@ -477,9 +499,13 @@ TOOL_ACTION COMMON_ACTIONS::pointEditorUpdate( "pcbnew.PointEditor.update",
         AS_GLOBAL, 0,
         "", "" );    // No description, it is not supposed to be shown anywhere
 
-TOOL_ACTION COMMON_ACTIONS::pointEditorBreakOutline( "pcbnew.PointEditor.breakOutline",
+TOOL_ACTION COMMON_ACTIONS::pointEditorAddCorner( "pcbnew.PointEditor.addCorner",
         AS_GLOBAL, 0,
         _( "Create corner" ), _( "Create corner" ), add_corner_xpm );
+
+TOOL_ACTION COMMON_ACTIONS::pointEditorRemoveCorner( "pcbnew.PointEditor.removeCorner",
+        AS_GLOBAL, 0,
+        _( "Remove corner" ), _( "Remove corner" ), delete_xpm );
 
 // Placement tool
 TOOL_ACTION COMMON_ACTIONS::alignTop( "pcbnew.Place.alignTop",
@@ -631,14 +657,17 @@ boost::optional<TOOL_EVENT> COMMON_ACTIONS::TranslateLegacyId( int aId )
         return COMMON_ACTIONS::selectionTool.MakeEvent();
 
     case ID_PCB_DELETE_ITEM_BUTT:
-    case ID_PCB_HIGHLIGHT_BUTT:
-    case ID_PCB_SHOW_1_RATSNEST_BUTT:
-    case ID_PCB_PLACE_OFFSET_COORD_BUTT:
-    case ID_TB_OPTIONS_SHOW_MODULE_RATSNEST:
-    case ID_TB_OPTIONS_SHOW_EXTRA_VERTICAL_TOOLBAR_MICROWAVE:
-    case ID_MENU_PCB_SHOW_HIDE_MUWAVE_TOOLBAR:
-    case ID_MICROWAVE_V_TOOLBAR:
     case ID_MODEDIT_DELETE_TOOL:
+        return COMMON_ACTIONS::deleteItemCursor.MakeEvent();
+
+    case ID_PCB_PLACE_OFFSET_COORD_BUTT:
+        return COMMON_ACTIONS::drillOrigin.MakeEvent();
+
+    case ID_PCB_HIGHLIGHT_BUTT:
+        return COMMON_ACTIONS::highlightNetCursor.MakeEvent();
+
+    case ID_PCB_SHOW_1_RATSNEST_BUTT:
+    case ID_TB_OPTIONS_SHOW_MODULE_RATSNEST:
         return COMMON_ACTIONS::toBeDone.MakeEvent();
     }
 
