@@ -56,7 +56,6 @@ class LIB_EDIT_FRAME : public SCH_BASE_FRAME
     wxComboBox*     m_partSelectBox;        ///< a Box to select a part to edit (if any)
     wxComboBox*     m_aliasSelectBox;       ///< a box to select the alias to edit (if any)
 
-    wxString m_configPath;
     wxString m_lastLibImportPath;
     wxString m_lastLibExportPath;
 
@@ -134,13 +133,6 @@ public:
 
     ~LIB_EDIT_FRAME();
 
-    /**
-     * Function GetLibEditFrameName (static)
-     * @return the frame name used when creating the frame
-     * used to get a reference to this frame, if exists
-     */
-    static const wxChar* GetLibEditFrameName();
-
     /** The current library being edited, or NULL if none. */
     PART_LIB* GetCurLib();
 
@@ -201,8 +193,6 @@ public:
     static void EnsureActiveLibExists();
 
     void InstallConfigFrame( wxCommandEvent& event );
-    void InstallDimensionsDialog( wxCommandEvent& event );
-    void OnColorConfig( wxCommandEvent& aEvent );
     void OnPreferencesOptions( wxCommandEvent& event );
     void Process_Config( wxCommandEvent& event );
 
@@ -342,7 +332,7 @@ public:
 
     bool OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition, EDA_ITEM* aItem = NULL );
 
-    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey = 0 );
+    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
 
     void LoadSettings( wxConfigBase* aCfg );
 
@@ -616,7 +606,7 @@ public:
      * returns the block command (BLOCK_MOVE, BLOCK_COPY...) corresponding to
      * the \a aKey (ALT, SHIFT ALT ..)
      */
-    virtual int BlockCommand( int aKey );
+    virtual int BlockCommand( EDA_KEY aKey );
 
     /**
      * Function HandleBlockPlace

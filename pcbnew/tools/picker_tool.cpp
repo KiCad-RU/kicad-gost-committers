@@ -42,11 +42,9 @@ int PICKER_TOOL::Main( const TOOL_EVENT& aEvent )
 
     assert( !m_picking );
     m_picking = true;
-    m_picked = boost::optional<VECTOR2D>();
+    m_picked = boost::none;
 
-    controls->ShowCursor( m_cursorVisible );
-    controls->SetSnapping( m_cursorSnapping );
-    controls->SetAutoPan( m_autoPanning );
+    setControls();
 
     while( OPT_TOOL_EVENT evt = Wait() )
     {
@@ -56,21 +54,32 @@ int PICKER_TOOL::Main( const TOOL_EVENT& aEvent )
             m_picked = controls->GetCursorPosition();
 
             if( m_clickHandler )
-                getNext = (*m_clickHandler)( *m_picked );
+            {
+                try
+                {
+                    getNext = (*m_clickHandler)( *m_picked );
+                }
+                catch( std::exception& e )
+                {
+                    std::cerr << "PICKER_TOOL click handler error: " << e.what() << std::endl;
+                    break;
+                }
+            }
 
             if( !getNext )
                 break;
+            else
+                setControls();
         }
 
         else if( evt->IsCancel() || evt->IsActivate() )
             break;
+
+        else
+            m_toolMgr->PassEvent();
     }
 
     reset();
-
-    controls->SetAutoPan( false );
-    controls->SetSnapping( false );
-    controls->ShowCursor( false );
     getEditFrame<PCB_BASE_FRAME>()->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
     return 0;
@@ -87,8 +96,20 @@ void PICKER_TOOL::reset()
 {
     m_cursorSnapping = true;
     m_cursorVisible = true;
-    m_autoPanning = true;
+    m_cursorCapture = false;
+    m_autoPanning = false;
 
     m_picking = false;
-    m_clickHandler = boost::optional<CLICK_HANDLER>();
+    m_clickHandler = boost::none;
+}
+
+
+void PICKER_TOOL::setControls()
+{
+    KIGFX::VIEW_CONTROLS* controls = getViewControls();
+
+    controls->ShowCursor( m_cursorVisible );
+    controls->SetSnapping( m_cursorSnapping );
+    controls->CaptureCursor( m_cursorCapture );
+    controls->SetAutoPan( m_autoPanning );
 }

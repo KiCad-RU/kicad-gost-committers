@@ -3,7 +3,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007-2011 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2007 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@
 
 
 #include <cstdarg>
+#include <config.h> // HAVE_FGETC_NOLOCK
 
 #include <richio.h>
 
@@ -43,6 +44,14 @@
 static int vprint( std::string* result, const char* format, va_list ap )
 {
     char    msg[512];
+    // This function can call vsnprintf twice.
+    // But internally, vsnprintf retrieves arguments from the va_list identified by arg as if
+    // va_arg was used on it, and thus the state of the va_list is likely to be altered by the call.
+    // see: www.cplusplus.com/reference/cstdio/vsnprintf
+    // we make a copy of va_list ap for the second call, if happens
+    va_list tmp;
+    va_copy( tmp, ap );
+
     size_t  len = vsnprintf( msg, sizeof(msg), format, ap );
 
     if( len < sizeof(msg) )     // the output fit into msg
@@ -58,10 +67,12 @@ static int vprint( std::string* result, const char* format, va_list ap )
 
         buf.reserve( len+1 );   // reserve(), not resize() which writes. +1 for trailing nul.
 
-        len = vsnprintf( &buf[0], len+1, format, ap );
+        len = vsnprintf( &buf[0], len+1, format, tmp );
 
         result->append( &buf[0], &buf[0] + len );
     }
+
+    va_end( tmp );      // Release the temporary va_list, initialised from ap
 
     return len;
 }
@@ -95,8 +106,12 @@ std::string StrPrintf( const char* format, ... )
 
 void IO_ERROR::init( const char* aThrowersFile, const char* aThrowersLoc, const wxString& aMsg )
 {
+    // The throwers filename is a full filename, depending on Kicad source location.
+    // a short filename will be printed (it is better for user, the full filename has no meaning).
+    wxString srcname = wxString::FromUTF8( aThrowersFile );
+
     errorText.Printf( IO_FORMAT, aMsg.GetData(),
-        wxString::FromUTF8( aThrowersFile ).GetData(),
+        srcname.AfterLast( '/' ).GetData(),
         wxString::FromUTF8( aThrowersLoc ).GetData() );
 }
 
@@ -111,9 +126,13 @@ void PARSE_ERROR::init( const char* aThrowersFile, const char* aThrowersLoc,
     lineNumber = aLineNumber;
     byteIndex  = aByteIndex;
 
+    // The throwers filename is a full filename, depending on Kicad source location.
+    // a short filename will be printed (it is better for user, the full filename has no meaning).
+    wxString srcname = wxString::FromUTF8( aThrowersFile );
+
     errorText.Printf( PARSE_FORMAT, aMsg.GetData(), aSource.GetData(),
         aLineNumber, aByteIndex,
-        wxString::FromUTF8( aThrowersFile ).GetData(),
+        srcname.AfterLast( '/' ).GetData(),
         wxString::FromUTF8( aThrowersLoc ).GetData() );
 }
 
@@ -397,12 +416,22 @@ const char* OUTPUTFORMATTER::GetQuoteChar( const char* wrapee )
 
 int OUTPUTFORMATTER::vprint( const char* fmt,  va_list ap )  throw( IO_ERROR )
 {
+    // This function can call vsnprintf twice.
+    // But internally, vsnprintf retrieves arguments from the va_list identified by arg as if
+    // va_arg was used on it, and thus the state of the va_list is likely to be altered by the call.
+    // see: www.cplusplus.com/reference/cstdio/vsnprintf
+    // we make a copy of va_list ap for the second call, if happens
+    va_list tmp;
+    va_copy( tmp, ap );
     int ret = vsnprintf( &buffer[0], buffer.size(), fmt, ap );
+
     if( ret >= (int) buffer.size() )
     {
-        buffer.resize( ret + 2000 );
-        ret = vsnprintf( &buffer[0], buffer.size(), fmt, ap );
+        buffer.resize( ret + 1000 );
+        ret = vsnprintf( &buffer[0], buffer.size(), fmt, tmp );
     }
+
+    va_end( tmp );      // Release the temporary va_list, initialised from ap
 
     if( ret > 0 )
         write( &buffer[0], ret );

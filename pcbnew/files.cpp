@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2004-2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2011-2015 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -41,6 +41,7 @@
 #include <pgm_base.h>
 #include <msgpanel.h>
 #include <fp_lib_table.h>
+#include <ratsnest_data.h>
 
 #include <pcbnew.h>
 #include <pcbnew_id.h>
@@ -52,9 +53,11 @@
 #include <module_editor_frame.h>
 #include <modview_frame.h>
 
+#include <wx/stdpaths.h>
 
-//#define     USE_INSTRUMENTATION     true
-#define     USE_INSTRUMENTATION     false
+
+//#define     USE_INSTRUMENTATION     1
+#define     USE_INSTRUMENTATION     0
 
 
 static const wxChar backupSuffix[]   = wxT( "-bak" );
@@ -114,7 +117,7 @@ bool AskLoadBoardFileName( wxWindow* aParent, int* aCtl, wxString* aFileName, bo
     }
     else
     {
-        path = wxGetCwd();
+        path = wxStandardPaths::Get().GetDocumentsDir();
         // leave name empty
     }
 
@@ -309,21 +312,22 @@ void PCB_EDIT_FRAME::Files_io_from_id( int id )
         break;
 
     case ID_NEW_BOARD:
-        {
-            if( !Clear_Pcb( true ) )
-                break;
+    {
+        if( !Clear_Pcb( true ) )
+            break;
 
-            wxFileName fn( wxGetCwd(), wxT( "noname" ), ProjectFileExtension );
+        wxFileName fn( wxStandardPaths::Get().GetDocumentsDir(), wxT( "noname" ),
+                       ProjectFileExtension );
 
-            Prj().SetProjectFullName( fn.GetFullPath() );
+        Prj().SetProjectFullName( fn.GetFullPath() );
 
-            fn.SetExt( PcbFileExtension );
+        fn.SetExt( PcbFileExtension );
 
-            GetBoard()->SetFileName( fn.GetFullPath() );
-            UpdateTitle();
-            ReCreateLayerBox();
-        }
+        GetBoard()->SetFileName( fn.GetFullPath() );
+        UpdateTitle();
+        ReCreateLayerBox();
         break;
+    }
 
     case ID_SAVE_BOARD:
         if( ! GetBoard()->GetFileName().IsEmpty() )
@@ -374,7 +378,7 @@ IO_MGR::PCB_FILE_T plugin_type( const wxString& aFileName, int aCtl )
     {
         pluginType = IO_MGR::LEGACY;
     }
-    else if( fn.GetExt() == IO_MGR::GetFileExtension( IO_MGR::IO_MGR::PCAD ) )
+    else if( fn.GetExt() == IO_MGR::GetFileExtension( IO_MGR::PCAD ) )
     {
         pluginType = IO_MGR::PCAD;
     }
@@ -587,13 +591,16 @@ bool PCB_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     {
         wxBusyCursor dummy;    // Displays an Hourglass while building connectivity
         Compile_Ratsnest( NULL, true );
+        GetBoard()->GetRatsnest()->ProcessBoard();
     }
 
     SetMsgPanel( GetBoard() );
 
     // Refresh the 3D view, if any
-    if( m_Draw3DFrame )
-        m_Draw3DFrame->NewDisplay();
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
+        draw3DFrame->NewDisplay();
 
 #if 0 && defined(DEBUG)
     // Output the board object tree to stdout, but please run from command prompt:

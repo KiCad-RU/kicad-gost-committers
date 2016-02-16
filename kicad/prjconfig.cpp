@@ -165,6 +165,43 @@ void KICAD_MANAGER_FRAME::CreateNewProject( const wxString& aPrjFullFileName,
     // Write settings to project file
     // was: wxGetApp().WriteProjectConfig( aPrjFullFileName, GeneralGroupName, s_KicadManagerParams );
     Prj().ConfigSave( Pgm().SysSearch(), GeneralGroupName, s_KicadManagerParams );
+
+    // Ensure a "stub" for a schematic root sheet and a board exist.
+    // It will avoid messages from the schematic editor or the board editor to create a new file
+    // And forces the user to create main files under the right name for the project manager
+    wxFileName fn( newProjectName.GetFullPath() );
+    fn.SetExt( SchematicFileExtension );
+
+    // If a <project>.sch file does not exist, create a "stub" file
+    if( !fn.FileExists() )
+    {
+        wxFile file( fn.GetFullPath(), wxFile::write );
+
+        if( file.IsOpened() )
+            file.Write( wxT( "EESchema Schematic File Version 2\n" ) );
+
+        // wxFile dtor will close the file
+    }
+
+    // If a <project>.kicad_pcb or <project>.brd file does not exist,
+    // create a .kicad_pcb "stub" file
+    fn.SetExt( KiCadPcbFileExtension );
+    wxFileName leg_fn( fn );
+    leg_fn.SetExt( LegacyPcbFileExtension );
+
+    if( !fn.FileExists() && !leg_fn.FileExists() )
+    {
+        wxFile file( fn.GetFullPath(), wxFile::write );
+
+        if( file.IsOpened() )
+            file.Write( wxT( "(kicad_pcb (version 4) (host kicad \"dummy file\") )\n" ) );
+
+        // wxFile dtor will close the file
+    }
+
+    // Enable the toolbar and menubar buttons and clear the help text.
+    m_active_project = true;
+    m_MessagesBox->Clear();
 }
 
 
@@ -185,11 +222,12 @@ void KICAD_MANAGER_FRAME::OnLoadProject( wxCommandEvent& event )
 
     ClearMsg();
 
+    bool newProject = ( evt_id == ID_NEW_PROJECT ) ||
+                        ( evt_id == ID_NEW_PROJECT_FROM_TEMPLATE );
+
     if( evt_id != wxID_ANY )
     {
         int  style;
-        bool newProject = ( evt_id == ID_NEW_PROJECT ) ||
-                          ( evt_id == ID_NEW_PROJECT_FROM_TEMPLATE );
 
         if( newProject )
         {
@@ -202,9 +240,9 @@ void KICAD_MANAGER_FRAME::OnLoadProject( wxCommandEvent& event )
             style = wxFD_OPEN | wxFD_FILE_MUST_EXIST;
         }
 
-        wxString        default_dir = wxGetCwd();
+        wxString        default_dir = GetMruPath();
         wxFileDialog    dlg( this, title, default_dir, wxEmptyString,
-                              ProjectFileWildcard, style );
+                             ProjectFileWildcard, style );
 
         if( dlg.ShowModal() == wxID_CANCEL )
             return;
@@ -258,8 +296,13 @@ void KICAD_MANAGER_FRAME::OnLoadProject( wxCommandEvent& event )
 
     wxString nameless_prj = NAMELESS_PROJECT  wxT( ".pro" );
 
+    wxLogDebug( wxT( "%s: %s" ),
+                GetChars( wxFileName( prj_filename ).GetFullName() ),
+                GetChars( nameless_prj ) );
+
     // Check if project file exists and if it is not noname.pro
-    if( !wxFileExists( prj_filename ) && !wxFileName( prj_filename ).GetFullName().IsSameAs( nameless_prj ) )
+    if( !wxFileExists( prj_filename )
+      && !wxFileName( prj_filename ).GetFullName().IsSameAs( nameless_prj ) )
     {
         wxString msg = wxString::Format( _(
                 "KiCad project file '%s' not found" ),
@@ -269,12 +312,29 @@ void KICAD_MANAGER_FRAME::OnLoadProject( wxCommandEvent& event )
         return;
     }
 
+    // Either this is the first time kicad has been run or one of the projects in the
+    // history list is no longer valid.  This prevents kicad from automatically creating
+    // a noname.pro file in the same folder as the kicad binary.
+    if( wxFileName( prj_filename ).GetFullName().IsSameAs( nameless_prj ) && !newProject )
+    {
+        m_active_project = false;
+        m_MessagesBox->SetValue( _( "To proceed, you can use the File menu to start a new project." ) );
+        return;
+    }
+    else
+    {
+        m_active_project = true;
+        m_MessagesBox->Clear();
+    }
+
     Prj().ConfigLoad( Pgm().SysSearch(), GeneralGroupName, s_KicadManagerParams );
 
     title = wxT( "KiCad " ) + GetBuildVersion() +  wxT( ' ' ) + prj_filename;
 
     if( !wxFileName( prj_filename ).IsDirWritable() )
         title += _( " [Read Only]" );
+    else
+        SetMruPath( Prj().GetProjectPath() );    // Only set MRU path if we have write access.
 
     SetTitle( title );
 
@@ -283,20 +343,19 @@ void KICAD_MANAGER_FRAME::OnLoadProject( wxCommandEvent& event )
 
     m_LeftWin->ReCreateTreePrj();
 
-#ifdef KICAD_USE_FILES_WATCHER
     // Rebuild the list of watched paths.
     // however this is possible only when the main loop event handler is running,
     // so we use it to run the rebuild function.
     wxCommandEvent cmd( wxEVT_COMMAND_MENU_SELECTED, ID_INIT_WATCHED_PATHS );
 
     wxPostEvent( this, cmd );
-#endif
 
     PrintPrjInfo();
 }
 
+
 /* Creates a new project folder, copy a template into this new folder.
- * and open this new projrct as working project
+ * and open this new project as working project
  */
 void KICAD_MANAGER_FRAME::OnCreateProjectFromTemplate( wxCommandEvent& event )
 {
@@ -307,7 +366,7 @@ void KICAD_MANAGER_FRAME::OnCreateProjectFromTemplate( wxCommandEvent& event )
     if( dlg.ShowModal() == wxID_CANCEL )
         return;
 
-    // Buils the project .pro filename, from the new project folder name
+    // Builds the project .pro filename, from the new project folder name
     wxFileName fn;
     fn.AssignDir( dlg.GetPath() );
     fn.SetName( dlg.GetPath().AfterLast( SEP() ) );
@@ -330,4 +389,10 @@ void KICAD_MANAGER_FRAME::OnSaveProject( wxCommandEvent& event )
     // was: wxGetApp().WriteProjectConfig( m_ProjectFileName.GetFullPath(),
     //          GeneralGroupName, s_KicadManagerParams );
     Prj().ConfigSave( Pgm().SysSearch(), GeneralGroupName, s_KicadManagerParams );
+}
+
+
+void KICAD_MANAGER_FRAME::OnUpdateRequiresProject( wxUpdateUIEvent& event )
+{
+    event.Enable( m_active_project );
 }

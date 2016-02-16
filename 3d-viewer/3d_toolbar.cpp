@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -55,7 +55,7 @@ void EDA_3D_FRAME::ReCreateMainToolbar()
 
     m_mainToolBar->AddTool( ID_TOOL_SCREENCOPY_TOCLIBBOARD, wxEmptyString,
                          KiBitmap( copy_button_xpm ),
-                         _( "Copy 3D Image to Clipboard" ) );
+                         _( "Copy 3D image to clipboard" ) );
 
     m_mainToolBar->AddSeparator();
 
@@ -134,14 +134,22 @@ void EDA_3D_FRAME::CreateMenuBar()
 
     menuBar->Append( fileMenu, _( "&File" ) );
 
-    fileMenu->Append( ID_MENU_SCREENCOPY_PNG, _( "Create Image (png format)" ) );
-    fileMenu->Append( ID_MENU_SCREENCOPY_JPEG, _( "Create Image (jpeg format)" ) );
+    AddMenuItem( fileMenu, ID_MENU_SCREENCOPY_PNG,
+                 _( "Create Image (png format)" ),
+                 KiBitmap( export_xpm ) );
+    AddMenuItem( fileMenu, ID_MENU_SCREENCOPY_JPEG,
+                 _( "Create Image (jpeg format)" ),
+                 KiBitmap( export_xpm ) );
 
     fileMenu->AppendSeparator();
-    fileMenu->Append( ID_TOOL_SCREENCOPY_TOCLIBBOARD, _( "Copy 3D Image to Clipboard" ) );
+    AddMenuItem( fileMenu, ID_TOOL_SCREENCOPY_TOCLIBBOARD,
+                 _( "Copy 3D Image to Clipboard" ),
+                 KiBitmap( copy_button_xpm ) );
 
     fileMenu->AppendSeparator();
-    fileMenu->Append( wxID_EXIT, _( "&Exit" ) );
+    AddMenuItem( fileMenu, wxID_EXIT,
+                 _( "&Exit" ),
+                 KiBitmap( exit_xpm ) );
 
     menuBar->Append( prefsMenu, _( "&Preferences" ) );
 
@@ -165,7 +173,7 @@ void EDA_3D_FRAME::CreateMenuBar()
 
     AddMenuItem( renderOptionsMenu, ID_MENU3D_FL_RENDER_TEXTURES,
         _( "Render Textures" ),
-        _( "Apply a grid/cloud textures to Board, Solder Mask and Silkscreen" ),
+        _( "Apply a grid/cloud textures to board, solder mask and silk screen" ),
         KiBitmap( green_xpm ), wxITEM_CHECK );
 
     AddMenuItem( renderOptionsMenu, ID_MENU3D_FL_RENDER_SMOOTH_NORMALS,
@@ -249,7 +257,7 @@ void EDA_3D_FRAME::CreateMenuBar()
            _( "Show Copper &Thickness" ), KiBitmap( use_3D_copper_thickness_xpm ), wxITEM_CHECK );
 
     AddMenuItem( prefsMenu, ID_MENU3D_MODULE_ONOFF,
-           _( "Show 3D F&ootprints" ), KiBitmap( shape_3d_xpm ), wxITEM_CHECK );
+           _( "Show 3D M&odels" ), KiBitmap( shape_3d_xpm ), wxITEM_CHECK );
 
     AddMenuItem( prefsMenu, ID_MENU3D_ZONE_ONOFF,
            _( "Show Zone &Filling" ), KiBitmap( add_zone_xpm ), wxITEM_CHECK );
@@ -264,7 +272,7 @@ void EDA_3D_FRAME::CreateMenuBar()
            _( "Show &Adhesive Layers" ), KiBitmap( tools_xpm ), wxITEM_CHECK );
 
     AddMenuItem( layersMenu, ID_MENU3D_SILKSCREEN_ONOFF,
-           _( "Show &Silkscreen Layer" ), KiBitmap( add_text_xpm ), wxITEM_CHECK );
+           _( "Show &Silkscreen Layers" ), KiBitmap( add_text_xpm ), wxITEM_CHECK );
 
     AddMenuItem( layersMenu, ID_MENU3D_SOLDER_MASK_ONOFF,
            _( "Show Solder &Mask Layers" ), KiBitmap( pads_mask_layers_xpm ), wxITEM_CHECK );
@@ -272,8 +280,10 @@ void EDA_3D_FRAME::CreateMenuBar()
     AddMenuItem( layersMenu, ID_MENU3D_SOLDER_PASTE_ONOFF,
            _( "Show Solder &Paste Layers" ), KiBitmap( pads_mask_layers_xpm ), wxITEM_CHECK );
 
+    // Other layers are not "board" layers, and are not shown in realistic mode
+    // These menus will be disabled in in realistic mode
     AddMenuItem( layersMenu, ID_MENU3D_COMMENTS_ONOFF,
-           _( "Show &Comments and Drawings Layer" ), KiBitmap( edit_sheet_xpm ), wxITEM_CHECK );
+           _( "Show &Comments and Drawing Layers" ), KiBitmap( edit_sheet_xpm ), wxITEM_CHECK );
 
     AddMenuItem( layersMenu, ID_MENU3D_ECO_ONOFF,
            _( "Show &Eco Layers" ), KiBitmap( edit_sheet_xpm ), wxITEM_CHECK );
@@ -293,6 +303,10 @@ void EDA_3D_FRAME::SetMenuBarOptionsState()
     // Set the state of toggle menus according to the current display options
     item = menuBar->FindItem( ID_MENU3D_REALISTIC_MODE );
     item->Check( GetPrm3DVisu().IsRealisticMode() );
+    item = menuBar->FindItem( ID_MENU3D_COMMENTS_ONOFF );
+    item->Enable( !GetPrm3DVisu().IsRealisticMode() );
+    item = menuBar->FindItem( ID_MENU3D_ECO_ONOFF );
+    item->Enable( !GetPrm3DVisu().IsRealisticMode() );
 
     item = menuBar->FindItem( ID_MENU3D_FL_RENDER_SHADOWS );
     item->Check( GetPrm3DVisu().GetFlag( FL_RENDER_SHADOWS ) );

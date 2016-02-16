@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
-  * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -57,7 +57,7 @@ public:
 
 private:
     PCB_BASE_FRAME* m_Parent;
-    wxConfigBase*       m_Config;               ///< Current config
+    wxConfigBase*   m_Config;               ///< Current config
 
     ZONE_EDIT_T     m_OnExitCode;           ///< exit code: ZONE_ABORT if no change,
                                             ///< ZONE_OK if new values accepted
@@ -75,7 +75,7 @@ private:
                                             ///< name position in m_LayerSelectionCtrl
 
     static wxString m_netNameShowFilter;    ///< the filter to show nets (default * "*").
-                                            ///< static to keep this pattern for an entire pcbnew session
+                                            ///< static to keep this pattern for an entire Pcbnew session
 
     /**
      * Function initDialog
@@ -91,7 +91,7 @@ private:
     /**
      * Function AcceptOptions
      * @param aPromptForErrors is true to prompt user on incorrect params.
-     * @param aUseExportableSetupOnly is true to use exportable parametres only (used to export this setup to other zones).
+     * @param aUseExportableSetupOnly is true to use exportable parameters only (used to export this setup to other zones).
      * @return bool - false if incorrect options, true if ok.
      */
     bool AcceptOptions( bool aPromptForErrors, bool aUseExportableSetupOnly = false );
@@ -100,7 +100,6 @@ private:
     void ExportSetupToOtherCopperZones( wxCommandEvent& event );
     void OnPadsInZoneClick( wxCommandEvent& event );
     void OnRunFiltersButtonClick( wxCommandEvent& event );
-
 
     void buildAvailableListOfNets();
 
@@ -157,6 +156,7 @@ DIALOG_COPPER_ZONE::DIALOG_COPPER_ZONE( PCB_BASE_FRAME* aParent, ZONE_SETTINGS* 
 
     initDialog();
 
+    m_sdbSizerOK->SetDefault();
     GetSizer()->SetSizeHints( this );
     Center();
 }
@@ -183,35 +183,22 @@ void DIALOG_COPPER_ZONE::initDialog()
 
     switch( m_settings.GetPadConnection() )
     {
-    case THT_THERMAL:               // Thermals only for THT pads
+    case PAD_ZONE_CONN_THT_THERMAL:   // Thermals only for THT pads
         m_PadInZoneOpt->SetSelection( 2 );
         break;
 
-    case PAD_NOT_IN_ZONE:           // Pads are not covered
+    case PAD_ZONE_CONN_NONE:        // Pads are not covered
         m_PadInZoneOpt->SetSelection( 3 );
         break;
 
     default:
-    case THERMAL_PAD:               // Use thermal relief for pads
+    case PAD_ZONE_CONN_THERMAL:     // Use thermal relief for pads
         m_PadInZoneOpt->SetSelection( 1 );
         break;
 
-    case PAD_IN_ZONE:               // pads are covered by copper
+    case PAD_ZONE_CONN_FULL:        // pads are covered by copper
         m_PadInZoneOpt->SetSelection( 0 );
         break;
-    }
-
-    // Antipad and spokes are significant only for thermals
-    if( m_settings.GetPadConnection() != THERMAL_PAD &&
-        m_settings.GetPadConnection() != THT_THERMAL )
-    {
-        m_AntipadSizeValue->Enable( false );
-        m_CopperWidthValue->Enable( false );
-    }
-    else
-    {
-        m_AntipadSizeValue->Enable( true );
-        m_CopperWidthValue->Enable( true );
     }
 
     m_PriorityLevelCtrl->SetValue( m_settings.m_ZonePriority );
@@ -282,8 +269,8 @@ void DIALOG_COPPER_ZONE::initDialog()
 
     // The most easy way to ensure the right size is to use wxLIST_AUTOSIZE
     // unfortunately this option does not work well both on
-    // wxWidgets 2.8 ( column witdth too small), and
-    // wxWidgets 2.9 ( column witdth too large)
+    // wxWidgets 2.8 ( column width too small), and
+    // wxWidgets 2.9 ( column width too large)
     ctrlWidth += LAYER_BITMAP_SIZE_X + 25;      // Add bitmap width + margin between bitmap and text
     m_LayerSelectionCtrl->SetColumnWidth( 0, ctrlWidth );
 
@@ -346,22 +333,22 @@ bool DIALOG_COPPER_ZONE::AcceptOptions( bool aPromptForErrors, bool aUseExportab
     {
     case 3:
         // Pads are not covered
-        m_settings.SetPadConnection( PAD_NOT_IN_ZONE );
+        m_settings.SetPadConnection( PAD_ZONE_CONN_NONE );
         break;
 
     case 2:
         // Use thermal relief for THT pads
-        m_settings.SetPadConnection( THT_THERMAL );
+        m_settings.SetPadConnection( PAD_ZONE_CONN_THT_THERMAL );
         break;
 
     case 1:
         // Use thermal relief for pads
-        m_settings.SetPadConnection( THERMAL_PAD );
+        m_settings.SetPadConnection( PAD_ZONE_CONN_THERMAL );
         break;
 
     case 0:
         // pads are covered by copper
-        m_settings.SetPadConnection( PAD_IN_ZONE );
+        m_settings.SetPadConnection( PAD_ZONE_CONN_FULL );
         break;
     }
 
@@ -401,6 +388,7 @@ bool DIALOG_COPPER_ZONE::AcceptOptions( bool aPromptForErrors, bool aUseExportab
     // Test if this is a reasonable value for this parameter
     // A too large value can hang Pcbnew
     #define CLEARANCE_MAX_VALUE ZONE_CLEARANCE_MAX_VALUE_MIL*IU_PER_MILS
+
     if( m_settings.m_ZoneClearance > CLEARANCE_MAX_VALUE )
     {
         wxString msg;
@@ -451,10 +439,12 @@ bool DIALOG_COPPER_ZONE::AcceptOptions( bool aPromptForErrors, bool aUseExportab
             (double) m_settings.m_ThermalReliefCopperBridge / IU_PER_MILS );
     }
 
-    if( m_settings.m_ThermalReliefCopperBridge <= m_settings.m_ZoneMinThickness )
+    if( (   m_settings.GetPadConnection() == PAD_ZONE_CONN_THT_THERMAL
+         || m_settings.GetPadConnection() == PAD_ZONE_CONN_THERMAL )
+        && m_settings.m_ThermalReliefCopperBridge <= m_settings.m_ZoneMinThickness )
     {
         DisplayError( this,
-                     _( "Thermal relief spoke must be greater than the minimum width." ) );
+                      _( "Thermal relief spoke must be greater than the minimum width." ) );
         return false;
     }
 
@@ -484,9 +474,8 @@ bool DIALOG_COPPER_ZONE::AcceptOptions( bool aPromptForErrors, bool aUseExportab
 
     if( ii == 0 )   // the not connected option was selected: this is not a good practice: warn:
     {
-        if( !IsOK( this, _(
-                      "You have chosen the \"not connected\" option. This will create insulated copper islands. Are you sure ?" ) )
-            )
+        if( !IsOK( this, _( "You have chosen the \"not connected\" option. This will create "
+                            "insulated copper islands. Are you sure ?" ) ) )
             return false;
     }
 
@@ -498,12 +487,14 @@ bool DIALOG_COPPER_ZONE::AcceptOptions( bool aPromptForErrors, bool aUseExportab
     if( m_ListNetNameSelection->GetSelection() > 0 )
     {
         NETINFO_ITEM* net = m_Parent->GetBoard()->FindNet( net_name );
+
         if( net )
             m_settings.m_NetcodeSelection = net->GetNet();
     }
 
     return true;
 }
+
 
 void DIALOG_COPPER_ZONE::OnCornerSmoothingModeChoice( wxCommandEvent& event )
 {
@@ -537,6 +528,7 @@ void DIALOG_COPPER_ZONE::OnNetSortingOptionSelected( wxCommandEvent& event )
     buildAvailableListOfNets();
 
     m_netNameShowFilter = m_ShowNetNameFilter->GetValue();
+
     if( m_Config )
     {
         m_Config->Write( ZONE_NET_SORT_OPTION_KEY, (long) m_NetDisplayOption->GetSelection() );
@@ -553,6 +545,7 @@ void DIALOG_COPPER_ZONE::ExportSetupToOtherCopperZones( wxCommandEvent& event )
 
     // Export settings ( but layer and netcode ) to others copper zones
     BOARD* pcb = m_Parent->GetBoard();
+
     for( int ii = 0; ii < pcb->GetAreaCount(); ii++ )
     {
         ZONE_CONTAINER* zone = pcb->GetArea( ii );
@@ -561,6 +554,7 @@ void DIALOG_COPPER_ZONE::ExportSetupToOtherCopperZones( wxCommandEvent& event )
         // to a zone keepout:
         if( zone->GetIsKeepout() )
             continue;
+
         m_settings.ExportSetting( *zone, false );  // false = partial export
         m_Parent->OnModify();
     }
@@ -571,19 +565,11 @@ void DIALOG_COPPER_ZONE::ExportSetupToOtherCopperZones( wxCommandEvent& event )
 
 void DIALOG_COPPER_ZONE::OnPadsInZoneClick( wxCommandEvent& event )
 {
-    switch( m_PadInZoneOpt->GetSelection() )
-    {
-    default:
-        m_AntipadSizeValue->Enable( false );
-        m_CopperWidthValue->Enable( false );
-        break;
-
-    case 2:
-    case 1:
-        m_AntipadSizeValue->Enable( true );
-        m_CopperWidthValue->Enable( true );
-        break;
-    }
+    // Antipad and spokes are significant only for thermals
+    // However, even if thermals are disabled, these parameters must be set
+    // for pads which have local settings with thermal enabled
+    // Previously, wxTextCtrl widgets related to thermal settings were disabled,
+    // but this is not a good idea. We leave them always enabled.
 }
 
 
@@ -623,6 +609,7 @@ void DIALOG_COPPER_ZONE::OnRunFiltersButtonClick( wxCommandEvent& event )
         m_NetDisplayOption->SetSelection( 2 );
     else if( m_NetDisplayOption->GetSelection() == 1 )
         m_NetDisplayOption->SetSelection( 3 );
+
     initListNetsParams();
     buildAvailableListOfNets();
 }
@@ -702,13 +689,7 @@ wxBitmap DIALOG_COPPER_ZONE::makeLayerBitmap( EDA_COLOR_T aColor )
 
     iconDC.SelectObject( bitmap );
     brush.SetColour( MakeColour( aColor ) );
-
-#if wxCHECK_VERSION( 3, 0, 0 )
     brush.SetStyle( wxBRUSHSTYLE_SOLID );
-#else
-    brush.SetStyle( wxSOLID );
-#endif
-
     iconDC.SetBrush( brush );
     iconDC.DrawRectangle( 0, 0, LAYER_BITMAP_SIZE_X, LAYER_BITMAP_SIZE_Y );
 

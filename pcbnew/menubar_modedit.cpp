@@ -119,7 +119,7 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     // Save module in new lib
     AddMenuItem( fileMenu, ID_MODEDIT_CREATE_NEW_LIB_AND_SAVE_CURRENT_PART,
                  _( "S&ave Footprint in New Library" ),
-                 _( "Create a new library and save current module into it" ),
+                 _( "Create a new library and save current footprint into it" ),
                  KiBitmap( new_library_xpm ) );
 
     // Export module
@@ -183,6 +183,11 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     // Dimensions submenu
     wxMenu* dimensions_Submenu = new wxMenu;
 
+    // User grid size
+    AddMenuItem( dimensions_Submenu, ID_PCB_USER_GRID_SETUP,
+                 _( "&User Grid Size" ), _( "Adjust user grid" ),
+                 KiBitmap( grid_xpm ) );
+
     // Sizes and Widths
     AddMenuItem( dimensions_Submenu, ID_PCB_DRAWINGS_WIDTHS_SETUP,
                  _( "&Size and Width" ),
@@ -193,11 +198,6 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     AddMenuItem( dimensions_Submenu, ID_MODEDIT_PAD_SETTINGS,
                  _( "&Pad Setting" ), _( "Edit settings for new pads" ),
                  KiBitmap( pad_dimensions_xpm ) );
-
-    // User grid size
-    AddMenuItem( dimensions_Submenu, ID_PCB_USER_GRID_SETUP,
-                 _( "&User Grid Size" ), _( "Adjust user grid" ),
-                 KiBitmap( grid_xpm ) );
 
     //--------- View menu ----------------
     wxMenu* viewMenu = new wxMenu;
@@ -240,21 +240,21 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     // Add canvas selection
     viewMenu->AppendSeparator();
 
-    text = AddHotkeyName( _( "&Switch canvas to default" ), m_hotkeysDescrList,
-                          HK_CANVAS_DEFAULT );
+    text = AddHotkeyName( _( "&Switch Canvas to Legacy" ), m_hotkeysDescrList,
+                          HK_CANVAS_LEGACY );
 
-    AddMenuItem( viewMenu, ID_MENU_CANVAS_DEFAULT,
-                 text, _( "Switch the canvas implementation to default" ),
+    AddMenuItem( viewMenu, ID_MENU_CANVAS_LEGACY,
+                 text, _( "Switch the canvas implementation to Legacy" ),
                  KiBitmap( tools_xpm ) );
 
-    text = AddHotkeyName( _( "Switch canvas to Open&GL" ), m_hotkeysDescrList,
+    text = AddHotkeyName( _( "Switch Canvas to Open&GL" ), m_hotkeysDescrList,
                           HK_CANVAS_OPENGL );
 
     AddMenuItem( viewMenu, ID_MENU_CANVAS_OPENGL,
                  text, _( "Switch the canvas implementation to OpenGL" ),
                  KiBitmap( tools_xpm ) );
 
-    text = AddHotkeyName( _( "Switch canvas to &Cairo" ), m_hotkeysDescrList,
+    text = AddHotkeyName( _( "Switch Canvas to &Cairo" ), m_hotkeysDescrList,
                           HK_CANVAS_CAIRO );
 
     AddMenuItem( viewMenu, ID_MENU_CANVAS_CAIRO,
@@ -321,7 +321,7 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
 
     // Settings
     AddMenuItem( prefs_menu, wxID_PREFERENCES,
-                 _( "&Settings" ), _( "Select default parameters values in Footprint Editor" ),
+                 _( "&Settings" ), _( "Change the footprint editor settings." ),
                  KiBitmap( preference_xpm ) );
 
     // Language submenu
@@ -338,8 +338,8 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
 
     // Contents
     AddMenuItem( helpMenu, wxID_HELP,
-                 _( "P&cbnew Manual" ),
-                 _( "Open the Pcbnew manual" ),
+                 _( "Pcbnew &Manual" ),
+                 _( "Open the Pcbnew Manual" ),
                  KiBitmap( online_help_xpm ) );
 
     AddMenuItem( helpMenu, wxID_INDEX,
@@ -350,8 +350,8 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     // About Pcbnew
     helpMenu->AppendSeparator();
     AddMenuItem( helpMenu, wxID_ABOUT,
-                 _( "&About Pcbnew" ),
-                 _( "About Pcbnew PCB designer" ),
+                 _( "&About KiCad" ),
+                 _( "About KiCad" ),
                  KiBitmap( info_xpm ) );
 
     // Append menus to the menubar

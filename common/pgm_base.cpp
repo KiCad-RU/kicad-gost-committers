@@ -47,7 +47,6 @@
 #include <id.h>
 #include <build_version.h>
 #include <hotkeys_basic.h>
-#include <online_help.h>
 #include <gestfich.h>
 #include <menus_helpers.h>
 #include <confirm.h>
@@ -61,7 +60,6 @@
 const wxChar PGM_BASE::workingDirKey[] = wxT( "WorkingDir" );     // public
 
 static const wxChar languageCfgKey[]   = wxT( "LanguageID" );
-static const wxChar kicadFpLibPath[]   = wxT( "KicadFootprintLibraryPath" );
 static const wxChar pathEnvVariables[] = wxT( "EnvironmentVariables" );
 static const wxChar showEnvVarWarningDialog[] = wxT( "ShowEnvVarWarningDialog" );
 static const wxChar traceEnvVars[]     = wxT( "KIENVVARS" );
@@ -181,6 +179,14 @@ static LANGUAGE_DESCR s_Languages[] =
         ID_LANGUAGE_SLOVENIAN,
         lang_sl_xpm,
         _( "Slovenian" )
+    },
+
+    // Slovenian language
+    {
+        wxLANGUAGE_SLOVAK,
+        ID_LANGUAGE_SLOVAK,
+        lang_sk_xpm,
+        _( "Slovak" )
     },
 
     // Hungarian language
@@ -337,9 +343,9 @@ const wxString& PGM_BASE::GetEditorName()
 #ifdef __WINDOWS__
         mask += wxT( ".exe" );
 #endif
-        editorname = EDA_FileSelector( _( "Preferred Editor:" ), wxEmptyString,
-                                       wxEmptyString, wxEmptyString, mask,
-                                       NULL, wxFD_OPEN, true );
+        editorname = EDA_FILE_SELECTOR( _( "Preferred Editor:" ), wxEmptyString,
+                                        wxEmptyString, wxEmptyString, mask,
+                                        NULL, wxFD_OPEN, true );
     }
 
     if( !editorname.IsEmpty() )
@@ -417,23 +423,66 @@ bool PGM_BASE::initPgm()
     {
         wxString envVarName = wxT( "KIGITHUB" );
         ENV_VAR_ITEM envVarItem;
+        wxString envValue;
+        wxFileName tmpFileName;
 
         envVarItem.SetValue( wxString( wxT( "https://github.com/KiCad" ) ) );
         envVarItem.SetDefinedExternally( wxGetEnv( envVarName, NULL ) );
         m_local_env_vars[ envVarName ] = envVarItem;
 
-        wxFileName tmpFileName;
-        tmpFileName.AssignDir( wxString( wxT( DEFAULT_INSTALL_PATH ) ) );
-        tmpFileName.AppendDir( wxT( "modules" ) );
+        wxFileName baseSharePath;
+        baseSharePath.AssignDir( wxString( wxT( DEFAULT_INSTALL_PATH ) ) );
+
+#if !defined( __WXMAC__ )
+        baseSharePath.AppendDir( wxT( "share" ) );
+        baseSharePath.AppendDir( wxT( "kicad" ) );
+#endif
+
+        // KISYSMOD
         envVarName = wxT( "KISYSMOD" );
-        envVarItem.SetValue( tmpFileName.GetPath() );
-        envVarItem.SetDefinedExternally( wxGetEnv( envVarName, NULL ) );
+        if( wxGetEnv( envVarName, &envValue ) == true && !envValue.IsEmpty() )
+        {
+            tmpFileName.AssignDir( envValue );
+            envVarItem.SetDefinedExternally( true );
+        }
+        else
+        {
+            tmpFileName = baseSharePath;
+            tmpFileName.AppendDir( wxT( "modules" ) );
+            envVarItem.SetDefinedExternally( false );
+        }
+        envVarItem.SetValue( tmpFileName.GetFullPath() );
         m_local_env_vars[ envVarName ] = envVarItem;
 
+        // KISYS3DMOD
         envVarName = wxT( "KISYS3DMOD" );
-        tmpFileName.AppendDir( wxT( "packages3d" ) );
-        envVarItem.SetValue( tmpFileName.GetPath() );
-        envVarItem.SetDefinedExternally( wxGetEnv( envVarName, NULL ) );
+        if( wxGetEnv( envVarName, &envValue ) == true && !envValue.IsEmpty() )
+        {
+            tmpFileName.AssignDir( envValue );
+            envVarItem.SetDefinedExternally( true );
+        }
+        else
+        {
+            tmpFileName.AppendDir( wxT( "packages3d" ) );
+            envVarItem.SetDefinedExternally( false );
+        }
+        envVarItem.SetValue( tmpFileName.GetFullPath() );
+        m_local_env_vars[ envVarName ] = envVarItem;
+
+        // KICAD_PTEMPLATES
+        envVarName = wxT( "KICAD_PTEMPLATES" );
+        if( wxGetEnv( envVarName, &envValue ) == true && !envValue.IsEmpty() )
+        {
+            tmpFileName.AssignDir( envValue );
+            envVarItem.SetDefinedExternally( true );
+        }
+        else
+        {
+            tmpFileName = baseSharePath;
+            tmpFileName.AppendDir( wxT( "template" ) );
+            envVarItem.SetDefinedExternally( false );
+        }
+        envVarItem.SetValue( tmpFileName.GetFullPath() );
         m_local_env_vars[ envVarName ] = envVarItem;
     }
 
@@ -586,11 +635,7 @@ bool PGM_BASE::SetLanguage( bool first_time )
     delete m_locale;
     m_locale = new wxLocale;
 
-#if wxCHECK_VERSION( 2, 9, 0 )
     if( !m_locale->Init( m_language_id ) )
-#else
-    if( !m_locale->Init( m_language_id, wxLOCALE_CONV_ENCODING ) )
-#endif
     {
         wxLogDebug( wxT( "This language is not supported by the system." ) );
 

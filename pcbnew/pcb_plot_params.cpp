@@ -40,8 +40,6 @@
 #define HPGL_PEN_SPEED_MAX        99        // this param is always in cm/s
 #define HPGL_PEN_NUMBER_MIN       1
 #define HPGL_PEN_NUMBER_MAX       16
-#define HPGL_PEN_OVERLAP_MIN      0
-#define HPGL_PEN_OVERLAP_MAX      50        // Unit = mil
 
 
 /**
@@ -79,47 +77,46 @@ static bool setInt( int* aInt, int aValue, int aMin, int aMax )
 
 // PCB_PLOT_PARAMS
 
-PCB_PLOT_PARAMS::PCB_PLOT_PARAMS() :
-    m_layerSelection( 4, B_Cu, F_Cu, F_SilkS, B_SilkS )
+PCB_PLOT_PARAMS::PCB_PLOT_PARAMS()
 {
-    m_useGerberExtensions  = false;
-    m_useGerberAttributes  = false;
-    m_gerberPrecision      = gbrDefaultPrecision;
-    m_excludeEdgeLayer     = true;
-    m_lineWidth            = g_DrawDefaultLineThickness;
-    m_plotFrameRef         = false;
-    m_plotViaOnMaskLayer   = false;
-    m_plotMode             = FILLED;
-    m_useAuxOrigin         = false;
-    m_HPGLPenNum           = 1;
-    m_HPGLPenSpeed         = 20;        // this param is always in cm/s
-    m_HPGLPenDiam          = 15;        // in mils
-    m_HPGLPenOvr           = 2;         // in mils
-    m_negative             = false;
-    m_A4Output             = false;
-    m_plotReference        = true;
-    m_plotValue            = true;
-    m_plotInvisibleText    = false;
-    m_plotPadsOnSilkLayer  = false;
-    m_subtractMaskFromSilk = false;
-    m_format               = PLOT_FORMAT_GERBER;
-    m_mirror               = false;
-    m_drillMarks           = SMALL_DRILL_SHAPE;
-    m_autoScale            = false;
-    m_scale                = 1.0;
-    m_scaleSelection       = 1;
-    m_fineScaleAdjustX     = 1.0;
-    m_fineScaleAdjustY     = 1.0;
-    m_widthAdjust          = 0.;
+    m_useGerberProtelExtensions  = false;
+    m_useGerberAttributes        = false;
+    m_gerberPrecision            = gbrDefaultPrecision;
+    m_excludeEdgeLayer           = true;
+    m_lineWidth                  = g_DrawDefaultLineThickness;
+    m_plotFrameRef               = false;
+    m_plotViaOnMaskLayer         = false;
+    m_plotMode                   = FILLED;
+    m_useAuxOrigin               = false;
+    m_HPGLPenNum                 = 1;
+    m_HPGLPenSpeed               = 20;        // this param is always in cm/s
+    m_HPGLPenDiam                = 15;        // in mils
+    m_negative                   = false;
+    m_A4Output                   = false;
+    m_plotReference              = true;
+    m_plotValue                  = true;
+    m_plotInvisibleText          = false;
+    m_plotPadsOnSilkLayer        = false;
+    m_subtractMaskFromSilk       = false;
+    m_format                     = PLOT_FORMAT_GERBER;
+    m_mirror                     = false;
+    m_drillMarks                 = SMALL_DRILL_SHAPE;
+    m_autoScale                  = false;
+    m_scale                      = 1.0;
+    m_scaleSelection             = 1;
+    m_fineScaleAdjustX           = 1.0;
+    m_fineScaleAdjustY           = 1.0;
+    m_widthAdjust                = 0.;
     m_outputDirectory.clear();
-    m_color                = BLACK;
-    m_referenceColor       = BLACK;
-    m_valueColor           = BLACK;
-    m_textMode             = PLOTTEXTMODE_DEFAULT;
+    m_color                      = BLACK;
+    m_referenceColor             = BLACK;
+    m_valueColor                 = BLACK;
+    m_textMode                   = PLOTTEXTMODE_DEFAULT;
+    m_layerSelection = LSET( 2, F_SilkS, B_SilkS) | LSET::AllCuMask();
 
     // This parameter controls if the NPTH pads will be plotted or not
     // it is a "local" parameter
-    m_skipNPTH_Pads        = false;
+    m_skipNPTH_Pads              = false;
 }
 
 void PCB_PLOT_PARAMS::SetGerberPrecision( int aPrecision )
@@ -147,7 +144,7 @@ void PCB_PLOT_PARAMS::Format( OUTPUTFORMATTER* aFormatter,
                        m_layerSelection.FmtHex().c_str() );
 
     aFormatter->Print( aNestLevel+1, "(%s %s)\n", getTokenName( T_usegerberextensions ),
-                       m_useGerberExtensions ? trueStr : falseStr );
+                       m_useGerberProtelExtensions ? trueStr : falseStr );
 
     if( m_useGerberAttributes ) // save this option only if active,
                                 // to avoid incompatibility with older Pcbnew version
@@ -182,8 +179,6 @@ void PCB_PLOT_PARAMS::Format( OUTPUTFORMATTER* aFormatter,
                        m_HPGLPenSpeed );
     aFormatter->Print( aNestLevel+1, "(%s %d)\n", getTokenName( T_hpglpendiameter ),
                        m_HPGLPenDiam );
-    aFormatter->Print( aNestLevel+1, "(%s %d)\n", getTokenName( T_hpglpenoverlay ),
-                       m_HPGLPenOvr );
     aFormatter->Print( aNestLevel+1, "(%s %s)\n", getTokenName( T_psnegative ),
                        m_negative ? trueStr : falseStr );
     aFormatter->Print( aNestLevel+1, "(%s %s)\n", getTokenName( T_psa4output ),
@@ -223,7 +218,7 @@ bool PCB_PLOT_PARAMS::operator==( const PCB_PLOT_PARAMS &aPcbPlotParams ) const
 {
     if( m_layerSelection != aPcbPlotParams.m_layerSelection )
         return false;
-    if( m_useGerberExtensions != aPcbPlotParams.m_useGerberExtensions )
+    if( m_useGerberProtelExtensions != aPcbPlotParams.m_useGerberProtelExtensions )
         return false;
     if( m_useGerberAttributes != aPcbPlotParams.m_useGerberAttributes )
         return false;
@@ -246,8 +241,6 @@ bool PCB_PLOT_PARAMS::operator==( const PCB_PLOT_PARAMS &aPcbPlotParams ) const
     if( m_HPGLPenSpeed != aPcbPlotParams.m_HPGLPenSpeed )
         return false;
     if( m_HPGLPenDiam != aPcbPlotParams.m_HPGLPenDiam )
-        return false;
-    if( m_HPGLPenOvr != aPcbPlotParams.m_HPGLPenOvr )
         return false;
     if( m_negative != aPcbPlotParams.m_negative )
         return false;
@@ -313,12 +306,6 @@ bool PCB_PLOT_PARAMS::SetHPGLPenSpeed( int aValue )
 }
 
 
-bool PCB_PLOT_PARAMS::SetHPGLPenOverlay( int aValue )
-{
-    return setInt( &m_HPGLPenOvr, aValue, HPGL_PEN_OVERLAP_MIN, HPGL_PEN_OVERLAP_MAX );
-}
-
-
 bool PCB_PLOT_PARAMS::SetLineWidth( int aValue )
 {
     return setInt( &m_lineWidth, aValue, PLOT_LINEWIDTH_MIN, PLOT_LINEWIDTH_MAX );
@@ -377,7 +364,7 @@ void PCB_PLOT_PARAMS_PARSER::Parse( PCB_PLOT_PARAMS* aPcbPlotParams )
                     */
 
                     // sorry, use the UI once to fix:
-                    aPcbPlotParams->m_layerSelection = LSET( 4, B_Cu, F_Cu, F_SilkS, B_SilkS );
+                    aPcbPlotParams->m_layerSelection = LSET( 2, F_SilkS, B_SilkS) | LSET::AllCuMask();
                 }
                 else if( cur.find_first_of( "0x" ) == 0 )   // pretty ver. 4.
                 {
@@ -390,7 +377,7 @@ void PCB_PLOT_PARAMS_PARSER::Parse( PCB_PLOT_PARAMS* aPcbPlotParams )
             break;
 
         case T_usegerberextensions:
-            aPcbPlotParams->m_useGerberExtensions = parseBool();
+            aPcbPlotParams->m_useGerberProtelExtensions = parseBool();
             break;
 
         case T_usegerberattributes:
@@ -450,8 +437,8 @@ void PCB_PLOT_PARAMS_PARSER::Parse( PCB_PLOT_PARAMS* aPcbPlotParams )
                                                       HPGL_PEN_DIAMETER_MAX );
             break;
         case T_hpglpenoverlay:
-            aPcbPlotParams->m_HPGLPenOvr = parseInt( HPGL_PEN_OVERLAP_MIN,
-                                                     HPGL_PEN_OVERLAP_MAX );
+            // No more used. juste here for compatibility with old versions
+            parseInt( 0, HPGL_PEN_DIAMETER_MAX );
             break;
         case T_pscolor:
             NeedSYMBOL(); // This actually was never used...

@@ -2,6 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 CERN
+ * Copyright (C) 2012-2015 KiCad Developers, see change_log.txt for contributors.
  * @author Wayne Stambaugh <stambaughw@verizon.net>
  *
  * This program is free software; you can redistribute it and/or
@@ -1670,7 +1671,7 @@ MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments ) throw( IO_ERR
     if( !name.IsEmpty() && fpid.Parse( FromUTF8() ) >= 0 )
     {
         wxString error;
-        error.Printf( _( "invalid PFID in\nfile: <%s>\nline: %d\noffset: %d" ),
+        error.Printf( _( "invalid footprint ID in\nfile: <%s>\nline: %d\noffset: %d" ),
                       GetChars( CurSource() ), CurLineNumber(), CurOffset() );
         THROW_IO_ERROR( error );
     }
@@ -1904,7 +1905,7 @@ TEXTE_MODULE* PCB_PARSER::parseTEXTE_MODULE() throw( IO_ERROR, PARSE_ERROR )
         break;          // Default type is user text.
 
     default:
-        THROW_IO_ERROR( wxString::Format( _( "cannot handle module text type %s" ),
+        THROW_IO_ERROR( wxString::Format( _( "cannot handle footprint text type %s" ),
                                           GetChars( FromUTF8() ) ) );
     }
 
@@ -2149,11 +2150,11 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
     switch( token )
     {
     case T_thru_hole:
-        pad->SetAttribute( PAD_STANDARD );
+        pad->SetAttribute( PAD_ATTRIB_STANDARD );
         break;
 
     case T_smd:
-        pad->SetAttribute( PAD_SMD );
+        pad->SetAttribute( PAD_ATTRIB_SMD );
 
         // Default D_PAD object is thru hole with drill.
         // SMD pads have no hole
@@ -2161,7 +2162,7 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
         break;
 
     case T_connect:
-        pad->SetAttribute( PAD_CONN );
+        pad->SetAttribute( PAD_ATTRIB_CONN );
 
         // Default D_PAD object is thru hole with drill.
         // CONN pads have no hole
@@ -2169,7 +2170,7 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
         break;
 
     case T_np_thru_hole:
-        pad->SetAttribute( PAD_HOLE_NOT_PLATED );
+        pad->SetAttribute( PAD_ATTRIB_HOLE_NOT_PLATED );
         break;
 
     default:
@@ -2181,19 +2182,19 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
     switch( token )
     {
     case T_circle:
-        pad->SetShape( PAD_CIRCLE );
+        pad->SetShape( PAD_SHAPE_CIRCLE );
         break;
 
     case T_rect:
-        pad->SetShape( PAD_RECT );
+        pad->SetShape( PAD_SHAPE_RECT );
         break;
 
     case T_oval:
-        pad->SetShape( PAD_OVAL );
+        pad->SetShape( PAD_SHAPE_OVAL );
         break;
 
     case T_trapezoid:
-        pad->SetShape( PAD_TRAPEZOID );
+        pad->SetShape( PAD_SHAPE_TRAPEZOID );
         break;
 
     default:
@@ -2257,7 +2258,7 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
                     switch( token )
                     {
                     case T_oval:
-                        pad->SetDrillShape( PAD_DRILL_OBLONG );
+                        pad->SetDrillShape( PAD_DRILL_SHAPE_OBLONG );
                         break;
 
                     case T_NUMBER:
@@ -2294,7 +2295,7 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
                 // other than 0 used to fix a bunch of debug assertions even though it is defined
                 // as a through hole pad.  Wouldn't a though hole pad with no drill be a surface
                 // mount pad (or a conn pad which is a smd pad with no solder paste)?
-                if( ( pad->GetAttribute() != PAD_SMD ) && ( pad->GetAttribute() != PAD_CONN ) )
+                if( ( pad->GetAttribute() != PAD_ATTRIB_SMD ) && ( pad->GetAttribute() != PAD_ATTRIB_CONN ) )
                     pad->SetDrillSize( drillSize );
                 else
                     pad->SetDrillSize( wxSize( 0, 0 ) );
@@ -2316,7 +2317,7 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
                                       GetChars( CurSource() ), CurLineNumber(), CurOffset() )
                     );
             NeedSYMBOLorNUMBER();
-            if( FromUTF8() != m_board->FindNet( pad->GetNetCode() )->GetNetname() )
+            if( m_board && FromUTF8() != m_board->FindNet( pad->GetNetCode() )->GetNetname() )
                 THROW_IO_ERROR(
                     wxString::Format( _( "invalid net ID in\nfile: <%s>\nline: %d\noffset: %d" ),
                         GetChars( CurSource() ), CurLineNumber(), CurOffset() )
@@ -2540,7 +2541,7 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
     wxString    netnameFromfile;    // the zone net name find in file
 
     // bigger scope since each filled_polygon is concatenated in here
-    CPOLYGONS_LIST pts;
+    SHAPE_POLY_SET pts;
 
     std::auto_ptr< ZONE_CONTAINER > zone( new ZONE_CONTAINER( m_board ) );
 
@@ -2619,15 +2620,15 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                 switch( token )
                 {
                 case T_yes:
-                    zone->SetPadConnection( PAD_IN_ZONE );
+                    zone->SetPadConnection( PAD_ZONE_CONN_FULL );
                     break;
 
                 case T_no:
-                    zone->SetPadConnection( PAD_NOT_IN_ZONE );
+                    zone->SetPadConnection( PAD_ZONE_CONN_NONE );
                     break;
 
                 case T_thru_hole_only:
-                    zone->SetPadConnection( THT_THERMAL );
+                    zone->SetPadConnection( PAD_ZONE_CONN_THT_THERMAL );
                     break;
 
                 case T_clearance:
@@ -2693,11 +2694,13 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                         break;
 
                     case T_chamfer:
-                        zone->SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_CHAMFER );
+                        if( !zone->GetIsKeepout() ) // smoothing has meaning only for filled zones
+                            zone->SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_CHAMFER );
                         break;
 
                     case T_fillet:
-                        zone->SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_FILLET );
+                        if( !zone->GetIsKeepout() ) // smoothing has meaning only for filled zones
+                            zone->SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_FILLET );
                         break;
 
                     default:
@@ -2707,7 +2710,9 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                     break;
 
                 case T_radius:
-                    zone->SetCornerRadius( parseBoardUnits( "corner radius" ) );
+                    tmp = parseBoardUnits( "corner radius" );
+                    if( !zone->GetIsKeepout() ) // smoothing has meaning only for filled zones
+                       zone->SetCornerRadius( tmp );
                     NeedRIGHT();
                     break;
 
@@ -2790,13 +2795,14 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                 if( token != T_pts )
                     Expecting( T_pts );
 
+                pts.NewOutline();
+
                 for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
                 {
-                    pts.Append( CPolyPt( parseXY() ) );
+                    pts.Append( parseXY() );
                 }
 
                 NeedRIGHT();
-                pts.CloseLastContour();
             }
             break;
 
@@ -2841,7 +2847,7 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
         zone->Outline()->SetHatch( hatchStyle, hatchPitch, true );
     }
 
-    if( pts.GetCornersCount() )
+    if( !pts.IsEmpty() )
         zone->AddFilledPolysList( pts );
 
     // Ensure keepout and non copper zones do not have a net

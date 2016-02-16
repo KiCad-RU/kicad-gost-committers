@@ -37,7 +37,7 @@ bool IDF3::FetchIDFLine( std::ifstream& aModel, std::string& aLine, bool& isComm
     aLine = "";
     aFilePos = aModel.tellg();
 
-    if( aFilePos == -1 )
+    if( aModel.fail() )
         return false;
 
     std::getline( aModel, aLine );
@@ -83,7 +83,8 @@ bool IDF3::GetIDFString( const std::string& aLine, std::string& aIDFString,
     if( idx < 0 || idx >= len )
         return false;
 
-    while( isspace( aLine[idx] ) && idx < len ) ++idx;
+    while( idx < len && isspace( aLine[idx] ) )
+        ++idx;
 
     if( idx == len )
     {
@@ -95,7 +96,7 @@ bool IDF3::GetIDFString( const std::string& aLine, std::string& aIDFString,
     {
         hasQuotes = true;
         ++idx;
-        while( aLine[idx] != '"' && idx < len )
+        while( idx < len && aLine[idx] != '"' )
             ostr << aLine[idx++];
 
         if( idx == len )
@@ -112,7 +113,7 @@ bool IDF3::GetIDFString( const std::string& aLine, std::string& aIDFString,
     {
         hasQuotes = false;
 
-        while( !isspace( aLine[idx] ) && idx < len )
+        while( idx < len && !isspace( aLine[idx] ) )
             ostr << aLine[idx++];
 
     }

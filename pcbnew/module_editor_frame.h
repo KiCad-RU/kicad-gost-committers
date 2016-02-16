@@ -167,13 +167,7 @@ public:
      */
     void Show3D_Frame( wxCommandEvent& event );
 
-    /**
-     * Function SwitchCanvas
-     * switches currently used canvas (default / Cairo / OpenGL).
-     */
-    void SwitchCanvas( wxCommandEvent& aEvent );
-
-    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey = 0 );
+    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
     void OnVerticalToolbar( wxCommandEvent& aEvent );
 
     void OnUpdateVerticalToolbar( wxUpdateUIEvent& aEvent );
@@ -248,7 +242,7 @@ public:
     bool Clear_Pcb( bool aQuery );
 
     /* handlers for block commands */
-    virtual int BlockCommand( int key );
+    virtual int BlockCommand( EDA_KEY key );
 
     /**
      * Function HandleBlockPlace
@@ -352,17 +346,6 @@ public:
      * (One footprint per file, Newlib files have no special ext.)
      */
     MODULE* Import_Module();
-
-    /**
-     * Function CreateNewLibrary
-     * prompts user for a library path, then creates a new footprint library at that
-     * location.  If library exists, user is warned about that, and is given a chance
-     * to abort the new creation, and in that case existing library is first deleted.
-     *
-     * @return wxString - the newly created library path if library was successfully
-     *   created, else wxEmptyString because user aborted or error.
-     */
-    wxString CreateNewLibrary();
 
     /**
      * Function SaveCurrentModule

@@ -73,16 +73,16 @@ void BRDITEMS_PLOTTER::PlotPad( D_PAD* aPad, EDA_COLOR_T aColor, EDA_DRAW_MODE_T
 
     switch( aPad->GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         m_plotter->FlashPadCircle( shape_pos, aPad->GetSize().x, aPlotMode );
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         m_plotter->FlashPadOval( shape_pos, aPad->GetSize(),
                                  aPad->GetOrientation(), aPlotMode );
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         {
             wxPoint coord[4];
             aPad->BuildPadPolygon( coord, wxSize(0,0), 0 );
@@ -91,7 +91,7 @@ void BRDITEMS_PLOTTER::PlotPad( D_PAD* aPad, EDA_COLOR_T aColor, EDA_DRAW_MODE_T
         }
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
     default:
         m_plotter->FlashPadRect( shape_pos, aPad->GetSize(),
                                  aPad->GetOrientation(), aPlotMode );
@@ -223,7 +223,7 @@ void BRDITEMS_PLOTTER::PlotTextModule( TEXTE_MODULE* pt_texte, EDA_COLOR_T aColo
     thickness = pt_texte->GetThickness();
 
     if( pt_texte->IsMirrored() )
-        NEGATE( size.x );  // Text is mirrored
+        size.x = -size.x;  // Text is mirrored
 
     // Non bold texts thickness is clamped at 1/6 char size by the low level draw function.
     // but in Pcbnew we do not manage bold texts and thickness up to 1/4 char size
@@ -493,10 +493,9 @@ void BRDITEMS_PLOTTER::PlotTextePcb( TEXTE_PCB* pt_texte )
  */
 void BRDITEMS_PLOTTER::PlotFilledAreas( ZONE_CONTAINER* aZone )
 {
-    const CPOLYGONS_LIST& polysList = aZone->GetFilledPolysList();
-    unsigned imax = polysList.GetCornersCount();
+    const SHAPE_POLY_SET& polysList = aZone->GetFilledPolysList();
 
-    if( imax == 0 )  // Nothing to draw
+    if( polysList.IsEmpty() )
         return;
 
     // We need a buffer to store corners coordinates:
@@ -511,12 +510,12 @@ void BRDITEMS_PLOTTER::PlotFilledAreas( ZONE_CONTAINER* aZone )
      *
      * in non filled mode the outline is plotted, but not the filling items
      */
-    for( unsigned ic = 0; ic < imax; ic++ )
+    for( SHAPE_POLY_SET::CONST_ITERATOR ic =  polysList.CIterate(); ic; ++ic )
     {
-        wxPoint pos = polysList.GetPos( ic );
+        wxPoint pos( ic->x, ic->y );
         cornerList.push_back( pos );
 
-        if(  polysList.IsEndContour( ic ) )   // Plot the current filled area outline
+        if( ic.IsEndContour() )   // Plot the current filled area outline
         {
             // First, close the outline
             if( cornerList[0] != cornerList[cornerList.size() - 1] )
@@ -626,14 +625,14 @@ void BRDITEMS_PLOTTER::plotOneDrillMark( PAD_DRILL_SHAPE_T aDrillShape,
                            double aOrientation, int aSmallDrill )
 {
     // Small drill marks have no significance when applied to slots
-    if( aSmallDrill && aDrillShape == PAD_DRILL_CIRCLE )
+    if( aSmallDrill && aDrillShape == PAD_DRILL_SHAPE_CIRCLE )
         aDrillSize.x = std::min( aSmallDrill, aDrillSize.x );
 
     // Round holes only have x diameter, slots have both
     aDrillSize.x -= getFineWidthAdj();
     aDrillSize.x = Clamp( 1, aDrillSize.x, aPadSize.x - 1 );
 
-    if( aDrillShape == PAD_DRILL_OBLONG )
+    if( aDrillShape == PAD_DRILL_SHAPE_OBLONG )
     {
         aDrillSize.y -= getFineWidthAdj();
         aDrillSize.y = Clamp( 1, aDrillSize.y, aPadSize.y - 1 );
@@ -670,7 +669,7 @@ void BRDITEMS_PLOTTER::PlotDrillMarks()
         const VIA* via = dyn_cast<const VIA*>( pts );
 
         if( via )
-            plotOneDrillMark( PAD_DRILL_CIRCLE, via->GetStart(),
+            plotOneDrillMark( PAD_DRILL_SHAPE_CIRCLE, via->GetStart(),
                     wxSize( via->GetDrillValue(), 0 ),
                     wxSize( via->GetWidth(), 0 ), 0, small_drill );
     }

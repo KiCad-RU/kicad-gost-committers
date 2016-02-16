@@ -1,14 +1,23 @@
 include_directories( BEFORE ${INC_BEFORE} )
 include_directories(
     ./dialogs
+    ./widgets
     ./dialog_about
     ${CAIRO_INCLUDE_DIR}
     ${GLEW_INCLUDE_DIR}
+    ${GLM_INCLUDE_DIR}
+    ${CURL_INCLUDE_DIRS}
     ../3d-viewer
     ../pcbnew
     ../polygon
     ${INC_AFTER}
     )
+
+
+if( NOT APPLE )     # windows and linux use openssl under curl
+    find_package( OpenSSL REQUIRED )
+endif()
+
 
 # Generate header files containing shader programs
 # Order of input files is significant
@@ -115,10 +124,30 @@ install( TARGETS lib_kicad
 endif()
 
 
+# KiCad build version string defaults to undefined which forces the build version header
+# command to look for Bazaar to create the version string header.
+set( KICAD_BUILD_VERSION "" CACHE STRING "Version string defined at configuration time." )
+
+# Generate version header file.
+add_custom_target(
+    version_header ALL
+    COMMAND ${CMAKE_COMMAND}
+        -DKICAD_BUILD_VERSION=${KICAD_BUILD_VERSION}
+        -DOUTPUT_FILE=${CMAKE_BINARY_DIR}/kicad_build_version.h
+        -DSRC_PATH=${PROJECT_SOURCE_DIR}
+        -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
+        -P ${CMAKE_MODULE_PATH}/WriteVersionHeader.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Generating version string header"
+    )
+
 set( COMMON_ABOUT_DLG_SRCS
     dialog_about/AboutDialog_main.cpp
     dialog_about/dialog_about.cpp
     dialog_about/dialog_about_base.cpp
+    )
+
+set( COMMON_DLG_SRCS
     dialogs/dialog_display_info_HTML_base.cpp
     dialogs/dialog_exit_base.cpp
     dialogs/dialog_image_editor.cpp
@@ -135,6 +164,10 @@ set( COMMON_ABOUT_DLG_SRCS
     dialogs/wx_html_report_panel.cpp
     )
 
+set( COMMON_WIDGET_SRCS
+    widgets/widget_hotkey_list.cpp
+    )
+
 set( COMMON_PAGE_LAYOUT_SRCS
     page_layout/title_block_shapes.cpp
     page_layout/class_worksheet_dataitem.cpp
@@ -148,6 +181,8 @@ set( COMMON_PAGE_LAYOUT_SRCS
 set( COMMON_SRCS
     ${LIB_KICAD_SRCS}
     ${COMMON_ABOUT_DLG_SRCS}
+    ${COMMON_DLG_SRCS}
+    ${COMMON_WIDGET_SRCS}
     ${COMMON_PAGE_LAYOUT_SRCS}
     base_struct.cpp
     basicframe.cpp
@@ -183,6 +218,7 @@ set( COMMON_SRCS
     dsnlexer.cpp
     eda_dde.cpp
     eda_doc.cpp
+    eda_pattern_match.cpp
     filter_reader.cpp
 #    findkicadhelppath.cpp.notused      deprecated, use searchhelpfilefullpath.cpp
     gestfich.cpp
@@ -235,6 +271,9 @@ endif()
 
 set( COMMON_SRCS
     ${COMMON_SRCS}
+    kicad_curl/kicad_curl.cpp
+    kicad_curl/kicad_curl_easy.cpp
+
     view/view.cpp
     view/view_item.cpp
     view/view_group.cpp
@@ -259,7 +298,13 @@ set( COMMON_SRCS
     )
 add_library( common STATIC ${COMMON_SRCS} )
 add_dependencies( common lib-dependencies )
-target_link_libraries( common ${Boost_LIBRARIES} )
+add_dependencies( common version_header )
+target_link_libraries( common
+    ${Boost_LIBRARIES}
+    ${CURL_LIBRARIES}
+    ${OPENSSL_LIBRARIES}        # empty on Apple
+    )
+
 
 set( PCB_COMMON_SRCS
     base_screen.cpp
@@ -369,6 +414,7 @@ add_custom_target(
     )
 
 add_dependencies( common netlist_lexer_source_files )
+add_dependencies( pcbcommon netlist_lexer_source_files )
 
 # auto-generate pcb_plot_params_lexer.h and pcb_plot_params_keywords.cpp
 make_lexer(

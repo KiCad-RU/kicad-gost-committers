@@ -43,9 +43,6 @@
 #include <collectors.h>
 
 
-#define Pad_fill ( Pad_Fill_Item.State == RUN )
-
-
 void PCB_EDIT_FRAME::ListNetsAndSelect( wxCommandEvent& event )
 {
     NETINFO_ITEM* net;
@@ -76,11 +73,7 @@ void PCB_EDIT_FRAME::ListNetsAndSelect( wxCommandEvent& event )
         list.Add( Line );
     }
 
-#if wxCHECK_VERSION( 2, 9, 4 )
-    wxSingleChoiceDialog choiceDlg( this, wxEmptyString, _( "Select Net" ), list, (void**) NULL );
-#else
-    wxSingleChoiceDialog choiceDlg( this, wxEmptyString, _( "Select Net" ), list, (char**) NULL );
-#endif
+    wxSingleChoiceDialog choiceDlg( this, wxEmptyString, _( "Select Net" ), list );
 
     if( (choiceDlg.ShowModal() == wxID_CANCEL) || (choiceDlg.GetSelection() == wxNOT_FOUND) )
         return;

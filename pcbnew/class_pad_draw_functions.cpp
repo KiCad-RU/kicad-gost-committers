@@ -169,7 +169,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDraw_mode,
 
     // if SMD or connector pad and high contrast mode
     if( ( aDraw_mode & GR_ALLOW_HIGHCONTRAST ) &&
-        ( GetAttribute() == PAD_SMD || GetAttribute() == PAD_CONN ) &&
+        ( GetAttribute() == PAD_ATTRIB_SMD || GetAttribute() == PAD_ATTRIB_CONN ) &&
         displ_opts && displ_opts->m_ContrastModeDisplay )
     {
         // when routing tracks
@@ -190,7 +190,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDraw_mode,
                     ColorTurnToDarkDarkGray( &color );
             }
             // else routing between an internal signal layer and some other
-            // layer.  Grey out all PAD_SMD pads not on current or the single
+            // layer.  Grey out all PAD_ATTRIB_SMD pads not on current or the single
             // selected external layer.
             else if( !IsOnLayer( screen->m_Active_Layer )
                     && !IsOnLayer( routeTop )
@@ -199,7 +199,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDraw_mode,
                 ColorTurnToDarkDarkGray( &color );
             }
         }
-        // when not edting tracks, show PAD_SMD components not on active layer
+        // when not edting tracks, show PAD_ATTRIB_SMD components not on active layer
         // as greyed out
         else
         {
@@ -273,7 +273,7 @@ void D_PAD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDraw_mode,
     if( !( m_layerMask & LSET::AllCuMask() ).any() )
         DisplayIsol = false;
 
-    if( ( GetAttribute() == PAD_HOLE_NOT_PLATED ) &&
+    if( ( GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED ) &&
         brd->IsElementVisible( NON_PLATED_VISIBLE ) )
     {
         drawInfo.m_ShowNotPlatedHole = true;
@@ -330,7 +330,7 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
 
     switch( GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         if( aDrawInfo.m_ShowPadFilled )
             GRFilledCircle( aClipBox, aDC, shape_pos.x, shape_pos.y,
                             halfsize.x + aDrawInfo.m_Mask_margin.x, 0,
@@ -350,7 +350,7 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
 
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
     {
         wxPoint segStart, segEnd;
         seg_width = BuildSegmentFromOvalShape(segStart, segEnd, angle,
@@ -379,8 +379,8 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
     }
         break;
 
-    case PAD_RECT:
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_RECT:
+    case PAD_SHAPE_TRAPEZOID:
         BuildPadPolygon( coord, aDrawInfo.m_Mask_margin, angle );
 
         for( int ii = 0; ii < 4; ii++ )
@@ -423,6 +423,7 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
             blackpenstate = GetGRForceBlackPenState();
             GRForceBlackPen( false );
             aDrawInfo.m_HoleColor = WHITE;
+            aDrawInfo.m_NPHoleColor = WHITE;
         }
         else
         {
@@ -436,13 +437,13 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
 
         switch( GetDrillShape() )
         {
-        case PAD_DRILL_CIRCLE:
+        case PAD_DRILL_SHAPE_CIRCLE:
             if( aDC->LogicalToDeviceXRel( hole ) > MIN_DRAW_WIDTH )
                 GRFilledCircle( aClipBox, aDC, holepos.x, holepos.y, hole, 0,
                                 hole_color, hole_color );
             break;
 
-        case PAD_DRILL_OBLONG:
+        case PAD_DRILL_SHAPE_OBLONG:
         {
             wxPoint drl_start, drl_end;
             GetOblongDrillGeometry( drl_start, drl_end, seg_width );
@@ -491,7 +492,7 @@ void D_PAD::DrawShape( EDA_RECT* aClipBox, wxDC* aDC, PAD_DRAWINFO& aDrawInfo )
     if( aDrawInfo.m_Display_netname )
         shortname_len = GetShortNetname().Len();
 
-    if( GetShape() == PAD_CIRCLE )
+    if( GetShape() == PAD_SHAPE_CIRCLE )
         angle = 0;
 
     AreaSize = m_Size;
@@ -629,7 +630,7 @@ void D_PAD::BuildPadPolygon( wxPoint aCoord[4], wxSize aInflateValue,
 
     switch( GetShape() )
     {
-        case PAD_RECT:
+        case PAD_SHAPE_RECT:
             // For rectangular shapes, inflate is easy
             halfsize += aInflateValue;
 
@@ -642,7 +643,7 @@ void D_PAD::BuildPadPolygon( wxPoint aCoord[4], wxSize aInflateValue,
                 halfsize.y = 0;
             break;
 
-        case PAD_TRAPEZOID:
+        case PAD_SHAPE_TRAPEZOID:
             // Trapezoidal pad: verify delta values
             delta.x = ( m_DeltaSize.x >> 1 );
             delta.y = ( m_DeltaSize.y >> 1 );
@@ -681,7 +682,7 @@ void D_PAD::BuildPadPolygon( wxPoint aCoord[4], wxSize aInflateValue,
 
     // Offsetting the trapezoid shape id needed
     // It is assumed delta.x or/and delta.y == 0
-    if( GetShape() == PAD_TRAPEZOID && (aInflateValue.x != 0 || aInflateValue.y != 0) )
+    if( GetShape() == PAD_SHAPE_TRAPEZOID && (aInflateValue.x != 0 || aInflateValue.y != 0) )
     {
         double angle;
         wxSize corr;
@@ -689,7 +690,7 @@ void D_PAD::BuildPadPolygon( wxPoint aCoord[4], wxSize aInflateValue,
         if( delta.y )    // lower and upper segment is horizontal
         {
             // Calculate angle of left (or right) segment with vertical axis
-            angle = atan2( m_DeltaSize.y, m_Size.y );
+            angle = atan2( (double) m_DeltaSize.y, (double) m_Size.y );
 
             // left and right sides are moved by aInflateValue.x in their perpendicular direction
             // We must calculate the corresponding displacement on the horizontal axis
@@ -705,7 +706,7 @@ void D_PAD::BuildPadPolygon( wxPoint aCoord[4], wxSize aInflateValue,
         else if( delta.x )          // left and right segment is vertical
         {
             // Calculate angle of lower (or upper) segment with horizontal axis
-            angle = atan2( m_DeltaSize.x, m_Size.x );
+            angle = atan2( (double) m_DeltaSize.x, (double) m_Size.x );
 
             // lower and upper sides are moved by aInflateValue.x in their perpendicular direction
             // We must calculate the corresponding displacement on the vertical axis

@@ -41,6 +41,7 @@
 #include <richio.h>
 #include <class_pcb_screen.h>
 #include <pcbstruct.h>
+#include <class_draw_panel_gal.h>
 
 
 /* Forward declarations of classes. */
@@ -58,8 +59,6 @@ class ZONE_SETTINGS;
 class PCB_PLOT_PARAMS;
 class FP_LIB_TABLE;
 class FPID;
-class TOOL_MANAGER;
-class TOOL_DISPATCHER;
 
 /**
  * class PCB_BASE_FRAME
@@ -74,9 +73,6 @@ public:
 
     int m_FastGrid1;                // 1st fast grid setting (index in EDA_DRAW_FRAME::m_gridSelectBox)
     int m_FastGrid2;                // 2nd fast grid setting (index in EDA_DRAW_FRAME::m_gridSelectBox)
-
-    EDA_3D_FRAME* m_Draw3DFrame;
-
 
 protected:
     BOARD*              m_Pcb;
@@ -109,6 +105,11 @@ public:
             long aStyle, const wxString& aFrameName );
 
     ~PCB_BASE_FRAME();
+
+    /**
+     * @return a reference to the 3D viewer frame, when exists, or NULL
+     */
+    EDA_3D_FRAME* Get3DViewerFrame();
 
     /**
      * Function LoadFootprint
@@ -258,6 +259,9 @@ public:
 
     BOARD_ITEM* GetCurItem();
 
+    ///> @copydoc EDA_DRAW_FRAME::UpdateMsgPanel()
+    void UpdateMsgPanel();
+
     /**
      * Function GetCollectorsGuide
      * @return GENERAL_COLLECTORS_GUIDE - that considers the global
@@ -279,12 +283,17 @@ public:
      * puts up a dialog and allows the user to pick a library, for unspecified use.
      *
      * @param aNicknameExisting is the current choice to highlight
-     *
      * @return wxString - the library or wxEmptyString on abort.
      */
     wxString SelectLibrary( const wxString& aNicknameExisting );
 
-    MODULE* GetModuleByName();
+    /**
+     * Function GetFootprintFromBoardByReference
+     * @return a reference to the footprint found by its refence
+     * on the curent board. the reference is entered by the user from
+     * a dialog (by awxTextCtlr, or a list of available references)
+     */
+    MODULE* GetFootprintFromBoardByReference();
 
     /**
      * Function OnModify
@@ -615,7 +624,7 @@ public:
      */
     virtual void SetActiveLayer( LAYER_ID aLayer )
     {
-        ( (PCB_SCREEN*) GetScreen() )->m_Active_Layer = aLayer;
+        GetScreen()->m_Active_Layer = aLayer;
     }
 
     /**
@@ -624,7 +633,7 @@ public:
      */
     virtual LAYER_ID GetActiveLayer() const
     {
-        return ( (PCB_SCREEN*) GetScreen() )->m_Active_Layer;
+        return GetScreen()->m_Active_Layer;
     }
 
     void LoadSettings( wxConfigBase* aCfg );    // override virtual
@@ -668,6 +677,30 @@ public:
     void SetPrevGrid();
 
     void ClearSelection();
+
+    ///> @copydoc EDA_DRAW_FRAME::UseGalCanvas
+    virtual void UseGalCanvas( bool aEnable );
+
+    /**
+     * Function SwitchCanvas
+     * switches currently used canvas (default / Cairo / OpenGL).
+     */
+    void SwitchCanvas( wxCommandEvent& aEvent );
+
+    /**
+     * Function LoadCanvasTypeSetting()
+     * Returns the canvas type stored in the application settings.
+     */
+    EDA_DRAW_PANEL_GAL::GAL_TYPE LoadCanvasTypeSetting() const;
+
+    /**
+     * Function SaveCanvasTypeSetting()
+     * Stores the canvas type in the application settings.
+     */
+    bool SaveCanvasTypeSetting( EDA_DRAW_PANEL_GAL::GAL_TYPE aCanvasType );
+
+    ///> Key in KifaceSettings to store the canvas type.
+    static const wxChar CANVAS_TYPE_KEY[];
 
     DECLARE_EVENT_TABLE()
 };

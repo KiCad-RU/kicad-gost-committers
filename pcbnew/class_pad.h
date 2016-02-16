@@ -105,8 +105,26 @@ public:
 
     MODULE* GetParent() const { return (MODULE*) m_Parent; }
 
+    /**
+     * Set the pad name (sometimes called pad number, although
+     * it can be an array ref like AA12
+     * the pad name is limited to 4 ASCII chars
+     */
     void SetPadName( const wxString& name );    // Change pad name
+
+    /**
+     * @return the pad name
+     * the pad name is limited to 4 ASCII chars
+     */
     const wxString GetPadName() const;
+
+    /**
+     * @return the pad name in a wxUint32 which is possible
+     * because the pad name is limited to 4 ASCII chars
+     * The packed pad name should be used only to compare 2
+     * pad names, not to try to print this name
+     */
+    const wxUint32 GetPackedPadName() const { return m_NumPadName; }
 
     /*!
      * Function IncrementItemReference
@@ -227,7 +245,7 @@ public:
      * clearance when the circle is approximated by segment bigger or equal
      * to the real clearance value (usually near from 1.0)
     */
-    void TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer,
+    void TransformShapeWithClearanceToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                                                int aClearanceValue,
                                                int aCircleToSegmentsCount,
                                                double aCorrectionFactor ) const;
@@ -324,7 +342,7 @@ public:
      * @param aCorrectionFactor = the correction to apply to circles radius to keep
      *        the pad size when the circle is approximated by segments
      */
-    void BuildPadShapePolygon( CPOLYGONS_LIST& aCornerBuffer,
+    void BuildPadShapePolygon( SHAPE_POLY_SET& aCornerBuffer,
                                wxSize aInflateValue, int aSegmentsPerCircle,
                                double aCorrectionFactor ) const;
 
@@ -339,7 +357,7 @@ public:
      *              (used for round and oblong shapes only(16 to 32 is a good value)
      * @return false if the pad has no hole, true otherwise
      */
-    bool BuildPadDrillShapePolygon( CPOLYGONS_LIST& aCornerBuffer,
+    bool BuildPadDrillShapePolygon( SHAPE_POLY_SET& aCornerBuffer,
                                     int aInflateValue, int aSegmentsPerCircle ) const;
 
     /**
@@ -472,15 +490,20 @@ public:
 
     /**
      * Function CopyNetlistSettings
-     * copies the netlist settings to \a aPad.
+     * copies the netlist settings to \a aPad, and the net name.
+     * Used to copy some pad parameters when replacing a footprint by an other
+     * footprint when reading a netlist, or in exchange footprint dialog
      *
      * The netlist settings are all of the #D_PAD settings not define by a #D_PAD in
-     * a netlist.  These setting include local clearances, net names, etc.  The pad
-     * physical geometry settings are not copied.
+     * a netlist.
+     * The copied settings are the net name and optionally include local clearance, etc.
+     * The pad physical geometry settings are not copied.
      *
      * @param aPad is the #D_PAD to copy the settings to.
+     * @param aCopyLocalSettings = false to copy only the net name
+     *   true to also copy local prms
      */
-    void CopyNetlistSettings( D_PAD* aPad );
+    void CopyNetlistSettings( D_PAD* aPad, bool aCopyLocalSettings );
 
 #if defined(DEBUG)
     virtual void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); }    // override
@@ -520,7 +543,7 @@ private:
 
     wxSize      m_Size;             ///< X and Y size ( relative to orient 0)
 
-    PAD_DRILL_SHAPE_T m_drillShape; ///< PAD_DRILL_NONE, PAD_DRILL_CIRCLE, PAD_DRILL_OBLONG
+    PAD_DRILL_SHAPE_T m_drillShape; ///< PAD_DRILL_SHAPE_CIRCLE, PAD_DRILL_SHAPE_OBLONG
 
 
     /**
@@ -548,7 +571,8 @@ private:
     wxPoint     m_Pos0;             ///< Initial Pad position (i.e. pad position relative to the
                                     ///< module anchor, orientation 0)
 
-    PAD_ATTR_T  m_Attribute;        ///< NORMAL, PAD_SMD, PAD_CONN, PAD_HOLE_NOT_PLATED
+    PAD_ATTR_T  m_Attribute;        ///< PAD_ATTRIB_NORMAL, PAD_ATTRIB_SMD,
+                                    ///< PAD_ATTRIB_CONN, PAD_ATTRIB_HOLE_NOT_PLATED
     double      m_Orient;           ///< in 1/10 degrees
 
     int         m_LengthPadToDie;   ///< Length net from pad to die, inside the package

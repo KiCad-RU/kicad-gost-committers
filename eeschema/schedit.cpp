@@ -77,7 +77,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_SCH_CLEANUP_SHEET:
     case ID_POPUP_SCH_END_SHEET:
     case ID_POPUP_SCH_RESIZE_SHEET:
-    case ID_POPUP_IMPORT_GLABEL:
+    case ID_POPUP_IMPORT_HLABEL_TO_SHEETPIN:
     case ID_POPUP_SCH_INIT_CMP:
     case ID_POPUP_SCH_DISPLAYDOC_CMP:
     case ID_POPUP_SCH_EDIT_CONVERT_CMP:
@@ -120,7 +120,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     switch( id )
     {
     case ID_HIERARCHY:
-        InstallHierarchyFrame( &dc, pos );
+        InstallHierarchyFrame( pos );
         SetRepeatItem( NULL );
         break;
 
@@ -234,7 +234,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_POPUP_SCH_END_SHEET:
         m_canvas->MoveCursorToCrossHair();
-        addCurrentItemToList( &dc );
+        addCurrentItemToList();
         break;
 
     case ID_POPUP_SCH_RESIZE_SHEET:
@@ -242,7 +242,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         screen->TestDanglingEnds( m_canvas, &dc );
         break;
 
-    case ID_POPUP_IMPORT_GLABEL:
+    case ID_POPUP_IMPORT_HLABEL_TO_SHEETPIN:
         if( item != NULL && item->Type() == SCH_SHEET_T )
             screen->SetCurItem( ImportSheetPin( (SCH_SHEET*) item, &dc ) );
         break;
@@ -342,6 +342,9 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_POPUP_DELETE_BLOCK:
+        if( screen->m_BlockLocate.GetCommand() != BLOCK_MOVE )
+            break;
+
         m_canvas->MoveCursorToCrossHair();
         screen->m_BlockLocate.SetCommand( BLOCK_DELETE );
         screen->m_BlockLocate.SetMessageBlock( this );
@@ -350,6 +353,9 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_POPUP_COPY_BLOCK:
+        if( screen->m_BlockLocate.GetCommand() != BLOCK_MOVE )
+            break;
+
         m_canvas->MoveCursorToCrossHair();
         screen->m_BlockLocate.SetCommand( BLOCK_COPY );
         screen->m_BlockLocate.SetMessageBlock( this );
@@ -357,6 +363,9 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_POPUP_DRAG_BLOCK:
+        if( screen->m_BlockLocate.GetCommand() != BLOCK_MOVE )
+            break;
+
         m_canvas->MoveCursorToCrossHair();
         screen->m_BlockLocate.SetCommand( BLOCK_DRAG );
         screen->m_BlockLocate.SetMessageBlock( this );
@@ -377,7 +386,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         item = screen->GetCurItem();
 
         if( item )
-            addCurrentItemToList( &dc );
+            addCurrentItemToList();
 
         break;
 
@@ -756,6 +765,13 @@ void SCH_EDIT_FRAME::PrepareMoveItem( SCH_ITEM* aItem, wxDC* aDC )
             SetUndoItem( aItem );
     }
 
+    if( aItem->Type() == SCH_FIELD_T && aItem->GetParent()->Type() == SCH_COMPONENT_T )
+    {
+        // Now that we're moving a field, they're no longer autoplaced.
+        SCH_COMPONENT *parent = static_cast<SCH_COMPONENT*>( aItem->GetParent() );
+        parent->ClearFieldsAutoplaced();
+    }
+
     aItem->SetFlags( IS_MOVED );
 
     // For some items, moving the cursor to anchor is not good
@@ -772,10 +788,10 @@ void SCH_EDIT_FRAME::PrepareMoveItem( SCH_ITEM* aItem, wxDC* aDC )
     else
         aItem->SetStoredPos( GetCrossHairPosition() - aItem->GetPosition() );
 
-
     OnModify();
-    m_canvas->SetMouseCapture( moveItemWithMouseCursor, abortMoveItem );
+
     GetScreen()->SetCurItem( aItem );
+    m_canvas->SetMouseCapture( moveItemWithMouseCursor, abortMoveItem );
 
     m_canvas->Refresh();
 }
@@ -817,14 +833,22 @@ void SCH_EDIT_FRAME::OnRotate( wxCommandEvent& aEvent )
     switch( item->Type() )
     {
     case SCH_COMPONENT_T:
-        if( aEvent.GetId() == ID_SCH_ROTATE_CLOCKWISE )
-            OrientComponent( CMP_ROTATE_CLOCKWISE );
-        else if( aEvent.GetId() == ID_SCH_ROTATE_COUNTERCLOCKWISE )
-            OrientComponent( CMP_ROTATE_COUNTERCLOCKWISE );
-        else
-            wxFAIL_MSG( wxT( "Unknown rotate item command ID." ) );
+        {
+            SCH_COMPONENT* component = static_cast<SCH_COMPONENT*>( item );
+            if( aEvent.GetId() == ID_SCH_ROTATE_CLOCKWISE )
+                OrientComponent( CMP_ROTATE_CLOCKWISE );
+            else if( aEvent.GetId() == ID_SCH_ROTATE_COUNTERCLOCKWISE )
+                OrientComponent( CMP_ROTATE_COUNTERCLOCKWISE );
+            else
+                wxFAIL_MSG( wxT( "Unknown rotate item command ID." ) );
 
-        break;
+            if( m_autoplaceFields )
+                component->AutoAutoplaceFields( GetScreen() );
+
+            m_canvas->Refresh();
+
+            break;
+        }
 
     case SCH_TEXT_T:
     case SCH_LABEL_T:
@@ -837,6 +861,12 @@ void SCH_EDIT_FRAME::OnRotate( wxCommandEvent& aEvent )
     case SCH_FIELD_T:
         m_canvas->MoveCursorToCrossHair();
         RotateField( (SCH_FIELD*) item, &dc );
+        if( item->GetParent()->Type() == SCH_COMPONENT_T )
+        {
+            // Now that we're moving a field, they're no longer autoplaced.
+            SCH_COMPONENT *parent = static_cast<SCH_COMPONENT*>( item->GetParent() );
+            parent->ClearFieldsAutoplaced();
+        }
         break;
 
     case SCH_BITMAP_T:
@@ -875,8 +905,6 @@ void SCH_EDIT_FRAME::OnEditItem( wxCommandEvent& aEvent )
 {
     SCH_SCREEN* screen = GetScreen();
     SCH_ITEM* item = screen->GetCurItem();
-
-    INSTALL_UNBUFFERED_DC( dc, m_canvas );
 
     if( item == NULL )
     {
@@ -955,11 +983,12 @@ void SCH_EDIT_FRAME::OnEditItem( wxCommandEvent& aEvent )
     }
 
     case SCH_SHEET_T:
-        EditSheet( (SCH_SHEET*) item, m_CurrentSheet, &dc );
+        if( EditSheet( (SCH_SHEET*) item, m_CurrentSheet ) )
+            m_canvas->Refresh();
         break;
 
     case SCH_SHEET_PIN_T:
-        EditSheetPin( (SCH_SHEET_PIN*) item, &dc );
+        EditSheetPin( (SCH_SHEET_PIN*) item, true );
         break;
 
     case SCH_TEXT_T:
@@ -1118,16 +1147,24 @@ void SCH_EDIT_FRAME::OnOrient( wxCommandEvent& aEvent )
     switch( item->Type() )
     {
     case SCH_COMPONENT_T:
-        if( aEvent.GetId() == ID_SCH_MIRROR_X )
-            OrientComponent( CMP_MIRROR_X );
-        else if( aEvent.GetId() == ID_SCH_MIRROR_Y )
-            OrientComponent( CMP_MIRROR_Y );
-        else if( aEvent.GetId() == ID_SCH_ORIENT_NORMAL )
-            OrientComponent( CMP_NORMAL );
-        else
-            wxFAIL_MSG( wxT( "Invalid orient schematic component command ID." ) );
+        {
+            SCH_COMPONENT *component = static_cast<SCH_COMPONENT*>( item );
+            if( aEvent.GetId() == ID_SCH_MIRROR_X )
+                OrientComponent( CMP_MIRROR_X );
+            else if( aEvent.GetId() == ID_SCH_MIRROR_Y )
+                OrientComponent( CMP_MIRROR_Y );
+            else if( aEvent.GetId() == ID_SCH_ORIENT_NORMAL )
+                OrientComponent( CMP_NORMAL );
+            else
+                wxFAIL_MSG( wxT( "Invalid orient schematic component command ID." ) );
 
-        break;
+            if( m_autoplaceFields )
+                component->AutoAutoplaceFields( GetScreen() );
+
+            m_canvas->Refresh();
+
+            break;
+        }
 
     case SCH_BITMAP_T:
         if( aEvent.GetId() == ID_SCH_MIRROR_X )
@@ -1146,8 +1183,8 @@ void SCH_EDIT_FRAME::OnOrient( wxCommandEvent& aEvent )
         break;
 
     default:
-        wxFAIL_MSG( wxString::Format( wxT( "Schematic object type %s cannot be oriented." ),
-                                      GetChars( item->GetClass() ) ) );
+        // This object cannot be oriented.
+        ;
     }
 
     if( item->GetFlags() == 0 )

@@ -169,19 +169,19 @@ void DIALOG_MODULE_BOARD_EDITOR::InitBoardProperties()
     switch( m_CurrentModule->GetZoneConnection() )
     {
     default:
-    case UNDEFINED_CONNECTION:
+    case PAD_ZONE_CONN_INHERITED:
         m_ZoneConnectionChoice->SetSelection( 0 );
         break;
 
-    case PAD_IN_ZONE:
+    case PAD_ZONE_CONN_FULL:
         m_ZoneConnectionChoice->SetSelection( 1 );
         break;
 
-    case THERMAL_PAD:
+    case PAD_ZONE_CONN_THERMAL:
         m_ZoneConnectionChoice->SetSelection( 2 );
         break;
 
-    case PAD_NOT_IN_ZONE:
+    case PAD_ZONE_CONN_NONE:
         m_ZoneConnectionChoice->SetSelection( 3 );
         break;
     }
@@ -190,7 +190,7 @@ void DIALOG_MODULE_BOARD_EDITOR::InitBoardProperties()
 
 void DIALOG_MODULE_BOARD_EDITOR::OnCancelClick( wxCommandEvent& event )
 {
-    ENDQUASIMODAL( -1 );
+    EndModal( PRM_EDITOR_ABORT );
 }
 
 
@@ -202,17 +202,13 @@ void DIALOG_MODULE_BOARD_EDITOR::GotoModuleEditor( wxCommandEvent& event )
         m_Parent->OnModify();
     }
 
-    ENDQUASIMODAL( 2 );
+    EndModal( PRM_EDITOR_WANT_MODEDIT );
 }
 
 
 void DIALOG_MODULE_BOARD_EDITOR::ExchangeModule( wxCommandEvent& event )
 {
-    m_Parent->InstallExchangeModuleFrame( m_CurrentModule );
-
-    // Warning: m_CurrentModule was deleted by exchange module
-    m_Parent->SetCurItem( NULL );
-    ENDQUASIMODAL( 0 );
+    EndModal( PRM_EDITOR_WANT_EXCHANGE_FP );
 }
 
 
@@ -483,9 +479,9 @@ void DIALOG_MODULE_BOARD_EDITOR::BrowseAndAdd3DShapeFile()
     fileFilters += wxChar( '|' );
     fileFilters += wxGetTranslation( IDF3DFileWildcard );
 
-    wxString filename = EDA_FileSelector( _( "3D Shape:" ), initialpath,
-                                wxEmptyString, wxEmptyString,
-                                fileFilters, this, wxFD_OPEN, true );
+    wxString filename = EDA_FILE_SELECTOR( _( "3D Shape:" ), initialpath,
+                                           wxEmptyString, wxEmptyString,
+                                           fileFilters, this, wxFD_OPEN, true );
 
     if( filename.IsEmpty() )
         return;
@@ -581,19 +577,19 @@ void DIALOG_MODULE_BOARD_EDITOR::OnOkClick( wxCommandEvent& event )
     {
     default:
     case 0:
-        m_CurrentModule->SetZoneConnection( UNDEFINED_CONNECTION );
+        m_CurrentModule->SetZoneConnection( PAD_ZONE_CONN_INHERITED );
         break;
 
     case 1:
-        m_CurrentModule->SetZoneConnection( PAD_IN_ZONE );
+        m_CurrentModule->SetZoneConnection( PAD_ZONE_CONN_FULL );
         break;
 
     case 2:
-        m_CurrentModule->SetZoneConnection( THERMAL_PAD );
+        m_CurrentModule->SetZoneConnection( PAD_ZONE_CONN_THERMAL );
         break;
 
     case 3:
-        m_CurrentModule->SetZoneConnection( PAD_NOT_IN_ZONE );
+        m_CurrentModule->SetZoneConnection( PAD_ZONE_CONN_NONE );
         break;
     }
 
@@ -694,7 +690,7 @@ void DIALOG_MODULE_BOARD_EDITOR::OnOkClick( wxCommandEvent& event )
 
     m_Parent->OnModify();
 
-    ENDQUASIMODAL( 1 );
+    EndModal( PRM_EDITOR_EDIT_OK );
 
     if( m_DC )
     {

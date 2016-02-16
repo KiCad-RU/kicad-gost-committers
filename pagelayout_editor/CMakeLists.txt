@@ -50,6 +50,8 @@ set( PL_EDITOR_EXTRA_SRCS
 if( MINGW )
     # PL_EDITOR_RESOURCES variable is set by the macro.
     mingw_resource_compiler( pl_editor )
+else()
+    set( PL_EDITOR_RESOURCES pl_editor.rc )
 endif()
 
 
@@ -63,7 +65,7 @@ if( APPLE )
         MACOSX_PACKAGE_LOCATION Resources
         )
     set( MACOSX_BUNDLE_ICON_FILE pl_editor.icns )
-    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.kicad )
+    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-pcb.kicad )
     set( MACOSX_BUNDLE_NAME pl_editor )
 endif()
 

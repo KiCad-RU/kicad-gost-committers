@@ -46,6 +46,9 @@ public:
             const wxSize& size = wxSize( 500,300 ), long style = wxTAB_TRAVERSAL );
     ~WX_HTML_REPORT_PANEL();
 
+    ///> Set the min size of the area which displays html messages:
+    void MsgPanelSetMinSize( const wxSize& aMinSize );
+
     ///> returns the reporter object that reports to this panel
     REPORTER& Reporter();
 
@@ -54,6 +57,25 @@ public:
 
     ///> clears the report panel
     void Clear();
+
+    ///> sets the frame label
+    void SetLabel( const wxString& aLabel );
+
+    ///> Sets the lasy update. If this mode is on, messages are stored but the display
+    ///> is not updated (Updating display can be very time consumming if there are many messages)
+    ///> A call to Flush() will be needed after build the report
+    void SetLazyUpdate( bool aLazyUpdate );
+
+    ///> Forces updating the HTML page, after the report is built in lazy mode
+    void Flush();
+
+    ///> Set the visible severity filter.
+    ///> if aSeverities < 0 the m_showAll option is set
+    void SetVisibleSeverities( int aSeverities );
+
+    ///> @return the visible severity filter.
+    ///> If the m_showAll option is set, the mask is < 0
+    int GetVisibleSeverities();
 
 private:
     struct REPORT_LINE
@@ -64,6 +86,7 @@ private:
 
     typedef std::vector<REPORT_LINE> REPORT_LINES;
 
+    wxString addHeader( const wxString& aBody );
     wxString generateHtml( const REPORT_LINE& aLine );
     wxString generatePlainText( const REPORT_LINE& aLine );
 
@@ -90,6 +113,10 @@ private:
 
     ///> show all messages flag (overrides m_severities)
     bool m_showAll;
+
+    wxString m_html;
+
+    bool m_lazyUpdate;
 };
 
 #endif //__WX_HTML_REPORT_PANEL_H__

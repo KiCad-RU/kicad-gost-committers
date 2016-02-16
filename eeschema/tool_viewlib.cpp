@@ -251,7 +251,7 @@ void LIB_VIEW_FRAME::ReCreateMenuBar( void )
 
     // Contents
     AddMenuItem( helpMenu, wxID_HELP,
-                 _( "Eesc&hema Manual" ),
+                 _( "Eeschema &Manual" ),
                  _( "Open Eeschema manual" ),
                  KiBitmap( online_help_xpm ) );
 

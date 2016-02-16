@@ -84,7 +84,8 @@ enum DrawPinOrient {
 
 enum LibPinDrawFlags {
     PIN_DRAW_TEXTS = 1,
-    PIN_DRAW_DANGLING = 2,
+    PIN_DRAW_DANGLING = 2,      // Draw this pin with a 'dangling' indicator
+    PIN_DANGLING_HIDDEN = 4,    // Draw (only!) the dangling indicator if the pin is hidden
 };
 
 
@@ -114,7 +115,8 @@ class LIB_PIN : public LIB_ITEM
      * @param aDrawMode GR_OR, GR_XOR, ...
      * @param aData = used here as uintptr_t containing bitwise OR'd flags:
      *      PIN_DRAW_TEXTS,     -- false to draw only pin shape, useful for fast mode
-     *      PIN_DRAW_DANGLING,
+     *      PIN_DRAW_DANGLING,  -- true to draw the pin with its target
+     *      PIN_DANGLING_HIDDEN -- draw the target even if the pin is hidden
      * @param aTransform Transform Matrix (rotation, mirror ..)
      */
     void drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
@@ -149,7 +151,15 @@ public:
 
     bool Matches( wxFindReplaceData& aSearchData, void* aAuxData, wxPoint* aFindLocation );
 
-    const EDA_RECT GetBoundingBox() const;    // Virtual
+    /* Cannot use a default parameter here as it will not be compatible with the virtual. */
+    const EDA_RECT GetBoundingBox() const { return GetBoundingBox( false ); }
+
+    /**
+     * Function GetBoundingBox
+     * @param aIncludeInvisibles - if false, do not include labels for invisible pins
+     *      in the calculation.
+     */
+    const EDA_RECT GetBoundingBox( bool aIncludeInvisibles ) const;
 
     /**
      * Function PinEndPoint
@@ -383,7 +393,13 @@ public:
      *
      * @return True if draw object is visible otherwise false.
      */
-    bool IsVisible() { return ( m_attributes & PIN_INVISIBLE ) == 0; }
+    bool IsVisible() const { return ( m_attributes & PIN_INVISIBLE ) == 0; }
+
+    /**
+     * Return whether this pin forms an implicit power connection: i.e., is hidden
+     * and of type POWER_IN.
+     */
+    bool IsPowerConnection() const { return !IsVisible() && GetType() == PIN_POWER_IN; }
 
     int GetPenSize() const;
 
@@ -395,7 +411,8 @@ public:
     void DrawPinSymbol( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosition,
                         int aOrientation, GR_DRAWMODE aDrawMode,
                         EDA_COLOR_T aColor = UNSPECIFIED_COLOR,
-                        bool aDrawDangling = true );
+                        bool aDrawDangling = true,
+                        bool aOnlyTarget = false );
 
     /**
      * Function DrawPinTexts

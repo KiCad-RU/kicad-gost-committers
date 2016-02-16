@@ -38,7 +38,7 @@ class PCB_DRAW_PANEL_GAL : public EDA_DRAW_PANEL_GAL
 {
 public:
     PCB_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWindowId, const wxPoint& aPosition,
-                        const wxSize& aSize, GalType aGalType = GAL_TYPE_OPENGL );
+                        const wxSize& aSize, GAL_TYPE aGalType = GAL_TYPE_OPENGL );
 
     virtual ~PCB_DRAW_PANEL_GAL();
 
@@ -77,7 +77,16 @@ public:
      */
     void SyncLayersVisibility( const BOARD* aBoard );
 
+    ///> @copydoc EDA_DRAW_PANEL_GAL::GetMsgPanelInfo()
+    void GetMsgPanelInfo( std::vector<MSG_PANEL_ITEM>& aList );
+
 protected:
+    ///> Reassigns layer order to the initial settings.
+    void setDefaultLayerOrder();
+
+    ///> Sets rendering targets & dependencies for layers.
+    void setDefaultLayerDeps();
+
     ///> Currently used worksheet
     KIGFX::WORKSHEET_VIEWITEM* m_worksheet;
 

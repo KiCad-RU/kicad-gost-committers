@@ -30,6 +30,7 @@ public:
     ROUTER_TOOL();
     ~ROUTER_TOOL();
 
+    bool Init();
     void Reset( RESET_REASON aReason );
 
     int RouteSingleTrace ( const TOOL_EVENT& aEvent );
@@ -53,10 +54,10 @@ private:
 
     int getStartLayer( const PNS_ITEM* aItem );
     void switchLayerOnViaPlacement();
-    bool onViaCommand( VIATYPE_T aType );
+    bool onViaCommand( TOOL_EVENT& aEvent, VIATYPE_T aType );
 
-    bool prepareInteractive( );
-    bool finishInteractive( bool aSaveUndoBuffer );
+    bool prepareInteractive();
+    bool finishInteractive();
 };
 
 #endif

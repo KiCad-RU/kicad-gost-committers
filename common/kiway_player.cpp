@@ -100,23 +100,37 @@ bool KIWAY_PLAYER::ShowModal( wxString* aResult, wxWindow* aResultantFocusWindow
 
     m_modal_resultant_parent = aResultantFocusWindow;
 
-    Raise();    // Needed on Ubuntu-14/Unity to display the frame
     Show( true );
+    Raise();    // Needed on some Window managers to always display the frame
 
     SetFocus();
 
     {
-        // exception safe way to disable all frames except the modal one,
+        // We have to disable all frames but the the modal one.
+        // wxWindowDisabler does that, but it also disables all top level windows
+        // We do not want to disable top level windows which are child of the modal one,
+        // if they are enabled.
+        // An example is an aui toolbar which was moved
+        // or a dialog or an other frame or miniframe opened by the modal one.
+        wxWindowList wlist = GetChildren();
+        std::vector<wxWindow*> enabledTopLevelWindows;
+
+        for( unsigned ii = 0; ii < wlist.size(); ii++ )
+            if( wlist[ii]->IsTopLevel() && wlist[ii]->IsEnabled() )
+                enabledTopLevelWindows.push_back( wlist[ii] );
+
+        // exception safe way to disable all top level windows except the modal one,
         // re-enables only those that were disabled on exit
-        wxWindowDisabler    toggle( this );
+        wxWindowDisabler toggle( this );
 
-        WX_EVENT_LOOP          event_loop;
+        for( unsigned ii = 0; ii < enabledTopLevelWindows.size(); ii++ )
+            enabledTopLevelWindows[ii]->Enable( true );
 
+        WX_EVENT_LOOP event_loop;
         m_modal_loop = &event_loop;
-
         event_loop.Run();
 
-    }   // End of scop for some variables.
+    }   // End of scope for some variables.
         // End nesting before setting focus below.
 
     if( aResult )
@@ -131,7 +145,7 @@ bool KIWAY_PLAYER::ShowModal( wxString* aResult, wxWindow* aResultantFocusWindow
 
         // have the final say, after wxWindowDisabler reenables my parent and
         // the events settle down, set the focus
-        wxYield();
+        wxSafeYield();
         aResultantFocusWindow->SetFocus();
     }
 
@@ -140,18 +154,6 @@ bool KIWAY_PLAYER::ShowModal( wxString* aResult, wxWindow* aResultantFocusWindow
 
 bool KIWAY_PLAYER::Destroy()
 {
-    // Reparent is needed on Windows to leave the modal parent on top with focus
-    // However it works only if the caller is a main frame, not a dialog.
-    // (application crashes if the new parent is a wxDialog
-#ifdef __WINDOWS__
-    if( m_modal_resultant_parent && GetParent() != m_modal_resultant_parent )
-    {
-        EDA_BASE_FRAME* parent = dynamic_cast<EDA_BASE_FRAME*>(m_modal_resultant_parent);
-        if( parent )
-            Reparent( m_modal_resultant_parent );
-    }
-#endif
-
     return EDA_BASE_FRAME::Destroy();
 }
 

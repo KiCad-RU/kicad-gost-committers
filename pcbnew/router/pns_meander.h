@@ -114,14 +114,15 @@ public:
         m_dual( aIsDual ),
         m_width( aWidth ),
         m_baselineOffset( 0 )
-     {
+    {
         // Do not leave unitialized members, and keep static analyser quiet:
         m_type = MT_SINGLE;
         m_amplitude = 0;
         m_side = false;
         m_baseIndex = 0;
         m_currentTarget = NULL;
-     }
+        m_meanCornerRadius = 0;
+    }
 
     /**
      * Function SetType()
@@ -360,6 +361,8 @@ private:
     int m_amplitude;
     ///> offset wrs the base segment (dual only)
     int m_baselineOffset;
+    ///> average radius of meander corners (for correction of DP meanders)
+    int m_meanCornerRadius;
     ///> first point of the meandered line
     VECTOR2I m_p0;
     ///> base segment (unclipped)
@@ -411,6 +414,11 @@ public:
         // Do not leave unitialized members, and keep static analyser quiet:
         m_width = 0;
         m_baselineOffset = 0;
+    }
+
+    ~PNS_MEANDERED_LINE()
+    {
+        Clear();
     }
 
     /**

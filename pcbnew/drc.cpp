@@ -43,6 +43,9 @@
 #include <view/view.h>
 #include <geometry/seg.h>
 
+#include <tool/tool_manager.h>
+#include <tools/common_actions.h>
+
 #include <pcbnew.h>
 #include <drc_stuff.h>
 
@@ -54,6 +57,7 @@ void DRC::ShowDialog()
 {
     if( !m_ui )
     {
+        m_mainWindow->GetToolManager()->RunAction( COMMON_ACTIONS::selectionClear, true );
         m_ui = new DIALOG_DRC_CONTROL( this, m_mainWindow );
         updatePointers();
 
@@ -103,7 +107,7 @@ DRC::DRC( PCB_EDIT_FRAME* aPcbWindow )
     m_doPad2PadTest     = true;     // enable pad to pad clearance tests
     m_doUnconnectedTest = true;     // enable unconnected tests
     m_doZonesTest = true;           // enable zone to items clearance tests
-    m_doKeepoutTest = true;        // enable keepout areas to items clearance tests
+    m_doKeepoutTest = true;         // enable keepout areas to items clearance tests
     m_abortDRC = false;
     m_drcInProgress = false;
 
@@ -220,7 +224,7 @@ void DRC::RunTests( wxTextCtrl* aMessages )
         wxSafeYield();
     }
 
-    testTracks( true );
+    testTracks( aMessages ? aMessages->GetParent() : m_mainWindow, true );
 
     // Before testing segments and unconnected, refill all zones:
     // this is a good caution, because filled areas can be outdated.
@@ -476,7 +480,7 @@ void DRC::testPad2Pad()
 }
 
 
-void DRC::testTracks( bool aShowProgressBar )
+void DRC::testTracks( wxWindow *aActiveWindow, bool aShowProgressBar )
 {
     wxProgressDialog * progressDialog = NULL;
     const int delta = 500;  // This is the number of tests between 2 calls to the
@@ -490,8 +494,9 @@ void DRC::testTracks( bool aShowProgressBar )
     if( aShowProgressBar && deltamax > 3 )
     {
         progressDialog = new wxProgressDialog( _( "Track clearances" ), wxEmptyString,
-                                               deltamax, m_mainWindow,
-                                               wxPD_AUTO_HIDE | wxPD_CAN_ABORT );
+                                               deltamax, aActiveWindow,
+                                               wxPD_AUTO_HIDE | wxPD_CAN_ABORT |
+                                               wxPD_APP_MODAL | wxPD_ELAPSED_TIME );
         progressDialog->Update( 0, wxEmptyString );
     }
 
@@ -509,6 +514,11 @@ void DRC::testTracks( bool aShowProgressBar )
             {
                 if( !progressDialog->Update( count, wxEmptyString ) )
                     break;  // Aborted by user
+#ifdef __WXMAC__
+                // Work around a dialog z-order issue on OS X
+                if( count == deltamax )
+                    aActiveWindow->Raise();
+#endif
             }
         }
 
@@ -744,7 +754,6 @@ void DRC::testTexts()
 
             for( unsigned jj = 0; jj < textShape.size(); jj += 2 )
             {
-                SEG segtest( textShape[jj], textShape[jj+1] );
                 /* In order to make some calculations more easier or faster,
                  * pads and tracks coordinates will be made relative
                  * to the segment origin
@@ -867,10 +876,13 @@ bool DRC::doPadToPadsDrc( D_PAD* aRefPad, D_PAD** aStart, D_PAD** aEnd, int x_li
         if( pad->GetPosition().x > x_limit )
             break;
 
-        // No problem if pads are on different copper layers,
+        // No problem if pads which are on copper layers are on different copper layers,
+        // (pads can be only on a technical layer, to build complex pads)
         // but their hole (if any ) can create DRC error because they are on all
         // copper layers, so we test them
-        if( ( pad->GetLayerSet() & layerMask ) == 0 )
+        if( ( pad->GetLayerSet() & layerMask ) == 0 &&
+            ( pad->GetLayerSet() & all_cu ) != 0 &&
+            ( aRefPad->GetLayerSet() & all_cu ) != 0 )
         {
             // if holes are in the same location and have the same size and shape,
             // this can be accepted
@@ -878,7 +890,7 @@ bool DRC::doPadToPadsDrc( D_PAD* aRefPad, D_PAD** aStart, D_PAD** aEnd, int x_li
                 && pad->GetDrillSize() == aRefPad->GetDrillSize()
                 && pad->GetDrillShape() == aRefPad->GetDrillShape() )
             {
-                if( aRefPad->GetDrillShape() == PAD_DRILL_CIRCLE )
+                if( aRefPad->GetDrillShape() == PAD_DRILL_SHAPE_CIRCLE )
                     continue;
 
                 // for oval holes: must also have the same orientation
@@ -894,8 +906,8 @@ bool DRC::doPadToPadsDrc( D_PAD* aRefPad, D_PAD** aStart, D_PAD** aEnd, int x_li
                 // pad under testing has a hole, test this hole against pad reference
                 dummypad.SetPosition( pad->GetPosition() );
                 dummypad.SetSize( pad->GetDrillSize() );
-                dummypad.SetShape( pad->GetDrillShape() == PAD_DRILL_OBLONG ?
-                                                           PAD_OVAL : PAD_CIRCLE );
+                dummypad.SetShape( pad->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG ?
+                                                           PAD_SHAPE_OVAL : PAD_SHAPE_CIRCLE );
                 dummypad.SetOrientation( pad->GetOrientation() );
 
                 if( !checkClearancePadToPad( aRefPad, &dummypad ) )
@@ -911,8 +923,8 @@ bool DRC::doPadToPadsDrc( D_PAD* aRefPad, D_PAD** aStart, D_PAD** aEnd, int x_li
             {
                 dummypad.SetPosition( aRefPad->GetPosition() );
                 dummypad.SetSize( aRefPad->GetDrillSize() );
-                dummypad.SetShape( aRefPad->GetDrillShape() == PAD_DRILL_OBLONG ?
-                                                               PAD_OVAL : PAD_CIRCLE );
+                dummypad.SetShape( aRefPad->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG ?
+                                                               PAD_SHAPE_OVAL : PAD_SHAPE_CIRCLE );
                 dummypad.SetOrientation( aRefPad->GetOrientation() );
 
                 if( !checkClearancePadToPad( pad, &dummypad ) )
@@ -942,6 +954,13 @@ bool DRC::doPadToPadsDrc( D_PAD* aRefPad, D_PAD** aStart, D_PAD** aEnd, int x_li
             // should eventually be a configuration option.
             if( pad->PadNameEqual( aRefPad ) )
                 continue;
+        }
+        
+        // if either pad has no drill and is only on technical layers, not a clearance violation
+        if( ( ( pad->GetLayerSet() & layerMask ) == 0 && !pad->GetDrillSize().x ) ||
+            ( ( aRefPad->GetLayerSet() & layerMask ) == 0 && !aRefPad->GetDrillSize().x ) )
+        {
+            continue;
         }
 
         if( !checkClearancePadToPad( aRefPad, pad ) )

@@ -41,53 +41,63 @@
  *  JP Charras.
  */
 
-
-#if 0
-/*
- *  FIX ME
- *  I do not include avhttp.hpp here, because it is already included in
- *  github_plugin.cpp
- *  and if it is also included in this file, the link fails (double definiton of modules)
- *  therefore, the GITHUB_GETLIBLIST method which uses avhttp to download dats from gitub
- *  is in github_plugin.cpp
- */
-
-#ifndef WIN32_LEAN_AND_MEAN
-// when WIN32_LEAN_AND_MEAN is defined, some useless includes in <window.h>
-// are skipped, and this avoid some compil issues
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifdef WIN32
-// defines needed by avhttp
-// Minimal Windows version is XP: Google for _WIN32_WINNT
- #define _WIN32_WINNT   0x0501
- #define WINVER         0x0501
-#endif
-
-#include <wx/wx.h>
-#include <avhttp.hpp>
-
-#endif
-
+#include <kicad_curl/kicad_curl_easy.h>     // Include before any wx file
 #include <wx/uri.h>
 
 #include <github_getliblist.h>
 #include <macros.h>
 #include <common.h>
+#include <html_link_parser.h>
 
 
 GITHUB_GETLIBLIST::GITHUB_GETLIBLIST( const wxString& aRepoURL )
 {
     m_repoURL = aRepoURL;
+    m_libs_ext =  wxT( ".pretty" );
+    strcpy( m_option_string, "application/json" );
 }
 
 
-bool GITHUB_GETLIBLIST::GetLibraryList( wxArrayString& aList )
+bool GITHUB_GETLIBLIST::Get3DshapesLibsList( wxArrayString* aList,
+                        bool (*aFilter)( const wxString& aData ) )
+{
+    std::string fullURLCommand;
+
+    strcpy( m_option_string, "text/html" );
+
+    wxString repoURL = m_repoURL;
+
+    wxString errorMsg;
+
+    fullURLCommand = repoURL.utf8_str();
+    bool success = remoteGetJSON( fullURLCommand, &errorMsg );
+
+    if( !success )
+    {
+        wxMessageBox( errorMsg );
+        return false;
+    }
+
+    if( aFilter && aList )
+    {
+        //Convert m_image (std::string) to a wxString for HTML_LINK_PARSER
+        wxString buffer( GetBuffer() );
+
+        HTML_LINK_PARSER html_parser( buffer, *aList );
+        html_parser.ParseLinks( aFilter );
+    }
+
+    return true;
+}
+
+
+bool GITHUB_GETLIBLIST::GetFootprintLibraryList( wxArrayString& aList )
 {
     std::string fullURLCommand;
     int page = 1;
     int itemCountMax = 99;              // Do not use a valu > 100, it does not work
+
+    strcpy( m_option_string, "application/json" );
 
     // Github max items returned is 100 per page
 
@@ -101,16 +111,17 @@ bool GITHUB_GETLIBLIST::GetLibraryList( wxArrayString& aList )
     // The URL lib names are relative to the server name.
     // so add the server name to them.
     wxURI repo( m_repoURL );
-    wxString urlPrefix = wxT( "https://" ) + repo.GetServer() + wxT( "/" );
+    wxString urlPrefix = repo.GetScheme() + wxT( "://" ) + repo.GetServer() + wxT( "/" );
 
     wxString errorMsg;
     const char  sep = ',';      // Separator fields, in json returned file
     wxString    tmp;
     int items_count_per_page = 0;
+    std::string& json_image = GetBuffer();
 
     while( 1 )
     {
-        bool success = remote_get_json( &fullURLCommand, &errorMsg );
+        bool success = remoteGetJSON( fullURLCommand, &errorMsg );
 
         if( !success )
         {
@@ -118,9 +129,10 @@ bool GITHUB_GETLIBLIST::GetLibraryList( wxArrayString& aList )
             return false;
         }
 
-        for( unsigned ii = 0; ii < m_json_image.size(); ii++ )
+
+        for( unsigned ii = 0; ii < json_image.size(); ii++ )
         {
-            if( m_json_image[ii] == sep || ii == m_json_image.size() - 1 )
+            if( json_image[ii] == sep || ii == json_image.size() - 1 )
             {
                 if( tmp.StartsWith( wxT( "\"full_name\"" ) ) )
                 {
@@ -129,7 +141,7 @@ bool GITHUB_GETLIBLIST::GetLibraryList( wxArrayString& aList )
                     if( tmp[tmp.Length() - 1] == QUOTE )
                         tmp.RemoveLast();
 
-                    if( tmp.EndsWith( wxT( ".pretty" ) ) )
+                    if( tmp.EndsWith( m_libs_ext ) )
                     {
                         aList.Add( tmp.AfterLast( ':' ) );
                         int idx = aList.GetCount() - 1;
@@ -146,7 +158,7 @@ bool GITHUB_GETLIBLIST::GetLibraryList( wxArrayString& aList )
                 tmp.Clear();
             }
             else
-                tmp << m_json_image[ii];
+                tmp << json_image[ii];
         }
 
         if( items_count_per_page >= itemCountMax )
@@ -154,7 +166,7 @@ bool GITHUB_GETLIBLIST::GetLibraryList( wxArrayString& aList )
             page++;
             repoURL2listURL( m_repoURL, &fullURLCommand, itemCountMax, page );
             items_count_per_page = 0;
-            m_json_image.clear();
+            ClearBuffer();
         }
         else
             break;
@@ -193,4 +205,38 @@ bool GITHUB_GETLIBLIST::repoURL2listURL( const wxString& aRepoURL,
     }
 
     return false;
+}
+
+
+bool GITHUB_GETLIBLIST::remoteGetJSON( const std::string& aFullURLCommand, wxString* aMsgError )
+{
+    KICAD_CURL_EASY kcurl;
+
+    wxLogDebug( wxT( "Attempting to download: " ) + aFullURLCommand );
+
+    kcurl.SetURL( aFullURLCommand );
+    kcurl.SetUserAgent( "http://kicad-pcb.org" );
+    kcurl.SetHeader( "Accept", m_option_string );
+    kcurl.SetFollowRedirects( true );
+
+    try
+    {
+        kcurl.Perform();
+        m_image = kcurl.GetBuffer();
+        return true;
+    }
+    catch( const IO_ERROR& ioe )
+    {
+        if( aMsgError )
+        {
+            UTF8 fmt( _( "Error fetching JSON data from URL '%s'.\nReason: '%s'" ) );
+
+            std::string msg = StrPrintf( fmt.c_str(),
+                                         aFullURLCommand.c_str(),
+                                         TO_UTF8( ioe.errorText ) );
+
+            *aMsgError = FROM_UTF8( msg.c_str() );
+        }
+        return false;
+    }
 }

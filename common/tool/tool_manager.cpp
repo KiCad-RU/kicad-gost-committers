@@ -236,7 +236,7 @@ void TOOL_MANAGER::RegisterTool( TOOL_BASE* aTool )
     m_toolIdIndex[aTool->GetId()] = st;
     m_toolTypes[typeid( *aTool ).name()] = st->theTool;
 
-    aTool->m_toolMgr = this;
+    aTool->attachManager( this );
 
     if( !aTool->Init() )
     {
@@ -329,6 +329,12 @@ void TOOL_MANAGER::RunAction( const TOOL_ACTION& aAction, bool aNow, void* aPara
         ProcessEvent( event );
     else
         PostEvent( event );
+}
+
+
+int TOOL_MANAGER::GetHotKey( const TOOL_ACTION& aAction )
+{
+    return m_actionMgr->GetHotKey( aAction );
 }
 
 
@@ -494,7 +500,7 @@ void TOOL_MANAGER::dispatchInternal( const TOOL_EVENT& aEvent )
             if( st->waitEvents.Matches( aEvent ) )
             {
                 // By default, only messages are passed further
-                m_passEvent = ( aEvent.m_category == TC_MESSAGE );
+                m_passEvent = ( aEvent.Category() == TC_MESSAGE );
 
                 // got matching event? clear wait list and wake up the coroutine
                 st->wakeupEvent = aEvent;
@@ -563,7 +569,7 @@ bool TOOL_MANAGER::dispatchActivation( const TOOL_EVENT& aEvent )
 {
     if( aEvent.IsActivate() )
     {
-        std::map<std::string, TOOL_STATE*>::iterator tool = m_toolNameIndex.find( *aEvent.m_commandStr );
+        std::map<std::string, TOOL_STATE*>::iterator tool = m_toolNameIndex.find( *aEvent.GetCommandStr() );
 
         if( tool != m_toolNameIndex.end() )
         {
@@ -592,6 +598,9 @@ void TOOL_MANAGER::dispatchContextMenu( const TOOL_EVENT& aEvent )
             st->pendingWait = true;
             st->waitEvents = TOOL_EVENT( TC_ANY, TA_ANY );
 
+            // Store the menu pointer in case it is changed by the TOOL when handling menu events
+            CONTEXT_MENU* m = st->contextMenu;
+
             if( st->contextMenuTrigger == CMENU_NOW )
                 st->contextMenuTrigger = CMENU_OFF;
 
@@ -602,19 +611,21 @@ void TOOL_MANAGER::dispatchContextMenu( const TOOL_EVENT& aEvent )
             m_viewControls->ForceCursorPosition( true, m_viewControls->GetCursorPosition() );
 
             // Run update handlers
-            st->contextMenu->UpdateAll();
+            m->UpdateAll();
 
-            boost::scoped_ptr<CONTEXT_MENU> menu( new CONTEXT_MENU( *st->contextMenu ) );
+            boost::scoped_ptr<CONTEXT_MENU> menu( new CONTEXT_MENU( *m ) );
             GetEditFrame()->PopupMenu( menu.get() );
 
             // If nothing was chosen from the context menu, we must notify the tool as well
             if( menu->GetSelected() < 0 )
             {
                 TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CHOICE, -1 );
+                evt.SetParameter( m );
                 dispatchInternal( evt );
             }
 
             TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CLOSED );
+            evt.SetParameter( m );
             dispatchInternal( evt );
 
             m_viewControls->ForceCursorPosition( forcedCursor, cursorPos );
@@ -627,6 +638,10 @@ void TOOL_MANAGER::dispatchContextMenu( const TOOL_EVENT& aEvent )
 
 void TOOL_MANAGER::finishTool( TOOL_STATE* aState )
 {
+    // Reset VIEW_CONTROLS only if the most recent tool is finished
+    if( m_activeTools.empty() || m_activeTools.front() == aState->theTool->GetId() )
+        m_viewControls->Reset();
+
     if( !aState->Pop() )        // if there are no other contexts saved on the stack
     {
         // find the tool and deactivate it

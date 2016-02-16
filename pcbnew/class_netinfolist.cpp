@@ -69,6 +69,30 @@ void NETINFO_LIST::clear()
 }
 
 
+void NETINFO_LIST::RemoveNet( NETINFO_ITEM* aNet )
+{
+    for( NETCODES_MAP::iterator i = m_netCodes.begin(); i != m_netCodes.end(); ++i )
+    {
+        if ( i->second == aNet )
+        {
+            m_netCodes.erase(i);
+            break;
+        }
+    }
+
+    for( NETNAMES_MAP::iterator i = m_netNames.begin(); i != m_netNames.end(); ++i )
+    {
+        if ( i->second == aNet )
+        {
+            m_netNames.erase(i);
+            break;
+        }
+    }
+
+    m_newNetCode = std::min( m_newNetCode, aNet->m_NetCode - 1 );
+}
+
+
 void NETINFO_LIST::AppendNet( NETINFO_ITEM* aNewElement )
 {
     // if there is a net with such name then just assign the correct number
@@ -144,6 +168,7 @@ void NETINFO_LIST::buildListOfNets()
 
         // Add pad to the appropriate list of pads
         NETINFO_ITEM* net = pad->GetNet();
+
         // it should not be possible for BOARD_CONNECTED_ITEM to return NULL as a result of GetNet()
         wxASSERT( net );
 
@@ -162,6 +187,7 @@ void NETINFO_LIST::buildListOfNets()
     m_Parent->SetAreasNetCodesFromNetNames();
 }
 
+
 #if defined(DEBUG)
 void NETINFO_LIST::Show() const
 {
@@ -175,6 +201,7 @@ void NETINFO_LIST::Show() const
     }
 }
 #endif
+
 
 void NETINFO_LIST::buildPadsFullList()
 {
@@ -292,6 +319,6 @@ NETINFO_ITEM* NETINFO_MAPPING::iterator::operator->() const
 
 
 const int NETINFO_LIST::UNCONNECTED = 0;
-const int NETINFO_LIST::FORCE_ORPHANED = -1;
+const int NETINFO_LIST::ORPHANED = -1;
 
-NETINFO_ITEM NETINFO_LIST::ORPHANED = NETINFO_ITEM( NULL, wxEmptyString, NETINFO_LIST::UNCONNECTED );
+NETINFO_ITEM NETINFO_LIST::ORPHANED_ITEM = NETINFO_ITEM( NULL, wxEmptyString, NETINFO_LIST::UNCONNECTED );

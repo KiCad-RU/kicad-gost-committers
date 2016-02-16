@@ -4,7 +4,7 @@
  * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 2013 CERN (www.cern.ch)
- * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -43,7 +43,7 @@
 #include <sch_sheet_path.h>
 #include <sch_component.h>
 #include <wildcards_and_files_ext.h>
-#include <lib_cache_rescue.h>
+#include <project_rescue.h>
 #include <eeschema_config.h>
 
 
@@ -285,6 +285,7 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     // event handler in there.
     // And when a schematic file is loaded, we need these libs to initialize
     // some parameters (links to PART LIB, dangling ends ...)
+    Prj().SetElem( PROJECT::ELEM_SCH_PART_LIBS, NULL );
     Prj().SchLibs();
 
     if( is_new )
@@ -307,7 +308,7 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 
         UpdateFileHistory( fullFileName );
 
-        // Check to see whether some old, cached library parts need to be rescued
+        // Check to see whether some old library parts need to be rescued
         // Only do this if RescueNeverShow was not set.
         wxConfigBase *config = Kiface().KifaceSettings();
         bool rescueNeverShow = false;
@@ -315,7 +316,7 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 
         if( !rescueNeverShow )
         {
-            if( RescueCacheConflicts( false ) )
+            if( RescueProject( false ) )
             {
                 GetScreen()->CheckComponentsToPartsLinks();
                 GetScreen()->TestDanglingEnds();
@@ -336,7 +337,6 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 bool SCH_EDIT_FRAME::AppendOneEEProject()
 {
     wxString    fullFileName;
-    wxString    msg;
 
     SCH_SCREEN* screen = GetScreen();
 
@@ -429,7 +429,9 @@ bool SCH_EDIT_FRAME::AppendOneEEProject()
                     sheet->SetName( tmp );
 
                 sheet->SetFileName( wxString::Format( wxT( "file%8.8lX.sch" ), (long) newtimestamp ) );
-                sheet->SetScreen( new SCH_SCREEN( &Kiway() ) );
+                SCH_SCREEN* screen = new SCH_SCREEN( &Kiway() );
+                screen->SetMaxUndoItems( m_UndoRedoCountMax );
+                sheet->SetScreen( screen );
                 sheet->GetScreen()->SetFileName( sheet->GetFileName() );
             }
             // clear annotation and init new time stamp for the new components
@@ -445,6 +447,8 @@ bool SCH_EDIT_FRAME::AppendOneEEProject()
             bs = nextbs;
         }
     }
+    
+    OnModify();
 
     // redraw base screen (ROOT) if necessary
     GetScreen()->SetGrid( ID_POPUP_GRID_LEVEL_1000 + m_LastGridSizeId );

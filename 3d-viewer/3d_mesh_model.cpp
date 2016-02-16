@@ -31,8 +31,8 @@
 #include <3d_mesh_model.h>
 #include <boost/geometry/algorithms/area.hpp>
 #define GLM_FORCE_RADIANS
-#include <gal/opengl/glm/gtc/matrix_transform.hpp>
-#include <gal/opengl/glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/glm.hpp>
 
 #ifdef __WXMAC__
 #  ifdef __DARWIN__
@@ -332,6 +332,12 @@ void S3D_MESH::openGL_Render( bool aIsRenderingJustNonTransparentObjects,
     }
 #endif
 */
+
+    if( m_Materials && m_Materials->m_ColorPerVertex == false )
+    {
+        if( m_Materials->m_DiffuseColor.size() == m_Point.size() )
+            m_Materials->m_ColorPerVertex = true;
+    }
 
     for( unsigned int idx = 0; idx < m_CoordIndex.size(); idx++ )
     {

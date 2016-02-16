@@ -66,6 +66,9 @@ bool SCH_EDIT_FRAME::LoadOneEEFile( SCH_SCREEN* aScreen, const wxString& aFullFi
     if( aFullFileName.IsEmpty() )
         return false;
 
+    // Place the undo limit into the screen
+    aScreen->SetMaxUndoItems( m_UndoRedoCountMax );
+
     // If path is relative, this expands it from the project directory.
     wxString fname = Prj().AbsolutePath( aFullFileName );
 
@@ -217,7 +220,7 @@ again." );
             break;
 
         case 'T':                       // It is a text item.
-            if( sscanf( sline, "%s", name1 ) != 1 )
+            if( sscanf( sline, "%255s", name1 ) != 1 )
             {
                 msgDiag.Printf( _( "Eeschema file text load error at line %d" ),
                                 reader.LineNumber() );

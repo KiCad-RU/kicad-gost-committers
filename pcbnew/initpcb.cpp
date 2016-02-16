@@ -41,7 +41,7 @@ bool PCB_EDIT_FRAME::Clear_Pcb( bool aQuery )
     if( GetBoard() == NULL )
         return false;
 
-    if( aQuery && GetScreen()->IsModify() && !GetBoard()->IsEmpty() )
+    if( aQuery && !GetBoard()->IsEmpty() )
     {
         if( !IsOK( this,
                    _( "Current Board will be lost and this operation cannot be undone. Continue ?" ) ) )
@@ -83,6 +83,7 @@ bool PCB_EDIT_FRAME::Clear_Pcb( bool aQuery )
     ReCreateLayerBox();
     ReCreateAuxiliaryToolbar();
     ReFillLayerWidget();
+    UpdateTitle();
 
     Zoom_Automatique( false );
 
@@ -102,16 +103,22 @@ bool FOOTPRINT_EDIT_FRAME::Clear_Pcb( bool aQuery )
             return false;
     }
 
-    // Clear undo and redo lists
+    // Clear undo and redo lists because we want a full deletion
     GetScreen()->ClearUndoRedoList();
+    GetScreen()->ClrModify();
 
-    // Delete the current footprint
-    GetBoard()->m_Modules.DeleteAll();
+    BOARD* board = new BOARD;
 
-    // init pointeurs  et variables
-    GetBoard()->SetFileName( wxEmptyString );
+    // Transfer current design settings
+    if( GetBoard() )
+        board->SetDesignSettings( GetBoard()->GetDesignSettings() );
+
+    SetBoard( board );
 
     SetCurItem( NULL );
+
+    // clear filename, to avoid overwriting an old file
+    GetBoard()->SetFileName( wxEmptyString );
 
     GetScreen()->InitDataPoints( GetPageSizeIU() );
 

@@ -33,7 +33,6 @@
 #include <vector>
 
 #include <fctsys.h>
-#include <polygons_defs.h>
 #include <drawtxt.h>
 #include <pcbnew.h>
 #include <wxPcbStruct.h>
@@ -51,9 +50,9 @@
 // These variables are parameters used in addTextSegmToPoly.
 // But addTextSegmToPoly is a call-back function,
 // so we cannot send them as arguments.
-int s_textWidth;
-int s_textCircle2SegmentCount;
-CPOLYGONS_LIST* s_cornerBuffer;
+static int s_textWidth;
+static int s_textCircle2SegmentCount;
+static SHAPE_POLY_SET* s_cornerBuffer;
 
 // This is a call back function, used by DrawGraphicText to draw the 3D text shape:
 static void addTextSegmToPoly( int x0, int y0, int xf, int yf )
@@ -64,7 +63,7 @@ static void addTextSegmToPoly( int x0, int y0, int xf, int yf )
 }
 
 
-void BOARD::ConvertBrdLayerToPolygonalContours( LAYER_ID aLayer, CPOLYGONS_LIST& aOutlines )
+void BOARD::ConvertBrdLayerToPolygonalContours( LAYER_ID aLayer, SHAPE_POLY_SET& aOutlines )
 {
     // Number of segments to convert a circle to a polygon
     const int       segcountforcircle   = 18;
@@ -128,7 +127,7 @@ void BOARD::ConvertBrdLayerToPolygonalContours( LAYER_ID aLayer, CPOLYGONS_LIST&
 
 
 void MODULE::TransformPadsShapesWithClearanceToPolygon( LAYER_ID aLayer,
-                        CPOLYGONS_LIST& aCornerBuffer,
+                        SHAPE_POLY_SET& aCornerBuffer,
                         int                    aInflateValue,
                         int                    aCircleToSegmentsCount,
                         double                 aCorrectionFactor,
@@ -144,19 +143,19 @@ void MODULE::TransformPadsShapesWithClearanceToPolygon( LAYER_ID aLayer,
 
         // NPTH pads are not drawn on layers if the shape size and pos is the same
         // as their hole:
-        if( aSkipNPTHPadsWihNoCopper && pad->GetAttribute() == PAD_HOLE_NOT_PLATED )
+        if( aSkipNPTHPadsWihNoCopper && pad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED )
         {
             if( pad->GetDrillSize() == pad->GetSize() && pad->GetOffset() == wxPoint( 0, 0 ) )
             {
                 switch( pad->GetShape() )
                 {
-                case PAD_CIRCLE:
-                    if( pad->GetDrillShape() == PAD_DRILL_CIRCLE )
+                case PAD_SHAPE_CIRCLE:
+                    if( pad->GetDrillShape() == PAD_DRILL_SHAPE_CIRCLE )
                         continue;
                     break;
 
-                case PAD_OVAL:
-                    if( pad->GetDrillShape() != PAD_DRILL_CIRCLE )
+                case PAD_SHAPE_OVAL:
+                    if( pad->GetDrillShape() != PAD_DRILL_SHAPE_CIRCLE )
                         continue;
                     break;
 
@@ -202,11 +201,12 @@ void MODULE::TransformPadsShapesWithClearanceToPolygon( LAYER_ID aLayer,
  *  initial radius * aCorrectionFactor
  */
 void MODULE::TransformGraphicShapesWithClearanceToPolygonSet(
-                        LAYER_ID aLayer,
-                        CPOLYGONS_LIST& aCornerBuffer,
-                        int                    aInflateValue,
-                        int                    aCircleToSegmentsCount,
-                        double                 aCorrectionFactor )
+                        LAYER_ID        aLayer,
+                        SHAPE_POLY_SET& aCornerBuffer,
+                        int             aInflateValue,
+                        int             aCircleToSegmentsCount,
+                        double          aCorrectionFactor,
+                        int             aCircleToSegmentsCountForTexts )
 {
     std::vector<TEXTE_MODULE *> texts;  // List of TEXTE_MODULE to convert
     EDGE_MODULE* outline;
@@ -249,7 +249,12 @@ void MODULE::TransformGraphicShapesWithClearanceToPolygonSet(
         texts.push_back( &Value() );
 
     s_cornerBuffer = &aCornerBuffer;
-    s_textCircle2SegmentCount = aCircleToSegmentsCount;
+
+    // To allow optimization of circles approximated by segments,
+    // aCircleToSegmentsCountForTexts, when not 0, is used.
+    // if 0 (default value) the aCircleToSegmentsCount is used
+    s_textCircle2SegmentCount = aCircleToSegmentsCountForTexts ?
+                                aCircleToSegmentsCountForTexts : aCircleToSegmentsCount;
 
     for( unsigned ii = 0; ii < texts.size(); ii++ )
     {
@@ -258,7 +263,7 @@ void MODULE::TransformGraphicShapesWithClearanceToPolygonSet(
         wxSize size = textmod->GetSize();
 
         if( textmod->IsMirrored() )
-            NEGATE( size.x );
+            size.x = -size.x;
 
         DrawGraphicText( NULL, NULL, textmod->GetTextPosition(), BLACK,
                          textmod->GetShownText(), textmod->GetDrawRotation(), size,
@@ -280,43 +285,30 @@ void MODULE::TransformGraphicShapesWithClearanceToPolygonSet(
  * keep arc radius when approximated by segments
  */
 void ZONE_CONTAINER::TransformSolidAreasShapesToPolygonSet(
-        CPOLYGONS_LIST& aCornerBuffer,
+        SHAPE_POLY_SET& aCornerBuffer,
         int                    aCircleToSegmentsCount,
         double                 aCorrectionFactor )
 {
-    unsigned cornerscount = GetFilledPolysList().GetCornersCount();
-
-    if( cornerscount == 0 )
+    if( GetFilledPolysList().IsEmpty() )
         return;
 
     // add filled areas polygons
     aCornerBuffer.Append( m_FilledPolysList );
 
     // add filled areas outlines, which are drawn with thick lines
-    wxPoint seg_start, seg_end;
-    int i_start_contour = 0;
-    for( unsigned ic = 0; ic < cornerscount; ic++ )
+    for( int i = 0; i < m_FilledPolysList.OutlineCount(); i++ )
     {
-        seg_start.x = m_FilledPolysList[ ic ].x;
-        seg_start.y = m_FilledPolysList[ ic ].y;
-        unsigned ic_next = ic+1;
+        const SHAPE_LINE_CHAIN& path = m_FilledPolysList.COutline( i );
 
-        if( !m_FilledPolysList[ic].end_contour &&
-            ic_next < cornerscount )
+        for( int j = 0; j < path.PointCount(); j++ )
         {
-            seg_end.x = m_FilledPolysList[ ic_next ].x;
-            seg_end.y = m_FilledPolysList[ ic_next ].y;
-        }
-        else
-        {
-            seg_end.x = m_FilledPolysList[ i_start_contour ].x;
-            seg_end.y = m_FilledPolysList[ i_start_contour ].y;
-            i_start_contour = ic_next;
-        }
+            const VECTOR2I& a = path.CPoint( j );
+            const VECTOR2I& b = path.CPoint( j + 1 );
 
-        TransformRoundedEndsSegmentToPolygon( aCornerBuffer, seg_start, seg_end,
-                                              aCircleToSegmentsCount,
-                                              GetMinThickness() );
+            TransformRoundedEndsSegmentToPolygon( aCornerBuffer, wxPoint( a.x, a.y ), wxPoint( b.x, b.y ),
+                                                    aCircleToSegmentsCount,
+                                                    GetMinThickness() );
+        }
     }
 }
 
@@ -329,13 +321,13 @@ void ZONE_CONTAINER::TransformSolidAreasShapesToPolygonSet(
  * @param aClearanceValue = the clearance around the text bounding box
  */
 void TEXTE_PCB::TransformBoundingBoxWithClearanceToPolygon(
-                    CPOLYGONS_LIST& aCornerBuffer,
-                    int                    aClearanceValue ) const
+                    SHAPE_POLY_SET& aCornerBuffer,
+                    int             aClearanceValue ) const
 {
     if( GetText().Length() == 0 )
         return;
 
-    CPolyPt  corners[4];    // Buffer of polygon corners
+    wxPoint  corners[4];    // Buffer of polygon corners
 
     EDA_RECT rect = GetTextBox( -1 );
     rect.Inflate( aClearanceValue );
@@ -348,14 +340,14 @@ void TEXTE_PCB::TransformBoundingBoxWithClearanceToPolygon(
     corners[3].y = corners[2].y;
     corners[3].x = corners[0].x;
 
+    aCornerBuffer.NewOutline();
+
     for( int ii = 0; ii < 4; ii++ )
     {
         // Rotate polygon
         RotatePoint( &corners[ii].x, &corners[ii].y, m_Pos.x, m_Pos.y, m_Orient );
-        aCornerBuffer.Append( corners[ii] );
+        aCornerBuffer.Append( corners[ii].x, corners[ii].y );
     }
-
-    aCornerBuffer.CloseLastContour();
 }
 
 
@@ -363,7 +355,7 @@ void TEXTE_PCB::TransformBoundingBoxWithClearanceToPolygon(
  * Convert the text shape to a set of polygons (one by segment)
  * Used in filling zones calculations and 3D view
  * Circles and arcs are approximated by segments
- * aCornerBuffer = CPOLYGONS_LIST to store the polygon corners
+ * aCornerBuffer = SHAPE_POLY_SET to store the polygon corners
  * aClearanceValue = the clearance around the text
  * aCircleToSegmentsCount = the number of segments to approximate a circle
  * aCorrectionFactor = the correction to apply to circles radius to keep
@@ -372,7 +364,7 @@ void TEXTE_PCB::TransformBoundingBoxWithClearanceToPolygon(
  */
 
 void TEXTE_PCB::TransformShapeWithClearanceToPolygonSet(
-                            CPOLYGONS_LIST& aCornerBuffer,
+                            SHAPE_POLY_SET& aCornerBuffer,
                             int                    aClearanceValue,
                             int                    aCircleToSegmentsCount,
                             double                 aCorrectionFactor ) const
@@ -380,7 +372,7 @@ void TEXTE_PCB::TransformShapeWithClearanceToPolygonSet(
     wxSize size = GetSize();
 
     if( IsMirrored() )
-        NEGATE( size.x );
+        size.x = -size.x;
 
     s_cornerBuffer = &aCornerBuffer;
     s_textWidth  = GetThickness() + ( 2 * aClearanceValue );
@@ -428,10 +420,10 @@ void TEXTE_PCB::TransformShapeWithClearanceToPolygonSet(
  * clearance when the circle is approxiamted by segment bigger or equal
  * to the real clearance value (usually near from 1.0)
  */
-void DRAWSEGMENT::TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer,
-                                                        int                    aClearanceValue,
-                                                        int                    aCircleToSegmentsCount,
-                                                        double                 aCorrectionFactor ) const
+void DRAWSEGMENT::TransformShapeWithClearanceToPolygon( SHAPE_POLY_SET& aCornerBuffer,
+                                                        int             aClearanceValue,
+                                                        int             aCircleToSegmentsCount,
+                                                        double          aCorrectionFactor ) const
 {
     // The full width of the lines to create:
     int linewidth = m_Width + (2 * aClearanceValue);
@@ -476,6 +468,13 @@ void DRAWSEGMENT::TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerB
         // Generate polygons for the outline + clearance
         // This code is compatible with a polygon with holes linked to external outline
         // by overlapping segments.
+
+        // Insert the initial polygon:
+        aCornerBuffer.NewOutline();
+
+        for( unsigned ii = 0; ii < poly.size(); ii++ )
+            aCornerBuffer.Append( poly[ii].x, poly[ii].y );
+
         if( linewidth )     // Add thick outlines
         {
             CPolyPt corner1( poly[poly.size()-1] );
@@ -493,14 +492,6 @@ void DRAWSEGMENT::TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerB
                 corner1 = corner2;
             }
         }
-
-        // Polygon for the inside
-        for( unsigned ii = 0; ii < poly.size(); ii++ )
-        {
-            CPolyPt corner( poly[ii] );
-            aCornerBuffer.Append( corner );
-        }
-        aCornerBuffer.CloseLastContour();
         }
         break;
 
@@ -525,7 +516,7 @@ void DRAWSEGMENT::TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerB
  * clearance when the circle is approximated by segment bigger or equal
  * to the real clearance value (usually near from 1.0)
  */
-void TRACK:: TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer,
+void TRACK::TransformShapeWithClearanceToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                                                    int                      aClearanceValue,
                                                    int                      aCircleToSegmentsCount,
                                                    double                   aCorrectionFactor ) const
@@ -554,20 +545,18 @@ void TRACK:: TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer
  * Convert the pad shape to a closed polygon
  * Used in filling zones calculations and 3D view generation
  * Circles and arcs are approximated by segments
- * aCornerBuffer = a CPOLYGONS_LIST to store the polygon corners
+ * aCornerBuffer = a SHAPE_POLY_SET to store the polygon corners
  * aClearanceValue = the clearance around the pad
  * aCircleToSegmentsCount = the number of segments to approximate a circle
  * aCorrectionFactor = the correction to apply to circles radius to keep
  * clearance when the circle is approximated by segment bigger or equal
  * to the real clearance value (usually near from 1.0)
  */
-#include <clipper.hpp>
-void D_PAD:: TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer,
+void D_PAD:: TransformShapeWithClearanceToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                                                    int             aClearanceValue,
                                                    int             aCircleToSegmentsCount,
                                                    double          aCorrectionFactor ) const
 {
-    wxPoint corner_position;
     double  angle = m_Orient;
     int     dx = (m_Size.x / 2) + aClearanceValue;
     int     dy = (m_Size.y / 2) + aClearanceValue;
@@ -577,13 +566,13 @@ void D_PAD:: TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer
 
     switch( GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         dx = KiROUND( dx * aCorrectionFactor );
         TransformCircleToPolygon( aCornerBuffer, PadShapePos, dx,
                                   aCircleToSegmentsCount );
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         // An oval pad has the same shape as a segment with rounded ends
         {
         int width;
@@ -609,42 +598,27 @@ void D_PAD:: TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer
         }
         break;
 
-    case PAD_TRAPEZOID:
-    case PAD_RECT:
+    case PAD_SHAPE_TRAPEZOID:
+    case PAD_SHAPE_RECT:
     {
         wxPoint corners[4];
         BuildPadPolygon( corners, wxSize( 0, 0 ), angle );
 
-        // We are using ClipperLib to inflate the polygon shape, using
-        // arcs to connect moved segments.
-        ClipperLib::Path outline;
-        ClipperLib::Paths shapeWithClearance;
+        SHAPE_POLY_SET outline;
+
+        outline.NewOutline();
 
         for( int ii = 0; ii < 4; ii++ )
         {
             corners[ii] += PadShapePos;
-            outline << ClipperLib::IntPoint( corners[ii].x, corners[ii].y );
+            outline.Append( corners[ii].x, corners[ii].y );
         }
 
-        ClipperLib::ClipperOffset offset_engine;
-        // Prepare an offset (inflate) transform, with edges connected by arcs
-        offset_engine.AddPath( outline, ClipperLib::jtRound, ClipperLib::etClosedPolygon );
-
-        // Clipper approximates arcs by segments
-        // It uses a value called ArcTolerance which is the max error between the arc
-        // and segments created to approximate this arc
-        // the number of segm per circle is:
-        // n = PI / acos(1 - arc_tolerance / (arc radius))
-        // the arc radius is aClearanceValue
-        // because arc_tolerance is << aClearanceValue and aClearanceValue >= 0
-        // n = PI / (arc_tolerance / aClearanceValue )
-        offset_engine.ArcTolerance = (double)aClearanceValue / 3.14 / aCircleToSegmentsCount;
-
         double rounding_radius = aClearanceValue * aCorrectionFactor;
-        offset_engine.Execute( shapeWithClearance, rounding_radius );
 
-        // get new outline (only one polygon is expected)
-        aCornerBuffer.ImportFrom( shapeWithClearance );
+        outline.Inflate( (int) rounding_radius, aCircleToSegmentsCount );
+
+        aCornerBuffer.Append( outline );
     }
         break;
     }
@@ -657,7 +631,7 @@ void D_PAD:: TransformShapeWithClearanceToPolygon( CPOLYGONS_LIST& aCornerBuffer
  * Note: for Round and oval pads this function is equivalent to
  * TransformShapeWithClearanceToPolygon, but not for other shapes
  */
-void D_PAD::BuildPadShapePolygon( CPOLYGONS_LIST& aCornerBuffer,
+void D_PAD::BuildPadShapePolygon( SHAPE_POLY_SET& aCornerBuffer,
                                   wxSize aInflateValue, int aSegmentsPerCircle,
                                   double aCorrectionFactor ) const
 {
@@ -666,23 +640,23 @@ void D_PAD::BuildPadShapePolygon( CPOLYGONS_LIST& aCornerBuffer,
                                                      * the pad position is NOT the shape position */
     switch( GetShape() )
     {
-    case PAD_CIRCLE:
-    case PAD_OVAL:
+    case PAD_SHAPE_CIRCLE:
+    case PAD_SHAPE_OVAL:
         TransformShapeWithClearanceToPolygon( aCornerBuffer, aInflateValue.x,
                                               aSegmentsPerCircle, aCorrectionFactor );
         break;
 
-    case PAD_TRAPEZOID:
-    case PAD_RECT:
+    case PAD_SHAPE_TRAPEZOID:
+    case PAD_SHAPE_RECT:
+        aCornerBuffer.NewOutline();
+
         BuildPadPolygon( corners, aInflateValue, m_Orient );
         for( int ii = 0; ii < 4; ii++ )
         {
             corners[ii] += PadShapePos;          // Shift origin to position
-            CPolyPt polypoint( corners[ii].x, corners[ii].y );
-            aCornerBuffer.Append( polypoint );
+            aCornerBuffer.Append( corners[ii].x, corners[ii].y );
         }
 
-        aCornerBuffer.CloseLastContour();
         break;
     }
 }
@@ -693,7 +667,7 @@ void D_PAD::BuildPadShapePolygon( CPOLYGONS_LIST& aCornerBuffer,
  * depending on shape pad hole and orientation
  * return false if the pad has no hole, true otherwise
  */
-bool D_PAD::BuildPadDrillShapePolygon( CPOLYGONS_LIST& aCornerBuffer,
+bool D_PAD::BuildPadDrillShapePolygon( SHAPE_POLY_SET& aCornerBuffer,
                                        int aInflateValue, int aSegmentsPerCircle ) const
 {
     wxSize drillsize = GetDrillSize();
@@ -750,7 +724,7 @@ bool D_PAD::BuildPadDrillShapePolygon( CPOLYGONS_LIST& aCornerBuffer,
  *      and are used in microwave applications and they *DO NOT* have a thermal relief that
  *      change the shape by creating stubs and destroy their properties.
  */
-void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
+void    CreateThermalReliefPadPolygon( SHAPE_POLY_SET& aCornerBuffer,
                                        D_PAD&          aPad,
                                        int             aThermalGap,
                                        int             aCopperThickness,
@@ -789,7 +763,7 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
 
     switch( aPad.GetShape() )
     {
-    case PAD_CIRCLE:    // Add 4 similar holes
+    case PAD_SHAPE_CIRCLE:    // Add 4 similar holes
         {
             /* we create 4 copper holes and put them in position 1, 2, 3 and 4
              * here is the area of the rectangular pad + its thermal gap
@@ -856,21 +830,22 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
 
             for( unsigned ihole = 0; ihole < 4; ihole++ )
             {
+                aCornerBuffer.NewOutline();
+
                 for( unsigned ii = 0; ii < corners_buffer.size(); ii++ )
                 {
                     corner = corners_buffer[ii];
                     RotatePoint( &corner, th_angle + angle_pad );          // Rotate by segment angle and pad orientation
                     corner += PadShapePos;
-                    aCornerBuffer.Append( CPolyPt( corner.x, corner.y ) );
+                    aCornerBuffer.Append( corner.x, corner.y );
                 }
 
-                aCornerBuffer.CloseLastContour();
                 th_angle += 900;       // Note: th_angle in in 0.1 deg.
             }
         }
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         {
             // Oval pad support along the lines of round and rectangular pads
             std::vector <wxPoint> corners_buffer;               // Polygon buffer as vector
@@ -886,9 +861,9 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
 
             if( dx < dy )
             {
-                EXCHG( dx, dy );
+                std::swap( dx, dy );
                 supp_angle = 900;
-                EXCHG( copper_thickness.x, copper_thickness.y );
+                std::swap( copper_thickness.x, copper_thickness.y );
             }
 
             int deltasize = dx - dy;        // = distance between shape position and the 2 demi-circle ends centre
@@ -960,15 +935,15 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
 
             for( int irect = 0; irect < 2; irect++ )
             {
+                aCornerBuffer.NewOutline();
                 for( unsigned ic = 0; ic < corners_buffer.size(); ic++ )
                 {
                     wxPoint cpos = corners_buffer[ic];
                     RotatePoint( &cpos, angle );
                     cpos += PadShapePos;
-                    aCornerBuffer.Append( CPolyPt( cpos.x, cpos.y ) );
+                    aCornerBuffer.Append( cpos.x, cpos.y );
                 }
 
-                aCornerBuffer.CloseLastContour();
                 angle = AddAngles( angle, 1800 ); // this is calculate hole 3
             }
 
@@ -985,21 +960,22 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
 
             for( int irect = 0; irect < 2; irect++ )
             {
+                aCornerBuffer.NewOutline();
+
                 for( unsigned ic = 0; ic < corners_buffer.size(); ic++ )
                 {
                     wxPoint cpos = corners_buffer[ic];
                     RotatePoint( &cpos, angle );
                     cpos += PadShapePos;
-                    aCornerBuffer.Append( CPolyPt( cpos.x, cpos.y ) );
+                    aCornerBuffer.Append( cpos.x, cpos.y );
                 }
 
-                aCornerBuffer.CloseLastContour();
                 angle = AddAngles( angle, 1800 );
             }
         }
         break;
 
-    case PAD_RECT:       // draw 4 Holes
+    case PAD_SHAPE_RECT:       // draw 4 Holes
         {
             /* we create 4 copper holes and put them in position 1, 2, 3 and 4
              * here is the area of the rectangular pad + its thermal gap
@@ -1057,15 +1033,16 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
 
             for( int irect = 0; irect < 2; irect++ )
             {
+                aCornerBuffer.NewOutline();
+
                 for( unsigned ic = 0; ic < corners_buffer.size(); ic++ )
                 {
                     wxPoint cpos = corners_buffer[ic];
                     RotatePoint( &cpos, angle );            // Rotate according to module orientation
                     cpos += PadShapePos;                    // Shift origin to position
-                    aCornerBuffer.Append( CPolyPt( cpos.x, cpos.y ) );
+                    aCornerBuffer.Append( cpos.x, cpos.y );
                 }
 
-                aCornerBuffer.CloseLastContour();
                 angle = AddAngles( angle, 1800 );       // this is calculate hole 3
             }
 
@@ -1080,46 +1057,41 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
             // Now add corner 4 and 2 (2 is the corner 4 rotated by 180 deg
             for( int irect = 0; irect < 2; irect++ )
             {
+                aCornerBuffer.NewOutline();
+
                 for( unsigned ic = 0; ic < corners_buffer.size(); ic++ )
                 {
                     wxPoint cpos = corners_buffer[ic];
                     RotatePoint( &cpos, angle );
                     cpos += PadShapePos;
-                    aCornerBuffer.Append( CPolyPt( cpos.x, cpos.y ) );
+                    aCornerBuffer.Append( cpos.x, cpos.y );
                 }
 
-                aCornerBuffer.CloseLastContour();
                 angle = AddAngles( angle, 1800 );
             }
         }
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         {
-        CPOLYGONS_LIST cbuffer;
+        SHAPE_POLY_SET antipad;       // The full antipad area
+
         // We need a length to build the stubs of the thermal reliefs
         // the value is not very important. The pad bounding box gives a reasonable value
         EDA_RECT bbox = aPad.GetBoundingBox();
         int stub_len = std::max( bbox.GetWidth(), bbox.GetHeight() );
 
-        aPad.TransformShapeWithClearanceToPolygon( cbuffer, aThermalGap,
+        aPad.TransformShapeWithClearanceToPolygon( antipad, aThermalGap,
                     aCircleToSegmentsCount, aCorrectionFactor );
 
-        // We are using ClipperLib to substract stubs to clearance area (antipad area).
-        ClipperLib::Path antipad;       // The full antipad area
-        ClipperLib::Path stub;          // A basic stub ( a rectangle)
-        ClipperLib::Paths stubs;        // the full stubs shape
-        ClipperLib::Paths thermalShape; // the holes in copper zone
+        SHAPE_POLY_SET stub;          // A basic stub ( a rectangle)
+        SHAPE_POLY_SET stubs;        // the full stubs shape
 
-        // cbuffer is expected to contain only one polygon, which is
-        // area of the pad + the thermal gap (the antipad)
-        for( unsigned ii = 0; ii < cbuffer.GetCornersCount(); ii++ )
-            antipad << ClipperLib::IntPoint( cbuffer.GetPos(ii).x, cbuffer.GetPos(ii).y );
 
         // We now substract the stubs (connections to the copper zone)
-        ClipperLib::Clipper clip_engine;
+        //ClipperLib::Clipper clip_engine;
         // Prepare a clipping transform
-        clip_engine.AddPath( antipad, ClipperLib::ptSubject, true );
+        //clip_engine.AddPath( antipad, ClipperLib::ptSubject, true );
 
         // Create stubs and add them to clipper engine
         wxPoint stubBuffer[4];
@@ -1132,16 +1104,17 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
         stubBuffer[3] = stubBuffer[2];
         stubBuffer[3].y = copper_thickness.y/2;
 
+        stub.NewOutline();
+
         for( unsigned ii = 0; ii < DIM( stubBuffer ); ii++ )
         {
             wxPoint cpos = stubBuffer[ii];
             RotatePoint( &cpos, aPad.GetOrientation() );
             cpos += PadShapePos;
-            stub << ClipperLib::IntPoint( cpos.x, cpos.y );
+            stub.Append( cpos.x, cpos.y );
         }
 
-        ClipperLib::Clipper stubs_engine;
-        stubs_engine.AddPath( stub, ClipperLib::ptSubject, true );
+        stubs.Append( stub );
 
         stubBuffer[0].y = stub_len;
         stubBuffer[0].x = copper_thickness.x/2;
@@ -1151,27 +1124,24 @@ void    CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
         stubBuffer[2].y = -stub_len;
         stubBuffer[3] = stubBuffer[2];
         stubBuffer[3].x = copper_thickness.x/2;
-        stub.clear();
+
+        stub.RemoveAllContours();
+        stub.NewOutline();
 
         for( unsigned ii = 0; ii < DIM( stubBuffer ); ii++ )
         {
             wxPoint cpos = stubBuffer[ii];
             RotatePoint( &cpos, aPad.GetOrientation() );
             cpos += PadShapePos;
-            stub << ClipperLib::IntPoint( cpos.x, cpos.y );
+            stub.Append( cpos.x, cpos.y );
         }
 
-        stubs_engine.AddPath( stub, ClipperLib::ptClip, true );
+        stubs.Append( stub );
+        stubs.Simplify( SHAPE_POLY_SET::PM_FAST );
 
-        // Build the full stubs shape:
-        stubs_engine.Execute( ClipperLib::ctUnion, stubs );
+        antipad.BooleanSubtract( stubs, SHAPE_POLY_SET::PM_FAST );
+        aCornerBuffer.Append( antipad );
 
-        // remove stubs to antipad area (i.e. add copper stubs)
-        clip_engine.AddPath( stubs[0], ClipperLib::ptClip, true );
-        clip_engine.Execute( ClipperLib::ctDifference, thermalShape );
-
-        // put thermal shapes (holes) to list:
-        aCornerBuffer.ImportFrom( thermalShape );
         break;
         }
 

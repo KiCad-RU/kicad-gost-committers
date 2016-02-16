@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2012 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
@@ -37,6 +37,7 @@
 #include <schframe.h>
 #include <invoke_sch_dialog.h>
 #include <project.h>
+#include <kiface_i.h>
 
 #include <netlist.h>
 #include <class_netlist_object.h>
@@ -45,13 +46,21 @@
 #include <lib_pin.h>
 
 #include <dialog_erc.h>
-#include <dialog_erc_listbox.h>
 #include <erc.h>
 #include <id.h>
 
+extern int           DiagErc[PIN_NMAX][PIN_NMAX];
+extern int           DefaultDiagErc[PIN_NMAX][PIN_NMAX];
 
-bool DIALOG_ERC::m_writeErcFile = false;
 
+
+bool DIALOG_ERC::m_writeErcFile = false;            // saved only for the current session
+bool DIALOG_ERC::m_TestSimilarLabels = true;        // Save in project config
+bool DIALOG_ERC::m_diagErcTableInit = false;        // saved only for the current session
+bool DIALOG_ERC::m_tstUniqueGlobalLabels = true;    // saved only for the current session
+
+// Control identifiers for events
+#define ID_MATRIX_0 1800
 
 BEGIN_EVENT_TABLE( DIALOG_ERC, DIALOG_ERC_BASE )
     EVT_COMMAND_RANGE( ID_MATRIX_0, ID_MATRIX_0 + ( PIN_NMAX * PIN_NMAX ) - 1,
@@ -60,9 +69,7 @@ END_EVENT_TABLE()
 
 
 DIALOG_ERC::DIALOG_ERC( SCH_EDIT_FRAME* parent ) :
-    DIALOG_ERC_BASE(
-        parent,
-        ID_DIALOG_ERC       // parent looks for this ID explicitly
+    DIALOG_ERC_BASE( parent, ID_DIALOG_ERC  // parent looks for this ID explicitly
         )
 {
     m_parent = parent;
@@ -75,6 +82,8 @@ DIALOG_ERC::DIALOG_ERC( SCH_EDIT_FRAME* parent ) :
 
 DIALOG_ERC::~DIALOG_ERC()
 {
+    m_TestSimilarLabels = m_cbTestSimilarLabels->GetValue();
+    m_tstUniqueGlobalLabels = m_cbTestUniqueGlbLabels->GetValue();
 }
 
 
@@ -83,10 +92,14 @@ void DIALOG_ERC::Init()
     m_initialized = false;
 
     for( int ii = 0; ii < PIN_NMAX; ii++ )
+    {
         for( int jj = 0; jj < PIN_NMAX; jj++ )
             m_buttonList[ii][jj] = NULL;
+    }
 
     m_WriteResultOpt->SetValue( m_writeErcFile );
+    m_cbTestSimilarLabels->SetValue( m_TestSimilarLabels );
+    m_cbTestUniqueGlbLabels->SetValue( m_tstUniqueGlobalLabels );
 
     SCH_SCREENS screens;
     updateMarkerCounts( &screens );
@@ -103,14 +116,18 @@ void DIALOG_ERC::Init()
 
 void DIALOG_ERC::updateMarkerCounts( SCH_SCREENS *screens )
 {
-    int markers = screens->GetMarkerCount();
-    int warnings = screens->GetMarkerCount( WAR );
+    int markers = screens->GetMarkerCount( MARKER_BASE::MARKER_ERC,
+                                           MARKER_BASE::MARKER_SEVERITY_UNSPEC );
+    int warnings = screens->GetMarkerCount( MARKER_BASE::MARKER_ERC,
+                                            MARKER_BASE::MARKER_SEVERITY_WARNING );
+    int errors = screens->GetMarkerCount( MARKER_BASE::MARKER_ERC,
+                                          MARKER_BASE::MARKER_SEVERITY_ERROR );
 
     wxString num;
     num.Printf( wxT( "%d" ), markers );
     m_TotalErrCount->SetValue( num );
 
-    num.Printf( wxT( "%d" ), markers - warnings );
+    num.Printf( wxT( "%d" ), errors );
     m_LastErrCount->SetValue( num );
 
     num.Printf( wxT( "%d" ), warnings );
@@ -124,12 +141,13 @@ void DIALOG_ERC::OnEraseDrcMarkersClick( wxCommandEvent& event )
 {
     SCH_SCREENS ScreenList;
 
-    ScreenList.DeleteAllMarkers( MARK_ERC );
+    ScreenList.DeleteAllMarkers( MARKER_BASE::MARKER_ERC );
     updateMarkerCounts( &ScreenList );
 
     m_MarkersList->ClearList();
     m_parent->GetCanvas()->Refresh();
 }
+
 
 
 /* event handler for Close button
@@ -154,7 +172,8 @@ void DIALOG_ERC::OnResetMatrixClick( wxCommandEvent& event )
 void DIALOG_ERC::OnErcCmpClick( wxCommandEvent& event )
 {
     wxBusyCursor();
-    m_MarkersList->Clear();
+    m_MarkersList->ClearList();
+
     m_MessagesList->Clear();
     wxSafeYield();      // m_MarkersList must be redraw
     wxArrayString messageList;
@@ -165,16 +184,21 @@ void DIALOG_ERC::OnErcCmpClick( wxCommandEvent& event )
 }
 
 
-void DIALOG_ERC::OnLeftClickMarkersList( wxCommandEvent& event )
+void DIALOG_ERC::OnLeftClickMarkersList( wxHtmlLinkEvent& event )
 {
+    wxString link = event.GetLinkInfo().GetHref();
+
     m_lastMarkerFound = NULL;
 
-    int index = m_MarkersList->GetSelection();
+    long index;
 
-    if( index < 0 )
+    if( !link.ToLong( &index ) )
         return;
 
-    const SCH_MARKER* marker = m_MarkersList->GetItem( (unsigned) index );
+    const SCH_MARKER* marker = m_MarkersList->GetItem( index );
+
+    if( marker == NULL )
+        return;
 
     // Search for the selected marker
     SCH_SHEET_PATH* sheet;
@@ -220,9 +244,9 @@ void DIALOG_ERC::OnLeftClickMarkersList( wxCommandEvent& event )
 }
 
 
-void DIALOG_ERC::OnLeftDblClickMarkersList( wxCommandEvent& event )
+void DIALOG_ERC::OnLeftDblClickMarkersList( wxMouseEvent& event )
 {
-    // Remember: OnLeftClickMarkersList was called just berfore
+    // Remember: OnLeftClickMarkersList was called just before
     // and therefore m_lastMarkerFound was initialized.
     // (NULL if not found)
     if( m_lastMarkerFound )
@@ -247,10 +271,10 @@ void DIALOG_ERC::ReBuildMatrixPanel()
     wxSize bitmap_size = dummy->GetSize();
     delete dummy;
 
-    if( !DiagErcTableInit )
+    if( !m_diagErcTableInit )
     {
         memcpy( DiagErc, DefaultDiagErc, sizeof(DefaultDiagErc) );
-        DiagErcTableInit = true;
+        m_diagErcTableInit = true;
     }
 
     wxPoint pos;
@@ -362,17 +386,16 @@ void DIALOG_ERC::DisplayERC_MarkersList()
             if( item->Type() != SCH_MARKER_T )
                 continue;
 
-            SCH_MARKER* Marker = (SCH_MARKER*) item;
+            SCH_MARKER* marker = (SCH_MARKER*) item;
 
-            if( Marker->GetMarkerType() != MARK_ERC )
+            if( marker->GetMarkerType() != MARKER_BASE::MARKER_ERC )
                 continue;
 
-            // Add marker without refresh the displayed list:
-            m_MarkersList->AppendToList( Marker, false );
+            m_MarkersList->AppendToList( marker );
         }
     }
 
-    m_MarkersList->Refresh();
+    m_MarkersList->DisplayList();
 }
 
 
@@ -380,6 +403,10 @@ void DIALOG_ERC::ResetDefaultERCDiag( wxCommandEvent& event )
 {
     memcpy( DiagErc, DefaultDiagErc, sizeof( DiagErc ) );
     ReBuildMatrixPanel();
+    m_TestSimilarLabels = true;
+    m_cbTestSimilarLabels->SetValue( m_TestSimilarLabels );
+    m_tstUniqueGlobalLabels = true;
+    m_cbTestUniqueGlbLabels->SetValue( m_tstUniqueGlobalLabels );
 }
 
 
@@ -423,13 +450,9 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
 {
     wxFileName fn;
 
-    if( !DiagErcTableInit )
-    {
-        memcpy( DiagErc, DefaultDiagErc, sizeof( DefaultDiagErc ) );
-        DiagErcTableInit = true;
-    }
-
     m_writeErcFile = m_WriteResultOpt->GetValue();
+    m_TestSimilarLabels = m_cbTestSimilarLabels->GetValue();
+    m_tstUniqueGlobalLabels = m_cbTestUniqueGlbLabels->GetValue();
 
     // Build the whole sheet list in hierarchy (sheet, not screen)
     SCH_SHEET_LIST sheets;
@@ -450,7 +473,7 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
     SCH_SCREENS screens;
 
     // Erase all previous DRC markers.
-    screens.DeleteAllMarkers( MARK_ERC );
+    screens.DeleteAllMarkers( MARKER_BASE::MARKER_ERC );
 
     for( SCH_SCREEN* screen = screens.GetFirst(); screen != NULL; screen = screens.GetNext() )
     {
@@ -495,7 +518,6 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
         case NET_LABEL:
         case NET_BUSLABELMEMBER:
         case NET_PINLABEL:
-        case NET_GLOBLABEL:
         case NET_GLOBBUSLABELMEMBER:
             break;
 
@@ -503,11 +525,14 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
         case NET_HIERBUSLABELMEMBER:
         case NET_SHEETLABEL:
         case NET_SHEETBUSLABELMEMBER:
-
             // ERC problems when pin sheets do not match hierarchical labels.
             // Each pin sheet must match a hierarchical label
             // Each hierarchical label must match a pin sheet
-            TestLabel( objectsConnectedList.get(), net, nextNet );
+            objectsConnectedList->TestforNonOrphanLabel( net, nextNet );
+            break;
+        case NET_GLOBLABEL:
+            if( m_tstUniqueGlobalLabels )
+                objectsConnectedList->TestforNonOrphanLabel( net, nextNet );
             break;
 
         case NET_NOCONNECT:
@@ -515,7 +540,7 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
             // ERC problems when a noconnect symbol is connected to more than one pin.
             MinConn = NET_NC;
 
-            if( CountPinsInNet( objectsConnectedList.get(), nextNet ) > 1 )
+            if( objectsConnectedList->CountPinsInNet( nextNet ) > 1 )
                 Diagnose( objectsConnectedList->GetItem( net ), NULL, MinConn, UNC );
 
             break;
@@ -529,6 +554,11 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
 
         lastNet = net;
     }
+
+    // Test similar labels (i;e. labels which are identical when
+    // using case insensitive comparisons)
+    if( m_TestSimilarLabels )
+        objectsConnectedList->TestforSimilarLabels();
 
     // Displays global results:
     updateMarkerCounts( &screens );
@@ -546,7 +576,7 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
 
         wxFileDialog dlg( this, _( "ERC File" ), fn.GetPath(), fn.GetFullName(),
                           _( "Electronic rule check file (.erc)|*.erc" ),
-                          wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+                          wxFD_SAVE );
 
         if( dlg.ShowModal() == wxID_CANCEL )
             return;

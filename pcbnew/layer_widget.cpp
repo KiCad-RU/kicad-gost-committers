@@ -194,12 +194,7 @@ wxBitmap LAYER_WIDGET::makeBitmap( EDA_COLOR_T aColor )
     iconDC.SelectObject( bitmap );
 
     brush.SetColour( MakeColour( aColor ) );
-
-#if wxCHECK_VERSION( 3, 0, 0 )
     brush.SetStyle( wxBRUSHSTYLE_SOLID );
-#else
-    brush.SetStyle( wxSOLID );
-#endif
 
     iconDC.SetBrush( brush );
 
@@ -215,12 +210,12 @@ wxBitmapButton* LAYER_WIDGET::makeColorButton( wxWindow* aParent, EDA_COLOR_T aC
     // then create a wxBitmapButton from it.
     wxBitmap bitmap = makeBitmap( aColor );
 
-#ifndef __WXMAC__
+#ifdef __WXMAC__
     wxBitmapButton* ret = new wxBitmapButton( aParent, aID, bitmap,
-        wxDefaultPosition, wxSize(BUTT_SIZE_X, BUTT_SIZE_Y), wxBORDER_RAISED );
+        wxDefaultPosition, wxSize(BUTT_SIZE_X, BUTT_SIZE_Y), wxBORDER_NONE );
 #else
     wxBitmapButton* ret = new wxBitmapButton( aParent, aID, bitmap,
-        wxDefaultPosition, wxSize(BUTT_SIZE_X, BUTT_SIZE_Y));
+        wxDefaultPosition, wxSize(BUTT_SIZE_X, BUTT_SIZE_Y), wxBORDER_RAISED );
 #endif
     // save the color value in the name, no where else to put it.
     ret->SetName( makeColorTxt( aColor ) );
@@ -428,8 +423,9 @@ void LAYER_WIDGET::insertLayerRow( int aRow, const ROW& aSpec )
     col = COLUMN_COLORBM;
     wxBitmapButton* bmb = makeColorButton( m_LayerScrolledWindow, aSpec.color, encodeId( col, aSpec.id ) );
     bmb->Connect( wxEVT_LEFT_DOWN, wxMouseEventHandler( LAYER_WIDGET::OnLeftDownLayers ), NULL, this );
+    bmb->Connect( wxEVT_LEFT_DCLICK, wxMouseEventHandler( LAYER_WIDGET::OnMiddleDownLayerColor ), NULL, this );
     bmb->Connect( wxEVT_MIDDLE_DOWN, wxMouseEventHandler( LAYER_WIDGET::OnMiddleDownLayerColor ), NULL, this );
-    bmb->SetToolTip( _("Left click to select, middle click for color change, right click for menu" ) );
+    bmb->SetToolTip( _("Left double click or middle click for color change, right click for menu" ) );
     m_LayersFlexGridSizer->wxSizer::Insert( index+col, bmb, 0, flags );
 
     // column 2 (COLUMN_COLOR_LYR_CB)
@@ -463,8 +459,9 @@ void LAYER_WIDGET::insertRenderRow( int aRow, const ROW& aSpec )
     if( aSpec.color != -1 )
     {
         wxBitmapButton* bmb = makeColorButton( m_RenderScrolledWindow, aSpec.color, encodeId( col, aSpec.id ) );
+        bmb->Connect( wxEVT_LEFT_DCLICK, wxMouseEventHandler( LAYER_WIDGET::OnMiddleDownRenderColor ), NULL, this );
         bmb->Connect( wxEVT_MIDDLE_DOWN, wxMouseEventHandler( LAYER_WIDGET::OnMiddleDownRenderColor ), NULL, this );
-        bmb->SetToolTip( _( "Middle click for color change" ) );
+        bmb->SetToolTip( _( "Left double click or middle click for color change" ) );
         m_RenderFlexGridSizer->wxSizer::Insert( index+col, bmb, 0, flags );
 
         // could add a left click handler on the color button that toggles checkbox.
@@ -870,13 +867,13 @@ class MYFRAME : public wxFrame
             */
         }
 
-        bool OnLayerSelect( LAYER aLayer )
+        bool OnLayerSelect( LAYER_NUM aLayer )
         {
             printf( "OnLayerSelect( aLayer:%d )\n", aLayer );
             return true;
         }
 
-        void OnLayerVisible( LAYER aLayer, bool isVisible, bool isFinal )
+        void OnLayerVisible( LAYER_NUM aLayer, bool isVisible, bool isFinal )
         {
             printf( "OnLayerVisible( aLayer:%d, isVisible:%d isFinal:%d)\n", aLayer, isVisible, isFinal );
         }
@@ -915,7 +912,7 @@ public:
 
         // add some render rows
         static const LAYER_WIDGET::ROW renderRows[] = {
-            LAYER_WIDGET::ROW( wxT("With Very Large Ears"), 0, -1, wxT("Spock here") ),
+            LAYER_WIDGET::ROW( wxT("With Very Large Ears"), 0, UNSPECIFIED_COLOR, wxT("Spock here") ),
             LAYER_WIDGET::ROW( wxT("With Legs"), 1, YELLOW ),
             LAYER_WIDGET::ROW( wxT("With Oval Eyes"), 1, BROWN, wxT("My eyes are upon you") ),
         };

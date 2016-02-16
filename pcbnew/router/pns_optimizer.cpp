@@ -22,10 +22,12 @@
 
 #include <geometry/shape_line_chain.h>
 #include <geometry/shape_rect.h>
+#include <geometry/shape_convex.h>
 
 #include "pns_line.h"
 #include "pns_diff_pair.h"
 #include "pns_node.h"
+#include "pns_solid.h"
 #include "pns_optimizer.h"
 #include "pns_utils.h"
 #include "pns_router.h"
@@ -144,7 +146,7 @@ struct PNS_OPTIMIZER::CACHE_VISITOR
 
     bool operator()( PNS_ITEM* aOtherItem )
     {
-        if( !m_mask & aOtherItem->Kind() )
+        if( !( m_mask & aOtherItem->Kind() ) )
             return true;
 
         int clearance = m_node->GetClearance( aOtherItem, m_ourItem );
@@ -291,7 +293,7 @@ int LINE_RESTRICTIONS::allowedAngles( PNS_NODE* aWorld, const PNS_LINE* aLine, c
 
         for( int i = 0; i < n_dirs; i++ )
         {
-            if( !(refDir.Angle( dirs[i] ) & angleMask ) )
+            if( !( refDir.Angle( dirs[i] ) & angleMask ) )
                 outputMask &= ~refDir.Mask();
         }
     }
@@ -382,7 +384,7 @@ bool PNS_OPTIMIZER::checkColliding( PNS_ITEM* aItem, bool aUpdateCache )
 {
     CACHE_VISITOR v( aItem, m_world, m_collisionKindMask );
 
-    return m_world->CheckColliding( aItem );
+    return static_cast<bool>( m_world->CheckColliding( aItem ) );
 
     // something is wrong with the cache, need to investigate.
     m_cache.Query( aItem->Shape(), m_world->GetMaxClearance(), v, false );
@@ -659,6 +661,48 @@ PNS_OPTIMIZER::BREAKOUT_LIST PNS_OPTIMIZER::circleBreakouts( int aWidth,
 }
 
 
+PNS_OPTIMIZER::BREAKOUT_LIST PNS_OPTIMIZER::convexBreakouts( int aWidth,
+        const SHAPE* aShape, bool aPermitDiagonal ) const
+{
+    BREAKOUT_LIST breakouts;
+    const SHAPE_CONVEX* convex = static_cast<const SHAPE_CONVEX*>( aShape );
+
+    BOX2I bbox = convex->BBox( 0 );
+    VECTOR2I p0 = bbox.Centre();
+    // must be large enough to guarantee intersecting the convex polygon
+    int length = bbox.GetSize().EuclideanNorm() / 2 + 5;
+
+    for( int angle = 0; angle < 360; angle += ( aPermitDiagonal ? 45 : 90 ) )
+    {
+        SHAPE_LINE_CHAIN l;
+        VECTOR2I v0( p0 + VECTOR2I( length, 0 ).Rotate( angle * M_PI / 180.0 ) );
+        SHAPE_LINE_CHAIN::INTERSECTIONS intersections;
+        int n = convex->Vertices().Intersect( SEG( p0, v0 ), intersections );
+        // if n == 1 intersected a segment
+        // if n == 2 intersected the common point of 2 segments
+        // n == 0 can not happen I think, but...
+        if( n > 0 )
+        {
+            l.Append( p0 );
+
+            // for a breakout distance relative to the distance between
+            // center and polygon edge
+            //l.Append( intersections[0].p + (v0 - p0).Resize( (intersections[0].p - p0).EuclideanNorm() * 0.4 ) );
+
+            // for an absolute breakout distance, e.g. 0.1 mm
+            l.Append( intersections[0].p + (v0 - p0).Resize( 100000 ) );
+
+            // for the breakout right on the polygon edge
+            //l.Append( intersections[0].p );
+
+            breakouts.push_back( l );
+        }
+    }
+
+    return breakouts;
+}
+
+
 PNS_OPTIMIZER::BREAKOUT_LIST PNS_OPTIMIZER::rectBreakouts( int aWidth,
         const SHAPE* aShape, bool aPermitDiagonal ) const
 {
@@ -743,6 +787,9 @@ PNS_OPTIMIZER::BREAKOUT_LIST PNS_OPTIMIZER::computeBreakouts( int aWidth,
         case SH_CIRCLE:
             return circleBreakouts( aWidth, shape, aPermitDiagonal );
 
+        case SH_CONVEX:
+            return convexBreakouts( aWidth, shape, aPermitDiagonal );
+
         default:
             break;
         }
@@ -784,6 +831,13 @@ int PNS_OPTIMIZER::smartPadsSingle( PNS_LINE* aLine, PNS_ITEM* aPad, bool aEnd, 
 
     typedef std::pair<int, SHAPE_LINE_CHAIN> RtVariant;
     std::vector<RtVariant> variants;
+
+    PNS_SOLID* solid = dyn_cast<PNS_SOLID*>( aPad );
+
+    // don't do auto-neckdown for offset pads
+    if( solid && solid->Offset() != VECTOR2I( 0, 0 ) )
+        return -1;
+
 
     BREAKOUT_LIST breakouts = computeBreakouts( aLine->Width(), aPad, true );
 
@@ -1057,7 +1111,7 @@ bool checkDpColliding( PNS_NODE* aNode, PNS_DIFF_PAIR* aPair, bool aIsP, const S
 {
     PNS_LINE tmp ( aIsP ? aPair->PLine() : aPair->NLine(), aPath );
 
-    return aNode->CheckColliding( &tmp );
+    return static_cast<bool>( aNode->CheckColliding( &tmp ) );
 }
 
 

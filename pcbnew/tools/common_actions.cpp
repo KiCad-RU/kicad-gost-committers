@@ -54,11 +54,11 @@ TOOL_ACTION COMMON_ACTIONS::selectionClear( "pcbnew.InteractiveSelection.Clear",
         "", "" );    // No description, it is not supposed to be shown anywhere
 
 TOOL_ACTION COMMON_ACTIONS::selectConnection( "pcbnew.InteractiveSelection.SelectConnection",
-        AS_GLOBAL, 0,
+        AS_GLOBAL, 'U',
         _( "trivial connection" ), _( "Selects a connection between two junctions." ) );
 
 TOOL_ACTION COMMON_ACTIONS::selectCopper( "pcbnew.InteractiveSelection.SelectCopper",
-        AS_GLOBAL, 0,
+        AS_GLOBAL, 'I',
         _( "copper connection" ), _( "Selects whole copper connection." ) );
 
 TOOL_ACTION COMMON_ACTIONS::selectNet( "pcbnew.InteractiveSelection.SelectNet",
@@ -220,11 +220,11 @@ TOOL_ACTION COMMON_ACTIONS::trackDisplayMode( "pcbnew.Control.trackDisplayMode",
         "", "" );
 
 TOOL_ACTION COMMON_ACTIONS::padDisplayMode( "pcbnew.Control.padDisplayMode",
-        AS_GLOBAL, 'J',     // TODO temporarily, find a better hot key
+        AS_GLOBAL, 0,
         "", "" );
 
 TOOL_ACTION COMMON_ACTIONS::viaDisplayMode( "pcbnew.Control.viaDisplayMode",
-        AS_GLOBAL, 'L',     // TODO temporarily, find a better hot key
+        AS_GLOBAL, 0,
         "", "" );
 
 TOOL_ACTION COMMON_ACTIONS::zoneDisplayEnable( "pcbnew.Control.zoneDisplayEnable",
@@ -385,9 +385,21 @@ TOOL_ACTION COMMON_ACTIONS::placeTarget( "pcbnew.EditorControl.placeTarget",
 
 TOOL_ACTION COMMON_ACTIONS::placeModule( "pcbnew.EditorControl.placeModule",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_ADD_MODULE ),
-        _( "Add modules" ), _( "Add modules" ), NULL, AF_ACTIVATE );
+        _( "Add footprints" ), _( "Add footprints" ), NULL, AF_ACTIVATE );
 
 TOOL_ACTION COMMON_ACTIONS::drillOrigin( "pcbnew.EditorControl.drillOrigin",
+        AS_GLOBAL, 0,
+        "", "" );
+
+TOOL_ACTION COMMON_ACTIONS::crossProbeSchToPcb( "pcbnew.EditorControl.crossProbSchToPcb",
+        AS_GLOBAL, 0,
+        "", "" );
+
+TOOL_ACTION COMMON_ACTIONS::toggleLockModule( "pcbnew.EditorControl.toggleLockModule",
+        AS_GLOBAL, 'L',
+        "", "" );
+
+TOOL_ACTION COMMON_ACTIONS::appendBoard( "pcbnew.EditorControl.appendBoard",
         AS_GLOBAL, 0,
         "", "" );
 
@@ -425,6 +437,41 @@ TOOL_ACTION COMMON_ACTIONS::moduleTextOutlines( "pcbnew.ModuleEditor.textOutline
        AS_GLOBAL, 0,
        "", "" );
 
+
+// Cursor control
+TOOL_ACTION COMMON_ACTIONS::cursorUp( "pcbnew.Control.cursorUp",
+        AS_GLOBAL, WXK_UP, "", "", NULL, AF_NONE, (void*) CURSOR_UP );
+TOOL_ACTION COMMON_ACTIONS::cursorDown( "pcbnew.Control.cursorDown",
+        AS_GLOBAL, WXK_DOWN, "", "" , NULL, AF_NONE, (void*) CURSOR_DOWN );
+TOOL_ACTION COMMON_ACTIONS::cursorLeft( "pcbnew.Control.cursorLeft",
+        AS_GLOBAL, WXK_LEFT, "", "" , NULL, AF_NONE, (void*) CURSOR_LEFT );
+TOOL_ACTION COMMON_ACTIONS::cursorRight( "pcbnew.Control.cursorRight",
+        AS_GLOBAL, WXK_RIGHT, "", "" , NULL, AF_NONE, (void*) CURSOR_RIGHT );
+
+TOOL_ACTION COMMON_ACTIONS::cursorUpFast( "pcbnew.Control.cursorUpFast",
+        AS_GLOBAL, MD_CTRL + WXK_UP, "", "", NULL, AF_NONE, (void*) ( CURSOR_UP | CURSOR_FAST_MOVE ) );
+TOOL_ACTION COMMON_ACTIONS::cursorDownFast( "pcbnew.Control.cursorDownFast",
+        AS_GLOBAL, MD_CTRL + WXK_DOWN, "", "" , NULL, AF_NONE, (void*) ( CURSOR_DOWN | CURSOR_FAST_MOVE ) );
+TOOL_ACTION COMMON_ACTIONS::cursorLeftFast( "pcbnew.Control.cursorLeftFast",
+        AS_GLOBAL, MD_CTRL + WXK_LEFT, "", "" , NULL, AF_NONE, (void*) ( CURSOR_LEFT | CURSOR_FAST_MOVE ) );
+TOOL_ACTION COMMON_ACTIONS::cursorRightFast( "pcbnew.Control.cursorRightFast",
+        AS_GLOBAL, MD_CTRL + WXK_RIGHT, "", "" , NULL, AF_NONE, (void*) ( CURSOR_RIGHT | CURSOR_FAST_MOVE ) );
+
+TOOL_ACTION COMMON_ACTIONS::cursorClick( "pcbnew.Control.cursorClick",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_LEFT_CLICK ),
+        "", "", NULL, AF_NONE, (void*) CURSOR_CLICK );
+TOOL_ACTION COMMON_ACTIONS::cursorDblClick( "pcbnew.Control.cursorDblClick",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_LEFT_DCLICK ),
+        "", "", NULL, AF_NONE, (void*) CURSOR_DBL_CLICK );
+
+TOOL_ACTION COMMON_ACTIONS::panUp( "pcbnew.Control.panUp",
+        AS_GLOBAL, MD_SHIFT + WXK_UP, "", "", NULL, AF_NONE, (void*) CURSOR_UP );
+TOOL_ACTION COMMON_ACTIONS::panDown( "pcbnew.Control.panDown",
+        AS_GLOBAL, MD_SHIFT + WXK_DOWN, "", "" , NULL, AF_NONE, (void*) CURSOR_DOWN );
+TOOL_ACTION COMMON_ACTIONS::panLeft( "pcbnew.Control.panLeft",
+        AS_GLOBAL, MD_SHIFT + WXK_LEFT, "", "" , NULL, AF_NONE, (void*) CURSOR_LEFT );
+TOOL_ACTION COMMON_ACTIONS::panRight( "pcbnew.Control.panRight",
+        AS_GLOBAL, MD_SHIFT + WXK_RIGHT, "", "" , NULL, AF_NONE, (void*) CURSOR_RIGHT );
 
 // Miscellaneous
 TOOL_ACTION COMMON_ACTIONS::selectionTool( "pcbnew.Control.selectionTool",
@@ -491,7 +538,7 @@ TOOL_ACTION COMMON_ACTIONS::routerActivateTuneDiffPairSkew( "pcbnew.LengthTuner.
         _( "Tune skew of a differential pair" ), "", NULL, AF_ACTIVATE );
 
 TOOL_ACTION COMMON_ACTIONS::routerInlineDrag( "pcbnew.InteractiveRouter.InlineDrag",
-        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_DRAG_TRACK_KEEP_SLOPE ),
+        AS_GLOBAL, 0,
         "", "" );
 
 // Point editor
@@ -644,9 +691,6 @@ boost::optional<TOOL_EVENT> COMMON_ACTIONS::TranslateLegacyId( int aId )
     case ID_TB_OPTIONS_SHOW_HIGH_CONTRAST_MODE:
         return COMMON_ACTIONS::highContrastMode.MakeEvent();
 
-    case ID_TB_OPTIONS_SELECT_CURSOR:
-        return COMMON_ACTIONS::switchCursor.MakeEvent();
-
     case ID_FIND_ITEMS:
         return COMMON_ACTIONS::find.MakeEvent();
 
@@ -665,6 +709,9 @@ boost::optional<TOOL_EVENT> COMMON_ACTIONS::TranslateLegacyId( int aId )
 
     case ID_PCB_HIGHLIGHT_BUTT:
         return COMMON_ACTIONS::highlightNetCursor.MakeEvent();
+
+    case ID_APPEND_FILE:
+        return COMMON_ACTIONS::appendBoard.MakeEvent();
 
     case ID_PCB_SHOW_1_RATSNEST_BUTT:
     case ID_TB_OPTIONS_SHOW_MODULE_RATSNEST:

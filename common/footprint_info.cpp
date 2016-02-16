@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2011 Jean-Pierre Charras, <jp.charras@wanadoo.fr>
- * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2013-2016 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -28,7 +28,12 @@
  */
 
 
-#define USE_WORKER_THREADS      1       // 1:yes, 0:no. use worker thread to load libraries
+/**
+    No. concurrent threads doing "http(s) GET". More than 6 is not significantly
+    faster, less than 6 is likely slower. Main thread is in this count, so if
+    set to 1 then no temp threads are created.
+*/
+#define READER_THREADS      6
 
 /*
  * Functions to read footprint libraries and fill m_footprints by available footprints names
@@ -101,21 +106,23 @@ void FOOTPRINT_INFO::load()
 
     std::auto_ptr<MODULE> m( fptable->FootprintLoad( m_nickname, m_fpname ) );
 
-    m_pad_count = m->GetPadCount( DO_NOT_INCLUDE_NPTH );
-    m_keywords  = m->GetKeywords();
-    m_doc       = m->GetDescription();
+    if( m.get() == NULL )    // Should happen only with malformed/broken libraries
+    {
+        m_pad_count = 0;
+        m_unique_pad_count = 0;
+    }
+    else
+    {
+        m_pad_count = m->GetPadCount( DO_NOT_INCLUDE_NPTH );
+        m_unique_pad_count = m->GetUniquePadCount( DO_NOT_INCLUDE_NPTH );
+        m_keywords  = m->GetKeywords();
+        m_doc       = m->GetDescription();
 
-    // tell ensure_loaded() I'm loaded.
-    m_loaded = true;
+        // tell ensure_loaded() I'm loaded.
+        m_loaded = true;
+    }
 }
 
-
-#define JOBZ                6       // no. libraries per worker thread.  It takes about
-                                    // a second to load a GITHUB library, so assigning
-                                    // this no. libraries to each thread should give a little
-                                    // over this no. seconds total time if the original delay
-                                    // were caused by latencies alone.
-                                    // (If https://github.com does not mind.)
 
 #define NTOLERABLE_ERRORS   4       // max errors before aborting, although threads
                                     // in progress will still pile on for a bit.  e.g. if 9 threads
@@ -123,7 +130,7 @@ void FOOTPRINT_INFO::load()
 
 void FOOTPRINT_LIST::loader_job( const wxString* aNicknameList, int aJobZ )
 {
-    //DBG(printf( "%s: first:'%s' count:%d\n", __func__, (char*) TO_UTF8( *aNicknameList ), aJobZ );)
+    DBG(printf( "%s: first:'%s' aJobZ:%d\n", __func__, TO_UTF8( *aNicknameList ), aJobZ );)
 
     for( int i=0; i<aJobZ; ++i )
     {
@@ -203,8 +210,6 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE* aTable, const wxString* a
         // do all of them
         nicknames = aTable->GetLogicalLibs();
 
-#if USE_WORKER_THREADS
-
         // Even though the PLUGIN API implementation is the place for the
         // locale toggling, in order to keep LOCAL_IO::C_count at 1 or greater
         // for the duration of all helper threads, we increment by one here via instantiation.
@@ -220,6 +225,8 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE* aTable, const wxString* a
 
         MYTHREADS threads;
 
+        unsigned jobz = (nicknames.size() + READER_THREADS - 1) / READER_THREADS;
+
         // Give each thread JOBZ nicknames to process.  The last portion of, or if the entire
         // size() is small, I'll do myself.
         for( unsigned i=0; i<nicknames.size();  )
@@ -231,18 +238,17 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE* aTable, const wxString* a
                 break;
             }
 
-            int jobz = JOBZ;
-
-            if( i + jobz >= nicknames.size() )
+            if( i + jobz >= nicknames.size() )  // on the last iteration of this for(;;)
             {
                 jobz = nicknames.size() - i;
 
-                // Only a little bit to do, I'll do it myself, on current thread.
+                // Only a little bit to do, I'll do it myself on current thread.
+                // I am part of the READER_THREADS count.
                 loader_job( &nicknames[i], jobz );
             }
             else
             {
-                // Delegate the job to a worker thread created here.
+                // Delegate the job to a temporary thread created here.
                 threads.push_back( new boost::thread( &FOOTPRINT_LIST::loader_job,
                         this, &nicknames[i], jobz ) );
             }
@@ -257,9 +263,6 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE* aTable, const wxString* a
         {
             threads[i].join();
         }
-#else
-        loader_job( &nicknames[0], nicknames.size() );
-#endif
 
         m_list.sort();
     }

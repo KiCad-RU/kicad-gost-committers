@@ -32,6 +32,7 @@
 #include "pns_router.h"
 
 class PNS_TUNE_STATUS_POPUP;
+class GRID_HELPER;
 
 class APIEXPORT PNS_TOOL_BASE : public TOOL_INTERACTIVE
 {
@@ -42,6 +43,11 @@ public:
     virtual ~PNS_TOOL_BASE();
 
     virtual void Reset( RESET_REASON aReason );
+
+    const PNS_ROUTING_SETTINGS& PNSSettings() const
+    {
+        return m_savedSettings;
+    }
 
 protected:
 
@@ -68,6 +74,8 @@ protected:
     PCB_EDIT_FRAME* m_frame;
     KIGFX::VIEW_CONTROLS* m_ctls;
     BOARD* m_board;
+    GRID_HELPER* m_gridHelper;
+
 
 };
 

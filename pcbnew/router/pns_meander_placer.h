@@ -68,8 +68,11 @@ public:
     /// @copydoc PNS_PLACEMENT_ALGO::CurrentEnd()
     const VECTOR2I& CurrentEnd() const;
 
-    /// @copydoc PNS_PLACEMENT_ALGO::CurrentNet()
-    int CurrentNet() const;
+    /// @copydoc PNS_PLACEMENT_ALGO::CurrentNets()
+    const std::vector<int> CurrentNets() const
+    {
+        return std::vector<int> (1, m_originLine.Net() );
+    }
 
     /// @copydoc PNS_PLACEMENT_ALGO::CurrentLayer()
     int CurrentLayer() const;
@@ -100,7 +103,7 @@ protected:
     ///> Current world state
     PNS_NODE* m_currentNode;
 
-    PNS_LINE* m_originLine;
+    PNS_LINE m_originLine;
     PNS_LINE m_currentTrace;
     PNS_ITEMSET m_tunedPath;
 

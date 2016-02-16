@@ -31,6 +31,8 @@
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <class_drawpanel.h>
+#include <class_draw_panel_gal.h>
+#include <ratsnest_data.h>
 #include <wxPcbStruct.h>
 #include <macros.h>
 
@@ -113,6 +115,8 @@ int PCB_EDIT_FRAME::Fill_Zone( ZONE_CONTAINER* aZone )
     wxBusyCursor dummy;     // Shows an hourglass cursor (removed by its destructor)
 
     aZone->BuildFilledSolidAreasPolygons( GetBoard() );
+    aZone->ViewUpdate( KIGFX::VIEW_ITEM::ALL );
+    GetBoard()->GetRatsnest()->Update( aZone );
 
     OnModify();
 
@@ -131,10 +135,12 @@ int PCB_EDIT_FRAME::Fill_All_Zones( wxWindow * aActiveWindow, bool aVerbose )
     // Create a message with a long net name, and build a wxProgressDialog
     // with a correct size to show this long net name
     msg.Printf( FORMAT_STRING, 000, areaCount, wxT("XXXXXXXXXXXXXXXXX" ) );
+
     if( aActiveWindow )
         progressDialog = new wxProgressDialog( _( "Fill All Zones" ), msg,
                                      areaCount+2, aActiveWindow,
-                                     wxPD_AUTO_HIDE | wxPD_CAN_ABORT );
+                                     wxPD_AUTO_HIDE | wxPD_CAN_ABORT |
+                                     wxPD_APP_MODAL | wxPD_ELAPSED_TIME );
     // Display the actual message
     if( progressDialog )
         progressDialog->Update( 0, _( "Starting zone fill..." ) );
@@ -165,7 +171,13 @@ int PCB_EDIT_FRAME::Fill_All_Zones( wxWindow * aActiveWindow, bool aVerbose )
     }
 
     if( progressDialog )
+    {
         progressDialog->Update( ii+2, _( "Updating ratsnest..." ) );
+#ifdef __WXMAC__
+        // Work around a dialog z-order issue on OS X
+        aActiveWindow->Raise();
+#endif
+    }
     TestConnections();
 
     // Recalculate the active ratsnest, i.e. the unconnected links

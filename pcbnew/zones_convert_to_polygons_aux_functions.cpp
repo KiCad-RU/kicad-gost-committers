@@ -27,7 +27,6 @@
  */
 
 #include <fctsys.h>
-#include <polygons_defs.h>
 #include <PolyLine.h>
 #include <wxPcbStruct.h>
 #include <trigo.h>
@@ -48,16 +47,16 @@
   *                      false to create the outline polygon.
   */
 void ZONE_CONTAINER::TransformOutlinesShapeWithClearanceToPolygon(
-        CPOLYGONS_LIST& aCornerBuffer, int aMinClearanceValue, bool aUseNetClearance )
+        SHAPE_POLY_SET& aCornerBuffer, int aMinClearanceValue, bool aUseNetClearance )
 {
-    // Creates the zone outline polygon (with linked holes if any)
-    CPOLYGONS_LIST zoneOutline;
-    BuildFilledSolidAreasPolygons( NULL, &zoneOutline );
+    // Creates the zone outline polygon (with holes if any)
+    SHAPE_POLY_SET polybuffer;
+    BuildFilledSolidAreasPolygons( NULL, &polybuffer );
 
     // add clearance to outline
     int clearance = aMinClearanceValue;
 
-    if( aUseNetClearance )
+    if( aUseNetClearance && IsOnCopperLayer() )
     {
         clearance = GetClearance();
         if( aMinClearanceValue > clearance )
@@ -67,9 +66,10 @@ void ZONE_CONTAINER::TransformOutlinesShapeWithClearanceToPolygon(
     // Calculate the polygon with clearance
     // holes are linked to the main outline, so only one polygon is created.
     if( clearance )
-        zoneOutline.InflateOutline( aCornerBuffer, clearance, true );
-    else
-        ConvertPolysListWithHolesToOnePolygon( zoneOutline, aCornerBuffer );
+        polybuffer.Inflate( clearance, 16 );
+
+    polybuffer.Fracture( SHAPE_POLY_SET::PM_FAST );
+    aCornerBuffer.Append( polybuffer );
 }
 
 
@@ -78,14 +78,14 @@ void ZONE_CONTAINER::TransformOutlinesShapeWithClearanceToPolygon(
  * Function BuildUnconnectedThermalStubsPolygonList
  * Creates a set of polygons corresponding to stubs created by thermal shapes on pads
  * which are not connected to a zone (dangling bridges)
- * @param aCornerBuffer = a CPOLYGONS_LIST where to store polygons
+ * @param aCornerBuffer = a SHAPE_POLY_SET where to store polygons
  * @param aPcb = the board.
  * @param aZone = a pointer to the ZONE_CONTAINER  to examine.
  * @param aArcCorrection = a pointer to the ZONE_CONTAINER  to examine.
  * @param aRoundPadThermalRotation = the rotation in 1.0 degree for thermal stubs in round pads
  */
 
-void BuildUnconnectedThermalStubsPolygonList( CPOLYGONS_LIST& aCornerBuffer,
+void BuildUnconnectedThermalStubsPolygonList( SHAPE_POLY_SET& aCornerBuffer,
                                               BOARD*                aPcb,
                                               ZONE_CONTAINER*       aZone,
                                               double                aArcCorrection,
@@ -111,12 +111,12 @@ void BuildUnconnectedThermalStubsPolygonList( CPOLYGONS_LIST& aCornerBuffer,
         for( D_PAD* pad = module->Pads(); pad != NULL; pad = pad->Next() )
         {
             // Rejects non-standard pads with tht-only thermal reliefs
-            if( aZone->GetPadConnection( pad ) == THT_THERMAL
-             && pad->GetAttribute() != PAD_STANDARD )
+            if( aZone->GetPadConnection( pad ) == PAD_ZONE_CONN_THT_THERMAL
+             && pad->GetAttribute() != PAD_ATTRIB_STANDARD )
                 continue;
 
-            if( aZone->GetPadConnection( pad ) != THERMAL_PAD
-             && aZone->GetPadConnection( pad ) != THT_THERMAL )
+            if( aZone->GetPadConnection( pad ) != PAD_ZONE_CONN_THERMAL
+             && aZone->GetPadConnection( pad ) != PAD_ZONE_CONN_THT_THERMAL )
                 continue;
 
             // check
@@ -173,7 +173,7 @@ void BuildUnconnectedThermalStubsPolygonList( CPOLYGONS_LIST& aCornerBuffer,
             // This is a CIRCLE pad tweak
             // for circle pads, the thermal stubs orientation is 45 deg
             double fAngle = pad->GetOrientation();
-            if( pad->GetShape() == PAD_CIRCLE )
+            if( pad->GetShape() == PAD_SHAPE_CIRCLE )
             {
                 endpoint.x     = KiROUND( endpoint.x * aArcCorrection );
                 endpoint.y     = endpoint.x;
@@ -235,6 +235,7 @@ void BuildUnconnectedThermalStubsPolygonList( CPOLYGONS_LIST& aCornerBuffer,
                     break;
                 }
 
+                aCornerBuffer.NewOutline();
 
                 // add computed polygon to list
                 for( unsigned ic = 0; ic < corners_buffer.size(); ic++ )
@@ -242,11 +243,7 @@ void BuildUnconnectedThermalStubsPolygonList( CPOLYGONS_LIST& aCornerBuffer,
                     wxPoint cpos = corners_buffer[ic];
                     RotatePoint( &cpos, fAngle );                               // Rotate according to module orientation
                     cpos += pad->ShapePos();                              // Shift origin to position
-                    CPolyPt corner;
-                    corner.x = cpos.x;
-                    corner.y = cpos.y;
-                    corner.end_contour = ( ic < (corners_buffer.size() - 1) ) ? false : true;
-                    aCornerBuffer.Append( corner );
+                    aCornerBuffer.Append( cpos.x, cpos.y );
                 }
             }
         }

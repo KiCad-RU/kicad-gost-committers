@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -142,14 +142,13 @@ wxString PCB_BASE_FRAME::SelectFootprintFromLibBrowser()
     if( viewer )
         viewer->Destroy();
 
+    // Creates the modal Lib browser:
     viewer = (FOOTPRINT_VIEWER_FRAME*) Kiway().Player( FRAME_PCB_MODULE_VIEWER_MODAL, true );
 
     wxString    fpid;
 
     int ret = viewer->ShowModal( &fpid, this );
     (void) ret;     // make static analyser quiet
-
-    //DBG(printf("%s: fpid:'%s'\n", __func__, TO_UTF8( fpid ) );)
 
     viewer->Destroy();
 
@@ -196,13 +195,13 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
         return NULL;
     }
 
-    if( dlg.IsKeyword() )                          // Selection by keywords
+    if( dlg.IsKeyword() )       // Selection by keywords
     {
         allowWildSeach = false;
         keys = moduleName;
         moduleName = SelectFootprint( this, libName, wxEmptyString, keys, aTable );
 
-        if( moduleName.IsEmpty() )                 // Cancel command
+        if( moduleName.IsEmpty() )  // Cancel command
         {
             m_canvas->MoveCursorToCrossHair();
             return NULL;
@@ -493,11 +492,11 @@ MODULE* FOOTPRINT_EDIT_FRAME::SelectFootprint( BOARD* aPcb )
     for(  ; module;  module = module->Next() )
         listnames.Add( module->GetReference() );
 
-    msg.Printf( _( "Modules [%d items]" ), listnames.GetCount() );
+    msg.Printf( _( "Footprints [%u items]" ), (unsigned) listnames.GetCount() );
 
     wxArrayString headers;
 
-    headers.Add( _( "Module" ) );
+    headers.Add( _( "Footprint" ) );
 
     std::vector<wxArrayString> itemsToDisplay;
 

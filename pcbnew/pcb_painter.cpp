@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -173,18 +173,18 @@ const COLOR4D& PCB_RENDER_SETTINGS::GetColor( const VIEW_ITEM* aItem, int aLayer
             netCode = conItem->GetNetCode();
     }
 
+    // Single net highlight mode
+    if( m_highlightEnabled && netCode == m_highlightNetcode )
+        return m_layerColorsHi[aLayer];
+
     // Return grayish color for non-highlighted layers in the high contrast mode
     if( m_hiContrastEnabled && m_activeLayers.count( aLayer ) == 0 )
         return m_hiContrastColor;
 
-    // Single net highlight mode
+    // Catch the case when highlight and high-contraste modes are enabled
+    // and we are drawing a not highlighted track
     if( m_highlightEnabled )
-    {
-        if( netCode == m_highlightNetcode )
-            return m_layerColorsHi[aLayer];
-        else
-            return m_layerColorsDark[aLayer];
-    }
+        return m_layerColorsDark[aLayer];
 
     // No special modificators enabled
     return m_layerColors[aLayer];
@@ -465,7 +465,7 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
             {
                 orientation += 900.0;
                 size = padsize.x;
-                EXCHG( padsize.x, padsize.y );
+                std::swap( padsize.x, padsize.y );
             }
             else if( padsize.x == padsize.y )
             {
@@ -572,7 +572,7 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
     {
         // Drawing hole: has same shape as PAD_CIRCLE or PAD_OVAL
         size  = VECTOR2D( aPad->GetDrillSize() ) / 2.0;
-        shape = aPad->GetDrillShape() == PAD_DRILL_OBLONG ? PAD_OVAL : PAD_CIRCLE;
+        shape = aPad->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG ? PAD_SHAPE_OVAL : PAD_SHAPE_CIRCLE;
     }
     else if( aLayer == F_Mask || aLayer == B_Mask )
     {
@@ -604,7 +604,7 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
 
     switch( shape )
     {
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         if( size.y >= size.x )
         {
             m = ( size.y - size.x );
@@ -649,11 +649,11 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
         }
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         m_gal->DrawRectangle( VECTOR2D( -size.x, -size.y ), VECTOR2D( size.x, size.y ) );
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
     {
         std::deque<VECTOR2D> pointList;
         wxPoint corners[4];
@@ -680,7 +680,7 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
     }
     break;
 
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         m_gal->DrawCircle( VECTOR2D( 0.0, 0.0 ), size.x );
         break;
     }
@@ -825,6 +825,14 @@ void PCB_PAINTER::draw( const TEXTE_MODULE* aText, int aLayer )
     m_gal->SetStrokeColor( color );
     m_gal->SetTextAttributes( aText );
     m_gal->StrokeText( shownText, position, orientation );
+
+    // Draw the umbilical line
+    if( aText->IsSelected() && aText->GetType() != TEXTE_MODULE::TEXT_is_DIVERS )
+    {
+        m_gal->SetLineWidth( m_pcbSettings.m_outlineWidth );
+        m_gal->SetStrokeColor( COLOR4D( 0.0, 0.0, 1.0, 1.0 ) );
+        m_gal->DrawLine( position, aText->GetParent()->GetPosition() );
+    }
 }
 
 
@@ -877,8 +885,9 @@ void PCB_PAINTER::draw( const ZONE_CONTAINER* aZone )
     // Draw the filling
     if( displayMode != PCB_RENDER_SETTINGS::DZ_HIDE_FILLED )
     {
-        const std::vector<CPolyPt> polyPoints = aZone->GetFilledPolysList().GetList();
-        if( polyPoints.size() == 0 )  // Nothing to draw
+        const SHAPE_POLY_SET& polySet = aZone->GetFilledPolysList();
+
+        if( polySet.OutlineCount() == 0 )  // Nothing to draw
             return;
 
         // Set up drawing options
@@ -896,26 +905,28 @@ void PCB_PAINTER::draw( const ZONE_CONTAINER* aZone )
             m_gal->SetIsStroke( true );
         }
 
-        std::vector<CPolyPt>::const_iterator polyIterator;
-        for( polyIterator = polyPoints.begin(); polyIterator != polyPoints.end(); ++polyIterator )
+        for( int i = 0; i < polySet.OutlineCount(); i++ )
         {
-            // Find out all of polygons and then draw them
-            corners.push_back( VECTOR2D( *polyIterator ) );
+            const SHAPE_LINE_CHAIN& outline = polySet.COutline( i );
+			// fixme: GAL drawing API that accepts SHAPEs directly (this fiddling with double<>int conversion
+			// is just a performance hog)
 
-            if( polyIterator->end_contour )
+            for( int j = 0; j < outline.PointCount(); j++ )
+                corners.push_back ( (VECTOR2D) outline.CPoint( j ) );
+
+            corners.push_back( (VECTOR2D) outline.CPoint( 0 ) );
+
+            if( displayMode == PCB_RENDER_SETTINGS::DZ_SHOW_FILLED )
             {
-                if( displayMode == PCB_RENDER_SETTINGS::DZ_SHOW_FILLED )
-                {
-                    m_gal->DrawPolygon( corners );
-                    m_gal->DrawPolyline( corners );
-                }
-                else if( displayMode == PCB_RENDER_SETTINGS::DZ_SHOW_OUTLINED )
-                {
-                    m_gal->DrawPolyline( corners );
-                }
-
-                corners.clear();
+                m_gal->DrawPolygon( corners );
+                m_gal->DrawPolyline( corners );
             }
+            else if( displayMode == PCB_RENDER_SETTINGS::DZ_SHOW_OUTLINED )
+            {
+                m_gal->DrawPolyline( corners );
+            }
+
+            corners.clear();
         }
     }
 }
@@ -990,20 +1001,25 @@ void PCB_PAINTER::draw( const PCB_TARGET* aTarget )
 
 void PCB_PAINTER::draw( const MARKER_PCB* aMarker )
 {
-    const BOARD_ITEM* item = aMarker->GetItem();
+    const int scale = 100000;
+    const VECTOR2D arrow[] = {
+        VECTOR2D(  0 * scale,   0 * scale ),
+        VECTOR2D(  8 * scale,   1 * scale ),
+        VECTOR2D(  4 * scale,   3 * scale ),
+        VECTOR2D( 13 * scale,   8 * scale ),
+        VECTOR2D(  9 * scale,   9 * scale ),
+        VECTOR2D(  8 * scale,  13 * scale ),
+        VECTOR2D(  3 * scale,   4 * scale ),
+        VECTOR2D(  1 * scale,   8 * scale )
+    };
 
-    if( item )      // By default draw an item in a different color
-    {
-        Draw( item, ITEM_GAL_LAYER( DRC_VISIBLE ) );
-    }
-    else            // If there is no item associated - draw a circle marking the DRC error
-    {
-        m_gal->SetStrokeColor( COLOR4D( 1.0, 0.0, 0.0, 1.0 ) );
-        m_gal->SetIsFill( false );
-        m_gal->SetIsStroke( true );
-        m_gal->SetLineWidth( 10000 );
-        m_gal->DrawCircle( VECTOR2D( aMarker->GetPosition() ), 200000 );
-    }
+    m_gal->Save();
+    m_gal->Translate( aMarker->GetPosition() );
+    m_gal->SetFillColor( COLOR4D( 1.0, 0.0, 0.0, 1.0 ) );
+    m_gal->SetIsFill( true );
+    m_gal->SetIsStroke( false );
+    m_gal->DrawPolygon( arrow, sizeof( arrow ) / sizeof( VECTOR2D ) );
+    m_gal->Restore();
 }
 
 

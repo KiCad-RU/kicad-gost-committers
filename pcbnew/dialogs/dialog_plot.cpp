@@ -110,12 +110,6 @@ void DIALOG_PLOT::Init_Dialog()
                            m_plotOpts.GetHPGLPenDiameter() * IU_PER_MILS );
     m_HPGLPenSizeOpt->AppendText( msg );
 
-    // Set units and value for HPGL pen overlay (this param in in mils).
-    AddUnitSymbol( *m_textPenOvr, g_UserUnit );
-    msg = StringFromValue( g_UserUnit,
-                                 m_plotOpts.GetHPGLPenOverlay() * IU_PER_MILS );
-    m_HPGLPenOverlayOpt->AppendText( msg );
-
     AddUnitSymbol( *m_textDefaultPenSize, g_UserUnit );
     msg = StringFromValue( g_UserUnit, m_plotOpts.GetLineWidth() );
     m_linesWidth->AppendText( msg );
@@ -149,11 +143,10 @@ void DIALOG_PLOT::Init_Dialog()
     // Could devote a PlotOrder() function in place of UIOrder().
     m_layerList = m_board->GetEnabledLayers().UIOrder();
 
+    // Populate the check list box by all enabled layers names
     for( LSEQ seq = m_layerList;  seq;  ++seq )
     {
         LAYER_ID layer = *seq;
-
-        m_layerList.push_back( layer );
 
         int checkIndex = m_layerCheckListBox->Append( m_board->GetLayerName( layer ) );
 
@@ -162,7 +155,7 @@ void DIALOG_PLOT::Init_Dialog()
     }
 
     // Option for using proper Gerber extensions
-    m_useGerberExtensions->SetValue( m_plotOpts.GetUseGerberExtensions() );
+    m_useGerberExtensions->SetValue( m_plotOpts.GetUseGerberProtelExtensions() );
 
     // Option for including Gerber attributes (from Gerber X2 format) in the output
     m_useGerberAttributes->SetValue( m_plotOpts.GetUseGerberAttributes() );
@@ -368,7 +361,6 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_useAuxOriginCheckBox->SetValue( false );
         m_linesWidth->Enable( true );
         m_HPGLPenSizeOpt->Enable( false );
-        m_HPGLPenOverlayOpt->Enable( false );
         m_excludeEdgeLayerOpt->Enable( true );
         m_subtractMaskFromSilk->Enable( false );
         m_subtractMaskFromSilk->SetValue( false );
@@ -398,7 +390,6 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_useAuxOriginCheckBox->SetValue( false );
         m_linesWidth->Enable( true );
         m_HPGLPenSizeOpt->Enable( false );
-        m_HPGLPenOverlayOpt->Enable( false );
         m_excludeEdgeLayerOpt->Enable( true );
         m_subtractMaskFromSilk->Enable( false );
         m_subtractMaskFromSilk->SetValue( false );
@@ -428,7 +419,6 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_useAuxOriginCheckBox->Enable( true );
         m_linesWidth->Enable( true );
         m_HPGLPenSizeOpt->Enable( false );
-        m_HPGLPenOverlayOpt->Enable( false );
         m_excludeEdgeLayerOpt->Enable( true );
         m_subtractMaskFromSilk->Enable( true );
         m_useGerberExtensions->Enable( true );
@@ -456,7 +446,6 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_useAuxOriginCheckBox->SetValue( false );
         m_linesWidth->Enable( false );
         m_HPGLPenSizeOpt->Enable( true );
-        m_HPGLPenOverlayOpt->Enable( true );
         m_excludeEdgeLayerOpt->Enable( true );
         m_subtractMaskFromSilk->Enable( false );
         m_subtractMaskFromSilk->SetValue( false );
@@ -485,7 +474,6 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_useAuxOriginCheckBox->Enable( true );
         m_linesWidth->Enable( false );
         m_HPGLPenSizeOpt->Enable( false );
-        m_HPGLPenOverlayOpt->Enable( false );
         m_excludeEdgeLayerOpt->Enable( true );
         m_subtractMaskFromSilk->Enable( false );
         m_subtractMaskFromSilk->SetValue( false );
@@ -596,19 +584,6 @@ void DIALOG_PLOT::applyPlotSettings()
         reporter.Report( msg, REPORTER::RPT_INFO );
     }
 
-    // Read HPGL pen overlay (this param is stored in mils)
-    msg = m_HPGLPenOverlayOpt->GetValue();
-    tmp = ValueFromString( g_UserUnit, msg ) / IU_PER_MILS;
-
-    if( !tempOptions.SetHPGLPenOverlay( tmp ) )
-    {
-        msg = StringFromValue( g_UserUnit,
-                                     tempOptions.GetHPGLPenOverlay() * IU_PER_MILS );
-        m_HPGLPenOverlayOpt->SetValue( msg );
-        msg.Printf( _( "HPGL pen overlay constrained." ) );
-        reporter.Report( msg, REPORTER::RPT_INFO );
-    }
-
     // Default linewidth
     msg = m_linesWidth->GetValue();
     tmp = ValueFromString( g_UserUnit, msg );
@@ -634,7 +609,7 @@ void DIALOG_PLOT::applyPlotSettings()
         reporter.Report( msg, REPORTER::RPT_INFO );
     }
 
-   ConfigBaseWriteDouble( m_config, OPTKEY_PLOT_X_FINESCALE_ADJ, m_XScaleAdjust );
+    ConfigBaseWriteDouble( m_config, OPTKEY_PLOT_X_FINESCALE_ADJ, m_XScaleAdjust );
 
     // Y scale
     msg = m_fineAdjustYscaleOpt->GetValue();
@@ -673,19 +648,23 @@ void DIALOG_PLOT::applyPlotSettings()
 
     tempOptions.SetFormat( getPlotFormat() );
 
-    tempOptions.SetUseGerberExtensions( m_useGerberExtensions->GetValue() );
+    tempOptions.SetUseGerberProtelExtensions( m_useGerberExtensions->GetValue() );
     tempOptions.SetUseGerberAttributes( m_useGerberAttributes->GetValue() );
     tempOptions.SetGerberPrecision( m_rbGerberFormat->GetSelection() == 0 ? 5 : 6 );
 
     LSET selectedLayers;
-
     for( unsigned i = 0; i < m_layerList.size(); i++ )
     {
         if( m_layerCheckListBox->IsChecked( i ) )
             selectedLayers.set( m_layerList[i] );
     }
-
+    // Get a list of copper layers that aren't being used by inverting enabled layers.
+    LSET disabledCopperLayers = LSET::AllCuMask() & ~m_board->GetEnabledLayers();
+    // Enable all of the disabled copper layers.
+    // If someone enables more copper layers they will be selected by default.
+    selectedLayers = selectedLayers | disabledCopperLayers;
     tempOptions.SetLayerSelection( selectedLayers );
+
     tempOptions.SetNegative( m_plotPSNegativeOpt->GetValue() );
     tempOptions.SetA4Output( m_forcePSA4OutputOpt->GetValue() );
 
@@ -784,17 +763,25 @@ void DIALOG_PLOT::Plot( wxCommandEvent& event )
     {
         LAYER_ID layer = *seq;
 
+        // All copper layers that are disabled are actually selected
+        // This is due to wonkyness in automatically selecting copper layers
+        // for plotting when adding more than two layers to a board.
+        // If plot options become accessible to the layers setup dialog
+        // please move this functionality there!
+        // This skips a copper layer if it is actually disabled on the board.
+        if( ( LSET::AllCuMask() & ~m_board->GetEnabledLayers() )[layer] )
+            continue;
+
         // Pick the basename from the board file
         wxFileName fn( boardFilename );
 
         // Use Gerber Extensions based on layer number
         // (See http://en.wikipedia.org/wiki/Gerber_File)
         if( m_plotOpts.GetFormat() == PLOT_FORMAT_GERBER && m_useGerberExtensions->GetValue() )
-            file_ext = GetGerberExtension( layer );
+            file_ext = GetGerberProtelExtension( layer );
 
-        // Create file name (from the English layer name for non copper layers).
         BuildPlotFileName( &fn, outputDir.GetPath(),
-                           m_board->GetStandardLayerName( layer ),
+                           m_board->GetLayerName( layer ),
                            file_ext );
 
         LOCALE_IO toggle;
@@ -826,4 +813,3 @@ void DIALOG_PLOT::Plot( wxCommandEvent& event )
     if( !m_plotOpts.GetLayerSelection().any() )
         DisplayError( this, _( "No layer selected" ) );
 }
-

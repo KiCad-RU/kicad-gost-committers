@@ -93,12 +93,11 @@ private:
     ///> and a beginning of drag event (expressed in screen pixels).
     static const int DragDistanceThreshold = 8;
 
-    ///> Handles mouse related events (click, motion, dragging)
+    ///> Handles mouse related events (click, motion, dragging).
     bool handleMouseButton( wxEvent& aEvent, int aIndex, bool aMotion );
 
     ///> Saves the state of key modifiers (Alt, Ctrl and so on).
-    template <class EventType>
-    static int decodeModifiers( const EventType* aState )
+    static int decodeModifiers( const wxKeyboardState* aState )
     {
         int mods = 0;
 
@@ -113,6 +112,9 @@ private:
 
         return mods;
     }
+
+    ///> Redraws the status bar and message panel.
+    void updateUI();
 
     ///> Stores all the informations regarding a mouse button state.
     struct BUTTON_STATE;

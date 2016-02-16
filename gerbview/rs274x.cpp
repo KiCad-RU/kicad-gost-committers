@@ -434,11 +434,11 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
     case IMAGE_ROTATION:    // command IR0* or IR90* or IR180* or IR270*
         if( strnicmp( text, "0*", 2 ) == 0 )
             m_ImageRotation = 0;
-        if( strnicmp( text, "90*", 2 ) == 0 )
+        else if( strnicmp( text, "90*", 3 ) == 0 )
             m_ImageRotation = 90;
-        if( strnicmp( text, "180*", 2 ) == 0 )
+        else if( strnicmp( text, "180*", 4 ) == 0 )
             m_ImageRotation = 180;
-        if( strnicmp( text, "270*", 2 ) == 0 )
+        else if( strnicmp( text, "270*", 4 ) == 0 )
             m_ImageRotation = 270;
         else
             ReportMessage( _( "RS274X: Command \"IR\" rotation value not allowed" ) );
@@ -597,7 +597,10 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
             ReportMessage( _( "Too many include files!!" ) );
             break;
         }
-        strcpy( line, text );
+
+        strncpy( line, text, sizeof(line)-1 );
+        line[sizeof(line)-1] = '\0';
+
         strtok( line, "*%%\n\r" );
         m_FilesList[m_FilesPtr] = m_Current_File;
 
@@ -616,7 +619,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
     case AP_MACRO:  // lines like %AMMYMACRO*
                     // 5,1,8,0,0,1.08239X$1,22.5*
                     // %
-        ok = ReadApertureMacro( buff, text, m_Current_File );
+        /*ok = */ReadApertureMacro( buff, text, m_Current_File );
         break;
 
     case AP_DEFINITION:

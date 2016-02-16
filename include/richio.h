@@ -1,5 +1,3 @@
-#ifndef RICHIO_H_
-#define RICHIO_H_
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -24,6 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#ifndef RICHIO_H_
+#define RICHIO_H_
 
 // This file defines 3 classes useful for working with DSN text files and is named
 // "richio" after its author, Richard Hollenbeck, aka Dick Hollenbeck.
@@ -75,7 +75,7 @@ std::string
 
 
 #define IO_FORMAT       _( "IO_ERROR: %s\nfrom %s : %s" )
-#define PARSE_FORMAT    _( "PARSE_ERROR: %s in input/source\n'%s'\nline %d\noffset %d\nfrom %s : %s" )
+#define PARSE_FORMAT    _( "PARSE_ERROR: %s in input/source\n'%s'\nline %d  offset %d\nfrom %s : %s" )
 
 // references:
 // http://stackoverflow.com/questions/2670816/how-can-i-use-the-compile-time-constant-line-in-a-string

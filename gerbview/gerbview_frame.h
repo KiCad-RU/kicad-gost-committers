@@ -302,12 +302,6 @@ public:
     void    SetElementVisibility( GERBER_VISIBLE_ID aItemIdVisible, bool aNewState );
 
     /**
-     * Function SetVisibleAlls
-     * Set the status of all visible element categories and layers to VISIBLE
-     */
-    void    SetVisibleAlls();
-
-    /**
      * Function SetGridVisibility(), virtual from EDA_DRAW_FRAME
      * It may be overloaded by derived classes
      * @param aVisible = true if the grid must be shown
@@ -552,7 +546,7 @@ public:
      * returns the block command (BLOCK_MOVE, BLOCK_COPY...) corresponding to
      * the \a aKey (ALT, SHIFT ALT ..)
      */
-    virtual int         BlockCommand( int key );
+    virtual int         BlockCommand( EDA_KEY key );
 
     /**
      * Function HandleBlockPlace
@@ -637,7 +631,7 @@ public:
     bool                LoadExcellonFiles( const wxString& aFileName );
     bool                Read_EXCELLON_File( const wxString& aFullFileName );
 
-    bool                GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey = 0 );
+    bool                GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
 
     /**
      * Set Size Items (Lines, Flashes) from DCodes List

@@ -42,7 +42,6 @@
 #include <general.h>
 #include <class_libentry.h>
 #include <hotkeys.h>
-#include <dialogs/dialog_color_config.h>
 #include <transform.h>
 #include <wildcards_and_files_ext.h>
 
@@ -139,7 +138,7 @@ KIFACE_I& Kiface() { return kiface; }
 // KIFACE_GETTER will not have name mangling due to declaration in kiway.h.
 MY_API( KIFACE* ) KIFACE_GETTER(  int* aKIFACEversion, int aKiwayVersion, PGM_BASE* aProgram )
 {
-    process = (PGM_BASE*) aProgram;
+    process = aProgram;
     return &kiface;
 }
 

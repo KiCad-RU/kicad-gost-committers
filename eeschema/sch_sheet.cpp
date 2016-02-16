@@ -319,11 +319,11 @@ void SCH_SHEET::SwapData( SCH_ITEM* aItem )
 
     SCH_SHEET* sheet = ( SCH_SHEET* ) aItem;
 
-    EXCHG( m_pos, sheet->m_pos );
-    EXCHG( m_size, sheet->m_size );
-    EXCHG( m_name, sheet->m_name );
-    EXCHG( m_sheetNameSize, sheet->m_sheetNameSize );
-    EXCHG( m_fileNameSize, sheet->m_fileNameSize );
+    std::swap( m_pos, sheet->m_pos );
+    std::swap( m_size, sheet->m_size );
+    std::swap( m_name, sheet->m_name );
+    std::swap( m_sheetNameSize, sheet->m_sheetNameSize );
+    std::swap( m_fileNameSize, sheet->m_fileNameSize );
     m_pins.swap( sheet->m_pins );
 
     // Ensure sheet labels have their .m_Parent member pointing really on their
@@ -501,7 +501,7 @@ void SCH_SHEET::CleanupSheet()
         }
 
         if( HLabel == NULL )   // Hlabel not found: delete sheet label.
-            m_pins.erase( i );
+            i = m_pins.erase( i );
         else
             ++i;
     }
@@ -601,7 +601,7 @@ void SCH_SHEET::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
 
     Text = wxT( "Sheet: " ) + m_name;
     DrawGraphicText( clipbox, aDC, pos_sheetname,
-                     (EDA_COLOR_T) txtcolor, Text, name_orientation,
+                     txtcolor, Text, name_orientation,
                      wxSize( m_sheetNameSize, m_sheetNameSize ),
                      GR_TEXT_HJUSTIFY_LEFT, GR_TEXT_VJUSTIFY_BOTTOM, lineWidth,
                      false, false );
@@ -614,7 +614,7 @@ void SCH_SHEET::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
 
     Text = wxT( "File: " ) + m_fileName;
     DrawGraphicText( clipbox, aDC, pos_filename,
-                     (EDA_COLOR_T) txtcolor, Text, name_orientation,
+                     txtcolor, Text, name_orientation,
                      wxSize( m_fileNameSize, m_fileNameSize ),
                      GR_TEXT_HJUSTIFY_LEFT, GR_TEXT_VJUSTIFY_TOP, lineWidth,
                      false, false );
@@ -755,9 +755,9 @@ bool SCH_SHEET::Load( SCH_EDIT_FRAME* aFrame )
 {
     bool success = true;
 
+    SCH_SCREEN* screen = NULL;
     if( !m_screen )
     {
-        SCH_SCREEN* screen = NULL;
         g_RootSheet->SearchHierarchy( m_fileName, &screen );
 
         if( screen )
@@ -844,13 +844,13 @@ void SCH_SHEET::Rotate(wxPoint aPosition)
     if( m_size.x < 0 )
     {
         m_pos.x += m_size.x;
-        NEGATE( m_size.x );
+        m_size.x = -m_size.x;
     }
 
     if( m_size.y < 0 )
     {
         m_pos.y += m_size.y;
-        NEGATE( m_size.y );
+        m_size.y = -m_size.y;
     }
 
     BOOST_FOREACH( SCH_SHEET_PIN& sheetPin, m_pins )
@@ -862,9 +862,7 @@ void SCH_SHEET::Rotate(wxPoint aPosition)
 
 void SCH_SHEET::MirrorX( int aXaxis_position )
 {
-    m_pos.y -= aXaxis_position;
-    NEGATE( m_pos.y );
-    m_pos.y += aXaxis_position;
+    MIRROR( m_pos.y, aXaxis_position );
     m_pos.y -= m_size.y;
 
     BOOST_FOREACH( SCH_SHEET_PIN& sheetPin, m_pins )
@@ -876,9 +874,7 @@ void SCH_SHEET::MirrorX( int aXaxis_position )
 
 void SCH_SHEET::MirrorY( int aYaxis_position )
 {
-    m_pos.x -= aYaxis_position;
-    NEGATE( m_pos.x );
-    m_pos.x += aYaxis_position;
+    MIRROR( m_pos.x, aYaxis_position );
     m_pos.x -= m_size.x;
 
     BOOST_FOREACH( SCH_SHEET_PIN& label, m_pins )

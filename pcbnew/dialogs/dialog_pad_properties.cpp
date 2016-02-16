@@ -6,10 +6,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 Dick Hollenbeck, dick@softplc.com
  * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -46,39 +46,41 @@
 #include <class_board.h>
 #include <class_module.h>
 
+#include <origin_viewitem.h>
+
 #include <dialog_pad_properties_base.h>
 #include <html_messagebox.h>
 
 
 // list of pad shapes.
 static PAD_SHAPE_T code_shape[] = {
-    PAD_CIRCLE,
-    PAD_OVAL,
-    PAD_RECT,
-    PAD_TRAPEZOID
+    PAD_SHAPE_CIRCLE,
+    PAD_SHAPE_OVAL,
+    PAD_SHAPE_RECT,
+    PAD_SHAPE_TRAPEZOID
 };
 
 
 static PAD_ATTR_T code_type[] = {
-    PAD_STANDARD,
-    PAD_SMD,
-    PAD_CONN,
-    PAD_HOLE_NOT_PLATED
+    PAD_ATTRIB_STANDARD,
+    PAD_ATTRIB_SMD,
+    PAD_ATTRIB_CONN,
+    PAD_ATTRIB_HOLE_NOT_PLATED
 };
 
 
 // Default mask layers setup for pads according to the pad type
 static const LSET std_pad_layers[] = {
-    // PAD_STANDARD:
+    // PAD_ATTRIB_STANDARD:
     D_PAD::StandardMask(),
 
-    // PAD_SMD:
+    // PAD_ATTRIB_SMD:
     D_PAD::SMDMask(),
 
-    // PAD_CONN:
+    // PAD_ATTRIB_CONN:
     D_PAD::ConnSMDMask(),
 
-    // PAD_HOLE_NOT_PLATED:
+    // PAD_ATTRIB_HOLE_NOT_PLATED:
     D_PAD::UnplatedHoleMask()
 };
 
@@ -94,10 +96,12 @@ public:
     ~DIALOG_PAD_PROPERTIES()
     {
         delete m_dummyPad;
+        delete m_axisOrigin;
     }
 
 private:
     PCB_BASE_FRAME* m_parent;
+    KIGFX::ORIGIN_VIEWITEM* m_axisOrigin;
     D_PAD*  m_currentPad;           // pad currently being edited
     D_PAD*  m_dummyPad;             // a working copy used to show changes
     D_PAD*  m_padMaster;            // The pad used to create new pads in board or
@@ -178,16 +182,21 @@ DIALOG_PAD_PROPERTIES::DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aP
     else    // We are editing a "master" pad, i.e. a pad used to create new pads
         m_dummyPad->Copy( m_padMaster );
 
+    m_axisOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D(0.0, 0.0, 0.8, 1.0),
+                                               KIGFX::ORIGIN_VIEWITEM::CROSS,
+                                               20000,
+                                               VECTOR2D( m_dummyPad->GetPosition().x,
+                                                         m_dummyPad->GetPosition().y ) );
+    m_axisOrigin->SetDrawAtZero( true );
+
     if( m_parent->IsGalCanvasActive() )
     {
         m_panelShowPadGal->UseColorScheme( m_board->GetColorsSettings() );
         m_panelShowPadGal->SwitchBackend( m_parent->GetGalCanvas()->GetBackend() );
-#if !wxCHECK_VERSION( 3, 0, 0 )
-        m_panelShowPadGal->SetSize( m_panelShowPad->GetSize() );
-#endif
         m_panelShowPadGal->Show();
         m_panelShowPad->Hide();
         m_panelShowPadGal->GetView()->Add( m_dummyPad );
+        m_panelShowPadGal->GetView()->Add( m_axisOrigin );
         m_panelShowPadGal->StartDrawing();
 
         Connect( wxEVT_SIZE, wxSizeEventHandler( DIALOG_PAD_PROPERTIES::OnResize ) );
@@ -236,7 +245,7 @@ void DIALOG_PAD_PROPERTIES::OnPaintShowPanel( wxPaintEvent& event )
     drawInfo.m_Display_padnum  = true;
     drawInfo.m_Display_netname = true;
 
-    if( m_dummyPad->GetAttribute() == PAD_HOLE_NOT_PLATED )
+    if( m_dummyPad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED )
         drawInfo.m_ShowNotPlatedHole = true;
 
     // Shows the local pad clearance
@@ -256,7 +265,7 @@ void DIALOG_PAD_PROPERTIES::OnPaintShowPanel( wxPaintEvent& event )
         // If drill size has been set, use that. Otherwise default to 1mm.
         dim = m_dummyPad->GetDrillSize().x;
         if( dim == 0 )
-            dim = 1000000;
+            dim = Millimeter2iu( 1.0 );
     }
 
     if( m_dummyPad->GetLocalClearance() > 0 )
@@ -266,7 +275,7 @@ void DIALOG_PAD_PROPERTIES::OnPaintShowPanel( wxPaintEvent& event )
 
     // If the pad is a circle, use the x size here instead.
     int ysize;
-    if( m_dummyPad->GetShape() == PAD_CIRCLE )
+    if( m_dummyPad->GetShape() == PAD_SHAPE_CIRCLE )
         ysize = m_dummyPad->GetSize().x;
     else
         ysize = m_dummyPad->GetSize().y;
@@ -278,7 +287,7 @@ void DIALOG_PAD_PROPERTIES::OnPaintShowPanel( wxPaintEvent& event )
     {
         dim = m_dummyPad->GetDrillSize().y;
         if( dim == 0 )
-            dim = 1000000;
+            dim = Millimeter2iu( 0.1 );
     }
 
     if( m_dummyPad->GetLocalClearance() > 0 )
@@ -343,6 +352,7 @@ void DIALOG_PAD_PROPERTIES::initValues()
             m_staticModuleSideValue->SetLabel( _( "Back side (footprint is mirrored)" ) );
         }
 
+        //Internal angles are in 0.1 degree
         msg.Printf( wxT( "%.1f" ), module->GetOrientation() / 10.0 );
         m_staticModuleRotValue->SetLabel( msg );
     }
@@ -350,11 +360,11 @@ void DIALOG_PAD_PROPERTIES::initValues()
     if( m_isFlipped )
     {
         wxPoint pt = m_dummyPad->GetOffset();
-        NEGATE( pt.y );
+        pt.y = -pt.y;
         m_dummyPad->SetOffset( pt );
 
         wxSize sz = m_dummyPad->GetDelta();
-        NEGATE( sz.y );
+        sz.y = -sz.y;
         m_dummyPad->SetDelta( sz );
 
         // flip pad's layers
@@ -433,19 +443,19 @@ void DIALOG_PAD_PROPERTIES::initValues()
     switch( m_dummyPad->GetZoneConnection() )
     {
     default:
-    case UNDEFINED_CONNECTION:
+    case PAD_ZONE_CONN_INHERITED:
         m_ZoneConnectionChoice->SetSelection( 0 );
         break;
 
-    case PAD_IN_ZONE:
+    case PAD_ZONE_CONN_FULL:
         m_ZoneConnectionChoice->SetSelection( 1 );
         break;
 
-    case THERMAL_PAD:
+    case PAD_ZONE_CONN_THERMAL:
         m_ZoneConnectionChoice->SetSelection( 2 );
         break;
 
-    case PAD_NOT_IN_ZONE:
+    case PAD_ZONE_CONN_NONE:
         m_ZoneConnectionChoice->SetSelection( 3 );
         break;
     }
@@ -457,7 +467,7 @@ void DIALOG_PAD_PROPERTIES::initValues()
         angle = m_currentPad->GetOrientation() - module->GetOrientation();
 
         if( m_isFlipped )
-            NEGATE( angle );
+            angle = -angle;
 
         m_dummyPad->SetOrientation( angle );
     }
@@ -497,19 +507,19 @@ void DIALOG_PAD_PROPERTIES::initValues()
     switch( m_dummyPad->GetShape() )
     {
     default:
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         m_PadShape->SetSelection( 0 );
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         m_PadShape->SetSelection( 1 );
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         m_PadShape->SetSelection( 2 );
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         m_PadShape->SetSelection( 3 );
         break;
     }
@@ -531,13 +541,13 @@ void DIALOG_PAD_PROPERTIES::initValues()
 
     // Enable/disable Pad name,and pad length die
     // (disable for NPTH pads (mechanical pads)
-    bool enable = m_dummyPad->GetAttribute() != PAD_HOLE_NOT_PLATED;
+    bool enable = m_dummyPad->GetAttribute() != PAD_ATTRIB_HOLE_NOT_PLATED;
 
     m_PadNumCtrl->Enable( enable );
     m_PadNetNameCtrl->Enable( m_canEditNetName && enable && m_currentPad != NULL );
     m_LengthPadToDieCtrl->Enable( enable );
 
-    if( m_dummyPad->GetDrillShape() != PAD_DRILL_OBLONG )
+    if( m_dummyPad->GetDrillShape() != PAD_DRILL_SHAPE_OBLONG )
         m_DrillShapeCtrl->SetSelection( 0 );
     else
         m_DrillShapeCtrl->SetSelection( 1 );
@@ -561,7 +571,7 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
 {
     switch( m_PadShape->GetSelection() )
     {
-    case 0:     // CIRCLE:
+    case 0:     // PAD_SHAPE_CIRCLE:
         m_ShapeDelta_Ctrl->Enable( false );
         m_trapDeltaDirChoice->Enable( false );
         m_ShapeSize_Y_Ctrl->Enable( false );
@@ -569,7 +579,7 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
         m_ShapeOffset_Y_Ctrl->Enable( false );
         break;
 
-    case 1:     // OVAL:
+    case 1:     // PAD_SHAPE_OVAL:
         m_ShapeDelta_Ctrl->Enable( false );
         m_trapDeltaDirChoice->Enable( false );
         m_ShapeSize_Y_Ctrl->Enable( true );
@@ -577,7 +587,7 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
         m_ShapeOffset_Y_Ctrl->Enable( true );
         break;
 
-    case 2:     // PAD_RECT:
+    case 2:     // PAD_SHAPE_RECT:
         m_ShapeDelta_Ctrl->Enable( false );
         m_trapDeltaDirChoice->Enable( false );
         m_ShapeSize_Y_Ctrl->Enable( true );
@@ -585,7 +595,7 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
         m_ShapeOffset_Y_Ctrl->Enable( true );
         break;
 
-    case 3:     // TRAPEZOID:
+    case 3:     // PAD_SHAPE_TRAPEZOID:
         m_ShapeDelta_Ctrl->Enable( true );
         m_trapDeltaDirChoice->Enable( true );
         m_ShapeSize_Y_Ctrl->Enable( true );
@@ -733,13 +743,14 @@ void DIALOG_PAD_PROPERTIES::OnSetLayers( wxCommandEvent& event )
 bool DIALOG_PAD_PROPERTIES::padValuesOK()
 {
     bool error = transferDataToPad( m_dummyPad );
+    bool skip_tstoffset = false;    // the offset prm is not always tested
 
     wxArrayString error_msgs;
     wxString msg;
 
     // Test for incorrect values
     if( (m_dummyPad->GetSize().x <= 0) ||
-       ((m_dummyPad->GetSize().y <= 0) && (m_dummyPad->GetShape() != PAD_CIRCLE)) )
+       ((m_dummyPad->GetSize().y <= 0) && (m_dummyPad->GetShape() != PAD_SHAPE_CIRCLE)) )
     {
         error_msgs.Add( _( "Pad size must be greater than zero" ) );
     }
@@ -748,6 +759,8 @@ bool DIALOG_PAD_PROPERTIES::padValuesOK()
         (m_dummyPad->GetSize().y < m_dummyPad->GetDrillSize().y) )
     {
         error_msgs.Add(  _( "Incorrect value for pad drill: pad drill bigger than pad size" ) );
+        skip_tstoffset = true;  // offset prm will be not tested because if the drill value
+                                // is incorrect the offset prm is always seen as incorrect, even if it is 0
     }
 
     LSET padlayers_mask = m_dummyPad->GetLayerSet();
@@ -762,7 +775,7 @@ bool DIALOG_PAD_PROPERTIES::padValuesOK()
             // Note: he message is shown in an HTML window
             msg = _( "Error: the pad is not on a copper layer and has a hole" );
 
-            if( m_dummyPad->GetAttribute() == PAD_HOLE_NOT_PLATED )
+            if( m_dummyPad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED )
             {
                 msg += wxT( "<br><br><i>" );
                 msg += _( "For NPTH pad, set pad size value to pad drill value,"
@@ -774,16 +787,19 @@ bool DIALOG_PAD_PROPERTIES::padValuesOK()
         }
     }
 
-    wxPoint max_size;
-    max_size.x = std::abs( m_dummyPad->GetOffset().x );
-    max_size.y = std::abs( m_dummyPad->GetOffset().y );
-    max_size.x += m_dummyPad->GetDrillSize().x / 2;
-    max_size.y += m_dummyPad->GetDrillSize().y / 2;
-
-    if( ( m_dummyPad->GetSize().x / 2 < max_size.x ) ||
-        ( m_dummyPad->GetSize().y / 2 < max_size.y ) )
+    if( !skip_tstoffset )
     {
-        error_msgs.Add( _( "Incorrect value for pad offset" ) );
+        wxPoint max_size;
+        max_size.x = std::abs( m_dummyPad->GetOffset().x );
+        max_size.y = std::abs( m_dummyPad->GetOffset().y );
+        max_size.x += m_dummyPad->GetDrillSize().x / 2;
+        max_size.y += m_dummyPad->GetDrillSize().y / 2;
+
+        if( ( m_dummyPad->GetSize().x / 2 < max_size.x ) ||
+            ( m_dummyPad->GetSize().y / 2 < max_size.y ) )
+        {
+            error_msgs.Add( _( "Incorrect value for pad offset" ) );
+        }
     }
 
     if( error )
@@ -793,22 +809,25 @@ bool DIALOG_PAD_PROPERTIES::padValuesOK()
 
     switch( m_dummyPad->GetAttribute() )
     {
-    case PAD_HOLE_NOT_PLATED:   // Not plated, but through hole, a hole is expected
-    case PAD_STANDARD :         // Pad through hole, a hole is also expected
+    case PAD_ATTRIB_HOLE_NOT_PLATED:   // Not plated, but through hole, a hole is expected
+    case PAD_ATTRIB_STANDARD :         // Pad through hole, a hole is also expected
         if( m_dummyPad->GetDrillSize().x <= 0 )
             error_msgs.Add( _( "Error: Through hole pad: drill diameter set to 0" ) );
         break;
 
-    case PAD_CONN:      // Connector pads are smd pads, just they do not have solder paste.
+    case PAD_ATTRIB_CONN:      // Connector pads are smd pads, just they do not have solder paste.
         if( padlayers_mask[B_Paste] || padlayers_mask[F_Paste] )
             error_msgs.Add( _( "Error: Connector pads are not on the solder paste layer\n"
                                "Use SMD pads instead" ) );
         // Fall trough
-    case PAD_SMD:       // SMD and Connector pads (One external copper layer only)
-/*
-        if( padlayers_mask[B_Cu] && padlayers_mask[F_Cu] )
-            error_msgs.Add( _( "Error: only one copper layer allowed for SMD or Connector pads" ) );
-*/
+    case PAD_ATTRIB_SMD:       // SMD and Connector pads (One external copper layer only)
+        {
+        LSET innerlayers_mask = padlayers_mask & LSET::InternalCuMask();
+
+        if( ( padlayers_mask[F_Cu] && padlayers_mask[B_Cu] ) ||
+            innerlayers_mask.count() != 0 )
+            error_msgs.Add( _( "Error: only one external copper layer allowed for SMD or Connector pads" ) );
+        }
         break;
     }
 
@@ -922,8 +941,8 @@ void DIALOG_PAD_PROPERTIES::PadPropertiesAccept( wxCommandEvent& event )
 
         wxString padNetname;
 
-        // For PAD_HOLE_NOT_PLATED, ensure there is no net name selected
-        if( m_padMaster->GetAttribute() != PAD_HOLE_NOT_PLATED  )
+        // For PAD_ATTRIB_HOLE_NOT_PLATED, ensure there is no net name selected
+        if( m_padMaster->GetAttribute() != PAD_ATTRIB_HOLE_NOT_PLATED  )
             padNetname = m_PadNetNameCtrl->GetValue();
 
         if( m_currentPad->GetNetname() != padNetname )
@@ -996,19 +1015,19 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     {
     default:
     case 0:
-        aPad->SetZoneConnection( UNDEFINED_CONNECTION );
+        aPad->SetZoneConnection( PAD_ZONE_CONN_INHERITED );
         break;
 
     case 1:
-        aPad->SetZoneConnection( PAD_IN_ZONE );
+        aPad->SetZoneConnection( PAD_ZONE_CONN_FULL );
         break;
 
     case 2:
-        aPad->SetZoneConnection( THERMAL_PAD );
+        aPad->SetZoneConnection( PAD_ZONE_CONN_THERMAL );
         break;
 
     case 3:
-        aPad->SetZoneConnection( PAD_NOT_IN_ZONE );
+        aPad->SetZoneConnection( PAD_ZONE_CONN_NONE );
         break;
     }
 
@@ -1025,18 +1044,18 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
 
     if( m_DrillShapeCtrl->GetSelection() == 0 )
     {
-        aPad->SetDrillShape( PAD_DRILL_CIRCLE );
+        aPad->SetDrillShape( PAD_DRILL_SHAPE_CIRCLE );
         y = x;
     }
     else
-        aPad->SetDrillShape( PAD_DRILL_OBLONG );
+        aPad->SetDrillShape( PAD_DRILL_SHAPE_OBLONG );
 
     aPad->SetDrillSize( wxSize( x, y ) );
 
     // Read pad shape size:
     x = ValueFromTextCtrl( *m_ShapeSize_X_Ctrl );
     y = ValueFromTextCtrl( *m_ShapeSize_Y_Ctrl );
-    if( aPad->GetShape() == PAD_CIRCLE )
+    if( aPad->GetShape() == PAD_SHAPE_CIRCLE )
         y = x;
 
     aPad->SetSize( wxSize( x, y ) );
@@ -1044,44 +1063,47 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     // Read pad length die
     aPad->SetPadToDieLength( ValueFromTextCtrl( *m_LengthPadToDieCtrl ) );
 
-    // Read pad shape delta size:
-    // m_DeltaSize.x or m_DeltaSize.y must be NULL. for a trapezoid.
-    wxSize delta;
-
-    if( m_trapDeltaDirChoice->GetSelection() == 0 )
-        delta.x = ValueFromTextCtrl( *m_ShapeDelta_Ctrl );
-    else
-        delta.y = ValueFromTextCtrl( *m_ShapeDelta_Ctrl );
-
-    // Test bad values (be sure delta values are not too large)
+    // For a trapezoid, test delta value (be sure delta is not too large for pad size)
     // remember DeltaSize.x is the Y size variation
     bool   error    = false;
 
-    if( delta.x < 0 && delta.x <= -aPad->GetSize().y )
+    if( aPad->GetShape() == PAD_SHAPE_TRAPEZOID )
     {
-        delta.x = -aPad->GetSize().y + 2;
-        error = true;
-    }
+        wxSize delta;
 
-    if( delta.x > 0 && delta.x >= aPad->GetSize().y )
-    {
-        delta.x = aPad->GetSize().y - 2;
-        error = true;
-    }
+        // For a trapezoid, only one of delta.x or delta.y is not 0, depending on
+        // the direction.
+        if( m_trapDeltaDirChoice->GetSelection() == 0 )
+            delta.x = ValueFromTextCtrl( *m_ShapeDelta_Ctrl );
+        else
+            delta.y = ValueFromTextCtrl( *m_ShapeDelta_Ctrl );
 
-    if( delta.y < 0 && delta.y <= -aPad->GetSize().x )
-    {
-        delta.y = -aPad->GetSize().x + 2;
-        error = true;
-    }
+        if( delta.x < 0 && delta.x <= -aPad->GetSize().y )
+        {
+            delta.x = -aPad->GetSize().y + 2;
+            error = true;
+        }
 
-    if( delta.y > 0 && delta.y >= aPad->GetSize().x )
-    {
-        delta.y = aPad->GetSize().x - 2;
-        error = true;
-    }
+        if( delta.x > 0 && delta.x >= aPad->GetSize().y )
+        {
+            delta.x = aPad->GetSize().y - 2;
+            error = true;
+        }
 
-    aPad->SetDelta( delta );
+        if( delta.y < 0 && delta.y <= -aPad->GetSize().x )
+        {
+            delta.y = -aPad->GetSize().x + 2;
+            error = true;
+        }
+
+        if( delta.y > 0 && delta.y >= aPad->GetSize().x )
+        {
+            delta.y = aPad->GetSize().x - 2;
+            error = true;
+        }
+
+        aPad->SetDelta( delta );
+    }
 
     // Read pad shape offset:
     x = ValueFromTextCtrl( *m_ShapeOffset_X_Ctrl );
@@ -1108,22 +1130,22 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     // Clear some values, according to the pad type and shape
     switch( aPad->GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         aPad->SetOffset( wxPoint( 0, 0 ) );
         aPad->SetDelta( wxSize( 0, 0 ) );
         x = aPad->GetSize().x;
         aPad->SetSize( wxSize( x, x ) );
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         aPad->SetDelta( wxSize( 0, 0 ) );
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         aPad->SetDelta( wxSize( 0, 0 ) );
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         break;
 
     default:
@@ -1132,21 +1154,21 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
 
     switch( aPad->GetAttribute() )
     {
-    case PAD_STANDARD:
+    case PAD_ATTRIB_STANDARD:
         break;
 
-    case PAD_CONN:
-    case PAD_SMD:
-        // SMD and PAD_CONN has no hole.
-        // basically, SMD and PAD_CONN are same type of pads
-        // PAD_CONN has just a default non technical layers that differs from SMD
+    case PAD_ATTRIB_CONN:
+    case PAD_ATTRIB_SMD:
+        // SMD and PAD_ATTRIB_CONN has no hole.
+        // basically, SMD and PAD_ATTRIB_CONN are same type of pads
+        // PAD_ATTRIB_CONN has just a default non technical layers that differs from SMD
         // and are intended to be used in virtual edge board connectors
         // However we can accept a non null offset,
         // mainly to allow complex pads build from a set of from basic pad shapes
         aPad->SetDrillSize( wxSize( 0, 0 ) );
         break;
 
-    case PAD_HOLE_NOT_PLATED:
+    case PAD_ATTRIB_HOLE_NOT_PLATED:
         // Mechanical purpose only:
         // no offset, no net name, no pad name allowed
         aPad->SetOffset( wxPoint( 0, 0 ) );

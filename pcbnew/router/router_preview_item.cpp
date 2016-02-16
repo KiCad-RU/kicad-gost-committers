@@ -18,9 +18,11 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <deque>
 #include <gal/color4d.h>
 
 #include <geometry/shape_rect.h>
+#include <geometry/shape_convex.h>
 
 #include "class_track.h"
 #include <pcb_painter.h>
@@ -57,6 +59,7 @@ ROUTER_PREVIEW_ITEM::ROUTER_PREVIEW_ITEM( const PNS_ITEM* aItem, VIEW_GROUP* aPa
 
 ROUTER_PREVIEW_ITEM::~ROUTER_PREVIEW_ITEM()
 {
+    delete m_shape;
 }
 
 
@@ -64,9 +67,10 @@ void ROUTER_PREVIEW_ITEM::Update( const PNS_ITEM* aItem )
 {
     m_originLayer = aItem->Layers().Start();
 
-    if( aItem->OfKind ( PNS_ITEM::LINE ) )
+    if( aItem->OfKind( PNS_ITEM::LINE ) )
     {
-        const PNS_LINE* l=static_cast<const PNS_LINE*>( aItem );
+        const PNS_LINE* l = static_cast<const PNS_LINE*>( aItem );
+
         if( !l->SegmentCount() )
             return;
     }
@@ -162,81 +166,103 @@ void ROUTER_PREVIEW_ITEM::ViewDraw( int aLayer, KIGFX::GAL* aGal ) const
 
     if( m_type == PR_SHAPE )
     {
+        if( !m_shape )
+            return;
+
         aGal->SetLineWidth( m_width );
         aGal->SetStrokeColor( m_color );
         aGal->SetFillColor( m_color );
         aGal->SetIsStroke( m_width ? true : false );
         aGal->SetIsFill( true );
 
-        if( !m_shape )
-            return;
-
         switch( m_shape->Type() )
         {
-            case SH_LINE_CHAIN:
+        case SH_LINE_CHAIN:
+        {
+            const SHAPE_LINE_CHAIN* l = (const SHAPE_LINE_CHAIN*) m_shape;
+            drawLineChain( *l, aGal );
+            break;
+        }
+
+        case SH_SEGMENT:
+        {
+            const SHAPE_SEGMENT* s = (const SHAPE_SEGMENT*) m_shape;
+            aGal->DrawSegment( s->GetSeg().A, s->GetSeg().B, s->GetWidth() );
+
+            if( m_clearance > 0 )
             {
-                const SHAPE_LINE_CHAIN* l = (const SHAPE_LINE_CHAIN*) m_shape;
-                drawLineChain( *l, aGal );
-                break;
+                aGal->SetLayerDepth( ClearanceOverlayDepth );
+                aGal->SetStrokeColor( COLOR4D( DARKDARKGRAY ) );
+                aGal->SetFillColor( COLOR4D( DARKDARKGRAY ) );
+                aGal->DrawSegment( s->GetSeg().A, s->GetSeg().B, s->GetWidth() + 2 * m_clearance );
             }
 
-            case SH_SEGMENT:
+            break;
+        }
+
+        case SH_CIRCLE:
+        {
+            const SHAPE_CIRCLE* c = (const SHAPE_CIRCLE*) m_shape;
+            aGal->DrawCircle( c->GetCenter(), c->GetRadius() );
+
+            if( m_clearance > 0 )
             {
-                const SHAPE_SEGMENT* s = (const SHAPE_SEGMENT*) m_shape;
-                aGal->DrawLine( s->GetSeg().A, s->GetSeg().B );
-
-                if( m_clearance > 0 )
-                {
-                    aGal->SetLayerDepth( ClearanceOverlayDepth );
-                    aGal->SetStrokeColor( COLOR4D( DARKDARKGRAY ) );
-                    aGal->SetLineWidth( m_width + 2 * m_clearance );
-                    aGal->DrawLine( s->GetSeg().A, s->GetSeg().B );
-                }
-
-                break;
+                aGal->SetLayerDepth( ClearanceOverlayDepth );
+                aGal->SetFillColor( COLOR4D( DARKDARKGRAY ) );
+                aGal->SetIsStroke( false );
+                aGal->DrawCircle( c->GetCenter(), c->GetRadius() + m_clearance );
             }
 
-            case SH_CIRCLE:
+            break;
+        }
+
+        case SH_RECT:
+        {
+            const SHAPE_RECT* r = (const SHAPE_RECT*) m_shape;
+            aGal->DrawRectangle( r->GetPosition(), r->GetPosition() + r->GetSize() );
+
+            if( m_clearance > 0 )
             {
-                const SHAPE_CIRCLE* c = (const SHAPE_CIRCLE*) m_shape;
-                aGal->DrawCircle( c->GetCenter(), c->GetRadius() );
-
-                if( m_clearance > 0 )
-                {
-                    aGal->SetLayerDepth( ClearanceOverlayDepth );
-                    aGal->SetFillColor( COLOR4D( DARKDARKGRAY ) );
-                    aGal->SetIsStroke( false );
-                    aGal->DrawCircle( c->GetCenter(), c->GetRadius() + m_clearance );
-                }
-
-                break;
+                aGal->SetLayerDepth( ClearanceOverlayDepth );
+                VECTOR2I p0( r->GetPosition() ), s( r->GetSize() );
+                aGal->SetStrokeColor( COLOR4D( DARKDARKGRAY ) );
+                aGal->SetIsStroke( true );
+                aGal->SetLineWidth( 2 * m_clearance );
+                aGal->DrawLine( p0, VECTOR2I( p0.x + s.x, p0.y ) );
+                aGal->DrawLine( p0, VECTOR2I( p0.x, p0.y + s.y ) );
+                aGal->DrawLine( p0 + s , VECTOR2I( p0.x + s.x, p0.y ) );
+                aGal->DrawLine( p0 + s, VECTOR2I( p0.x, p0.y + s.y ) );
             }
 
-            case SH_RECT:
-            {
-                const SHAPE_RECT* r = (const SHAPE_RECT*) m_shape;
-                aGal->DrawRectangle( r->GetPosition(), r->GetPosition() + r->GetSize() );
+            break;
+        }
 
-                if( m_clearance > 0 )
-                {
-                    aGal->SetLayerDepth( ClearanceOverlayDepth );
-                    VECTOR2I p0( r->GetPosition() ), s( r->GetSize() );
-                    aGal->SetStrokeColor( COLOR4D( DARKDARKGRAY ) );
-                    aGal->SetIsStroke( true );
-                    aGal->SetLineWidth( 2 * m_clearance );
-                    aGal->DrawLine( p0, VECTOR2I( p0.x + s.x, p0.y ) );
-                    aGal->DrawLine( p0, VECTOR2I( p0.x, p0.y + s.y ) );
-                    aGal->DrawLine( p0 + s , VECTOR2I( p0.x + s.x, p0.y ) );
-                    aGal->DrawLine( p0 + s, VECTOR2I( p0.x, p0.y + s.y ) );
-                }
+    case SH_CONVEX:
+    {
+        const SHAPE_CONVEX* c = (const SHAPE_CONVEX*) m_shape;
+        std::deque<VECTOR2D> polygon = std::deque<VECTOR2D>();
+        for( int i = 0; i < c->PointCount(); i++ )
+        {
+            polygon.push_back( c->CDPoint( i ) );
+        }
+        aGal->DrawPolygon( polygon );
 
-                break;
-            }
+        if( m_clearance > 0 )
+        {
+            aGal->SetLayerDepth( ClearanceOverlayDepth );
+            aGal->SetStrokeColor( COLOR4D( DARKDARKGRAY ) );
+            aGal->SetIsStroke( true );
+            aGal->SetLineWidth( 2 * m_clearance );
+            // need the implicit last segment to be explicit for DrawPolyline
+            polygon.push_back( c->CDPoint( 0 ) );
+            aGal->DrawPolyline( polygon );
+        }
+        break;
+    }
 
-        case SH_CONVEX:
-        case SH_POLY_SET:
-        case SH_COMPOUND:
-            break;          // Not yet in use
+    case SH_POLY_SET:
+    case SH_COMPOUND:
+        break;          // Not yet in use
         }
     }
 }
@@ -248,7 +274,7 @@ void ROUTER_PREVIEW_ITEM::Line( const SHAPE_LINE_CHAIN& aLine, int aWidth, int a
     m_width = aWidth;
     m_color = assignColor( aStyle );
     m_type = PR_SHAPE;
-    m_depth = -BaseOverlayDepth;
+    m_depth = -1024;        // TODO gal->GetMinDepth()
     m_shape = aLine.Clone();
 
     ViewSetVisible( true );
@@ -307,13 +333,11 @@ const COLOR4D ROUTER_PREVIEW_ITEM::assignColor( int aStyle ) const
 
     default:
         color = COLOR4D( 0.4, 0.4, 0.4, 1 ); break;
-
-        break;
     }
 
     return color;
 }
 
-const int ROUTER_PREVIEW_ITEM::ClearanceOverlayDepth = -200;
-const int ROUTER_PREVIEW_ITEM::BaseOverlayDepth = -210;
-const int ROUTER_PREVIEW_ITEM::ViaOverlayDepth = -246;
+const int ROUTER_PREVIEW_ITEM::ClearanceOverlayDepth = -300;
+const int ROUTER_PREVIEW_ITEM::BaseOverlayDepth = -310;
+const int ROUTER_PREVIEW_ITEM::ViaOverlayDepth = -346;

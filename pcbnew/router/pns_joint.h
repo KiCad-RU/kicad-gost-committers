@@ -41,7 +41,7 @@
 class PNS_JOINT : public PNS_ITEM
 {
 public:
-    typedef std::deque<PNS_ITEM*> LINKED_ITEMS;
+    typedef PNS_ITEMSET::ENTRIES LINKED_ITEMS;
 
     ///> Joints are hashed by their position, layers and net.
     ///  Linked items are, obviously, not hashed
@@ -52,7 +52,7 @@ public:
     };
 
     PNS_JOINT() :
-        PNS_ITEM( JOINT ) {}
+        PNS_ITEM( JOINT ), m_locked( false ) {}
 
     PNS_JOINT( const VECTOR2I& aPos, const PNS_LAYERSET& aLayers, int aNet = -1 ) :
         PNS_ITEM( JOINT )
@@ -60,6 +60,7 @@ public:
         m_tag.pos = aPos;
         m_tag.net = aNet;
         m_layers = aLayers;
+        m_locked = false;
     }
 
     PNS_JOINT( const PNS_JOINT& aB ) :
@@ -70,6 +71,7 @@ public:
         m_tag.net = aB.m_tag.net;
         m_linkedItems = aB.m_linkedItems;
         m_layers = aB.m_layers;
+        m_locked = aB.m_locked;
     }
 
     PNS_ITEM* Clone( ) const
@@ -82,10 +84,7 @@ public:
     /// segments of the same net, on the same layer.
     bool IsLineCorner() const
     {
-        if( m_linkedItems.Size() != 2 )
-            return false;
-
-        if( m_linkedItems[0]->Kind() != SEGMENT || m_linkedItems[1]->Kind() != SEGMENT )
+        if( m_linkedItems.Size() != 2 || m_linkedItems.Count( SEGMENT ) != 2 )
             return false;
 
         PNS_SEGMENT* seg1 = static_cast<PNS_SEGMENT*>( m_linkedItems[0] );
@@ -97,18 +96,24 @@ public:
 
     bool IsNonFanoutVia() const
     {
-        if( m_linkedItems.Size() != 3 )
+        int vias = m_linkedItems.Count( VIA );
+        int segs = m_linkedItems.Count( SEGMENT );
+
+        return ( m_linkedItems.Size() == 3 && vias == 1 && segs == 2 );
+    }
+
+    bool IsTraceWidthChange() const
+    {
+        if( m_linkedItems.Size() != 2 )
             return false;
 
-        int vias = 0, segs = 0;
+        if( m_linkedItems.Count( SEGMENT ) != 2)
+            return false;
 
-        for( int i = 0; i < 3; i++ )
-        {
-            vias += m_linkedItems[i]->Kind() == VIA ? 1 : 0;
-            segs += m_linkedItems[i]->Kind() == SEGMENT ? 1 : 0;
-        }
+        PNS_SEGMENT* seg1 = static_cast<PNS_SEGMENT*>( m_linkedItems[0] );
+        PNS_SEGMENT* seg2 = static_cast<PNS_SEGMENT*>( m_linkedItems[1] );
 
-        return ( vias == 1 && segs == 2 );
+        return seg1->Width() != seg2->Width();
     }
 
     ///> Links the joint to a given board item (when it's added to the PNS_NODE)
@@ -138,6 +143,17 @@ public:
         return static_cast<PNS_SEGMENT*>( m_linkedItems[m_linkedItems[0] == aCurrent ? 1 : 0] );
     }
 
+    PNS_VIA* Via()
+    {
+        BOOST_FOREACH( PNS_ITEM* item, m_linkedItems.Items() )
+        {
+            if( item->OfKind( VIA ) )
+                return static_cast<PNS_VIA*>( item );
+        }
+
+        return NULL;
+    }
+
 
     /// trivial accessors
     const HASH_TAG& Tag() const
@@ -165,7 +181,7 @@ public:
         return m_linkedItems;
     }
 
-    PNS_ITEMSET Links() const
+    PNS_ITEMSET& Links()
     {
         return m_linkedItems;
     }
@@ -189,6 +205,9 @@ public:
 
         m_layers.Merge( aJoint.m_layers );
 
+        if( aJoint.IsLocked() )
+            m_locked = true;
+
         BOOST_FOREACH( PNS_ITEM* item, aJoint.LinkList() )
         {
             m_linkedItems.Add( item );
@@ -201,12 +220,25 @@ public:
             m_tag.net == rhs.m_tag.net && m_layers.Overlaps( rhs.m_layers );
     }
 
+    void Lock( bool aLock = true )
+    {
+        m_locked = aLock;
+    }
+
+    bool IsLocked() const
+    {
+        return m_locked;
+    }
+
 private:
     ///> hash tag for unordered_multimap
     HASH_TAG m_tag;
 
     ///> list of items linked to this joint
     PNS_ITEMSET m_linkedItems;
+
+    ///> locked (non-movable) flag
+    bool m_locked;
 };
 
 inline bool operator==( PNS_JOINT::HASH_TAG const& aP1, PNS_JOINT::HASH_TAG const& aP2 )

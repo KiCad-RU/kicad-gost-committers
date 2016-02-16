@@ -24,6 +24,7 @@
 #include "pns_joint.h"
 #include "pns_solid.h"
 #include "pns_router.h"
+#include "pns_utils.h"
 
 #include "pns_diff_pair.h"
 #include "pns_topology.h"
@@ -36,17 +37,17 @@ bool PNS_TOPOLOGY::SimplifyLine( PNS_LINE* aLine )
         return false;
 
     PNS_SEGMENT* root = ( *aLine->LinkedSegments() )[0];
-    std::auto_ptr<PNS_LINE> l( m_world->AssembleLine( root ) );
-    SHAPE_LINE_CHAIN simplified( l->CLine() );
+    PNS_LINE l = m_world->AssembleLine( root );
+    SHAPE_LINE_CHAIN simplified( l.CLine() );
 
     simplified.Simplify();
 
-    if( simplified.PointCount() != l->PointCount() )
+    if( simplified.PointCount() != l.PointCount() )
     {
-        std::auto_ptr<PNS_LINE> lnew( l->Clone() );
-        m_world->Remove( l.get() );
-        lnew->SetShape( simplified );
-        m_world->Add( lnew.get() );
+        PNS_LINE lnew( l );
+        m_world->Remove( &l );
+        lnew.SetShape( simplified );
+        m_world->Add( &lnew );
         return true;
     }
 
@@ -128,6 +129,7 @@ bool PNS_TOPOLOGY::LeadingRatLine( const PNS_LINE* aTrack, SHAPE_LINE_CHAIN& aRa
     return true;
 }
 
+
 PNS_ITEM* PNS_TOPOLOGY::NearestUnconnectedItem( PNS_JOINT* aStart, int* aAnchor, int aKindMask )
 {
     std::set<PNS_ITEM*> disconnected;
@@ -181,7 +183,7 @@ bool PNS_TOPOLOGY::followTrivialPath( PNS_LINE* aLine, bool aLeft, PNS_ITEMSET& 
 
     aVisited.insert( last );
 
-    if( jt->IsNonFanoutVia() )
+    if( jt->IsNonFanoutVia() || jt->IsTraceWidthChange() )
     {
         PNS_ITEM* via = NULL;
         PNS_SEGMENT* next_seg = NULL;
@@ -197,27 +199,31 @@ bool PNS_TOPOLOGY::followTrivialPath( PNS_LINE* aLine, bool aLeft, PNS_ITEMSET& 
         if( !next_seg )
             return false;
 
-        PNS_LINE* l = m_world->AssembleLine( next_seg );
+        PNS_LINE l = m_world->AssembleLine( next_seg );
 
-        VECTOR2I nextAnchor = ( aLeft ? l->CLine().CPoint( -1 ) : l->CLine().CPoint( 0 ) );
+        VECTOR2I nextAnchor = ( aLeft ? l.CLine().CPoint( -1 ) : l.CLine().CPoint( 0 ) );
 
         if( nextAnchor != anchor )
         {
-            l->Reverse();
+            l.Reverse();
         }
 
         if( aLeft )
         {
-            aSet.Prepend( via );
+            if( via )
+                aSet.Prepend( via );
+
             aSet.Prepend( l );
         }
         else
         {
-            aSet.Add( via );
+            if( via )
+                aSet.Add( via );
+
             aSet.Add( l );
         }
 
-        return followTrivialPath( l, aLeft, aSet, aVisited );
+        return followTrivialPath( &l, aLeft, aSet, aVisited );
     }
 
     return false;
@@ -229,12 +235,12 @@ const PNS_ITEMSET PNS_TOPOLOGY::AssembleTrivialPath( PNS_SEGMENT* aStart )
     PNS_ITEMSET path;
     std::set<PNS_ITEM*> visited;
 
-    PNS_LINE* l = m_world->AssembleLine( aStart );
+    PNS_LINE l = m_world->AssembleLine( aStart );
 
     path.Add( l );
 
-    followTrivialPath( l, false, path, visited );
-    followTrivialPath( l, true, path, visited );
+    followTrivialPath( &l, false, path, visited );
+    followTrivialPath( &l, true, path, visited );
 
     return path;
 }
@@ -320,6 +326,9 @@ int PNS_TOPOLOGY::DpNetPolarity( int aNet )
 }
 
 
+bool commonParallelProjection( SEG n, SEG p, SEG &pClip, SEG& nClip );
+
+
 bool PNS_TOPOLOGY::AssembleDiffPair( PNS_ITEM* aStart, PNS_DIFF_PAIR& aPair )
 {
     int refNet = aStart->Net();
@@ -332,7 +341,7 @@ bool PNS_TOPOLOGY::AssembleDiffPair( PNS_ITEM* aStart, PNS_DIFF_PAIR& aPair )
 
     m_world->AllItemsInNet( coupledNet, coupledItems );
 
-    PNS_SEGMENT *coupledSeg = NULL, *refSeg;
+    PNS_SEGMENT* coupledSeg = NULL, *refSeg;
     int minDist = std::numeric_limits<int>::max();
 
     if( ( refSeg = dyn_cast<PNS_SEGMENT*>( aStart ) ) != NULL )
@@ -344,8 +353,12 @@ bool PNS_TOPOLOGY::AssembleDiffPair( PNS_ITEM* aStart, PNS_DIFF_PAIR& aPair )
                 if( s->Layers().Start() == refSeg->Layers().Start() && s->Width() == refSeg->Width() )
                 {
                     int dist = s->Seg().Distance( refSeg->Seg() );
+		    		bool isParallel = refSeg->Seg().ApproxParallel( s->Seg() );
+                    SEG p_clip, n_clip;
 
-                    if( dist < minDist )
+                    bool isCoupled = commonParallelProjection( refSeg->Seg(), s->Seg(), p_clip, n_clip );
+
+                    if( isParallel && isCoupled && dist < minDist )
                     {
                         minDist = dist;
                         coupledSeg = s;
@@ -353,23 +366,68 @@ bool PNS_TOPOLOGY::AssembleDiffPair( PNS_ITEM* aStart, PNS_DIFF_PAIR& aPair )
                 }
             }
         }
-    } else
+    }
+    else
+    {
         return false;
+    }
 
     if( !coupledSeg )
         return false;
 
-    std::auto_ptr<PNS_LINE> lp ( m_world->AssembleLine( refSeg ) );
-    std::auto_ptr<PNS_LINE> ln ( m_world->AssembleLine( coupledSeg ) );
+    PNS_LINE lp = m_world->AssembleLine( refSeg );
+    PNS_LINE ln = m_world->AssembleLine( coupledSeg );
 
     if( DpNetPolarity( refNet ) < 0 )
     {
         std::swap( lp, ln );
     }
 
-    aPair = PNS_DIFF_PAIR( *lp, *ln );
-    aPair.SetWidth( lp->Width() );
-    aPair.SetLayers( lp->Layers() );
+    int gap = -1;
+
+    if( refSeg->Seg().ApproxParallel( coupledSeg->Seg() ) )
+    {
+        // Segments are parallel -> compute pair gap
+        const VECTOR2I refDir       = refSeg->Anchor( 1 ) - refSeg->Anchor( 0 );
+        const VECTOR2I displacement = refSeg->Anchor( 1 ) - coupledSeg->Anchor( 1 );
+        gap = (int) std::abs( refDir.Cross( displacement ) / refDir.EuclideanNorm() ) - lp.Width();
+    }
+
+    aPair = PNS_DIFF_PAIR( lp, ln );
+    aPair.SetWidth( lp.Width() );
+    aPair.SetLayers( lp.Layers() );
+    aPair.SetGap( gap );
 
     return true;
+}
+
+const std::set<PNS_ITEM*> PNS_TOPOLOGY::AssembleCluster( PNS_ITEM* aStart, int aLayer )
+{
+    std::set<PNS_ITEM*> visited;
+    std::deque<PNS_ITEM*> pending;
+
+    pending.push_back( aStart );
+
+    while( !pending.empty() )
+    {
+        PNS_NODE::OBSTACLES obstacles;
+        PNS_ITEM* top = pending.front();
+
+        pending.pop_front();
+
+        visited.insert( top );
+
+        m_world->QueryColliding( top, obstacles, PNS_ITEM::ANY, -1, false, 0 );
+
+        BOOST_FOREACH( PNS_OBSTACLE& obs, obstacles )
+        {
+            if( visited.find( obs.m_item ) == visited.end() && obs.m_item->Layers().Overlaps( aLayer ) && !( obs.m_item->Marker() & MK_HEAD ) )
+            {
+                visited.insert( obs.m_item );
+                pending.push_back( obs.m_item );
+            }
+        }
+    }
+
+    return visited;
 }

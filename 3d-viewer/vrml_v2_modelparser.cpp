@@ -1314,7 +1314,8 @@ int VRML2_MODEL_PARSER::read_Material()
         if( strcmp( text, "diffuseColor" ) == 0 )
         {
             ParseVertex( m_file, vertex );
-            m_model->m_Materials->m_DiffuseColor.push_back( vertex );
+            if( m_model->m_Materials->m_DiffuseColor.empty() )
+                m_model->m_Materials->m_DiffuseColor.push_back( vertex );
         }
         else if( strcmp( text, "emissiveColor" ) == 0 )
         {
@@ -1640,6 +1641,12 @@ int VRML2_MODEL_PARSER::read_Color()
 
         if( strcmp( text, "color" ) == 0 )
         {
+            if( m_model->m_Materials == NULL )
+            {
+                m_model->m_Materials = new S3D_MATERIAL( m_Master, "" );
+                m_Master->Insert( m_model->m_Materials );
+            }
+
             m_model->m_Materials->m_DiffuseColor.clear();
             ParseVertexList( m_file, m_model->m_Materials->m_DiffuseColor );
         }
@@ -1669,9 +1676,18 @@ int VRML2_MODEL_PARSER::read_Normal()
         {
             // Debug
             if( m_normalPerVertex == false )
-                wxLogTrace( traceVrmlV2Parser, m_debugSpacer + wxT( "read_Normal m_PerFaceNormalsNormalized.size: %zu" ), m_model->m_PerFaceNormalsNormalized.size() );
+            {
+                wxLogTrace( traceVrmlV2Parser,
+                            m_debugSpacer + wxT( "read_Normal m_PerFaceNormalsNormalized.size: %zu" ),
+                            m_model->m_PerFaceNormalsNormalized.size() );
+            }
             else
-                wxLogTrace( traceVrmlV2Parser, m_debugSpacer + wxT( "read_Normal m_PerVertexNormalsNormalized.size: %zu" ), m_model->m_PerVertexNormalsNormalized.size() );
+            {
+                wxLogTrace( traceVrmlV2Parser,
+                            m_debugSpacer + wxT( "read_Normal m_PerVertexNormalsNormalized.size: %zu" ),
+                            m_model->m_PerVertexNormalsNormalized.size() );
+            }
+
             debug_exit();
             wxLogTrace( traceVrmlV2Parser, m_debugSpacer + wxT( "read_Normal exit" ) );
             return 0;

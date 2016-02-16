@@ -16,6 +16,7 @@ include_directories(
     ../pcbnew/dialogs
     ../polygon
     ../common
+    ${GLM_INCLUDE_DIR}
     ${INC_AFTER}
     )
 
@@ -45,7 +46,7 @@ set( CVPCB_SRCS
     class_DisplayFootprintsFrame.cpp
     class_footprints_listbox.cpp
     class_library_listbox.cpp
-    cvframe.cpp
+    cvpcb_mainframe.cpp
     listboxes.cpp
     menubar.cpp
     readwrite_dlgs.cpp
@@ -56,6 +57,8 @@ set( CVPCB_SRCS
 if( MINGW )
     # CVPCB_RESOURCES variable is set by the macro.
     mingw_resource_compiler( cvpcb )
+else()
+    set( CVPCB_RESOURCES cvpcb.rc )
 endif()
 
 
@@ -69,7 +72,7 @@ if( false )
         MACOSX_PACKAGE_LOCATION Resources
         )
     set( MACOSX_BUNDLE_ICON_FILE cvpcb.icns )
-    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.kicad )
+    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-pcb.kicad )
     set( MACOSX_BUNDLE_NAME cvpcb )
 endif()
 

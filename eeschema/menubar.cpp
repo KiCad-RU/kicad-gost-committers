@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2014 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2009-2014 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2014 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,9 +40,7 @@
 
 #include <help_common_strings.h>
 
-/**
- * @brief (Re)Create the menubar for the schematic frame
- */
+
 void SCH_EDIT_FRAME::ReCreateMenuBar()
 {
     // Create and try to get the current menubar
@@ -102,8 +100,8 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     }
 
     AddMenuItem( fileMenu,
-                 ID_APPEND_PROJECT, _( "App&end Schematic Sheet" ),
-                 _( "Append schematic sheet to current project" ),
+                 ID_APPEND_PROJECT, _( "Imp&ort Schematic Sheet Content" ),
+                 _( "Import a schematic sheet content from an other project in the current sheet" ),
                  KiBitmap( open_document_xpm ) );
 
     fileMenu->AppendSeparator();
@@ -377,13 +375,6 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                  _( "Configure component libraries and paths" ),
                  KiBitmap( library_xpm ) );
 
-    // Colors
-    AddMenuItem( preferencesMenu,
-                 ID_COLORS_SETUP,
-                 _( "Set &Colors Scheme" ),
-                 _( "Set color preferences" ),
-                 KiBitmap( palette_xpm ) );
-
     // Options (Preferences on WXMAC)
 
 #ifdef __WXMAC__
@@ -400,26 +391,57 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     // Language submenu
     Pgm().AddMenuLanguageList( preferencesMenu );
 
-    // Hotkey submenu
-    AddHotkeyConfigMenu( preferencesMenu );
+    // Import/export
+    wxMenu* importExportSubmenu = new wxMenu();
 
-    // Separator
-    preferencesMenu->AppendSeparator();
-
-    AddMenuItem( preferencesMenu,
+    AddMenuItem( importExportSubmenu,
                  ID_CONFIG_SAVE,
                  _( "&Save Preferences" ),
                  _( "Save application preferences" ),
-                 KiBitmap( save_setup_xpm ) );
+                 wxNullBitmap );
 
-    AddMenuItem( preferencesMenu,
+    AddMenuItem( importExportSubmenu,
                  ID_CONFIG_READ,
                  _( "Load Prefe&rences" ),
                  _( "Load application preferences" ),
-                 KiBitmap( read_setup_xpm ) );
+                 wxNullBitmap );
+
+    AddMenuItem( importExportSubmenu,
+                 ID_PREFERENCES_HOTKEY_EXPORT_CONFIG,
+                 _( "E&xport Hotkeys" ),
+                 _( "Create a hotkey configuration file to export the current hotkeys" ),
+                 wxNullBitmap );
+
+    AddMenuItem( importExportSubmenu,
+                 ID_PREFERENCES_HOTKEY_IMPORT_CONFIG,
+                 _( "&Import Hotkeys" ),
+                 _( "Load an existing hotkey configuration file" ),
+                 wxNullBitmap );
+
+    AddMenuItem( preferencesMenu, importExportSubmenu,
+                 wxID_ANY,
+                 _( "&Import and export" ),
+                 _( "Import and export settings" ),
+                 KiBitmap( save_setup_xpm ) );
 
     // Menu Tools:
     wxMenu* toolsMenu = new wxMenu;
+
+    text = AddHotkeyName( _( "Update PCB from Schematics" ), g_Schematic_Hokeys_Descr, HK_UPDATE_PCB_FROM_SCH );
+
+    AddMenuItem( toolsMenu,
+                 ID_UPDATE_PCB_FROM_SCH,
+                 text, _( "Updates the PCB design with the current schematic (forward annotation)." ),
+                 KiBitmap( pcbnew_xpm ) );
+
+    // Run Pcbnew
+    AddMenuItem( toolsMenu,
+                 ID_RUN_PCB,
+                 _( "&Open PCB Editor" ),
+                 _( "Run Pcbnew" ),
+                 KiBitmap( pcbnew_xpm ) );
+
+    toolsMenu->AppendSeparator();
 
     AddMenuItem( toolsMenu,
                  ID_RUN_LIBRARY,
@@ -433,8 +455,8 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
 
     AddMenuItem( toolsMenu,
                  ID_RESCUE_CACHED,
-                 _( "&Rescue Cached Components" ),
-                 _( "Find old components in the project cache and rescue them to a new library" ),
+                 _( "&Rescue Old Components" ),
+                 _( "Find old components in the project and rename/rescue them" ),
                  KiBitmap( copycomponent_xpm ) );
 
     toolsMenu->AppendSeparator();
@@ -490,22 +512,12 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
 
     toolsMenu->AppendSeparator();
 
-    if( !Kiface().IsSingle() )   // only with a functional KIWAY, not single_top
-    {
-        // Run CvPcb
-        AddMenuItem( toolsMenu,
-                     ID_RUN_CVPCB,
-                     _( "A&ssign Component Footprint" ),
-                     _( "Run CvPcb" ),
-                     KiBitmap( cvpcb_xpm ) );
-    }
-
-    // Run Pcbnew
+    // Run CvPcb
     AddMenuItem( toolsMenu,
-                 ID_RUN_PCB,
-                 _( "&Layout Printed Circuit Board" ),
-                 _( "Run Pcbnew" ),
-                 KiBitmap( pcbnew_xpm ) );
+                 ID_RUN_CVPCB,
+                 _( "A&ssign Component Footprints" ),
+                 _( "Run CvPcb" ),
+                 KiBitmap( cvpcb_xpm ) );
 
     // Help Menu:
     wxMenu* helpMenu = new wxMenu;
@@ -515,8 +527,8 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
 
     AddMenuItem( helpMenu,
                  wxID_HELP,
-                 _( "Eesc&hema Manual" ),
-                 _( "Open Eeschema manual" ),
+                 _( "Eeschema &Manual" ),
+                 _( "Open Eeschema Manual" ),
                  KiBitmap( online_help_xpm ) );
 
     AddMenuItem( helpMenu,
@@ -528,8 +540,8 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     helpMenu->AppendSeparator();
     AddMenuItem( helpMenu,
                  wxID_ABOUT,
-                 _( "&About Eeschema" ),
-                 _( "About Eeschema schematic designer" ),
+                 _( "&About KiCad" ),
+                 _( "About KiCad" ),
                  KiBitmap( info_xpm ) );
 
     // Create the menubar and append all submenus

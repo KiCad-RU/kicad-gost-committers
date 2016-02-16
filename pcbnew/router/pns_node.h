@@ -66,6 +66,8 @@ public:
     virtual int operator()( const PNS_ITEM* aA, const PNS_ITEM* aB );
     virtual void OverrideClearance (bool aEnable, int aNetA = 0, int aNetB = 0, int aClearance = 0);
 
+    void UseDpGap( bool aUseDpGap ) { m_useDpGap = aUseDpGap; }
+
 private:
     struct CLEARANCE_ENT {
         int coupledNet;
@@ -80,6 +82,7 @@ private:
     bool m_overrideEnabled;
     int m_overrideNetA, m_overrideNetB;
     int m_overrideClearance;
+    bool m_useDpGap;
 };
 
 /**
@@ -135,8 +138,8 @@ public:
     typedef std::vector<PNS_ITEM*>          ITEM_VECTOR;
     typedef std::vector<PNS_OBSTACLE>       OBSTACLES;
 
-    PNS_NODE ();
-    ~PNS_NODE ();
+    PNS_NODE();
+    ~PNS_NODE();
 
     ///> Returns the expected clearance between items a and b.
     int GetClearance( const PNS_ITEM* aA, const PNS_ITEM* aB ) const;
@@ -184,7 +187,9 @@ public:
     int QueryColliding( const PNS_ITEM* aItem,
                         OBSTACLES&      aObstacles,
                         int             aKindMask = PNS_ITEM::ANY,
-                        int             aLimitCount = -1 );
+                        int             aLimitCount = -1,
+                        bool            aDifferentNetsOnly = true,
+                        int             aForceClearance = -1 );
 
     /**
      * Function NearestObstacle()
@@ -195,8 +200,9 @@ public:
      * @param aKindMask mask of obstacle types to take into account
      * @return the obstacle, if found, otherwise empty.
      */
-    OPT_OBSTACLE NearestObstacle( const PNS_LINE*   aItem,
-                                  int               aKindMask = PNS_ITEM::ANY );
+    OPT_OBSTACLE NearestObstacle( const PNS_LINE*   		 aItem,
+                                  int                		 aKindMask = PNS_ITEM::ANY,
+                                  const std::set<PNS_ITEM*>* aRestrictedSet = NULL );
 
     /**
      * Function CheckColliding()
@@ -303,7 +309,8 @@ public:
      * @param aOriginSegmentIndex index of aSeg in the resulting line
      * @return the line
      */
-    PNS_LINE* AssembleLine( PNS_SEGMENT* aSeg, int* aOriginSegmentIndex = NULL );
+    const PNS_LINE AssembleLine( PNS_SEGMENT* aSeg, int* aOriginSegmentIndex = NULL,
+                                 bool aStopAtLockedJoints = false );
 
     ///> Prints the contents and joints structure
     void Dump( bool aLong = false );
@@ -335,6 +342,8 @@ public:
      */
     PNS_JOINT* FindJoint( const VECTOR2I& aPos, int aLayer, int aNet );
 
+    void LockJoint( const VECTOR2I& aPos, const PNS_ITEM* aItem, bool aLock );
+
     /**
      * Function FindJoint()
      *
@@ -357,10 +366,10 @@ public:
     ///> finds all lines between a pair of joints. Used by the loop removal procedure.
     int FindLinesBetweenJoints( PNS_JOINT&                  aA,
                                 PNS_JOINT&                  aB,
-                                std::vector<PNS_LINE*>&     aLines );
+                                std::vector<PNS_LINE>&      aLines );
 
     ///> finds the joints corresponding to the ends of line aLine
-    void FindLineEnds( PNS_LINE* aLine, PNS_JOINT& aA, PNS_JOINT& aB );
+    void FindLineEnds( const PNS_LINE& aLine, PNS_JOINT& aA, PNS_JOINT& aB );
 
     ///> Destroys all child nodes. Applicable only to the root node.
     void KillChildren();
@@ -372,6 +381,13 @@ public:
     int FindByMarker( int aMarker, PNS_ITEMSET& aItems );
     int RemoveByMarker( int aMarker );
     void SetCollisionFilter( PNS_COLLISION_FILTER* aFilter );
+
+    PNS_ITEM* FindItemByParent( const BOARD_CONNECTED_ITEM *aParent );
+
+    bool HasChildren() const
+    {
+        return !m_children.empty();
+    }
 
 private:
     struct OBSTACLE_VISITOR;
@@ -408,6 +424,7 @@ private:
     void doRemove( PNS_ITEM* aItem );
     void unlinkParent();
     void releaseChildren();
+    void releaseGarbage();
 
     bool isRoot() const
     {
@@ -421,7 +438,7 @@ private:
         return m_override.find( aItem ) != m_override.end();
     }
 
-    PNS_SEGMENT *findRedundantSegment ( PNS_SEGMENT* aSeg );
+    PNS_SEGMENT* findRedundantSegment( PNS_SEGMENT* aSeg );
 
     ///> scans the joint map, forming a line starting from segment (current).
     void followLine( PNS_SEGMENT*    aCurrent,
@@ -430,7 +447,8 @@ private:
                      int             aLimit,
                      VECTOR2I*       aCorners,
                      PNS_SEGMENT**   aSegments,
-                     bool&           aGuardHit );
+                     bool&           aGuardHit,
+                     bool            aStopAtLockedJoints );
 
     ///> hash table with the joints, linking the items. Joints are hashed by
     ///> their position, layer set and net.
@@ -443,7 +461,7 @@ private:
     PNS_NODE* m_root;
 
     ///> list of nodes branched from this one
-    std::vector<PNS_NODE*> m_children;
+    std::set<PNS_NODE*> m_children;
 
     ///> hash of root's items that have been changed in this node
     boost::unordered_set<PNS_ITEM*> m_override;
@@ -461,7 +479,9 @@ private:
     int m_depth;
 
     ///> optional collision filtering object
-    PNS_COLLISION_FILTER *m_collisionFilter;
+    PNS_COLLISION_FILTER* m_collisionFilter;
+
+    boost::unordered_set<PNS_ITEM*> m_garbageItems;
 };
 
 #endif

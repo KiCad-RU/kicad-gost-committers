@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2015 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -38,6 +38,9 @@ class PCB_BASE_FRAME;
 class SELECTION_AREA;
 class BOARD_ITEM;
 class GENERAL_COLLECTOR;
+class SELECT_MENU;
+class ZOOM_MENU;
+class GRID_MENU;
 
 namespace KIGFX
 {
@@ -71,7 +74,16 @@ struct SELECTION
         return static_cast<T*>( items.GetPickedItem( aIndex ) );
     }
 
+    /// Returns the center point of the selection area bounding box.
     VECTOR2I GetCenter() const;
+
+    /// Runs a function on all selected items.
+    template <typename T>
+    void ForAll( boost::function<void (T*)> aFunction ) const
+    {
+        for( unsigned int i = 0; i < items.GetCount(); ++i )
+            aFunction( Item<T>( i ) );
+    }
 
 private:
     /// Clears both the VIEW_GROUP and set of selected items. Please note that it does not
@@ -123,12 +135,7 @@ public:
      *
      * Returns the set of currently selected items.
      */
-    inline const SELECTION& GetSelection()
-    {
-        // The selected items list has been requested, so it is no longer preliminary
-        m_preliminary = false;
-        return m_selection;
-    }
+    const SELECTION& GetSelection();
 
     /**
      * Function EditModules()
@@ -180,7 +187,7 @@ public:
 
 private:
     /**
-     * Function selectCursor()
+     * Function selectPoint()
      * Selects an item pointed by the parameter aWhere. If there is more than one item at that
      * place, there is a menu displayed that allows to choose the item.
      *
@@ -189,7 +196,16 @@ private:
      * a menu is shown, otherise function finishes without selecting anything.
      * @return True if an item was selected, false otherwise.
      */
-    bool selectCursor( const VECTOR2I& aWhere, bool aOnDrag = false );
+    bool selectPoint( const VECTOR2I& aWhere, bool aOnDrag = false );
+
+    /**
+     * Function selectCursor()
+     * Selects an item under the cursor unless there is something already selected or aSelectAlways
+     * is true.
+     * @param aSelectAlways forces to select an item even if there is an item already selected.
+     * @return true if eventually there is an item selected, false otherwise.
+     */
+    bool selectCursor( bool aSelectAlways = false );
 
     /**
      * Function selectMultiple()
@@ -255,6 +271,15 @@ private:
      * @return True if the item fulfills conditions to be selected.
      */
     bool selectable( const BOARD_ITEM* aItem ) const;
+
+    /**
+     * Function modifiable()
+     * Checks if an item might be modified. This function is used to filter out items
+     * from the selection when it is passed to other tools.
+     *
+     * @return True if the item fulfills conditions to be modified.
+     */
+    bool modifiable( const BOARD_ITEM* aItem ) const;
 
     /**
      * Function select()
@@ -325,6 +350,12 @@ private:
 
     /// Menu displayed by the tool.
     CONDITIONAL_MENU m_menu;
+
+    /// Pointers to context menus
+    CONTEXT_MENU* m_contextMenu;
+    SELECT_MENU* m_selectMenu;
+    ZOOM_MENU* m_zoomMenu;
+    GRID_MENU* m_gridMenu;
 };
 
 #endif

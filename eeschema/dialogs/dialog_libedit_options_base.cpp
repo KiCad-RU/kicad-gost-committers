@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar  9 2015)
+// C++ code generated with wxFormBuilder (version Mar 13 2015)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -30,7 +30,7 @@ DIALOG_LIBEDIT_OPTIONS_BASE::DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWi
 	fgSizer->AddGrowableCol( 0 );
 	fgSizer->AddGrowableCol( 1 );
 	fgSizer->AddGrowableCol( 2 );
-	fgSizer->SetFlexibleDirection( wxHORIZONTAL );
+	fgSizer->SetFlexibleDirection( wxBOTH );
 	fgSizer->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 	
 	m_staticText3 = new wxStaticText( this, wxID_ANY, _("&Grid size:"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -46,7 +46,7 @@ DIALOG_LIBEDIT_OPTIONS_BASE::DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWi
 	m_staticGridUnits->Wrap( -1 );
 	fgSizer->Add( m_staticGridUnits, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
 	
-	m_staticText5 = new wxStaticText( this, wxID_ANY, _("Default &line width:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText5 = new wxStaticText( this, wxID_ANY, _("&Default line width:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText5->Wrap( -1 );
 	fgSizer->Add( m_staticText5, 1, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
 	
@@ -57,7 +57,7 @@ DIALOG_LIBEDIT_OPTIONS_BASE::DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWi
 	m_staticLineWidthUnits->Wrap( -1 );
 	fgSizer->Add( m_staticLineWidthUnits, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
 	
-	m_staticText52 = new wxStaticText( this, wxID_ANY, _("Default pin length:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText52 = new wxStaticText( this, wxID_ANY, _("D&efault pin length:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText52->Wrap( -1 );
 	fgSizer->Add( m_staticText52, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3 );
 	
@@ -68,7 +68,7 @@ DIALOG_LIBEDIT_OPTIONS_BASE::DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWi
 	m_staticPinLengthUnits->Wrap( -1 );
 	fgSizer->Add( m_staticPinLengthUnits, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3 );
 	
-	m_staticText7 = new wxStaticText( this, wxID_ANY, _("Default pin num &size:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText7 = new wxStaticText( this, wxID_ANY, _("De&fault pin number size:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText7->Wrap( -1 );
 	fgSizer->Add( m_staticText7, 1, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
 	
@@ -79,7 +79,7 @@ DIALOG_LIBEDIT_OPTIONS_BASE::DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWi
 	m_staticTextSizeUnits->Wrap( -1 );
 	fgSizer->Add( m_staticTextSizeUnits, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
 	
-	m_staticText9 = new wxStaticText( this, wxID_ANY, _("Default pin &name size:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText9 = new wxStaticText( this, wxID_ANY, _("Def&ault pin name size:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText9->Wrap( -1 );
 	fgSizer->Add( m_staticText9, 1, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
 	
@@ -90,31 +90,31 @@ DIALOG_LIBEDIT_OPTIONS_BASE::DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWi
 	m_staticRepeatXUnits->Wrap( -1 );
 	fgSizer->Add( m_staticRepeatXUnits, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
 	
-	m_staticText11 = new wxStaticText( this, wxID_ANY, _("Repeat draw item &horizontal displacement:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText11 = new wxStaticText( this, wxID_ANY, _("&Horizontal pitch of repeated items:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText11->Wrap( -1 );
-	fgSizer->Add( m_staticText11, 0, wxALL, 5 );
+	fgSizer->Add( m_staticText11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
 	m_spinRepeatHorizontal = new wxSpinCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, -1000, 1000, 0 );
 	fgSizer->Add( m_spinRepeatHorizontal, 0, wxALL|wxEXPAND, 5 );
 	
 	m_staticText12 = new wxStaticText( this, wxID_ANY, _("mils"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText12->Wrap( -1 );
-	fgSizer->Add( m_staticText12, 0, wxALL, 5 );
+	fgSizer->Add( m_staticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
-	m_staticText13 = new wxStaticText( this, wxID_ANY, _("Repeat draw item &vertical displacement:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText13 = new wxStaticText( this, wxID_ANY, _("&Vertical pitch of repeated items:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText13->Wrap( -1 );
-	fgSizer->Add( m_staticText13, 0, wxALL, 5 );
+	fgSizer->Add( m_staticText13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
 	m_spinRepeatVertical = new wxSpinCtrl( this, wxID_ANY, wxT("100"), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, -1000, 1000, 0 );
 	fgSizer->Add( m_spinRepeatVertical, 0, wxALL|wxEXPAND, 5 );
 	
 	m_staticText14 = new wxStaticText( this, wxID_ANY, _("mils"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText14->Wrap( -1 );
-	fgSizer->Add( m_staticText14, 0, wxALL, 5 );
+	fgSizer->Add( m_staticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
-	m_staticText15 = new wxStaticText( this, wxID_ANY, _("Repeat pin displacement"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText15 = new wxStaticText( this, wxID_ANY, _("&Pitch of repeated pins:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText15->Wrap( -1 );
-	fgSizer->Add( m_staticText15, 0, wxALL, 5 );
+	fgSizer->Add( m_staticText15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
 	wxString m_choicePinDisplacementChoices[] = { _("100"), _("50") };
 	int m_choicePinDisplacementNChoices = sizeof( m_choicePinDisplacementChoices ) / sizeof( wxString );
@@ -124,17 +124,28 @@ DIALOG_LIBEDIT_OPTIONS_BASE::DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWi
 	
 	m_staticText16 = new wxStaticText( this, wxID_ANY, _("mils"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText16->Wrap( -1 );
-	fgSizer->Add( m_staticText16, 0, wxALL, 5 );
+	fgSizer->Add( m_staticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
-	m_staticText17 = new wxStaticText( this, wxID_ANY, _("&Repeat label increment:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText17 = new wxStaticText( this, wxID_ANY, _("&Increment of repeated labels:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText17->Wrap( -1 );
-	fgSizer->Add( m_staticText17, 0, wxALL, 5 );
+	fgSizer->Add( m_staticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
 	m_spinRepeatLabel = new wxSpinCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, -10, 10, 1 );
 	fgSizer->Add( m_spinRepeatLabel, 0, wxALL|wxEXPAND, 5 );
 	
 	
 	fgSizer->Add( 0, 0, 0, 0, 5 );
+	
+	m_stMaxUndoItems = new wxStaticText( this, wxID_ANY, _("Ma&ximum undo items (0 = unlimited):"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_stMaxUndoItems->Wrap( -1 );
+	fgSizer->Add( m_stMaxUndoItems, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+	
+	m_spinMaxUndoItems = new wxSpinCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 65536, 0 );
+	fgSizer->Add( m_spinMaxUndoItems, 0, wxALL|wxEXPAND, 5 );
+	
+	m_stMaxUndoItemsUnit = new wxStaticText( this, wxID_ANY, _("actions"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_stMaxUndoItemsUnit->Wrap( -1 );
+	fgSizer->Add( m_stMaxUndoItemsUnit, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
 	
 	bSizer3->Add( fgSizer, 0, wxEXPAND, 0 );
@@ -145,7 +156,7 @@ DIALOG_LIBEDIT_OPTIONS_BASE::DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWi
 	m_staticline3 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
 	bSizer2->Add( m_staticline3, 0, wxEXPAND | wxALL, 5 );
 	
-	m_checkShowGrid = new wxCheckBox( this, wxID_ANY, _("Show gr&id"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_checkShowGrid = new wxCheckBox( this, wxID_ANY, _("&Show grid"), wxDefaultPosition, wxDefaultSize, 0 );
 	bSizer2->Add( m_checkShowGrid, 0, wxTOP|wxRIGHT|wxLEFT|wxEXPAND, 3 );
 	
 	

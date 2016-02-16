@@ -60,7 +60,6 @@ bool PNS_MEANDER_SKEW_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
 
     p = m_initialSegment->Seg().NearestPoint( aP );
 
-    m_originLine = NULL;
     m_currentNode = NULL;
     m_currentStart = p;
 
@@ -78,24 +77,25 @@ bool PNS_MEANDER_SKEW_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
         return false;
     }
 
-    m_originPair.SetGap ( Router()->Sizes().DiffPairGap() );
+    if( m_originPair.Gap() < 0 )
+        m_originPair.SetGap( Router()->Sizes().DiffPairGap() );
 
     if( !m_originPair.PLine().SegmentCount() ||
         !m_originPair.NLine().SegmentCount() )
         return false;
 
-    m_tunedPathP = topo.AssembleTrivialPath ( m_originPair.PLine().GetLink( 0 ) );
-    m_tunedPathN = topo.AssembleTrivialPath ( m_originPair.NLine().GetLink( 0 ) );
+    m_tunedPathP = topo.AssembleTrivialPath( m_originPair.PLine().GetLink( 0 ) );
+    m_tunedPathN = topo.AssembleTrivialPath( m_originPair.NLine().GetLink( 0 ) );
 
-    m_world->Remove( m_originLine );
+    m_world->Remove( &m_originLine );
 
-    m_currentWidth = m_originLine->Width( );
+    m_currentWidth = m_originLine.Width();
     m_currentEnd = VECTOR2I( 0, 0 );
 
-    if ( m_originPair.PLine().Net () == m_originLine->Net() )
-        m_coupledLength = itemsetLength ( m_tunedPathN );
+    if ( m_originPair.PLine().Net() == m_originLine.Net() )
+        m_coupledLength = itemsetLength( m_tunedPathN );
     else
-        m_coupledLength = itemsetLength ( m_tunedPathP );
+        m_coupledLength = itemsetLength( m_tunedPathP );
 
     return true;
 }
@@ -130,6 +130,18 @@ int PNS_MEANDER_SKEW_PLACER::currentSkew() const
 
 bool PNS_MEANDER_SKEW_PLACER::Move( const VECTOR2I& aP, PNS_ITEM* aEndItem )
 {
+	BOOST_FOREACH( const PNS_ITEM* item, m_tunedPathP.CItems() )
+    {
+        if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
+            Router()->DisplayDebugLine( l->CLine(), 5, 10000 );
+    }
+
+    BOOST_FOREACH( const PNS_ITEM* item, m_tunedPathN.CItems() )
+    {
+        if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
+            Router()->DisplayDebugLine( l->CLine(), 4, 10000 );
+    }
+
     return doMove( aP, aEndItem, m_coupledLength + m_settings.m_targetSkew );
 }
 
@@ -140,17 +152,17 @@ const wxString PNS_MEANDER_SKEW_PLACER::TuningInfo() const
 
     switch( m_lastStatus )
     {
-        case TOO_LONG:
-            status = _( "Too long: skew " );
-            break;
-        case TOO_SHORT:
-            status = _( "Too short: skew " );
-            break;
-        case TUNED:
-            status = _( "Tuned: skew " );
-            break;
-        default:
-            return _( "?" );
+    case TOO_LONG:
+        status = _( "Too long: skew " );
+        break;
+    case TOO_SHORT:
+        status = _( "Too short: skew " );
+        break;
+    case TUNED:
+        status = _( "Tuned: skew " );
+        break;
+    default:
+        return _( "?" );
     }
 
     status += LengthDoubleToString( (double) m_lastLength - m_coupledLength, false );

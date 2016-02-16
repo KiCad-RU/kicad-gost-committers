@@ -33,12 +33,12 @@
 #include <wx/clipbrd.h>
 #include <wx/statline.h>
 #include <wx/platinfo.h>
+#include <wx/stdpaths.h>
 
 #include <build_version.h>
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <kiface_i.h>
-#include <online_help.h>
 #include <id.h>
 #include <eda_doc.h>
 #include <wxstruct.h>
@@ -61,6 +61,8 @@ static const wxChar entryAutoSaveInterval[] = wxT( "AutoSaveInterval" );
 /// Configuration file entry for wxAuiManger perspective.
 static const wxChar entryPerspective[] = wxT( "Perspective" );
 
+/// Configuration file entry for most recently used path.
+static const wxChar entryMruPath[] = wxT( "MostRecentlyUsedPath" );
 
 
 EDA_BASE_FRAME::EDA_BASE_FRAME( wxWindow* aParent, FRAME_T aFrameType,
@@ -76,7 +78,7 @@ EDA_BASE_FRAME::EDA_BASE_FRAME( wxWindow* aParent, FRAME_T aFrameType,
     m_autoSaveState = false;
     m_autoSaveInterval = -1;
     m_autoSaveTimer = new wxTimer( this, ID_AUTO_SAVE_TIMER );
-
+    m_mruPath = wxStandardPaths::Get().GetDocumentsDir();
     minsize.x = 470;
     minsize.y = 350;
 
@@ -164,7 +166,8 @@ bool EDA_BASE_FRAME::ProcessEvent( wxEvent& aEvent )
     if( !wxFrame::ProcessEvent( aEvent ) )
         return false;
 
-    if( m_hasAutoSave && (m_autoSaveState != isAutoSaveRequired()) && (m_autoSaveInterval > 0) )
+    if( IsShown() && m_hasAutoSave &&
+        (m_autoSaveState != isAutoSaveRequired()) && (m_autoSaveInterval > 0) )
     {
         if( !m_autoSaveState )
         {
@@ -226,7 +229,7 @@ void EDA_BASE_FRAME::LoadSettings( wxConfigBase* aCfg )
 {
     int maximized = 0;
 
-    wxString baseCfgName = GetName();
+    wxString baseCfgName = ConfigBaseName();
 
     wxString text = baseCfgName + wxT( "Pos_x" );
     aCfg->Read( text, &m_FramePos.x );
@@ -264,6 +267,7 @@ void EDA_BASE_FRAME::LoadSettings( wxConfigBase* aCfg )
         Maximize();
 
     aCfg->Read( baseCfgName + entryPerspective, &m_perspective );
+    aCfg->Read( baseCfgName + entryMruPath, &m_mruPath );
 }
 
 
@@ -274,7 +278,7 @@ void EDA_BASE_FRAME::SaveSettings( wxConfigBase* aCfg )
     if( IsIconized() )
         return;
 
-    wxString baseCfgName = GetName();
+    wxString baseCfgName = ConfigBaseName();
 
     m_FrameSize = GetSize();
     m_FramePos  = GetPosition();
@@ -308,6 +312,7 @@ void EDA_BASE_FRAME::SaveSettings( wxConfigBase* aCfg )
     // printf( "perspective(%s): %s\n",
     //    TO_UTF8( m_FrameName + entryPerspective ), TO_UTF8( perspective ) );
     aCfg->Write( baseCfgName + entryPerspective, perspective );
+    aCfg->Write( baseCfgName + entryMruPath, m_mruPath );
 }
 
 
@@ -520,7 +525,6 @@ void EDA_BASE_FRAME::AddHelpVersionInfoMenuEntry( wxMenu* aMenu )
     #define __BO_COMPILER ",unknown"
 #endif
 
-#if wxCHECK_VERSION( 2, 9, 0 )
 
 static inline const char* KICAD_BUILD_OPTIONS_SIGNATURE()
 {
@@ -531,31 +535,10 @@ static inline const char* KICAD_BUILD_OPTIONS_SIGNATURE()
     " (release,"
 #endif
     __WX_BO_UNICODE __ABI_VERSION __BO_COMPILER __WX_BO_STL
-
-#if !wxCHECK_VERSION( 3, 0, 0 )
-    __WX_BO_WXWIN_COMPAT_2_6
-#endif
-
     __WX_BO_WXWIN_COMPAT_2_8 ")"
     ;
 }
 
-#else
-
-static inline const char* KICAD_BUILD_OPTIONS_SIGNATURE()
-{
-    return
-#ifdef __WXDEBUG__
-    " (debug,"
-#else
-    " (release,"
-#endif
-    __WX_BO_UNICODE __ABI_VERSION __BO_COMPILER __WX_BO_STL
-    __WX_BO_WXWIN_COMPAT_2_6 __WX_BO_WXWIN_COMPAT_2_8 ")"
-    ;
-}
-
-#endif
 
 void EDA_BASE_FRAME::CopyVersionInfoToClipboard( wxCommandEvent&  event )
 {

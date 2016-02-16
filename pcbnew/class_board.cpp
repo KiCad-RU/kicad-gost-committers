@@ -10,7 +10,7 @@
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
  *
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -182,12 +182,13 @@ void BOARD::Move( const wxPoint& aMoveVector )        // overload
 }
 
 
-void BOARD::chainMarkedSegments( wxPoint aPosition, LSET aLayerMask, TRACK_PTRS* aList )
+void BOARD::chainMarkedSegments( wxPoint aPosition, const LSET& aLayerMask, TRACK_PTRS* aList )
 {
     TRACK*  segment;            // The current segment being analyzed.
     TRACK*  via;                // The via identified, eventually destroy
     TRACK*  candidate;          // The end segment to destroy (or NULL = segment)
     int     NbSegm;
+    LSET    layer_set = aLayerMask;
 
     if( !m_Track )
         return;
@@ -201,13 +202,13 @@ void BOARD::chainMarkedSegments( wxPoint aPosition, LSET aLayerMask, TRACK_PTRS*
      * on other layers and they change the layer mask.  They can be a track
      * end or not.  They will be analyzer later and vias on terminal points
      * of the track will be considered as part of this track if they do not
-     * connect segments of an other track together and will be considered as
+     * connect segments of another track together and will be considered as
      * part of an other track when removing the via, the segments of that other
      * track are disconnected.
      */
     for( ; ; )
     {
-        if( GetPad( aPosition, aLayerMask ) != NULL )
+        if( GetPad( aPosition, layer_set ) != NULL )
             return;
 
         /* Test for a via: a via changes the layer mask and can connect a lot
@@ -217,11 +218,11 @@ void BOARD::chainMarkedSegments( wxPoint aPosition, LSET aLayerMask, TRACK_PTRS*
          * is found we do not know at this time the number of connected items
          * and we do not know if this via is on the track or finish the track
          */
-        via = m_Track->GetVia( NULL, aPosition, aLayerMask );
+        via = m_Track->GetVia( NULL, aPosition, layer_set );
 
         if( via )
         {
-            aLayerMask = via->GetLayerSet();
+            layer_set = via->GetLayerSet();
 
             aList->push_back( via );
         }
@@ -235,7 +236,7 @@ void BOARD::chainMarkedSegments( wxPoint aPosition, LSET aLayerMask, TRACK_PTRS*
         candidate = NULL;
         NbSegm  = 0;
 
-        while( ( segment = ::GetTrack( segment, NULL, aPosition, aLayerMask ) ) != NULL )
+        while( ( segment = ::GetTrack( segment, NULL, aPosition, layer_set ) ) != NULL )
         {
             if( segment->GetState( BUSY ) ) // already found and selected: skip it
             {
@@ -251,25 +252,23 @@ void BOARD::chainMarkedSegments( wxPoint aPosition, LSET aLayerMask, TRACK_PTRS*
 
             NbSegm++;
 
-            if( NbSegm == 1 ) /* First time we found a connected item: segment is candidate */
+            if( NbSegm == 1 ) // First time we found a connected item: segment is candidate
             {
                 candidate = segment;
                 segment = segment->Next();
             }
-            else /* More than 1 segment connected -> this location is an end of the track */
+            else // More than 1 segment connected -> this location is an end of the track
             {
                 return;
             }
         }
 
-        if( candidate )      // A candidate is found: flag it an push it in list
+        if( candidate )      // A candidate is found: flag it and push it in list
         {
             /* Initialize parameters to search items connected to this
              * candidate:
              * we must analyze connections to its other end
              */
-            aLayerMask = candidate->GetLayerSet();
-
             if( aPosition == candidate->GetStart() )
             {
                 aPosition = candidate->GetEnd();
@@ -279,7 +278,9 @@ void BOARD::chainMarkedSegments( wxPoint aPosition, LSET aLayerMask, TRACK_PTRS*
                 aPosition = candidate->GetStart();
             }
 
-            /* flag this item an push it in list of selected items */
+            layer_set = candidate->GetLayerSet();
+
+            // flag this item and push it in list of selected items
             aList->push_back( candidate );
             candidate->SetState( BUSY, true );
         }
@@ -671,6 +672,10 @@ void BOARD::Add( BOARD_ITEM* aBoardItem, int aControl )
 
     switch( aBoardItem->Type() )
     {
+    case PCB_NETINFO_T:
+        aBoardItem->SetParent( this );
+        m_NetInfo.AppendNet( (NETINFO_ITEM*) aBoardItem );
+
     // this one uses a vector
     case PCB_MARKER_T:
         aBoardItem->SetParent( this );
@@ -758,6 +763,12 @@ BOARD_ITEM* BOARD::Remove( BOARD_ITEM* aBoardItem )
 
     switch( aBoardItem->Type() )
     {
+    case PCB_NETINFO_T:
+    {
+        NETINFO_ITEM* item = (NETINFO_ITEM*) aBoardItem;
+        m_NetInfo.RemoveNet( item );
+        break;
+    }
     case PCB_MARKER_T:
 
         // find the item in the vector, then remove it
@@ -1251,7 +1262,7 @@ NETINFO_ITEM* BOARD::FindNet( int aNetcode ) const
     wxASSERT( m_NetInfo.GetNetCount() > 0 );    // net zero should exist
 
     if( aNetcode == NETINFO_LIST::UNCONNECTED && m_NetInfo.GetNetCount() == 0 )
-        return &NETINFO_LIST::ORPHANED;
+        return &NETINFO_LIST::ORPHANED_ITEM;
     else
         return m_NetInfo.GetNetItem( aNetcode );
 }
@@ -1409,7 +1420,7 @@ ZONE_CONTAINER* BOARD::HitTestForAnyFilledArea( const wxPoint& aRefPos,
         aEndLayer = aStartLayer;
 
     if( aEndLayer <  aStartLayer )
-        EXCHG( aEndLayer, aStartLayer );
+        std::swap( aEndLayer, aStartLayer );
 
     for( unsigned ia = 0; ia < m_ZoneDescriptorList.size(); ia++ )
     {
@@ -1665,6 +1676,14 @@ void BOARD::GetSortedPadListByXthenYCoord( std::vector<D_PAD*>& aVector, int aNe
 }
 
 
+void BOARD::PadDelete( D_PAD* aPad )
+{
+    m_NetInfo.DeletePad( aPad );
+
+    aPad->DeleteStructure();
+}
+
+
 TRACK* BOARD::GetTrack( TRACK* aTrace, const wxPoint& aPosition,
         LSET aLayerMask ) const
 {
@@ -1678,7 +1697,7 @@ TRACK* BOARD::GetTrack( TRACK* aTrace, const wxPoint& aPosition,
         if( m_designSettings.IsLayerVisible( layer ) == false )
             continue;
 
-        if( track->Type() == PCB_VIA_T )    /* VIA encountered. */
+        if( track->Type() == PCB_VIA_T )    // VIA encountered.
         {
             if( track->HitTest( aPosition ) )
                 return track;
@@ -1697,12 +1716,32 @@ TRACK* BOARD::GetTrack( TRACK* aTrace, const wxPoint& aPosition,
 }
 
 
+#if defined(DEBUG) && 0
+static void dump_tracks( const char* aName, const TRACK_PTRS& aList )
+{
+    printf( "%s: count=%zd\n", aName, aList.size() );
+
+    for( unsigned i = 0; i < aList.size();  ++i )
+    {
+        TRACK*  seg = aList[i];
+        ::VIA*  via = dynamic_cast< ::VIA* >( seg );
+
+        if( via )
+            printf( " via[%u]: (%d, %d)\n", i, via->GetStart().x, via->GetStart().y );
+        else
+            printf( " seg[%u]: (%d, %d) (%d, %d)\n", i,
+                    seg->GetStart().x, seg->GetStart().y,
+                    seg->GetEnd().x,   seg->GetEnd().y );
+    }
+}
+#endif
+
+
 TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
                          double* aTraceLength, double* aPadToDieLength,
                          bool    aReorder )
 {
     int        NbSegmBusy;
-
     TRACK_PTRS trackList;
 
     if( aCount )
@@ -1721,7 +1760,7 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
 
     // Set flags of the initial track segment
     aTrace->SetState( BUSY, true );
-    LSET layerMask = aTrace->GetLayerSet();
+    LSET layer_set = aTrace->GetLayerSet();
 
     trackList.push_back( aTrace );
 
@@ -1734,55 +1773,70 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
      */
     if( aTrace->Type() == PCB_VIA_T )
     {
-        TRACK* Segm1, * Segm2 = NULL, * Segm3 = NULL;
-        Segm1 = ::GetTrack( m_Track, NULL, aTrace->GetStart(), layerMask );
+        TRACK* segm1 = ::GetTrack( m_Track, NULL, aTrace->GetStart(), layer_set );
+        TRACK* segm2 = NULL;
+        TRACK* segm3 = NULL;
 
-        if( Segm1 )
+        if( segm1 )
         {
-            Segm2 = ::GetTrack( Segm1->Next(), NULL, aTrace->GetStart(), layerMask );
+            segm2 = ::GetTrack( segm1->Next(), NULL, aTrace->GetStart(), layer_set );
         }
 
-        if( Segm2 )
+        if( segm2 )
         {
-            Segm3 = ::GetTrack( Segm2->Next(), NULL, aTrace->GetStart(), layerMask );
+            segm3 = ::GetTrack( segm2->Next(), NULL, aTrace->GetStart(), layer_set );
         }
 
-        if( Segm3 ) // More than 2 segments are connected to this via. the track" is only this via
+        if( segm3 )
         {
+            // More than 2 segments are connected to this via.
+            // The "track" is only this via.
+
             if( aCount )
                 *aCount = 1;
 
             return aTrace;
         }
 
-        if( Segm1 ) // search for others segments connected to the initial segment start point
+        if( segm1 ) // search for other segments connected to the initial segment start point
         {
-            layerMask = Segm1->GetLayerSet();
-            chainMarkedSegments( aTrace->GetStart(), layerMask, &trackList );
+            layer_set = segm1->GetLayerSet();
+            chainMarkedSegments( aTrace->GetStart(), layer_set, &trackList );
         }
 
-        if( Segm2 ) // search for others segments connected to the initial segment end point
+        if( segm2 ) // search for other segments connected to the initial segment end point
         {
-            layerMask = Segm2->GetLayerSet();
-            chainMarkedSegments( aTrace->GetStart(), layerMask, &trackList );
+            layer_set = segm2->GetLayerSet();
+            chainMarkedSegments( aTrace->GetStart(), layer_set, &trackList );
         }
     }
     else    // mark the chain using both ends of the initial segment
     {
-        chainMarkedSegments( aTrace->GetStart(), layerMask, &trackList );
-        chainMarkedSegments( aTrace->GetEnd(), layerMask, &trackList );
+        TRACK_PTRS  from_start;
+        TRACK_PTRS  from_end;
+
+        chainMarkedSegments( aTrace->GetStart(), layer_set, &from_start );
+        chainMarkedSegments( aTrace->GetEnd(),   layer_set, &from_end );
+
+        // DBG( dump_tracks( "first_clicked", trackList ); )
+        // DBG( dump_tracks( "from_start", from_start ); )
+        // DBG( dump_tracks( "from_end",   from_end ); )
+
+        // combine into one trackList:
+        trackList.insert( trackList.end(), from_start.begin(), from_start.end() );
+        trackList.insert( trackList.end(), from_end.begin(),   from_end.end() );
     }
 
     // Now examine selected vias and flag them if they are on the track
     // If a via is connected to only one or 2 segments, it is flagged (is on the track)
     // If a via is connected to more than 2 segments, it is a track end, and it
-    // is removed from the list
-    // go through the list backwards.
+    // is removed from the list.
+    // Go through the list backwards.
     for( int i = trackList.size() - 1;  i>=0;  --i )
     {
-        TRACK* via = trackList[i];
+        ::VIA*  via = dynamic_cast< ::VIA* >( trackList[i] );
 
-        if( via->Type() != PCB_VIA_T )
+        if( !via )
             continue;
 
         if( via == aTrace )
@@ -1790,9 +1844,9 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
 
         via->SetState( BUSY, true );  // Try to flag it. the flag will be cleared later if needed
 
-        layerMask = via->GetLayerSet();
+        layer_set = via->GetLayerSet();
 
-        TRACK* track = ::GetTrack( m_Track, NULL, via->GetStart(), layerMask );
+        TRACK* track = ::GetTrack( m_Track, NULL, via->GetStart(), layer_set );
 
         // GetTrace does not consider tracks flagged BUSY.
         // So if no connected track found, this via is on the current track
@@ -1800,26 +1854,34 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
         if( track == NULL )
             continue;
 
-        /* If a track is found, this via connects also others segments of an
-         * other track.  This case happens when the vias ends the selected
+        /* If a track is found, this via connects also other segments of
+         * another track.  This case happens when a via ends the selected
          * track but must we consider this via is on the selected track, or
-         * on an other track.
+         * on another track.
          * (this is important when selecting a track for deletion: must this
          * via be deleted or not?)
-         * We consider here this via on the track if others segment connected
+         * We consider this via to be on our track if other segments connected
          * to this via remain connected when removing this via.
-         * We search for all others segment connected together:
-         * if there are on the same layer, the via is on the selected track
-         * if there are on different layers, the via is on an other track
+         * We search for all other segments connected together:
+         * if they are on the same layer, then the via is on the selected track;
+         * if they are on different layers, the via is on another track.
          */
         LAYER_NUM layer = track->GetLayer();
 
-        while( ( track = ::GetTrack( track->Next(), NULL, via->GetStart(), layerMask ) ) != NULL )
+        while( ( track = ::GetTrack( track->Next(), NULL, via->GetStart(), layer_set ) ) != NULL )
         {
             if( layer != track->GetLayer() )
             {
-                // The via connects segments of an other track: it is removed
-                // from list because it is member of an other track
+                // The via connects segments of another track: it is removed
+                // from list because it is member of another track
+
+                DBG(printf( "%s: omit track (%d, %d) (%d, %d) on layer:%d (!= our_layer:%d)\n",
+                    __func__,
+                    track->GetStart().x, track->GetStart().y,
+                    track->GetEnd().x, track->GetEnd().y,
+                    track->GetLayer(), layer
+                    ); )
+
                 via->SetState( BUSY, false );
                 break;
             }
@@ -1922,6 +1984,8 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
                 }
             }
         }
+
+        DBG( printf( "%s: NbSegmBusy:%d\n", __func__, NbSegmBusy ); )
     }
 
     if( aTraceLength )
@@ -1947,7 +2011,7 @@ MODULE* BOARD::GetFootprint( const wxPoint& aPosition, LAYER_ID aActiveLayer,
     int     alt_min_dim = 0x7FFFFFFF;
     bool    current_layer_back = IsBackLayer( aActiveLayer );
 
-    for( pt_module = m_Modules;  pt_module;  pt_module = (MODULE*) pt_module->Next() )
+    for( pt_module = m_Modules;  pt_module;  pt_module = pt_module->Next() )
     {
         // is the ref point within the module's bounds?
         if( !pt_module->HitTest( aPosition ) )
@@ -2091,7 +2155,7 @@ TRACK* BOARD::CreateLockPoint( wxPoint& aPosition, TRACK* aSegment, PICKED_ITEMS
 
     D_PAD * pad = GetPad( newTrack, ENDPOINT_START );
 
-    if ( pad )
+    if( pad )
     {
         newTrack->start = pad;
         newTrack->SetState( BEGIN_ONPAD, true );
@@ -2205,13 +2269,14 @@ bool BOARD::NormalizeAreaPolygon( PICKED_ITEMS_LIST * aNewZonesList, ZONE_CONTAI
 
 
 void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
-                            REPORTER* aReporter )
+                            std::vector<MODULE*>* aNewFootprints, REPORTER* aReporter )
 {
     unsigned       i;
     wxPoint        bestPosition;
     wxString       msg;
     D_PAD*         pad;
     MODULE*        footprint;
+    std::vector<MODULE*> newFootprints;
 
     if( !IsEmpty() )
     {
@@ -2265,7 +2330,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                                 GetChars( component->GetTimeStamp() ),
                                 GetChars( component->GetFPID().Format() ) );
 
-      				aReporter->Report( msg, REPORTER::RPT_ACTION );
+                    aReporter->Report( msg, REPORTER::RPT_ACTION );
                 }
                 else
                 {
@@ -2286,6 +2351,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                 footprint->SetParent( this );
                 footprint->SetPosition( bestPosition );
                 footprint->SetTimeStamp( GetNewTimeStamp() );
+                newFootprints.push_back( footprint );
                 Add( footprint, ADD_APPEND );
             }
         }
@@ -2297,7 +2363,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
             {
                 if( aNetlist.GetReplaceFootprints() )
                 {
-               		if( aReporter )
+                    if( aReporter )
                     {
                         if( component->GetModule() != NULL )
                         {
@@ -2332,7 +2398,13 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                         else
                             newFootprint->SetPath( footprint->GetPath() );
 
-                        footprint->CopyNetlistSettings( newFootprint );
+                        // Copy placement and pad net names.
+                        // optionally, copy or not local settings (like local clearances)
+                        // if the second parameter is "true", previous values will be used.
+                        // if "false", the default library values of the new footprint
+                        // will be used
+                        footprint->CopyNetlistSettings( newFootprint, false );
+
                         Remove( footprint );
                         Add( newFootprint, ADD_APPEND );
                         footprint = newFootprint;
@@ -2340,7 +2412,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                 }
             }
 
-   			// Test for reference designator field change.
+            // Test for reference designator field change.
             if( footprint->GetReference() != component->GetReference() )
             {
                 if( aReporter )
@@ -2373,7 +2445,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                     footprint->SetValue( component->GetValue() );
             }
 
-       		// Test for time stamp change.
+            // Test for time stamp change.
             if( footprint->GetPath() != component->GetTimeStamp() )
             {
                 if( aReporter )
@@ -2393,7 +2465,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
         if( footprint == NULL )
             continue;
 
- 		// At this point, the component footprint is updated.  Now update the nets.
+        // At this point, the component footprint is updated.  Now update the nets.
         for( pad = footprint->Pads();  pad;  pad = pad->Next() )
         {
             COMPONENT_NET net = component->GetNet( pad->GetPadName() );
@@ -2552,8 +2624,6 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
             pad->SetNetCode( NETINFO_LIST::UNCONNECTED );
     }
 
-    m_ratsnest->ProcessBoard();
-
     // Last step: Some tests:
     // verify all pads found in netlist:
     // They should exist in footprints, otherwise the footprint is wrong
@@ -2608,6 +2678,8 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
             }
         }
     }
+
+    std::swap( newFootprints, *aNewFootprints );
 }
 
 
@@ -2678,11 +2750,9 @@ wxString BOARD::GetNextModuleReferenceWithPrefix( const wxString& aPrefix,
             usedNumbers.insert( number );
     }
 
-    int nextNum = 1;
-
     if( usedNumbers.size() )
     {
-        nextNum = getNextNumberInSequence( usedNumbers, aFillSequenceGaps );
+        int nextNum = getNextNumberInSequence( usedNumbers, aFillSequenceGaps );
         nextRef = wxString::Format( wxT( "%s%i" ), aPrefix, nextNum );
     }
 
@@ -2697,8 +2767,8 @@ wxString BOARD::GetNextModuleReferenceWithPrefix( const wxString& aPrefix,
  * return true if success, false if a contour is not valid
  */
 #include <specctra.h>
-bool BOARD::GetBoardPolygonOutlines( CPOLYGONS_LIST& aOutlines,
-                                     CPOLYGONS_LIST& aHoles,
+bool BOARD::GetBoardPolygonOutlines( SHAPE_POLY_SET& aOutlines,
+                                     SHAPE_POLY_SET& aHoles,
                                      wxString* aErrorText )
 {
     // the SPECCTRA_DB function to extract board outlines:

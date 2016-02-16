@@ -178,7 +178,7 @@ void DIALOG_BLOCK_OPTIONS::ExecuteCommand( wxCommandEvent& event )
 }
 
 
-int PCB_EDIT_FRAME::BlockCommand( int aKey )
+int PCB_EDIT_FRAME::BlockCommand( EDA_KEY aKey )
 {
     int cmd = 0;
 
@@ -297,7 +297,8 @@ bool PCB_EDIT_FRAME::HandleBlockEnd( wxDC* DC )
             cancelCmd = true;
 
             // undraw block outline
-            m_canvas->CallMouseCapture( DC, wxDefaultPosition, false );
+            if( DC )
+                m_canvas->CallMouseCapture( DC, wxDefaultPosition, false );
         }
         else
         {
@@ -326,7 +327,8 @@ bool PCB_EDIT_FRAME::HandleBlockEnd( wxDC* DC )
             GetScreen()->m_BlockLocate.SetState( STATE_BLOCK_MOVE );
             nextcmd = true;
             m_canvas->SetMouseCaptureCallback( drawMovingBlock );
-            m_canvas->CallMouseCapture( DC, wxDefaultPosition, false );
+            if( DC )
+                m_canvas->CallMouseCapture( DC, wxDefaultPosition, false );
             break;
 
         case BLOCK_DELETE: // Delete
@@ -667,11 +669,9 @@ void PCB_EDIT_FRAME::Block_Delete()
 
 void PCB_EDIT_FRAME::Block_Rotate()
 {
-    wxPoint oldpos;
     wxPoint centre;                     // rotation cent-re for the rotation transform
     int     rotAngle = m_rotationAngle; // rotation angle in 0.1 deg.
 
-    oldpos = GetCrossHairPosition();
     centre = GetScreen()->m_BlockLocate.Centre();
 
     OnModify();
@@ -736,15 +736,12 @@ void PCB_EDIT_FRAME::Block_Rotate()
 void PCB_EDIT_FRAME::Block_Flip()
 {
 #define INVERT( pos ) (pos) = center.y - ( (pos) - center.y )
-    wxPoint memo;
     wxPoint center; // Position of the axis for inversion of all elements
 
     OnModify();
 
     PICKED_ITEMS_LIST* itemsList = &GetScreen()->m_BlockLocate.GetItems();
     itemsList->m_Status = UR_FLIPPED;
-
-    memo = GetCrossHairPosition();
 
     center = GetScreen()->m_BlockLocate.Centre();
 
@@ -755,6 +752,7 @@ void PCB_EDIT_FRAME::Block_Flip()
         itemsList->SetPickedItemStatus( UR_FLIPPED, ii );
         item->Flip( center );
 
+        // If a connected item is flipped, the ratsnest is no more OK
         switch( item->Type() )
         {
         case PCB_MODULE_T:
@@ -762,9 +760,8 @@ void PCB_EDIT_FRAME::Block_Flip()
             m_Pcb->m_Status_Pcb = 0;
             break;
 
-        // Move and rotate the track segments
-        case PCB_TRACE_T:       // a track segment (segment on a copper layer)
-        case PCB_VIA_T:         // a via (like track segment on a copper layer)
+        case PCB_TRACE_T:
+        case PCB_VIA_T:
             m_Pcb->m_Status_Pcb = 0;
             break;
 

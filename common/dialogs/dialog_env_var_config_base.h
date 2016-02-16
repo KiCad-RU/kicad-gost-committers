@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun  5 2014)
+// C++ code generated with wxFormBuilder (version Jun 17 2015)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -22,6 +22,7 @@ class DIALOG_SHIM;
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/button.h>
+#include <wx/statline.h>
 #include <wx/dialog.h>
 
 ///////////////////////////////////////////////////////////////////////////
@@ -36,19 +37,23 @@ class DIALOG_ENV_VAR_CONFIG_BASE : public DIALOG_SHIM
 	
 	protected:
 		wxGrid* m_grid;
-		wxButton* m_buttonOk;
-		wxButton* m_buttonCancel;
 		wxButton* m_buttonAdd;
 		wxButton* m_buttonDelete;
+		wxStaticLine* m_staticline1;
+		wxStdDialogButtonSizer* m_sdbSizer;
+		wxButton* m_sdbSizerOK;
+		wxButton* m_sdbSizerCancel;
+		wxButton* m_sdbSizerHelp;
 		
 		// Virtual event handlers, overide them in your derived class
 		virtual void OnAddRow( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnDeleteSelectedRows( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnHelpRequest( wxCommandEvent& event ) { event.Skip(); }
 		
 	
 	public:
 		
-		DIALOG_ENV_VAR_CONFIG_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Path Configuration"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+		DIALOG_ENV_VAR_CONFIG_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Path Configuration"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 363,177 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_ENV_VAR_CONFIG_BASE();
 	
 };

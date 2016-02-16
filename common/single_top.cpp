@@ -115,6 +115,20 @@ PGM_BASE& Pgm()
  */
 struct APP_SINGLE_TOP : public wxApp
 {
+#if defined (__LINUX__)
+    APP_SINGLE_TOP(): wxApp()
+    {
+        // Disable proxy menu in Unity window manager. Only usual menubar works with wxWidgets (at least <= 3.1)
+        // When the proxy menu menubar is enable, some important things for us do not work: menuitems UI events and shortcuts.
+        wxString wm;
+
+        if( wxGetEnv( wxT( "XDG_CURRENT_DESKTOP" ), &wm ) && wm.CmpNoCase( wxT( "Unity" ) ) == 0 )
+        {
+            wxSetEnv ( wxT("UBUNTU_MENUPROXY" ), wxT( "0" ) );
+        }
+    }
+#endif
+
     bool OnInit()           // overload wxApp virtual
     {
         try
@@ -143,6 +157,10 @@ struct APP_SINGLE_TOP : public wxApp
 
     int  OnExit()           // overload wxApp virtual
     {
+        // Fixes segfault when wxPython scripting is enabled.
+#if defined( KICAD_SCRIPTING_WXPYTHON )
+        Pgm().OnPgmExit();
+#endif
         return wxApp::OnExit();
     }
 
@@ -169,7 +187,10 @@ struct APP_SINGLE_TOP : public wxApp
             wxLogError( wxT( "Unhandled exception of unknown type" ) );
         }
 
+        // Works properly when wxPython scripting is disabled.
+#if !defined( KICAD_SCRIPTING_WXPYTHON )
         Pgm().OnPgmExit();
+#endif
 
         return ret;
     }
@@ -198,7 +219,7 @@ bool PGM_SINGLE_TOP::OnPgmInit( wxApp* aWxApp )
 
     if( !wxIsAbsolutePath( absoluteArgv0 ) )
     {
-        wxLogSysError( wxT( "No meaningful argv[0]" ) );
+        wxLogError( wxT( "No meaningful argv[0]" ) );
         return false;
     }
 
@@ -277,6 +298,11 @@ bool PGM_SINGLE_TOP::OnPgmInit( wxApp* aWxApp )
         {
             // OpenProjectFiles() API asks that it report failure to the UI.
             // Nothing further to say here.
+
+            // We've already initialized things at this point, but wx won't call OnExit if
+            // we fail out. Call our own cleanup routine here to ensure the relevant resources
+            // are freed at the right time (if they aren't, segfaults will occur).
+            OnPgmExit();
 
             // Fail the process startup if the file could not be opened,
             // although this is an optional choice, one that can be reversed

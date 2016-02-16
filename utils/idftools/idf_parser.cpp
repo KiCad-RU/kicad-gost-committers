@@ -2720,8 +2720,6 @@ bool IDF3_BOARD::ReadFile( const wxString& aFullFileName, bool aNoSubstituteOutl
     // 2. Check if a file with extension 'emp' exists and read it
     // 3. Open the specified filename and read it
 
-    std::string fname = TO_UTF8( aFullFileName );
-
     wxFileName brdname( aFullFileName );
     wxFileName libname( aFullFileName );
 
@@ -3125,8 +3123,6 @@ bool IDF3_BOARD::WriteFile( const wxString& aFullFileName, bool aUnitMM, bool aF
     // 2. Write the *.emn file according to the IDFv3 spec
     // 3. Write the *.emp file according to the IDFv3 spec
 
-    std::string fname = TO_UTF8( aFullFileName );
-
     wxFileName brdname( aFullFileName );
     wxFileName libname( aFullFileName );
 
@@ -3507,22 +3503,8 @@ bool IDF3_BOARD::AddSlot( double aWidth, double aLength, double aOrientation, do
     IDF_POINT c[2];     // centers
     IDF_POINT pt[4];
 
-    // make sure the user isn't giving us dud information
-    if( aLength < aWidth )
-        std::swap( aLength, aWidth );
-
-    if( aLength == aWidth )
-    {
-        ostringstream ostr;
-        ostr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << "():\n";
-        ostr << "* slot length must not equal width";
-        errormsg = ostr.str();
-
-        return false;
-    }
-
     double a1 = aOrientation / 180.0 * M_PI;
-    double a2 = a1 + M_PI2;
+    double a2 = a1 + M_PI_2;
     double d1 = aLength / 2.0;
     double d2 = aWidth / 2.0;
     double sa1 = sin( a1 );

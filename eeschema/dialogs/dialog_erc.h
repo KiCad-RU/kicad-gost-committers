@@ -27,21 +27,12 @@
 
 #include <wx/htmllbox.h>
 #include <vector>
-
+#include <lib_pin.h>        // For PIN_NMAX definition
 
 #include <dialog_erc_base.h>
+#include "dialog_erc_listbox.h"
 
-/* Variable locales */
-extern int           DiagErc[PIN_NMAX][PIN_NMAX];
-extern bool          DiagErcTableInit; // go to true after DiagErc init
-extern int           DefaultDiagErc[PIN_NMAX][PIN_NMAX];
-
-/*  Control identifiers */
-#define ID_MATRIX_0 1800
-
-/*!
- * DIALOG_ERC class declaration
- */
+// DIALOG_ERC class declaration
 
 class DIALOG_ERC : public DIALOG_ERC_BASE
 {
@@ -53,6 +44,11 @@ private:
     bool            m_initialized;
     const SCH_MARKER* m_lastMarkerFound;
     static bool     m_writeErcFile;
+    static bool     m_diagErcTableInit; // go to true after DiagErc init
+    static bool     m_tstUniqueGlobalLabels;
+
+public:
+    static bool     m_TestSimilarLabels;
 
 public:
     DIALOG_ERC( SCH_EDIT_FRAME* parent );
@@ -67,10 +63,12 @@ private:
     void OnEraseDrcMarkersClick( wxCommandEvent& event );
     void OnButtonCloseClick( wxCommandEvent& event );
     void OnResetMatrixClick( wxCommandEvent& event );
-    void OnLeftClickMarkersList( wxCommandEvent& event );
+
+    // Click on a marker info:
+    void OnLeftClickMarkersList( wxHtmlLinkEvent& event );
 
     // Double click on a marker info:
-    void OnLeftDblClickMarkersList( wxCommandEvent& event );
+    void OnLeftDblClickMarkersList( wxMouseEvent& event );
 
     void TestErc( wxArrayString* aMessagesList );
     void DisplayERC_MarkersList();

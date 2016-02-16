@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012-2015 Miguel Angel Ajo Pelayo <miguelangel@nbee.es>
- * Copyright (C) 2012-2015 Jean-Pierre Charras, jaen-pierre.charras
+ * Copyright (C) 2012-2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2015 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
  *
@@ -75,39 +75,38 @@ BEGIN_EVENT_TABLE( FOOTPRINT_WIZARD_FRAME, EDA_DRAW_FRAME )
 
     // listbox events
     EVT_LISTBOX( ID_FOOTPRINT_WIZARD_PAGE_LIST, FOOTPRINT_WIZARD_FRAME::ClickOnPageList )
-
-
-#if wxCHECK_VERSION( 3, 0, 0 )
     EVT_GRID_CMD_CELL_CHANGED( ID_FOOTPRINT_WIZARD_PARAMETER_LIST,
                                FOOTPRINT_WIZARD_FRAME::ParametersUpdated )
-#else
-    EVT_GRID_CMD_CELL_CHANGE( ID_FOOTPRINT_WIZARD_PARAMETER_LIST,
-                              FOOTPRINT_WIZARD_FRAME::ParametersUpdated )
-#endif
-
-    EVT_GRID_CMD_EDITOR_HIDDEN( ID_FOOTPRINT_WIZARD_PARAMETER_LIST,
-                                FOOTPRINT_WIZARD_FRAME::ParametersUpdated )
 
     EVT_MENU( ID_SET_RELATIVE_OFFSET, FOOTPRINT_WIZARD_FRAME::OnSetRelativeOffset )
 END_EVENT_TABLE()
 
+// Column index to display parameters in m_parameterGrid
+int FOOTPRINT_WIZARD_FRAME::m_columnPrmName = 0;
+int FOOTPRINT_WIZARD_FRAME::m_columnPrmValue = 1;
+int FOOTPRINT_WIZARD_FRAME::m_columnPrmUnit = 2;
 
 #define FOOTPRINT_WIZARD_FRAME_NAME wxT( "FootprintWizard" )
 
 FOOTPRINT_WIZARD_FRAME::FOOTPRINT_WIZARD_FRAME( KIWAY* aKiway,
         wxWindow* aParent, FRAME_T aFrameType ) :
     PCB_BASE_FRAME( aKiway, aParent, aFrameType, _( "Footprint Wizard" ),
-            wxDefaultPosition, wxDefaultSize,
-            KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT,
-            FOOTPRINT_WIZARD_FRAME_NAME )
+                wxDefaultPosition, wxDefaultSize,
+#ifdef __WINDOWS__
+                KICAD_DEFAULT_DRAWFRAME_STYLE | wxSTAY_ON_TOP,
+#else
+                aParent ? KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT
+                          : KICAD_DEFAULT_DRAWFRAME_STYLE | wxSTAY_ON_TOP,
+#endif
+                FOOTPRINT_WIZARD_FRAME_NAME )
 {
-    wxASSERT( aFrameType==FRAME_PCB_FOOTPRINT_WIZARD_MODAL );
+    wxASSERT( aFrameType == FRAME_PCB_FOOTPRINT_WIZARD_MODAL );
 
-    if( aFrameType == FRAME_PCB_FOOTPRINT_WIZARD_MODAL )
-        SetModal( true );
+    // This frame is always show modal:
+    SetModal( true );
 
-    m_configPath    = wxT( "FootprintWizard" );
-    m_showAxis      = true;    // true to draw axis.
+    m_messagesFrame = NULL;     // This windows will be created the first time a wizard is loaded
+    m_showAxis      = true;     // true to draw axis.
 
     // Give an icon
     wxIcon  icon;
@@ -127,6 +126,14 @@ FOOTPRINT_WIZARD_FRAME::FOOTPRINT_WIZARD_FRAME( KIWAY* aKiway,
     LoadSettings( config() );
 
     SetSize( m_FramePos.x, m_FramePos.y, m_FrameSize.x, m_FrameSize.y );
+
+    // Set some display options here, because the FOOTPRINT_WIZARD_FRAME
+    // does not have a config menu to do that:
+    DISPLAY_OPTIONS* disp_opts = (DISPLAY_OPTIONS*) GetDisplayOptions();
+    disp_opts->m_DisplayPadIsol = false;
+    disp_opts->m_DisplayPadNum = true;
+    GetBoard()->SetElementVisibility( PCB_VISIBLE(NO_CONNECTS_VISIBLE), false );
+
     GetScreen()->SetGrid( ID_POPUP_GRID_LEVEL_1000 + m_LastGridSizeId  );
 
     ReCreateHToolbar();
@@ -138,16 +145,7 @@ FOOTPRINT_WIZARD_FRAME::FOOTPRINT_WIZARD_FRAME( KIWAY* aKiway,
                                 0, NULL, wxLB_HSCROLL );
 
     // Creates the The list of parameters for the current parameter page
-    m_parameterGrid = new wxGrid( this, ID_FOOTPRINT_WIZARD_PARAMETER_LIST );
-
-    m_parameterGrid->CreateGrid( 1, 3 );
-
-    // Columns
-    m_parameterGrid->SetColLabelValue( 0, _( "Parameter" ) );
-    m_parameterGrid->SetColLabelValue( 1, _( "Value" ) );
-    m_parameterGrid->SetColLabelValue( 2, _( "Units" ) );
-    m_parameterGrid->SetColLabelAlignment( wxALIGN_LEFT, wxALIGN_CENTRE );
-    m_parameterGrid->AutoSizeColumns();
+    initParameterGrid();
 
     ReCreatePageList();
 
@@ -202,21 +200,31 @@ FOOTPRINT_WIZARD_FRAME::FOOTPRINT_WIZARD_FRAME( KIWAY* aKiway,
     Zoom_Automatique( false );
 #endif
 
-    Show( true );
-
-    SelectFootprintWizard();
+    // Do not Run a dialog here: on some Window Managers, it creates issues.
+    // Reason: the FOOTPRINT_WIZARD_FRAME is run as modal;
+    // It means the call to FOOTPRINT_WIZARD_FRAME::ShowModal will change the
+    // Event Loop Manager, and stop the one created by the dialog.
+    // It does not happen on all W.M., perhaps due to the way the order events are called
+//    SelectFootprintWizard();
 }
 
 
 FOOTPRINT_WIZARD_FRAME::~FOOTPRINT_WIZARD_FRAME()
 {
-    if( m_Draw3DFrame )
-        m_Draw3DFrame->Destroy();
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
+        draw3DFrame->Destroy();
 }
 
 
 void FOOTPRINT_WIZARD_FRAME::OnCloseWindow( wxCloseEvent& Event )
 {
+    if( m_messagesFrame )
+        m_messagesFrame->SaveSettings();
+
+    SaveSettings( config() );
+
     if( IsModal() )
     {
         // Only dismiss a modal frame once, so that the return values set by
@@ -251,6 +259,25 @@ void FOOTPRINT_WIZARD_FRAME::OnSetRelativeOffset( wxCommandEvent& event )
 {
     GetScreen()->m_O_Curseur = GetCrossHairPosition();
     UpdateStatusBar();
+}
+
+void  FOOTPRINT_WIZARD_FRAME::initParameterGrid()
+{
+    // Prepare the grid where parameters are displayed
+    m_parameterGrid = new wxGrid( this, ID_FOOTPRINT_WIZARD_PARAMETER_LIST );
+    m_parameterGrid->CreateGrid( 0, 3 );
+
+    // Columns
+    m_parameterGrid->SetColLabelValue( m_columnPrmName, _( "Parameter" ) );
+    m_parameterGrid->SetColLabelValue( m_columnPrmValue, _( "Value" ) );
+    m_parameterGrid->SetColLabelValue( m_columnPrmUnit, _( "Units" ) );
+    m_parameterGrid->SetColLabelAlignment( wxALIGN_LEFT, wxALIGN_CENTRE );
+    m_parameterGrid->AutoSizeColumns();
+
+    // Rows
+    m_parameterGrid->AutoSizeRows();
+    m_parameterGrid->SetRowLabelSize( 25 );
+    m_parameterGrid->SetRowLabelAlignment( wxALIGN_CENTRE, wxALIGN_CENTRE );
 }
 
 
@@ -299,30 +326,24 @@ void FOOTPRINT_WIZARD_FRAME::ReCreateParameterList()
 
     m_parameterGrid->ClearGrid();
 
-
-    // Rows
-    m_parameterGrid->AutoSizeRows();
-    m_parameterGrid->EnableDragRowSize( true );
-    m_parameterGrid->SetRowLabelSize( 1 );
-    m_parameterGrid->SetRowLabelAlignment( wxALIGN_CENTRE, wxALIGN_CENTRE );
-
     // Get the list of names, values, and types
     wxArrayString   fpList  = footprintWizard->GetParameterNames( page );
     wxArrayString   fvList  = footprintWizard->GetParameterValues( page );
     wxArrayString   ptList  = footprintWizard->GetParameterTypes( page );
 
     // Dimension the wxGrid
-    m_parameterGrid->DeleteRows( 0, m_parameterGrid->GetNumberRows() );
+    if( m_parameterGrid->GetNumberRows() > 0 )
+        m_parameterGrid->DeleteRows( 0, m_parameterGrid->GetNumberRows() );
+
     m_parameterGrid->AppendRows( fpList.size() );
 
-    wxString name, value, units;
-    for( unsigned int i = 0; i<fpList.size(); i++ )
+    wxString value, units;
+    for( unsigned int i = 0; i< fpList.size(); i++ )
     {
-        name    = fpList[i];
         value   = fvList[i];
 
-        m_parameterGrid->SetCellValue( i, 0, name );
-        m_parameterGrid->SetReadOnly( i, 0 );
+        m_parameterGrid->SetCellValue( i, m_columnPrmName, fpList[i] );
+        m_parameterGrid->SetReadOnly( i, m_columnPrmName );
 
         if( ptList[i]==wxT( "IU" ) )
         {
@@ -346,6 +367,8 @@ void FOOTPRINT_WIZARD_FRAME::ReCreateParameterList()
                 units = wxT( "mm" );
             }
 
+            // Use Double2Str to build the string, because useless trailing 0
+            // are removed. The %f format does not remove them
             std::string s = Double2Str( dValue );
             value = FROM_UTF8( s.c_str() );
         }
@@ -354,9 +377,9 @@ void FOOTPRINT_WIZARD_FRAME::ReCreateParameterList()
             units = wxT( "" );
         }
 
-        m_parameterGrid->SetCellValue( i, 1, value );
-        m_parameterGrid->SetCellValue( i, 2, units );
-        m_parameterGrid->SetReadOnly( i, 2 );
+        m_parameterGrid->SetCellValue( i, m_columnPrmValue, value );
+        m_parameterGrid->SetCellValue( i, m_columnPrmUnit, units );
+        m_parameterGrid->SetReadOnly( i, m_columnPrmUnit );
     }
 
     m_parameterGrid->AutoSizeColumns();
@@ -376,17 +399,15 @@ void FOOTPRINT_WIZARD_FRAME::ClickOnPageList( wxCommandEvent& event )
 }
 
 
-#define PARTLIST_WIDTH_KEY  wxT( "Partlist_width" )
-#define PARAMLIST_WIDTH_KEY wxT( "Paramlist_width" )
+#define PAGE_LIST_WIDTH_KEY  wxT( "Fpwizard_Pagelist_width" )
+#define PARAMLIST_WIDTH_KEY wxT( "Fpwizard_Paramlist_width" )
 
 
 void FOOTPRINT_WIZARD_FRAME::LoadSettings( wxConfigBase* aCfg )
 {
     EDA_DRAW_FRAME::LoadSettings( aCfg );
 
-    wxConfigPathChanger cpc( aCfg, m_configPath );
-
-    aCfg->Read( PARTLIST_WIDTH_KEY, &m_pageListWidth, 100 );
+    aCfg->Read( PAGE_LIST_WIDTH_KEY, &m_pageListWidth, 100 );
     aCfg->Read( PARAMLIST_WIDTH_KEY, &m_parameterGridWidth, 200 );
 
     // Set parameters to a reasonable value.
@@ -402,8 +423,7 @@ void FOOTPRINT_WIZARD_FRAME::SaveSettings( wxConfigBase* aCfg )
 {
     EDA_DRAW_FRAME::SaveSettings( aCfg );
 
-    wxConfigPathChanger cpc( aCfg, m_configPath );
-    aCfg->Write( PARTLIST_WIDTH_KEY, m_pageList->GetSize().x );
+    aCfg->Write( PAGE_LIST_WIDTH_KEY, m_pageList->GetSize().x );
     aCfg->Write( PARAMLIST_WIDTH_KEY, m_parameterGrid->GetSize().x );
 }
 
@@ -416,6 +436,10 @@ void FOOTPRINT_WIZARD_FRAME::OnActivate( wxActivateEvent& event )
     if( !event.GetActive() )
         return;
 
+#if 0
+    // Currently, we do not have a way to see if a Python wizard has changed,
+    // therefore the lists of parameters and option has to be rebuilt
+    // This code could be enabled when this way exists
     bool footprintWizardsChanged = false;
 
     if( footprintWizardsChanged )
@@ -424,10 +448,11 @@ void FOOTPRINT_WIZARD_FRAME::OnActivate( wxActivateEvent& event )
         ReCreatePageList();
         DisplayWizardInfos();
     }
+#endif
 }
 
 
-bool FOOTPRINT_WIZARD_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey )
+bool FOOTPRINT_WIZARD_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey )
 {
     bool eventHandled = true;
 
@@ -491,25 +516,28 @@ bool FOOTPRINT_WIZARD_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition
 
 void FOOTPRINT_WIZARD_FRAME::Show3D_Frame( wxCommandEvent& event )
 {
-    if( m_Draw3DFrame )
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
     {
         // Raising the window does not show the window on Windows if iconized.
         // This should work on any platform.
-        if( m_Draw3DFrame->IsIconized() )
-            m_Draw3DFrame->Iconize( false );
+        if( draw3DFrame->IsIconized() )
+            draw3DFrame->Iconize( false );
 
-        m_Draw3DFrame->Raise();
+        draw3DFrame->Raise();
 
         // Raising the window does not set the focus on Linux.  This should work on any platform.
-        if( wxWindow::FindFocus() != m_Draw3DFrame )
-            m_Draw3DFrame->SetFocus();
+        if( wxWindow::FindFocus() != draw3DFrame )
+            draw3DFrame->SetFocus();
 
         return;
     }
 
-    m_Draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, wxEmptyString );
+    draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, wxEmptyString );
     Update3D_Frame( false );
-    m_Draw3DFrame->Show( true );
+    draw3DFrame->Raise();     // Needed with some Window Managers
+    draw3DFrame->Show( true );
 }
 
 
@@ -520,20 +548,22 @@ void FOOTPRINT_WIZARD_FRAME::Show3D_Frame( wxCommandEvent& event )
  */
 void FOOTPRINT_WIZARD_FRAME::Update3D_Frame( bool aForceReloadFootprint )
 {
-    if( m_Draw3DFrame == NULL )
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame == NULL )
         return;
 
     wxString frm3Dtitle;
     frm3Dtitle.Printf( _( "ModView: 3D Viewer [%s]" ), GetChars( m_wizardName ) );
-    m_Draw3DFrame->SetTitle( frm3Dtitle );
+    draw3DFrame->SetTitle( frm3Dtitle );
 
     if( aForceReloadFootprint )
     {
-        m_Draw3DFrame->ReloadRequest();
+        draw3DFrame->ReloadRequest();
 
         // Force 3D screen refresh immediately
         if( GetBoard()->m_Modules )
-            m_Draw3DFrame->NewDisplay();
+            draw3DFrame->NewDisplay();
     }
 }
 
@@ -549,17 +579,17 @@ void FOOTPRINT_WIZARD_FRAME::ReCreateHToolbar()
 
         // Set up toolbar
         m_mainToolBar->AddTool( ID_FOOTPRINT_WIZARD_SELECT_WIZARD, wxEmptyString,
-                                KiBitmap( library_xpm ),
-                                _( "Select wizard to use" ) );
+                                KiBitmap( module_wizard_xpm ),
+                                _( "Select the wizard script to load and run" ) );
 
         m_mainToolBar->AddSeparator();
         m_mainToolBar->AddTool( ID_FOOTPRINT_WIZARD_PREVIOUS, wxEmptyString,
                                 KiBitmap( lib_previous_xpm ),
-                                _( "Select previous editable item" ) );
+                                _( "Select previous parameters page" ) );
 
         m_mainToolBar->AddTool( ID_FOOTPRINT_WIZARD_NEXT, wxEmptyString,
                                 KiBitmap( lib_next_xpm ),
-                                _( "Select next editable item" ) );
+                                _( "Select next parameters page" ) );
 
         m_mainToolBar->AddSeparator();
         m_mainToolBar->AddTool( ID_FOOTPRINT_WIZARD_SHOW_3D_VIEW, wxEmptyString,
@@ -587,14 +617,11 @@ void FOOTPRINT_WIZARD_FRAME::ReCreateHToolbar()
         m_mainToolBar->AddTool( ID_ZOOM_PAGE, wxEmptyString,
                                 KiBitmap( zoom_fit_in_page_xpm ), msg );
 
-        if( IsModal() )
-        {
-            // The library browser is called from a "load component" command
-            m_mainToolBar->AddSeparator();
-            m_mainToolBar->AddTool( ID_FOOTPRINT_WIZARD_DONE,
-                                    wxEmptyString, KiBitmap( export_footprint_names_xpm ),
-                                    _( "Add footprint to board" ) );
-        }
+        // The footprint wizard always can export the current footprint
+        m_mainToolBar->AddSeparator();
+        m_mainToolBar->AddTool( ID_FOOTPRINT_WIZARD_DONE,
+                                wxEmptyString, KiBitmap( export_footprint_names_xpm ),
+                                _( "Export the footprint to the editor" ) );
 
         // after adding the buttons to the toolbar, must call Realize() to
         // reflect the changes
@@ -607,4 +634,95 @@ void FOOTPRINT_WIZARD_FRAME::ReCreateHToolbar()
 
 void FOOTPRINT_WIZARD_FRAME::ReCreateVToolbar()
 {
+    // Currently, there is no vertical toolbar
+}
+
+
+// frame to display messages from footprint builder scripts
+FOOTPRINT_WIZARD_MESSAGES::FOOTPRINT_WIZARD_MESSAGES( FOOTPRINT_WIZARD_FRAME* aParent, wxConfigBase* aCfg ) :
+        wxMiniFrame( aParent, wxID_ANY, _( "Footprint Builder Messages" ),
+                     wxDefaultPosition, wxDefaultSize,
+                     wxCAPTION | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT )
+{
+    m_canClose = false;
+	wxBoxSizer* bSizer = new wxBoxSizer( wxVERTICAL );
+	SetSizer( bSizer );
+
+	m_messageWindow = new wxTextCtrl( this, wxID_ANY, wxEmptyString,
+                                      wxDefaultPosition, wxDefaultSize,
+                                      wxTE_MULTILINE|wxTE_READONLY );
+	bSizer->Add( m_messageWindow, 1, wxEXPAND, 0 );
+
+    m_config = aCfg;
+
+    LoadSettings();
+
+    SetSize( m_position.x, m_position.y, m_size.x, m_size.y );
+
+    m_messageWindow->SetMinSize( wxSize( 350, 250 ) );
+	Layout();
+
+    bSizer->SetSizeHints( this );
+}
+
+
+FOOTPRINT_WIZARD_MESSAGES::~FOOTPRINT_WIZARD_MESSAGES()
+{
+}
+
+
+BEGIN_EVENT_TABLE( FOOTPRINT_WIZARD_MESSAGES, wxMiniFrame )
+    EVT_CLOSE( FOOTPRINT_WIZARD_MESSAGES::OnCloseMsgWindow )
+END_EVENT_TABLE()
+
+
+void FOOTPRINT_WIZARD_MESSAGES::OnCloseMsgWindow( wxCloseEvent& aEvent )
+{
+    if( !m_canClose )
+        aEvent.Veto();
+    else
+        aEvent.Skip();
+}
+
+
+void FOOTPRINT_WIZARD_MESSAGES::PrintMessage( const wxString& aMessage )
+{
+    m_messageWindow->SetValue( aMessage );
+}
+
+
+void FOOTPRINT_WIZARD_MESSAGES::ClearScreen()
+{
+    m_messageWindow->Clear();
+}
+
+
+#define MESSAGE_BOX_POSX_KEY wxT( "Fpwizard_Msg_PosX" )
+#define MESSAGE_BOX_POSY_KEY wxT( "Fpwizard_Msg_PosY" )
+#define MESSAGE_BOX_SIZEX_KEY wxT( "Fpwizard_Msg_SIZEX" )
+#define MESSAGE_BOX_SIZEY_KEY wxT( "Fpwizard_Msg_SIZEY" )
+
+void FOOTPRINT_WIZARD_MESSAGES::SaveSettings()
+{
+    if( !IsIconized() )
+    {
+        m_position = GetPosition();
+        m_size = GetSize();
+    }
+
+    m_config->Write( MESSAGE_BOX_POSX_KEY, m_position.x );
+    m_config->Write( MESSAGE_BOX_POSY_KEY, m_position.y );
+    m_config->Write( MESSAGE_BOX_SIZEX_KEY, m_size.x );
+    m_config->Write( MESSAGE_BOX_SIZEY_KEY, m_size.y );
+
+    m_canClose = false;     // close event now allowed
+}
+
+
+void FOOTPRINT_WIZARD_MESSAGES::LoadSettings()
+{
+    m_config->Read( MESSAGE_BOX_POSX_KEY, &m_position.x, -1 );
+    m_config->Read( MESSAGE_BOX_POSY_KEY, &m_position.y, -1 );
+    m_config->Read( MESSAGE_BOX_SIZEX_KEY, &m_size.x, 350 );
+    m_config->Read( MESSAGE_BOX_SIZEY_KEY, &m_size.y, 250 );
 }

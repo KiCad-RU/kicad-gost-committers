@@ -66,7 +66,7 @@ BEGIN_EVENT_TABLE( EDA_3D_CANVAS, wxGLCanvas )
     // mouse events
     EVT_RIGHT_DOWN( EDA_3D_CANVAS::OnRightClick )
     EVT_MOUSEWHEEL( EDA_3D_CANVAS::OnMouseWheel )
-#ifdef USE_OSX_MAGNIFY_EVENT
+#if wxCHECK_VERSION( 3, 1, 0 ) || defined( USE_OSX_MAGNIFY_EVENT )
     EVT_MAGNIFY( EDA_3D_CANVAS::OnMagnify )
 #endif
     EVT_MOTION( EDA_3D_CANVAS::OnMouseMove )
@@ -119,8 +119,7 @@ EDA_3D_CANVAS::~EDA_3D_CANVAS()
 
     // Free the list of parsers list
     for( unsigned int i = 0; i < m_model_parsers_list.size(); i++ )
-        if( m_model_parsers_list[i] )
-            delete m_model_parsers_list[i];
+        delete m_model_parsers_list[i];
 
 }
 
@@ -320,7 +319,7 @@ void EDA_3D_CANVAS::OnMouseWheel( wxMouseEvent& event )
 }
 
 
-#ifdef USE_OSX_MAGNIFY_EVENT
+#if wxCHECK_VERSION( 3, 1, 0 ) || defined( USE_OSX_MAGNIFY_EVENT )
 void EDA_3D_CANVAS::OnMagnify( wxMouseEvent& event )
 {
     double magnification = ( event.GetMagnification() + 1.0f );
@@ -651,9 +650,9 @@ void EDA_3D_CANVAS::TakeScreenshot( wxCommandEvent& event )
         mask         = wxT( "*." ) + file_ext;
         fn.SetExt( file_ext );
 
-        FullFileName = EDA_FileSelector( _( "3D Image File Name:" ), fn.GetPath(),
-                                         fn.GetFullName(), file_ext, mask, this,
-                                         wxFD_SAVE | wxFD_OVERWRITE_PROMPT, true );
+        FullFileName = EDA_FILE_SELECTOR( _( "3D Image File Name:" ), fn.GetPath(),
+                                          fn.GetFullName(), file_ext, mask, this,
+                                          wxFD_SAVE | wxFD_OVERWRITE_PROMPT, true );
 
         if( FullFileName.IsEmpty() )
             return;

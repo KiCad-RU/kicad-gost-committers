@@ -280,7 +280,7 @@ double RoundTo0( double x, double precision )
     long long ix = KiROUND( x * precision );
 
     if ( x < 0.0 )
-        NEGATE( ix );
+        ix = -ix;
 
     int remainder = ix % 10;   // remainder is in precision mm
 
@@ -290,7 +290,7 @@ double RoundTo0( double x, double precision )
         ix += 10 - remainder;  // round to near number
 
     if ( x < 0 )
-        NEGATE( ix );
+        ix = -ix;
 
     return (double) ix / precision;
 }
@@ -374,10 +374,6 @@ wxString GetKicadConfigPath()
 #endif
 
     cfgpath.AppendDir( wxT( "kicad" ) );
-
-#if !wxCHECK_VERSION( 2, 9, 0 )
-    #define wxS_DIR_DEFAULT  0777
-#endif
 
     if( !cfgpath.DirExists() )
     {

@@ -483,15 +483,14 @@ wxString DIALOG_BOM::choosePlugin()
     wxString path = GetOSXKicadDataDir() + wxT( "/plugins" );
 #endif
 
-    wxString fullFileName = EDA_FileSelector( _( "Plugin files:" ),
-                                     path,
-                                     wxEmptyString,
-                                     wxEmptyString,
-                                     mask,
-                                     this,
-                                     wxFD_OPEN,
-                                     true
-                                     );
+    wxString fullFileName = EDA_FILE_SELECTOR( _( "Plugin files:" ),
+                                               path,
+                                               wxEmptyString,
+                                               wxEmptyString,
+                                               mask,
+                                               this,
+                                               wxFD_OPEN,
+                                               true );
     if( fullFileName.IsEmpty() )
         return wxEmptyString;
 
@@ -557,6 +556,14 @@ wxString DIALOG_BOM::getPluginFileName(  const wxString& aCommand )
             }
         }
     }
+
+    // Using a format like %P is possible in  plugin name, so expand it
+    wxString prj_dir = Prj().GetProjectPath();
+
+    if( prj_dir.EndsWith( '/' ) || prj_dir.EndsWith( '\\' ) )
+        prj_dir.RemoveLast();
+
+    pluginName.Replace( wxT( "%P" ), prj_dir.GetData(), true );
 
     return pluginName;
 }

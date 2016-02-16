@@ -25,6 +25,12 @@ if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES )
 endif()
 
 
+if( BUILD_GITHUB_PLUGIN )
+    set( GITHUB_3DLIBRARIES_WIZARD
+            dialogs/wizard_3DShape_Libs_downloader_base.cpp
+            dialogs/wizard_3DShape_Libs_downloader.cpp )
+endif()
+
 include_directories( BEFORE ${INC_BEFORE} )
 include_directories(
     ./dialogs
@@ -37,6 +43,7 @@ include_directories(
     ../lib_dxf
     ./import_dxf
     ../utils/idftools
+    ${GLM_INCLUDE_DIR}
     ${INC_AFTER}
     )
 
@@ -81,6 +88,7 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_gen_module_position_file_base.cpp
     dialogs/dialog_general_options.cpp
     dialogs/dialog_general_options_BoardEditor_base.cpp
+    dialogs/dialog_get_footprint_by_name_base.cpp
     dialogs/dialog_global_edit_tracks_and_vias.cpp
     dialogs/dialog_global_edit_tracks_and_vias_base.cpp
     dialogs/dialog_global_modules_fields_edition.cpp
@@ -133,14 +141,19 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_set_grid.cpp
     dialogs/dialog_set_grid_base.cpp
     dialogs/dialog_target_properties_base.cpp
+    dialogs/dialog_track_via_properties.cpp
+    dialogs/dialog_track_via_properties_base.cpp
     dialogs/dialog_track_via_size.cpp
     dialogs/dialog_track_via_size_base.cpp
+    dialogs/dialog_update_pcb_base.cpp
+    dialogs/dialog_update_pcb.cpp
     footprint_wizard.cpp
     footprint_wizard_frame.cpp
     dialogs/dialog_footprint_wizard_list_base.cpp
     dialogs/dialog_footprint_wizard_list.cpp
     dialogs/wizard_add_fplib_base.cpp
     dialogs/wizard_add_fplib.cpp
+    ${GITHUB_3DLIBRARIES_WIZARD}
     )
 
 set( PCBNEW_IMPORT_DXF
@@ -182,6 +195,7 @@ set( PCBNEW_CLASS_SRCS
     attribut.cpp
     board_items_to_polygon_shape_transform.cpp
     board_undo_redo.cpp
+    board_netlist_updater.cpp
     block.cpp
     block_module_editor.cpp
     build_BOM_from_board.cpp
@@ -289,6 +303,7 @@ set( PCBNEW_CLASS_SRCS
 
     tools/grid_menu.cpp
     tools/zoom_menu.cpp
+    tools/size_menu.cpp
     )
 
 set( PCBNEW_SRCS ${PCBNEW_AUTOROUTER_SRCS} ${PCBNEW_CLASS_SRCS} ${PCBNEW_DIALOGS} )
@@ -414,11 +429,11 @@ if( KICAD_SCRIPTING_MODULES )
         pcad2kicadpcb
         lib_dxf
         idf3
-        ${GITHUB_PLUGIN_LIBRARIES}
         polygon
         bitmaps
         gal
         ${wxWidgets_LIBRARIES}
+        ${GITHUB_PLUGIN_LIBRARIES}
         ${GDI_PLUS_LIBRARIES}
         ${PYTHON_LIBRARIES}
         ${PCBNEW_EXTRA_LIBS}
@@ -487,6 +502,8 @@ endif()
 if( MINGW )
     # PCBNEW_RESOURCES variable is set by the macro.
     mingw_resource_compiler( pcbnew )
+else()
+    set( PCBNEW_RESOURCES pcbnew.rc )
 endif()
 
 
@@ -500,7 +517,7 @@ if( APPLE )
         MACOSX_PACKAGE_LOCATION Resources
         )
     set( MACOSX_BUNDLE_ICON_FILE pcbnew.icns )
-    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.kicad )
+    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-pcb.kicad )
     set( MACOSX_BUNDLE_NAME pcbnew )
 endif()
 
@@ -582,8 +599,8 @@ target_link_libraries( pcbnew_kiface
     gal
     lib_dxf
     idf3
-    ${GITHUB_PLUGIN_LIBRARIES}
     ${wxWidgets_LIBRARIES}
+    ${GITHUB_PLUGIN_LIBRARIES}
     ${GDI_PLUS_LIBRARIES}
     ${PYTHON_LIBRARIES}
     ${Boost_LIBRARIES}      # must follow GITHUB
@@ -660,12 +677,19 @@ if( KICAD_SCRIPTING )
             COMMENT "Copying pcbnew.py into ${PYTHON_DEST}"
             )
         add_dependencies( ScriptingPcbnewPyCopy ScriptingWxpythonCopy )
-        # scripting plugins
-        install( DIRECTORY ${PROJECT_SOURCE_DIR}/pcbnew/scripting/plugins/
-            DESTINATION ${KICAD_DATA}/scripting/plugins
-            COMPONENT binary
-            )
     endif()
+
+    # scripting plugins
+    install( DIRECTORY ${PROJECT_SOURCE_DIR}/pcbnew/scripting/plugins/
+        DESTINATION ${KICAD_DATA}/scripting/plugins
+        FILE_PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+    )
+
+    # scripting python shell
+    install( DIRECTORY ${PROJECT_SOURCE_DIR}/pcbnew/scripting/kicad_pyshell/
+        DESTINATION ${KICAD_DATA}/scripting/kicad_pyshell
+        FILE_PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+    )
 endif()
 
 if( KICAD_SCRIPTING_MODULES )
@@ -705,13 +729,14 @@ endif()
 if( APPLE )
     if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES )
         # find wx-X.Y-osx_cocoa path below PYTHON_SITE_PACKAGE_PATH
-        file( GLOB WXPYTHON_PATH ${PYTHON_SITE_PACKAGE_PATH}/wx-?.?-osx_cocoa )
-        if( NOT WXPYTHON_PATH )
+        file( GLOB WXPYTHON_DIR RELATIVE ${PYTHON_SITE_PACKAGE_PATH} ${PYTHON_SITE_PACKAGE_PATH}/wx-?.?-osx_cocoa )
+        if( NOT WXPYTHON_DIR )
             message( FATAL_ERROR "Could not find 'wx-?.?-osx_cocoa' in '${PYTHON_SITE_PACKAGE_PATH}'" )
         endif()
         # copy contents
         add_custom_target( ScriptingWxpythonCopy ALL
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${WXPYTHON_PATH}" "${PYTHON_DEST}"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${PYTHON_SITE_PACKAGE_PATH}/${WXPYTHON_DIR}" "${PYTHON_DEST}/${WXPYTHON_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${PYTHON_SITE_PACKAGE_PATH}/wxversion.py" "${PYTHON_DEST}"
             COMMENT "Copying wxPython into ${PYTHON_DEST}"
             )
     endif()

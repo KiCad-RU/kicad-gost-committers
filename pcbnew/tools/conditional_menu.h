@@ -25,18 +25,24 @@
 #ifndef CONDITIONAL_MENU_H
 #define CONDITIONAL_MENU_H
 
-#include <tool/context_menu.h>
 #include "selection_conditions.h"
-
 #include <boost/unordered_map.hpp>
+#include <wx/wx.h>
 
 class SELECTION_TOOL;
+class TOOL_ACTION;
+class TOOL_INTERACTIVE;
+class CONTEXT_MENU;
 
 class CONDITIONAL_MENU
 {
 public:
     ///> Constant to indicate that we do not care about an ENTRY location in the menu.
     static const int ANY_ORDER = -1;
+
+    CONDITIONAL_MENU( TOOL_INTERACTIVE* aTool ) :
+        m_tool( aTool )
+    {}
 
     /**
      * Function AddItem()
@@ -54,7 +60,8 @@ public:
     /**
      * Function AddMenu()
      *
-     * Adds a submenu to the menu.
+     * Adds a submenu to the menu. CONDITIONAL_MENU takes ownership of the added menu, so it will
+     * be freed when the CONDITIONAL_MENU object is destroyed.
      * @param aMenu is the submenu to be added.
      * @param aLabel is the label of added submenu.
      * @param aExpand determines if the added submenu items should be added as individual items
@@ -85,12 +92,9 @@ public:
      * @param aSelection is selection for which the conditions are checked against.
      * @return Menu filtered by the entry conditions.
      */
-    CONTEXT_MENU& Generate( SELECTION& aSelection );
+    CONTEXT_MENU* Generate( SELECTION& aSelection );
 
 private:
-    ///> Returned menu instance, prepared by Generate() function.
-    CONTEXT_MENU m_menu;
-
     ///> Helper class to organize menu entries.
     class ENTRY
     {
@@ -209,6 +213,9 @@ private:
 
     ///> List of all menu entries.
     std::list<ENTRY> m_entries;
+
+    ///> tool owning the menu
+    TOOL_INTERACTIVE* m_tool;
 };
 
 #endif /* CONDITIONAL_MENU_H */

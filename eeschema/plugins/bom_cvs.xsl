@@ -13,7 +13,7 @@
     Components are sorted by value
     One component per line
     Fields are
-    Quantity, 'Part name', Description, lib
+    Quantity; 'Part name'; Description; lib
 -->
 
 <!DOCTYPE xsl:stylesheet [
@@ -27,9 +27,9 @@
 <xsl:template match="libpart">
 
 <!-- -->
-    <xsl:value-of select="count(//comp/libsource/@part[@part])"/><xsl:text>,"</xsl:text>
-    <xsl:value-of select="@part"/><xsl:text>","</xsl:text>
-    <xsl:value-of select="description"/><xsl:text>","</xsl:text>
+    <xsl:value-of select="count(//comp/libsource/@part[@part])"/><xsl:text>;"</xsl:text>
+    <xsl:value-of select="@part"/><xsl:text>";"</xsl:text>
+    <xsl:value-of select="description"/><xsl:text>";"</xsl:text>
     <xsl:value-of select="@lib"/>
 
     <xsl:text>"&nl;</xsl:text>
@@ -37,7 +37,7 @@
 
 
 <xsl:template match="/export">
-    <xsl:text>Qty,partname,description,lib&nl;</xsl:text>
+    <xsl:text>Qty;partname;description;lib&nl;</xsl:text>
     <xsl:apply-templates select="libparts/libpart"/>
 </xsl:template>
 

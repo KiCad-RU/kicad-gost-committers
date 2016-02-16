@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <wxFormBuilder_Project>
-    <FileVersion major="1" minor="11" />
+    <FileVersion major="1" minor="13" />
     <object class="Project" expanded="1">
         <property name="class_decoration"></property>
         <property name="code_generation">C++</property>
@@ -44,7 +44,7 @@
             <property name="minimum_size"></property>
             <property name="name">DIALOG_COPPER_ZONE_BASE</property>
             <property name="pos"></property>
-            <property name="size">567,443</property>
+            <property name="size">567,507</property>
             <property name="style">wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER</property>
             <property name="subclass">DIALOG_SHIM; dialog_shim.h</property>
             <property name="title">Copper Zone Properties</property>
@@ -485,7 +485,7 @@
                         </object>
                         <object class="sizeritem" expanded="0">
                             <property name="border">5</property>
-                            <property name="flag">wxALL|wxALIGN_CENTER_VERTICAL</property>
+                            <property name="flag">wxTOP|wxRIGHT|wxLEFT|wxALIGN_CENTER_VERTICAL</property>
                             <property name="proportion">0</property>
                             <object class="wxStaticBoxSizer" expanded="0">
                                 <property name="id">wxID_ANY</property>
@@ -493,6 +493,7 @@
                                 <property name="minimum_size"></property>
                                 <property name="name">m_NetSortOptSizer</property>
                                 <property name="orient">wxVERTICAL</property>
+                                <property name="parent">1</property>
                                 <property name="permission">none</property>
                                 <event name="OnUpdateUI"></event>
                                 <object class="sizeritem" expanded="0">
@@ -1116,6 +1117,7 @@
                         <property name="minimum_size"></property>
                         <property name="name">m_ExportableSetupSizer</property>
                         <property name="orient">wxHORIZONTAL</property>
+                        <property name="parent">1</property>
                         <property name="permission">none</property>
                         <event name="OnUpdateUI"></event>
                         <object class="sizeritem" expanded="1">
@@ -1303,7 +1305,7 @@
                                 </object>
                                 <object class="sizeritem" expanded="0">
                                     <property name="border">5</property>
-                                    <property name="flag">wxTOP|wxRIGHT|wxLEFT</property>
+                                    <property name="flag">wxRIGHT|wxLEFT</property>
                                     <property name="proportion">0</property>
                                     <object class="wxStaticText" expanded="0">
                                         <property name="BottomDockable">1</property>
@@ -1863,7 +1865,7 @@
                                         <property name="gripper">0</property>
                                         <property name="hidden">0</property>
                                         <property name="id">wxID_ANY</property>
-                                        <property name="label">Pad connection:</property>
+                                        <property name="label">Default pad connection:</property>
                                         <property name="max_size"></property>
                                         <property name="maximize_button">0</property>
                                         <property name="maximum_size"></property>
@@ -1884,7 +1886,7 @@
                                         <property name="style"></property>
                                         <property name="subclass"></property>
                                         <property name="toolbar_pane">0</property>
-                                        <property name="tooltip"></property>
+                                        <property name="tooltip">Default pad connection type to zone.&#x0A;This setting can be overridden by local  pad settings</property>
                                         <property name="window_extra_style"></property>
                                         <property name="window_name"></property>
                                         <property name="window_style"></property>
@@ -2012,6 +2014,7 @@
                                         <property name="minimum_size"></property>
                                         <property name="name">m_ThermalShapesParamsSizer</property>
                                         <property name="orient">wxVERTICAL</property>
+                                        <property name="parent">1</property>
                                         <property name="permission">none</property>
                                         <event name="OnUpdateUI"></event>
                                         <object class="sizeritem" expanded="0">
@@ -2407,7 +2410,7 @@
                                         <property name="gripper">0</property>
                                         <property name="hidden">0</property>
                                         <property name="id">wxID_ANY</property>
-                                        <property name="label">Priority level:</property>
+                                        <property name="label">Zone priority level:</property>
                                         <property name="max_size"></property>
                                         <property name="maximize_button">0</property>
                                         <property name="maximum_size"></property>
@@ -2542,6 +2545,7 @@
                                         <event name="OnSize"></event>
                                         <event name="OnSpinCtrl"></event>
                                         <event name="OnSpinCtrlText"></event>
+                                        <event name="OnTextEnter"></event>
                                         <event name="OnUpdateUI"></event>
                                     </object>
                                 </object>

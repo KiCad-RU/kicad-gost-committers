@@ -160,6 +160,7 @@ set( BMAPS_MID
     auto_associe
     auto_delete_track
     auto_track_width
+    autoplace_fields
     axis3d_back
     axis3d_bottom
     axis3d_front
@@ -286,6 +287,7 @@ set( BMAPS_MID
     hierarchy_cursor
     hierarchy_nav
     hotkeys
+    html
     icon_cvpcb_small
     icon_gerbview_small
     icon_txt
@@ -322,6 +324,7 @@ set( BMAPS_MID
     lang_pl
     lang_pt
     lang_ru
+    lang_sk
     lang_sl
     language
     layers_manager

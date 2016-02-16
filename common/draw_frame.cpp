@@ -66,6 +66,7 @@ static const wxString CursorShapeEntryKeyword( wxT( "CursorShape" ) );
 static const wxString ShowGridEntryKeyword( wxT( "ShowGrid" ) );
 static const wxString GridColorEntryKeyword( wxT( "GridColor" ) );
 static const wxString LastGridSizeIdKeyword( wxT( "_LastGridSize" ) );
+static const wxString MaxUndoItemsEntry(wxT( "MaxUndoItems" ) );
 
 
 BEGIN_EVENT_TABLE( EDA_DRAW_FRAME, KIWAY_PLAYER )
@@ -217,11 +218,7 @@ bool EDA_DRAW_FRAME::LockFile( const wxString& aFileName )
 void EDA_DRAW_FRAME::unitsChangeRefresh()
 {
     UpdateStatusBar();
-
-    EDA_ITEM* item = GetScreen()->GetCurItem();
-
-    if( item )
-        SetMsgPanel( item );
+    UpdateMsgPanel();
 }
 
 
@@ -289,7 +286,7 @@ void EDA_DRAW_FRAME::OnToggleCrossHairStyle( wxCommandEvent& aEvent )
 {
     INSTALL_UNBUFFERED_DC( dc, m_canvas );
     m_canvas->CrossHairOff( &dc );
-    m_cursorShape = !m_cursorShape;
+    SetCursorShape( !GetCursorShape() );
     m_canvas->CrossHairOn( &dc );
 }
 
@@ -376,7 +373,7 @@ void EDA_DRAW_FRAME::OnSelectGrid( wxCommandEvent& event )
     int* clientData;
     int  eventId = ID_POPUP_GRID_LEVEL_100;
 
-    if( event.GetEventType() == wxEVT_COMMAND_COMBOBOX_SELECTED )
+    if( event.GetEventType() == wxEVT_CHOICE )
     {
         if( m_gridSelectBox == NULL )   // Should not happen
             return;
@@ -444,7 +441,10 @@ void EDA_DRAW_FRAME::OnSelectZoom( wxCommandEvent& event )
     TOOL_MANAGER* mgr = GetToolManager();
 
     if( mgr && IsGalCanvasActive() )
+    {
         mgr->RunAction( "common.Control.zoomPreset", true, id );
+        UpdateStatusBar();
+    }
 }
 
 
@@ -594,7 +594,7 @@ void EDA_DRAW_FRAME::SetPresetGrid( int aIndex )
 }
 
 
-int EDA_DRAW_FRAME::BlockCommand( int key )
+int EDA_DRAW_FRAME::BlockCommand( EDA_KEY key )
 {
     return 0;
 }
@@ -631,16 +631,24 @@ void EDA_DRAW_FRAME::UpdateStatusBar()
 
 const wxString EDA_DRAW_FRAME::GetZoomLevelIndicator() const
 {
-    BASE_SCREEN*    screen = GetScreen();
     wxString Line;
+    double level = 0.0;
 
-    if( screen )
+    if( IsGalCanvasActive() )
     {
-        // returns a human readable value which can be displayed as zoom
-        // level indicator in dialogs.
-        double level =  m_zoomLevelCoeff / (double)screen->GetZoom();
-        Line.Printf( wxT( "Z %.2f" ), level );
+        KIGFX::GAL* gal = m_galCanvas->GetGAL();
+        KIGFX::VIEW* view = m_galCanvas->GetView();
+        double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
+        level = m_zoomLevelCoeff * zoomFactor * view->GetScale();
     }
+    else if( BASE_SCREEN* screen = GetScreen() )
+    {
+        level = m_zoomLevelCoeff / (double) screen->GetZoom();
+    }
+
+    // returns a human readable value which can be displayed as zoom
+    // level indicator in dialogs.
+    Line.Printf( wxT( "Z %.2f" ), level );
 
     return Line;
 }
@@ -650,7 +658,7 @@ void EDA_DRAW_FRAME::LoadSettings( wxConfigBase* aCfg )
 {
     EDA_BASE_FRAME::LoadSettings( aCfg );
 
-    wxString baseCfgName = GetName();
+    wxString baseCfgName = ConfigBaseName();
 
     aCfg->Read( baseCfgName + CursorShapeEntryKeyword, &m_cursorShape, ( long )0 );
 
@@ -667,6 +675,9 @@ void EDA_DRAW_FRAME::LoadSettings( wxConfigBase* aCfg )
     // m_LastGridSizeId is an offset, expected to be >= 0
     if( m_LastGridSizeId < 0 )
         m_LastGridSizeId = 0;
+
+    m_UndoRedoCountMax = aCfg->Read( baseCfgName + MaxUndoItemsEntry,
+            long( DEFAULT_MAX_UNDO_ITEMS ) );
 }
 
 
@@ -674,12 +685,13 @@ void EDA_DRAW_FRAME::SaveSettings( wxConfigBase* aCfg )
 {
     EDA_BASE_FRAME::SaveSettings( aCfg );
 
-    wxString baseCfgName = GetName();
+    wxString baseCfgName = ConfigBaseName();
 
     aCfg->Write( baseCfgName + CursorShapeEntryKeyword, m_cursorShape );
     aCfg->Write( baseCfgName + ShowGridEntryKeyword, IsGridVisible() );
     aCfg->Write( baseCfgName + GridColorEntryKeyword, ( long ) GetGridColor() );
     aCfg->Write( baseCfgName + LastGridSizeIdKeyword, ( long ) m_LastGridSizeId );
+    aCfg->Write( baseCfgName + MaxUndoItemsEntry, long( GetScreen()->GetMaxUndoItems() ) );
 }
 
 
@@ -725,6 +737,25 @@ void EDA_DRAW_FRAME::SetMsgPanel( EDA_ITEM* aItem )
 }
 
 
+void EDA_DRAW_FRAME::UpdateMsgPanel()
+{
+    EDA_ITEM* item = GetScreen()->GetCurItem();
+
+    if( item )
+        SetMsgPanel( item );
+}
+
+// FIXME: There needs to be a better way for child windows to load preferences.
+//        This function pushes four preferences from a parent window to a child window
+//        i.e. from eeschema to the schematic symbol editor
+void EDA_DRAW_FRAME::PushPreferences( const EDA_DRAW_PANEL* aParentCanvas )
+{
+    m_canvas->SetEnableZoomNoCenter( aParentCanvas->GetEnableZoomNoCenter() );
+    m_canvas->SetEnableMiddleButtonPan( aParentCanvas->GetEnableMiddleButtonPan() );
+    m_canvas->SetMiddleButtonPanLimited( aParentCanvas->GetMiddleButtonPanLimited() );
+    m_canvas->SetEnableAutoPan( aParentCanvas->GetEnableAutoPan() );
+}
+
 wxString EDA_DRAW_FRAME::CoordinateToString( int aValue, bool aConvertToMils ) const
 {
     return ::CoordinateToString( aValue, aConvertToMils );
@@ -736,7 +767,7 @@ wxString EDA_DRAW_FRAME::LengthDoubleToString( double aValue, bool aConvertToMil
 }
 
 
-bool EDA_DRAW_FRAME::HandleBlockBegin( wxDC* aDC, int aKey, const wxPoint& aPosition )
+bool EDA_DRAW_FRAME::HandleBlockBegin( wxDC* aDC, EDA_KEY aKey, const wxPoint& aPosition )
 {
     BLOCK_SELECTOR* block = &GetScreen()->m_BlockLocate;
 
@@ -1022,34 +1053,37 @@ void EDA_DRAW_FRAME::AdjustScrollBars( const wxPoint& aCenterPositionIU )
 
 void EDA_DRAW_FRAME::UseGalCanvas( bool aEnable )
 {
-    if( m_galCanvasActive == aEnable )
-        return;
-
     KIGFX::VIEW* view = GetGalCanvas()->GetView();
     KIGFX::GAL* gal = GetGalCanvas()->GetGAL();
 
-    double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
-    BASE_SCREEN* screen = GetScreen();
-
     // Display the same view after canvas switching
-    if( aEnable )       // Switch to GAL rendering
+    if( aEnable )
     {
-        // Set up viewport
-        double zoom = 1.0 / ( zoomFactor * m_canvas->GetZoom() );
-        view->SetScale( zoom );
-        view->SetCenter( VECTOR2D( m_canvas->GetScreenCenterLogicalPosition() ) );
+        // Switch to GAL renderer from legacy
+        if( !m_galCanvasActive )
+        {
+            // Set up viewport
+            double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
+            double zoom = 1.0 / ( zoomFactor * m_canvas->GetZoom() );
+            view->SetScale( zoom );
+            view->SetCenter( VECTOR2D( m_canvas->GetScreenCenterLogicalPosition() ) );
+        }
 
         // Set up grid settings
         gal->SetGridVisibility( IsGridVisible() );
-        gal->SetGridSize( VECTOR2D( screen->GetGridSize() ) );
+        gal->SetGridSize( VECTOR2D( GetScreen()->GetGridSize() ) );
         gal->SetGridOrigin( VECTOR2D( GetGridOrigin() ) );
-    }
-    else                // Switch to standard rendering
-    {
-        // Change view settings only if GAL was active previously
-        double zoom = 1.0 / ( zoomFactor * view->GetScale() );
-        m_canvas->SetZoom( zoom );
 
+        // Transfer EDA_DRAW_PANEL settings
+        GetGalCanvas()->GetViewControls()->EnableCursorWarping( !m_canvas->GetEnableZoomNoCenter() );
+        GetToolManager()->RunAction( "pcbnew.Control.switchCursor" );
+    }
+    else if( m_galCanvasActive )
+    {
+        // Switch to legacy renderer from GAL
+        double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
+        // TODO replace it with EDA_DRAW_PANEL_GAL::GetLegacyZoom
+        m_canvas->SetZoom( 1.0 / ( zoomFactor * view->GetScale() ) );
         VECTOR2D center = view->GetCenter();
         AdjustScrollBars( wxPoint( center.x, center.y ) );
     }

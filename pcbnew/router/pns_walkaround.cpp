@@ -38,7 +38,15 @@ void PNS_WALKAROUND::start( const PNS_LINE& aInitialPath )
 
 PNS_NODE::OPT_OBSTACLE PNS_WALKAROUND::nearestObstacle( const PNS_LINE& aPath )
 {
-    return m_world->NearestObstacle( &aPath, m_itemMask );
+    PNS_NODE::OPT_OBSTACLE obs = m_world->NearestObstacle( &aPath, m_itemMask, m_restrictedSet.empty() ? NULL : &m_restrictedSet );
+
+    if( m_restrictedSet.empty() )
+        return obs;
+
+    else if( obs && m_restrictedSet.find ( obs->m_item ) != m_restrictedSet.end() )
+        return obs;
+
+    return PNS_NODE::OPT_OBSTACLE();
 }
 
 
@@ -89,11 +97,11 @@ PNS_WALKAROUND::WALKAROUND_STATUS PNS_WALKAROUND::singleStep( PNS_LINE& aPath,
 
     PNS_LINE walk_path( aPath, path_walk[1] );
 
-    bool alt_collides = m_world->CheckColliding( &walk_path, m_itemMask );
+    bool alt_collides = static_cast<bool>( m_world->CheckColliding( &walk_path, m_itemMask ) );
 
     SHAPE_LINE_CHAIN pnew;
 
-    if( !m_forceSingleDirection && len_alt < len_pre && !alt_collides && !prev_recursive )
+    if( !m_forceLongerPath && len_alt < len_pre && !alt_collides && !prev_recursive )
     {
         pnew = path_pre[1];
         pnew.Append( path_walk[1] );
@@ -138,6 +146,16 @@ PNS_WALKAROUND::WALKAROUND_STATUS PNS_WALKAROUND::Route( const PNS_LINE& aInitia
     PNS_LINE path_cw( aInitialPath ), path_ccw( aInitialPath );
     WALKAROUND_STATUS s_cw = IN_PROGRESS, s_ccw = IN_PROGRESS;
     SHAPE_LINE_CHAIN best_path;
+
+    // special case for via-in-the-middle-of-track placement
+    if( aInitialPath.PointCount() <= 1 )
+    {
+        if( aInitialPath.EndsWithVia() && m_world->CheckColliding( &aInitialPath.Via(), m_itemMask ) )
+            return STUCK;
+
+        aWalkPath = aInitialPath;
+        return DONE;
+    }
 
     start( aInitialPath );
 

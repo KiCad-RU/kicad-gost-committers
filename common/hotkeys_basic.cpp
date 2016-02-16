@@ -50,7 +50,7 @@
 wxString g_CommonSectionTag( wxT( "[common]" ) );
 
 
-/* Class to handle hotkey commnands. hotkeys have a default value
+/* Class to handle hotkey commands hotkeys have a default value
  * This class allows the real key code changed by user from a key code list
  * file.
  */
@@ -99,7 +99,7 @@ struct hotkey_name_descr
  *        "Space","Ctrl+Space","Alt+Space" or
  *      "Alt+A","Ctrl+F1", ...
  */
-static struct hotkey_name_descr s_Hotkey_Name_List[] =
+static struct hotkey_name_descr hotkeyNameList[] =
 {
     { wxT( "F1" ),           WXK_F1                                                   },
     { wxT( "F2" ),           WXK_F2                                                   },
@@ -130,7 +130,7 @@ static struct hotkey_name_descr s_Hotkey_Name_List[] =
     { wxT( "Left" ),         WXK_LEFT                                                 },
     { wxT( "Right" ),        WXK_RIGHT                                                },
 
-    { wxT( "Return" ),       WXK_RETURN                                                },
+    { wxT( "Return" ),       WXK_RETURN                                               },
 
     { wxT( "Space" ),        WXK_SPACE                                                },
 
@@ -138,16 +138,31 @@ static struct hotkey_name_descr s_Hotkey_Name_List[] =
     { wxT( "" ),             0                                                        }
 };
 
-#define MODIFIER_CTRL   wxT( "Ctrl+" )
-#define MODIFIER_ALT    wxT( "Alt+" )
-#define MODIFIER_SHIFT  wxT( "Shift+" )
+// name of modifier keys.
+// Note: the Ctrl key is Cmd key on Mac OS X.
+// However, in wxWidgets defs, the key WXK_CONTROL is the Cmd key,
+// so the code using WXK_CONTROL should be ok on any system.
+// (on Mac OS X the actual Ctrl key code is WXK_RAW_CONTROL)
+#ifdef __WXMAC__
+#define USING_MAC_CMD
+#endif
+
+#ifdef USING_MAC_CMD
+#define MODIFIER_CTRL       wxT( "Cmd+" )
+#else
+#define MODIFIER_CTRL       wxT( "Ctrl+" )
+#endif
+#define MODIFIER_CMD_MAC    wxT( "Cmd+" )
+#define MODIFIER_CTRL_BASE  wxT( "Ctrl+" )
+#define MODIFIER_ALT        wxT( "Alt+" )
+#define MODIFIER_SHIFT      wxT( "Shift+" )
 
 
 /**
  * Function KeyNameFromKeyCode
  * return the key name from the key code
  * Only some wxWidgets key values are handled for function key ( see
- * s_Hotkey_Name_List[] )
+ * hotkeyNameList[] )
  * @param aKeycode = key code (ascii value, or wxWidgets value for function keys)
  * @param aIsFound = a pointer to a bool to return true if found, or false. an be NULL default)
  * @return the key name in a wxString
@@ -182,15 +197,15 @@ wxString KeyNameFromKeyCode( int aKeycode, bool* aIsFound )
     {
         for( ii = 0; ; ii++ )
         {
-            if( s_Hotkey_Name_List[ii].m_KeyCode == 0 ) // End of list
+            if( hotkeyNameList[ii].m_KeyCode == 0 ) // End of list
             {
                 keyname = wxT( "<unknown>" );
                 break;
             }
 
-            if( s_Hotkey_Name_List[ii].m_KeyCode == aKeycode )
+            if( hotkeyNameList[ii].m_KeyCode == aKeycode )
             {
-                keyname = s_Hotkey_Name_List[ii].m_Name;
+                keyname = hotkeyNameList[ii].m_Name;
                 found   = true;
                 break;
             }
@@ -263,6 +278,12 @@ wxString AddHotkeyName( const wxString& aText, EDA_HOTKEY** aList,
         }
     }
 
+#ifdef USING_MAC_CMD
+    // On OSX, the modifier equivalent to the Ctrl key of PCs
+    // is the Cmd key, but in code we should use Ctrl as prefix in menus
+    msg.Replace( MODIFIER_CMD_MAC, MODIFIER_CTRL_BASE );
+#endif
+
     return msg;
 }
 
@@ -315,6 +336,12 @@ wxString AddHotkeyName( const wxString&           aText,
         }
     }
 
+#ifdef USING_MAC_CMD
+    // On OSX, the modifier equivalent to the Ctrl key of PCs
+    // is the Cmd key, but in code we should use Ctrl as prefix in menus
+    msg.Replace( MODIFIER_CMD_MAC, MODIFIER_CTRL_BASE );
+#endif
+
     return msg;
 }
 
@@ -349,7 +376,7 @@ wxString KeyNameFromCommandId( EDA_HOTKEY** aList, int aCommandId )
  * Function KeyCodeFromKeyName
  * return the key code from its key name
  * Only some wxWidgets key values are handled for function key
- * @param keyname = wxString key name to find in s_Hotkey_Name_List[],
+ * @param keyname = wxString key name to find in hotkeyNameList[],
  *   like F2 or space or an usual (ascii) char.
  * @return the key code
  */
@@ -358,29 +385,42 @@ int KeyCodeFromKeyName( const wxString& keyname )
     int ii, keycode = 0;
 
     // Search for modifiers: Ctrl+ Alt+ and Shift+
+    // Note: on Mac OSX, the Cmd key is equiv here to Ctrl
     wxString key = keyname;
+    wxString prefix;
     int modifier = 0;
+
     while( 1 )
     {
-        if( key.StartsWith( MODIFIER_CTRL ) )
+        prefix.Empty();
+
+        if( key.StartsWith( MODIFIER_CTRL_BASE ) )
         {
             modifier |= GR_KB_CTRL;
-            key.Remove( 0, 5 );
+            prefix = MODIFIER_CTRL_BASE;
+        }
+        else if( key.StartsWith( MODIFIER_CMD_MAC ) )
+        {
+            modifier |= GR_KB_CTRL;
+            prefix = MODIFIER_CMD_MAC;
         }
         else if( key.StartsWith( MODIFIER_ALT ) )
         {
             modifier |= GR_KB_ALT;
-            key.Remove( 0, 4 );
+            prefix = MODIFIER_ALT;
         }
         else if( key.StartsWith( MODIFIER_SHIFT ) )
         {
             modifier |= GR_KB_SHIFT;
-            key.Remove( 0, 6 );
+            prefix = MODIFIER_SHIFT;
         }
         else
         {
             break;
         }
+
+        if( !prefix.IsEmpty() )
+            key.Remove( 0, prefix.Len() );
     }
 
     if( (key.length() == 1) && (key[0] > ' ') && (key[0] < 0x7F) )
@@ -392,12 +432,12 @@ int KeyCodeFromKeyName( const wxString& keyname )
 
     for( ii = 0; ; ii++ )
     {
-        if( s_Hotkey_Name_List[ii].m_KeyCode == 0 )  // End of list reached
+        if( hotkeyNameList[ii].m_KeyCode == 0 )  // End of list reached
             break;
 
-        if( key.CmpNoCase( s_Hotkey_Name_List[ii].m_Name ) == 0 )
+        if( key.CmpNoCase( hotkeyNameList[ii].m_Name ) == 0 )
         {
-            keycode = s_Hotkey_Name_List[ii].m_KeyCode + modifier;
+            keycode = hotkeyNameList[ii].m_KeyCode + modifier;
             break;
         }
     }
@@ -692,11 +732,7 @@ void ParseHotkeyConfig( const wxString&           data,
 
             if( hk_decr->m_InfoMsg == fctname )
             {
-                int code = KeyCodeFromKeyName( keyname );
-
-                if( code )
-                    hk_decr->m_KeyCode = code;
-
+                hk_decr->m_KeyCode = KeyCodeFromKeyName( keyname );
                 break;
             }
         }
@@ -705,7 +741,7 @@ void ParseHotkeyConfig( const wxString&           data,
 
 
 void EDA_BASE_FRAME::ImportHotkeyConfigFromFile( EDA_HOTKEY_CONFIG* aDescList,
-                                            const wxString& aDefaultShortname )
+                                                 const wxString& aDefaultShortname )
 {
     wxString ext  = DEFAULT_HOTKEY_FILENAME_EXT;
     wxString mask = wxT( "*." ) + ext;
@@ -713,29 +749,30 @@ void EDA_BASE_FRAME::ImportHotkeyConfigFromFile( EDA_HOTKEY_CONFIG* aDescList,
 #if 0   // pass in the project dir as an argument
     wxString path = wxPathOnly( Prj().GetProjectFullName() );
 #else
-    wxString path = wxGetCwd();
+    wxString path = GetMruPath();
 #endif
     wxFileName fn( aDefaultShortname );
     fn.SetExt( DEFAULT_HOTKEY_FILENAME_EXT );
 
-    wxString  filename = EDA_FileSelector( _( "Read Hotkey Configuration File:" ),
-                                 path,
-                                 fn.GetFullPath(),
-                                 ext,
-                                 mask,
-                                 this,
-                                 wxFD_OPEN,
-                                 true );
+    wxString  filename = EDA_FILE_SELECTOR( _( "Read Hotkey Configuration File:" ),
+                                           path,
+                                           fn.GetFullPath(),
+                                           ext,
+                                           mask,
+                                           this,
+                                           wxFD_OPEN,
+                                           true );
 
     if( filename.IsEmpty() )
         return;
 
     ReadHotkeyConfigFile( filename, aDescList );
+    SetMruPath( wxFileName( filename ).GetPath() );
 }
 
 
 void EDA_BASE_FRAME::ExportHotkeyConfigToFile( EDA_HOTKEY_CONFIG* aDescList,
-                                        const wxString& aDefaultShortname )
+                                               const wxString& aDefaultShortname )
 {
     wxString ext  = DEFAULT_HOTKEY_FILENAME_EXT;
     wxString mask = wxT( "*." ) + ext;
@@ -743,24 +780,25 @@ void EDA_BASE_FRAME::ExportHotkeyConfigToFile( EDA_HOTKEY_CONFIG* aDescList,
 #if 0
     wxString path = wxPathOnly( Prj().GetProjectFullName() );
 #else
-    wxString path = wxGetCwd();
+    wxString path = GetMruPath();
 #endif
     wxFileName fn( aDefaultShortname );
     fn.SetExt( DEFAULT_HOTKEY_FILENAME_EXT );
 
-    wxString filename = EDA_FileSelector( _( "Write Hotkey Configuration File:" ),
-                                 path,
-                                 fn.GetFullPath(),
-                                 ext,
-                                 mask,
-                                 this,
-                                 wxFD_OPEN | wxFD_SAVE,
-                                 true );
+    wxString filename = EDA_FILE_SELECTOR( _( "Write Hotkey Configuration File:" ),
+                                           path,
+                                           fn.GetFullPath(),
+                                           ext,
+                                           mask,
+                                           this,
+                                           wxFD_SAVE,
+                                           true );
 
     if( filename.IsEmpty() )
         return;
 
     WriteHotkeyConfig( aDescList, &filename );
+    SetMruPath( wxFileName( filename ).GetPath() );
 }
 
 

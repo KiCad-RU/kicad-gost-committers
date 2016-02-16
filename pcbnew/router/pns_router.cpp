@@ -35,6 +35,8 @@
 #include <geometry/shape_rect.h>
 #include <geometry/shape_circle.h>
 
+#include <tools/grid_helper.h>
+
 #include "trace.h"
 #include "pns_node.h"
 #include "pns_line_placer.h"
@@ -72,6 +74,7 @@ PNS_PCBNEW_CLEARANCE_FUNC::PNS_PCBNEW_CLEARANCE_FUNC( PNS_ROUTER* aRouter ) :
 
     PNS_TOPOLOGY topo( world );
     m_clearanceCache.resize( brd->GetNetCount() );
+    m_useDpGap = false;
 
     for( unsigned int i = 0; i < brd->GetNetCount(); i++ )
     {
@@ -125,7 +128,10 @@ int PNS_PCBNEW_CLEARANCE_FUNC::operator()( const PNS_ITEM* aA, const PNS_ITEM* a
 
     bool linesOnly = aA->OfKind( PNS_ITEM::SEGMENT | PNS_ITEM::LINE ) && aB->OfKind( PNS_ITEM::SEGMENT | PNS_ITEM::LINE );
 
-    if( linesOnly && net_a >= 0 && net_b >= 0 && m_clearanceCache[net_a].coupledNet == net_b )
+    if( net_a == net_b )
+        return 0;
+
+    if( m_useDpGap && linesOnly && net_a >= 0 && net_b >= 0 && m_clearanceCache[net_a].coupledNet == net_b )
     {
         cl_a = cl_b = m_router->Sizes().DiffPairGap() - 2 * PNS_HULL_MARGIN;
     }
@@ -160,12 +166,12 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
 
     switch( aPad->GetAttribute() )
     {
-    case PAD_STANDARD:
+    case PAD_ATTRIB_STANDARD:
         break;
 
-    case PAD_SMD:
-    case PAD_HOLE_NOT_PLATED:
-    case PAD_CONN:
+    case PAD_ATTRIB_SMD:
+    case PAD_ATTRIB_HOLE_NOT_PLATED:
+    case PAD_ATTRIB_CONN:
         {
             LSET lmsk = aPad->GetLayerSet();
             bool is_copper = false;
@@ -175,7 +181,8 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
                 if( lmsk[i] )
                 {
                     is_copper = true;
-                    layers = PNS_LAYERSET( i );
+                    if( aPad->GetAttribute() != PAD_ATTRIB_HOLE_NOT_PLATED )
+                        layers = PNS_LAYERSET( i );
                     break;
                 }
             }
@@ -196,64 +203,155 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
     solid->SetNet( aPad->GetNetCode() );
     solid->SetParent( aPad );
 
-    wxPoint wx_c = aPad->GetPosition();
+    wxPoint wx_c = aPad->ShapePos();
     wxSize  wx_sz = aPad->GetSize();
+    wxPoint offset = aPad->GetOffset();
 
     VECTOR2I c( wx_c.x, wx_c.y );
     VECTOR2I sz( wx_sz.x, wx_sz.y );
 
-    solid->SetPos( c );
+    RotatePoint( &offset, aPad->GetOrientation() );
+
+    solid->SetPos( VECTOR2I( c.x - offset.x, c.y - offset.y ) );
+    solid->SetOffset ( VECTOR2I ( offset.x, offset.y ) );
 
     double orient = aPad->GetOrientation() / 10.0;
-    bool nonOrtho = false;
 
-    if( orient == 90.0 || orient == 270.0 )
-        sz = VECTOR2I( sz.y, sz.x );
-    else if( orient != 0.0 && orient != 180.0 )
+    if( aPad->GetShape() == PAD_SHAPE_CIRCLE )
     {
-        // rotated pads are replaced by for the moment by circles due to my laziness ;)
-        solid->SetShape( new SHAPE_CIRCLE( c, std::min( sz.x, sz.y ) / 2 ) );
-        nonOrtho = true;
+        solid->SetShape( new SHAPE_CIRCLE( c, sz.x / 2 ) );
     }
-
-    if( !nonOrtho )
+    else
     {
-        switch( aPad->GetShape() )
+        if( orient == 0.0 || orient == 90.0 || orient == 180.0 || orient == 270.0 )
         {
-        case PAD_CIRCLE:
-            solid->SetShape( new SHAPE_CIRCLE( c, sz.x / 2 ) );
-            break;
+            if( orient == 90.0 || orient == 270.0 )
+                sz = VECTOR2I( sz.y, sz.x );
 
-        case PAD_OVAL:
-            if( sz.x == sz.y )
-                solid->SetShape( new SHAPE_CIRCLE( c, sz.x / 2 ) );
-            else
+            switch( aPad->GetShape() )
             {
-                VECTOR2I delta;
-
-                if( sz.x > sz.y )
-                    delta = VECTOR2I( ( sz.x - sz.y ) / 2, 0 );
+            case PAD_SHAPE_OVAL:
+                if( sz.x == sz.y )
+                    solid->SetShape( new SHAPE_CIRCLE( c, sz.x / 2 ) );
                 else
-                    delta = VECTOR2I( 0, ( sz.y - sz.x ) / 2 );
+                {
+                    VECTOR2I delta;
 
-                SHAPE_SEGMENT* shape = new SHAPE_SEGMENT( c - delta, c + delta,
-                                                          std::min( sz.x, sz.y ) );
+                    if( sz.x > sz.y )
+                        delta = VECTOR2I( ( sz.x - sz.y ) / 2, 0 );
+                    else
+                        delta = VECTOR2I( 0, ( sz.y - sz.x ) / 2 );
+
+                    SHAPE_SEGMENT* shape = new SHAPE_SEGMENT( c - delta, c + delta,
+                                                              std::min( sz.x, sz.y ) );
+                    solid->SetShape( shape );
+                }
+                break;
+
+            case PAD_SHAPE_RECT:
+                solid->SetShape( new SHAPE_RECT( c - sz / 2, sz.x, sz.y ) );
+                break;
+
+            case PAD_SHAPE_TRAPEZOID:
+            {
+                wxPoint coords[4];
+                aPad->BuildPadPolygon( coords, wxSize( 0, 0 ), aPad->GetOrientation() );
+                SHAPE_CONVEX* shape = new SHAPE_CONVEX();
+
+                for( int ii = 0; ii < 4; ii++ )
+                {
+                    shape->Append( wx_c + coords[ii] );
+                }
+
                 solid->SetShape( shape );
+                break;
             }
-            break;
 
-        case PAD_RECT:
-            solid->SetShape( new SHAPE_RECT( c - sz / 2, sz.x, sz.y ) );
-            break;
+            default:
+                TRACEn( 0, "unsupported pad shape" );
+                delete solid;
+                return NULL;
+            }
+        }
+        else
+        {
+            switch( aPad->GetShape() )
+            {
+            // PAD_SHAPE_CIRCLE already handled above
 
-        default:
-            TRACEn( 0, "unsupported pad shape" );
-            delete solid;
+            case PAD_SHAPE_OVAL:
+                if( sz.x == sz.y )
+                    solid->SetShape( new SHAPE_CIRCLE( c, sz.x / 2 ) );
+                else
+                {
+                    wxPoint start;
+                    wxPoint end;
+                    wxPoint corner;
 
-            return NULL;
+                    SHAPE_CONVEX* shape = new SHAPE_CONVEX();
+
+                    int w = aPad->BuildSegmentFromOvalShape( start, end, 0.0, wxSize( 0, 0 ) );
+
+                    if( start.y == 0 )
+                        corner = wxPoint( start.x, -( w / 2 ) );
+                    else
+                        corner = wxPoint( w / 2, start.y );
+
+                    RotatePoint( &start, aPad->GetOrientation() );
+                    RotatePoint( &corner, aPad->GetOrientation() );
+                    shape->Append( wx_c + corner );
+
+                    for( int rot = 100; rot <= 1800; rot += 100 )
+                    {
+                        wxPoint p( corner );
+                        RotatePoint( &p, start, rot );
+                        shape->Append( wx_c + p );
+                    }
+
+                    if( end.y == 0 )
+                        corner = wxPoint( end.x, w / 2 );
+                    else
+                        corner = wxPoint( -( w / 2 ), end.y );
+
+                    RotatePoint( &end, aPad->GetOrientation() );
+                    RotatePoint( &corner, aPad->GetOrientation() );
+                    shape->Append( wx_c + corner );
+
+                    for( int rot = 100; rot <= 1800; rot += 100 )
+                    {
+                        wxPoint p( corner );
+                        RotatePoint( &p, end, rot );
+                        shape->Append( wx_c + p );
+                    }
+
+                    solid->SetShape( shape );
+                }
+                break;
+
+            case PAD_SHAPE_RECT:
+            case PAD_SHAPE_TRAPEZOID:
+            {
+                wxPoint coords[4];
+                aPad->BuildPadPolygon( coords, wxSize( 0, 0 ), aPad->GetOrientation() );
+
+                SHAPE_CONVEX* shape = new SHAPE_CONVEX();
+                for( int ii = 0; ii < 4; ii++ )
+                {
+                    shape->Append( wx_c + coords[ii] );
+                }
+
+                solid->SetShape( shape );
+                break;
+            }
+
+            default:
+                TRACEn( 0, "unsupported pad shape" );
+                delete solid;
+
+                return NULL;
+            }
         }
     }
-
     return solid;
 }
 
@@ -360,9 +458,9 @@ PNS_ROUTER::PNS_ROUTER()
     m_showInterSteps = false;
     m_snapshotIter = 0;
     m_view = NULL;
-    m_currentEndItem = NULL;
     m_snappingEnabled  = false;
     m_violation = false;
+    m_gridHelper = NULL;
 
 }
 
@@ -435,8 +533,6 @@ const PNS_ITEMSET PNS_ROUTER::QueryHoverItems( const VECTOR2I& aP )
         return m_world->HitTest( aP );
     else
     {
-        //assert ( m_placer->GetCurrentNode()->checkExists() );
-        //TRACE(0,"query-hover [%p]", m_placer->GetCurrentNode());
         return m_placer->CurrentNode()->HitTest( aP );
     }
 }
@@ -478,8 +574,8 @@ const VECTOR2I PNS_ROUTER::SnapToItem( PNS_ITEM* aItem, VECTOR2I aP, bool& aSpli
             anchor = s.B;
         else
         {
-            anchor = s.NearestPoint( aP );
-            aSplitsSegment = true;
+            anchor = m_gridHelper->AlignToSegment ( aP, s );
+            aSplitsSegment = (anchor != s.A && anchor != s.B );
         }
 
         break;
@@ -515,26 +611,29 @@ bool PNS_ROUTER::StartDragging( const VECTOR2I& aP, PNS_ITEM* aStartItem )
 
 bool PNS_ROUTER::StartRouting( const VECTOR2I& aP, PNS_ITEM* aStartItem, int aLayer )
 {
+    m_clearanceFunc->UseDpGap( false );
+
     switch( m_mode )
     {
-        case PNS_MODE_ROUTE_SINGLE:
-            m_placer = new PNS_LINE_PLACER( this );
-            break;
-        case PNS_MODE_ROUTE_DIFF_PAIR:
-            m_placer = new PNS_DIFF_PAIR_PLACER( this );
-            break;
-        case PNS_MODE_TUNE_SINGLE:
-            m_placer = new PNS_MEANDER_PLACER( this );
-            break;
-        case PNS_MODE_TUNE_DIFF_PAIR:
-            m_placer = new PNS_DP_MEANDER_PLACER( this );
-            break;
-        case PNS_MODE_TUNE_DIFF_PAIR_SKEW:
-            m_placer = new PNS_MEANDER_SKEW_PLACER( this );
-            break;
+    case PNS_MODE_ROUTE_SINGLE:
+        m_placer = new PNS_LINE_PLACER( this );
+        break;
+    case PNS_MODE_ROUTE_DIFF_PAIR:
+        m_placer = new PNS_DIFF_PAIR_PLACER( this );
+        m_clearanceFunc->UseDpGap( true );
+        break;
+    case PNS_MODE_TUNE_SINGLE:
+        m_placer = new PNS_MEANDER_PLACER( this );
+        break;
+    case PNS_MODE_TUNE_DIFF_PAIR:
+        m_placer = new PNS_DP_MEANDER_PLACER( this );
+        break;
+    case PNS_MODE_TUNE_DIFF_PAIR_SKEW:
+        m_placer = new PNS_MEANDER_SKEW_PLACER( this );
+        break;
 
-        default:
-            return false;
+    default:
+        return false;
     }
 
     m_placer->UpdateSizes ( m_sizes );
@@ -546,7 +645,6 @@ bool PNS_ROUTER::StartRouting( const VECTOR2I& aP, PNS_ITEM* aStartItem, int aLa
         return false;
 
     m_currentEnd = aP;
-    m_currentEndItem = NULL;
     m_state = ROUTE_TRACK;
     return rv;
 }
@@ -580,7 +678,7 @@ void PNS_ROUTER::DisplayItem( const PNS_ITEM* aItem, int aColor, int aClearance 
     ROUTER_PREVIEW_ITEM* pitem = new ROUTER_PREVIEW_ITEM( aItem, m_previewItems );
 
     if( aColor >= 0 )
-        pitem->SetColor( KIGFX::COLOR4D ( aColor ) );
+        pitem->SetColor( KIGFX::COLOR4D( aColor ) );
 
     if( aClearance >= 0 )
         pitem->SetClearance( aClearance );
@@ -624,20 +722,19 @@ void PNS_ROUTER::DisplayDebugPoint( const VECTOR2I aPos, int aType )
 void PNS_ROUTER::Move( const VECTOR2I& aP, PNS_ITEM* endItem )
 {
     m_currentEnd = aP;
-    m_currentEndItem = endItem;
 
     switch( m_state )
     {
-        case ROUTE_TRACK:
-            movePlacing( aP, endItem );
-            break;
+    case ROUTE_TRACK:
+        movePlacing( aP, endItem );
+        break;
 
-        case DRAG_SEGMENT:
-            moveDragging( aP, endItem );
-            break;
+    case DRAG_SEGMENT:
+        moveDragging( aP, endItem );
+        break;
 
-        default:
-            break;
+    default:
+        break;
     }
 }
 
@@ -727,7 +824,6 @@ void PNS_ROUTER::UpdateSizes ( const PNS_SIZES_SETTINGS& aSizes )
     if( m_state == ROUTE_TRACK)
     {
         m_placer->UpdateSizes( m_sizes );
-        movePlacing( m_currentEnd, m_currentEndItem );
     }
 }
 
@@ -744,7 +840,7 @@ void PNS_ROUTER::movePlacing( const VECTOR2I& aP, PNS_ITEM* aEndItem )
         if( !item->OfKind( PNS_ITEM::LINE ) )
             continue;
 
-        const PNS_LINE* l = static_cast <const PNS_LINE*> (item);
+        const PNS_LINE* l = static_cast<const PNS_LINE*>( item );
         DisplayItem( l );
 
         if( l->EndsWithVia() )
@@ -826,6 +922,7 @@ void PNS_ROUTER::CommitRouting( PNS_NODE* aNode )
         }
     }
 
+    m_board->GetRatsnest()->Recalculate();
     m_world->Commit( aNode );
 }
 
@@ -836,16 +933,16 @@ bool PNS_ROUTER::FixRoute( const VECTOR2I& aP, PNS_ITEM* aEndItem )
 
     switch( m_state )
     {
-        case ROUTE_TRACK:
-            rv = m_placer->FixRoute( aP, aEndItem );
-            break;
+    case ROUTE_TRACK:
+        rv = m_placer->FixRoute( aP, aEndItem );
+        break;
 
-        case DRAG_SEGMENT:
-            rv = m_dragger->FixRoute();
-            break;
+    case DRAG_SEGMENT:
+        rv = m_dragger->FixRoute();
+        break;
 
-        default:
-            break;
+    default:
+        break;
     }
 
     if( rv )
@@ -896,7 +993,6 @@ void PNS_ROUTER::FlipPosture()
     if( m_state == ROUTE_TRACK )
     {
         m_placer->FlipPosture();
-        movePlacing ( m_currentEnd, m_currentEndItem );
     }
 }
 
@@ -905,11 +1001,11 @@ void PNS_ROUTER::SwitchLayer( int aLayer )
 {
     switch( m_state )
     {
-        case ROUTE_TRACK:
-            m_placer->SetLayer( aLayer );
-            break;
-        default:
-            break;
+    case ROUTE_TRACK:
+        m_placer->SetLayer( aLayer );
+        break;
+    default:
+        break;
     }
 }
 
@@ -924,11 +1020,12 @@ void PNS_ROUTER::ToggleViaPlacement()
 }
 
 
-int PNS_ROUTER::GetCurrentNet() const
+const std::vector<int> PNS_ROUTER::GetCurrentNets() const
 {
     if( m_placer )
-        return m_placer->CurrentNet();
-    return -1;
+        return m_placer->CurrentNets();
+
+    return std::vector<int>();
 }
 
 
@@ -946,12 +1043,16 @@ void PNS_ROUTER::DumpLog()
 
     switch( m_state )
     {
-        case DRAG_SEGMENT:
-            logger = m_dragger->Logger();
-            break;
+    case DRAG_SEGMENT:
+        logger = m_dragger->Logger();
+        break;
 
-        default:
-            break;
+    case ROUTE_TRACK:
+        logger = m_placer->Logger();
+        break;
+
+    default:
+        break;
     }
 
     if( logger )

@@ -384,12 +384,17 @@ void LIB_PART::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDc, const wxPoint& aOffset, 
 
         if( drawItem.Type() == LIB_PIN_T )
         {
+            LIB_PIN& pin = dynamic_cast<LIB_PIN&>( drawItem );
+
             uintptr_t flags = 0;
             if( aShowPinText )
                 flags |= PIN_DRAW_TEXTS;
 
             if( !aPinsDangling || (aPinsDangling->size() > pin_index && (*aPinsDangling)[pin_index] ) )
                 flags |= PIN_DRAW_DANGLING;
+
+            if( pin.IsPowerConnection() && IsPower() )
+                flags |= PIN_DANGLING_HIDDEN;
 
             drawItem.Draw( aPanel, aDc, aOffset, aColor, aDrawMode, (void*) flags, aTransform );
 
@@ -532,7 +537,7 @@ void LIB_PART::RemoveDrawItem( LIB_ITEM* aItem, EDA_DRAW_PANEL* aPanel, wxDC* aD
 
     LIB_ITEMS::iterator i;
 
-    for( i = drawings.begin(); i < drawings.end(); i++ )
+    for( i = drawings.begin(); i != drawings.end(); i++ )
     {
         if( *i == aItem )
         {
@@ -881,7 +886,7 @@ bool LIB_PART::Load( LINE_READER& aLineReader, wxString& aErrorMsg )
         {
             p = strtok( line, " \t\n" );
 
-            if( stricmp( p, "ENDDEF" ) == 0 )
+            if( p && stricmp( p, "ENDDEF" ) == 0 )
                 break;
         }
 
@@ -941,6 +946,9 @@ bool LIB_PART::Load( LINE_READER& aLineReader, wxString& aErrorMsg )
         result = true;
 
         if( *line == '#' )      // a comment
+            continue;
+
+        if( p == NULL )         // empty line
             continue;
 
         if( line[0] == 'T'  &&  line[1] == 'i' )
@@ -1031,7 +1039,12 @@ bool LIB_PART::LoadDrawEntries( LINE_READER& aLineReader, wxString& aErrorMsg )
             break;
 
         case '#':    // Comment
-                continue;
+            continue;
+
+        case '\n':
+        case '\r':
+        case 0:   // empty line
+            continue;
 
         default:
             aErrorMsg.Printf( wxT( "undefined DRAW command %c" ), line[0] );
@@ -1189,7 +1202,7 @@ const EDA_RECT LIB_PART::GetBodyBoundingBox( int aUnit, int aConvert ) const
         if( item.m_Convert > 0 && ( ( aConvert > 0 ) && ( aConvert != item.m_Convert ) ) )
             continue;
 
-        if ( item.Type() == LIB_FIELD_T )
+        if( item.Type() == LIB_FIELD_T )
             continue;
 
         if( initialized )
@@ -1209,7 +1222,7 @@ void LIB_PART::deleteAllFields()
 {
     LIB_ITEMS::iterator it;
 
-    for( it = drawings.begin();  it!=drawings.end();  /* deleting */  )
+    for( it = drawings.begin();  it != drawings.end();  /* deleting */  )
     {
         if( it->Type() != LIB_FIELD_T  )
         {
@@ -1696,7 +1709,7 @@ wxArrayString LIB_PART::GetAliasNames( bool aIncludeRoot ) const
 
     LIB_ALIASES::const_iterator it;
 
-    for( it=m_aliases.begin();  it<m_aliases.end();  ++it )
+    for( it=m_aliases.begin();  it != m_aliases.end();  ++it )
     {
         if( !aIncludeRoot && (*it)->IsRoot() )
             continue;
@@ -1741,16 +1754,16 @@ void LIB_PART::SetAliases( const wxArrayString& aAliasList )
     }
 
     // Remove names in the current component that are not in the new alias list.
-    LIB_ALIASES::iterator it;
+    LIB_ALIASES::iterator it = m_aliases.begin();
 
-    for( it = m_aliases.begin(); it < m_aliases.end(); it++ )
+    while( it != m_aliases.end() )
     {
         int index = aAliasList.Index( (*it)->GetName(), false );
 
         if( index != wxNOT_FOUND || (*it)->IsRoot() )
-            continue;
-
-        it = m_aliases.erase( it );
+            ++it;
+        else
+            it = m_aliases.erase( it );
     }
 }
 
@@ -1765,7 +1778,7 @@ void LIB_PART::RemoveAlias( const wxString& aName )
 
     LIB_ALIASES::iterator it;
 
-    for( it = m_aliases.begin(); it < m_aliases.end(); it++ )
+    for( it = m_aliases.begin(); it != m_aliases.end(); it++ )
     {
         if( Cmp_KEEPCASE( aName, (*it)->GetName() ) == 0 )
         {

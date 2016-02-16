@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun  6 2014)
+// C++ code generated with wxFormBuilder (version Jun 17 2015)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -63,6 +63,8 @@ class DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE : public DIALOG_SHIM
 		wxSpinCtrl* m_MaxShowLinks;
 		wxStaticText* m_staticTextautosave;
 		wxSpinCtrl* m_SaveTime;
+		wxStaticText* m_stMaxUndoItems;
+		wxSpinCtrl* m_spinMaxUndoItems;
 		wxStaticText* m_staticTextRotationAngle;
 		wxTextCtrl* m_RotationAngle;
 		wxCheckBox* m_DrcOn;
@@ -74,11 +76,10 @@ class DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE : public DIALOG_SHIM
 		wxCheckBox* m_Track_DoubleSegm_Ctrl;
 		wxRadioBox* m_MagneticPadOptCtrl;
 		wxRadioBox* m_MagneticTrackOptCtrl;
-		wxCheckBox* m_ZoomNoCenterOpt;
+		wxCheckBox* m_ZoomCenterOpt;
 		wxCheckBox* m_MiddleButtonPANOpt;
 		wxCheckBox* m_OptMiddleButtonPanLimited;
 		wxCheckBox* m_AutoPANOpt;
-		wxCheckBox* m_UseOldZoneFillingAlgo;
 		wxCheckBox* m_DumpZonesWhenFilling;
 		wxStaticLine* m_staticline1;
 		wxStdDialogButtonSizer* m_sdbSizer;

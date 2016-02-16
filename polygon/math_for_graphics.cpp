@@ -6,9 +6,7 @@
 #include <float.h>
 #include <limits.h>
 #include <common.h>
-#include <fctsys.h>
-
-#include <PolyLine.h>
+#include <cstdlib>      // for abs function on ints
 #include <math_for_graphics.h>
 
 static bool InRange( double x, double xi, double xf );
@@ -68,13 +66,13 @@ bool FindLineSegmentIntersection( double a, double b, int xi, int yi, int xf, in
             else
             {
                 if( dist )
-                    *dist = std::min( abs( a - xi ), abs( a - xf ) );
+                    *dist = std::min( std::abs( a - xi ), std::abs( a - xf ) );
 
                 return false;
             }
         }
 
-        if( fabs( b - d ) < 1E-12 )
+        if( std::abs( b - d ) < 1E-12 )
         {
             // parallel lines
             if( dist )
@@ -429,7 +427,7 @@ double GetPointToLineDistance( double a, double b, int x, int y, double* xpp, do
             *ypp    = y;
         }
 
-        return abs( a - x );
+        return std::abs( a - x );
     }
 
     // find c,d such that (x,y) lies on y = c + dx where d=(-1/b)
@@ -466,7 +464,7 @@ double GetPointToLineSegmentDistance( int x, int y, int xi, int yi, int xf, int 
     {
         // vertical line segment
         if( InRange( y, yi, yf ) )
-            return abs( x - xi );
+            return std::abs( x - xi );
         else
             return std::min( Distance( x, y, xi, yi ), Distance( x, y, xf, yf ) );
     }
@@ -474,7 +472,7 @@ double GetPointToLineSegmentDistance( int x, int y, int xi, int yi, int xf, int 
     {
         // horizontal line segment
         if( InRange( x, xi, xf ) )
-            return abs( y - yi );
+            return std::abs( y - yi );
         else
             return std::min( Distance( x, y, xi, yi ), Distance( x, y, xf, yf ) );
     }

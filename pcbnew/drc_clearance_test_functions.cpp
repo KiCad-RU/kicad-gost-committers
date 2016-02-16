@@ -213,7 +213,7 @@ bool DRC::doTrackDrc( TRACK* aRefSeg, TRACK* aStart, bool testPads )
             refvia->LayerPair( &layer1, &layer2 );
 
             if( layer1 > layer2 )
-                EXCHG( layer1, layer2 );
+                std::swap( layer1, layer2 );
 
             if( layer2 == B_Cu && layer1 == m_pcb->GetDesignSettings().GetCopperLayerCount() - 2 )
                 err = false;
@@ -272,7 +272,9 @@ bool DRC::doTrackDrc( TRACK* aRefSeg, TRACK* aStart, bool testPads )
     // Compute the min distance to pads
     if( testPads )
     {
-        for( unsigned ii = 0;  ii<m_pcb->GetPadCount();  ++ii )
+        unsigned pad_count = m_pcb->GetPadCount();
+
+        for( unsigned ii = 0;  ii<pad_count;  ++ii )
         {
             D_PAD* pad = m_pcb->GetPad( ii );
 
@@ -291,8 +293,8 @@ bool DRC::doTrackDrc( TRACK* aRefSeg, TRACK* aStart, bool testPads )
 
                 dummypad.SetSize( pad->GetDrillSize() );
                 dummypad.SetPosition( pad->GetPosition() );
-                dummypad.SetShape( pad->GetDrillShape()  == PAD_DRILL_OBLONG ?
-                                   PAD_OVAL : PAD_CIRCLE );
+                dummypad.SetShape( pad->GetDrillShape()  == PAD_DRILL_SHAPE_OBLONG ?
+                                   PAD_SHAPE_OVAL : PAD_SHAPE_CIRCLE );
                 dummypad.SetOrientation( pad->GetOrientation() );
 
                 m_padToTestPos = dummypad.GetPosition() - origin;
@@ -416,7 +418,7 @@ bool DRC::doTrackDrc( TRACK* aRefSeg, TRACK* aStart, bool testPads )
 
             // Ensure segStartPoint.x <= segEndPoint.x
             if( segStartPoint.x > segEndPoint.x )
-                EXCHG( segStartPoint.x, segEndPoint.x );
+                std::swap( segStartPoint.x, segEndPoint.x );
 
             if( segStartPoint.x > (-w_dist) && segStartPoint.x < (m_segmLength + w_dist) )    /* possible error drc */
             {
@@ -480,7 +482,7 @@ bool DRC::doTrackDrc( TRACK* aRefSeg, TRACK* aStart, bool testPads )
 
             // Test if segments are crossing
             if( segStartPoint.y > segEndPoint.y )
-                EXCHG( segStartPoint.y, segEndPoint.y );
+                std::swap( segStartPoint.y, segEndPoint.y );
 
             if( (segStartPoint.y < 0) && (segEndPoint.y > 0) )
             {
@@ -582,9 +584,7 @@ bool DRC::checkClearancePadToPad( D_PAD* aRefPad, D_PAD* aPad )
 {
     int     dist;
 
-    double  pad_angle;
-
-    // Get the clerance between the 2 pads. this is the min distance between aRefPad and aPad
+    // Get the clearance between the 2 pads. this is the min distance between aRefPad and aPad
     int     dist_min = aRefPad->GetClearance( aPad );
 
     // relativePadPos is the aPad shape position relative to the aRefPad shape position
@@ -599,7 +599,7 @@ bool DRC::checkClearancePadToPad( D_PAD* aRefPad, D_PAD* aPad )
     /* Here, pads are near and DRC depend on the pad shapes
      * We must compare distance using a fine shape analysis
      * Because a circle or oval shape is the easier shape to test, try to have
-     * aRefPad shape type = PAD_CIRCLE or PAD_OVAL.
+     * aRefPad shape type = PAD_SHAPE_CIRCLE or PAD_SHAPE_OVAL.
      * if aRefPad = TRAP. and aPad = RECT, also swap pads
      * Swap aRefPad and aPad if needed
      */
@@ -608,21 +608,21 @@ bool DRC::checkClearancePadToPad( D_PAD* aRefPad, D_PAD* aPad )
 
     // swap pads to make comparisons easier
     // priority is aRefPad = ROUND then OVAL then RECT then other
-    if( aRefPad->GetShape() != aPad->GetShape() && aRefPad->GetShape() != PAD_CIRCLE )
+    if( aRefPad->GetShape() != aPad->GetShape() && aRefPad->GetShape() != PAD_SHAPE_CIRCLE )
     {
         // pad ref shape is here oval, rect or trapezoid
         switch( aPad->GetShape() )
         {
-            case PAD_CIRCLE:
+            case PAD_SHAPE_CIRCLE:
                 swap_pads = true;
                 break;
 
-            case PAD_OVAL:
+            case PAD_SHAPE_OVAL:
                 swap_pads = true;
                 break;
 
-            case PAD_RECT:
-                if( aRefPad->GetShape() != PAD_OVAL )
+            case PAD_SHAPE_RECT:
+                if( aRefPad->GetShape() != PAD_SHAPE_OVAL )
                     swap_pads = true;
                 break;
 
@@ -633,20 +633,20 @@ bool DRC::checkClearancePadToPad( D_PAD* aRefPad, D_PAD* aPad )
 
     if( swap_pads )
     {
-        EXCHG( aRefPad, aPad );
+        std::swap( aRefPad, aPad );
         relativePadPos = -relativePadPos;
     }
 
-    /* Because pad exchange, aRefPad shape is PAD_CIRCLE or PAD_OVAL,
-     * if one of the 2 pads was a PAD_CIRCLE or PAD_OVAL.
-     * Therefore, if aRefPad is a PAD_RECT or a PAD_TRAPEZOID,
-     * aPad is also a PAD_RECT or a PAD_TRAPEZOID
+    /* Because pad exchange, aRefPad shape is PAD_SHAPE_CIRCLE or PAD_SHAPE_OVAL,
+     * if one of the 2 pads was a PAD_SHAPE_CIRCLE or PAD_SHAPE_OVAL.
+     * Therefore, if aRefPad is a PAD_SHAPE_SHAPE_RECT or a PAD_SHAPE_TRAPEZOID,
+     * aPad is also a PAD_SHAPE_RECT or a PAD_SHAPE_TRAPEZOID
      */
     bool diag = true;
 
     switch( aRefPad->GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
 
         /* One can use checkClearanceSegmToPad to test clearance
          * aRefPad is like a track segment with a null length and a witdth = GetSize().x
@@ -660,81 +660,7 @@ bool DRC::checkClearancePadToPad( D_PAD* aRefPad, D_PAD* aPad )
         diag = checkClearanceSegmToPad( aPad, aRefPad->GetSize().x, dist_min );
         break;
 
-    case PAD_RECT:
-        // pad_angle = pad orient relative to the aRefPad orient
-        pad_angle = aRefPad->GetOrientation() + aPad->GetOrientation();
-        NORMALIZE_ANGLE_POS( pad_angle );
-
-        if( aPad->GetShape() == PAD_RECT )
-        {
-            wxSize size = aPad->GetSize();
-
-            // The trivial case is if both rects are rotated by multiple of 90 deg
-            // Most of time this is the case, and the test is fast
-            if( ( (aRefPad->GetOrientation() == 0) || (aRefPad->GetOrientation() == 900)
-                 || (aRefPad->GetOrientation() == 1800) || (aRefPad->GetOrientation() == 2700) )
-               && ( (aPad->GetOrientation() == 0) || (aPad->GetOrientation() == 900) || (aPad->GetOrientation() == 1800)
-                   || (aPad->GetOrientation() == 2700) ) )
-            {
-                if( (pad_angle == 900) || (pad_angle == 2700) )
-                {
-                    EXCHG( size.x, size.y );
-                }
-
-                // Test DRC:
-                diag = false;
-                RotatePoint( &relativePadPos, aRefPad->GetOrientation() );
-                relativePadPos.x = std::abs( relativePadPos.x );
-                relativePadPos.y = std::abs( relativePadPos.y );
-
-                if( ( relativePadPos.x - ( (size.x + aRefPad->GetSize().x) / 2 ) ) >= dist_min )
-                    diag = true;
-
-                if( ( relativePadPos.y - ( (size.y + aRefPad->GetSize().y) / 2 ) ) >= dist_min )
-                    diag = true;
-            }
-            else    // at least one pad has any other orient. Test is more tricky
-            {   // Use the trapezoid2trapezoidDRC which also compare 2 rectangles with any orientation
-                wxPoint polyref[4];         // Shape of aRefPad
-                wxPoint polycompare[4];     // Shape of aPad
-                aRefPad->BuildPadPolygon( polyref, wxSize( 0, 0 ), aRefPad->GetOrientation() );
-                aPad->BuildPadPolygon( polycompare, wxSize( 0, 0 ), aPad->GetOrientation() );
-
-                // Move aPad shape to relativePadPos
-                for( int ii = 0; ii < 4; ii++ )
-                    polycompare[ii] += relativePadPos;
-
-                // And now test polygons:
-                if( !trapezoid2trapezoidDRC( polyref, polycompare, dist_min ) )
-                    diag = false;
-            }
-        }
-        else if( aPad->GetShape() == PAD_TRAPEZOID )
-        {
-            wxPoint polyref[4];         // Shape of aRefPad
-            wxPoint polycompare[4];     // Shape of aPad
-            aRefPad->BuildPadPolygon( polyref, wxSize( 0, 0 ), aRefPad->GetOrientation() );
-            aPad->BuildPadPolygon( polycompare, wxSize( 0, 0 ), aPad->GetOrientation() );
-
-            // Move aPad shape to relativePadPos
-            for( int ii = 0; ii < 4; ii++ )
-                polycompare[ii] += relativePadPos;
-
-            // And now test polygons:
-            if( !trapezoid2trapezoidDRC( polyref, polycompare, dist_min ) )
-                diag = false;
-        }
-        else
-        {
-            // Should not occur, because aPad and aRefPad are swapped
-            // to have only aPad shape RECT or TRAP and aRefPad shape TRAP or RECT.
-            wxLogDebug( wxT( "DRC::checkClearancePadToPad: unexpected pad ref RECT @ %d, %d to pad shape %d @ %d, %d"),
-                aRefPad->GetPosition().x, aRefPad->GetPosition().y,
-                aPad->GetShape(), aPad->GetPosition().x, aPad->GetPosition().y );
-        }
-        break;
-
-    case PAD_OVAL:     /* an oval pad is like a track segment */
+    case PAD_SHAPE_OVAL:     /* an oval pad is like a track segment */
     {
         /* Create a track segment with same dimensions as the oval aRefPad
          * and use checkClearanceSegmToPad function to test aPad to aRefPad clearance
@@ -776,11 +702,8 @@ bool DRC::checkClearancePadToPad( D_PAD* aRefPad, D_PAD* aPad )
         break;
     }
 
-    case PAD_TRAPEZOID:
-
-        // at this point, aPad is also a trapezoid, because all other shapes
-        // have priority, and are already tested
-        wxASSERT( aPad->GetShape() == PAD_TRAPEZOID );
+    case PAD_SHAPE_TRAPEZOID:
+    case PAD_SHAPE_RECT:
         {
             wxPoint polyref[4];         // Shape of aRefPad
             wxPoint polycompare[4];     // Shape of aPad
@@ -822,13 +745,13 @@ bool DRC::checkClearanceSegmToPad( const D_PAD* aPad, int aSegmentWidth, int aMi
     padHalfsize.x = aPad->GetSize().x >> 1;
     padHalfsize.y = aPad->GetSize().y >> 1;
 
-    if( aPad->GetShape() == PAD_TRAPEZOID )     // The size is bigger, due to GetDelta() extra size
+    if( aPad->GetShape() == PAD_SHAPE_TRAPEZOID )     // The size is bigger, due to GetDelta() extra size
     {
         padHalfsize.x += std::abs(aPad->GetDelta().y) / 2;   // Remember: GetDelta().y is the GetSize().x change
         padHalfsize.y += std::abs(aPad->GetDelta().x) / 2;   // Remember: GetDelta().x is the GetSize().y change
     }
 
-    if( aPad->GetShape() == PAD_CIRCLE )
+    if( aPad->GetShape() == PAD_SHAPE_CIRCLE )
     {
         /* Easy case: just test the distance between segment and pad centre
          * calculate pad coordinates in the X,Y axis with X axis = segment to test
@@ -866,7 +789,7 @@ bool DRC::checkClearanceSegmToPad( const D_PAD* aPad, int aSegmentWidth, int aMi
     default:
         return false;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
     {
         /* an oval is a complex shape, but is a rectangle and 2 circles
          * these 3 basic shapes are more easy to test.
@@ -877,7 +800,7 @@ bool DRC::checkClearanceSegmToPad( const D_PAD* aPad, int aSegmentWidth, int aMi
          */
         if( padHalfsize.x > padHalfsize.y )
         {
-            EXCHG( padHalfsize.x, padHalfsize.y );
+            std::swap( padHalfsize.x, padHalfsize.y );
             orient = AddAngles( orient, 900 );
         }
 
@@ -926,7 +849,7 @@ bool DRC::checkClearanceSegmToPad( const D_PAD* aPad, int aSegmentWidth, int aMi
     }
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         // the area to test is a rounded rectangle.
         // this can be done by testing 2 rectangles and 4 circles (the corners)
 
@@ -988,7 +911,7 @@ bool DRC::checkClearanceSegmToPad( const D_PAD* aPad, int aSegmentWidth, int aMi
 
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
     {
         wxPoint poly[4];
         aPad->BuildPadPolygon( poly, wxSize( 0, 0 ), orient );
@@ -1061,7 +984,7 @@ bool DRC::checkLine( wxPoint aSegStart, wxPoint aSegEnd )
     int temp;
 
     if( aSegStart.x > aSegEnd.x )
-        EXCHG( aSegStart, aSegEnd );
+        std::swap( aSegStart, aSegEnd );
 
     if( (aSegEnd.x < m_xcliplo) || (aSegStart.x > m_xcliphi) )
     {

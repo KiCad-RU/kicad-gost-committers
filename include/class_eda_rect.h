@@ -103,6 +103,7 @@ public:
     int GetHeight() const { return m_Size.y; }
     int GetRight() const { return m_Pos.x + m_Size.x; }
     int GetLeft() const { return m_Pos.x; }
+    int GetTop() const { return m_Pos.y; }
     int GetBottom() const { return m_Pos.y + m_Size.y; }    // Y axis from top to bottom
 
     void SetOrigin( const wxPoint& pos ) { m_Pos = pos; }
@@ -202,6 +203,14 @@ public:
      * @return The area of the rectangle.
      */
     double GetArea() const;
+
+    /**
+     * Function Common
+     * returns the area that is common with another rectangle.
+     * @param aRect is the rectangle to find the common area with.
+     * @return The common area rect or 0-sized rectangle if there is no intersection.
+     */
+    EDA_RECT Common( const EDA_RECT& aRect ) const;
 
     /**
      * Function GetBoundingBoxRotated

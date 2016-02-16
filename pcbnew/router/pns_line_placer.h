@@ -141,9 +141,9 @@ public:
      *
      * Returns the net code of currently routed track.
      */
-    int CurrentNet() const
+    const std::vector<int> CurrentNets() const
     {
-        return m_currentNet;
+        return std::vector<int>( 1, m_currentNet );
     }
 
     /**
@@ -184,6 +184,10 @@ public:
     bool IsPlacingVia() const { return m_placingVia; }
 
     void GetModifiedNets( std::vector<int>& aNets ) const;
+
+    PNS_LOGGER* Logger();
+
+
 private:
     /**
      * Function route()
@@ -242,7 +246,7 @@ private:
      * Searches aNode for traces concurrent to aLatest and removes them. Updated
      * topology is stored in aNode.
      */
-    void removeLoops( PNS_NODE* aNode, PNS_LINE* aLatest );
+    void removeLoops( PNS_NODE* aNode, PNS_LINE& aLatest );
 
     /**
      * Function simplifyNewLine()
@@ -252,13 +256,6 @@ private:
      * old line with the simplified one in aNode.
      */
     void simplifyNewLine( PNS_NODE* aNode, PNS_SEGMENT* aLatest );
-
-    /**
-     * Function handleViaPlacement()
-     *
-     * Attempts to find a spot to place the via at the end of line aHead.
-     */
-    bool handleViaPlacement( PNS_LINE& aHead );
 
     /**
      * Function checkObtusity()
@@ -347,7 +344,7 @@ private:
 
     const PNS_VIA makeVia ( const VECTOR2I& aP );
 
-    const SHAPE_LINE_CHAIN buildInitialLine( const VECTOR2I& aP );
+    bool buildInitialLine( const VECTOR2I& aP, PNS_LINE& aHead );
 
     ///> current routing direction
     DIRECTION_45 m_direction;

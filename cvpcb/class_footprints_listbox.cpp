@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2009 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -140,7 +140,7 @@ void FOOTPRINTS_LISTBOX::SetFootprints( FOOTPRINT_LIST& aList, const wxString& a
     {
         if( aFilterType == UNFILTERED )
         {
-            msg.Printf( wxT( "%3zu %s:%s" ), newList.GetCount() + 1,
+            msg.Printf( wxT( "%3d %s:%s" ), int( newList.GetCount() + 1 ),
                         GetChars( aList.GetItem( ii ).GetNickname() ),
                         GetChars( aList.GetItem( ii ).GetFootprintName() ) );
             newList.Add( msg );
@@ -156,10 +156,10 @@ void FOOTPRINTS_LISTBOX::SetFootprints( FOOTPRINT_LIST& aList, const wxString& a
             continue;
 
         if( (aFilterType & BY_PIN_COUNT) && aComponent
-          && aComponent->GetNetCount() != aList.GetItem( ii ).GetPadCount() )
+          && aComponent->GetNetCount() != aList.GetItem( ii ).GetUniquePadCount() )
             continue;
 
-        msg.Printf( wxT( "%3zu %s:%s" ), newList.GetCount() + 1,
+        msg.Printf( wxT( "%3d %s:%s" ), int( newList.GetCount() + 1 ),
                     GetChars( aList.GetItem( ii ).GetNickname() ),
                     GetChars( aList.GetItem( ii ).GetFootprintName() ) );
         newList.Add( msg );
@@ -200,7 +200,7 @@ void FOOTPRINTS_LISTBOX::OnLeftClick( wxListEvent& event )
         return;
 
     // If the footprint view window is displayed, update the footprint.
-    if( GetParent()->GetFpViewerFrame() )
+    if( GetParent()->GetFootprintViewerFrame() )
         GetParent()->CreateScreenCmp();
 
     GetParent()->DisplayStatus();

@@ -37,7 +37,6 @@ PNS_MEANDER_PLACER::PNS_MEANDER_PLACER( PNS_ROUTER* aRouter ) :
 {
     m_world = NULL;
     m_currentNode = NULL;
-    m_originLine = NULL;
 
     // Init temporary variables (do not leave uninitialized members)
     m_initialSegment = NULL;
@@ -74,7 +73,6 @@ bool PNS_MEANDER_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
 
     p = m_initialSegment->Seg().NearestPoint( aP );
 
-    m_originLine = NULL;
     m_currentNode = NULL;
     m_currentStart = p;
 
@@ -84,9 +82,9 @@ bool PNS_MEANDER_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
     PNS_TOPOLOGY topo( m_world );
     m_tunedPath = topo.AssembleTrivialPath( m_initialSegment );
 
-    m_world->Remove( m_originLine );
+    m_world->Remove( &m_originLine );
 
-    m_currentWidth = m_originLine->Width();
+    m_currentWidth = m_originLine.Width();
     m_currentEnd = VECTOR2I( 0, 0 );
 
     return true;
@@ -123,10 +121,10 @@ bool PNS_MEANDER_PLACER::doMove( const VECTOR2I& aP, PNS_ITEM* aEndItem, int aTa
 
     m_currentNode = m_world->Branch();
 
-    cutTunedLine( m_originLine->CLine(), m_currentStart, aP, pre, tuned, post );
+    cutTunedLine( m_originLine.CLine(), m_currentStart, aP, pre, tuned, post );
 
     m_result = PNS_MEANDERED_LINE( this, false );
-    m_result.SetWidth( m_originLine->Width() );
+    m_result.SetWidth( m_originLine.Width() );
     m_result.SetBaselineOffset( 0 );
 
     for( int i = 0; i < tuned.SegmentCount(); i++ )
@@ -154,7 +152,7 @@ bool PNS_MEANDER_PLACER::doMove( const VECTOR2I& aP, PNS_ITEM* aEndItem, int aTa
     {
         if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
         {
-            Router()->DisplayDebugLine( l->CLine(), 5, 10000 );
+            Router()->DisplayDebugLine( l->CLine(), 5, 30000 );
         }
     }
 
@@ -197,7 +195,7 @@ bool PNS_MEANDER_PLACER::FixRoute( const VECTOR2I& aP, PNS_ITEM* aEndItem )
     if( !m_currentNode )
         return false;
 
-    m_currentTrace = PNS_LINE( *m_originLine, m_finalShape );
+    m_currentTrace = PNS_LINE( m_originLine, m_finalShape );
     m_currentNode->Add( &m_currentTrace );
 
     Router()->CommitRouting( m_currentNode );
@@ -207,7 +205,7 @@ bool PNS_MEANDER_PLACER::FixRoute( const VECTOR2I& aP, PNS_ITEM* aEndItem )
 
 bool PNS_MEANDER_PLACER::CheckFit( PNS_MEANDER_SHAPE* aShape )
 {
-    PNS_LINE l( *m_originLine, aShape->CLine( 0 ) );
+    PNS_LINE l( m_originLine, aShape->CLine( 0 ) );
 
     if( m_currentNode->CheckColliding( &l ) )
         return false;
@@ -221,7 +219,7 @@ bool PNS_MEANDER_PLACER::CheckFit( PNS_MEANDER_SHAPE* aShape )
 
 const PNS_ITEMSET PNS_MEANDER_PLACER::Traces()
 {
-    m_currentTrace = PNS_LINE( *m_originLine, m_finalShape );
+    m_currentTrace = PNS_LINE( m_originLine, m_finalShape );
     return PNS_ITEMSET( &m_currentTrace );
 }
 
@@ -230,13 +228,6 @@ const VECTOR2I& PNS_MEANDER_PLACER::CurrentEnd() const
 {
     return m_currentEnd;
 }
-
-
-int PNS_MEANDER_PLACER::CurrentNet() const
-{
-    return m_initialSegment->Net();
-}
-
 
 int PNS_MEANDER_PLACER::CurrentLayer() const
 {
@@ -250,17 +241,17 @@ const wxString PNS_MEANDER_PLACER::TuningInfo() const
 
     switch ( m_lastStatus )
     {
-        case TOO_LONG:
-            status = _( "Too long: " );
-            break;
-        case TOO_SHORT:
-            status = _( "Too short: " );
-            break;
-        case TUNED:
-            status = _( "Tuned: " );
-            break;
-        default:
-            return _( "?" );
+    case TOO_LONG:
+        status = _( "Too long: " );
+        break;
+    case TOO_SHORT:
+        status = _( "Too short: " );
+        break;
+    case TUNED:
+        status = _( "Tuned: " );
+        break;
+    default:
+        return _( "?" );
     }
 
     status += LengthDoubleToString( (double) m_lastLength, false );

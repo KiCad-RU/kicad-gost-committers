@@ -272,8 +272,14 @@ public:
 
     void SetForceSearch( bool doSearch = true ) { m_forceSearch = doSearch; }
 
-    int GetLibHash() const          { return m_lib_hash; }
-    void SetLibHash( int aHash )    { m_lib_hash = aHash; }
+    int GetLibHash() const           { return m_lib_hash; }
+    void SetLibHash( int aHash )     { m_lib_hash = aHash; }
+
+    int GetFoundIndex() const        { return m_foundIndex; }
+    void SetFoundIndex( int aIndex )
+    {
+        m_foundIndex = ( (unsigned) aIndex < m_data.size() ) ? aIndex : 0;
+    }
 
     /**
      * Function PassedEnd
@@ -345,6 +351,11 @@ public:
     bool ReplaceItem( SCH_SHEET_PATH* aSheetPath = NULL );
 
     SEARCH_RESULT Inspect( EDA_ITEM* aItem, const void* aTestData = NULL );
+
+    /**
+     * Update the replace string without changing anything else.
+     */
+    void SetReplaceString( const wxString &aReplaceString );
 
     /**
      * Function Collect

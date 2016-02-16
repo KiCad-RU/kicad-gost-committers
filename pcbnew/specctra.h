@@ -43,6 +43,7 @@ class TRACK;
 class VIA;
 class NETCLASS;
 class MODULE;
+class SHAPE_POLY_SET;
 
 typedef DSN::T  DSN_T;
 
@@ -3831,7 +3832,8 @@ class SPECCTRA_DB : public SPECCTRA_LEXER
      * instantiates a KiCad VIA on the heap and initializes it with internal
      * values consistent with the given PADSTACK, POINT, and netcode.
      */
-    ::VIA* makeVIA( PADSTACK* aPadstack, const POINT& aPoint, int aNetCode ) throw( IO_ERROR );
+    ::VIA* makeVIA( PADSTACK* aPadstack, const POINT& aPoint, int aNetCode, int aViaDrillDefault )
+        throw( IO_ERROR );
 
     //-----</FromSESSION>----------------------------------------------------
 
@@ -3917,8 +3919,6 @@ public:
      */
     void LoadSESSION( const wxString& filename ) throw( IO_ERROR, boost::bad_pointer );
 
-    void ThrowIOError( const wxString& fmt, ... ) throw( IO_ERROR );
-
     /**
      * Function ExportPCB
      * writes the internal PCB instance out as a SPECTRA DSN format file.
@@ -3981,16 +3981,16 @@ public:
      * any closed outline inside the main outline is a hole
      * All contours should be closed, i.e. have valid vertices to build a closed polygon
      * @param aBoard The BOARD to get information from in order to make the outlines.
-     * @param aOutlines The CPOLYGONS_LIST to fill in with main outlines.
-     * @param aHoles The empty CPOLYGONS_LIST to fill in with holes, if any.
+     * @param aOutlines The SHAPE_POLY_SET to fill in with main outlines.
+     * @param aHoles The empty SHAPE_POLY_SET to fill in with holes, if any.
      * @param aErrorText = a wxString reference to display an error message
      *          with the coordinate of the point which creates the error
      *          (default = NULL , no message returned on error)
      * @return true if success, false if a contour is not valid
      */
     bool GetBoardPolygonOutlines( BOARD* aBoard,
-                                  CPOLYGONS_LIST& aOutlines,
-                                  CPOLYGONS_LIST& aHoles,
+                                  SHAPE_POLY_SET& aOutlines,
+                                  SHAPE_POLY_SET& aHoles,
                                   wxString* aErrorText = NULL );
 };
 

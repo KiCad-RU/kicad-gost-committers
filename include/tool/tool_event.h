@@ -185,7 +185,7 @@ public:
     {
         if( aCategory == TC_MOUSE )
         {
-            m_mouseButtons = aExtraParam & BUT_BUTTON_MASK;
+            setMouseButtons( aExtraParam & BUT_BUTTON_MASK );
         }
         else if( aCategory == TC_KEYBOARD )
         {
@@ -311,21 +311,6 @@ public:
         return m_actions == TA_KEY_PRESSED;
     }
 
-    void SetMouseDragOrigin( const VECTOR2D& aP )
-    {
-        m_mouseDragOrigin = aP;
-     }
-
-    void SetMousePosition( const VECTOR2D& aP )
-    {
-        m_mousePos = aP;
-    }
-
-    void SetMouseDelta( const VECTOR2D& aP )
-    {
-        m_mouseDelta = aP;
-    }
-
     /**
      * Function Matches()
      * Tests whether two events match in terms of category & action or command.
@@ -338,9 +323,6 @@ public:
         if( !( m_category & aEvent.m_category ) )
             return false;
 
-        if( !( m_actions & aEvent.m_actions ) )
-            return false;
-
         if( m_category == TC_COMMAND || m_category == TC_MESSAGE )
         {
             if( (bool) m_commandStr && (bool) aEvent.m_commandStr )
@@ -349,6 +331,15 @@ public:
             if( (bool) m_commandId && (bool) aEvent.m_commandId )
                 return *m_commandId == *aEvent.m_commandId;
         }
+
+        // BUGFIX: TA_ANY should match EVERYTHING, even TA_NONE (for TC_MESSAGE)
+        if( m_actions == TA_ANY && aEvent.m_actions == TA_NONE && aEvent.m_category == TC_MESSAGE )
+            return true;
+
+        // BUGFIX: This check must happen after the TC_COMMAND check because otherwise events of
+        // the form { TC_COMMAND, TA_NONE } will be incorrectly skipped
+        if( !( m_actions & aEvent.m_actions ) )
+            return false;
 
         return true;
     }
@@ -394,8 +385,35 @@ public:
         return m_commandStr;
     }
 
+    void SetMousePosition( const VECTOR2D& aP )
+    {
+        m_mousePos = aP;
+    }
+
 private:
-    friend class TOOL_MANAGER;
+    friend class TOOL_DISPATCHER;
+
+    void setMouseDragOrigin( const VECTOR2D& aP )
+    {
+        m_mouseDragOrigin = aP;
+     }
+
+    void setMouseDelta( const VECTOR2D& aP )
+    {
+        m_mouseDelta = aP;
+    }
+
+    void setMouseButtons( int aButtons )
+    {
+        assert( ( aButtons & ~BUT_BUTTON_MASK ) == 0 );
+        m_mouseButtons = aButtons;
+    }
+
+    void setModifiers( int aMods )
+    {
+        assert( ( aMods & ~MD_MODIFIER_MASK ) == 0 );
+        m_modifiers = aMods;
+    }
 
     TOOL_EVENT_CATEGORY m_category;
     TOOL_ACTIONS m_actions;

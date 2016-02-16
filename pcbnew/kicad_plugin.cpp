@@ -65,7 +65,7 @@ static const wxString traceFootprintLibrary( wxT( "KicadFootprintLib" ) );
 ///> Removes empty nets (i.e. with node count equal zero) from net classes
 void filterNetClass( const BOARD& aBoard, NETCLASS& aNetClass )
 {
-    for( NETCLASS::const_iterator it = aNetClass.begin(); it != aNetClass.end(); )
+    for( NETCLASS::iterator it = aNetClass.begin(); it != aNetClass.end(); )
     {
         NETINFO_ITEM* netinfo = aBoard.FindNet( *it );
 
@@ -526,7 +526,7 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
     m_out->Print( aNestLevel+1, "(tracks %d)\n", aBoard->GetNumSegmTrack() );
     m_out->Print( aNestLevel+1, "(zones %d)\n", aBoard->GetNumSegmZone() );
     m_out->Print( aNestLevel+1, "(modules %d)\n", aBoard->m_Modules.GetCount() );
-    m_out->Print( aNestLevel+1, "(nets %d)\n", (int) m_mapping->GetSize() );
+    m_out->Print( aNestLevel+1, "(nets %d)\n", m_mapping->GetSize() );
     m_out->Print( aNestLevel, ")\n\n" );
 
     aBoard->GetPageSettings().Format( m_out, aNestLevel, m_ctl );
@@ -729,7 +729,7 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
     }
 
     // Save the modules.
-    for( MODULE* module = aBoard->m_Modules;  module;  module = (MODULE*) module->Next() )
+    for( MODULE* module = aBoard->m_Modules;  module;  module = module->Next() )
     {
         Format( module, aNestLevel );
         m_out->Print( 0, "\n" );
@@ -774,7 +774,7 @@ void PCB_IO::format( DIMENSION* aDimension, int aNestLevel ) const
 
     m_out->Print( 0, "\n" );
 
-    Format( (TEXTE_PCB*) &aDimension->Text(), aNestLevel+1 );
+    Format( &aDimension->Text(), aNestLevel+1 );
 
     m_out->Print( aNestLevel+1, "(feature1 (pts (xy %s %s) (xy %s %s)))\n",
                   FMT_IU( aDimension->m_featureLineDO.x ).c_str(),
@@ -1052,7 +1052,7 @@ void PCB_IO::format( MODULE* aModule, int aNestLevel ) const
         m_out->Print( aNestLevel+1, "(clearance %s)\n",
                       FMT_IU( aModule->GetLocalClearance() ).c_str() );
 
-    if( aModule->GetZoneConnection() != UNDEFINED_CONNECTION )
+    if( aModule->GetZoneConnection() != PAD_ZONE_CONN_INHERITED )
         m_out->Print( aNestLevel+1, "(zone_connect %d)\n", aModule->GetZoneConnection() );
 
     if( aModule->GetThermalWidth() != 0 )
@@ -1225,10 +1225,10 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
 
     switch( aPad->GetShape() )
     {
-    case PAD_CIRCLE:    shape = "circle";       break;
-    case PAD_RECT:      shape = "rect";         break;
-    case PAD_OVAL:      shape = "oval";         break;
-    case PAD_TRAPEZOID: shape = "trapezoid";    break;
+    case PAD_SHAPE_CIRCLE:    shape = "circle";       break;
+    case PAD_SHAPE_RECT:      shape = "rect";         break;
+    case PAD_SHAPE_OVAL:      shape = "oval";         break;
+    case PAD_SHAPE_TRAPEZOID: shape = "trapezoid";    break;
 
     default:
         THROW_IO_ERROR( wxString::Format( _( "unknown pad type: %d"), aPad->GetShape() ) );
@@ -1238,10 +1238,10 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
 
     switch( aPad->GetAttribute() )
     {
-    case PAD_STANDARD:          type = "thru_hole";      break;
-    case PAD_SMD:               type = "smd";            break;
-    case PAD_CONN:              type = "connect";        break;
-    case PAD_HOLE_NOT_PLATED:   type = "np_thru_hole";   break;
+    case PAD_ATTRIB_STANDARD:          type = "thru_hole";      break;
+    case PAD_ATTRIB_SMD:               type = "smd";            break;
+    case PAD_ATTRIB_CONN:              type = "connect";        break;
+    case PAD_ATTRIB_HOLE_NOT_PLATED:   type = "np_thru_hole";   break;
 
     default:
         THROW_IO_ERROR( wxString::Format( _( "unknown pad attribute: %d" ),
@@ -1270,7 +1270,7 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
     {
         m_out->Print( 0, " (drill" );
 
-        if( aPad->GetDrillShape() == PAD_DRILL_OBLONG )
+        if( aPad->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG )
             m_out->Print( 0, " oval" );
 
         if( sz.GetWidth() > 0 )
@@ -1310,7 +1310,7 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
     if( aPad->GetLocalClearance() != 0 )
         StrPrintf( &output, " (clearance %s)", FMT_IU( aPad->GetLocalClearance() ).c_str() );
 
-    if( aPad->GetZoneConnection() != UNDEFINED_CONNECTION )
+    if( aPad->GetZoneConnection() != PAD_ZONE_CONN_INHERITED )
         StrPrintf( &output, " (zone_connect %d)", aPad->GetZoneConnection() );
 
     if( aPad->GetThermalWidth() != 0 )
@@ -1497,18 +1497,18 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
     switch( aZone->GetPadConnection() )
     {
     default:
-    case THERMAL_PAD:       // Default option not saved or loaded.
+    case PAD_ZONE_CONN_THERMAL:       // Default option not saved or loaded.
         break;
 
-    case THT_THERMAL:
+    case PAD_ZONE_CONN_THT_THERMAL:
         m_out->Print( 0, " thru_hole_only" );
         break;
 
-    case PAD_IN_ZONE:
+    case PAD_ZONE_CONN_FULL:
         m_out->Print( 0, " yes" );
         break;
 
-    case PAD_NOT_IN_ZONE:
+    case PAD_ZONE_CONN_NONE:
         m_out->Print( 0, " no" );
         break;
     }
@@ -1617,22 +1617,22 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
     }
 
     // Save the PolysList
-    const CPOLYGONS_LIST& fv = aZone->GetFilledPolysList();
+    const SHAPE_POLY_SET& fv = aZone->GetFilledPolysList();
     newLine = 0;
 
-    if( fv.GetCornersCount() )
+    if( !fv.IsEmpty() )
     {
         m_out->Print( aNestLevel+1, "(filled_polygon\n" );
         m_out->Print( aNestLevel+2, "(pts\n" );
 
-        for( unsigned it = 0; it < fv.GetCornersCount();  ++it )
+        for( SHAPE_POLY_SET::CONST_ITERATOR it = fv.CIterate(); it; ++it )
         {
             if( newLine == 0 )
                 m_out->Print( aNestLevel+3, "(xy %s %s)",
-                              FMT_IU( fv.GetX( it ) ).c_str(), FMT_IU( fv.GetY( it ) ).c_str() );
+                              FMT_IU( it->x ).c_str(), FMT_IU( it->y ).c_str() );
             else
                 m_out->Print( 0, " (xy %s %s)",
-                              FMT_IU( fv.GetX( it ) ).c_str(), FMT_IU( fv.GetY( it ) ).c_str() );
+                              FMT_IU( it->x ) .c_str(), FMT_IU( it->y ).c_str() );
 
             if( newLine < 4 )
             {
@@ -1644,14 +1644,14 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
                 m_out->Print( 0, "\n" );
             }
 
-            if( fv.IsEndContour( it ) )
+            if( it.IsEndContour() )
             {
                 if( newLine != 0 )
                     m_out->Print( 0, "\n" );
 
                 m_out->Print( aNestLevel+2, ")\n" );
 
-                if( it+1 != fv.GetCornersCount() )
+                if( !it.IsLastContour() )
                 {
                     newLine = 0;
                     m_out->Print( aNestLevel+1, ")\n" );

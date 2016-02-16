@@ -42,6 +42,7 @@
 #include <wx/regex.h>
 #include <wx/dir.h>
 #include <wx/imaglist.h>
+#include <wx/stdpaths.h>
 #include <menus_helpers.h>
 #include <stack>
 
@@ -130,11 +131,9 @@ TREE_PROJECT_FRAME::TREE_PROJECT_FRAME( KICAD_MANAGER_FRAME* parent ) :
     m_Parent = parent;
     m_TreeProject = NULL;
 
-#ifdef KICAD_USE_FILES_WATCHER
     m_watcher = NULL;
     Connect( wxEVT_FSWATCHER,
              wxFileSystemWatcherEventHandler( TREE_PROJECT_FRAME::OnFileSystemEvent ) );
-#endif
 
     /*
      * Filtering is now inverted: the filters are actually used to _enable_ support
@@ -155,9 +154,7 @@ TREE_PROJECT_FRAME::TREE_PROJECT_FRAME( KICAD_MANAGER_FRAME* parent ) :
 
 TREE_PROJECT_FRAME::~TREE_PROJECT_FRAME()
 {
-#ifdef KICAD_USE_FILES_WATCHER
     delete m_watcher;
-#endif
 }
 
 
@@ -225,9 +222,8 @@ void TREE_PROJECT_FRAME::OnCreateNewDirectory( wxCommandEvent& event )
 
     if( wxMkdir( full_dirname ) )
     {
-#ifndef KICAD_USE_FILES_WATCHER
-        AddItemToTreeProject( subdir, root );
-#endif
+        // the new itel will be added by the file watcher
+        // AddItemToTreeProject( subdir, root );
     }
 }
 
@@ -256,6 +252,10 @@ wxString TREE_PROJECT_FRAME::GetFileExt( TreeFileType type )
 
     case TREE_GERBER:
         ext = GerberFileExtension;
+        break;
+
+    case TREE_HTML:
+        ext = HtmlFileExtension;
         break;
 
     case TREE_PDF:
@@ -334,6 +334,10 @@ wxString TREE_PROJECT_FRAME::GetFileWildcard( TreeFileType type )
 
     case TREE_GERBER:
         ext = GerberFileWildcard;
+        break;
+
+    case TREE_HTML:
+        ext = HtmlFileWildcard;
         break;
 
     case TREE_PDF:
@@ -592,7 +596,7 @@ void TREE_PROJECT_FRAME::ReCreateTreePrj()
     if( !fn.IsOk() )
     {
         fn.Clear();
-        fn.SetPath( ::wxGetCwd() );
+        fn.SetPath( wxStandardPaths::Get().GetDocumentsDir() );
         fn.SetName( NAMELESS_PROJECT );
         fn.SetExt( ProjectFileExtension );
     }
@@ -830,11 +834,9 @@ void TREE_PROJECT_FRAME::OnExpand( wxTreeEvent& Event )
 
     if( subdir_populated )
     {
-#ifdef KICAD_USE_FILES_WATCHER
     #ifndef __WINDOWS__
         FileWatcherReset();
     #endif
-#endif
     }
 }
 
@@ -908,7 +910,6 @@ wxTreeItemId TREE_PROJECT_FRAME::findSubdirTreeItem( const wxString& aSubDir )
 }
 
 
-#ifdef KICAD_USE_FILES_WATCHER
 void TREE_PROJECT_FRAME::OnFileSystemEvent( wxFileSystemWatcherEvent& event )
 {
     wxFileName pathModified = event.GetPath();
@@ -1074,5 +1075,3 @@ void KICAD_MANAGER_FRAME::OnChangeWatchedPaths(wxCommandEvent& aEvent )
 {
     m_LeftWin->FileWatcherReset();
 }
-
-#endif

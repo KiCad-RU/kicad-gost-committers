@@ -119,6 +119,7 @@ SCH_COMPONENT::SCH_COMPONENT( const wxPoint& aPos, SCH_ITEM* aParent ) :
 {
     Init( aPos );
     m_currentSheetPath = NULL;
+    m_fieldsAutoplaced = AUTOPLACED_NO;
 }
 
 
@@ -133,6 +134,7 @@ SCH_COMPONENT::SCH_COMPONENT( LIB_PART& aPart, SCH_SHEET_PATH* sheet, int unit,
     m_part_name = aPart.GetName();
     m_part      = aPart.SharedPtr();
     m_currentSheetPath = NULL;
+    m_fieldsAutoplaced = AUTOPLACED_NO;
 
     SetTimeStamp( GetNewTimeStamp() );
 
@@ -217,6 +219,7 @@ SCH_COMPONENT::SCH_COMPONENT( const SCH_COMPONENT& aComponent ) :
     }
 
     m_isDangling = aComponent.m_isDangling;
+    m_fieldsAutoplaced = aComponent.m_fieldsAutoplaced;
 }
 
 
@@ -351,7 +354,7 @@ void SCH_COMPONENT::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOff
     if( PART_SPTR part = m_part.lock() )
     {
         // Draw pin targets if part is being dragged
-        bool dragging = ( aPanel->GetScreen()->GetCurItem() == this );
+        bool dragging = aPanel->GetScreen()->GetCurItem() == this && aPanel->IsMouseCaptured();
 
         part->Draw( aPanel, aDC, m_Pos + aOffset, m_unit, m_convert, aDrawMode, aColor,
                     m_transform, aDrawPinText, false, false, dragging ? NULL : &m_isDangling );
@@ -660,6 +663,16 @@ SCH_FIELD* SCH_COMPONENT::GetField( int aFieldNdx ) const
 }
 
 
+void SCH_COMPONENT::GetFields( std::vector<SCH_FIELD*>& aVector, bool aVisibleOnly )
+{
+    BOOST_FOREACH( SCH_FIELD& each_field, m_Fields )
+    {
+        if( !aVisibleOnly || ( each_field.IsVisible() && !each_field.IsVoid() ) )
+            aVector.push_back( &each_field );
+    }
+}
+
+
 SCH_FIELD* SCH_COMPONENT::AddField( const SCH_FIELD& aField )
 {
     int newNdx = m_Fields.size();
@@ -691,6 +704,17 @@ LIB_PIN* SCH_COMPONENT::GetPin( const wxString& number )
 }
 
 
+void SCH_COMPONENT::GetPins( std::vector<LIB_PIN*>& aPinsList )
+{
+    if( PART_SPTR part = m_part.lock() )
+    {
+        part->GetPins( aPinsList, m_unit, m_convert );
+    }
+    else
+        wxFAIL_MSG( "Could not obtain PART_SPTR lock" );
+}
+
+
 void SCH_COMPONENT::SwapData( SCH_ITEM* aItem )
 {
     wxCHECK_RET( (aItem != NULL) && (aItem->Type() == SCH_COMPONENT_T),
@@ -698,11 +722,11 @@ void SCH_COMPONENT::SwapData( SCH_ITEM* aItem )
 
     SCH_COMPONENT* component = (SCH_COMPONENT*) aItem;
 
-    EXCHG( m_part_name, component->m_part_name );
-    EXCHG( m_part, component->m_part );
-    EXCHG( m_Pos, component->m_Pos );
-    EXCHG( m_unit, component->m_unit );
-    EXCHG( m_convert, component->m_convert );
+    std::swap( m_part_name, component->m_part_name );
+    std::swap( m_part, component->m_part );
+    std::swap( m_Pos, component->m_Pos );
+    std::swap( m_unit, component->m_unit );
+    std::swap( m_convert, component->m_convert );
 
     TRANSFORM tmp = m_transform;
 
@@ -723,7 +747,7 @@ void SCH_COMPONENT::SwapData( SCH_ITEM* aItem )
         GetField( ii )->SetParent( this );
     }
 
-    EXCHG( m_PathsAndReferences, component->m_PathsAndReferences );
+    std::swap( m_PathsAndReferences, component->m_PathsAndReferences );
 }
 
 
@@ -1130,8 +1154,11 @@ bool SCH_COMPONENT::Save( FILE* f ) const
 
 bool SCH_COMPONENT::Load( LINE_READER& aLine, wxString& aErrorMsg )
 {
+    // Remark: avoid using sscanf to read texts entered by user
+    // which are UTF8 encoded, because sscanf does not work well on Windows
+    // with some UTF8 values.
     int         ii;
-    char        name1[256], name2[256],
+    char        name1[256],
                 char1[256], char2[256], char3[256];
     int         newfmt = 0;
     char*       ptcar;
@@ -1148,7 +1175,20 @@ bool SCH_COMPONENT::Load( LINE_READER& aLine, wxString& aErrorMsg )
             return true;
     }
 
-    if( sscanf( &line[1], "%s %s", name1, name2 ) != 2 )
+    // Parse the first line of description:
+    // like "L partname ref" (for instance "L 74LS00 U4"
+    // They are UTF8 texts, so do not use sscanf
+
+    line += 1;
+
+    if( *line == ' ' )
+        line++;
+
+    // line points the first parameter
+    wxString buffer( FROM_UTF8( line ) );
+    wxStringTokenizer tokenizer( buffer, wxT( " \r\n" ) );
+
+    if( tokenizer.CountTokens() < 2 )
     {
         aErrorMsg.Printf( wxT( "Eeschema component description error at line %d, aborted" ),
                           aLine.LineNumber() );
@@ -1156,18 +1196,15 @@ bool SCH_COMPONENT::Load( LINE_READER& aLine, wxString& aErrorMsg )
         return false;
     }
 
-    if( strcmp( name1, NULL_STRING ) != 0 )
-    {
-        for( ii = 0; ii < (int) strlen( name1 ); ii++ )
-        {
-            if( name1[ii] == '~' )
-                name1[ii] = ' ';
-        }
+    wxString partname = tokenizer.NextToken();
+    partname.Replace( wxT("~"), wxT(" ") );  // all spaces were replaced by ~ in files.
 
-        SetPartName( FROM_UTF8( name1 ) );
+    if( partname != NULL_STRING )
+    {
+        SetPartName( partname );
 
         if( !newfmt )
-            GetField( VALUE )->SetText( FROM_UTF8( name1 ) );
+            GetField( VALUE )->SetText( partname );
     }
     else
     {
@@ -1177,48 +1214,35 @@ bool SCH_COMPONENT::Load( LINE_READER& aLine, wxString& aErrorMsg )
         GetField( VALUE )->SetVisible( false );
     }
 
-    if( strcmp( name2, NULL_STRING ) != 0 )
+    wxString reference = tokenizer.NextToken();
+    reference.Replace( wxT("~"), wxT(" ") );  // all spaces were replaced by ~ in files.
+    reference.Trim( true );
+    reference.Trim( false );
+
+    if( reference != NULL_STRING )
     {
-        bool isDigit = false;
-
-        for( ii = 0; ii < (int) strlen( name2 ); ii++ )
+        wxString prefix = reference;
+        // Build reference prefix from the actual reference by removing trailing digits
+        // (Perhaps outdated code, only for very old schematic files)
+        while( prefix.Length() )
         {
-            if( name2[ii] == '~' )
-                name2[ii] = ' ';
+            if( ( prefix.Last() < '0' || prefix.Last() > '9') && prefix.Last() != '?' )
+                break;
 
-            // get RefBase from this, too. store in name1.
-            if( name2[ii] >= '0' && name2[ii] <= '9' )
-            {
-                isDigit   = true;
-                name1[ii] = 0;  //null-terminate.
-            }
-
-            if( !isDigit )
-            {
-                name1[ii] = name2[ii];
-            }
+            prefix.RemoveLast();
         }
 
-        name1[ii] = 0; //just in case
-        int  jj;
+        // Avoid a prefix containing trailing/leading spaces
+        prefix.Trim( true );
+        prefix.Trim( false );
 
-        for( jj = 0; jj<ii && name1[jj] == ' '; jj++ )
-            ;
-
-        if( jj == ii )
-        {
-            // blank string.
+        if( prefix.IsEmpty() )
             m_prefix = wxT( "U" );
-        }
         else
-        {
-            m_prefix = FROM_UTF8( &name1[jj] );
-
-            //printf("prefix: %s\n", TO_UTF8(component->m_prefix));
-        }
+            m_prefix = prefix;
 
         if( !newfmt )
-            GetField( REFERENCE )->SetText( FROM_UTF8( name2 ) );
+            GetField( REFERENCE )->SetText( reference );
     }
     else
     {
@@ -1354,7 +1378,7 @@ bool SCH_COMPONENT::Load( LINE_READER& aLine, wxString& aErrorMsg )
             memset( char3, 0, sizeof(char3) );
             int x, y, w, attr;
 
-            if( ( ii = sscanf( ptcar, "%s %d %d %d %X %s %s", char1, &x, &y, &w, &attr,
+            if( ( ii = sscanf( ptcar, "%255s %d %d %d %X %255s %255s", char1, &x, &y, &w, &attr,
                                char2, char3 ) ) < 4 )
             {
                 aErrorMsg.Printf( wxT( "Component Field error line %d, aborted" ),
@@ -1472,10 +1496,10 @@ EDA_RECT SCH_COMPONENT::GetBodyBoundingBox() const
 
     // H and W must be > 0:
     if( x2 < x1 )
-        EXCHG( x2, x1 );
+        std::swap( x2, x1 );
 
     if( y2 < y1 )
-        EXCHG( y2, y1 );
+        std::swap( y2, y1 );
 
     bBox.SetX( x1 );
     bBox.SetY( y1 );
@@ -1547,9 +1571,7 @@ void SCH_COMPONENT::MirrorY( int aYaxis_position )
     int dx = m_Pos.x;
 
     SetOrientation( CMP_MIRROR_Y );
-    m_Pos.x -= aYaxis_position;
-    NEGATE( m_Pos.x );
-    m_Pos.x += aYaxis_position;
+    MIRROR( m_Pos.x, aYaxis_position );
     dx -= m_Pos.x;     // dx,0 is the move vector for this transform
 
     for( int ii = 0; ii < GetFieldCount(); ii++ )
@@ -1567,9 +1589,7 @@ void SCH_COMPONENT::MirrorX( int aXaxis_position )
     int dy = m_Pos.y;
 
     SetOrientation( CMP_MIRROR_X );
-    m_Pos.y -= aXaxis_position;
-    NEGATE( m_Pos.y );
-    m_Pos.y += aXaxis_position;
+    MIRROR( m_Pos.y, aXaxis_position );
     dy -= m_Pos.y;     // dy,0 is the move vector for this transform
 
     for( int ii = 0; ii < GetFieldCount(); ii++ )
@@ -1632,9 +1652,11 @@ void SCH_COMPONENT::GetEndPoints( std::vector <DANGLING_END_ITEM>& aItemList )
 }
 
 
-bool SCH_COMPONENT::IsPinDanglingStateChanged( std::vector<DANGLING_END_ITEM> &aItemList, LIB_PINS& aLibPins, unsigned aPin )
+bool SCH_COMPONENT::IsPinDanglingStateChanged( std::vector<DANGLING_END_ITEM> &aItemList,
+        LIB_PINS& aLibPins, unsigned aPin )
 {
     bool previousState;
+
     if( aPin < m_isDangling.size() )
     {
         previousState = m_isDangling[aPin];
@@ -1650,8 +1672,20 @@ bool SCH_COMPONENT::IsPinDanglingStateChanged( std::vector<DANGLING_END_ITEM> &a
 
     BOOST_FOREACH( DANGLING_END_ITEM& each_item, aItemList )
     {
-        if( each_item.GetItem() == aLibPins[aPin] )
+        // Some people like to stack pins on top of each other in a symbol to indicate
+        // internal connection. While technically connected, it is not particularly useful
+        // to display them that way, so skip any pins that are in the same symbol as this
+        // one.
+        //
+        // Do not make this exception for hidden pins, because those actually make internal
+        // connections to a power net.
+        const LIB_PIN* item_pin = dynamic_cast<const LIB_PIN*>( each_item.GetItem() );
+
+        if( item_pin
+          && ( !item_pin->IsPowerConnection() || !IsInNetlist() )
+          && std::find( aLibPins.begin(), aLibPins.end(), item_pin) != aLibPins.end() )
             continue;
+
         switch( each_item.GetType() )
         {
         case PIN_END:
@@ -1873,7 +1907,7 @@ void SCH_COMPONENT::GetNetListItem( NETLIST_OBJECT_LIST& aNetListItems,
 
             aNetListItems.push_back( item );
 
-            if( ( (int) pin->GetType() == (int) PIN_POWER_IN ) && !pin->IsVisible() )
+            if( pin->IsPowerConnection() )
             {
                 // There is an associated PIN_LABEL.
                 item = new NETLIST_OBJECT();

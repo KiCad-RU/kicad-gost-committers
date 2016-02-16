@@ -34,28 +34,30 @@ int PNS_SIZES_SETTINGS::inheritTrackWidth( PNS_ITEM* aItem )
 
     switch( aItem->Kind() )
     {
-        case PNS_ITEM::VIA:
-            p = static_cast<PNS_VIA*>( aItem )->Pos();
-            break;
+    case PNS_ITEM::VIA:
+        p = static_cast<PNS_VIA*>( aItem )->Pos();
+        break;
 
-        case PNS_ITEM::SOLID:
-            p = static_cast<PNS_SOLID*>( aItem )->Pos();
-            break;
+    case PNS_ITEM::SOLID:
+        p = static_cast<PNS_SOLID*>( aItem )->Pos();
+        break;
 
-        case PNS_ITEM::SEGMENT:
-            return static_cast<PNS_SEGMENT*>( aItem )->Width();
+    case PNS_ITEM::SEGMENT:
+        return static_cast<PNS_SEGMENT*>( aItem )->Width();
 
-        default:
-            return 0;
+    default:
+        return 0;
     }
 
-    PNS_JOINT* jt = aItem->Owner()->FindJoint( p, aItem );
+    PNS_JOINT* jt = static_cast<PNS_NODE*>( aItem->Owner() )->FindJoint( p, aItem );
 
     assert( jt != NULL );
 
     int mval = INT_MAX;
 
-    PNS_ITEMSET linkedSegs = jt->Links().ExcludeItem( aItem ).FilterKinds( PNS_ITEM::SEGMENT );
+
+    PNS_ITEMSET linkedSegs = jt->Links();
+    linkedSegs.ExcludeItem( aItem ).FilterKinds( PNS_ITEM::SEGMENT );
 
     BOOST_FOREACH( PNS_ITEM* item, linkedSegs.Items() )
     {

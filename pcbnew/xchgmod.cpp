@@ -5,10 +5,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -43,12 +43,11 @@
 #include <pcbnew.h>
 #include <dialog_exchange_modules_base.h>
 #include <wildcards_and_files_ext.h>
+#include <kiway.h>
 
-#include <boost/bind.hpp>
-#include <tool/tool_manager.h>
-#include <tools/common_actions.h>
 
 static bool RecreateCmpFile( BOARD * aBrd, const wxString& aFullCmpFileName );
+
 
 class DIALOG_EXCHANGE_MODULE : public DIALOG_EXCHANGE_MODULE_BASE
 {
@@ -66,19 +65,23 @@ private:
     void OnOkClick( wxCommandEvent& event );
     void OnQuit( wxCommandEvent& event );
     void BrowseAndSelectFootprint( wxCommandEvent& event );
+    void ViewAndSelectFootprint( wxCommandEvent& event );
     void RebuildCmpList( wxCommandEvent& event );
     void init();
 
-    void ChangeCurrentFootprint();
-    void ChangeSameFootprints( bool aUseValue);
-    void ChangeAllFootprints();
-    bool Change_1_Module( MODULE*            aModule,
+    bool changeCurrentFootprint();
+    bool changeSameFootprints( bool aUseValue);
+    bool changeAllFootprints();
+    bool change_1_Module( MODULE*            aModule,
                           const FPID&        aNewFootprintFPID,
-                          PICKED_ITEMS_LIST* aUndoPickList,
                           bool               eShowError );
+
+    PICKED_ITEMS_LIST m_undoPickList;
 };
 
+
 int DIALOG_EXCHANGE_MODULE::m_selectionMode = 0;
+
 
 DIALOG_EXCHANGE_MODULE::DIALOG_EXCHANGE_MODULE( PCB_EDIT_FRAME* parent, MODULE* Module ) :
     DIALOG_EXCHANGE_MODULE_BASE( parent )
@@ -88,21 +91,23 @@ DIALOG_EXCHANGE_MODULE::DIALOG_EXCHANGE_MODULE( PCB_EDIT_FRAME* parent, MODULE* 
     init();
     GetSizer()->Fit( this );
     GetSizer()->SetSizeHints( this );
+    Center();
 }
 
 
-void PCB_EDIT_FRAME::InstallExchangeModuleFrame( MODULE* Module )
+int PCB_EDIT_FRAME::InstallExchangeModuleFrame( MODULE* Module )
 {
     DIALOG_EXCHANGE_MODULE dialog( this, Module );
 
-    dialog.ShowModal();
+    return dialog.ShowQuasiModal();
 }
 
 
 void DIALOG_EXCHANGE_MODULE::OnQuit( wxCommandEvent& event )
 {
     m_selectionMode = m_Selection->GetSelection();
-    EndModal( 0 );
+    Show( false );
+    EndQuasiModal( wxID_CANCEL );
 }
 
 
@@ -110,9 +115,22 @@ void DIALOG_EXCHANGE_MODULE::init()
 {
     SetFocus();
 
-    m_OldModule->AppendText( FROM_UTF8( m_currentModule->GetFPID().Format().c_str() ) );
-    m_NewModule->AppendText( FROM_UTF8( m_currentModule->GetFPID().Format().c_str() ) );
-    m_OldValue->AppendText( m_currentModule->GetValue() );
+    m_CurrentFootprintFPID->AppendText( FROM_UTF8( m_currentModule->GetFPID().Format().c_str() ) );
+    m_NewFootprintFPID->AppendText( FROM_UTF8( m_currentModule->GetFPID().Format().c_str() ) );
+    m_CmpValue->AppendText( m_currentModule->GetValue() );
+    m_CmpReference->AppendText( m_currentModule->GetReference() );
+    m_Selection->SetString( 0, wxString::Format(
+                            _("Change footprint of '%s'" ),
+                            GetChars( m_currentModule->GetReference() ) ) );
+    wxString fpname = m_CurrentFootprintFPID->GetValue().AfterLast(':');
+
+    if( fpname.IsEmpty() )    // Happens for old fp names
+        fpname = m_CurrentFootprintFPID->GetValue();
+
+    m_Selection->SetString( 1, wxString::Format(
+                            _("Change footprints '%s'" ),
+                            GetChars( fpname.Left( 12 ) ) ) );
+
     m_Selection->SetSelection( m_selectionMode );
 
     // Enable/disable widgets:
@@ -123,26 +141,39 @@ void DIALOG_EXCHANGE_MODULE::init()
 
 void DIALOG_EXCHANGE_MODULE::OnOkClick( wxCommandEvent& event )
 {
+    m_undoPickList.ClearItemsList();
     m_selectionMode = m_Selection->GetSelection();
+    bool result = false;
 
     switch( m_Selection->GetSelection() )
     {
     case 0:
-        ChangeCurrentFootprint();
+        result = changeCurrentFootprint();
         break;
 
     case 1:
-        ChangeSameFootprints( false );
+        result = changeSameFootprints( false );
         break;
 
     case 2:
-        ChangeSameFootprints( true );
+        result = changeSameFootprints( true );
         break;
 
     case 3:
-        ChangeAllFootprints();
+        result = changeAllFootprints();
         break;
     }
+
+    if( result )
+    {
+        if( m_parent->GetBoard()->IsElementVisible( RATSNEST_VISIBLE ) )
+            m_parent->Compile_Ratsnest( NULL, true );
+
+        m_parent->GetCanvas()->Refresh();
+    }
+
+    if( m_undoPickList.GetCount() )
+        m_parent->SaveCopyInUndoList( m_undoPickList, UR_UNSPECIFIED );
 }
 
 
@@ -162,7 +193,7 @@ void DIALOG_EXCHANGE_MODULE::OnSelectionClicked( wxCommandEvent& event )
         break;
     }
 
-    m_NewModule->Enable( enable );
+    m_NewFootprintFPID->Enable( enable );
     m_Browsebutton->Enable( enable );
 }
 
@@ -202,25 +233,14 @@ void DIALOG_EXCHANGE_MODULE::RebuildCmpList( wxCommandEvent& event )
  * - value and ref
  * - pads net names
  */
-void DIALOG_EXCHANGE_MODULE::ChangeCurrentFootprint()
+bool DIALOG_EXCHANGE_MODULE::changeCurrentFootprint()
 {
-    wxString newmodulename = m_NewModule->GetValue();
+    wxString newmodulename = m_NewFootprintFPID->GetValue();
 
     if( newmodulename == wxEmptyString )
-        return;
+        return false;
 
-    PICKED_ITEMS_LIST pickList;
-
-    if( Change_1_Module( m_currentModule, newmodulename, &pickList, true ) )
-    {
-        if( m_parent->GetBoard()->IsElementVisible( RATSNEST_VISIBLE ) )
-            m_parent->Compile_Ratsnest( NULL, true );
-
-        m_parent->GetCanvas()->Refresh();
-    }
-
-    if( pickList.GetCount() )
-        m_parent->SaveCopyInUndoList( pickList, UR_UNSPECIFIED );
+    return change_1_Module( m_currentModule, newmodulename, true );
 }
 
 
@@ -235,22 +255,23 @@ void DIALOG_EXCHANGE_MODULE::ChangeCurrentFootprint()
  * if aUseValue is true, footprints having the same fpid should
  * also have the same value
  */
-void DIALOG_EXCHANGE_MODULE::ChangeSameFootprints( bool aUseValue )
+bool DIALOG_EXCHANGE_MODULE::changeSameFootprints( bool aUseValue )
 {
     wxString msg;
-    MODULE*  Module, * PtBack;
+    MODULE*  Module;
+    MODULE*  PtBack;
     bool     change = false;
-    wxString newmodulename = m_NewModule->GetValue();
+    wxString newmodulename = m_NewFootprintFPID->GetValue();
     wxString value;
     FPID     lib_reference;
     bool     check_module_value = false;
     int      ShowErr = 3;           // Post 3 error messages max.
 
     if( m_parent->GetBoard()->m_Modules == NULL )
-        return;
+        return false;
 
     if( newmodulename == wxEmptyString )
-        return;
+        return false;
 
     lib_reference = m_currentModule->GetFPID();
 
@@ -258,27 +279,25 @@ void DIALOG_EXCHANGE_MODULE::ChangeSameFootprints( bool aUseValue )
     {
         check_module_value = true;
         value = m_currentModule->GetValue();
-        msg.Printf( _( "Change modules %s -> %s (for value = %s)?" ),
+        msg.Printf( _( "Change footprint %s -> %s (for value = %s)?" ),
                     GetChars( FROM_UTF8( m_currentModule->GetFPID().Format().c_str() ) ),
                     GetChars( newmodulename ),
                     GetChars( m_currentModule->GetValue() ) );
     }
     else
     {
-        msg.Printf( _( "Change modules %s -> %s ?" ),
+        msg.Printf( _( "Change footprint %s -> %s ?" ),
                     GetChars( FROM_UTF8( lib_reference.Format().c_str() ) ),
                     GetChars( newmodulename ) );
     }
 
     if( !IsOK( this, msg ) )
-        return;
+        return false;
 
     /* The change is done from the last module because
-     * Change_1_Module () modifies the last item in the list.
-     */
-    PICKED_ITEMS_LIST pickList;
-
-    /* note: for the first module in chain (the last here), Module->Back()
+     * change_1_Module () modifies the last item in the list.
+     *
+     * note: for the first module in chain (the last here), Module->Back()
      * points the board or is NULL
      */
     Module = m_parent->GetBoard()->m_Modules.GetLast();
@@ -296,22 +315,13 @@ void DIALOG_EXCHANGE_MODULE::ChangeSameFootprints( bool aUseValue )
                 continue;
         }
 
-        if( Change_1_Module( Module, newmodulename, &pickList, ShowErr ) )
+        if( change_1_Module( Module, newmodulename, ShowErr ) )
             change = true;
         else if( ShowErr )
             ShowErr--;
     }
 
-    if( change )
-    {
-        if( m_parent->GetBoard()->IsElementVisible( RATSNEST_VISIBLE ) )
-            m_parent->Compile_Ratsnest( NULL, true );
-
-        m_parent->GetCanvas()->Refresh();
-    }
-
-    if( pickList.GetCount() )
-        m_parent->SaveCopyInUndoList( pickList, UR_UNSPECIFIED );
+    return change;
 }
 
 
@@ -322,24 +332,22 @@ void DIALOG_EXCHANGE_MODULE::ChangeSameFootprints( bool aUseValue )
  * - value and ref
  * - pads net names
  */
-void DIALOG_EXCHANGE_MODULE::ChangeAllFootprints()
+bool DIALOG_EXCHANGE_MODULE::changeAllFootprints()
 {
     MODULE* Module, * PtBack;
     bool    change  = false;
     int     ShowErr = 3;              // Post 3 error max.
 
     if( m_parent->GetBoard()->m_Modules == NULL )
-        return;
+        return false;
 
-    if( !IsOK( this, _( "Change ALL modules ?" ) ) )
-        return;
+    if( !IsOK( this, _( "Are you sure you want to change all footprints?" ) ) )
+        return false;
 
     /* The change is done from the last module because the function
-     * Change_1_Module () modifies the last module in the list
-     */
-    PICKED_ITEMS_LIST pickList;
-
-    /* note: for the first module in chain (the last here), Module->Back()
+     * change_1_Module () modifies the last module in the list
+     *
+     * note: for the first module in chain (the last here), Module->Back()
      * points the board or is NULL
      */
     Module = m_parent->GetBoard()->m_Modules.GetLast();
@@ -348,22 +356,13 @@ void DIALOG_EXCHANGE_MODULE::ChangeAllFootprints()
     {
         PtBack = Module->Back();
 
-        if( Change_1_Module( Module, Module->GetFPID(), &pickList, ShowErr ) )
+        if( change_1_Module( Module, Module->GetFPID(), ShowErr ) )
             change = true;
         else if( ShowErr )
             ShowErr--;
     }
 
-    if( change )
-    {
-        if( m_parent->GetBoard()->IsElementVisible( RATSNEST_VISIBLE ) )
-            m_parent->Compile_Ratsnest( NULL, true );
-
-        m_parent->GetCanvas()->Refresh();
-    }
-
-    if( pickList.GetCount() )
-        m_parent->SaveCopyInUndoList( pickList, UR_UNSPECIFIED );
+    return change;
 }
 
 
@@ -376,9 +375,8 @@ void DIALOG_EXCHANGE_MODULE::ChangeAllFootprints()
  * Returns: false if no change (if the new module is not found)
  * true if OK
  */
-bool DIALOG_EXCHANGE_MODULE::Change_1_Module( MODULE*            aModule,
+bool DIALOG_EXCHANGE_MODULE::change_1_Module( MODULE*            aModule,
                                               const FPID&        aNewFootprintFPID,
-                                              PICKED_ITEMS_LIST* aUndoPickList,
                                               bool               aShowError )
 {
     MODULE*  newModule;
@@ -390,7 +388,7 @@ bool DIALOG_EXCHANGE_MODULE::Change_1_Module( MODULE*            aModule,
     wxBusyCursor dummy;
 
     // Copy parameters from the old module.
-    FPID  oldFootprintFPID = aModule->GetFPID();
+    FPID oldFootprintFPID = aModule->GetFPID();
 
     // Load module.
     line.Printf( _( "Change footprint '%s' (from '%s') to '%s'" ),
@@ -398,9 +396,6 @@ bool DIALOG_EXCHANGE_MODULE::Change_1_Module( MODULE*            aModule,
                  oldFootprintFPID.Format().c_str(),
                  aNewFootprintFPID.Format().c_str() );
     m_WinMessages->AppendText( line );
-
-    wxString moduleName = aNewFootprintFPID.GetFootprintName();
-    wxString libName    = aNewFootprintFPID.GetLibNickname();
 
     newModule = m_parent->LoadFootprint( aNewFootprintFPID );
 
@@ -410,7 +405,7 @@ bool DIALOG_EXCHANGE_MODULE::Change_1_Module( MODULE*            aModule,
         return false;
     }
 
-    m_parent->Exchange_Module( aModule, newModule, aUndoPickList );
+    m_parent->Exchange_Module( aModule, newModule, &m_undoPickList );
     m_parent->GetBoard()->Add( newModule, ADD_APPEND );
 
     if( aModule == m_currentModule )
@@ -432,39 +427,18 @@ void PCB_EDIT_FRAME::Exchange_Module( MODULE*            aOldModule,
      * when all modules are on board
      */
     PlaceModule( aNewModule, NULL, true );
-    aNewModule->SetPosition( aOldModule->GetPosition() );
 
-    // Flip footprint if needed
-    if( aOldModule->GetLayer() != aNewModule->GetLayer() )
-    {
-        aNewModule->Flip( aNewModule->GetPosition() );
-    }
+    // Copy full placement and pad net names (when possible)
+    // but not local settings like clearances (use library values)
+    aOldModule->CopyNetlistSettings( aNewModule, false );
 
-    // Rotate footprint if needed
-    if( aOldModule->GetOrientation() != aNewModule->GetOrientation() )
-    {
-        Rotate_Module( NULL, aNewModule, aOldModule->GetOrientation(), false );
-    }
-
-    // Update reference and value
+    // Copy reference and value
     aNewModule->SetReference( aOldModule->GetReference() );
     aNewModule->SetValue( aOldModule->GetValue() );
 
     // Updating other parameters
     aNewModule->SetTimeStamp( aOldModule->GetTimeStamp() );
     aNewModule->SetPath( aOldModule->GetPath() );
-
-    // Update pad netnames ( when possible)
-    for( D_PAD* pad = aNewModule->Pads(); pad != NULL; pad = pad->Next() )
-    {
-        pad->SetNetCode( NETINFO_LIST::UNCONNECTED );
-
-        for( D_PAD* old_pad = aOldModule->Pads(); old_pad != NULL; old_pad = old_pad->Next() )
-        {
-            if( pad->PadNameEqual( old_pad ) )
-                pad->SetNetCode( old_pad->GetNetCode() );
-        }
-    }
 
     if( aUndoPickList )
     {
@@ -473,20 +447,6 @@ void PCB_EDIT_FRAME::Exchange_Module( MODULE*            aOldModule,
         ITEM_PICKER picker_new( aNewModule, UR_NEW );
         aUndoPickList->PushItem( picker_old );
         aUndoPickList->PushItem( picker_new );
-
-        if( IsGalCanvasActive() )
-        {
-            KIGFX::VIEW* view = GetGalCanvas()->GetView();
-
-            aOldModule->RunOnChildren( boost::bind( &KIGFX::VIEW::Remove, view, _1 ) );
-            view->Remove( aOldModule );
-
-            aNewModule->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, view, _1 ) );
-            view->Add( aNewModule );
-
-            m_toolManager->RunAction( COMMON_ACTIONS::selectionClear, true );
-            GetGalCanvas()->ForceRefresh();
-        }
     }
     else
     {
@@ -500,9 +460,7 @@ void PCB_EDIT_FRAME::Exchange_Module( MODULE*            aOldModule,
 }
 
 
-/*
- * Displays the list of modules in library name and select 1 name.
- */
+// Displays the list of available footprints in library name and select a footprint.
 void DIALOG_EXCHANGE_MODULE::BrowseAndSelectFootprint( wxCommandEvent& event )
 {
     wxString newname;
@@ -511,7 +469,23 @@ void DIALOG_EXCHANGE_MODULE::BrowseAndSelectFootprint( wxCommandEvent& event )
                                          Prj().PcbFootprintLibs() );
 
     if( newname != wxEmptyString )
-        m_NewModule->SetValue( newname );
+        m_NewFootprintFPID->SetValue( newname );
+}
+
+
+// Runs the footprint viewer to select a footprint.
+void DIALOG_EXCHANGE_MODULE::ViewAndSelectFootprint( wxCommandEvent& event )
+{
+    wxString newname;
+
+    KIWAY_PLAYER* frame = Kiway().Player( FRAME_PCB_MODULE_VIEWER_MODAL, true );
+
+    if( frame->ShowModal( &newname, this ) )
+    {
+        m_NewFootprintFPID->SetValue( newname );
+    }
+
+    frame->Destroy();
 }
 
 
@@ -535,7 +509,7 @@ void PCB_EDIT_FRAME::RecreateCmpFileFromBoard( wxCommandEvent& aEvent )
 
     wxString pro_dir = wxPathOnly( Prj().GetProjectFullName() );
 
-    wxFileDialog dlg( this, _( "Save Component Files" ), pro_dir,
+    wxFileDialog dlg( this, _( "Save Footprint Association File" ), pro_dir,
                       fn.GetFullName(), wildcard,
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
 
@@ -551,6 +525,7 @@ void PCB_EDIT_FRAME::RecreateCmpFileFromBoard( wxCommandEvent& aEvent )
         return;
     }
 }
+
 
 bool RecreateCmpFile( BOARD * aBrd, const wxString& aFullCmpFileName )
 {

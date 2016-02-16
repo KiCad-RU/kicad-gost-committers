@@ -192,8 +192,10 @@ void FOOTPRINT_EDIT_FRAME::LoadModuleFromBoard( wxCommandEvent& event )
     GetScreen()->ClearUndoRedoList();
     GetScreen()->ClrModify();
 
-    if( m_Draw3DFrame )
-        m_Draw3DFrame->NewDisplay();
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
+        draw3DFrame->NewDisplay();
 }
 
 
@@ -284,6 +286,10 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             }
             else
             {
+                // On Windows, Raise() does not bring the window on screen, when iconized
+                if( viewer->IsIconized() )
+                    viewer->Iconize( false );
+
                 viewer->Raise();
 
                 // Raising the window does not set the focus on Linux.  This should work on
@@ -366,8 +372,10 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 updateView();
                 m_canvas->Refresh();
 
-                if( m_Draw3DFrame )
-                    m_Draw3DFrame->NewDisplay();
+                EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+                if( draw3DFrame )
+                    draw3DFrame->NewDisplay();
 
                 GetScreen()->ClrModify();
             }
@@ -407,7 +415,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             {
                 source_module = mainpcb->m_Modules;
 
-                for( ; source_module != NULL; source_module = (MODULE*) source_module->Next() )
+                for( ; source_module != NULL; source_module = source_module->Next() )
                 {
                     if( module_in_edit->GetLink() == source_module->GetTimeStamp() )
                         break;
@@ -452,6 +460,13 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 // and the source_module (old module) is deleted
                 PICKED_ITEMS_LIST pickList;
 
+                if( pcbframe->IsGalCanvasActive() )
+                {
+                    KIGFX::VIEW* view = pcbframe->GetGalCanvas()->GetView();
+                    source_module->RunOnChildren( boost::bind( &KIGFX::VIEW::Remove, view, _1 ) );
+                    view->Remove( source_module );
+                }
+
                 pcbframe->Exchange_Module( source_module, newmodule, &pickList );
                 newmodule->SetTimeStamp( module_in_edit->GetLink() );
 
@@ -468,14 +483,6 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 pcbframe->SetCrossHairPosition( cursor_pos );
                 newmodule->SetTimeStamp( GetNewTimeStamp() );
                 pcbframe->SaveCopyInUndoList( newmodule, UR_NEW );
-
-                if( IsGalCanvasActive() )
-                {
-                    KIGFX::VIEW* view = pcbframe->GetGalCanvas()->GetView();
-
-                    newmodule->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, view, _1 ) );
-                    view->Add( newmodule );
-                }
             }
 
             newmodule->ClearFlags();
@@ -483,12 +490,16 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             pcbframe->SetCurItem( NULL );
             mainpcb->m_Status_Pcb = 0;
 
-            if( IsGalCanvasActive() )
+            if( pcbframe->IsGalCanvasActive() )
             {
                 RN_DATA* ratsnest = pcbframe->GetBoard()->GetRatsnest();
                 ratsnest->Update( newmodule );
                 ratsnest->Recalculate();
-                GetGalCanvas()->ForceRefresh();
+
+                KIGFX::VIEW* view = pcbframe->GetGalCanvas()->GetView();
+                newmodule->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, view, _1 ) );
+                view->Add( newmodule );
+                pcbframe->GetGalCanvas()->ForceRefresh();
             }
         }
         break;
@@ -506,9 +517,12 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         GetScreen()->ClrModify();
         Zoom_Automatique( false );
         m_canvas->Refresh();
+        {
+        EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
 
-        if( m_Draw3DFrame )
-            m_Draw3DFrame->NewDisplay();
+        if( draw3DFrame )
+            draw3DFrame->NewDisplay();
+        }
 
         break;
 
@@ -540,13 +554,12 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
         LoadModuleFromLibrary( GetCurrentLib(), Prj().PcbFootprintLibs(), true );
 
-        if( GetBoard()->m_Modules )
-             GetBoard()->m_Modules->ClearFlags();
-
-        // if either m_Reference or m_Value are gone, reinstall them -
-        // otherwise you cannot see what you are doing on board
         if( GetBoard() && GetBoard()->m_Modules )
         {
+            GetBoard()->m_Modules->ClearFlags();
+
+            // if either m_Reference or m_Value are gone, reinstall them -
+            // otherwise you cannot see what you are doing on board
             TEXTE_MODULE* ref = &GetBoard()->m_Modules->Reference();
             TEXTE_MODULE* val = &GetBoard()->m_Modules->Value();
 
@@ -566,8 +579,12 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
         Zoom_Automatique( false );
 
-        if( m_Draw3DFrame )
-            m_Draw3DFrame->NewDisplay();
+        {
+        EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+        if( draw3DFrame )
+            draw3DFrame->NewDisplay();
+        }
 
         GetScreen()->ClrModify();
 
@@ -833,8 +850,11 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_GEN_IMPORT_DXF_FILE:
-        InvokeDXFDialogModuleImport( this, GetBoard()->m_Modules );
-        m_canvas->Refresh();
+        if( GetBoard()->m_Modules )
+        {
+            InvokeDXFDialogModuleImport( this, GetBoard()->m_Modules );
+            m_canvas->Refresh();
+        }
         break;
 
     default:

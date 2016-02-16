@@ -61,7 +61,6 @@ CONTEXT_MENU::~CONTEXT_MENU()
 CONTEXT_MENU& CONTEXT_MENU::operator=( const CONTEXT_MENU& aMenu )
 {
     Clear();
-
     copyFrom( aMenu );
 
     return *this;
@@ -131,6 +130,9 @@ wxMenuItem* CONTEXT_MENU::Add( const TOOL_ACTION& aAction )
 std::list<wxMenuItem*> CONTEXT_MENU::Add( CONTEXT_MENU* aMenu, const wxString& aLabel, bool aExpand )
 {
     std::list<wxMenuItem*> items;
+    CONTEXT_MENU* menuCopy = new CONTEXT_MENU( *aMenu );
+    m_submenus.push_back( menuCopy );
+    menuCopy->m_parent = this;
 
     if( aExpand )
     {
@@ -146,17 +148,14 @@ std::list<wxMenuItem*> CONTEXT_MENU::Add( CONTEXT_MENU* aMenu, const wxString& a
         {
             wxMenuItem* newItem = new wxMenuItem( this, -1, aLabel, wxEmptyString, wxITEM_NORMAL );
             newItem->SetBitmap( KiBitmap( aMenu->m_icon ) );
-            newItem->SetSubMenu( aMenu );
+            newItem->SetSubMenu( menuCopy );
             items.push_back( Append( newItem ) );
         }
         else
         {
-            items.push_back( AppendSubMenu( aMenu, aLabel ) );
+            items.push_back( AppendSubMenu( menuCopy, aLabel ) );
         }
     }
-
-    m_submenus.push_back( aMenu );
-    aMenu->m_parent = this;
 
     return items;
 }
@@ -179,10 +178,27 @@ void CONTEXT_MENU::Clear()
 
 void CONTEXT_MENU::UpdateAll()
 {
-    m_update_handler();
-    updateHotKeys();
+    try
+    {
+        m_update_handler();
+    }
+    catch( std::exception& e )
+    {
+        std::cerr << "CONTEXT_MENU error running update handler: " << e.what() << std::endl;
+    }
+
+    if( m_tool )
+        updateHotKeys();
 
     runOnSubmenus( boost::bind( &CONTEXT_MENU::UpdateAll, _1 ) );
+}
+
+
+void CONTEXT_MENU::SetTool( TOOL_INTERACTIVE* aTool )
+{
+    m_tool = aTool;
+
+    runOnSubmenus( boost::bind( &CONTEXT_MENU::SetTool, _1, aTool ) );
 }
 
 
@@ -195,27 +211,29 @@ TOOL_MANAGER* CONTEXT_MENU::getToolManager()
 
 void CONTEXT_MENU::updateHotKeys()
 {
+    TOOL_MANAGER* toolMgr = getToolManager();
+
     for( std::map<int, const TOOL_ACTION*>::const_iterator it = m_toolActions.begin();
             it != m_toolActions.end(); ++it )
     {
         int id = it->first;
         const TOOL_ACTION& action = *it->second;
+        int key = toolMgr->GetHotKey( action ) & ~MD_MODIFIER_MASK;
 
-        if( action.HasHotKey() )
+        if( key )
         {
-            int key = action.GetHotKey() & ~MD_MODIFIER_MASK;
-            int mod = action.GetHotKey() & MD_MODIFIER_MASK;
-            int flags = wxACCEL_NORMAL;
+            int mod = toolMgr->GetHotKey( action ) & MD_MODIFIER_MASK;
+            int flags = 0;
             wxMenuItem* item = FindChildItem( id );
 
             if( item )
             {
-                switch( mod )
-                {
-                    case MD_ALT:    flags = wxACCEL_ALT;    break;
-                    case MD_CTRL:   flags = wxACCEL_CTRL;   break;
-                    case MD_SHIFT:  flags = wxACCEL_SHIFT;  break;
-                }
+                flags |= ( mod & MD_ALT ) ? wxACCEL_ALT : 0;
+                flags |= ( mod & MD_CTRL ) ? wxACCEL_CTRL : 0;
+                flags |= ( mod & MD_SHIFT ) ? wxACCEL_SHIFT : 0;
+
+                if( !flags )
+                    flags = wxACCEL_NORMAL;
 
                 wxAcceleratorEntry accel( flags, key, id, item );
                 item->SetAccel( &accel );
@@ -283,14 +301,6 @@ void CONTEXT_MENU::onMenuEvent( wxMenuEvent& aEvent )
 }
 
 
-void CONTEXT_MENU::setTool( TOOL_INTERACTIVE* aTool )
-{
-    m_tool = aTool;
-
-    runOnSubmenus( boost::bind( &CONTEXT_MENU::setTool, _1, aTool ) );
-}
-
-
 void CONTEXT_MENU::runEventHandlers( const wxMenuEvent& aMenuEvent, OPT_TOOL_EVENT& aToolEvent )
 {
     aToolEvent = m_menu_handler( aMenuEvent );
@@ -302,7 +312,14 @@ void CONTEXT_MENU::runEventHandlers( const wxMenuEvent& aMenuEvent, OPT_TOOL_EVE
 
 void CONTEXT_MENU::runOnSubmenus( boost::function<void(CONTEXT_MENU*)> aFunction )
 {
-    std::for_each( m_submenus.begin(), m_submenus.end(), aFunction );
+    try
+    {
+        std::for_each( m_submenus.begin(), m_submenus.end(), aFunction );
+    }
+    catch( std::exception& e )
+    {
+        std::cerr << "CONTEXT_MENU runOnSubmenus error: " << e.what() << std::endl;
+    }
 }
 
 
@@ -365,7 +382,7 @@ void CONTEXT_MENU::copyFrom( const CONTEXT_MENU& aMenu )
 
 OPT_TOOL_EVENT CONTEXT_MENU::menuHandlerStub( const wxMenuEvent& )
 {
-    return OPT_TOOL_EVENT();
+    return boost::none;
 }
 
 

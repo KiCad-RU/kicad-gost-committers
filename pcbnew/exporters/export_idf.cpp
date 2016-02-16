@@ -36,6 +36,7 @@
 #include <idf_parser.h>
 #include <3d_struct.h>
 #include <build_version.h>
+#include <convert_from_iu.h>
 
 #ifndef PCBNEW
 #define PCBNEW                  // needed to define the right value of Millimeter2iu(x)
@@ -291,7 +292,7 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
         if( drill > 0.0 )
         {
             // plating
-            if( pad->GetAttribute() == PAD_HOLE_NOT_PLATED )
+            if( pad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED )
                 kplate = IDF3::NPTH;
             else
                 kplate = IDF3::PTH;
@@ -301,7 +302,7 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
 
             if( tstr.empty() || !tstr.compare( "0" ) || !tstr.compare( "~" )
                 || ( kplate == IDF3::NPTH )
-                ||( pad->GetDrillShape() == PAD_DRILL_OBLONG ) )
+                ||( pad->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG ) )
                 pintype = "MTG";
             else
                 pintype = "PIN";
@@ -314,7 +315,7 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
             // 5. Assoc. part : BOARD | NOREFDES | PANEL | {"refdes"}
             // 6. type : PIN | VIA | MTG | TOOL | { "other" }
             // 7. owner : MCAD | ECAD | UNOWNED
-            if( ( pad->GetDrillShape() == PAD_DRILL_OBLONG )
+            if( ( pad->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG )
                 && ( pad->GetDrillSize().x != pad->GetDrillSize().y ) )
             {
                 // NOTE: IDF does not have direct support for slots;
@@ -328,10 +329,19 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
                 // screen with a LH coordinate system
                 double angle = pad->GetOrientation() / 10.0;
 
+                // NOTE: Since this code assumes the scenario where
+                // GetDrillSize().y is the length but idf_parser.cpp
+                // assumes a length along the X axis, the orientation
+                // must be shifted +90 deg when GetDrillSize().y is
+                // the major axis.
+
                 if( dlength < drill )
                 {
                     std::swap( drill, dlength );
-                    angle += M_PI2;
+                }
+                else
+                {
+                    angle += 90.0;
                 }
 
                 // NOTE: KiCad measures a slot's length from end to end
@@ -366,7 +376,8 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
 
     for( S3D_MASTER* modfile = aModule->Models(); modfile != 0; modfile = modfile->Next() )
     {
-        if( !modfile->Is3DType( S3D_MASTER::FILE3D_IDF ) )
+        if( !modfile->Is3DType( S3D_MASTER::FILE3D_IDF )
+            || modfile->GetShape3DFullFilename().empty() )
             continue;
 
         if( refdes.empty() )
@@ -389,16 +400,15 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
             throw( std::runtime_error( aIDFBoard.GetError() ) );
 
         double rotz = aModule->GetOrientation()/10.0;
-        double locx = modfile->m_MatPosition.x;
-        double locy = modfile->m_MatPosition.y;
-        double locz = modfile->m_MatPosition.z;
+        double locx = modfile->m_MatPosition.x * 25.4;  // part offsets are in inches
+        double locy = modfile->m_MatPosition.y * 25.4;
+        double locz = modfile->m_MatPosition.z * 25.4;
         double lrot = modfile->m_MatRotation.z;
 
         bool top = ( aModule->GetLayer() == B_Cu ) ? false : true;
 
         if( top )
         {
-            rotz += modfile->m_MatRotation.z;
             locy = -locy;
             RotatePoint( &locx, &locy, aModule->GetOrientation() );
             locy = -locy;
@@ -406,6 +416,7 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
 
         if( !top )
         {
+            lrot = -lrot;
             RotatePoint( &locx, &locy, aModule->GetOrientation() );
             locy = -locy;
 
@@ -523,14 +534,15 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
  * generates IDFv3 compliant board (*.emn) and library (*.emp)
  * files representing the user's PCB design.
  */
-bool Export_IDF3( BOARD* aPcb, const wxString& aFullFileName, bool aUseThou )
+bool Export_IDF3( BOARD* aPcb, const wxString& aFullFileName, bool aUseThou,
+                  double aXRef, double aYRef )
 {
     IDF3_BOARD idfBoard( IDF3::CAD_ELEC );
 
     SetLocaleTo_C_standard();
 
     bool ok = true;
-    double scale = 1e-6;    // we must scale internal units to mm for IDF
+    double scale = MM_PER_IU;   // we must scale internal units to mm for IDF
     IDF3::IDF_UNIT idfUnit;
 
     if( aUseThou )
@@ -558,10 +570,8 @@ bool Export_IDF3( BOARD* aPcb, const wxString& aFullFileName, bool aUseThou )
 
     try
     {
-        // set up the global offsets
-        EDA_RECT bbox = aPcb->ComputeBoundingBox( true );
-        idfBoard.SetUserOffset( -bbox.Centre().x * scale,
-                            bbox.Centre().y * scale );
+        // set up the board reference point
+        idfBoard.SetUserOffset( -aXRef, aYRef );
 
         // Export the board outline
         idf_export_outline( aPcb, idfBoard );

@@ -228,6 +228,11 @@ bool NETLIST_OBJECT::IsLabelConnected( NETLIST_OBJECT* aNetItem )
             return true; //connected!
         }
     }
+    else if( ( at == NET_GLOBLABEL ) && ( bt == NET_GLOBLABEL ) )
+    {
+        if( m_Label == aNetItem->m_Label )
+            return true; //connected!
+    }
 
     return false; //these two are unconnected
 }
@@ -288,7 +293,7 @@ void NETLIST_OBJECT::ConvertBusToNetListItems( NETLIST_OBJECT_LIST& aNetListItem
         end = 0;
 
     if( begin > end )
-        EXCHG( begin, end );
+        std::swap( begin, end );
 
     member = begin;
     tmp = busName;

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar  9 2015)
+// C++ code generated with wxFormBuilder (version Jan  1 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -16,6 +16,7 @@ class UNIT_SELECTOR_ANGLE;
 class UNIT_SELECTOR_FREQUENCY;
 class UNIT_SELECTOR_LEN;
 class UNIT_SELECTOR_RESISTOR;
+class UNIT_SELECTOR_THICKNESS;
 
 #include "kiway_player.h"
 #include <wx/string.h>
@@ -92,50 +93,57 @@ class PCB_CALCULATOR_FRAME_BASE : public KIWAY_PLAYER
 		wxButton* m_buttonRemoveItem;
 		wxStaticText* m_RegulMessage;
 		wxPanel* m_panelTrackWidth;
-		wxStaticText* m_staticTextTW_WarningMessage;
 		wxStaticText* m_staticTextCurrent;
 		wxTextCtrl* m_TrackCurrentValue;
 		wxStaticText* m_staticText62;
 		wxStaticText* m_staticText63;
 		wxTextCtrl* m_TrackDeltaTValue;
 		wxStaticText* m_staticText64;
-		wxStaticText* m_staticText65;
-		wxTextCtrl* m_TrackThicknessValue;
-		UNIT_SELECTOR_LEN* m_TW_CuThickness_choiceUnit;
 		wxStaticText* m_staticText66;
 		wxTextCtrl* m_TrackLengthValue;
 		UNIT_SELECTOR_LEN* m_TW_CuLength_choiceUnit;
+		wxStaticText* m_staticText103;
+		wxTextCtrl* m_TWResistivity;
+		wxStaticText* m_staticText104;
 		wxHtmlWindow* m_htmlWinFormulas;
-		wxButton* m_buttonTW;
-		wxStaticText* m_staticTextWidth;
+		wxStaticText* m_staticTextExtWidth;
 		wxTextCtrl* m_ExtTrackWidthValue;
 		UNIT_SELECTOR_LEN* m_TW_ExtTrackWidth_choiceUnit;
+		wxStaticText* m_staticText65;
+		wxTextCtrl* m_ExtTrackThicknessValue;
+		UNIT_SELECTOR_THICKNESS* m_ExtTrackThicknessUnit;
+		wxStaticLine* m_staticline3;
+		wxStaticLine* m_staticline4;
+		wxStaticLine* m_staticline5;
 		wxStaticText* m_staticTextArea;
-		wxTextCtrl* m_ExtTrackAreaValue;
+		wxStaticText* m_ExtTrackAreaValue;
 		wxStaticText* m_ExtTrackAreaUnitLabel;
 		wxStaticText* m_staticText651;
-		wxTextCtrl* m_ExtTrackResistValue;
+		wxStaticText* m_ExtTrackResistValue;
 		wxStaticText* m_staticText84;
 		wxStaticText* m_staticText661;
-		wxTextCtrl* m_ExtTrackVDropValue;
+		wxStaticText* m_ExtTrackVDropValue;
 		wxStaticText* m_staticText83;
 		wxStaticText* m_staticText79;
-		wxTextCtrl* m_ExtTrackLossValue;
+		wxStaticText* m_ExtTrackLossValue;
 		wxStaticText* m_staticText791;
-		wxStaticText* m_staticTextWidth11;
+		wxStaticText* m_staticTextIntWidth;
 		wxTextCtrl* m_IntTrackWidthValue;
 		UNIT_SELECTOR_LEN* m_TW_IntTrackWidth_choiceUnit;
+		wxStaticText* m_staticText652;
+		wxTextCtrl* m_IntTrackThicknessValue;
+		UNIT_SELECTOR_THICKNESS* m_IntTrackThicknessUnit;
 		wxStaticText* m_staticTextArea1;
-		wxTextCtrl* m_IntTrackAreaValue;
+		wxStaticText* m_IntTrackAreaValue;
 		wxStaticText* m_IntTrackAreaUnitLabel;
 		wxStaticText* m_staticText6511;
-		wxTextCtrl* m_IntTrackResistValue;
+		wxStaticText* m_IntTrackResistValue;
 		wxStaticText* m_staticText841;
 		wxStaticText* m_staticText6611;
-		wxTextCtrl* m_IntTrackVDropValue;
+		wxStaticText* m_IntTrackVDropValue;
 		wxStaticText* m_staticText831;
 		wxStaticText* m_staticText792;
-		wxTextCtrl* m_IntTrackLossValue;
+		wxStaticText* m_IntTrackLossValue;
 		wxStaticText* m_staticText7911;
 		wxPanel* m_panelElectricalSpacing;
 		UNIT_SELECTOR_LEN* m_ElectricalSpacingUnitsSelector;
@@ -180,6 +188,7 @@ class PCB_CALCULATOR_FRAME_BASE : public KIWAY_PLAYER
 		wxStaticText* m_Frequency_label;
 		wxTextCtrl* m_Value_Frequency_Ctrl;
 		UNIT_SELECTOR_FREQUENCY* m_choiceUnit_Frequency;
+		wxStaticBitmap* m_bmCMicrostripZoddZeven;
 		wxStaticText* m_phys_prm1_label;
 		wxTextCtrl* m_Phys_prm1_Value;
 		UNIT_SELECTOR_LEN* m_choiceUnit_Param1;
@@ -242,8 +251,8 @@ class PCB_CALCULATOR_FRAME_BASE : public KIWAY_PLAYER
 		wxTextCtrl* m_Att_R3_Value;
 		wxStaticText* m_attR3Unit;
 		wxStaticText* m_staticTextAttMsg;
-		wxTextCtrl* m_Attenuator_Messages;
-		wxPanel* m_panelAttFormula;
+		wxHtmlWindow* m_Attenuator_Messages;
+		wxHtmlWindow* m_panelAttFormula;
 		wxPanel* m_panelColorCode;
 		wxRadioBox* m_rbToleranceSelection;
 		wxStaticText* m_staticText31;
@@ -273,7 +282,10 @@ class PCB_CALCULATOR_FRAME_BASE : public KIWAY_PLAYER
 		virtual void OnEditRegulator( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnAddRegulator( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnRemoveRegulator( wxCommandEvent& event ) { event.Skip(); }
-		virtual void OnTWCalculateButt( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnTWCalculateFromCurrent( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnTWParametersChanged( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnTWCalculateFromExtWidth( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnTWCalculateFromIntWidth( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnElectricalSpacingUnitsSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnElectricalSpacingRefresh( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnTranslineSelection( wxCommandEvent& event ) { event.Skip(); }
@@ -286,14 +298,13 @@ class PCB_CALCULATOR_FRAME_BASE : public KIWAY_PLAYER
 		virtual void OnAttenuatorSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnPaintAttenuatorPanel( wxPaintEvent& event ) { event.Skip(); }
 		virtual void OnCalculateAttenuator( wxCommandEvent& event ) { event.Skip(); }
-		virtual void OnPaintAttFormulaPanel( wxPaintEvent& event ) { event.Skip(); }
 		virtual void OnToleranceSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnBoardClassesUnitsSelection( wxCommandEvent& event ) { event.Skip(); }
 		
 	
 	public:
 		
-		PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("PCB Calculator"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 702,489 ), long style = wxDEFAULT_FRAME_STYLE|wxRESIZE_BORDER|wxFULL_REPAINT_ON_RESIZE|wxTAB_TRAVERSAL );
+		PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("PCB Calculator"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 754,485 ), long style = wxDEFAULT_FRAME_STYLE|wxRESIZE_BORDER|wxFULL_REPAINT_ON_RESIZE|wxTAB_TRAVERSAL, const wxString& name = wxT("pcb_calculator") );
 		
 		~PCB_CALCULATOR_FRAME_BASE();
 	

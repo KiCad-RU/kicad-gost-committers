@@ -394,6 +394,9 @@ void AddMenusForComponent( wxMenu* PopMenu, SCH_COMPONENT* Component, PART_LIBS*
         AddMenuItem( PopMenu, ID_POPUP_SCH_DELETE_CMP, msg, KiBitmap( delete_xpm ) );
     }
 
+    msg = AddHotkeyName( _( "Autoplace Fields" ), g_Schematic_Hokeys_Descr, HK_AUTOPLACE_FIELDS );
+    AddMenuItem( PopMenu, ID_AUTOPLACE_FIELDS, msg, KiBitmap( autoplace_fields_xpm ) );
+
     if( libEntry && !libEntry->GetDocFileName().IsEmpty() )
         AddMenuItem( PopMenu, ID_POPUP_SCH_DISPLAYDOC_CMP, _( "Doc" ), KiBitmap( datasheet_xpm ) );
 }
@@ -787,7 +790,7 @@ void AddMenusForHierchicalSheet( wxMenu* PopMenu, SCH_SHEET* Sheet )
         AddMenuItem( PopMenu, ID_POPUP_SCH_RESIZE_SHEET, _( "Resize Sheet" ),
                      KiBitmap( resize_sheet_xpm ) );
         PopMenu->AppendSeparator();
-        AddMenuItem( PopMenu, ID_POPUP_IMPORT_GLABEL, _( "Import Sheet Pins" ),
+        AddMenuItem( PopMenu, ID_POPUP_IMPORT_HLABEL_TO_SHEETPIN, _( "Import Sheet Pins" ),
                      KiBitmap( import_hierarchical_label_xpm ) );
 
         if( Sheet->HasUndefinedPins() )  // Sheet has pin labels, and can be cleaned

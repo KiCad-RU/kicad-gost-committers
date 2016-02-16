@@ -30,7 +30,6 @@ PNS_DRAGGER::PNS_DRAGGER( PNS_ROUTER* aRouter ) :
     m_world = NULL;
     m_lastNode = NULL;
     m_mode = SEGMENT;
-    m_draggedLine = NULL;
     m_draggedVia = NULL;
     m_shove = NULL;
     m_draggedSegmentIndex = 0;
@@ -59,7 +58,7 @@ bool PNS_DRAGGER::startDragSegment( const VECTOR2D& aP, PNS_SEGMENT* aSeg )
 
     m_draggedLine = m_world->AssembleLine( aSeg, &m_draggedSegmentIndex );
     m_shove->SetInitialLine( m_draggedLine );
-    m_lastValidDraggedLine = *m_draggedLine;
+    m_lastValidDraggedLine = m_draggedLine;
     m_lastValidDraggedLine.ClearSegmentLinks();
 
     if( ( aP - aSeg->Seg().A ).EuclideanNorm() <= w2 )
@@ -84,18 +83,21 @@ bool PNS_DRAGGER::startDragVia( const VECTOR2D& aP, PNS_VIA* aVia )
     VECTOR2I p0( aVia->Pos() );
     PNS_JOINT* jt = m_world->FindJoint( p0, aVia->Layers().Start(), aVia->Net() );
 
+    if( !jt )
+        return false;
+
     BOOST_FOREACH( PNS_ITEM* item, jt->LinkList() )
     {
         if( item->OfKind( PNS_ITEM::SEGMENT ) )
         {
             int segIndex;
             PNS_SEGMENT* seg = ( PNS_SEGMENT*) item;
-            std::auto_ptr<PNS_LINE> l( m_world->AssembleLine( seg, &segIndex ) );
+            PNS_LINE l = m_world->AssembleLine( seg, &segIndex );
 
             if( segIndex != 0 )
-                l->Reverse();
+                l.Reverse();
 
-            m_origViaConnections.push_back( *l );
+            m_origViaConnections.Add( l );
         }
     }
 
@@ -114,14 +116,14 @@ bool PNS_DRAGGER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
 
     switch( aStartItem->Kind() )
     {
-        case PNS_ITEM::SEGMENT:
-            return startDragSegment( aP, static_cast<PNS_SEGMENT*>( aStartItem ) );
+    case PNS_ITEM::SEGMENT:
+        return startDragSegment( aP, static_cast<PNS_SEGMENT*>( aStartItem ) );
 
-        case PNS_ITEM::VIA:
-            return startDragVia( aP, static_cast<PNS_VIA*>( aStartItem ) );
+    case PNS_ITEM::VIA:
+        return startDragVia( aP, static_cast<PNS_VIA*>( aStartItem ) );
 
-        default:
-            return false;
+    default:
+        return false;
     }
 }
 
@@ -136,36 +138,37 @@ bool PNS_DRAGGER::dragMarkObstacles( const VECTOR2I& aP )
 
     switch( m_mode )
     {
-        case SEGMENT:
-        case CORNER:
-        {
-            int thresh = Settings().SmoothDraggedSegments() ? m_draggedLine->Width() / 4 : 0;
-            PNS_LINE tmp( *m_draggedLine );
+    case SEGMENT:
+    case CORNER:
+    {
+        int thresh = Settings().SmoothDraggedSegments() ? m_draggedLine.Width() / 4 : 0;
+        PNS_LINE dragged( m_draggedLine );
 
-            if( m_mode == SEGMENT )
-                tmp.DragSegment( aP, m_draggedSegmentIndex, thresh );
-            else
-                tmp.DragCorner( aP, m_draggedSegmentIndex, thresh );
+        if( m_mode == SEGMENT )
+            dragged.DragSegment( aP, m_draggedSegmentIndex, thresh );
+        else
+            dragged.DragCorner( aP, m_draggedSegmentIndex, thresh );
 
-            m_lastNode = m_shove->CurrentNode()->Branch();
+        m_lastNode = m_shove->CurrentNode()->Branch();
 
-            m_lastValidDraggedLine = tmp;
-            m_lastValidDraggedLine.ClearSegmentLinks();
-            m_lastValidDraggedLine.Unmark();
+        m_lastValidDraggedLine = dragged;
+        m_lastValidDraggedLine.ClearSegmentLinks();
+        m_lastValidDraggedLine.Unmark();
 
-            m_lastNode->Add( &m_lastValidDraggedLine );
-            m_draggedItems = PNS_ITEMSET( &m_lastValidDraggedLine );
+        m_lastNode->Add( &m_lastValidDraggedLine );
+        m_draggedItems.Clear();
+        m_draggedItems.Add( m_lastValidDraggedLine );
 
-            break;
-        }
+        break;
+    }
 
-        case VIA: // fixme...
-        {
-            m_lastNode = m_shove->CurrentNode()->Branch();
-            dumbDragVia( m_initialVia, m_lastNode, aP );
+    case VIA: // fixme...
+    {
+        m_lastNode = m_shove->CurrentNode()->Branch();
+        dumbDragVia( m_initialVia, m_lastNode, aP );
 
-            break;
-        }
+        break;
+    }
     }
 
     if( Settings().CanViolateDRC() )
@@ -179,27 +182,32 @@ bool PNS_DRAGGER::dragMarkObstacles( const VECTOR2I& aP )
 
 void PNS_DRAGGER::dumbDragVia( PNS_VIA* aVia, PNS_NODE* aNode, const VECTOR2I& aP )
 {
+    m_draggedItems.Clear();
+
     // fixme: this is awful.
     m_draggedVia = aVia->Clone();
     m_draggedVia->SetPos( aP );
-    m_draggedItems.Clear();
+
     m_draggedItems.Add( m_draggedVia );
 
     m_lastNode->Remove( aVia );
     m_lastNode->Add( m_draggedVia );
 
-    BOOST_FOREACH( PNS_LINE &l, m_origViaConnections )
+    BOOST_FOREACH( PNS_ITEM* item, m_origViaConnections.Items() )
     {
-        PNS_LINE origLine( l );
-        PNS_LINE* draggedLine = l.Clone();
+        if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
+        {
+            PNS_LINE origLine( *l );
+            PNS_LINE draggedLine( *l );
 
-        draggedLine->DragCorner( aP, 0 );
-        draggedLine->ClearSegmentLinks();
+            draggedLine.DragCorner( aP, origLine.CLine().Find( aVia->Pos() ) );
+            draggedLine.ClearSegmentLinks();
 
-        m_draggedItems.Add( draggedLine );             // FIXME: mem leak
+            m_draggedItems.Add( draggedLine );
 
-        m_lastNode->Remove( &origLine );
-        m_lastNode->Add( draggedLine );
+            m_lastNode->Remove( &origLine );
+            m_lastNode->Add( &draggedLine );
+        }
     }
 }
 
@@ -216,58 +224,59 @@ bool PNS_DRAGGER::dragShove( const VECTOR2I& aP )
 
     switch( m_mode )
     {
-        case SEGMENT:
-        case CORNER:
+    case SEGMENT:
+    case CORNER:
+    {
+        int thresh = Settings().SmoothDraggedSegments() ? m_draggedLine.Width() / 4 : 0;
+        PNS_LINE dragged( m_draggedLine );
+
+        if( m_mode == SEGMENT )
+            dragged.DragSegment( aP, m_draggedSegmentIndex, thresh );
+        else
+            dragged.DragCorner( aP, m_draggedSegmentIndex, thresh );
+
+        PNS_SHOVE::SHOVE_STATUS st = m_shove->ShoveLines( dragged );
+
+        if( st == PNS_SHOVE::SH_OK )
+            ok = true;
+        else if( st == PNS_SHOVE::SH_HEAD_MODIFIED )
         {
-            int thresh = Settings().SmoothDraggedSegments() ? m_draggedLine->Width() / 4 : 0;
-            PNS_LINE tmp( *m_draggedLine );
-
-            if( m_mode == SEGMENT )
-                tmp.DragSegment( aP, m_draggedSegmentIndex, thresh );
-            else
-                tmp.DragCorner( aP, m_draggedSegmentIndex, thresh );
-
-            PNS_SHOVE::SHOVE_STATUS st = m_shove->ShoveLines( tmp );
-
-            if( st == PNS_SHOVE::SH_OK )
-                ok = true;
-            else if( st == PNS_SHOVE::SH_HEAD_MODIFIED )
-            {
-                tmp = m_shove->NewHead();
-                ok = true;
-            }
-
-            m_lastNode = m_shove->CurrentNode()->Branch();
-
-            if( ok )
-                m_lastValidDraggedLine = tmp;
-
-            m_lastValidDraggedLine.ClearSegmentLinks();
-            m_lastValidDraggedLine.Unmark();
-            m_lastNode->Add( &m_lastValidDraggedLine );
-            m_draggedItems = PNS_ITEMSET( &m_lastValidDraggedLine );
-
-            break;
+            dragged = m_shove->NewHead();
+            ok = true;
         }
 
-        case VIA:
+        m_lastNode = m_shove->CurrentNode()->Branch();
+
+        if( ok )
+            m_lastValidDraggedLine = dragged;
+
+        m_lastValidDraggedLine.ClearSegmentLinks();
+        m_lastValidDraggedLine.Unmark();
+        m_lastNode->Add( &m_lastValidDraggedLine );
+        m_draggedItems.Clear();
+        m_draggedItems.Add( m_lastValidDraggedLine );
+
+        break;
+    }
+
+    case VIA:
+    {
+        PNS_VIA* newVia;
+        PNS_SHOVE::SHOVE_STATUS st = m_shove->ShoveDraggingVia( m_draggedVia, aP, &newVia );
+
+        if( st == PNS_SHOVE::SH_OK || st == PNS_SHOVE::SH_HEAD_MODIFIED )
+            ok = true;
+
+        m_lastNode = m_shove->CurrentNode()->Branch();
+
+        if( ok )
         {
-            PNS_VIA* newVia;
-            PNS_SHOVE::SHOVE_STATUS st = m_shove->ShoveDraggingVia( m_draggedVia, aP, &newVia );
-
-            if( st == PNS_SHOVE::SH_OK || st == PNS_SHOVE::SH_HEAD_MODIFIED )
-                ok = true;
-
-            m_lastNode = m_shove->CurrentNode()->Branch();
-
-            if( ok )
-            {
-                m_draggedVia = newVia;
-                m_draggedItems.Clear();
-            }
-
-            break;
+            m_draggedVia = newVia;
+            m_draggedItems.Clear();
         }
+
+        break;
+    }
     }
 
     m_dragStatus = ok;
@@ -292,16 +301,16 @@ bool PNS_DRAGGER::Drag( const VECTOR2I& aP )
 {
     switch( m_currentMode )
     {
-        case RM_MarkObstacles:
-            return dragMarkObstacles( aP );
+    case RM_MarkObstacles:
+        return dragMarkObstacles( aP );
 
-        case RM_Shove:
-        case RM_Walkaround:
-        case RM_Smart:
-            return dragShove( aP );
+    case RM_Shove:
+    case RM_Walkaround:
+    case RM_Smart:
+        return dragShove( aP );
 
-        default:
-            return false;
+    default:
+        return false;
     }
 }
 

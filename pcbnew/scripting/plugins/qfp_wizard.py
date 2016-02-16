@@ -27,7 +27,7 @@ class QFPWizard(HelpfulFootprintWizardPlugin.HelpfulFootprintWizardPlugin):
         return "QFP"
 
     def GetDescription(self):
-        return "QFP Footprint Wizard"
+        return "Quad Flat Package footprint wizard"
 
     def GenerateParameterList(self):
         self.AddParam("Pads", "n", self.uNatural, 100)
@@ -38,19 +38,18 @@ class QFPWizard(HelpfulFootprintWizardPlugin.HelpfulFootprintWizardPlugin):
         self.AddParam("Pads", "horizontal pitch", self.uMM, 15)
         self.AddParam("Pads", "oval", self.uBool, True)
 
-        self.AddParam("Pads", "package width", self.uMM, 14)
-        self.AddParam("Pads", "package height", self.uMM, 14)
+        self.AddParam("Package", "package width", self.uMM, 14)
+        self.AddParam("Package", "package height", self.uMM, 14)
+        self.AddParam("Package", "courtyard margin", self.uMM, 1)
 
     def CheckParameters(self):
-
         self.CheckParamInt("Pads", "*n", is_multiple_of=4)
         self.CheckParamBool("Pads", "*oval")
 
     def GetValue(self):
-        return "QFP %d" % self.parameters["Pads"]["*n"]
+        return "QFP_%d" % self.parameters["Pads"]["*n"]
 
     def BuildThisFootprint(self):
-
         pads = self.parameters["Pads"]
 
         pad_pitch = pads["pad pitch"]
@@ -64,24 +63,21 @@ class QFPWizard(HelpfulFootprintWizardPlugin.HelpfulFootprintWizardPlugin):
 
         row_len = (pads_per_row - 1) * pad_pitch
 
-        pad_shape = pcbnew.PAD_OVAL if pads["*oval"] else pcbnew.PAD_RECT
+        pad_shape = pcbnew.PAD_SHAPE_OVAL if pads["*oval"] else pcbnew.PAD_SHAPE_RECT
 
-        h_pad = PA.PadMaker(self.module).SMDPad(
-            pad_width, pad_length, shape=pad_shape)
-        v_pad = PA.PadMaker(self.module).SMDPad(
-            pad_length, pad_width, shape=pad_shape)
+        h_pad = PA.PadMaker(self.module).SMDPad( pad_length, pad_width,
+                                                 shape=pad_shape, rot_degree=90.0)
+        v_pad = PA.PadMaker(self.module).SMDPad( pad_length, pad_width, shape=pad_shape)
 
         #left row
         pin1Pos = pcbnew.wxPoint(-h_pitch / 2, 0)
-        array = PA.PadLineArray(h_pad, pads_per_row, pad_pitch, True,
-                                pin1Pos)
+        array = PA.PadLineArray(h_pad, pads_per_row, pad_pitch, True, pin1Pos)
         array.SetFirstPadInArray(1)
         array.AddPadsToModule(self.draw)
 
         #bottom row
         pin1Pos = pcbnew.wxPoint(0, v_pitch / 2)
-        array = PA.PadLineArray(v_pad, pads_per_row, pad_pitch, False,
-                                pin1Pos)
+        array = PA.PadLineArray(v_pad, pads_per_row, pad_pitch, False, pin1Pos)
         array.SetFirstPadInArray(pads_per_row + 1)
         array.AddPadsToModule(self.draw)
 
@@ -99,8 +95,8 @@ class QFPWizard(HelpfulFootprintWizardPlugin.HelpfulFootprintWizardPlugin):
         array.SetFirstPadInArray(3*pads_per_row + 1)
         array.AddPadsToModule(self.draw)
 
-        lim_x = pads["package width"] / 2
-        lim_y = pads["package height"] / 2
+        lim_x = self.parameters["Package"]["package width"] / 2
+        lim_y = self.parameters["Package"]["package height"] / 2
         inner = (row_len / 2) + pad_pitch
 
         #top left - diagonal
@@ -112,12 +108,23 @@ class QFPWizard(HelpfulFootprintWizardPlugin.HelpfulFootprintWizardPlugin):
         # bottom right
         self.draw.Polyline([(inner, lim_y), (lim_x, lim_y), (lim_x, inner)])
 
-        #reference and value
-        text_size = pcbnew.FromMM(1.2)  # IPC nominal
+        # Courtyard
+        cmargin = self.parameters["Package"]["courtyard margin"]
+        self.draw.SetLayer(pcbnew.F_CrtYd)
+        sizex = (lim_x + cmargin) * 2 + pad_length
+        sizey = (lim_y + cmargin) * 2 + pad_length
+        # set courtyard line thickness to the one defined in KLC
+        thick = self.draw.GetLineThickness()
+        self.draw.SetLineThickness(pcbnew.FromMM(0.05))
+        self.draw.Box(0, 0, sizex, sizey)
+        # restore line thickness to previous value
+        self.draw.SetLineThickness(pcbnew.FromMM(thick))
 
+        #reference and value
+        text_size = self.GetTextSize()  # IPC nominal
         text_offset = v_pitch / 2 + text_size + pad_length / 2
 
-        self.draw.Value(0, -text_offset, text_size)
-        self.draw.Reference(0, text_offset, text_size)
+        self.draw.Value(0, text_offset, text_size)
+        self.draw.Reference(0, -text_offset, text_size)
 
 QFPWizard().register()

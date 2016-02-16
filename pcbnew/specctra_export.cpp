@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2008 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2007 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2007-2015 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,6 +53,8 @@
 
 #include <collectors.h>
 
+#include <geometry/shape_poly_set.h>
+
 #include <specctra.h>
 
 using namespace DSN;
@@ -82,7 +84,7 @@ static const double safetyMargin = 0.1;
 static unsigned close_ness(  const wxPoint& aLeft, const wxPoint& aRight )
 {
     // Don't need an accurate distance calculation, just something
-    // approximating it, for relative orering.
+    // approximating it, for relative ordering.
     return unsigned( abs( aLeft.x - aRight.x ) + abs( aLeft.y - aRight.y ) );
 }
 
@@ -104,6 +106,23 @@ inline bool close_enough( const wxPoint& aLeft, const wxPoint& aRight, unsigned 
 }
 
 
+/**
+ * Function close_st
+ * is a local method of qualifying if either the start of end point of a segment is closest to a point.
+ *
+ * @param aReference is the reference point
+ * @param aFirst is the first point
+ * @param aSecond is the second point
+ * @return bool - true if the the first point is closest to the reference, otherwise false.
+ */
+inline bool close_st( const wxPoint& aReference, const wxPoint& aFirst, const wxPoint& aSecond )
+{
+    // We don't use an accurate distance calculation, just something
+    // approximating to find the closest to the reference.
+    return close_ness( aReference, aFirst ) <= close_ness( aReference, aSecond );
+}
+
+
 // see wxPcbStruct.h
 void PCB_EDIT_FRAME::ExportToSpecctra( wxCommandEvent& event )
 {
@@ -118,15 +137,14 @@ void PCB_EDIT_FRAME::ExportToSpecctra( wxCommandEvent& event )
 
     name += dsn_ext;
 
-    fullFileName = EDA_FileSelector( _( "Specctra DSN file:" ),
-                                     path,
-                                     name,      // name.ext without path!
-                                     dsn_ext,
-                                     mask,
-                                     this,
-                                     wxFD_SAVE,
-                                     false
-                                     );
+    fullFileName = EDA_FILE_SELECTOR( _( "Specctra DSN file:" ),
+                                      path,
+                                      name,      // name.ext without path!
+                                      dsn_ext,
+                                      mask,
+                                      this,
+                                      wxFD_SAVE,
+                                      false );
 
     if( fullFileName == wxEmptyString )
         return;
@@ -266,12 +284,12 @@ static DRAWSEGMENT* findPoint( const wxPoint& aPoint, ::PCB_TYPE_COLLECTOR* item
     int      ndx_min = 0;
 
     // find the point closest to aPoint and perhaps exactly matching aPoint.
-    for( int i = 0; i<items->GetCount(); ++i )
+    for( int i = 0; i < items->GetCount(); ++i )
     {
         DRAWSEGMENT*    graphic = (DRAWSEGMENT*) (*items)[i];
         unsigned        d;
 
-        wxASSERT( graphic->Type() == PCB_LINE_T );
+        wxASSERT( graphic->Type() == PCB_LINE_T || graphic->Type() == PCB_MODULE_EDGE_T );
 
         switch( graphic->GetShape() )
         {
@@ -328,19 +346,33 @@ static DRAWSEGMENT* findPoint( const wxPoint& aPoint, ::PCB_TYPE_COLLECTOR* item
     }
 
 #if defined(DEBUG)
-    printf( "Unable to find segment matching point (%d,%d)\n",
-            aPoint.x, aPoint.y );
-
-    for( int i = 0; i< items->GetCount(); ++i )
+    if( items->GetCount() )
     {
-        DRAWSEGMENT* graphic = (DRAWSEGMENT*) (*items)[i];
+        printf( "Unable to find segment matching point (%.6g;%.6g) (seg count %d)\n",
+                IU2um( aPoint.x )/1000, IU2um( aPoint.y )/1000,
+                items->GetCount());
 
-        printf( "type=%s, GetStart()=%d,%d  GetEnd()=%d,%d\n",
-                TO_UTF8( BOARD_ITEM::ShowShape( (STROKE_T) graphic->GetShape() ) ),
-                graphic->GetStart().x,
-                graphic->GetStart().y,
-                graphic->GetEnd().x,
-                graphic->GetEnd().y );
+        for( int i = 0; i< items->GetCount(); ++i )
+        {
+            DRAWSEGMENT* graphic = (DRAWSEGMENT*) (*items)[i];
+
+            if( graphic->GetShape() == S_ARC )
+                printf( "item %d, type=%s, start=%.6g;%.6g  end=%.6g;%.6g\n",
+                        i + 1,
+                        TO_UTF8( BOARD_ITEM::ShowShape( graphic->GetShape() ) ),
+                        IU2um( graphic->GetArcStart().x )/1000,
+                        IU2um( graphic->GetArcStart().y )/1000,
+                        IU2um( graphic->GetArcEnd().x )/1000,
+                        IU2um( graphic->GetArcEnd().y )/1000 );
+            else
+                printf( "item %d, type=%s, start=%.6g;%.6g  end=%.6g;%.6g\n",
+                        i + 1,
+                        TO_UTF8( BOARD_ITEM::ShowShape( graphic->GetShape() ) ),
+                        IU2um( graphic->GetStart().x )/1000,
+                        IU2um( graphic->GetStart().y )/1000,
+                        IU2um( graphic->GetEnd().x )/1000,
+                        IU2um( graphic->GetEnd().y )/1000 );
+        }
     }
 #endif
 
@@ -355,7 +387,7 @@ static DRAWSEGMENT* findPoint( const wxPoint& aPoint, ::PCB_TYPE_COLLECTOR* item
  */
 static bool isRoundKeepout( D_PAD* aPad )
 {
-    if( aPad->GetShape()==PAD_CIRCLE )
+    if( aPad->GetShape()==PAD_SHAPE_CIRCLE )
     {
         if( aPad->GetDrillSize().x >= aPad->GetSize().x )
             return true;
@@ -448,7 +480,7 @@ PADSTACK* SPECCTRA_DB::makePADSTACK( BOARD* aBoard, D_PAD* aPad )
     switch( aPad->GetShape() )
     {
     default:
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         {
             double diameter = scale( aPad->GetSize().x );
 
@@ -476,7 +508,7 @@ PADSTACK* SPECCTRA_DB::makePADSTACK( BOARD* aBoard, D_PAD* aPad )
         }
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         {
             double  dx  = scale( aPad->GetSize().x ) / 2.0;
             double  dy  = scale( aPad->GetSize().y ) / 2.0;
@@ -512,7 +544,7 @@ PADSTACK* SPECCTRA_DB::makePADSTACK( BOARD* aBoard, D_PAD* aPad )
         }
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         {
             double  dx  = scale( aPad->GetSize().x ) / 2.0;
             double  dy  = scale( aPad->GetSize().y ) / 2.0;
@@ -563,7 +595,7 @@ PADSTACK* SPECCTRA_DB::makePADSTACK( BOARD* aBoard, D_PAD* aPad )
         }
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         {
             double  dx  = scale( aPad->GetSize().x ) / 2.0;
             double  dy  = scale( aPad->GetSize().y ) / 2.0;
@@ -793,7 +825,7 @@ IMAGE* SPECCTRA_DB::makeIMAGE( BOARD* aBoard, MODULE* aModule )
         case S_ARC:
         default:
             DBG( printf( "makeIMAGE(): unsupported shape %s\n",
-                       TO_UTF8( BOARD_ITEM::ShowShape( (STROKE_T) graphic->GetShape() ) ) ); )
+                       TO_UTF8( BOARD_ITEM::ShowShape( graphic->GetShape() ) ) ); )
             continue;
         }
     }
@@ -849,7 +881,7 @@ PADSTACK* SPECCTRA_DB::makeVia( const ::VIA* aVia )
     int botLayer = kicadLayer2pcb[botLayerNum];
 
     if( topLayer > botLayer )
-        EXCHG( topLayer, botLayer );
+        std::swap( topLayer, botLayer );
 
     return makeVia( aVia->GetWidth(), aVia->GetDrillValue(), topLayer, botLayer );
 }
@@ -907,14 +939,9 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
     for( int i = 0; i<items.GetCount(); )
     {
         if( items[i]->GetLayer() != Edge_Cuts )
-        {
             items.Remove( i );
-        }
         else    // remove graphics not on Edge_Cuts layer
-        {
-            DBG( items[i]->Show( 0, std::cout );)
             ++i;
-        }
     }
 
     if( items.GetCount() )
@@ -955,7 +982,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                 break;
 
             case S_ARC:
-                // freerouter does not yet understand arcs, so approximate
+                // Freerouter does not yet understand arcs, so approximate
                 // an arc with a series of short lines and put those
                 // line segments into the !same! PATH.
                 {
@@ -1005,9 +1032,9 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
             default:
                 {
                     wxString error = wxString::Format( _( "Unsupported DRAWSEGMENT type %s" ),
-                        GetChars( BOARD_ITEM::ShowShape( (STROKE_T) graphic->GetShape() ) ) );
+                        GetChars( BOARD_ITEM::ShowShape( graphic->GetShape() ) ) );
 
-                    ThrowIOError( error );
+                    THROW_IO_ERROR( error );
                 }
                 break;
             }
@@ -1024,7 +1051,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
 
         // Set maximum proximity threshold for point to point nearness metric for
         // board perimeter only, not interior keepouts yet.
-        prox = Millimeter2iu( 0.01 );   // should be enough to fix rounding issues
+        prox = Millimeter2iu( 0.01 );  // should be enough to fix rounding issues
                                         // is arc start and end point calculations
 
         // Output the Edge.Cuts perimeter as circle or polygon.
@@ -1034,8 +1061,10 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
         }
         else
         {
-            wxPoint startPt = wxPoint( graphic->GetEnd() );
+            // Polygon start point. Arbitrarily chosen end of the
+            // segment and build the poly from here.
 
+            wxPoint startPt = wxPoint( graphic->GetEnd() );
             prevPt = graphic->GetEnd();
             path->AppendPoint( mapPt( prevPt ) );
 
@@ -1050,15 +1079,17 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                     {
                         wxPoint  nextPt;
 
-                        if( !close_enough( prevPt, graphic->GetStart(), prox ) )
+                        // Use the line segment end point furthest away from
+                        // prevPt as we assume the other end to be ON prevPt or
+                        // very close to it.
+
+                        if( close_st( prevPt, graphic->GetStart(), graphic->GetEnd() ) )
                         {
-                            wxASSERT( close_enough( prevPt, graphic->GetEnd(), prox ) );
-                            nextPt = graphic->GetStart();
+                            nextPt = graphic->GetEnd();
                         }
                         else
                         {
-                            wxASSERT( close_enough( prevPt, graphic->GetStart(), prox ) );
-                            nextPt = graphic->GetEnd();
+                            nextPt = graphic->GetStart();
                         }
 
                         path->AppendPoint( mapPt( nextPt ) );
@@ -1085,7 +1116,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                             wxASSERT( close_enough( prevPt, graphic->GetArcEnd(), prox ) );
 
                             angle = -angle;
-                            EXCHG( start, end );
+                            std::swap( start, end );
                         }
 
                         wxPoint nextPt;
@@ -1108,34 +1139,46 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                 default:
                     {
                         wxString error = wxString::Format( _( "Unsupported DRAWSEGMENT type %s" ),
-                            GetChars( BOARD_ITEM::ShowShape( (STROKE_T) graphic->GetShape() ) ) );
+                            GetChars( BOARD_ITEM::ShowShape( graphic->GetShape() ) ) );
 
-                        ThrowIOError( error );
+                        THROW_IO_ERROR( error );
                     }
                     break;
                 }
 
-                if( close_enough( startPt, prevPt, prox ) )     // the polygon is closed.
-                    break;
+                // Get next closest segment.
 
                 graphic = findPoint( prevPt, &items, prox );
 
+                // If there are no more close segments, check if the board
+                // outline polygon can be closed.
+
                 if( !graphic )
                 {
-                    wxString error = wxString::Format(
-                        _( "Unable to find the next segment with an endpoint of (%s mm, %s mm).\n"
-                           "Edit Edge.Cuts perimeter graphics, making them contiguous polygons each." ),
-                        GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.x ).c_str() ) ),
-                        GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.y ).c_str() ) )
+                    if( close_enough( startPt, prevPt, prox ) )
+                    {
+                        // Close the polygon back to start point
+                        path->AppendPoint( mapPt( startPt ) );
+                    }
+                    else
+                    {
+                        wxString error = wxString::Format(
+                            _( "Unable to find the next boundary segment with an endpoint of (%s mm, %s mm).\n"
+                                  "Edit Edge.Cuts perimeter graphics, making them contiguous polygons each." ),
+                            GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.x ).c_str() ) ),
+                            GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.y ).c_str() ) )
                         );
-                    ThrowIOError( error );
+                        THROW_IO_ERROR( error );
+                    }
+                    break;
                 }
             }
         }
 
-        // Output the interior Edge.Cuts graphics as keepouts, using nearness metric
-        // for sloppy graphical items.
-        prox = Millimeter2iu( 0.25 );
+        // Output the interior Edge.Cuts graphics as keepouts, using same nearness
+        // metric as the board edge as otherwise we have trouble completing complex
+        // polygons.
+        prox = Millimeter2iu( 0.05 );
 
         while( items.GetCount() )
         {
@@ -1155,6 +1198,9 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
             }
             else
             {
+                // Polygon start point. Arbitrarily chosen end of the
+                // segment and build the poly from here.
+
                 wxPoint startPt( graphic->GetEnd() );
                 prevPt = graphic->GetEnd();
                 poly_ko->AppendPoint( mapPt( prevPt ) );
@@ -1168,15 +1214,17 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                         {
                             wxPoint nextPt;
 
-                            if( !close_enough( prevPt, graphic->GetStart(), prox ) )
+                            // Use the line segment end point furthest away from
+                            // prevPt as we assume the other end to be ON prevPt or
+                            // very close to it.
+
+                            if( close_st( prevPt, graphic->GetStart(), graphic->GetEnd() ) )
                             {
-                                wxASSERT( close_enough( prevPt, graphic->GetEnd(), prox ) );
-                                nextPt = graphic->GetStart();
+                                nextPt = graphic->GetEnd();
                             }
                             else
                             {
-                                wxASSERT( close_enough( prevPt, graphic->GetStart(), prox ) );
-                                nextPt = graphic->GetEnd();
+                                nextPt = graphic->GetStart();
                             }
 
                             prevPt = nextPt;
@@ -1185,7 +1233,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                         break;
 
                     case S_ARC:
-                        // freerouter does not yet understand arcs, so approximate
+                        // Freerouter does not yet understand arcs, so approximate
                         // an arc with a series of short lines and put those
                         // line segments into the !same! PATH.
                         {
@@ -1203,7 +1251,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                                 wxASSERT( close_enough( prevPt, graphic->GetArcEnd(), prox ) );
 
                                 angle = -angle;
-                                EXCHG( start, end );
+                                std::swap( start, end );
                             }
 
                             wxPoint nextPt;
@@ -1227,28 +1275,39 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                         {
                             wxString error = wxString::Format(
                                 _( "Unsupported DRAWSEGMENT type %s" ),
-                                GetChars( BOARD_ITEM::ShowShape( (STROKE_T) graphic->GetShape() ) ) );
+                                GetChars( BOARD_ITEM::ShowShape( graphic->GetShape() ) ) );
 
-                            ThrowIOError( error );
+                            THROW_IO_ERROR( error );
                         }
                         break;
                     }
 
-                    if( close_enough( startPt, prevPt, prox ) )
-                        break;
+                    // Get next closest segment.
 
                     graphic = findPoint( prevPt, &items, prox );
 
+                    // If there are no more close segments, check if polygon
+                    // can be closed.
+
                     if( !graphic )
                     {
-                        wxString error = wxString::Format(
-                            _( "Unable to find the next segment with an endpoint of (%s mm, %s mm).\n"
-                               "Edit Edge.Cuts interior graphics, making them contiguous polygons each." ),
-                            GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.x ).c_str() ) ),
-                            GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.y ).c_str() ) )
+                        if( close_enough( startPt, prevPt, prox ) )
+                        {
+                            // Close the polygon back to start point
+                            poly_ko->AppendPoint( mapPt( startPt ) );
+                        }
+                        else
+                        {
+                            wxString error = wxString::Format(
+                                _( "Unable to find the next keepout segment with an endpoint of (%s mm, %s mm).\n"
+                                   "Edit Edge.Cuts interior graphics, making them contiguous polygons each." ),
+                                GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.x ).c_str() ) ),
+                                GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.y ).c_str() ) )
                             );
 
-                        ThrowIOError( error );
+                            THROW_IO_ERROR( error );
+                        }
+                        break;
                     }
                 }
             }
@@ -1281,8 +1340,8 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
  * All contours should be closed, i.e. valid closed polygon vertices
  */
 bool SPECCTRA_DB::GetBoardPolygonOutlines( BOARD* aBoard,
-                                           CPOLYGONS_LIST& aOutlines,
-                                           CPOLYGONS_LIST& aHoles,
+                                           SHAPE_POLY_SET& aOutlines,
+                                           SHAPE_POLY_SET& aHoles,
                                            wxString* aErrorText )
 {
     bool success = true;
@@ -1298,6 +1357,8 @@ bool SPECCTRA_DB::GetBoardPolygonOutlines( BOARD* aBoard,
     BOUNDARY* boundary = new BOUNDARY( 0 );
     pcb->structure->SetBOUNDARY( boundary );
 
+    aOutlines.NewOutline();
+
     try
     {
         fillBOUNDARY( aBoard, boundary );
@@ -1308,10 +1369,8 @@ bool SPECCTRA_DB::GetBoardPolygonOutlines( BOARD* aBoard,
         {
             corner.x = buffer[ii] * specctra2UIfactor;
             corner.y =  - buffer[ii+1] * specctra2UIfactor;
-            aOutlines.Append( corner );
+            aOutlines.Append( corner.x, corner.y );
         }
-
-        aOutlines.CloseLastContour();
 
         // Export holes, stored as keepouts polygonal shapes.
         // by fillBOUNDARY()
@@ -1322,13 +1381,15 @@ bool SPECCTRA_DB::GetBoardPolygonOutlines( BOARD* aBoard,
             KEEPOUT& keepout = *i;
             PATH* poly_hole = (PATH*)keepout.shape;
             POINTS& plist = poly_hole->GetPoints();
+
+            aHoles.NewOutline();
+
             for( unsigned ii = 0; ii < plist.size(); ii++ )
             {
                 corner.x = plist[ii].x * specctra2UIfactor;
                 corner.y =  - plist[ii].y * specctra2UIfactor;
-                aHoles.Append( corner );
+                aHoles.Append( corner.x, corner.y );
             }
-            aHoles.CloseLastContour();
         }
     }
     catch( const IO_ERROR& ioe )
@@ -1348,23 +1409,24 @@ bool SPECCTRA_DB::GetBoardPolygonOutlines( BOARD* aBoard,
         if( ( bbbox.GetWidth() ) == 0 || ( bbbox.GetHeight() == 0 ) )
             bbbox.Inflate( Millimeter2iu( 1.0 ) );
 
+        aOutlines.RemoveAllContours();
+        aOutlines.NewOutline();
+
         corner.x = bbbox.GetOrigin().x;
         corner.y = bbbox.GetOrigin().y;
-        aOutlines.Append( corner );
+        aOutlines.Append( corner.x, corner.y );
 
         corner.x = bbbox.GetOrigin().x;
         corner.y = bbbox.GetEnd().y;
-        aOutlines.Append( corner );
+        aOutlines.Append( corner.x, corner.y );
 
         corner.x = bbbox.GetEnd().x;
         corner.y = bbbox.GetEnd().y;
-        aOutlines.Append( corner );
+        aOutlines.Append( corner.x, corner.y );
 
         corner.x = bbbox.GetEnd().x;
         corner.y = bbbox.GetOrigin().y;
-        aOutlines.Append( corner );
-
-        aOutlines.CloseLastContour();
+        aOutlines.Append( corner.x, corner.y );
     }
 
     return success;
@@ -1386,8 +1448,6 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
     // Unless they are unique, we cannot import the session file which comes
     // back to us later from the router.
     {
-        PCB_TYPE_COLLECTOR  padItems;
-
         items.Collect( aBoard, scanMODULEs );
 
         STRINGSET       refs;       // holds module reference designators
@@ -1398,16 +1458,16 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
 
             if( module->GetReference() == wxEmptyString )
             {
-                ThrowIOError( _( "Component with value of '%s' has empty reference id." ),
-                                GetChars( module->GetValue() ) );
+                THROW_IO_ERROR( wxString::Format( _( "Component with value of '%s' has empty reference id." ),
+                                                  GetChars( module->GetValue() ) ) );
             }
 
             // if we cannot insert OK, that means the reference has been seen before.
             STRINGSET_PAIR refpair = refs.insert( TO_UTF8( module->GetReference() ) );
             if( !refpair.second )      // insert failed
             {
-                ThrowIOError( _( "Multiple components have identical reference IDs of '%s'." ),
-                      GetChars( module->GetReference() ) );
+                THROW_IO_ERROR( wxString::Format( _( "Multiple components have identical reference IDs of '%s'." ),
+                                                  GetChars( module->GetReference() ) ) );
             }
         }
     }
@@ -1954,10 +2014,10 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
             if( netcode == 0 )
                 continue;
 
-            if( old_netcode != netcode
-            ||  old_width   != track->GetWidth()
-            ||  old_layer   != track->GetLayer()
-            ||  (path && path->points.back() != mapPt(track->GetStart()) )
+            if( old_netcode != netcode ||
+                old_width   != track->GetWidth() ||
+                old_layer   != track->GetLayer() ||
+                (path && path->points.back() != mapPt(track->GetStart()) )
               )
             {
                 old_width   = track->GetWidth();
@@ -1991,7 +2051,8 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
                 path->AppendPoint( mapPt( track->GetStart() ) );
             }
 
-            path->AppendPoint( mapPt( track->GetEnd() ) );
+            if( path )  // Should not occur
+                path->AppendPoint( mapPt( track->GetEnd() ) );
         }
     }
 
@@ -2183,4 +2244,3 @@ void SPECCTRA_DB::RevertMODULEs( BOARD* aBoard )
 }
 
 }       // namespace DSN
-

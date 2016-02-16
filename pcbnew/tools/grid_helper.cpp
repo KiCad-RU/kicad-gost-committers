@@ -60,26 +60,27 @@ void GRID_HELPER::SetGrid( int aSize )
 
 void GRID_HELPER::SetOrigin( const VECTOR2I& aOrigin )
 {
+    assert( false );
 }
 
 
-VECTOR2I GRID_HELPER::GetGrid()
+VECTOR2I GRID_HELPER::GetGrid() const
 {
     PCB_SCREEN* screen = m_frame->GetScreen();
 
     const wxRealPoint& size = screen->GetGridSize();
 
-    return VECTOR2I ( KiROUND( size.x ), KiROUND( size.y ) );
+    return VECTOR2I( KiROUND( size.x ), KiROUND( size.y ) );
 }
 
 
-VECTOR2I GRID_HELPER::GetOrigin()
+VECTOR2I GRID_HELPER::GetOrigin() const
 {
-    return VECTOR2I( 0, 0 );
+    return VECTOR2I( m_frame->GetGridOrigin() );
 }
 
 
-void GRID_HELPER::SetAuxAxes( bool aEnable, const VECTOR2I aOrigin, bool aEnableDiagonal )
+void GRID_HELPER::SetAuxAxes( bool aEnable, const VECTOR2I& aOrigin, bool aEnableDiagonal )
 {
     if( aEnable )
         m_auxAxis = aOrigin;
@@ -90,26 +91,60 @@ void GRID_HELPER::SetAuxAxes( bool aEnable, const VECTOR2I aOrigin, bool aEnable
 }
 
 
-VECTOR2I GRID_HELPER::Align( const VECTOR2I& aPoint )
+VECTOR2I GRID_HELPER::Align( const VECTOR2I& aPoint ) const
 {
-    const VECTOR2D gridOffset( GetOrigin () );
+    const VECTOR2D gridOffset( GetOrigin() );
     const VECTOR2D gridSize( GetGrid() );
 
-    VECTOR2I nearest( round( ( aPoint.x - gridOffset.x ) / gridSize.x ) * gridSize.x + gridOffset.x,
-                       round( ( aPoint.y - gridOffset.y ) / gridSize.y ) * gridSize.y + gridOffset.y );
+    VECTOR2I nearest( KiROUND( ( aPoint.x - gridOffset.x ) / gridSize.x ) * gridSize.x + gridOffset.x,
+                      KiROUND( ( aPoint.y - gridOffset.y ) / gridSize.y ) * gridSize.y + gridOffset.y );
 
     if( !m_auxAxis )
         return nearest;
 
-    if( std::abs( m_auxAxis->x - aPoint.x) < std::abs( nearest.x - aPoint.x ) )
+    if( std::abs( m_auxAxis->x - aPoint.x ) < std::abs( nearest.x - aPoint.x ) )
         nearest.x = m_auxAxis->x;
 
-    if( std::abs( m_auxAxis->y - aPoint.y) < std::abs( nearest.y - aPoint.y ) )
+    if( std::abs( m_auxAxis->y - aPoint.y ) < std::abs( nearest.y - aPoint.y ) )
         nearest.y = m_auxAxis->y;
 
     return nearest;
 }
 
+
+VECTOR2I GRID_HELPER::AlignToSegment ( const VECTOR2I& aPoint, const SEG& aSeg )
+{
+    OPT_VECTOR2I pts[6];
+
+    const VECTOR2D gridOffset( GetOrigin() );
+    const VECTOR2D gridSize( GetGrid() );
+
+    VECTOR2I nearest( KiROUND( ( aPoint.x - gridOffset.x ) / gridSize.x ) * gridSize.x + gridOffset.x,
+                      KiROUND( ( aPoint.y - gridOffset.y ) / gridSize.y ) * gridSize.y + gridOffset.y );
+
+    pts[0] = aSeg.A;
+    pts[1] = aSeg.B;
+    pts[2] = aSeg.IntersectLines( SEG( nearest, nearest + VECTOR2I( 1, 0 ) ) );
+    pts[3] = aSeg.IntersectLines( SEG( nearest, nearest + VECTOR2I( 0, 1 ) ) );
+
+    int min_d = std::numeric_limits<int>::max();
+
+    for( int i = 0; i < 4; i++ )
+    {
+        if( pts[i] && aSeg.Contains( *pts[i] ) )
+        {
+            int d = (*pts[i] - aPoint).EuclideanNorm();
+
+            if( d < min_d )
+            {
+                min_d = d;
+                nearest = *pts[i];
+            }
+        }
+    }
+
+    return nearest;
+}
 
 VECTOR2I GRID_HELPER::BestDragOrigin( const VECTOR2I &aMousePos, BOARD_ITEM* aItem )
 {
@@ -134,6 +169,7 @@ VECTOR2I GRID_HELPER::BestDragOrigin( const VECTOR2I &aMousePos, BOARD_ITEM* aIt
     if( nearestCorner )
     {
         double dist = nearestCorner->Distance( aMousePos );
+
         if( dist < minDist )
         {
             minDist = dist;
@@ -144,6 +180,7 @@ VECTOR2I GRID_HELPER::BestDragOrigin( const VECTOR2I &aMousePos, BOARD_ITEM* aIt
     if( nearestOutline )
     {
         double dist = nearestOutline->Distance( aMousePos );
+
         if( minDist > lineSnapMinCornerDistance && dist < minDist )
             best = nearestOutline;
     }
@@ -152,7 +189,7 @@ VECTOR2I GRID_HELPER::BestDragOrigin( const VECTOR2I &aMousePos, BOARD_ITEM* aIt
 }
 
 
-std::set<BOARD_ITEM*> GRID_HELPER::queryVisible( const BOX2I& aArea )
+std::set<BOARD_ITEM*> GRID_HELPER::queryVisible( const BOX2I& aArea ) const
 {
     std::set<BOARD_ITEM*> items;
 
@@ -172,12 +209,12 @@ std::set<BOARD_ITEM*> GRID_HELPER::queryVisible( const BOX2I& aArea )
 }
 
 
-VECTOR2I GRID_HELPER::BestSnapAnchor( const VECTOR2I &aOrigin, BOARD_ITEM* aDraggedItem )
+VECTOR2I GRID_HELPER::BestSnapAnchor( const VECTOR2I& aOrigin, BOARD_ITEM* aDraggedItem )
 {
     double worldScale = m_frame->GetGalCanvas()->GetGAL()->GetWorldScale();
     int snapRange = (int) ( 100.0 / worldScale );
 
-    BOX2I bb( VECTOR2I( aOrigin.x - snapRange / 2, aOrigin.y - snapRange/2 ), VECTOR2I( snapRange, snapRange ) );
+    BOX2I bb( VECTOR2I( aOrigin.x - snapRange / 2, aOrigin.y - snapRange / 2 ), VECTOR2I( snapRange, snapRange ) );
 
     clearAnchors();
 
@@ -197,9 +234,9 @@ VECTOR2I GRID_HELPER::BestSnapAnchor( const VECTOR2I &aOrigin, BOARD_ITEM* aDrag
 
         if( nearest && snapDist < gridDist )
              return nearest->pos;
-       }
+    }
 
-       return nearestGrid;
+    return nearestGrid;
 }
 
 
@@ -244,10 +281,10 @@ void GRID_HELPER::computeAnchors( BOARD_ITEM* aItem, const VECTOR2I& aRefPos )
                     int r = ( start - end ).EuclideanNorm();
 
                     addAnchor( start, ORIGIN | SNAPPABLE, dseg );
-                    addAnchor( start + VECTOR2I ( -r, 0 ), OUTLINE | SNAPPABLE, dseg );
-                    addAnchor( start + VECTOR2I ( r, 0 ), OUTLINE | SNAPPABLE, dseg );
-                    addAnchor( start + VECTOR2I ( 0, -r ), OUTLINE | SNAPPABLE, dseg);
-                    addAnchor( start + VECTOR2I ( 0, r ), OUTLINE | SNAPPABLE, dseg );
+                    addAnchor( start + VECTOR2I( -r, 0 ), OUTLINE | SNAPPABLE, dseg );
+                    addAnchor( start + VECTOR2I( r, 0 ), OUTLINE | SNAPPABLE, dseg );
+                    addAnchor( start + VECTOR2I( 0, -r ), OUTLINE | SNAPPABLE, dseg );
+                    addAnchor( start + VECTOR2I( 0, r ), OUTLINE | SNAPPABLE, dseg );
                     break;
                 }
 
@@ -293,6 +330,10 @@ void GRID_HELPER::computeAnchors( BOARD_ITEM* aItem, const VECTOR2I& aRefPos )
             break;
         }
 
+        case PCB_VIA_T:
+            addAnchor( aItem->GetPosition(), CORNER | SNAPPABLE, aItem );
+            break;
+
         case PCB_ZONE_AREA_T:
         {
             const CPolyLine* outline = static_cast<const ZONE_CONTAINER*>( aItem )->Outline();
@@ -323,7 +364,7 @@ void GRID_HELPER::computeAnchors( BOARD_ITEM* aItem, const VECTOR2I& aRefPos )
 }
 
 
-GRID_HELPER::ANCHOR* GRID_HELPER::nearestAnchor( VECTOR2I aPos, int aFlags, LSET aMatchLayers )
+GRID_HELPER::ANCHOR* GRID_HELPER::nearestAnchor( const VECTOR2I& aPos, int aFlags, LSET aMatchLayers )
 {
      double minDist = std::numeric_limits<double>::max();
      ANCHOR* best = NULL;

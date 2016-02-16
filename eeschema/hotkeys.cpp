@@ -219,6 +219,12 @@ static EDA_HOTKEY HkSaveLib( _HKI( "Save Library" ), HK_SAVE_LIB, 'S' + GR_KB_CT
 static EDA_HOTKEY HkSaveSchematic( _HKI( "Save Schematic" ), HK_SAVE_SCH, 'S' + GR_KB_CTRL );
 static EDA_HOTKEY HkLoadSchematic( _HKI( "Load Schematic" ), HK_LOAD_SCH, 'L' + GR_KB_CTRL );
 
+// Autoplace fields
+static EDA_HOTKEY HkAutoplaceFields( _HKI( "Autoplace Fields" ), HK_AUTOPLACE_FIELDS, 'O',
+                                        ID_AUTOPLACE_FIELDS );
+
+static EDA_HOTKEY HkUpdatePcbFromSch( _HKI( "Update PCB from Schematics" ), HK_UPDATE_PCB_FROM_SCH, WXK_F8 );
+
 // List of common hotkey descriptors
 static EDA_HOTKEY* common_Hotkey_List[] =
 {
@@ -291,6 +297,8 @@ static EDA_HOTKEY* schematic_Hotkey_List[] =
     &HkAddBusEntry,
     &HkAddGraphicPolyLine,
     &HkAddGraphicText,
+    &HkUpdatePcbFromSch,
+    &HkAutoplaceFields,
     &HkLeaveSheet,
     &HkDeleteNode,
     NULL
@@ -337,7 +345,7 @@ struct EDA_HOTKEY_CONFIG g_Eeschema_Hokeys_Descr[] =
 struct EDA_HOTKEY_CONFIG g_Schematic_Hokeys_Descr[] =
 {
     { &g_CommonSectionTag,    common_Hotkey_List,    &commonSectionTitle    },
-    { &schematicSectionTitle, schematic_Hotkey_List, &schematicSectionTitle },
+    { &schematicSectionTag,   schematic_Hotkey_List, &schematicSectionTitle },
     { NULL,                   NULL,                  NULL }
 };
 
@@ -580,6 +588,7 @@ bool SCH_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
     case HK_ORIENT_NORMAL_COMPONENT:        // Orient 0, no mirror (Component)
     case HK_ROTATE:                         // Rotate schematic item.
     case HK_EDIT_COMPONENT_WITH_LIBEDIT:    // Call Libedit and load the current component
+    case HK_AUTOPLACE_FIELDS:               // Autoplace all fields around component
         {
             // force a new item search on hot keys at current position,
             // if there is no currently edited item,

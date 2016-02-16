@@ -153,7 +153,7 @@ bool TestSegmentHit( const wxPoint &aRefPoint, wxPoint aStart,
 
         // To have only one case to examine, ensure aEnd.y > aStart.y
         if( aEnd.y < aStart.y )
-            EXCHG( aStart.y, aEnd.y );
+            std::swap( aStart.y, aEnd.y );
 
         if( aRefPoint.y <= aEnd.y && aRefPoint.y >= aStart.y )
             return true;
@@ -186,7 +186,7 @@ bool TestSegmentHit( const wxPoint &aRefPoint, wxPoint aStart,
 
         // To have only one case to examine, ensure xf > xi
         if( aEnd.x < aStart.x )
-            EXCHG( aStart.x, aEnd.x );
+            std::swap( aStart.x, aEnd.x );
 
         if( aRefPoint.x <= aEnd.x && aRefPoint.x >= aStart.x )
             return true;
@@ -310,7 +310,7 @@ double ArcTangente( int dy, int dx )
     }
 
     // Of course dy and dx are treated as double
-    return RAD2DECIDEG( atan2( dy, dx ) );
+    return RAD2DECIDEG( atan2( (double) dy, (double) dx ) );
 }
 
 

@@ -148,7 +148,7 @@ public:
 
     bool GetEnableZoomNoCenter() const { return m_enableZoomNoCenter; }
 
-    void SetEnableZoomNoCenter( bool aEnable ) { m_enableZoomNoCenter = aEnable; }
+    void SetEnableZoomNoCenter( bool aEnable );
 
     bool GetMiddleButtonPanLimited() const { return m_panScrollbarLimits; }
 
@@ -263,10 +263,11 @@ public:
      *</p>
      */
     void OnMouseWheel( wxMouseEvent& event );
-#ifdef USE_OSX_MAGNIFY_EVENT
+#if wxCHECK_VERSION( 3, 1, 0 ) || defined( USE_OSX_MAGNIFY_EVENT )
     void OnMagnify( wxMouseEvent& event );
 #endif
     void OnMouseEvent( wxMouseEvent& event );
+    void OnMouseEntering( wxMouseEvent& aEvent );
     void OnMouseLeaving( wxMouseEvent& event );
     void OnKeyEvent( wxKeyEvent& event );
     void OnCharHook( wxKeyEvent& event );

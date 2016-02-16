@@ -59,6 +59,7 @@
 #include <modview_frame.h>
 #include <footprint_wizard_frame.h>
 
+extern bool IsWxPythonLoaded();
 
 // Colors for layers and items
 COLORS_DESIGN_SETTINGS g_ColorsSettings;
@@ -93,7 +94,6 @@ wxString    g_DocModulesFileName = wxT( "footprints_doc/footprints.pdf" );
  */
 DLIST<TRACK> g_CurrentTrackList;
 
-bool g_UseOldZoneFillingAlgo = false;
 bool g_DumpZonesWhenFilling = false;
 
 namespace PCB {
@@ -148,7 +148,7 @@ static struct IFACE : public KIFACE_I
             break;
 
         default:
-            ;
+            break;
         }
 
         return frame;
@@ -187,7 +187,7 @@ KIFACE_I& Kiface() { return kiface; }
 // KIFACE_GETTER will not have name mangling due to declaration in kiway.h.
 MY_API( KIFACE* ) KIFACE_GETTER( int* aKIFACEversion, int aKiwayVersion, PGM_BASE* aProgram )
 {
-    process = (PGM_BASE*) aProgram;
+    process = aProgram;
     return &kiface;
 }
 
@@ -207,7 +207,7 @@ static bool scriptingSetup()
 
 #if defined( __MINGW32__ )
     // force python environment under Windows:
-    const wxString python_us( "python27_us" );
+    const wxString python_us( wxT( "python27_us" ) );
 
     // Build our python path inside kicad
     wxString kipython =  FindKicadFile( python_us + wxT( "/python.exe" ) );
@@ -241,53 +241,66 @@ static bool scriptingSetup()
         }
     }
 
-    // TODO: make this path definable by the user, and set more than one path
-    // (and remove the fixed paths from <src>/scripting/kicadplugins.i)
-
-    // wizard plugins are stored in kicad/bin/plugins.
-    // so add this path to python scripting default search paths
+    // wizard plugins are stored in ../share/kicad/scripting/plugins.
+    // so add the base scripting path to python scripting default search paths
     // which are ( [KICAD_PATH] is an environment variable to define)
+    // [KICAD_PATH]/scripting
     // [KICAD_PATH]/scripting/plugins
     // Add this default search path:
-    path_frag = Pgm().GetExecutablePath() + wxT( "scripting/plugins" );
+    path_frag = Pgm().GetExecutablePath() + wxT( "../share/kicad/scripting" );
 
 #elif defined( __WXMAC__ )
-    // User plugin folder is ~/Library/Application Support/kicad/scripting/plugins
-    path_frag = GetOSXKicadUserDataDir() + wxT( "/scripting/plugins" );
+
+    // This path is given to LoadPlugins() from kicadplugins.i, which
+    // only supports one path, the bundle scripting path for now.
+    // All other paths are determined by the pcbnew.py initialisation code
+    path_frag = GetOSXKicadDataDir() + wxT( "/scripting" );
 
     // Add default paths to PYTHONPATH
     wxString pypath;
 
-    // User scripting folder (~/Library/Application Support/kicad/scripting/plugins)
-    pypath = GetOSXKicadUserDataDir() + wxT( "/scripting/plugins" );
+    // Bundle scripting folder (<kicad.app>/Contents/SharedSupport/scripting)
+    pypath += GetOSXKicadDataDir() + wxT( "/scripting" );
 
-    // Machine scripting folder (/Library/Application Support/kicad/scripting/plugins)
-    pypath += wxT( ":" ) + GetOSXKicadMachineDataDir() + wxT( "/scripting/plugins" );
-
-    // Bundle scripting folder (<kicad.app>/Contents/SharedSupport/scripting/plugins)
-    pypath += wxT( ":" ) + GetOSXKicadDataDir() + wxT( "/scripting/plugins" );
+    // $(KICAD_PATH)/scripting/plugins is always added in kicadplugins.i
+    if( wxGetenv("KICAD_PATH") != NULL )
+    {
+        pypath += wxT( ":" ) + wxString( wxGetenv("KICAD_PATH") );
+    }
 
     // Bundle wxPython folder (<kicad.app>/Contents/Frameworks/python/site-packages)
     pypath += wxT( ":" ) + Pgm().GetExecutablePath() +
               wxT( "Contents/Frameworks/python/site-packages" );
 
     // Original content of $PYTHONPATH
-    if( wxGetenv("PYTHONPATH") != NULL )
+    if( wxGetenv( wxT( "PYTHONPATH" ) ) != NULL )
     {
-        pypath = wxString( wxGetenv("PYTHONPATH") ) + wxT( ":" ) + pypath;
+        pypath = wxString( wxGetenv( wxT( "PYTHONPATH" ) ) ) + wxT( ":" ) + pypath;
     }
 
     // set $PYTHONPATH
     wxSetEnv( "PYTHONPATH", pypath );
 
 #else
+    // Linux-specific setup
+    wxString pypath;
+
+    pypath = Pgm().GetExecutablePath() + wxT( "../lib/python2.7/dist-packages" );
+
+    if( !wxIsEmpty( wxGetenv( wxT( "PYTHONPATH" ) ) ) )
+        pypath = wxString( wxGetenv( wxT( "PYTHONPATH" ) ) ) + wxT( ":" ) + pypath;
+
+    wxSetEnv( wxT( "PYTHONPATH" ), pypath );
+
     // Add this default search path:
-    path_frag = wxT( "/usr/local/kicad/bin/scripting/plugins" );
+    path_frag = Pgm().GetExecutablePath() + wxT( "../share/kicad/scripting" );
 #endif
 
+    // path_frag is the path to the bundled scripts and plugins, all other paths are
+    // determined by the python pcbnew.py initialisation code.
     if( !pcbnewInitPythonScripting( TO_UTF8( path_frag ) ) )
     {
-        wxLogSysError( wxT( "pcbnewInitPythonScripting() failed." ) );
+        wxLogError( wxT( "pcbnewInitPythonScripting() failed." ) );
         return false;
     }
 
@@ -356,11 +369,12 @@ void IFACE::OnKifaceEnd()
 {
     end_common();
 
-#if KICAD_SCRIPTING_WXPYTHON
+#if defined( KICAD_SCRIPTING_WXPYTHON )
     // Restore the thread state and tell Python to cleanup after itself.
     // wxPython will do its own cleanup as part of that process.
     // This should only be called if python was setup correctly.
 
-    pcbnewFinishPythonScripting();
+    if( IsWxPythonLoaded() )
+        pcbnewFinishPythonScripting();
 #endif
 }

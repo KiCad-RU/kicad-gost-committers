@@ -6,7 +6,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 CERN (www.cern.ch)
  * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
  *
@@ -42,6 +42,8 @@
 #include <menus_helpers.h>
 #include <dialog_hotkeys_editor.h>
 
+#include <wx/filefn.h>
+
 
 #define TREE_FRAME_WIDTH_ENTRY     wxT( "LeftWinWidth" )
 
@@ -50,6 +52,7 @@ KICAD_MANAGER_FRAME::KICAD_MANAGER_FRAME( wxWindow* parent,
     EDA_BASE_FRAME( parent, KICAD_MAIN_FRAME_T, title, pos, size,
                     KICAD_DEFAULT_DRAWFRAME_STYLE, KICAD_MANAGER_FRAME_NAME )
 {
+    m_active_project = false;
     m_leftWinWidth = 60;
     m_manager_Hokeys_Descr = NULL;
 
@@ -246,7 +249,17 @@ void KICAD_MANAGER_FRAME::TERMINATE_HANDLER::OnTerminate( int pid, int status )
     wxString msg = wxString::Format( _( "%s closed [pid=%d]\n" ),
             GetChars( appName ), pid );
 
-    ( (KICAD_MANAGER_FRAME*) Pgm().App().GetTopWindow() )->PrintMsg( msg );
+    wxWindow* window = wxWindow::FindWindowByName( KICAD_MANAGER_FRAME_NAME );
+
+    if( window )    // Should always happen.
+    {
+        // Be sure the kicad frame manager is found
+        // This dynamic cast is not really mandatory, but ...
+        KICAD_MANAGER_FRAME* frame = dynamic_cast<KICAD_MANAGER_FRAME*> (window);
+
+        if( frame )
+            frame->PrintMsg( msg );
+    }
 
     delete this;
 }
@@ -264,8 +277,8 @@ void KICAD_MANAGER_FRAME::Execute( wxWindow* frame, const wxString& execFile,
 
     if( pid > 0 )
     {
-        wxString msg = wxString::Format( _( "%s opened [pid=%ld]\n" ),
-                GetChars( execFile ), pid );
+        wxString msg = wxString::Format( _( "%s %s opened [pid=%ld]\n" ),
+                                         GetChars( execFile ), GetChars( params ), pid );
 
         PrintMsg( msg );
     }
@@ -340,24 +353,16 @@ void KICAD_MANAGER_FRAME::OnRunSchLibEditor( wxCommandEvent& event )
 
 void KICAD_MANAGER_FRAME::RunPcbNew( const wxString& aProjectBoardFileName )
 {
-#if 0   // line 171 of modview_frame.cpp breaks this code
-    KIWAY_PLAYER* frame = Kiway.Player( FRAME_PCB, false );
-    if( !frame )
-    {
-        frame = Kiway.Player( FRAME_PCB, true );
-        frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectBoardFileName ) );
-        frame->Show( true );
-    }
-#else
     KIWAY_PLAYER* frame = Kiway.Player( FRAME_PCB, true );
 
+    // a pcb frame can be already existing, but not yet used.
+    // this is the case when running the footprint editor, or the footprint viewer first
+    // if the frame is not visible, the board is not yet loaded
     if( !frame->IsVisible() )
     {
         frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectBoardFileName ) );
         frame->Show( true );
     }
-
-#endif
 
     // On Windows, Raise() does not bring the window on screen, when iconized
     if( frame->IsIconized() )
@@ -416,41 +421,13 @@ void KICAD_MANAGER_FRAME::OnRunPageLayoutEditor( wxCommandEvent& event )
 }
 
 
-// Dead code: Cvpcb can be run only from the schematic editor now,
-// This is due to the fact the footprint field of components in schematics
-// are now always set by Cvpcb.
-// ( The idea is to drop the .cmp files to avoid to have 2 places were
-// footprints are stored, but only one: the schematic )
-/*
-void KICAD_MANAGER_FRAME::OnRunCvpcb( wxCommandEvent& event )
-{
-    wxFileName fn( GetProjectFileName() );
 
-    fn.SetExt( NetlistFileExtension );
-
-    KIWAY_PLAYER* frame = Kiway.Player( FRAME_CVPCB, false );
-    if( !frame )
-    {
-        frame = Kiway.Player( FRAME_CVPCB, true );
-        frame->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
-        frame->Show( true );
-    }
-
-    frame->Raise();
-}
-*/
-
-
-#include <wx/filefn.h>
 void KICAD_MANAGER_FRAME::OnRunGerbview( wxCommandEvent& event )
 {
     // Gerbview is called without any file to open, because we do not know
     // the list and the name of files to open (if any...).
     // however we run it in the path of the project
-    wxString cwd = wxGetCwd();
-    wxSetWorkingDirectory( Prj().GetProjectPath() );
-    Execute( this, GERBVIEW_EXE, wxEmptyString );
-    wxSetWorkingDirectory( cwd );
+    Execute( this, GERBVIEW_EXE, Prj().GetProjectPath() );
 }
 
 

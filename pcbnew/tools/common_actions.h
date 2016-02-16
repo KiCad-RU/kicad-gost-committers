@@ -269,6 +269,26 @@ public:
     /// Display module texts as outlines
     static TOOL_ACTION moduleTextOutlines;
 
+    /// Cursor control with keyboard
+    static TOOL_ACTION cursorUp;
+    static TOOL_ACTION cursorDown;
+    static TOOL_ACTION cursorLeft;
+    static TOOL_ACTION cursorRight;
+
+    static TOOL_ACTION cursorUpFast;
+    static TOOL_ACTION cursorDownFast;
+    static TOOL_ACTION cursorLeftFast;
+    static TOOL_ACTION cursorRightFast;
+
+    static TOOL_ACTION cursorClick;
+    static TOOL_ACTION cursorDblClick;
+
+    // Panning with keyboard
+    static TOOL_ACTION panUp;
+    static TOOL_ACTION panDown;
+    static TOOL_ACTION panLeft;
+    static TOOL_ACTION panRight;
+
     // Miscellaneous
     static TOOL_ACTION selectionTool;
     static TOOL_ACTION pickerTool;
@@ -279,6 +299,9 @@ public:
     static TOOL_ACTION highlightNet;
     static TOOL_ACTION highlightNetCursor;
     static TOOL_ACTION drillOrigin;
+    static TOOL_ACTION crossProbeSchToPcb;
+    static TOOL_ACTION toggleLockModule;
+    static TOOL_ACTION appendBoard;
     static TOOL_ACTION showHelp;
     static TOOL_ACTION toBeDone;
 
@@ -287,9 +310,6 @@ public:
 
     /// Find an item and start moving
     static TOOL_ACTION findMove;
-
-    /// Blocks CTRL+F, it is handled by wxWidgets
-    static TOOL_ACTION findDummy;
 
     static TOOL_ACTION editFootprintInFpEditor;
     static TOOL_ACTION copyPadToSettings;
@@ -305,6 +325,10 @@ public:
      * no corresponding TOOL_ACTION.
      */
     static boost::optional<TOOL_EVENT> TranslateLegacyId( int aId );
+
+    ///> Cursor control event types
+    enum CURSOR_EVENT_TYPE { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
+                             CURSOR_CLICK, CURSOR_DBL_CLICK, CURSOR_FAST_MOVE = 0x8000 };
 };
 
 void registerAllTools( TOOL_MANAGER* aToolManager );

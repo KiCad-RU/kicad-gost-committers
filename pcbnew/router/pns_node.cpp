@@ -82,19 +82,25 @@ PNS_NODE::~PNS_NODE()
     allocNodes.erase( this );
 #endif
 
+    m_joints.clear();
+
     for( PNS_INDEX::ITEM_SET::iterator i = m_index->begin(); i != m_index->end(); ++i )
     {
         if( (*i)->BelongsTo( this ) )
             delete *i;
     }
 
+    releaseGarbage();
     unlinkParent();
+
     delete m_index;
 }
 
-
 int PNS_NODE::GetClearance( const PNS_ITEM* aA, const PNS_ITEM* aB ) const
 {
+   if( !m_clearanceFunctor )
+        return 100000;
+
    return (*m_clearanceFunctor)( aA, aB );
 }
 
@@ -105,7 +111,7 @@ PNS_NODE* PNS_NODE::Branch()
 
     TRACE( 0, "PNS_NODE::branch %p (parent %p)", child % this );
 
-    m_children.push_back( child );
+    m_children.insert( child );
 
     child->m_depth = m_depth + 1;
     child->m_parent = this;
@@ -139,15 +145,7 @@ void PNS_NODE::unlinkParent()
     if( isRoot() )
         return;
 
-    for( std::vector<PNS_NODE*>::iterator i = m_parent->m_children.begin();
-         i != m_parent->m_children.end(); ++i )
-    {
-        if( *i == this )
-        {
-            m_parent->m_children.erase( i );
-            return;
-        }
-    }
+    m_parent->m_children.erase( this );
 }
 
 
@@ -179,7 +177,11 @@ struct PNS_NODE::OBSTACLE_VISITOR
     ///> additional clearance
     int m_extraClearance;
 
-    OBSTACLE_VISITOR( PNS_NODE::OBSTACLES& aTab, const PNS_ITEM* aItem, int aKindMask ) :
+    bool m_differentNetsOnly;
+
+    int m_forceClearance;
+
+    OBSTACLE_VISITOR( PNS_NODE::OBSTACLES& aTab, const PNS_ITEM* aItem, int aKindMask, bool aDifferentNetsOnly ) :
         m_node( NULL ),
         m_override( NULL ),
         m_tab( aTab ),
@@ -187,7 +189,9 @@ struct PNS_NODE::OBSTACLE_VISITOR
         m_kindMask( aKindMask ),
         m_limitCount( -1 ),
         m_matchCount( 0 ),
-        m_extraClearance( 0 )
+        m_extraClearance( 0 ),
+        m_differentNetsOnly( aDifferentNetsOnly ),
+        m_forceClearance( -1 )
     {
        if( aItem->Kind() == PNS_ITEM::LINE )
             m_extraClearance += static_cast<const PNS_LINE*>( aItem )->Width() / 2;
@@ -216,13 +220,16 @@ struct PNS_NODE::OBSTACLE_VISITOR
 
         int clearance = m_extraClearance + m_node->GetClearance( aItem, m_item );
 
-        if( m_node->m_collisionFilter && (*m_node->m_collisionFilter)(aItem, m_item))
+        if( m_node->m_collisionFilter && (*m_node->m_collisionFilter)( aItem, m_item ) )
             return true;
 
         if( aItem->Kind() == PNS_ITEM::LINE )
-            clearance += static_cast<PNS_LINE *>(aItem)->Width() / 2;
+            clearance += static_cast<PNS_LINE*>( aItem )->Width() / 2;
 
-        if( !aItem->Collide( m_item, clearance ) )
+        if( m_forceClearance >= 0 )
+            clearance = m_forceClearance;
+
+        if( !aItem->Collide( m_item, clearance, m_differentNetsOnly ) )
             return true;
 
         PNS_OBSTACLE obs;
@@ -242,9 +249,9 @@ struct PNS_NODE::OBSTACLE_VISITOR
 
 
 int PNS_NODE::QueryColliding( const PNS_ITEM* aItem,
-        PNS_NODE::OBSTACLES& aObstacles, int aKindMask, int aLimitCount )
+        PNS_NODE::OBSTACLES& aObstacles, int aKindMask, int aLimitCount, bool aDifferentNetsOnly, int aForceClearance )
 {
-    OBSTACLE_VISITOR visitor( aObstacles, aItem, aKindMask );
+    OBSTACLE_VISITOR visitor( aObstacles, aItem, aKindMask, aDifferentNetsOnly );
 
 #ifdef DEBUG
     assert( allocNodes.find( this ) != allocNodes.end() );
@@ -252,7 +259,7 @@ int PNS_NODE::QueryColliding( const PNS_ITEM* aItem,
 
     visitor.SetCountLimit( aLimitCount );
     visitor.SetWorld( this, NULL );
-
+    visitor.m_forceClearance = aForceClearance;
     // first, look for colliding items in the local index
     m_index->Query( aItem, m_maxClearance, visitor );
 
@@ -267,7 +274,9 @@ int PNS_NODE::QueryColliding( const PNS_ITEM* aItem,
 }
 
 
-PNS_NODE::OPT_OBSTACLE PNS_NODE::NearestObstacle( const PNS_LINE* aItem, int aKindMask )
+PNS_NODE::OPT_OBSTACLE PNS_NODE::NearestObstacle(   const PNS_LINE* aItem,
+                                                    int aKindMask,
+                                                    const std::set<PNS_ITEM*>* aRestrictedSet )
 {
     OBSTACLES obs_list;
     bool found_isects = false;
@@ -287,7 +296,6 @@ PNS_NODE::OPT_OBSTACLE PNS_NODE::NearestObstacle( const PNS_LINE* aItem, int aKi
     if( aItem->EndsWithVia() )
         n += QueryColliding( &aItem->Via(), obs_list, aKindMask );
 
-    // if(! QueryColliding ( aItem, obs_list, aKindMask ))
     if( !n )
         return OPT_OBSTACLE();
 
@@ -301,6 +309,9 @@ PNS_NODE::OPT_OBSTACLE PNS_NODE::NearestObstacle( const PNS_LINE* aItem, int aKi
     {
         VECTOR2I ip_first, ip_last;
         int dist_max = INT_MIN;
+
+        if( aRestrictedSet && aRestrictedSet->find( obs.m_item ) == aRestrictedSet->end() )
+            continue;
 
         std::vector<SHAPE_LINE_CHAIN::INTERSECTION> isect_list;
 
@@ -595,8 +606,6 @@ void PNS_NODE::Add( PNS_ITEM* aItem, bool aAllowRedundant )
 
 void PNS_NODE::doRemove( PNS_ITEM* aItem )
 {
- //   assert(m_root->m_index->Contains(aItem) || m_index->Contains(aItem));
-
     // case 1: removing an item that is stored in the root node from any branch:
     // mark it as overridden, but do not remove
     if( aItem->BelongsTo( m_root ) && !isRoot() )
@@ -609,7 +618,10 @@ void PNS_NODE::doRemove( PNS_ITEM* aItem )
 
     // the item belongs to this particular branch: un-reference it
     if( aItem->BelongsTo( this ) )
+    {
         aItem->SetOwner( NULL );
+        m_root->m_garbageItems.insert( aItem );
+    }
 }
 
 
@@ -626,26 +638,13 @@ void PNS_NODE::removeLine( PNS_LINE* aLine )
 {
     std::vector<PNS_SEGMENT*>* segRefs = aLine->LinkedSegments();
 
-    if( !aLine->SegmentCount() )
-        return;
-
     assert( segRefs != NULL );
-    assert( aLine->Owner() );
-
-    if( (int) segRefs->size() != aLine->SegmentCount() )
-    {
-        //printf("******weird deletion: segrefs %d segcount %d hasloops %d\n", segRefs->size(), aLine->SegmentCount(), aLine->HasLoops());
-    }
 
     BOOST_FOREACH( PNS_SEGMENT* seg, *segRefs )
     {
         removeSegment( seg );
     }
-
-    aLine->SetOwner( NULL );
-    aLine->ClearSegmentLinks();
 }
-
 
 void PNS_NODE::removeVia( PNS_VIA* aVia )
 {
@@ -710,7 +709,7 @@ void PNS_NODE::Remove( PNS_ITEM* aItem )
     {
     case PNS_ITEM::SOLID:
         // fixme: this fucks up the joints, but it's only used for marking colliding obstacles for the moment, so we don't care.
-        doRemove ( aItem );
+        doRemove( aItem );
         break;
 
     case PNS_ITEM::SEGMENT:
@@ -738,7 +737,8 @@ void PNS_NODE::Remove( PNS_LINE& aLine )
 
 
 void PNS_NODE::followLine( PNS_SEGMENT* aCurrent, bool aScanDirection, int& aPos,
-        int aLimit, VECTOR2I* aCorners, PNS_SEGMENT** aSegments, bool& aGuardHit )
+        int aLimit, VECTOR2I* aCorners, PNS_SEGMENT** aSegments, bool& aGuardHit,
+		bool aStopAtLockedJoints )
 {
     bool prevReversed = false;
 
@@ -753,19 +753,19 @@ void PNS_NODE::followLine( PNS_SEGMENT* aCurrent, bool aScanDirection, int& aPos
         assert( jt );
 
         aCorners[aPos] = jt->Pos();
+        aSegments[aPos] = aCurrent;
+        aPos += ( aScanDirection ? 1 : -1 );
 
-        if( count && guard == p )
+        if( count && guard == p)
         {
             aSegments[aPos] = NULL;
             aGuardHit = true;
             break;
         }
 
-        aSegments[aPos] = aCurrent;
+        bool locked = aStopAtLockedJoints ? jt->IsLocked() : false;
 
-        aPos += ( aScanDirection ? 1 : -1 );
-
-        if( !jt->IsLineCorner() || aPos < 0 || aPos == aLimit )
+        if( locked || !jt->IsLineCorner() || aPos < 0 || aPos == aLimit )
             break;
 
         aCurrent = jt->NextSegment( aCurrent );
@@ -776,62 +776,65 @@ void PNS_NODE::followLine( PNS_SEGMENT* aCurrent, bool aScanDirection, int& aPos
 }
 
 
-PNS_LINE* PNS_NODE::AssembleLine( PNS_SEGMENT* aSeg, int* aOriginSegmentIndex)
+const PNS_LINE PNS_NODE::AssembleLine( PNS_SEGMENT* aSeg, int* aOriginSegmentIndex, bool aStopAtLockedJoints )
 {
     const int MaxVerts = 1024 * 16;
 
     VECTOR2I corners[MaxVerts + 1];
     PNS_SEGMENT* segs[MaxVerts + 1];
 
-    PNS_LINE* pl = new PNS_LINE;
+    PNS_LINE pl;
     bool guardHit = false;
 
     int i_start = MaxVerts / 2, i_end = i_start + 1;
 
-    pl->SetWidth( aSeg->Width() );
-    pl->SetLayers( aSeg->Layers() );
-    pl->SetNet( aSeg->Net() );
-    pl->SetOwner( this );
+    pl.SetWidth( aSeg->Width() );
+    pl.SetLayers( aSeg->Layers() );
+    pl.SetNet( aSeg->Net() );
+    pl.SetOwner( this );
 
-    followLine( aSeg, false, i_start, MaxVerts, corners, segs, guardHit );
+    followLine( aSeg, false, i_start, MaxVerts, corners, segs, guardHit, aStopAtLockedJoints );
 
     if( !guardHit )
-        followLine( aSeg, true, i_end, MaxVerts, corners, segs, guardHit );
+        followLine( aSeg, true, i_end, MaxVerts, corners, segs, guardHit, aStopAtLockedJoints );
 
     int n = 0;
 
     PNS_SEGMENT* prev_seg = NULL;
+    bool originSet = false;
 
     for( int i = i_start + 1; i < i_end; i++ )
     {
         const VECTOR2I& p = corners[i];
 
-        pl->Line().Append( p );
+        pl.Line().Append( p );
 
         if( segs[i] && prev_seg != segs[i] )
         {
-            pl->LinkSegment( segs[i] );
+            pl.LinkSegment( segs[i] );
 
-            if( segs[i] == aSeg && aOriginSegmentIndex )
+            // latter condition to avoid loops
+            if( segs[i] == aSeg && aOriginSegmentIndex && !originSet )
+            {
                 *aOriginSegmentIndex = n;
-
+                originSet = true;
+            }
             n++;
         }
 
         prev_seg = segs[i];
     }
 
-    assert( pl->SegmentCount() != 0 );
-    assert( pl->SegmentCount() == (int) pl->LinkedSegments()->size() );
+    assert( pl.SegmentCount() != 0 );
 
     return pl;
 }
 
 
-void PNS_NODE::FindLineEnds( PNS_LINE* aLine, PNS_JOINT& aA, PNS_JOINT& aB )
+void PNS_NODE::FindLineEnds( const PNS_LINE& aLine, PNS_JOINT& aA, PNS_JOINT& aB )
 {
-    aA = *FindJoint( aLine->CPoint( 0 ), aLine );
-    aB = *FindJoint( aLine->CPoint( -1 ), aLine );
+    aA = *FindJoint( aLine.CPoint( 0 ), &aLine );
+    aB = *FindJoint( aLine.CPoint( -1 ), &aLine );
 }
 
 
@@ -873,32 +876,33 @@ void PNS_NODE::MapConnectivity ( PNS_JOINT* aStart, std::vector<PNS_JOINT*>& aFo
 #endif
 
 
-int PNS_NODE::FindLinesBetweenJoints( PNS_JOINT& aA, PNS_JOINT& aB, std::vector<PNS_LINE*>& aLines )
+int PNS_NODE::FindLinesBetweenJoints( PNS_JOINT& aA, PNS_JOINT& aB, std::vector<PNS_LINE>& aLines )
 {
     BOOST_FOREACH( PNS_ITEM* item, aA.LinkList() )
     {
         if( item->Kind() == PNS_ITEM::SEGMENT )
         {
             PNS_SEGMENT* seg = static_cast<PNS_SEGMENT*>( item );
-            PNS_LINE* line = AssembleLine( seg );
+            PNS_LINE line = AssembleLine( seg );
+
+            if ( !line.Layers().Overlaps( aB.Layers() ) )
+                continue;
 
             PNS_JOINT j_start, j_end;
 
             FindLineEnds( line, j_start, j_end );
 
-            int id_start = line->CLine().Find( aA.Pos() );
-            int id_end   = line->CLine().Find( aB.Pos() );
+            int id_start = line.CLine().Find( aA.Pos() );
+            int id_end   = line.CLine().Find( aB.Pos() );
 
             if( id_end < id_start )
                 std::swap( id_end, id_start );
 
             if( id_start >= 0 && id_end >= 0 )
             {
-                line->ClipVertexRange ( id_start, id_end );
+                line.ClipVertexRange( id_start, id_end );
                 aLines.push_back( line );
             }
-            else
-                delete line;
         }
     }
 
@@ -933,6 +937,13 @@ PNS_JOINT* PNS_NODE::FindJoint( const VECTOR2I& aPos, int aLayer, int aNet )
     }
 
     return NULL;
+}
+
+
+void PNS_NODE::LockJoint( const VECTOR2I& aPos, const PNS_ITEM* aItem, bool aLock )
+{
+    PNS_JOINT& jt = touchJoint( aPos, aItem->Layers(), aItem->Net() );
+    jt.Lock( aLock );
 }
 
 
@@ -1103,23 +1114,37 @@ void PNS_NODE::GetUpdatedItems( ITEM_VECTOR& aRemoved, ITEM_VECTOR& aAdded )
         return;
 
     BOOST_FOREACH( PNS_ITEM* item, m_override )
-    aRemoved.push_back( item );
+        aRemoved.push_back( item );
 
     for( PNS_INDEX::ITEM_SET::iterator i = m_index->begin(); i != m_index->end(); ++i )
         aAdded.push_back( *i );
 }
 
-
 void PNS_NODE::releaseChildren()
 {
     // copy the kids as the PNS_NODE destructor erases the item from the parent node.
-    std::vector<PNS_NODE*> kids = m_children;
+    std::set<PNS_NODE*> kids = m_children;
 
-    BOOST_FOREACH( PNS_NODE * node, kids )
+    BOOST_FOREACH( PNS_NODE* node, kids )
     {
         node->releaseChildren();
         delete node;
     }
+}
+
+
+void PNS_NODE::releaseGarbage()
+{
+    if( !isRoot() )
+        return;
+
+    BOOST_FOREACH( PNS_ITEM* item, m_garbageItems )
+    {
+        if( !item->BelongsTo( this ) )
+            delete item;
+    }
+
+    m_garbageItems.clear();
 }
 
 
@@ -1128,7 +1153,7 @@ void PNS_NODE::Commit( PNS_NODE* aNode )
     if( aNode->isRoot() )
         return;
 
-    BOOST_FOREACH( PNS_ITEM * item, aNode->m_override )
+    BOOST_FOREACH( PNS_ITEM* item, aNode->m_override )
     Remove( item );
 
     for( PNS_INDEX::ITEM_SET::iterator i = aNode->m_index->begin();
@@ -1140,12 +1165,13 @@ void PNS_NODE::Commit( PNS_NODE* aNode )
     }
 
     releaseChildren();
+    releaseGarbage();
 }
 
 
 void PNS_NODE::KillChildren()
 {
-    assert ( isRoot() );
+    assert( isRoot() );
     releaseChildren();
 }
 
@@ -1243,7 +1269,20 @@ PNS_SEGMENT* PNS_NODE::findRedundantSegment( PNS_SEGMENT* aSeg )
     return NULL;
 }
 
+
 void PNS_NODE::SetCollisionFilter( PNS_COLLISION_FILTER* aFilter )
 {
     m_collisionFilter = aFilter;
+}
+
+
+PNS_ITEM *PNS_NODE::FindItemByParent( const BOARD_CONNECTED_ITEM* aParent )
+{
+    PNS_INDEX::NET_ITEMS_LIST* l_cur = m_index->GetItemsForNet( aParent->GetNetCode() );
+
+    BOOST_FOREACH( PNS_ITEM*item, *l_cur )
+        if( item->Parent() == aParent )
+            return item;
+
+    return NULL;
 }

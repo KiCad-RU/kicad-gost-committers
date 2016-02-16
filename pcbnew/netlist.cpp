@@ -7,7 +7,7 @@
  * Copyright (C) 1992-2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2013 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -66,6 +66,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     NETLIST         netlist;
     KIGFX::VIEW*    view = GetGalCanvas()->GetView();
     BOARD*          board = GetBoard();
+    std::vector<MODULE*> newFootprints;
 
     netlist.SetIsDryRun( aIsDryRun );
     netlist.SetFindByTimeStamp( aSelectByTimeStamp );
@@ -86,7 +87,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
 
         SetLastNetListRead( aNetlistFileName );
         netlistReader->LoadNetlist();
-        loadFootprints( netlist, aReporter );
+        LoadFootprints( netlist, aReporter );
     }
     catch( const IO_ERROR& ioe )
     {
@@ -113,11 +114,24 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     m_toolManager->RunAction( COMMON_ACTIONS::selectionClear, true );
 
     netlist.SortByReference();
-    board->ReplaceNetlist( netlist, aDeleteSinglePadNets, aReporter );
+    board->ReplaceNetlist( netlist, aDeleteSinglePadNets, &newFootprints, aReporter );
 
     // If it was a dry run, nothing has changed so we're done.
     if( netlist.IsDryRun() )
         return;
+
+    if( IsGalCanvasActive() )
+    {
+        SpreadFootprints( &newFootprints, false, false );
+        if( !newFootprints.empty() )
+        {
+            BOOST_FOREACH( MODULE* footprint, newFootprints )
+            {
+                m_toolManager->RunAction( COMMON_ACTIONS::selectItem, true, footprint );
+            }
+            m_toolManager->InvokeTool( "pcbnew.InteractiveEdit" );
+        }
+    }
 
     OnModify();
 
@@ -138,10 +152,8 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     }
 
     // Rebuild the board connectivity:
-    if( IsGalCanvasActive() )
-        board->GetRatsnest()->ProcessBoard();
-
     Compile_Ratsnest( NULL, true );
+    board->GetRatsnest()->ProcessBoard();
 
     SetMsgPanel( board );
     m_canvas->Refresh();
@@ -194,7 +206,7 @@ MODULE* PCB_EDIT_FRAME::ListAndSelectModuleName()
 
 #define ALLOW_PARTIAL_FPID      1
 
-void PCB_EDIT_FRAME::loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
+void PCB_EDIT_FRAME::LoadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
     throw( IO_ERROR, PARSE_ERROR )
 {
     wxString   msg;
@@ -318,4 +330,3 @@ void PCB_EDIT_FRAME::loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
             component->SetModule( module );
     }
 }
-

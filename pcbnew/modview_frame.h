@@ -52,13 +52,6 @@ protected:
 public:
     ~FOOTPRINT_VIEWER_FRAME();
 
-    /**
-     * Function GetFootprintViewerFrameName (static)
-     * @return the frame name used when creating the frame
-     * used to get a reference to this frame, if exists
-     */
-    static const wxChar* GetFootprintViewerFrameName();
-
     virtual EDA_COLOR_T GetGridColor() const;
 
     /**
@@ -69,15 +62,10 @@ public:
      */
     void ReCreateLibraryList();
 
-    ///> @copydoc EDA_DRAW_FRAME::UseGalCanvas()
-    virtual void UseGalCanvas( bool aEnable );
-
 private:
 
     wxListBox*          m_libList;               // The list of libs names
     wxListBox*          m_footprintList;         // The list of footprint names
-
-    wxString            m_configPath;            // subpath for configuration
 
     const wxString      getCurNickname();
     void                setCurNickname( const wxString& aNickname );
@@ -116,7 +104,7 @@ private:
     void DClickOnFootprintList( wxCommandEvent& event );
     void OnSetRelativeOffset( wxCommandEvent& event );
 
-    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey = 0 );
+    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
 
     ///> @copydoc EDA_DRAW_FRAME::GetHotKeyDescription()
     EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const;

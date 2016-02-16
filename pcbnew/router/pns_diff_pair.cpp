@@ -282,10 +282,18 @@ void PNS_DP_GATEWAYS::BuildOrthoProjections( PNS_DP_GATEWAYS& aEntries,
 {
     BOOST_FOREACH( PNS_DP_GATEWAY g, aEntries.Gateways() )
     {
-        VECTOR2I dir = ( g.AnchorP() - g.AnchorN() ).Perpendicular();
         VECTOR2I midpoint( ( g.AnchorP() + g.AnchorN() ) / 2 );
-        SEG guide( midpoint, midpoint + dir );
-        VECTOR2I proj = guide.LineProject( aCursorPos );
+        SEG guide_s( midpoint, midpoint + VECTOR2I( 1, 0 ) );
+        SEG guide_d( midpoint, midpoint + VECTOR2I( 1, 1 ) );
+
+        VECTOR2I proj_s = guide_s.LineProject( aCursorPos );
+        VECTOR2I proj_d = guide_d.LineProject( aCursorPos );
+
+        int dist_s = ( proj_s - aCursorPos ).EuclideanNorm();
+        int dist_d = ( proj_d - aCursorPos ).EuclideanNorm();
+
+
+        VECTOR2I proj = ( dist_s < dist_d ? proj_s : proj_d );
 
         PNS_DP_GATEWAYS targets( m_gap );
 
@@ -403,32 +411,32 @@ void PNS_DP_GATEWAYS::BuildFromPrimitivePair( PNS_DP_PRIMITIVE_PAIR aPair, bool 
 
     switch( shP->Type() )
     {
-        case SH_RECT:
-        {
-            int w = static_cast<const SHAPE_RECT*>( shP )->GetWidth();
-            int h = static_cast<const SHAPE_RECT*>( shP )->GetHeight();
+    case SH_RECT:
+    {
+        int w = static_cast<const SHAPE_RECT*>( shP )->GetWidth();
+        int h = static_cast<const SHAPE_RECT*>( shP )->GetHeight();
 
-            if( w < h )
-                std::swap( w, h );
+        if( w < h )
+            std::swap( w, h );
 
-            orthoFanDistance = w * 3/4;
-            diagFanDistance = ( w - h ) / 2;
-            break;
-        }
+        orthoFanDistance = w * 3/4;
+        diagFanDistance = ( w - h ) / 2;
+        break;
+    }
 
-        case SH_SEGMENT:
-        {
-            int w = static_cast<const SHAPE_SEGMENT*>( shP )->GetWidth();
-            SEG s = static_cast<const SHAPE_SEGMENT*>( shP )->GetSeg();
+    case SH_SEGMENT:
+    {
+        int w = static_cast<const SHAPE_SEGMENT*>( shP )->GetWidth();
+        SEG s = static_cast<const SHAPE_SEGMENT*>( shP )->GetSeg();
 
-            orthoFanDistance = w + ( s.B - s.A ).EuclideanNorm() / 2;
-            diagFanDistance = ( s.B - s.A ).EuclideanNorm() / 2;
-            break;
-        }
+        orthoFanDistance = w + ( s.B - s.A ).EuclideanNorm() / 2;
+        diagFanDistance = ( s.B - s.A ).EuclideanNorm() / 2;
+        break;
+    }
 
-        default:
-            BuildGeneric ( p0_p, p0_n, true );
-            return;
+    default:
+        BuildGeneric ( p0_p, p0_n, true );
+        return;
     }
 
     if( checkDiagonalAlignment( p0_p, p0_n ) )
@@ -628,24 +636,24 @@ void PNS_DP_GATEWAYS::BuildGeneric( const VECTOR2I& p0_p, const VECTOR2I& p0_n, 
     {
         for( int j = 0; j < 2; j++ )
         {
-            OPT_VECTOR2I ips[2], m;
+            OPT_VECTOR2I ips[2];
 
-            m = OPT_VECTOR2I();
             ips[0] = d_n[i].IntersectLines( d_p[j] );
             ips[1] = st_p[i].IntersectLines( st_n[j] );
 
             if( d_n[i].Collinear( d_p[j] ) )
-                ips[0] = OPT_VECTOR2I();
+                ips[0] = boost::none;
             if( st_p[i].Collinear( st_p[j] ) )
-                ips[1] = OPT_VECTOR2I();
+                ips[1] = boost::none;
 
             // diagonal-diagonal and straight-straight cases - the most typical case if the pads
             // are on the same straight/diagonal line
             for( int k = 0; k < 2; k++ )
             {
-                if (ips[k] )
+                if( ips[k] )
                 {
-                    const VECTOR2I m ( *ips[k] );
+                    const VECTOR2I m( *ips[k] );
+
                     if( m != p0_p && m != p0_n )
                     {
                         int prio = ( padDist > padToGapThreshold * m_gap ? 10 : 20 );
@@ -660,26 +668,29 @@ void PNS_DP_GATEWAYS::BuildGeneric( const VECTOR2I& p0_p, const VECTOR2I& p0_n, 
             ips[0] = st_n[i].IntersectLines( d_p[j] );
             ips[1] = st_p[i].IntersectLines( d_n[j] );
 
-  //          diagonal-straight cases: 8 possibilities of "weirder" exists
+//          diagonal-straight cases: 8 possibilities of "weirder" exists
             for( int k = 0; k < 2; k++ )
             {
-                m = ips[k];
-
-                if( !aViaMode && m && *m != p0_p && *m != p0_n )
+                if( ips[k] )
                 {
-                    VECTOR2I g_p, g_n;
+                    const VECTOR2I m( *ips[k] );
 
-                     g_p = ( p0_p - *m ).Resize( (double) m_gap * M_SQRT2 );
-                     g_n = ( p0_n - *m ).Resize( (double) m_gap );
+                    if( !aViaMode && m != p0_p && m != p0_n )
+                    {
+                        VECTOR2I g_p, g_n;
 
-                    if( angle( g_p, g_n ) != DIRECTION_45::ANG_ACUTE )
-                        m_gateways.push_back( PNS_DP_GATEWAY( *m + g_p, *m + g_n, true ) );
+                        g_p = ( p0_p - m ).Resize( (double) m_gap * M_SQRT2 );
+                        g_n = ( p0_n - m ).Resize( (double) m_gap );
 
-                     g_p = ( p0_p - *m ).Resize( m_gap );
-                     g_n = ( p0_n - *m ).Resize( (double) m_gap * M_SQRT2 );
+                        if( angle( g_p, g_n ) != DIRECTION_45::ANG_ACUTE )
+                            m_gateways.push_back( PNS_DP_GATEWAY( m + g_p, m + g_n, true ) );
 
-                    if( angle( g_p, g_n ) != DIRECTION_45::ANG_ACUTE )
-                        m_gateways.push_back( PNS_DP_GATEWAY( *m + g_p, *m + g_n, true ) );
+                        g_p = ( p0_p - m ).Resize( m_gap );
+                        g_n = ( p0_n - m ).Resize( (double) m_gap * M_SQRT2 );
+
+                        if( angle( g_p, g_n ) != DIRECTION_45::ANG_ACUTE )
+                            m_gateways.push_back( PNS_DP_GATEWAY( m + g_p, m + g_n, true ) );
+                    }
                 }
             }
         }

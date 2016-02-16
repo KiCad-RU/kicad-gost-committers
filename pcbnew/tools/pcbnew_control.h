@@ -71,6 +71,9 @@ public:
     int LayerAlphaInc( const TOOL_EVENT& aEvent );
     int LayerAlphaDec( const TOOL_EVENT& aEvent );
 
+    int CursorControl( const TOOL_EVENT& aEvent );
+    int PanControl( const TOOL_EVENT& aEvent );
+
     // Grid control
     int GridFast1( const TOOL_EVENT& aEvent );
     int GridFast2( const TOOL_EVENT& aEvent );
@@ -84,6 +87,7 @@ public:
     int SwitchCursor( const TOOL_EVENT& aEvent );
     int SwitchUnits( const TOOL_EVENT& aEvent );
     int DeleteItemCursor( const TOOL_EVENT& aEvent );
+    int AppendBoard( const TOOL_EVENT& aEvent );
     int ShowHelp( const TOOL_EVENT& aEvent );
     int ToBeDone( const TOOL_EVENT& aEvent );
 

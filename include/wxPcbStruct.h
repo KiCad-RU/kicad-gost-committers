@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2010 Jean-Pierre Charras, jp.charras@wanadoo.fr
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -89,17 +89,6 @@ class PCB_EDIT_FRAME : public PCB_BASE_EDIT_FRAME
     /// The auxiliary right vertical tool bar used to access the microwave tools.
     wxAuiToolBar* m_microWaveToolBar;
 
-    /**
-     * Function loadFootprints
-     * loads the footprints for each #COMPONENT in \a aNetlist from the list of libraries.
-     *
-     * @param aNetlist is the netlist of components to load the footprints into.
-     * @param aReporter is the #REPORTER object to report to.
-     * @throw IO_ERROR if an I/O error occurs or a #PARSE_ERROR if a file parsing error
-     *           occurs while reading footprint library files.
-     */
-    void loadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
-        throw( IO_ERROR, PARSE_ERROR );
 
 protected:
     PCB_LAYER_WIDGET* m_Layers;
@@ -217,13 +206,25 @@ protected:
 
 public:
     PCB_LAYER_BOX_SELECTOR* m_SelLayerBox;  // a combo box to display and select active layer
-    wxComboBox* m_SelTrackWidthBox;     // a combo box to display and select current track width
-    wxComboBox* m_SelViaSizeBox;        // a combo box to display and select current via diameter
+    wxChoice* m_SelTrackWidthBox;           // a choice box to display and select current track width
+    wxChoice* m_SelViaSizeBox;              // a choice box to display and select current via diameter
 
     bool m_show_microwave_tools;
     bool m_show_layer_manager_tools;
 
     virtual ~PCB_EDIT_FRAME();
+
+    /**
+     * Function loadFootprints
+     * loads the footprints for each #COMPONENT in \a aNetlist from the list of libraries.
+     *
+     * @param aNetlist is the netlist of components to load the footprints into.
+     * @param aReporter is the #REPORTER object to report to.
+     * @throw IO_ERROR if an I/O error occurs or a #PARSE_ERROR if a file parsing error
+     *           occurs while reading footprint library files.
+     */
+    void LoadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
+        throw( IO_ERROR, PARSE_ERROR );
 
     void OnQuit( wxCommandEvent& event );
 
@@ -280,6 +281,12 @@ public:
     void OnUpdateMuWaveToolbar( wxUpdateUIEvent& aEvent );
     void OnLayerColorChange( wxCommandEvent& aEvent );
     void OnConfigurePaths( wxCommandEvent& aEvent );
+    void OnUpdatePCBFromSch( wxCommandEvent& event );
+
+    /**
+     * called when the alt key is pressed during a mouse wheel action
+     */
+    void OnAltWheel( wxCommandEvent& event );
 
     /**
      * Function RecordMacros.
@@ -340,7 +347,10 @@ public:
      * Function SetGridColor() , virtual
      * @param aColor = the new color of the grid
      */
-    virtual void SetGridColor(EDA_COLOR_T aColor);
+    virtual void SetGridColor( EDA_COLOR_T aColor );
+
+    ///> @copydoc EDA_DRAW_FRAME::SetCursorShape()
+    virtual void SetCursorShape( int aCursorShape );
 
     // Configurations:
     void Process_Config( wxCommandEvent& event );
@@ -394,6 +404,8 @@ public:
     void LoadSettings( wxConfigBase* aCfg );    // override virtual
 
     void SaveSettings( wxConfigBase* aCfg );    // override virtual
+
+    wxConfigBase* GetSettings() { return config(); };
 
     /**
      * Get the last net list read with the net list dialog box.
@@ -489,6 +501,16 @@ public:
      * @return true if an item was moved
      */
     bool OnHotkeyRotateItem( int aIdCommand );
+
+    /**
+     * Function OnHotkeyFlipItem
+     * Flip the item (text or footprint) found under the mouse cursor
+     * @note This command can be used with an item currently in edit.
+     *       Only some items can be rotated (footprints and texts).
+     * @param aIdCommand = the hotkey command id
+     * @return true if an item was moved
+     */
+    bool OnHotkeyFlipItem( int aIdCommand );
 
     /**
      * Function OnHotkeyBeginRoute
@@ -602,20 +624,10 @@ public:
      */
     void Show3D_Frame( wxCommandEvent& event );
 
-    /**
-     * Virtual function UseGalCanvas
-     * Enables/disables GAL canvas.
-     * @param aEnable determines if GAL should be active or not.
-     */
+    ///> @copydoc EDA_DRAW_FRAME::UseGalCanvas()
     void UseGalCanvas( bool aEnable );
 
-    /**
-     * Function SwitchCanvas
-     * switches currently used canvas (default / Cairo / OpenGL).
-     */
-    void SwitchCanvas( wxCommandEvent& aEvent );
-
-    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey = 0 );
+    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
 
     /**
      * Function ShowDesignRulesEditor
@@ -711,7 +723,7 @@ public:
      * @param aKey = the key modifiers (Alt, Shift ...)
      * @return the block command id (BLOCK_MOVE, BLOCK_COPY...)
      */
-    virtual int BlockCommand( int aKey );
+    virtual int BlockCommand( EDA_KEY aKey );
 
     /**
      * Function HandleBlockPlace()
@@ -942,11 +954,14 @@ public:
     /**
      * Function ArchiveModulesOnBoard
      * Save modules in a library:
-     * @param aNewModulesOnly:
-     *              true : save modules not already existing in this lib
-     *              false: save all modules
+     * @param aStoreInNewLib:
+     *              true : save modules in a existing lib. Existing footprints will be kept
+     *              or updated.
+     *              This lib should be in fp lib table, and is type is .pretty
+     *              false: save modules in a new lib. It it is an existing lib,
+     *              previous footprints will be removed
      */
-    void ArchiveModulesOnBoard( bool aNewModulesOnly );
+    void ArchiveModulesOnBoard( bool aStoreInNewLib );
 
     /**
      * Function RecreateBOMFileFromBoard
@@ -991,11 +1006,14 @@ public:
      *                          converted to a STEP model.
      * @param a3D_Subdir = sub directory where 3D shapes files are copied.  This is only used
      *                     when aExport3DFiles == true
+     * @param aXRef = X value of PCB (0,0) reference point
+     * @param aYRef = Y value of PCB (0,0) reference point
      * @return true if Ok.
      */
     bool ExportVRML_File( const wxString & aFullFileName, double aMMtoWRMLunit,
                           bool aExport3DFiles, bool aUseRelativePaths,
-                          bool aUsePlainPCB, const wxString & a3D_Subdir );
+                          bool aUsePlainPCB, const wxString & a3D_Subdir,
+                          double aXRef, double aYRef );
 
     /**
      * Function ExportToIDF3
@@ -1104,9 +1122,8 @@ public:
      * The ratsnest and pad list are recalculated
      * @param aModule = footprint to delete
      * @param aDC = currentDevice Context. if NULL: do not redraw new ratsnest
-     * @param aAskBeforeDeleting : if true: ask for confirmation before deleting
      */
-    bool Delete_Module( MODULE* aModule, wxDC* aDC, bool aAskBeforeDeleting );
+    bool Delete_Module( MODULE* aModule, wxDC* aDC );
 
     /**
      * Function Change_Side_Module
@@ -1119,7 +1136,7 @@ public:
      */
     void Change_Side_Module( MODULE* Module, wxDC* DC );
 
-    void InstallExchangeModuleFrame( MODULE* ExchangeModuleModule );
+    int InstallExchangeModuleFrame( MODULE* ExchangeModuleModule );
 
     /**
      * Function Exchange_Module
@@ -1552,6 +1569,8 @@ public:
     // Autoplacement:
     void OnPlaceOrRouteFootprints( wxCommandEvent& event );
 
+#if defined( KICAD_SCRIPTING_WXPYTHON )
+
     /**
      * Function ScriptingConsoleEnableDisable
      * enables or disabled the scripting console
@@ -1559,6 +1578,8 @@ public:
     void ScriptingConsoleEnableDisable( wxCommandEvent& aEvent );
 
     void OnUpdateScriptingConsoleState( wxUpdateUIEvent& aEvent );
+
+#endif
 
     void OnSelectAutoPlaceMode( wxCommandEvent& aEvent );
 
@@ -1583,12 +1604,17 @@ public:
      * Function SpreadFootprints
      * Footprints (after loaded by reading a netlist for instance) are moved
      * to be in a small free area (outside the current board) without overlapping.
-     * @param aFootprintsOutsideBoardOnly: true to move only
-     * footprints outside the board outlines
-     * (they are outside if the position of a footprint is outside
-     * the board outlines bounding box
+     * @param aFootprints: a list of footprints to be spread out.
+     * @param aMoveFootprintsOutsideBoardOnly: true to move only
+     *        footprints outside the board outlines
+     *        (they are outside if the position of a footprint is outside
+     *        the board outlines bounding box).
+     * @param aCheckForBoardEdges: true to try to place footprints outside of
+     *        board edges.
      */
-    void SpreadFootprints( bool aFootprintsOutsideBoardOnly );
+    void SpreadFootprints( std::vector<MODULE*>* aFootprints,
+                           bool                  aMoveFootprintsOutsideBoardOnly,
+                           bool                  aCheckForBoardEdges );
 
     /**
      * Function AutoPlaceModule
@@ -1647,7 +1673,7 @@ public:
      * @param aTextSize = the size of ref and value texts ( <= 0 to use board default values )
      * @param aPadCount = number of pads
      * Pads settings are:
-     *  PAD_SMD, rectangular, H size = V size = current track width.
+     *  PAD_ATTRIB_SMD, rectangular, H size = V size = current track width.
      */
     MODULE* CreateMuWaveBaseFootprint( const wxString& aValue, int aTextSize, int aPadCount );
 
@@ -1655,7 +1681,7 @@ public:
      * Create_MuWaveComponent
      * creates a module "GAP" or "STUB" used in micro wave designs.
      *  This module has 2 pads:
-     *  PAD_SMD, rectangular, H size = V size = current track width.
+     *  PAD_ATTRIB_SMD, rectangular, H size = V size = current track width.
      *  the "gap" is isolation created between this 2 pads
      */
     MODULE* Create_MuWaveComponent( int shape_type );
@@ -1663,44 +1689,6 @@ public:
     MODULE* Create_MuWavePolygonShape();
 
     void Begin_Self( wxDC* DC );
-
-    /**
-     * Function Genre_Self
-     * creates a self-shaped coil for microwave applications.
-     * - Length Mself.lng
-     * - Extremities Mself.m_Start and Mself.m_End
-     *
-     * We must determine:
-     * Mself.nbrin = number of segments perpendicular to the direction
-     * (The coil nbrin will demicercles + 1 + 2 1 / 4 circle)
-     * Mself.lbrin = length of a strand
-     * Mself.radius = radius of rounded parts of the coil
-     * Mself.delta = segments extremities connection between him and the coil even
-     *
-     * The equations are
-     * Mself.m_Size.x = 2 * Mself.radius + Mself.lbrin
-     * Mself.m_Size.y * Mself.delta = 2 + 2 * Mself.nbrin * Mself.radius
-     * Mself.lng = 2 * Mself.delta / / connections to the coil
-     + (Mself.nbrin-2) * Mself.lbrin / / length of the strands except 1st and last
-     + (Mself.nbrin 1) * (PI * Mself.radius) / / length of rounded
-     * Mself.lbrin + / 2 - Melf.radius * 2) / / length of 1st and last bit
-     *
-     * The constraints are:
-     * Nbrin >= 2
-     * Mself.radius < Mself.m_Size.x
-     * Mself.m_Size.y = Mself.radius * 4 + 2 * Mself.raccord
-     * Mself.lbrin> Mself.radius * 2
-     *
-     * The calculation is conducted in the following way:
-     * Initially:
-     * Nbrin = 2
-     * Radius = 4 * m_Size.x (arbitrarily fixed value)
-     * Then:
-     * Increasing the number of segments to the desired length
-     * (Radius decreases if necessary)
-     *
-     */
-    MODULE* Genere_Self( wxDC* DC );
 
     void ShowChangedLanguage();         // override EDA_BASE_FRAME virtual
 

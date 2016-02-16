@@ -136,10 +136,10 @@ void DRAWSEGMENT::Flip( const wxPoint& aCentre )
     m_End.y  = aCentre.y - (m_End.y - aCentre.y);
 
     if( m_Shape == S_ARC )
-    {
-        NEGATE( m_Angle );
-    }
+        m_Angle = -m_Angle;
 
+    // DRAWSEGMENT items are not allowed on copper layers, so
+    // copper layers count is not taken in accoun in Flip transform
     SetLayer( FlipLayer( GetLayer() ) );
 }
 
@@ -294,12 +294,12 @@ void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
         if( !panel->GetPrintMirrored() )
         {
             if( StAngle > EndAngle )
-                EXCHG( StAngle, EndAngle );
+                std::swap( StAngle, EndAngle );
         }
         else    // Mirrored mode: arc orientation is reversed
         {
             if( StAngle < EndAngle )
-                EXCHG( StAngle, EndAngle );
+                std::swap( StAngle, EndAngle );
         }
 
         if( filled )
@@ -359,8 +359,6 @@ void DRAWSEGMENT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
 void DRAWSEGMENT::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 {
     wxString msg;
-    wxString coords;
-
     wxASSERT( m_Parent );
 
     msg = _( "Drawing" );
@@ -393,8 +391,8 @@ void DRAWSEGMENT::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
         aList.push_back( MSG_PANEL_ITEM( _( "Length" ), msg, DARKGREEN ) );
 
         // angle counter-clockwise from 3'o-clock
-        const double deg = RAD2DEG( atan2( m_Start.y - m_End.y,
-                                           m_End.x - m_Start.x ) );
+        const double deg = RAD2DEG( atan2( (double)( m_Start.y - m_End.y ),
+                                           (double)( m_End.x - m_Start.x ) ) );
         msg.Printf( wxT( "%.1f" ), deg );
         aList.push_back( MSG_PANEL_ITEM( _( "Angle" ), msg, DARKGREEN ) );
     }
@@ -430,65 +428,7 @@ const EDA_RECT DRAWSEGMENT::GetBoundingBox() const
         break;
 
     case S_ARC:
-    {
-        bbox.Merge( m_End );
-        wxPoint end = m_End;
-        RotatePoint( &end, m_Start, -m_Angle );
-        bbox.Merge( end );
-
-        // Determine the starting quarter
-        // 0 right-bottom
-        // 1 left-bottom
-        // 2 left-top
-        // 3 right-top
-        unsigned int quarter = 0;       // assume right-bottom
-
-        if( m_End.y < m_Start.y )       // change to left-top
-            quarter |= 3;
-
-        if( m_End.x < m_Start.x )       // for left side, the LSB is 2nd bit negated
-            quarter ^= 1;
-
-        int radius = GetRadius();
-        int angle = (int) GetArcAngleStart() % 900 + m_Angle;
-        bool directionCW = ( m_Angle > 0 );      // Is the direction of arc clockwise?
-
-        if( !directionCW )
-        {
-            angle = 900 - angle;
-            quarter = ( quarter + 3 ) % 4;       // -1 modulo arithmetic
-        }
-
-        while( angle > 900 )
-        {
-            switch( quarter )
-            {
-            case 0:
-                bbox.Merge( wxPoint( m_Start.x, m_Start.y + radius ) );     // down
-                break;
-
-            case 1:
-                bbox.Merge( wxPoint( m_Start.x - radius, m_Start.y ) );     // left
-                break;
-
-            case 2:
-                bbox.Merge( wxPoint( m_Start.x, m_Start.y - radius ) );     // up
-                break;
-
-            case 3:
-                bbox.Merge( wxPoint( m_Start.x + radius, m_Start.y ) );     // right
-                break;
-            }
-
-            if( directionCW )
-                ++quarter;
-            else
-                quarter += 3;       // -1 modulo arithmetic
-
-            quarter %= 4;
-            angle -= 900;
-        }
-    }
+        computeArcBBox( bbox );
         break;
 
     case S_POLYGON:
@@ -624,7 +564,8 @@ bool DRAWSEGMENT::HitTest( const EDA_RECT& aRect, bool aContained, int aAccuracy
     case S_ARC:
         radius = hypot( (double)( GetEnd().x - GetStart().x ),
                         (double)( GetEnd().y - GetStart().y ) );
-        theta  = std::atan2( GetEnd().y - GetStart().y , GetEnd().x - GetStart().x );
+        theta  = std::atan2( (double)( GetEnd().y - GetStart().y ),
+                             (double)( GetEnd().x - GetStart().x ) );
 
         //Approximate the arc with two lines. This should be accurate enough for selection.
         p1.x   = radius * std::cos( theta + M_PI/4 ) + GetStart().x;
@@ -666,7 +607,7 @@ wxString DRAWSEGMENT::GetSelectMenuText() const
     wxString temp = ::LengthDoubleToString( GetLength() );
 
     text.Printf( _( "Pcb Graphic: %s, length %s on %s" ),
-                 GetChars( ShowShape( (STROKE_T) m_Shape ) ),
+                 GetChars( ShowShape( m_Shape ) ),
                  GetChars( temp ), GetChars( GetLayerName() ) );
 
     return text;
@@ -676,4 +617,94 @@ wxString DRAWSEGMENT::GetSelectMenuText() const
 EDA_ITEM* DRAWSEGMENT::Clone() const
 {
     return new DRAWSEGMENT( *this );
+}
+
+
+const BOX2I DRAWSEGMENT::ViewBBox() const
+{
+    // For arcs - do not include the center point in the bounding box,
+    // it is redundant for displaying an arc
+    if( m_Shape == S_ARC )
+    {
+        EDA_RECT bbox;
+        bbox.SetOrigin( m_End );
+        computeArcBBox( bbox );
+        return BOX2I( bbox.GetOrigin(), bbox.GetSize() );
+    }
+
+    return EDA_ITEM::ViewBBox();
+}
+
+
+void DRAWSEGMENT::computeArcBBox( EDA_RECT& aBBox ) const
+{
+    aBBox.Merge( m_End );
+    // TODO perhaps the above line can be replaced with this one, so we do not include the center
+    //aBBox.SetOrigin( m_End );
+    wxPoint end = m_End;
+    RotatePoint( &end, m_Start, -m_Angle );
+    aBBox.Merge( end );
+
+    // Determine the starting quarter
+    // 0 right-bottom
+    // 1 left-bottom
+    // 2 left-top
+    // 3 right-top
+    unsigned int quarter = 0;       // assume right-bottom
+
+    if( m_End.x < m_Start.x )
+    {
+        if( m_End.y <= m_Start.y )
+            quarter = 2;
+        else // ( m_End.y > m_Start.y )
+            quarter = 1;
+    }
+    else if( m_End.x >= m_Start.x )
+    {
+        if( m_End.y < m_Start.y )
+            quarter = 3;
+        else if( m_End.x == m_Start.x )
+            quarter = 1;
+    }
+
+    int radius = GetRadius();
+    int angle = (int) GetArcAngleStart() % 900 + m_Angle;
+    bool directionCW = ( m_Angle > 0 );      // Is the direction of arc clockwise?
+
+    // Make the angle positive, so we go clockwise and merge points belonging to the arc
+    if( !directionCW )
+    {
+        angle = 900 - angle;
+        quarter = ( quarter + 3 ) % 4;       // -1 modulo arithmetic
+    }
+
+    while( angle > 900 )
+    {
+        switch( quarter )
+        {
+        case 0:
+            aBBox.Merge( wxPoint( m_Start.x, m_Start.y + radius ) );     // down
+            break;
+
+        case 1:
+            aBBox.Merge( wxPoint( m_Start.x - radius, m_Start.y ) );     // left
+            break;
+
+        case 2:
+            aBBox.Merge( wxPoint( m_Start.x, m_Start.y - radius ) );     // up
+            break;
+
+        case 3:
+            aBBox.Merge( wxPoint( m_Start.x + radius, m_Start.y ) );     // right
+            break;
+        }
+
+        if( directionCW )
+            ++quarter;
+        else
+            quarter += 3;       // -1 modulo arithmetic
+
+        quarter %= 4;
+        angle -= 900;
+    }
 }

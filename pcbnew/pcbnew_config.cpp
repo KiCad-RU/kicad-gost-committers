@@ -174,6 +174,12 @@ void PCB_EDIT_FRAME::Process_Config( wxCommandEvent& event )
         }
         break;
 
+    case ID_PCB_3DSHAPELIB_WIZARD:
+#ifdef BUILD_GITHUB_PLUGIN
+        Invoke3DShapeLibsDownloaderWizard( this );
+#endif
+        break;
+
     case ID_PCB_MASK_CLEARANCE:
         {
             DIALOG_PADS_MASK_CLEARANCE dlg( this );
@@ -479,7 +485,6 @@ void PCB_EDIT_FRAME::SaveMacros()
 
 void PCB_EDIT_FRAME::ReadMacros()
 {
-    wxString str;
     wxFileName fn;
 
     fn = GetBoard()->GetFileName();
@@ -521,7 +526,7 @@ void PCB_EDIT_FRAME::ReadMacros()
             {
                 m_Macros[number].m_Record.clear();
 
-                XNODE *hotkeyNode = (XNODE*) macrosNode->GetChildren();
+                XNODE *hotkeyNode = macrosNode->GetChildren();
 
                 while( hotkeyNode )
                 {
@@ -538,11 +543,11 @@ void PCB_EDIT_FRAME::ReadMacros()
                         m_Macros[number].m_Record.push_back( macros_record );
                     }
 
-                    hotkeyNode = (XNODE*) hotkeyNode->GetNext();
+                    hotkeyNode = hotkeyNode->GetNext();
                 }
             }
         }
 
-        macrosNode = (XNODE*) macrosNode->GetNext();
+        macrosNode = macrosNode->GetNext();
     }
 }

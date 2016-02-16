@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2006 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -78,14 +78,6 @@ inline GR_DRAWMODE operator &(const GR_DRAWMODE& a, const GR_DRAWMODE& b)
 #define GR_M_MIDDLE_DOWN 0x40000000
 #define GR_M_DCLICK      0x80000000
 
-//wxWidgets 2.8 compatibility
-#if !wxCHECK_VERSION(2,9,0)
-#define wxPENSTYLE_SOLID wxSOLID
-#define wxPENSTYLE_SHORT_DASH wxSHORT_DASH
-#define wxPENSTYLE_DOT_DASH wxDOT_DASH
-typedef int wxPenStyle;
-#endif
-
 
 extern GR_DRAWMODE g_XorMode;
 
@@ -117,15 +109,17 @@ void GRForceBlackPen( bool flagforce );
  */
 bool GetGRForceBlackPenState( void );
 
-void GRLine( EDA_RECT* aClipBox, wxDC* aDC, wxPoint aStart, wxPoint aEnd, int aWidth, EDA_COLOR_T aColor );
-void GRLine( EDA_RECT* ClipBox, wxDC* DC, int x1, int y1, int x2, int y2, int width, EDA_COLOR_T Color );
+void GRLine( EDA_RECT* aClipBox, wxDC* aDC,
+             wxPoint aStart, wxPoint aEnd, int aWidth, EDA_COLOR_T aColor );
+void GRLine( EDA_RECT* ClipBox, wxDC* DC,
+             int x1, int y1, int x2, int y2, int width, EDA_COLOR_T Color );
 void GRMixedLine( EDA_RECT* ClipBox, wxDC* DC, int x1, int y1, int x2, int y2,
                   int width, EDA_COLOR_T Color );
 void GRDashedLine( EDA_RECT* ClipBox, wxDC* DC, int x1, int y1, int x2, int  y2,
                    int width, EDA_COLOR_T Color );
-void GRDashedLineTo( EDA_RECT* ClipBox, wxDC* DC, int x2, int y2, int width, EDA_COLOR_T Color );
 void GRMoveTo( int x, int y );
-void GRLineTo( EDA_RECT* ClipBox, wxDC* DC, int x, int y, int width, EDA_COLOR_T Color );
+void GRLineTo( EDA_RECT* ClipBox, wxDC* DC,
+               int x, int y, int width, EDA_COLOR_T Color );
 
 void GRPoly( EDA_RECT* ClipBox, wxDC* DC, int n, wxPoint Points[], bool Fill,
              int width, EDA_COLOR_T Color, EDA_COLOR_T BgColor );

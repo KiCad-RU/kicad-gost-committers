@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar  9 2015)
+// C++ code generated with wxFormBuilder (version Jun  5 2014)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -192,7 +192,7 @@ DIALOG_PAD_PROPERTIES_BASE::DIALOG_PAD_PROPERTIES_BASE( wxWindow* parent, wxWind
 	m_PadLengthDie_Unit->Wrap( -1 );
 	fgSizerShapeType->Add( m_PadLengthDie_Unit, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 5 );
 	
-	m_staticText21 = new wxStaticText( m_panelGeneral, wxID_ANY, _("Trap. delta dim:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText21 = new wxStaticText( m_panelGeneral, wxID_ANY, _("Trapezoid delta:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText21->Wrap( -1 );
 	fgSizerShapeType->Add( m_staticText21, 0, wxALIGN_CENTER_VERTICAL|wxTOP|wxLEFT, 5 );
 	
@@ -204,7 +204,7 @@ DIALOG_PAD_PROPERTIES_BASE::DIALOG_PAD_PROPERTIES_BASE( wxWindow* parent, wxWind
 	m_PadShapeDelta_Unit->Wrap( -1 );
 	fgSizerShapeType->Add( m_PadShapeDelta_Unit, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 5 );
 	
-	m_staticText23 = new wxStaticText( m_panelGeneral, wxID_ANY, _("Trap. direction:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText23 = new wxStaticText( m_panelGeneral, wxID_ANY, _("Trapezoid direction:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText23->Wrap( -1 );
 	fgSizerShapeType->Add( m_staticText23, 0, wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxLEFT|wxTOP, 5 );
 	
@@ -271,7 +271,7 @@ DIALOG_PAD_PROPERTIES_BASE::DIALOG_PAD_PROPERTIES_BASE( wxWindow* parent, wxWind
 	m_staticText47->Wrap( -1 );
 	fgSizerGeometry->Add( m_staticText47, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP, 5 );
 	
-	wxString m_DrillShapeCtrlChoices[] = { _("Circular"), _("Oval") };
+	wxString m_DrillShapeCtrlChoices[] = { _("Circular hole"), _("Oval hole") };
 	int m_DrillShapeCtrlNChoices = sizeof( m_DrillShapeCtrlChoices ) / sizeof( wxString );
 	m_DrillShapeCtrl = new wxChoice( m_panelGeneral, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_DrillShapeCtrlNChoices, m_DrillShapeCtrlChoices, 0 );
 	m_DrillShapeCtrl->SetSelection( 0 );
@@ -321,7 +321,7 @@ DIALOG_PAD_PROPERTIES_BASE::DIALOG_PAD_PROPERTIES_BASE( wxWindow* parent, wxWind
 	m_staticText511->Wrap( -1 );
 	bSizer11->Add( m_staticText511, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
-	wxString m_rbCopperLayersSelChoices[] = { _("Front"), _("Back"), _("All"), _("None") };
+	wxString m_rbCopperLayersSelChoices[] = { _("Front layer"), _("Back layer"), _("All copper layers"), _("None") };
 	int m_rbCopperLayersSelNChoices = sizeof( m_rbCopperLayersSelChoices ) / sizeof( wxString );
 	m_rbCopperLayersSel = new wxChoice( m_panelGeneral, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_rbCopperLayersSelNChoices, m_rbCopperLayersSelChoices, 0 );
 	m_rbCopperLayersSel->SetSelection( 0 );
@@ -531,8 +531,8 @@ DIALOG_PAD_PROPERTIES_BASE::DIALOG_PAD_PROPERTIES_BASE( wxWindow* parent, wxWind
 	wxBoxSizer* bSizerDisplayPad;
 	bSizerDisplayPad = new wxBoxSizer( wxVERTICAL );
 	
-	bSizerDisplayPad->SetMinSize( wxSize( 100,-1 ) ); 
-	m_panelShowPad = new wxPanel( this, wxID_ANY, wxDefaultPosition, wxSize( 200,200 ), wxFULL_REPAINT_ON_RESIZE|wxSIMPLE_BORDER );
+	bSizerDisplayPad->SetMinSize( wxSize( 200,-1 ) ); 
+	m_panelShowPad = new wxPanel( this, wxID_ANY, wxDefaultPosition, wxSize( 200,-1 ), wxFULL_REPAINT_ON_RESIZE|wxSIMPLE_BORDER );
 	m_panelShowPad->SetBackgroundColour( wxColour( 0, 0, 0 ) );
 	
 	bSizerDisplayPad->Add( m_panelShowPad, 4, wxRIGHT|wxTOP|wxEXPAND, 5 );

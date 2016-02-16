@@ -37,10 +37,21 @@ public:
                 const wxString& aTitle, const wxPoint& aPos, const wxSize& aSize,
                 long aStyle, const wxString& aFrameName ) :
     PCB_BASE_FRAME( aKiway, aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName ),
-    m_rotationAngle( 900 )
+    m_rotationAngle( 900 ), m_undoRedoBlocked( false )
     {}
 
     virtual ~PCB_BASE_EDIT_FRAME() {};
+
+    /**
+     * Function CreateNewLibrary
+     * prompts user for a library path, then creates a new footprint library at that
+     * location.  If library exists, user is warned about that, and is given a chance
+     * to abort the new creation, and in that case existing library is first deleted.
+     *
+     * @return wxString - the newly created library path if library was successfully
+     *   created, else wxEmptyString because user aborted or error.
+     */
+    wxString CreateNewLibrary();
 
     /**
      * Function OnEditItemRequest
@@ -71,9 +82,36 @@ public:
 
     bool PostCommandMenuEvent( int evt_type );
 
+    /**
+     * Function UndoRedoBlocked
+     * Checks if the undo and redo operations are currently blocked.
+     */
+    bool UndoRedoBlocked() const
+    {
+        return m_undoRedoBlocked;
+    }
+
+    /**
+     * Function UndoRedoBlock
+     * Enables/disable undo and redo operations.
+     */
+    void UndoRedoBlock( bool aBlock = true )
+    {
+        m_undoRedoBlocked = aBlock;
+    }
+
+    ///> @copydoc EDA_DRAW_FRAME::UseGalCanvas()
+    void UseGalCanvas( bool aEnable );
+
+    ///> @copydoc PCB_BASE_FRAME::SetBoard()
+    virtual void SetBoard( BOARD* aBoard );
+
 protected:
     /// User defined rotation angle (in tenths of a degree).
     int m_rotationAngle;
+
+    /// Is undo/redo operation currently blocked?
+    bool m_undoRedoBlocked;
 
     /**
      * Function createArray

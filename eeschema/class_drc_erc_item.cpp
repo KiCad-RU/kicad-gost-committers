@@ -52,6 +52,12 @@ wxString DRC_ITEM::GetErrorText() const
         return wxString( _("Mismatch between hierarchical labels and pins sheets"));
     case ERCE_NOCONNECT_CONNECTED:
         return wxString( _("A no connect symbol is connected to more than 1 pin"));
+    case ERCE_GLOBLABEL:
+        return wxString( _("Global label not connected to any other global label") );
+    case ERCE_SIMILAR_LABELS:
+        return wxString( _("Labels are similar (lower/upper case difference only)") );
+    case ERCE_SIMILAR_GLBL_LABELS:
+        return wxString( _("Global labels are similar (lower/upper case difference only)") );
 
     default:
         return wxString( wxT("Unkown.") );

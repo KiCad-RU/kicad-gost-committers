@@ -49,7 +49,7 @@ public:
     VIEW_CONTROLS( VIEW* aView ) : m_view( aView ),
         m_forceCursorPosition( false ), m_cursorCaptured( false ), m_snappingEnabled( false ),
         m_grabMouse( false ), m_autoPanEnabled( false ), m_autoPanMargin( 0.1 ),
-        m_autoPanSpeed( 0.15 )
+        m_autoPanSpeed( 0.15 ), m_warpCursor( false )
     {
     }
 
@@ -106,16 +106,16 @@ public:
     virtual void SetAutoPanMargin( float aMargin )
     {
         m_autoPanMargin = aMargin;
-    };
+    }
 
     /**
      * Function GetMousePosition()
      * Returns the current mouse pointer position in screen coordinates. Note, that it may be
      * different from the cursor position if snapping is enabled (@see GetCursorPosition()).
      *
-     * @return The current mouse pointer position in screen coordinates.
+     * @return The current mouse pointer position in the screen coordinates.
      */
-    virtual VECTOR2D GetMousePosition() const = 0;
+    virtual VECTOR2I GetMousePosition() const = 0;
 
     /**
      * Function GetCursorPosition()
@@ -131,7 +131,7 @@ public:
      * Function ForceCursorPosition()
      * Places the cursor immediately at a given point. Mouse movement is ignored.
      * @param aEnabled enable forced cursor position
-     * @param aPosition the position
+     * @param aPosition the position (world coordinates).
      */
     virtual void ForceCursorPosition( bool aEnabled, const VECTOR2D& aPosition = VECTOR2D( 0, 0 ) )
     {
@@ -160,6 +160,51 @@ public:
     {
         return m_forceCursorPosition;
     }
+
+    /**
+     * Function WarpCursor()
+     * If enabled (@see SetEnableCursorWarping(), warps the cursor to the specified position,
+     * expressed either in the screen coordinates or the world coordinates.
+     * @param aPosition is the position where the cursor should be warped.
+     * @param aWorldCoordinates if true treats aPosition as the world coordinates, otherwise it
+     * uses it as the screen coordinates.
+     * @param aWarpView determines if the view can be warped too (only matters if the position is
+     * specified in the world coordinates and its not visible in the current viewport).
+     */
+    virtual void WarpCursor( const VECTOR2D& aPosition, bool aWorldCoordinates = false,
+            bool aWarpView = false ) const = 0;
+
+    /**
+     * Function EnableCursorWarping()
+     * Enables or disables warping the cursor.
+     * @param aEnabled is true if the cursor is allowed to be warped.
+     */
+    void EnableCursorWarping( bool aEnable )
+    {
+        m_warpCursor = aEnable;
+    }
+
+    /**
+     * Function IsCursorWarpingEnabled()
+     * Returns the current setting for cursor warping.
+     */
+    bool IsCursorWarpingEnabled() const
+    {
+        return m_warpCursor;
+    }
+
+    /**
+     * Function CenterOnCursor()
+     * Sets the viewport center to the current cursor position and warps the cursor to the
+     * screen center.
+     */
+    virtual void CenterOnCursor() const = 0;
+
+    /**
+     * Function Reset()
+     * Restores the default VIEW_CONTROLS settings.
+     */
+    virtual void Reset();
 
 protected:
     /// Pointer to controlled VIEW.
@@ -191,6 +236,9 @@ protected:
 
     /// How fast is panning when in auto mode
     float       m_autoPanSpeed;
+
+    /// If the cursor is allowed to be warped
+    bool        m_warpCursor;
 };
 } // namespace KIGFX
 

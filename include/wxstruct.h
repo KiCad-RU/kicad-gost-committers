@@ -129,6 +129,9 @@ protected:
     wxPoint      m_FramePos;
     wxSize       m_FrameSize;
 
+    wxString     m_configFrameName; ///< prefix used in config to identify some params (frame size...)
+                                    ///< if empty, the frame name defined in CTOR is used
+
     wxAuiToolBar* m_mainToolBar;    ///< Standard horizontal Toolbar
 
     wxString     m_AboutTitle;      ///< Name of program displayed in About.
@@ -148,6 +151,8 @@ protected:
     wxTimer*     m_autoSaveTimer;
 
     wxString     m_perspective;     ///< wxAuiManager perspective.
+
+    wxString     m_mruPath;         ///< Most recently used path.
 
     /**
      * Function onAutoSaveTimer
@@ -249,6 +254,23 @@ public:
     virtual void SaveSettings( wxConfigBase* aCfg );
 
     /**
+     * Function ConfigBaseName
+     * @return a base name prefix used in Load/Save settings to build
+     * the full name of keys used in config.
+     * This is usually the name of the frame set by CTOR, unless m_configFrameName
+     * contains a base name.
+     * this is the case of frames which can be shown in normal or modal mode.
+     * This is needed because we want only one base name prefix,
+     * regardless the mode used.
+     */
+    wxString ConfigBaseName()
+    {
+        wxString baseCfgName = m_configFrameName.IsEmpty() ? GetName() : m_configFrameName;
+        return baseCfgName;
+    }
+
+
+    /**
      * Function SaveProjectSettings
      * saves changes to the project settings to the project (.pro) file.
      * The method is virtual so you can override it to call the suitable save method.
@@ -341,6 +363,10 @@ public:
      * If NULL, the main application file history is used.
      */
     void UpdateFileHistory( const wxString& FullFileName, wxFileHistory * aFileHistory = NULL );
+
+    void SetMruPath( const wxString& aPath ) { m_mruPath = aPath; }
+
+    wxString GetMruPath() const { return m_mruPath; }
 
     /**
      * Function ReCreateMenuBar

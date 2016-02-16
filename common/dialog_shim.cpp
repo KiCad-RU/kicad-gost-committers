@@ -26,6 +26,7 @@
 #include <dialog_shim.h>
 #include <kiway_player.h>
 #include <wx/evtloop.h>
+#include <pgm_base.h>
 
 
 /// Toggle a window's "enable" status to disabled, then enabled on destruction.
@@ -69,6 +70,18 @@ DIALOG_SHIM::DIALOG_SHIM( wxWindow* aParent, wxWindowID id, const wxString& titl
     if( h )
         SetKiway( this, &h->Kiway() );
 
+#ifdef __WINDOWS__
+    // On Windows, the app top windows can be brought to the foreground
+    // (at least temporary) in certain circumstances,
+    // for instance when calling an external tool in Eeschema boom generation.
+    // So set the parent KIWAY_PLAYER kicad frame (if exists) to top window
+    // to avoid this annoying behavior
+    KIWAY_PLAYER* parent_kiwayplayer = dynamic_cast<KIWAY_PLAYER*>( aParent );
+
+    if( parent_kiwayplayer )
+        Pgm().App().SetTopWindow( parent_kiwayplayer );
+#endif
+
 #if DLGSHIM_USE_SETFOCUS
     Connect( wxEVT_INIT_DIALOG, wxInitDialogEventHandler( DIALOG_SHIM::onInit ) );
 #endif
@@ -111,6 +124,7 @@ bool DIALOG_SHIM::Show( bool show )
     // If showing, use previous position and size.
     if( show )
     {
+        wxDialog::Raise();  // Needed on OS X and some other window managers (i.e. Unity)
         ret = wxDialog::Show( show );
 
         // classname is key, returns a zeroed out default EDA_RECT if none existed before.
@@ -219,72 +233,6 @@ void DIALOG_SHIM::onInit( wxInitDialogEvent& aEvent )
     you want to use KIWAY_PLAYER::ShowModal() from a dialog event.
 */
 
-
-#if !wxCHECK_VERSION( 2, 9, 4 )
-wxWindow* DIALOG_SHIM::CheckIfCanBeUsedAsParent( wxWindow* parent ) const
-{
-    if ( !parent )
-        return NULL;
-
-    extern WXDLLIMPEXP_DATA_BASE(wxList) wxPendingDelete;
-
-    if ( wxPendingDelete.Member(parent) || parent->IsBeingDeleted() )
-    {
-        // this window is being deleted and we shouldn't create any children
-        // under it
-        return NULL;
-    }
-
-    if ( parent->GetExtraStyle() & wxWS_EX_TRANSIENT )
-    {
-        // this window is not being deleted yet but it's going to disappear
-        // soon so still don't parent this window under it
-        return NULL;
-    }
-
-    if ( !parent->IsShownOnScreen() )
-    {
-        // using hidden parent won't work correctly neither
-        return NULL;
-    }
-
-    // FIXME-VC6: this compiler requires an explicit const cast or it fails
-    //            with error C2446
-    if ( const_cast<const wxWindow *>(parent) == this )
-    {
-        // not sure if this can really happen but it doesn't hurt to guard
-        // against this clearly invalid situation
-        return NULL;
-    }
-
-    return parent;
-}
-
-
-wxWindow* DIALOG_SHIM::GetParentForModalDialog(wxWindow *parent, long style) const
-{
-    // creating a parent-less modal dialog will result (under e.g. wxGTK2)
-    // in an unfocused dialog, so try to find a valid parent for it unless we
-    // were explicitly asked not to
-    if ( style & wxDIALOG_NO_PARENT )
-        return NULL;
-
-    // first try the given parent
-    if ( parent )
-        parent = CheckIfCanBeUsedAsParent(wxGetTopLevelParent(parent));
-
-    // then the currently active window
-    if ( !parent )
-        parent = CheckIfCanBeUsedAsParent(
-                    wxGetTopLevelParent(wxGetActiveWindow()));
-
-    // and finally the application main window
-    if ( !parent )
-        parent = CheckIfCanBeUsedAsParent(wxTheApp->GetTopWindow());
-
-    return parent;
-}
-#endif
 
 
 /*
@@ -569,14 +517,11 @@ void DIALOG_SHIM::EndQuasiModal( int retCode )
 
     if( m_qmodal_loop )
     {
-#if wxCHECK_VERSION( 2, 9, 4 )  // 2.9.4 is only approximate, might be 3, 0, 0.
         if( m_qmodal_loop->IsRunning() )
             m_qmodal_loop->Exit( 0 );
         else
             m_qmodal_loop->ScheduleExit( 0 );
-#else
-        m_qmodal_loop->Exit( 0 );
-#endif
+
         m_qmodal_loop = NULL;
     }
 

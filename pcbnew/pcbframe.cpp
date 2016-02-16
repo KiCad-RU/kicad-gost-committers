@@ -4,7 +4,7 @@
  * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2013 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2013-2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -70,30 +70,31 @@
 #include <tool/tool_dispatcher.h>
 #include <tools/common_actions.h>
 
-#include <scripting/python_console_frame.h>
+#include <wildcards_and_files_ext.h>
 
 #if defined(KICAD_SCRIPTING) || defined(KICAD_SCRIPTING_WXPYTHON)
 #include <python_scripting.h>
 #endif
 
 #include <pcb_draw_panel_gal.h>
+#include <gal/graphics_abstraction_layer.h>
 #include <boost/bind.hpp>
 
 // Keys used in read/write config
 #define OPTKEY_DEFAULT_LINEWIDTH_VALUE  wxT( "PlotLineWidth_mm" )
-#define PCB_SHOW_FULL_RATSNET_OPT       wxT( "PcbFullRatsnest" )
 #define PCB_MAGNETIC_PADS_OPT           wxT( "PcbMagPadOpt" )
 #define PCB_MAGNETIC_TRACKS_OPT         wxT( "PcbMagTrackOpt" )
 #define SHOW_MICROWAVE_TOOLS            wxT( "ShowMicrowaveTools" )
 #define SHOW_LAYER_MANAGER_TOOLS        wxT( "ShowLayerManagerTools" )
+#define SHOW_PAGE_LIMITS_KEY            wxT( "ShowPageLimits" )
 
 
 BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_SOCKET( ID_EDA_SOCKET_EVENT_SERV, PCB_EDIT_FRAME::OnSockRequestServer )
     EVT_SOCKET( ID_EDA_SOCKET_EVENT, PCB_EDIT_FRAME::OnSockRequest )
 
-    EVT_COMBOBOX( ID_ON_ZOOM_SELECT, PCB_EDIT_FRAME::OnSelectZoom )
-    EVT_COMBOBOX( ID_ON_GRID_SELECT, PCB_EDIT_FRAME::OnSelectGrid )
+    EVT_CHOICE( ID_ON_ZOOM_SELECT, PCB_EDIT_FRAME::OnSelectZoom )
+    EVT_CHOICE( ID_ON_GRID_SELECT, PCB_EDIT_FRAME::OnSelectGrid )
 
     EVT_CLOSE( PCB_EDIT_FRAME::OnCloseWindow )
     EVT_SIZE( PCB_EDIT_FRAME::OnSize )
@@ -126,8 +127,8 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_GEN_IMPORT_SPECCTRA_DESIGN, PCB_EDIT_FRAME::ImportSpecctraDesign )
     EVT_MENU( ID_GEN_IMPORT_DXF_FILE, PCB_EDIT_FRAME::Process_Special_Functions )
 
-    EVT_MENU( ID_MENU_ARCHIVE_NEW_MODULES, PCB_EDIT_FRAME::Process_Special_Functions )
-    EVT_MENU( ID_MENU_ARCHIVE_ALL_MODULES, PCB_EDIT_FRAME::Process_Special_Functions )
+    EVT_MENU( ID_MENU_ARCHIVE_MODULES_IN_LIBRARY, PCB_EDIT_FRAME::Process_Special_Functions )
+    EVT_MENU( ID_MENU_CREATE_LIBRARY_AND_ARCHIVE_MODULES, PCB_EDIT_FRAME::Process_Special_Functions )
 
     EVT_MENU( wxID_EXIT, PCB_EDIT_FRAME::OnQuit )
 
@@ -135,6 +136,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_PCB_DRAWINGS_WIDTHS_SETUP, PCB_EDIT_FRAME::OnConfigurePcbOptions )
     EVT_MENU( ID_PCB_LIB_TABLE_EDIT, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU( ID_PCB_LIB_WIZARD, PCB_EDIT_FRAME::Process_Config )
+    EVT_MENU( ID_PCB_3DSHAPELIB_WIZARD, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU( ID_PREFERENCES_CONFIGURE_PATHS, PCB_EDIT_FRAME::OnConfigurePaths )
     EVT_MENU( ID_CONFIG_SAVE, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU( ID_CONFIG_READ, PCB_EDIT_FRAME::Process_Config )
@@ -177,9 +179,9 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_MENU_PCB_SHOW_3D_FRAME, PCB_EDIT_FRAME::Show3D_Frame )
 
     // Switching canvases
-    EVT_MENU( ID_MENU_CANVAS_DEFAULT, PCB_EDIT_FRAME::SwitchCanvas )
-    EVT_MENU( ID_MENU_CANVAS_CAIRO, PCB_EDIT_FRAME::SwitchCanvas )
-    EVT_MENU( ID_MENU_CANVAS_OPENGL, PCB_EDIT_FRAME::SwitchCanvas )
+    EVT_MENU( ID_MENU_CANVAS_LEGACY, PCB_BASE_FRAME::SwitchCanvas )
+    EVT_MENU( ID_MENU_CANVAS_CAIRO, PCB_BASE_FRAME::SwitchCanvas )
+    EVT_MENU( ID_MENU_CANVAS_OPENGL, PCB_BASE_FRAME::SwitchCanvas )
 
     // Menu Get Design Rules Editor
     EVT_MENU( ID_MENU_PCB_SHOW_DESIGN_RULES_DIALOG, PCB_EDIT_FRAME::ShowDesignRulesEditor )
@@ -201,16 +203,18 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_TOOL( ID_AUX_TOOLBAR_PCB_SELECT_LAYER_PAIR, PCB_EDIT_FRAME::Process_Special_Functions )
     EVT_TOOL( ID_AUX_TOOLBAR_PCB_SELECT_AUTO_WIDTH, PCB_EDIT_FRAME::Tracks_and_Vias_Size_Event )
     EVT_COMBOBOX( ID_TOOLBARH_PCB_SELECT_LAYER, PCB_EDIT_FRAME::Process_Special_Functions )
-    EVT_COMBOBOX( ID_AUX_TOOLBAR_PCB_TRACK_WIDTH, PCB_EDIT_FRAME::Tracks_and_Vias_Size_Event )
-    EVT_COMBOBOX( ID_AUX_TOOLBAR_PCB_VIA_SIZE, PCB_EDIT_FRAME::Tracks_and_Vias_Size_Event )
+    EVT_CHOICE( ID_AUX_TOOLBAR_PCB_TRACK_WIDTH, PCB_EDIT_FRAME::Tracks_and_Vias_Size_Event )
+    EVT_CHOICE( ID_AUX_TOOLBAR_PCB_VIA_SIZE, PCB_EDIT_FRAME::Tracks_and_Vias_Size_Event )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_MODULE, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_TRACKS, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_FREEROUTE_ACCESS, PCB_EDIT_FRAME::Access_to_External_Tool )
 
+#if defined( KICAD_SCRIPTING_WXPYTHON )
     // has meaning only with KICAD_SCRIPTING_WXPYTHON enabled
     EVT_TOOL( ID_TOOLBARH_PCB_SCRIPTING_CONSOLE, PCB_EDIT_FRAME::ScriptingConsoleEnableDisable )
     EVT_UPDATE_UI( ID_TOOLBARH_PCB_SCRIPTING_CONSOLE,
                    PCB_EDIT_FRAME::OnUpdateScriptingConsoleState )
+#endif
 
     // Option toolbar
     EVT_TOOL( ID_TB_OPTIONS_DRC_OFF,
@@ -229,6 +233,8 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
                     PCB_EDIT_FRAME::OnSelectOptionToolbar )
     EVT_TOOL( ID_TB_OPTIONS_SHOW_EXTRA_VERTICAL_TOOLBAR_MICROWAVE,
                     PCB_EDIT_FRAME::OnSelectOptionToolbar )
+
+    EVT_TOOL( ID_UPDATE_PCB_FROM_SCH, PCB_EDIT_FRAME::OnUpdatePCBFromSch )
 
     EVT_TOOL_RANGE( ID_TB_OPTIONS_SHOW_ZONES, ID_TB_OPTIONS_SHOW_ZONES_OUTLINES_ONLY,
                     PCB_EDIT_FRAME::OnSelectOptionToolbar )
@@ -327,8 +333,10 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
         m_Macros[i].m_Record.clear();
 
     // Create GAL canvas
-    SetGalCanvas( new PCB_DRAW_PANEL_GAL( this, -1, wxPoint( 0, 0 ), m_FrameSize,
-                                          PCB_DRAW_PANEL_GAL::GAL_TYPE_CAIRO ) );
+    EDA_DRAW_PANEL_GAL* galCanvas = new PCB_DRAW_PANEL_GAL( this, -1, wxPoint( 0, 0 ),
+                                                m_FrameSize, EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE );
+
+    SetGalCanvas( galCanvas );
 
     SetBoard( new BOARD() );
 
@@ -351,14 +359,15 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     icon.CopyFromBitmap( KiBitmap( icon_pcbnew_xpm ) );
     SetIcon( icon );
 
-    SetScreen( new PCB_SCREEN( GetPageSettings().GetSizeIU() ) );
-
-    // PCB drawings start in the upper left corner.
-    GetScreen()->m_Center = false;
-
     // LoadSettings() *after* creating m_LayersManager, because LoadSettings()
     // initialize parameters in m_LayersManager
     LoadSettings( config() );
+
+    SetScreen( new PCB_SCREEN( GetPageSettings().GetSizeIU() ) );
+    GetScreen()->SetMaxUndoItems( m_UndoRedoCountMax );
+
+    // PCB drawings start in the upper left corner.
+    GetScreen()->m_Center = false;
 
     SetSize( m_FramePos.x, m_FramePos.y, m_FrameSize.x, m_FrameSize.y );
 
@@ -448,9 +457,18 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_auimgr.Update();
 
     setupTools();
-    enableGALSpecificMenus();
 
     Zoom_Automatique( false );
+
+    EDA_DRAW_PANEL_GAL::GAL_TYPE canvasType = LoadCanvasTypeSetting();
+
+    if( canvasType != EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE )
+    {
+        if( GetGalCanvas()->SwitchBackend( canvasType ) )
+            UseGalCanvas( true );
+    }
+
+    enableGALSpecificMenus();
 }
 
 
@@ -467,29 +485,14 @@ PCB_EDIT_FRAME::~PCB_EDIT_FRAME()
 
 void PCB_EDIT_FRAME::SetBoard( BOARD* aBoard )
 {
-    bool new_board = ( aBoard != m_Pcb );
-
-    PCB_BASE_FRAME::SetBoard( aBoard );
+    PCB_BASE_EDIT_FRAME::SetBoard( aBoard );
 
     if( IsGalCanvasActive() )
     {
-        PCB_DRAW_PANEL_GAL* drawPanel = static_cast<PCB_DRAW_PANEL_GAL*>( GetGalCanvas() );
-
-        drawPanel->DisplayBoard( aBoard );
         aBoard->GetRatsnest()->Recalculate();
 
         // reload the worksheet
         SetPageSettings( aBoard->GetPageSettings() );
-
-        // update the tool manager with the new board and its view.
-        if( m_toolManager )
-        {
-            m_toolManager->SetEnvironment( aBoard, drawPanel->GetView(),
-                                           drawPanel->GetViewControls(), this );
-
-            if( new_board )
-                m_toolManager->ResetTools( TOOL_BASE::MODEL_RELOAD );
-        }
     }
 }
 
@@ -524,7 +527,10 @@ void PCB_EDIT_FRAME::SetPageSettings( const PAGE_INFO& aPageSettings )
 
 bool PCB_EDIT_FRAME::isAutoSaveRequired() const
 {
-    return GetScreen()->IsSave();
+    if( GetScreen() )
+        return GetScreen()->IsSave();
+
+    return false;
 }
 
 
@@ -532,7 +538,7 @@ void PCB_EDIT_FRAME::setupTools()
 {
     // Create the manager and dispatcher & route draw panel events to the dispatcher
     m_toolManager = new TOOL_MANAGER;
-    m_toolManager->SetEnvironment( NULL, GetGalCanvas()->GetView(),
+    m_toolManager->SetEnvironment( m_Pcb, GetGalCanvas()->GetView(),
                                    GetGalCanvas()->GetViewControls(), this );
     m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager );
 
@@ -567,7 +573,7 @@ void PCB_EDIT_FRAME::ReFillLayerWidget()
 
 void PCB_EDIT_FRAME::OnQuit( wxCommandEvent& event )
 {
-    Close( true );
+    Close( false );
 }
 
 
@@ -635,77 +641,48 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
 
 void PCB_EDIT_FRAME::Show3D_Frame( wxCommandEvent& event )
 {
-    if( m_Draw3DFrame )
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
     {
         // Raising the window does not show the window on Windows if iconized.
         // This should work on any platform.
-        if( m_Draw3DFrame->IsIconized() )
-             m_Draw3DFrame->Iconize( false );
+        if( draw3DFrame->IsIconized() )
+             draw3DFrame->Iconize( false );
 
-        m_Draw3DFrame->Raise();
+        draw3DFrame->Raise();
 
         // Raising the window does not set the focus on Linux.  This should work on any platform.
-        if( wxWindow::FindFocus() != m_Draw3DFrame )
-            m_Draw3DFrame->SetFocus();
+        if( wxWindow::FindFocus() != draw3DFrame )
+            draw3DFrame->SetFocus();
 
         return;
     }
 
-    m_Draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, _( "3D Viewer" ) );
-    m_Draw3DFrame->SetDefaultFileName( GetBoard()->GetFileName() );
-    m_Draw3DFrame->Show( true );
+    draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, _( "3D Viewer" ) );
+    draw3DFrame->SetDefaultFileName( GetBoard()->GetFileName() );
+    draw3DFrame->Raise();     // Needed with some Window Managers
+    draw3DFrame->Show( true );
 }
 
 
 void PCB_EDIT_FRAME::UseGalCanvas( bool aEnable )
 {
-    EDA_DRAW_FRAME::UseGalCanvas( aEnable );
-
     if( aEnable )
     {
-        SetBoard( m_Pcb );
-        m_toolManager->ResetTools( TOOL_BASE::GAL_SWITCH );
-        GetGalCanvas()->GetView()->RecacheAllItems( true );
-        GetGalCanvas()->SetEventDispatcher( m_toolDispatcher );
-        GetGalCanvas()->StartDrawing();
+        BOARD* board = GetBoard();
+
+        if( board )
+            board->GetRatsnest()->ProcessBoard();
     }
     else
     {
-        m_toolManager->ResetTools( TOOL_BASE::GAL_SWITCH );
-
-        // Redirect all events to the legacy canvas
-        GetGalCanvas()->SetEventDispatcher( NULL );
+        Compile_Ratsnest( NULL, true );
     }
+
+    PCB_BASE_EDIT_FRAME::UseGalCanvas( aEnable );
 
     enableGALSpecificMenus();
-}
-
-
-void PCB_EDIT_FRAME::SwitchCanvas( wxCommandEvent& aEvent )
-{
-    int id = aEvent.GetId();
-    bool use_gal = false;
-
-    switch( id )
-    {
-    case ID_MENU_CANVAS_DEFAULT:
-        break;
-
-    case ID_MENU_CANVAS_CAIRO:
-        use_gal = GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_CAIRO );
-        break;
-
-    case ID_MENU_CANVAS_OPENGL:
-        use_gal = GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_OPENGL );
-        break;
-    }
-
-    if( !use_gal )
-        Compile_Ratsnest( NULL, true );
-    else
-        GetBoard()->GetRatsnest()->ProcessBoard();
-
-    UseGalCanvas( use_gal );
 }
 
 
@@ -769,15 +746,11 @@ void PCB_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )
 
     g_DrawDefaultLineThickness = Millimeter2iu( dtmp );
 
-    long tmp;
-
-    aCfg->Read( PCB_SHOW_FULL_RATSNET_OPT, &tmp );
-    GetBoard()->SetElementVisibility(RATSNEST_VISIBLE, tmp);
-
     aCfg->Read( PCB_MAGNETIC_PADS_OPT, &g_MagneticPadOption );
     aCfg->Read( PCB_MAGNETIC_TRACKS_OPT, &g_MagneticTrackOption );
     aCfg->Read( SHOW_MICROWAVE_TOOLS, &m_show_microwave_tools );
     aCfg->Read( SHOW_LAYER_MANAGER_TOOLS, &m_show_layer_manager_tools );
+    aCfg->Read( SHOW_PAGE_LIMITS_KEY, &m_showPageLimits );
 }
 
 
@@ -788,14 +761,12 @@ void PCB_EDIT_FRAME::SaveSettings( wxConfigBase* aCfg )
     wxConfigSaveSetups( aCfg, GetConfigurationSettings() );
 
     // This value is stored in mm )
-    aCfg->Write( OPTKEY_DEFAULT_LINEWIDTH_VALUE,
-                   MM_PER_IU * g_DrawDefaultLineThickness );
-    long tmp = GetBoard()->IsElementVisible(RATSNEST_VISIBLE);
-    aCfg->Write( PCB_SHOW_FULL_RATSNET_OPT, tmp );
+    aCfg->Write( OPTKEY_DEFAULT_LINEWIDTH_VALUE, MM_PER_IU * g_DrawDefaultLineThickness );
     aCfg->Write( PCB_MAGNETIC_PADS_OPT, (long) g_MagneticPadOption );
     aCfg->Write( PCB_MAGNETIC_TRACKS_OPT, (long) g_MagneticTrackOption );
     aCfg->Write( SHOW_MICROWAVE_TOOLS, (long) m_show_microwave_tools );
     aCfg->Write( SHOW_LAYER_MANAGER_TOOLS, (long)m_show_layer_manager_tools );
+    aCfg->Write( SHOW_PAGE_LIMITS_KEY, m_showPageLimits );
 }
 
 
@@ -817,9 +788,34 @@ EDA_COLOR_T PCB_EDIT_FRAME::GetGridColor() const
 }
 
 
-void PCB_EDIT_FRAME::SetGridColor(EDA_COLOR_T aColor)
+void PCB_EDIT_FRAME::SetGridColor( EDA_COLOR_T aColor )
 {
+
     GetBoard()->SetVisibleElementColor( GRID_VISIBLE, aColor );
+
+    if( IsGalCanvasActive() )
+    {
+        StructColors c = g_ColorRefs[ aColor ];
+        KIGFX::COLOR4D color(  (double) c.m_Red / 255.0,
+                        (double) c.m_Green / 255.0,
+                        (double) c.m_Blue / 255.0,
+                        0.7 );
+
+         GetGalCanvas()->GetGAL()->SetGridColor( color );
+    }
+}
+
+
+void PCB_EDIT_FRAME::SetCursorShape( int aCursorShape )
+{
+    const unsigned int BIG_CURSOR = 8000;
+    const unsigned int SMALL_CURSOR = 80;
+
+    EDA_DRAW_FRAME::SetCursorShape( aCursorShape );
+    KIGFX::GAL* gal = GetGalCanvas()->GetGAL();
+
+    if( gal )
+        gal->SetCursorSize( aCursorShape ? BIG_CURSOR : SMALL_CURSOR );
 }
 
 
@@ -959,8 +955,10 @@ void PCB_EDIT_FRAME::OnModify( )
 {
     PCB_BASE_FRAME::OnModify();
 
-    if( m_Draw3DFrame )
-        m_Draw3DFrame->ReloadRequest();
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
+        draw3DFrame->ReloadRequest();
 }
 
 
@@ -1002,23 +1000,26 @@ void PCB_EDIT_FRAME::UpdateTitle()
 }
 
 
-wxSize PYTHON_CONSOLE_FRAME::m_frameSize;   ///< The size of the PYTHON_CONSOLE_FRAME frame, stored during a session
-wxPoint PYTHON_CONSOLE_FRAME::m_framePos;   ///< The position ofPYTHON_CONSOLE_FRAME  the frame, stored during a session
+#if defined( KICAD_SCRIPTING_WXPYTHON )
 
 void PCB_EDIT_FRAME::ScriptingConsoleEnableDisable( wxCommandEvent& aEvent )
 {
 
     wxWindow * pythonPanelFrame = findPythonConsole();
-    bool pythonPanelShown = false;
+    bool pythonPanelShown = true;
 
     if( pythonPanelFrame == NULL )
-        pythonPanelFrame = new PYTHON_CONSOLE_FRAME( this, pythonConsoleNameId() );
+        pythonPanelFrame = CreatePythonShellWindow( this, pythonConsoleNameId() );
     else
-        pythonPanelShown = pythonPanelFrame->IsShown();
+        pythonPanelShown = ! pythonPanelFrame->IsShown();
 
-    pythonPanelShown = ! pythonPanelShown;
-    pythonPanelFrame->Show( pythonPanelShown );
+    if( pythonPanelFrame )
+        pythonPanelFrame->Show( pythonPanelShown );
+    else
+        wxMessageBox( wxT( "Error: unable to create the Python Console" ) );
 }
+
+#endif
 
 
 void PCB_EDIT_FRAME::OnSelectAutoPlaceMode( wxCommandEvent& aEvent )
@@ -1082,4 +1083,31 @@ bool PCB_EDIT_FRAME::SetCurrentNetClass( const wxString& aNetClassName )
 void PCB_EDIT_FRAME::OnConfigurePaths( wxCommandEvent& aEvent )
 {
     Pgm().ConfigurePaths( this );
+}
+
+
+void PCB_EDIT_FRAME::OnUpdatePCBFromSch( wxCommandEvent& event )
+{
+    if( Kiface().IsSingle() )
+    {
+        DisplayError( this,  _( "Cannot update the PCB, because the Kicad is"
+                                 " opened in stand-alone mode. In order to create/update"
+                                 " PCBs from schematics, you need to launch Kicad shell"
+                                 " and create a PCB project." ) );
+        return;
+    } else {
+        KIWAY_PLAYER* frame = Kiway().Player( FRAME_SCH, true );
+        wxFileName schfn = Prj().AbsolutePath( Prj().GetProjectName() );
+
+        schfn.SetExt( SchematicFileExtension );
+
+        if( !frame->IsVisible() )
+        {
+            frame->OpenProjectFiles( std::vector<wxString>( 1, schfn.GetFullPath() ) );
+            frame->Show( false );
+        }
+
+        Kiway().ExpressMail( FRAME_SCH, MAIL_SCH_PCB_UPDATE_REQUEST, "", this );
+
+    }
 }

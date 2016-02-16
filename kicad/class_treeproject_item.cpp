@@ -49,7 +49,6 @@ TREEPROJECT_ITEM::TREEPROJECT_ITEM( enum TreeFileType type, const wxString& data
     wxTreeItemData()
 {
     m_parent = parent;
-
     SetType( type );
     SetFileName( data );
     SetRootFile( false );    // true only for the root item of the tree (the project name)
@@ -124,9 +123,7 @@ bool TREEPROJECT_ITEM::Rename( const wxString& name, bool check )
         return false;
     }
 
-#ifndef KICAD_USE_FILES_WATCHER
     SetFileName( newFile );
-#endif
 
     return true;
 }
@@ -176,7 +173,8 @@ void TREEPROJECT_ITEM::Activate( TREE_PROJECT_FRAME* prjframe )
     wxString        fullFileName = GetFileName();
     wxTreeItemId    id = GetId();
 
-    KICAD_MANAGER_FRAME* frame = (KICAD_MANAGER_FRAME*) Pgm().App().GetTopWindow();
+    KICAD_MANAGER_FRAME* frame = prjframe->m_Parent;
+    wxASSERT( frame );
 
     switch( GetType() )
     {
@@ -218,16 +216,17 @@ void TREEPROJECT_ITEM::Activate( TREE_PROJECT_FRAME* prjframe )
         frame->Execute( m_parent, GERBVIEW_EXE, fullFileName );
         break;
 
+    case TREE_HTML:
+        wxLaunchDefaultBrowser( fullFileName );
+        break;
+
     case TREE_PDF:
         OpenPDF( fullFileName );
         break;
 
-/*  No, use a text editor.  Netlists can only be handled sanely now from within
-    eeschema's launcher for the *.kiface, NOT THE EXE which is now gone.
     case TREE_NET:
-        frame->Execute( m_parent, CVPCB_EXE, fullFileName );
+        // Nothing to do ( can be read only by Pcbnew, or by a text editor)
         break;
-*/
 
     case TREE_TXT:
         {

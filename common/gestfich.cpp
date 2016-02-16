@@ -28,56 +28,49 @@
  * @brief Functions for file management
  */
 
-// For compilers that support precompilation, includes "wx.h".
-#include <fctsys.h>
-#include <pgm_base.h>
-#include <confirm.h>
-
-#include <common.h>
-#include <macros.h>
-#include <gestfich.h>
-
 #include <wx/mimetype.h>
 #include <wx/filename.h>
 #include <wx/dir.h>
 
+// For compilers that support precompilation, includes "wx.h".
+#include <fctsys.h>
+#include <pgm_base.h>
+#include <confirm.h>
+#include <common.h>
+#include <macros.h>
+
+#include <gestfich.h>
 
 void AddDelimiterString( wxString& string )
 {
-    wxString text;
-
     if( !string.StartsWith( wxT( "\"" ) ) )
-        text = wxT( "\"" );
-
-    text += string;
-
-    if( (text.Last() != '"' ) || (text.length() <= 1) )
-        text += wxT( "\"" );
-
-    string = text;
+    {
+        string.Prepend ( wxT( "\"" ) );
+        string.Append ( wxT( "\"" ) );
+    }
 }
 
 
-bool EDA_DirectorySelector( const wxString& Title,
-                            wxString&       Path,
-                            int             flag,
-                            wxWindow*       Frame,
-                            const wxPoint&  Pos )
+bool EDA_PATH_SELECTOR( const wxString& aTitle,
+                        wxString&       aPath,
+                        int             aFlags,
+                        wxWindow*       aParent,
+                        const wxPoint&  aPosition )
 {
     int          ii;
     bool         selected = false;
 
-    wxDirDialog* DirFrame = new wxDirDialog( Frame,
-                                             wxString( Title ),
-                                             Path,
-                                             flag,
-                                             Pos );
+    wxDirDialog* DirFrame = new wxDirDialog( aParent,
+                                             aTitle,
+                                             aPath,
+                                             aFlags,
+                                             aPosition );
 
     ii = DirFrame->ShowModal();
 
     if( ii == wxID_OK )
     {
-        Path     = DirFrame->GetPath();
+        aPath    = DirFrame->GetPath();
         selected = true;
     }
 
@@ -86,21 +79,22 @@ bool EDA_DirectorySelector( const wxString& Title,
 }
 
 
-wxString EDA_FileSelector( const wxString& Title,
-                           const wxString& Path,
-                           const wxString& FileName,
-                           const wxString& Ext,
-                           const wxString& Mask,
-                           wxWindow*       Frame,
-                           int             flag,
-                           const bool      keep_working_directory,
-                           const wxPoint&  Pos )
+wxString EDA_FILE_SELECTOR( const wxString& aTitle,
+                            const wxString& aPath,
+                            const wxString& aFileName,
+                            const wxString& aExtension,
+                            const wxString& aWildcard,
+                            wxWindow*       aParent,
+                            int             aStyle,
+                            const bool      aKeepWorkingDirectory,
+                            const wxPoint&  aPosition,
+                            wxString*       aMruPath )
 {
     wxString fullfilename;
     wxString curr_cwd    = wxGetCwd();
-    wxString defaultname = FileName;
-    wxString defaultpath = Path;
-    wxString dotted_Ext = wxT(".") + Ext;
+    wxString defaultname = aFileName;
+    wxString defaultpath = aPath;
+    wxString dotted_Ext = wxT(".") + aExtension;
 
 #ifdef __WINDOWS__
     defaultname.Replace( wxT( "/" ), wxT( "\\" ) );
@@ -108,7 +102,12 @@ wxString EDA_FileSelector( const wxString& Title,
 #endif
 
     if( defaultpath.IsEmpty() )
-        defaultpath = wxGetCwd();
+    {
+        if( aMruPath == NULL )
+            defaultpath = wxGetCwd();
+        else
+            defaultpath = *aMruPath;
+    }
 
     wxSetWorkingDirectory( defaultpath );
 
@@ -116,23 +115,29 @@ wxString EDA_FileSelector( const wxString& Title,
     printf( "defaultpath=\"%s\" defaultname=\"%s\" Ext=\"%s\" Mask=\"%s\" flag=%d keep_working_directory=%d\n",
             TO_UTF8( defaultpath ),
             TO_UTF8( defaultname ),
-            TO_UTF8( Ext ),
-            TO_UTF8( Mask ),
-            flag,
-            keep_working_directory );
+            TO_UTF8( aExtension ),
+            TO_UTF8( aWildcard ),
+            aStyle,
+            aKeepWorkingDirectory );
 #endif
 
-    fullfilename = wxFileSelector( wxString( Title ),
+    fullfilename = wxFileSelector( aTitle,
                                    defaultpath,
                                    defaultname,
                                    dotted_Ext,
-                                   Mask,
-                                   flag, // open mode wxFD_OPEN, wxFD_SAVE ..
-                                   Frame,
-                                   Pos.x, Pos.y );
+                                   aWildcard,
+                                   aStyle,         // open mode wxFD_OPEN, wxFD_SAVE ..
+                                   aParent,
+                                   aPosition.x, aPosition.y );
 
-    if( keep_working_directory )
+    if( aKeepWorkingDirectory )
         wxSetWorkingDirectory( curr_cwd );
+
+    if( !fullfilename.IsEmpty() && aMruPath )
+    {
+        wxFileName fn = fullfilename;
+        *aMruPath = fn.GetPath();
+    }
 
     return fullfilename;
 }
@@ -215,6 +220,8 @@ int ExecuteFile( wxWindow* frame, const wxString& ExecFile, const wxString& para
 #ifdef __WXMAC__
     else
     {
+        AddDelimiterString( fullFileName );
+
         if( !param.IsEmpty() )
             fullFileName += wxT( " " ) + param;
 
@@ -339,8 +346,6 @@ bool OpenPDF( const wxString& file )
 {
     wxString command;
     wxString filename = file;
-    wxString type;
-    bool     success = false;
 
     Pgm().ReadPdfBrowserInfos();
 
@@ -351,71 +356,21 @@ bool OpenPDF( const wxString& file )
     }
     else
     {
-        wxFileType* filetype = NULL;
-        wxFileType::MessageParameters params( filename, type );
-        filetype = wxTheMimeTypesManager->GetFileTypeFromExtension( wxT( "pdf" ) );
+        wxFileType* filetype = wxTheMimeTypesManager->GetFileTypeFromExtension( wxT( "pdf" ) );
 
         if( filetype )
-            success = filetype->GetOpenCommand( &command, params );
+            command = filetype->GetOpenCommand( filename );
 
         delete filetype;
-
-#ifndef __WINDOWS__
-
-        // Bug ? under linux wxWidgets returns acroread as PDF viewer, even if
-        // it does not exist.
-        if( command.StartsWith( wxT( "acroread" ) ) ) // Workaround
-            success = false;
-#endif
-
-        if( success && !command.IsEmpty() )
-        {
-            success = ProcessExecute( command );
-
-            if( success )
-                return success;
-        }
-
-        success = false;
-        command.clear();
-
-        if( !success )
-        {
-#if !defined(__WINDOWS__)
-            AddDelimiterString( filename );
-
-            // here is a list of PDF viewers candidates
-            static const wxChar* tries[] =
-            {
-                wxT( "/usr/bin/evince" ),
-                wxT( "/usr/bin/okular" ),
-                wxT( "/usr/bin/gpdf" ),
-                wxT( "/usr/bin/konqueror" ),
-                wxT( "/usr/bin/kpdf" ),
-                wxT( "/usr/bin/xpdf" ),
-                wxT( "/usr/bin/open" ),     // BSD and OSX file & dir opener
-                wxT( "/usr/bin/xdg-open" ), // Freedesktop file & dir opener
-            };
-
-            for( unsigned ii = 0;  ii<DIM(tries);  ii++ )
-            {
-                if( wxFileExists( tries[ii] ) )
-                {
-                    command = tries[ii];
-                    command += wxT( ' ' );
-                    command += filename;
-                    break;
-                }
-            }
-#endif
-        }
     }
 
     if( !command.IsEmpty() )
     {
-        success = ProcessExecute( command );
-
-        if( !success )
+        if( ProcessExecute( command ) )
+        {
+            return true;
+        }
+        else
         {
             wxString msg;
             msg.Printf( _( "Problem while running the PDF viewer\nCommand is '%s'" ),
@@ -428,10 +383,9 @@ bool OpenPDF( const wxString& file )
         wxString msg;
         msg.Printf( _( "Unable to find a PDF viewer for <%s>" ), GetChars( filename ) );
         DisplayError( NULL, msg );
-        success = false;
     }
 
-    return success;
+    return false;
 }
 
 

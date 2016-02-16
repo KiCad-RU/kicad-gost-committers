@@ -74,6 +74,7 @@ Load() TODO's
 #include <class_edge_mod.h>
 #include <class_zone.h>
 #include <class_pcb_text.h>
+#include <class_dimension.h>
 
 using namespace boost::property_tree;
 using namespace std;
@@ -533,6 +534,54 @@ EATTR::EATTR( CPTREE& aAttribute )
     }
 }
 
+/// Eagle dimension element
+struct EDIMENSION
+{
+    double      x1;
+    double      y1;
+    double      x2;
+    double      y2;
+    double      x3;
+    double      y3;
+    int         layer;
+
+    opt_string dimensionType;
+
+    EDIMENSION( CPTREE& aDimension );
+};
+
+EDIMENSION::EDIMENSION( CPTREE& aDimension )
+{
+    CPTREE& attribs = aDimension.get_child( "<xmlattr>" );
+
+    /*
+    <!ELEMENT dimension EMPTY>
+    <!ATTLIST dimension
+          x1            %Coord;        #REQUIRED
+          y1            %Coord;        #REQUIRED
+          x2            %Coord;        #REQUIRED
+          y2            %Coord;        #REQUIRED
+          x3            %Coord;        #REQUIRED
+          y3            %Coord;        #REQUIRED
+          layer         %Layer;        #REQUIRED
+          dtype         %DimensionType; "parallel"
+          >
+    */
+
+    x1      = attribs.get<double>( "x1" );
+    y1      = attribs.get<double>( "y1" );
+    x2      = attribs.get<double>( "x2" );
+    y2      = attribs.get<double>( "y2" );
+    x3      = attribs.get<double>( "x3" );
+    y3      = attribs.get<double>( "y3" );
+    layer   = attribs.get<int>( "layer" );
+
+    opt_string dimensionType = attribs.get_optional<string>( "dtype" );
+    if(!dimensionType)
+    {
+        // default type is parallel
+    }
+}
 
 /// Eagle text element
 struct ETEXT
@@ -785,12 +834,19 @@ struct EPOLYGON
     int         layer;
     opt_double  spacing;
 
+    // KiCad priority is opposite of Eagle rank, that is:
+    //  - Eagle Low rank drawn first
+    //  - KiCad high priority drawn first
+    // So since Eagle has an upper limit we define this, used for the cases
+    // where no rank is specified.
+    static const int    max_priority = 6;
+
     enum {      // for pour
         SOLID,
         HATCH,
         CUTOUT,
     };
-    opt_int     pour;
+    int         pour;
     opt_double  isolate;
     opt_bool    orphans;
     opt_bool    thermals;
@@ -819,8 +875,11 @@ EPOLYGON::EPOLYGON( CPTREE& aPolygon )
     width   = attribs.get<double>( "width" );
     layer   = attribs.get<int>( "layer" );
     spacing = attribs.get_optional<double>( "spacing" );
-
+    isolate = attribs.get_optional<double>( "isolate" );
+    // default pour to solid fill
+    pour    = EPOLYGON::SOLID;
     opt_string s = attribs.get_optional<string>( "pour" );
+
     if( s )
     {
         // (solid | hatch | cutout)
@@ -828,8 +887,6 @@ EPOLYGON::EPOLYGON( CPTREE& aPolygon )
             pour = EPOLYGON::HATCH;
         else if( !s->compare( "cutout" ) )
             pour = EPOLYGON::CUTOUT;
-        else
-            pour = EPOLYGON::SOLID;
     }
 
     orphans  = parseOptionalBool( attribs, "orphans" );
@@ -877,7 +934,7 @@ struct EELEMENT
     double      x;
     double      y;
     opt_bool    locked;
-    // opt_bool    smashed;
+    opt_bool    smashed;
     opt_erot    rot;
 
     EELEMENT( CPTREE& aElement );
@@ -915,7 +972,7 @@ EELEMENT::EELEMENT( CPTREE& aElement )
 
     // optional
     locked  = parseOptionalBool( attribs, "locked" );
-    // smashed = pasreOptionalBool( attribs, "smashed" );
+    smashed = parseOptionalBool( attribs, "smashed" );
     rot = parseOptionalEROT( attribs );
 }
 
@@ -1029,7 +1086,6 @@ void ERULES::parse( CPTREE& aRules )
             rlMinPadTop = parseEagle( attribs.get<string>( "value" ) );
         else if( name == "rlMaxPadTop" )
             rlMaxPadTop = parseEagle( attribs.get<string>( "value" ) );
-
         else if( name == "rvViaOuter" )
             rvViaOuter = attribs.get<double>( "value" );
         else if( name == "rlMinViaOuter" )
@@ -1146,7 +1202,7 @@ BOARD* EAGLE_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe,  const
         // and is not necessarily utf8.
         string filename = (const char*) aFileName.char_str( wxConvFile );
 
-        read_xml( filename, doc, xml_parser::trim_whitespace | xml_parser::no_comments );
+        read_xml( filename, doc, xml_parser::no_comments );
 
         m_min_trace    = INT_MAX;
         m_min_via      = INT_MAX;
@@ -1198,6 +1254,17 @@ BOARD* EAGLE_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe,  const
     }
 
     // IO_ERROR exceptions are left uncaught, they pass upwards from here.
+
+    // Ensure the copper layers count is a multiple of 2
+    // Pcbnew does not like boards with odd layers count
+    // (these boards cannot exist. they actually have a even layers count)
+    int lyrcnt = m_board->GetCopperLayerCount();
+
+    if( (lyrcnt % 2) != 0 )
+    {
+        lyrcnt++;
+        m_board->SetCopperLayerCount( lyrcnt );
+    }
 
     centerBoard();
 
@@ -1374,7 +1441,6 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
 
             wxPoint start( kicad_x( w.x1 ), kicad_y( w.y1 ) );
             wxPoint end(   kicad_x( w.x2 ), kicad_y( w.y2 ) );
-            int     width = kicad( w.width );
 
             if( layer != UNDEFINED_LAYER )
             {
@@ -1398,11 +1464,10 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
 
                 dseg->SetTimeStamp( timeStamp( gr->second ) );
                 dseg->SetLayer( layer );
-                dseg->SetWidth( width );
+                dseg->SetWidth( Millimeter2iu( DEFAULT_PCB_EDGE_THICKNESS ) );
             }
             m_xpath->pop();
         }
-
         else if( gr->first == "text" )
         {
 #if defined(DEBUG)
@@ -1444,10 +1509,8 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
 
                     if( degrees == 90 || t.rot->spin )
                         pcbtxt->SetOrientation( sign * t.rot->degrees * 10 );
-
                     else if( degrees == 180 )
                         align = ETEXT::TOP_RIGHT;
-
                     else if( degrees == 270 )
                     {
                         pcbtxt->SetOrientation( sign * 90 * 10 );
@@ -1500,7 +1563,6 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
             }
             m_xpath->pop();
         }
-
         else if( gr->first == "circle" )
         {
             m_xpath->push( "circle" );
@@ -1522,11 +1584,10 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
             }
             m_xpath->pop();
         }
-
-        // This seems to be a simplified rectangular [copper] zone, cannot find any
-        // net related info on it from the DTD.
         else if( gr->first == "rectangle" )
         {
+            // This seems to be a simplified rectangular [copper] zone, cannot find any
+            // net related info on it from the DTD.
             m_xpath->push( "rectangle" );
 
             ERECT       r( gr->second );
@@ -1557,13 +1618,12 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
 
             m_xpath->pop();
         }
-
         else if( gr->first == "hole" )
         {
             m_xpath->push( "hole" );
             EHOLE   e( gr->second );
 
-            // Fabricate a MODULE with a single PAD_HOLE_NOT_PLATED pad.
+            // Fabricate a MODULE with a single PAD_ATTRIB_HOLE_NOT_PLATED pad.
             // Use m_hole_count to gen up a unique name.
 
             MODULE* module = new MODULE( m_board );
@@ -1578,12 +1638,12 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
 
             module->SetPosition( pos );
 
-            // Add a PAD_HOLE_NOT_PLATED pad to this module.
+            // Add a PAD_ATTRIB_HOLE_NOT_PLATED pad to this module.
             D_PAD* pad = new D_PAD( module );
             module->Pads().PushBack( pad );
 
-            pad->SetShape( PAD_ROUND );
-            pad->SetAttribute( PAD_HOLE_NOT_PLATED );
+            pad->SetShape( PAD_SHAPE_CIRCLE );
+            pad->SetAttribute( PAD_ATTRIB_HOLE_NOT_PLATED );
 
             /* pad's position is already centered on module at relative (0, 0)
             wxPoint padpos( kicad_x( e.x ), kicad_y( e.y ) );
@@ -1600,7 +1660,6 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
             pad->SetLayerSet( LSET::AllCuMask() );
             m_xpath->pop();
         }
-
         else if( gr->first == "frame" )
         {
             // picture this
@@ -1610,6 +1669,39 @@ void EAGLE_PLUGIN::loadPlain( CPTREE& aGraphics )
             // could be on a copper layer, could be on another layer.
             // copper layer would be done using netCode=0 type of ZONE_CONTAINER.
         }
+        else if( gr->first == "dimension" )
+        {
+            EDIMENSION d( gr->second );
+
+            DIMENSION* dimension = new DIMENSION( m_board );
+            m_board->Add( dimension, ADD_APPEND );
+
+            dimension->SetLayer( kicad_layer( d.layer ) );
+            // The origin and end are assumed to always be in this order from eagle
+            dimension->SetOrigin( wxPoint( kicad_x( d.x1 ), kicad_y( d.y1 ) ) );
+            dimension->SetEnd( wxPoint( kicad_x( d.x2 ), kicad_y( d.y2 ) ) );
+            dimension->Text().SetSize( m_board->GetDesignSettings().m_PcbTextSize );
+
+            int width = m_board->GetDesignSettings().m_PcbTextWidth;
+            int maxThickness = Clamp_Text_PenSize( width, dimension->Text().GetSize() );
+
+            if( width > maxThickness )
+                width = maxThickness;
+
+            dimension->Text().SetThickness( width );
+            dimension->SetWidth( width );
+
+            // check which axis the dimension runs in
+            // because the "height" of the dimension is perpendicular to that axis
+            // Note the check is just if two axes are close enough to each other
+            // Eagle appears to have some rounding errors
+            if( fabs( d.x1 - d.x2 ) < 0.05 )
+                dimension->SetHeight( kicad_x( d.x1 - d.x3 ) );
+            else
+                dimension->SetHeight( kicad_y( d.y3 - d.y1 ) );
+
+            dimension->AdjustDimensionDetails();
+         }
     }
     m_xpath->pop();
 }
@@ -1654,7 +1746,7 @@ void EAGLE_PLUGIN::loadLibrary( CPTREE& aLib, const string* aLibName )
 
         if( !r.second
             // && !( m_props && m_props->Value( "ignore_duplicates" ) )
-          )
+            )
         {
             wxString lib = aLibName ? FROM_UTF8( aLibName->c_str() ) : m_lib_path;
             wxString pkg = FROM_UTF8( pack_name.c_str() );
@@ -1697,6 +1789,10 @@ void EAGLE_PLUGIN::loadElements( CPTREE& aElements )
 
     EATTR   name;
     EATTR   value;
+    bool refanceNamePresetInPackageLayout;
+    bool valueNamePresetInPackageLayout;
+
+
 
     for( CITER it = aElements.begin();  it != aElements.end();  ++it )
     {
@@ -1718,8 +1814,8 @@ void EAGLE_PLUGIN::loadElements( CPTREE& aElements )
         if( mi == m_templates.end() )
         {
             wxString emsg = wxString::Format( _( "No '%s' package in library '%s'" ),
-                GetChars( FROM_UTF8( e.package.c_str() ) ),
-                GetChars( FROM_UTF8( e.library.c_str() ) ) );
+                                              GetChars( FROM_UTF8( e.package.c_str() ) ),
+                                              GetChars( FROM_UTF8( e.library.c_str() ) ) );
             THROW_IO_ERROR( emsg );
         }
 
@@ -1747,40 +1843,149 @@ void EAGLE_PLUGIN::loadElements( CPTREE& aElements )
             }
         }
 
+        refanceNamePresetInPackageLayout = true;
+        valueNamePresetInPackageLayout = true;
         m->SetPosition( wxPoint( kicad_x( e.x ), kicad_y( e.y ) ) );
+        // Is >NAME field set in package layout ?
+        if( m->GetReference().size() == 0 )
+        {
+            m->Reference().SetVisible( false ); // No so no show
+            refanceNamePresetInPackageLayout = false;
+        }
+        // Is >VALUE field set in package layout
+        if( m->GetValue().size() == 0 )
+        {
+            m->Value().SetVisible( false );     // No so no show
+            valueNamePresetInPackageLayout = false;
+        }
         m->SetReference( FROM_UTF8( e.name.c_str() ) );
         m->SetValue( FROM_UTF8( e.value.c_str() ) );
-        // m->Value().SetVisible( false );
 
-        // initalize these to default values incase the <attribute> elements are not present.
-        m_xpath->push( "attribute", "name" );
-
-        // VALUE and NAME can have something like our text "effects" overrides
-        // in SWEET and new schematic.  Eagle calls these XML elements "attribute".
-        // There can be one for NAME and/or VALUE both.  Features present in the
-        // EATTR override the ones established in the package only if they are
-        // present here (except for rot, which if not present means angle zero).
-        // So the logic is a bit different than in packageText() and in plain text.
-        for( CITER ait = it->second.begin();  ait != it->second.end();  ++ait )
-        {
-            if( ait->first != "attribute" )
-                continue;
-
-            EATTR   a( ait->second );
-
-            if( a.name == "NAME" )
-            {
-                name = a;
-                nameAttr = &name;
-            }
-            else if( a.name == "VALUE" )
-            {
-                value = a;
-                valueAttr = &value;
-            }
+        if( !e.smashed )
+        { // Not smashed so show NAME & VALUE
+            if( valueNamePresetInPackageLayout )
+                m->Value().SetVisible( true );  // Only if place holder in package layout
+            if( refanceNamePresetInPackageLayout )
+                m->Reference().SetVisible( true );   // Only if place holder in package layout
         }
+        else if( *e.smashed == true )
+        { // Smasted so set default to no show for NAME and VALUE
+            m->Value().SetVisible( false );
+            m->Reference().SetVisible( false );
 
-        m_xpath->pop();     // "attribute"
+            // initalize these to default values incase the <attribute> elements are not present.
+            m_xpath->push( "attribute", "name" );
+
+            // VALUE and NAME can have something like our text "effects" overrides
+            // in SWEET and new schematic.  Eagle calls these XML elements "attribute".
+            // There can be one for NAME and/or VALUE both.  Features present in the
+            // EATTR override the ones established in the package only if they are
+            // present here (except for rot, which if not present means angle zero).
+            // So the logic is a bit different than in packageText() and in plain text.
+            for( CITER ait = it->second.begin();  ait != it->second.end();  ++ait )
+            {
+
+                if( ait->first != "attribute" )
+                    continue;
+
+                EATTR   a( ait->second );
+
+                if( a.name == "NAME" )
+                {
+                    name = a;
+                    nameAttr = &name;
+
+                    // do we have a display attribute ?
+                    if( a.display  )
+                    {
+                        // Yes!
+                        switch( *a.display )
+                        {
+                        case EATTR::VALUE :
+                            nameAttr->name = e.name;
+                            m->SetReference( e.name );
+                            if( refanceNamePresetInPackageLayout )
+                                m->Reference().SetVisible( true );
+                            break;
+
+                        case EATTR::NAME :
+                            if( refanceNamePresetInPackageLayout )
+                            {
+                                m->SetReference( "NAME" );
+                                m->Reference().SetVisible( true );
+                            }
+                            break;
+
+                        case EATTR::BOTH :
+                            if( refanceNamePresetInPackageLayout )
+                                m->Reference().SetVisible( true );
+                            nameAttr->name =  nameAttr->name + " = " + e.name;
+                            m->SetReference( "NAME = " + e.name );
+                            break;
+
+                        case EATTR::Off :
+                            m->Reference().SetVisible( false );
+                            break;
+
+                        default:
+                            nameAttr->name =  e.name;
+                            if( refanceNamePresetInPackageLayout )
+                                m->Reference().SetVisible( true );
+                        }
+                    }
+                    else
+                        // No display, so default is visable, and show value of NAME
+                        m->Reference().SetVisible( true );
+                }
+                else if( a.name == "VALUE" )
+                {
+                    value = a;
+                    valueAttr = &value;
+
+                    if( a.display  )
+                    {
+                        // Yes!
+                        switch( *a.display )
+                        {
+                        case EATTR::VALUE :
+                            valueAttr->value = e.value;
+                            m->SetValue( e.value );
+                            if( valueNamePresetInPackageLayout )
+                                m->Value().SetVisible( true );
+                            break;
+
+                        case EATTR::NAME :
+                            if( valueNamePresetInPackageLayout )
+                                m->Value().SetVisible( true );
+                            m->SetValue( "VALUE" );
+                            break;
+
+                        case EATTR::BOTH :
+                            if( valueNamePresetInPackageLayout )
+                                m->Value().SetVisible( true );
+                            valueAttr->value = "VALUE = " + e.value;
+                            m->SetValue( "VALUE = " + e.value );
+                            break;
+
+                        case EATTR::Off :
+                            m->Value().SetVisible( false );
+                            break;
+
+                        default:
+                            valueAttr->value =  e.value;
+                            if( valueNamePresetInPackageLayout )
+                                m->Value().SetVisible( true );
+                        }
+                    }
+                    else
+                        // No display, so default is visible, and show value of NAME
+                        m->Value().SetVisible( true );
+
+                }
+            }
+
+            m_xpath->pop();     // "attribute"
+        }
 
         orientModuleAndText( m, e, nameAttr, valueAttr );
     }
@@ -1812,8 +2017,9 @@ void EAGLE_PLUGIN::orientModuleAndText( MODULE* m, const EELEMENT& e,
 void EAGLE_PLUGIN::orientModuleText( MODULE* m, const EELEMENT& e,
                             TEXTE_MODULE* txt, const EATTR* aAttr )
 {
+    // Smashed part ?
     if( aAttr )
-    {
+    { // Yes
         const EATTR& a = *aAttr;
 
         if( a.value )
@@ -1868,24 +2074,21 @@ void EAGLE_PLUGIN::orientModuleText( MODULE* m, const EELEMENT& e,
             orient = degrees - m->GetOrientation() / 10;
             txt->SetOrientation( sign * orient * 10 );
         }
-
         else if( degrees == 180 )
         {
             orient = 0 - m->GetOrientation() / 10;
             txt->SetOrientation( sign * orient * 10 );
             align = ETEXT::TOP_RIGHT;
         }
-
         else if( degrees == 270 )
         {
             orient = 90 - m->GetOrientation() / 10;
             align = ETEXT::TOP_RIGHT;
             txt->SetOrientation( sign * orient * 10 );
         }
-
         else
         {
-            orient = 90 + degrees - m->GetOrientation() / 10;
+            orient = 90 - degrees - m->GetOrientation() / 10;
             txt->SetOrientation( sign * orient * 10 );
         }
 
@@ -1905,8 +2108,7 @@ void EAGLE_PLUGIN::orientModuleText( MODULE* m, const EELEMENT& e,
             ;
         }
     }
-
-    else    // the text is per the original package, sans <attribute>
+    else    // Part is not smash so use Lib default for NAME/VALUE // the text is per the original package, sans <attribute>
     {
         double degrees = ( txt->GetOrientation() + m->GetOrientation() ) / 10;
 
@@ -1919,10 +2121,7 @@ void EAGLE_PLUGIN::orientModuleText( MODULE* m, const EELEMENT& e,
             txt->SetVertJustify( GR_TEXT_VJUSTIFY_TOP );
         }
     }
-
-    txt->SetLocalCoord();
 }
-
 
 MODULE* EAGLE_PLUGIN::makeModule( CPTREE& aPackage, const string& aPkgName ) const
 {
@@ -1978,6 +2177,8 @@ void EAGLE_PLUGIN::packageWire( MODULE* aModule, CPTREE& aTree ) const
         wxPoint end(   kicad_x( w.x2 ), kicad_y( w.y2 ) );
         int     width = kicad( w.width );
 
+        // FIXME: the cap attribute is ignored because kicad can't create lines
+        //        with flat ends.
         EDGE_MODULE* dwg;
         if( !w.curve )
         {
@@ -2034,19 +2235,23 @@ void EAGLE_PLUGIN::packagePad( MODULE* aModule, CPTREE& aTree ) const
         switch( *e.shape )
         {
         case EPAD::ROUND:
-            wxASSERT( pad->GetShape()==PAD_CIRCLE );    // verify set in D_PAD constructor
+            wxASSERT( pad->GetShape()==PAD_SHAPE_CIRCLE );    // verify set in D_PAD constructor
             break;
+
         case EPAD::OCTAGON:
             // no KiCad octagonal pad shape, use PAD_CIRCLE for now.
             // pad->SetShape( PAD_OCTAGON );
-            wxASSERT( pad->GetShape()==PAD_CIRCLE );    // verify set in D_PAD constructor
+            wxASSERT( pad->GetShape()==PAD_SHAPE_CIRCLE );    // verify set in D_PAD constructor
             break;
+
         case EPAD::LONG:
-            pad->SetShape( PAD_OVAL );
+            pad->SetShape( PAD_SHAPE_OVAL );
             break;
+
         case EPAD::SQUARE:
-            pad->SetShape( PAD_RECT );
+            pad->SetShape( PAD_SHAPE_RECT );
             break;
+
         case EPAD::OFFSET:
             ;   // don't know what to do here.
         }
@@ -2070,7 +2275,7 @@ void EAGLE_PLUGIN::packagePad( MODULE* aModule, CPTREE& aTree ) const
         pad->SetSize( wxSize( KiROUND( diameter ), KiROUND( diameter ) ) );
     }
 
-    if( pad->GetShape() == PAD_OVAL )
+    if( pad->GetShape() == PAD_SHAPE_OVAL )
     {
         // The Eagle "long" pad is wider than it is tall,
         // m_elongation is percent elongation
@@ -2106,6 +2311,7 @@ void EAGLE_PLUGIN::packageText( MODULE* aModule, CPTREE& aTree ) const
         txt = &aModule->Value();
     else
     {
+        // FIXME: graphical text items are rotated for some reason.
         txt = new TEXTE_MODULE( aModule );
         aModule->GraphicalItems().PushBack( txt );
     }
@@ -2140,10 +2346,8 @@ void EAGLE_PLUGIN::packageText( MODULE* aModule, CPTREE& aTree ) const
 
         if( degrees == 90 || t.rot->spin )
             txt->SetOrientation( sign * degrees * 10 );
-
         else if( degrees == 180 )
             align = ETEXT::TOP_RIGHT;
-
         else if( degrees == 270 )
         {
             align = ETEXT::TOP_RIGHT;
@@ -2311,12 +2515,12 @@ void EAGLE_PLUGIN::packageHole( MODULE* aModule, CPTREE& aTree ) const
 {
     EHOLE   e( aTree );
 
-    // we add a PAD_HOLE_NOT_PLATED pad to this module.
+    // we add a PAD_ATTRIB_HOLE_NOT_PLATED pad to this module.
     D_PAD* pad = new D_PAD( aModule );
     aModule->Pads().PushBack( pad );
 
-    pad->SetShape( PAD_ROUND );
-    pad->SetAttribute( PAD_HOLE_NOT_PLATED );
+    pad->SetShape( PAD_SHAPE_CIRCLE );
+    pad->SetAttribute( PAD_ATTRIB_HOLE_NOT_PLATED );
 
     // Mechanical purpose only:
     // no offset, no net name, no pad name allowed
@@ -2351,8 +2555,8 @@ void EAGLE_PLUGIN::packageSMD( MODULE* aModule, CPTREE& aTree ) const
     aModule->Pads().PushBack( pad );
 
     pad->SetPadName( FROM_UTF8( e.name.c_str() ) );
-    pad->SetShape( PAD_RECT );
-    pad->SetAttribute( PAD_SMD );
+    pad->SetShape( PAD_SHAPE_RECT );
+    pad->SetAttribute( PAD_ATTRIB_SMD );
 
     // pad's "Position" is not relative to the module's,
     // whereas Pos0 is relative to the module's but is the unrotated coordinate.
@@ -2378,14 +2582,14 @@ void EAGLE_PLUGIN::packageSMD( MODULE* aModule, CPTREE& aTree ) const
         pad->SetLayerSet( back );
 
     // Optional according to DTD
-    if( e.roundness )    // set set shape to PAD_RECT above, in case roundness is not present
+    if( e.roundness )    // set set shape to PAD_SHAPE_RECT above, in case roundness is not present
     {
         if( *e.roundness >= 75 )       // roundness goes from 0-100% as integer
         {
             if( e.dy == e.dx )
-                pad->SetShape( PAD_ROUND );
+                pad->SetShape( PAD_SHAPE_CIRCLE );
             else
-                pad->SetShape( PAD_OVAL );
+                pad->SetShape( PAD_SHAPE_OVAL );
         }
     }
 
@@ -2428,7 +2632,6 @@ void EAGLE_PLUGIN::loadSignals( CPTREE& aSignals )
             (void) breakhere;
         }
 #endif
-
         // (contactref | polygon | wire | via)*
         for( CITER it = net->second.begin();  it != net->second.end();  ++it )
         {
@@ -2561,8 +2764,6 @@ void EAGLE_PLUGIN::loadSignals( CPTREE& aSignals )
                     zone->SetLayer( layer );
                     zone->SetNetCode( netCode );
 
-                    CPolyLine::HATCH_STYLE outline_hatch = CPolyLine::DIAGONAL_EDGE;
-
                     bool first = true;
                     for( CITER vi = it->second.begin();  vi != it->second.end();  ++vi )
                     {
@@ -2575,7 +2776,7 @@ void EAGLE_PLUGIN::loadSignals( CPTREE& aSignals )
                         if( first )
                         {
                             zone->Outline()->Start( layer,  kicad_x( v.x ), kicad_y( v.y ),
-                                                    outline_hatch );
+                                                    CPolyLine::NO_HATCH);
                             first = false;
                         }
                         else
@@ -2584,25 +2785,46 @@ void EAGLE_PLUGIN::loadSignals( CPTREE& aSignals )
 
                     zone->Outline()->CloseLastContour();
 
-                    zone->Outline()->SetHatch( outline_hatch,
-                                               Mils2iu( zone->Outline()->GetDefaultHatchPitchMils() ),
-                                               true );
+                    // If the pour is a cutout it needs to be set to a keepout
+                    if( p.pour == EPOLYGON::CUTOUT )
+                    {
+                        zone->SetIsKeepout( true );
+                        zone->SetDoNotAllowCopperPour( true );
+                        zone->Outline()->SetHatchStyle( CPolyLine::NO_HATCH );
+                    }
+
+                    // if spacing is set the zone should be hatched
+                    if( p.spacing )
+                        zone->Outline()->SetHatch( CPolyLine::DIAGONAL_EDGE,
+                                                   *p.spacing,
+                                                   true );
 
                     // clearances, etc.
                     zone->SetArcSegmentCount( 32 );     // @todo: should be a constructor default?
                     zone->SetMinThickness( kicad( p.width ) );
 
-                    if( p.spacing )
-                        zone->SetZoneClearance( kicad( *p.spacing ) );
-
-                    if( p.rank )
-                        zone->SetPriority( *p.rank );
+                    // FIXME: KiCad zones have very rounded corners compared to eagle.
+                    //        This means that isolation amounts that work well in eagle
+                    //        tend to make copper intrude in soldermask free areas around pads.
+                    if( p.isolate )
+                    {
+                        zone->SetZoneClearance( kicad( *p.isolate ) );
+                    }
 
                     // missing == yes per DTD.
                     bool thermals = !p.thermals || *p.thermals;
-                    zone->SetPadConnection( thermals ? THERMAL_PAD : PAD_IN_ZONE );
+                    zone->SetPadConnection( thermals ? PAD_ZONE_CONN_THERMAL : PAD_ZONE_CONN_FULL );
+                    if( thermals )
+                    {
+                        // FIXME: eagle calculates dimensions for thermal spokes
+                        //        based on what the zone is connecting to.
+                        //        (i.e. width of spoke is half of the smaller side of an smd pad)
+                        //        This is a basic workaround
+                        zone->SetThermalReliefGap( kicad( p.width + 0.05 ) );
+                        zone->SetThermalReliefCopperBridge( kicad( p.width + 0.05 ) );
+                    }
 
-                    int rank = p.rank ? *p.rank : 0;
+                    int rank = p.rank ? *p.rank : p.max_priority;
                     zone->SetPriority( rank );
                 }
 
@@ -2684,6 +2906,10 @@ LAYER_ID EAGLE_PLUGIN::kicad_layer( int aEagleLayer ) const
     <layer number="50" name="ReferenceLS" color="12" fill="1" visible="yes" active="yes"/>
     <layer number="51" name="tDocu" color="7" fill="1" visible="yes" active="yes"/>
     <layer number="52" name="bDocu" color="7" fill="1" visible="yes" active="yes"/>
+
+    * These layers are used only in eagle schematic.
+    * They should not be found in board files.
+    * They are listed for info only.
     <layer number="91" name="Nets" color="2" fill="1" visible="no" active="no"/>
     <layer number="92" name="Busses" color="1" fill="1" visible="no" active="no"/>
     <layer number="93" name="Pins" color="2" fill="1" visible="no" active="no"/>
@@ -2692,6 +2918,11 @@ LAYER_ID EAGLE_PLUGIN::kicad_layer( int aEagleLayer ) const
     <layer number="96" name="Values" color="7" fill="1" visible="no" active="no"/>
     <layer number="97" name="Info" color="7" fill="1" visible="no" active="no"/>
     <layer number="98" name="Guide" color="6" fill="1" visible="no" active="no"/>
+
+    * These layers are user layers
+    <layer number="160" name="???" color="7" fill="1" visible="yes" active="yes"/>
+    <layer number="161" name="???" color="7" fill="1" visible="yes" active="yes"/>
+
     </layers>
 
     */
@@ -2706,59 +2937,42 @@ LAYER_ID EAGLE_PLUGIN::kicad_layer( int aEagleLayer ) const
 
     else
     {
-/*
-#define FIRST_NON_COPPER_LAYER  16
-#define B_Adhes         16
-#define F_Adhes        17
-#define B_Paste      18
-#define F_Paste     19
-#define B_SilkS       20
-#define F_SilkS      21
-#define B_Mask       22
-#define F_Mask      23
-#define Dwgs_User                  24
-#define Cmts_User               25
-#define Eco1_User                  26
-#define Eco2_User                  27
-#define Edge_Cuts                  28
-#define LAST_NON_COPPER_LAYER   28
-#define UNUSED_LAYER_29         29
-#define UNUSED_LAYER_30         30
-#define UNUSED_LAYER_31         31
-*/
         // translate non-copper eagle layer to pcbnew layer
         switch( aEagleLayer )
         {
-        case 20:    kiLayer = Edge_Cuts;        break;  // eagle says "Dimension" layer, but it's for board perimeter
-        case 21:    kiLayer = F_SilkS;          break;
-        case 22:    kiLayer = B_SilkS;          break;
-        case 25:    kiLayer = F_SilkS;          break;
-        case 26:    kiLayer = B_SilkS;          break;
-        case 27:    kiLayer = F_SilkS;          break;
-        case 28:    kiLayer = B_SilkS;          break;
-        case 29:    kiLayer = F_Mask;           break;
-        case 30:    kiLayer = B_Mask;           break;
-        case 31:    kiLayer = F_Paste;          break;
-        case 32:    kiLayer = B_Paste;          break;
-        case 33:    kiLayer = F_Mask;           break;
-        case 34:    kiLayer = B_Mask;           break;
-        case 35:    kiLayer = F_Adhes;          break;
-        case 36:    kiLayer = B_Adhes;          break;
-        case 49:    kiLayer = Cmts_User;        break;
-        case 50:    kiLayer = Cmts_User;        break;
+        case 20:    kiLayer = Edge_Cuts;    break;  // eagle says "Dimension" layer, but it's for board perimeter
+        case 21:    kiLayer = F_SilkS;      break;
+        case 22:    kiLayer = B_SilkS;      break;
+        case 25:    kiLayer = F_SilkS;      break;
+        case 26:    kiLayer = B_SilkS;      break;
+        case 27:    kiLayer = F_SilkS;      break;
+        case 28:    kiLayer = B_SilkS;      break;
+        case 29:    kiLayer = F_Mask;       break;
+        case 30:    kiLayer = B_Mask;       break;
+        case 31:    kiLayer = F_Paste;      break;
+        case 32:    kiLayer = B_Paste;      break;
+        case 33:    kiLayer = F_Mask;       break;
+        case 34:    kiLayer = B_Mask;       break;
+        case 35:    kiLayer = F_Adhes;      break;
+        case 36:    kiLayer = B_Adhes;      break;
+        case 49:    kiLayer = Cmts_User;    break;
+        case 50:    kiLayer = Cmts_User;    break;
 
         // Packages show the future chip pins on SMD parts using layer 51.
         // This is an area slightly smaller than the PAD/SMD copper area.
-        // Carry those visual aids into the MODULE on the drawing layer, not silkscreen.
-        case 51:    kiLayer = Dwgs_User;        break;
-        case 52:    kiLayer = Dwgs_User;        break;
+        // Carry those visual aids into the MODULE on the fabrication layer,
+        // not silkscreen. This is perhaps not perfect, but there is not a lot
+        // of other suitable paired layers
+        case 51:    kiLayer = F_Fab;        break;
+        case 52:    kiLayer = B_Fab;        break;
 
-        case 95:    kiLayer = Eco1_User;        break;
-        case 96:    kiLayer = Eco2_User;        break;
+        // thes layers are defined as user layers. put them on ECO layers
+        case 160:   kiLayer = Eco1_User;    break;
+        case 161:   kiLayer = Eco2_User;    break;
         default:
             // some layers do not map to KiCad
             // DBG( printf( "unsupported eagle layer: %d\n", aEagleLayer );)
-            kiLayer = UNDEFINED_LAYER;          break;
+            kiLayer = UNDEFINED_LAYER;      break;
         }
     }
 
@@ -2853,7 +3067,7 @@ void EAGLE_PLUGIN::cacheLib( const wxString& aLibPath )
             // and is not necessarily utf8.
             string filename = (const char*) aLibPath.char_str( wxConvFile );
 
-            read_xml( filename, doc, xml_parser::trim_whitespace | xml_parser::no_comments );
+            read_xml( filename, doc, xml_parser::no_comments );
 
             // clear the cu map and then rebuild it.
             clear_cu_map();

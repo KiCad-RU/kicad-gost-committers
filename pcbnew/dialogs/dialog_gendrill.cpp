@@ -6,7 +6,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 1992-2012 Jean_Pierre Charras <jp.charras at wanadoo.fr>
- * Copyright (C) 1992-2012 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,6 +41,8 @@
 #include <dialog_gendrill.h>
 #include <wildcards_and_files_ext.h>
 #include <reporter.h>
+
+#include <wx/stdpaths.h>
 
 
 // Keywords for read and write config
@@ -173,11 +175,11 @@ void DIALOG_GENDRILL::InitDisplayParams()
     {
         for( D_PAD* pad = module->Pads(); pad != NULL; pad = pad->Next() )
         {
-            if( pad->GetDrillShape() == PAD_DRILL_CIRCLE )
+            if( pad->GetDrillShape() == PAD_DRILL_SHAPE_CIRCLE )
             {
                 if( pad->GetDrillSize().x != 0 )
                 {
-                    if( pad->GetAttribute() == PAD_HOLE_NOT_PLATED )
+                    if( pad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED )
                         m_notplatedPadsHoleCount++;
                     else
                         m_platedPadsHoleCount++;
@@ -187,7 +189,7 @@ void DIALOG_GENDRILL::InitDisplayParams()
             {
                 if( pad->GetDrillSize().x != 0 && pad->GetDrillSize().y != 0 )
                 {
-                    if( pad->GetAttribute() == PAD_HOLE_NOT_PLATED )
+                    if( pad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED )
                         m_notplatedPadsHoleCount++;
                     else
                         m_platedPadsHoleCount++;
@@ -228,8 +230,8 @@ void DIALOG_GENDRILL::UpdateConfig()
 
     m_config->Write( ZerosFormatKey, m_ZerosFormat );
     m_config->Write( MirrorKey, m_Mirror );
-    m_config->Write( MinimalHeaderKey, m_MinimalHeader );
     m_config->Write( MergePTHNPTHKey, m_Merge_PTH_NPTH );
+    m_config->Write( MinimalHeaderKey, m_MinimalHeader );
     m_config->Write( UnitDrillInchKey, m_UnitDrillIsInch );
     m_config->Write( DrillOriginIsAuxAxisKey, m_DrillOriginIsAuxAxis );
     m_config->Write( DrillMapFileTypeKey, m_mapFileType );
@@ -371,7 +373,8 @@ void DIALOG_GENDRILL::GenDrillAndMapFiles(bool aGenDrill, bool aGenMap)
     excellonWriter.SetFormat( !m_UnitDrillIsInch,
                               (EXCELLON_WRITER::ZEROS_FMT) m_ZerosFormat,
                               m_Precision.m_lhs, m_Precision.m_rhs );
-    excellonWriter.SetOptions( m_Mirror, m_MinimalHeader, m_FileDrillOffset, m_Merge_PTH_NPTH );
+    excellonWriter.SetOptions( m_Mirror, m_MinimalHeader,
+                               m_FileDrillOffset, m_Merge_PTH_NPTH );
     excellonWriter.SetMapFileFormat( filefmt[choice] );
 
     excellonWriter.CreateDrillandMapFilesSet( defaultPath, aGenDrill, aGenMap,
@@ -388,10 +391,10 @@ void DIALOG_GENDRILL::OnGenReportFile( wxCommandEvent& event )
     fn.SetName( fn.GetName() + wxT( "-drl" ) );
     fn.SetExt( ReportFileExtension );
 
-    wxString defaultPath = m_plotOpts.GetOutputDirectory();
+    wxString defaultPath = Prj().AbsolutePath( m_plotOpts.GetOutputDirectory() );
 
     if( defaultPath.IsEmpty() )
-        defaultPath = ::wxGetCwd();
+        defaultPath = wxStandardPaths::Get().GetDocumentsDir();
 
     wxFileDialog dlg( this, _( "Save Drill Report File" ), defaultPath,
                       fn.GetFullName(), wxGetTranslation( ReportFileWildcard ),
@@ -404,7 +407,8 @@ void DIALOG_GENDRILL::OnGenReportFile( wxCommandEvent& event )
     excellonWriter.SetFormat( !m_UnitDrillIsInch,
                               (EXCELLON_WRITER::ZEROS_FMT) m_ZerosFormat,
                               m_Precision.m_lhs, m_Precision.m_rhs );
-    excellonWriter.SetOptions( m_Mirror, m_MinimalHeader, m_FileDrillOffset, m_Merge_PTH_NPTH );
+    excellonWriter.SetOptions( m_Mirror, m_MinimalHeader,
+                               m_FileDrillOffset, m_Merge_PTH_NPTH );
 
     bool success = excellonWriter.GenDrillReportFile( dlg.GetPath() );
 

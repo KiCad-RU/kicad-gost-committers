@@ -116,7 +116,7 @@ END_EVENT_TABLE()
 EDA_3D_FRAME::EDA_3D_FRAME( KIWAY* aKiway, PCB_BASE_FRAME* aParent,
         const wxString& aTitle, long style ) :
     KIWAY_PLAYER( aKiway, aParent, FRAME_PCB_DISPLAY3D, aTitle,
-            wxDefaultPosition, wxDefaultSize, style, wxT( "Frame3D" ) )
+            wxDefaultPosition, wxDefaultSize, style, VIEWER3D_FRAMENAME )
 {
     m_canvas        = NULL;
     m_reloadRequest = false;
@@ -131,10 +131,10 @@ EDA_3D_FRAME::EDA_3D_FRAME( KIWAY* aKiway, PCB_BASE_FRAME* aParent,
     SetSize( m_FramePos.x, m_FramePos.y, m_FrameSize.x, m_FrameSize.y );
 
     // Create the status line
-    static const int dims[5] = { -1, 100, 100, 100, 140 };
+    static const int status_dims[4] = { -1, 130, 130, 170 };
 
-    CreateStatusBar( 5 );
-    SetStatusWidths( 5, dims );
+    CreateStatusBar( DIM( status_dims ) );
+    SetStatusWidths( DIM( status_dims ), status_dims );
 
     CreateMenuBar();
     ReCreateMainToolbar();
@@ -157,14 +157,10 @@ EDA_3D_FRAME::EDA_3D_FRAME( KIWAY* aKiway, PCB_BASE_FRAME* aParent,
                     // Normal attributes with values:
                     WX_GL_DEPTH_SIZE, 16,
                     WX_GL_STENCIL_SIZE, 1,
-#if wxCHECK_VERSION( 3, 0, 0 )
                     WX_GL_SAMPLE_BUFFERS, 1,    // Enable multisampling support (antialiasing).
                     WX_GL_SAMPLES, 0,           // Disable AA for the start.
-#endif
                     0 };                        // NULL termination
 
-
-#if wxCHECK_VERSION( 3, 0, 0 )
 
     // Check if the canvas supports multisampling.
     if( EDA_3D_CANVAS::IsDisplaySupported( attrs ) )
@@ -202,7 +198,6 @@ EDA_3D_FRAME::EDA_3D_FRAME( KIWAY* aKiway, PCB_BASE_FRAME* aParent,
             }
         }
     }
-#endif
 
     m_canvas = new EDA_3D_CANVAS( this, attrs );
 
@@ -227,6 +222,12 @@ EDA_3D_FRAME::EDA_3D_FRAME( KIWAY* aKiway, PCB_BASE_FRAME* aParent,
 }
 
 
+EDA_3D_FRAME::~EDA_3D_FRAME()
+{
+    m_auimgr.UnInit();
+}
+
+
 void EDA_3D_FRAME::Exit3DFrame( wxCommandEvent& event )
 {
     Close( true );
@@ -235,9 +236,6 @@ void EDA_3D_FRAME::Exit3DFrame( wxCommandEvent& event )
 
 void EDA_3D_FRAME::OnCloseWindow( wxCloseEvent& Event )
 {
-    if( Parent() )
-        Parent()->m_Draw3DFrame = NULL;
-
     Destroy();
 }
 
@@ -567,6 +565,8 @@ void EDA_3D_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_MENU3D_REALISTIC_MODE:
         GetPrm3DVisu().SetFlag( FL_USE_REALISTIC_MODE, isChecked );
+        GetMenuBar()->FindItem( ID_MENU3D_COMMENTS_ONOFF )->Enable( !isChecked );
+        GetMenuBar()->FindItem( ID_MENU3D_ECO_ONOFF )->Enable( !isChecked );
         NewDisplay();
         return;
 
@@ -649,7 +649,7 @@ void EDA_3D_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_MENU3D_SOLDER_PASTE_ONOFF:
         GetPrm3DVisu().SetFlag( FL_SOLDERPASTE, isChecked );
-        NewDisplay();
+        NewDisplay( GL_ID_TECH_LAYERS );
         return;
 
     case ID_MENU3D_COMMENTS_ONOFF:

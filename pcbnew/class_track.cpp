@@ -278,7 +278,7 @@ STATUS_FLAGS TRACK::IsPointOnEnds( const wxPoint& point, int min_dist )
 const EDA_RECT TRACK::GetBoundingBox() const
 {
     // end of track is round, this is its radius, rounded up
-    int radius = ( m_Width + 1 ) / 2;
+    int radius;
 
     int ymax;
     int xmax;
@@ -339,7 +339,8 @@ void TRACK::Flip( const wxPoint& aCentre )
 {
     m_Start.y = aCentre.y - (m_Start.y - aCentre.y);
     m_End.y   = aCentre.y - (m_End.y - aCentre.y);
-    SetLayer( FlipLayer( GetLayer() ) );
+    int copperLayerCount = GetBoard()->GetCopperLayerCount();
+    SetLayer( FlipLayer( GetLayer(), copperLayerCount ) );
 }
 
 
@@ -347,6 +348,17 @@ void VIA::Flip( const wxPoint& aCentre )
 {
     m_Start.y = aCentre.y - (m_Start.y - aCentre.y);
     m_End.y   = aCentre.y - (m_End.y - aCentre.y);
+
+    if( GetViaType() != VIA_THROUGH )
+    {
+        int copperLayerCount = GetBoard()->GetCopperLayerCount();
+        LAYER_ID top_layer;
+        LAYER_ID bottom_layer;
+        LayerPair( &top_layer, &bottom_layer );
+        top_layer = FlipLayer( top_layer, copperLayerCount );
+        bottom_layer = FlipLayer( bottom_layer, copperLayerCount );
+        SetLayerPair( top_layer, bottom_layer );
+    }
 }
 
 
@@ -412,7 +424,7 @@ void VIA::SetLayerPair( LAYER_ID aTopLayer, LAYER_ID aBottomLayer )
     }
 
     if( aBottomLayer < aTopLayer )
-        EXCHG( aBottomLayer, aTopLayer );
+        std::swap( aBottomLayer, aTopLayer );
 
     m_Layer = aTopLayer;
     m_BottomLayer = aBottomLayer;
@@ -430,7 +442,7 @@ void VIA::LayerPair( LAYER_ID* top_layer, LAYER_ID* bottom_layer ) const
         t_layer = m_Layer;
 
         if( b_layer < t_layer )
-            EXCHG( b_layer, t_layer );
+            std::swap( b_layer, t_layer );
     }
 
     if( top_layer )
@@ -939,7 +951,7 @@ void VIA::Draw( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode, const w
         int ax = 0, ay = radius, bx = 0, by = drill_radius;
         LAYER_ID layer_top, layer_bottom;
 
-        ( (VIA*) this )->LayerPair( &layer_top, &layer_bottom );
+        LayerPair( &layer_top, &layer_bottom );
 
         // lines for the top layer
         RotatePoint( &ax, &ay, layer_top * 3600.0 / brd->GetCopperLayerCount( ) );
@@ -1502,8 +1514,8 @@ int TRACK::GetEndSegments( int aCount, TRACK** aStartTrace, TRACK** aEndTrace )
                 if( EndPad )
                     Track->SetState( BEGIN_ONPAD, true );
 
-                EXCHG( Track->m_Start, Track->m_End );
-                EXCHG( Track->start, Track->end );
+                std::swap( Track->m_Start, Track->m_End );
+                std::swap( Track->start, Track->end );
                 ok = 1;
                 return ok;
             }
@@ -1546,8 +1558,8 @@ int TRACK::GetEndSegments( int aCount, TRACK** aStartTrace, TRACK** aEndTrace )
                 if( EndPad )
                     Track->SetState( BEGIN_ONPAD, true );
 
-                EXCHG( Track->m_Start, Track->m_End );
-                EXCHG( Track->start, Track->end );
+                std::swap( Track->m_Start, Track->m_End );
+                std::swap( Track->start, Track->end );
                 break;
 
             case 1:

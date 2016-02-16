@@ -93,11 +93,11 @@ void PCB_BASE_FRAME::Import_Pad_Settings( D_PAD* aPad, bool aDraw )
 
     switch( mp.GetShape() )
     {
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         aPad->SetDelta( mp.GetDelta() );
         break;
 
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         // ensure size.y == size.x
         aPad->SetSize( wxSize( aPad->GetSize().x, aPad->GetSize().x ) );
         break;
@@ -108,8 +108,8 @@ void PCB_BASE_FRAME::Import_Pad_Settings( D_PAD* aPad, bool aDraw )
 
     switch( mp.GetAttribute() )
     {
-    case PAD_SMD:
-    case PAD_CONN:
+    case PAD_ATTRIB_SMD:
+    case PAD_ATTRIB_CONN:
         aPad->SetDrillSize( wxSize( 0, 0 ) );
         aPad->SetOffset( wxPoint( 0, 0 ) );
         break;
@@ -178,10 +178,13 @@ void PCB_BASE_FRAME::AddPad( MODULE* aModule, bool draw )
     /* NPTH pads take empty pad number (since they can't be connected),
      * other pads get incremented from the last one edited */
     wxString padName;
-    if( pad->GetAttribute() != PAD_HOLE_NOT_PLATED ) {
+
+    if( pad->GetAttribute() != PAD_ATTRIB_HOLE_NOT_PLATED )
+    {
         padName = GetNextPadName( GetDesignSettings()
                 .m_Pad_Master.GetPadName() );
     }
+
     pad->SetPadName( padName );
     GetDesignSettings().m_Pad_Master.SetPadName( padName );
 
@@ -198,7 +201,7 @@ void PCB_BASE_FRAME::DeletePad( D_PAD* aPad, bool aQuery )
     if( aPad == NULL )
         return;
 
-    MODULE* module = (MODULE*) aPad->GetParent();
+    MODULE* module = aPad->GetParent();
     module->SetLastEditTime();
 
     // aQuery = true to prompt for confirmation, false to delete silently
@@ -217,7 +220,9 @@ void PCB_BASE_FRAME::DeletePad( D_PAD* aPad, bool aQuery )
     EDA_RECT bbox = module->GetBoundingBox();
 
     m_Pcb->m_Status_Pcb = 0;
-    aPad->DeleteStructure();
+
+    GetBoard()->PadDelete( aPad );
+
     // Update the bounding box
     module->CalculateBoundingBox();
 
@@ -245,21 +250,21 @@ void PCB_BASE_FRAME::RotatePad( D_PAD* aPad, wxDC* DC )
         module->Draw( m_canvas, DC, GR_XOR );
 
     wxSize  sz = aPad->GetSize();
-    EXCHG( sz.x, sz.y );
+    std::swap( sz.x, sz.y );
     aPad->SetSize( sz );
 
     sz = aPad->GetDrillSize();
-    EXCHG( sz.x, sz.y );
+    std::swap( sz.x, sz.y );
     aPad->SetDrillSize( sz );
 
     wxPoint pt = aPad->GetOffset();
-    EXCHG( pt.x, pt.y );
+    std::swap( pt.x, pt.y );
     aPad->SetOffset( pt );
 
     aPad->SetOffset( wxPoint( aPad->GetOffset().x, -aPad->GetOffset().y ) );
 
     sz = aPad->GetDelta();
-    EXCHG( sz.x, sz.y );
+    std::swap( sz.x, sz.y );
     sz.x = -sz.x;
     aPad->SetDelta( sz );
 

@@ -1,5 +1,3 @@
-#ifndef EDA_DRAW_FRAME_H_
-#define EDA_DRAW_FRAME_H_
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -25,11 +23,18 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#ifndef DRAW_FRAME_H_
+#define DRAW_FRAME_H_
+
 #include <wxstruct.h>
 #include <kiway_player.h>
+#include <climits>
 
 class wxSingleInstanceChecker;
 class EDA_HOTKEY;
+
+#define DEFAULT_MAX_UNDO_ITEMS 0
+#define ABS_MAX_UNDO_ITEMS (INT_MAX / 2)
 
 /**
  * Class EDA_DRAW_FRAME
@@ -68,6 +73,8 @@ protected:
     double      m_zoomLevelCoeff;           ///< a suitable value to convert the internal zoom scaling factor
                                             // to a zoom level value which rougly gives 1.0 when the board/schematic
                                             // is at scale = 1
+    int         m_UndoRedoCountMax;         ///< default Undo/Redo command Max depth, to be handed
+                                            // to screens
 
     /// The area to draw on.
     EDA_DRAW_PANEL* m_canvas;
@@ -97,10 +104,10 @@ protected:
     bool    m_showBorderAndTitleBlock;
 
     /// Choice box to choose the grid size.
-    wxComboBox*     m_gridSelectBox;
+    wxChoice*       m_gridSelectBox;
 
     /// Choice box to choose the zoom value.
-    wxComboBox*     m_zoomSelectBox;
+    wxChoice*       m_zoomSelectBox;
 
     /// The tool bar that contains the buttons for quick access to the application draw
     /// tools.  It typically is located on the right side of the main window.
@@ -277,7 +284,7 @@ public:
 
     int GetCursorShape() const { return m_cursorShape; }
 
-    void SetCursorShape( int aCursorShape ) { m_cursorShape = aCursorShape; }
+    virtual void SetCursorShape( int aCursorShape ) { m_cursorShape = aCursorShape; }
 
     bool GetShowBorderAndTitleBlock() const { return m_showBorderAndTitleBlock; }
 
@@ -509,7 +516,7 @@ public:
      * @param aPosition The current cursor position in logical (drawing) units.
      * @param aHotKey A key event used for application specific control if not zero.
      */
-    virtual bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey = 0 )
+    virtual bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 )
     {
         return false;
     }
@@ -635,7 +642,7 @@ public:
      * initializes the block command including the command type, initial position,
      * and other variables.
      */
-    virtual bool HandleBlockBegin( wxDC* aDC, int aKey, const wxPoint& aPosition );
+    virtual bool HandleBlockBegin( wxDC* aDC, EDA_KEY aKey, const wxPoint& aPosition );
 
     /**
      * Function BlockCommand
@@ -646,7 +653,7 @@ public:
      * @param aKey = the key modifiers (Alt, Shift ...)
      * @return the block command id (BLOCK_MOVE, BLOCK_COPY...)
      */
-    virtual int BlockCommand( int aKey );
+    virtual int BlockCommand( EDA_KEY aKey );
 
     /**
      * Function HandleBlockPlace( )
@@ -712,6 +719,21 @@ public:
     void SetMsgPanel( const std::vector< MSG_PANEL_ITEM >& aList );
 
     void SetMsgPanel( EDA_ITEM* aItem );
+
+    /**
+     * Function UpdateMsgPanel
+     * redraws the message panel.
+     */
+    virtual void UpdateMsgPanel();
+
+    /**
+     * Function PushPreferences
+     * Pushes a few preferences from a parent window to a child window.
+     * (i.e. from eeschema to schematic symbol editor)
+     *
+     * @param aParentCanvas is the parent canvas to push preferences from.
+     */
+    void PushPreferences( const EDA_DRAW_PANEL* aParentCanvas );
 
     /**
      * Function PrintPage
@@ -788,4 +810,4 @@ public:
     DECLARE_EVENT_TABLE()
 };
 
-#endif  // EDA_DRAW_FRAME_H_
+#endif  // DRAW_FRAME_H_

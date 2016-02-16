@@ -248,8 +248,8 @@ bool SCH_COLLECTOR::IsCorner() const
     if( GetCount() != 2 )
         return false;
 
-    bool is_busentry0 = dynamic_cast<SCH_BUS_ENTRY_BASE*>( m_List[0] );
-    bool is_busentry1 = dynamic_cast<SCH_BUS_ENTRY_BASE*>( m_List[1] );
+    bool is_busentry0 = (dynamic_cast<SCH_BUS_ENTRY_BASE*>( m_List[0] ) != NULL);
+    bool is_busentry1 = (dynamic_cast<SCH_BUS_ENTRY_BASE*>( m_List[1] ) != NULL);
 
     if( (m_List[0]->Type() == SCH_LINE_T) && (m_List[1]->Type() == SCH_LINE_T) )
         return true;
@@ -500,6 +500,12 @@ SEARCH_RESULT SCH_FIND_COLLECTOR::Inspect( EDA_ITEM* aItem, const void* aTestDat
     }
 
     return SEARCH_CONTINUE;
+}
+
+
+void SCH_FIND_COLLECTOR::SetReplaceString( const wxString &aReplaceString )
+{
+    m_findReplaceData.SetReplaceString( aReplaceString );
 }
 
 

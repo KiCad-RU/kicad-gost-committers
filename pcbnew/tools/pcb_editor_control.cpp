@@ -73,7 +73,7 @@ private:
         // lines like this make me really think about a better name for SELECTION_CONDITIONS class
         bool mergeEnabled = ( SELECTION_CONDITIONS::MoreThan( 1 ) &&
                               /*SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) &&*/
-                              SELECTION_CONDITIONS::SameNet() &&
+                              SELECTION_CONDITIONS::SameNet( true ) &&
                               SELECTION_CONDITIONS::SameLayer() )( selTool->GetSelection() );
 
         Enable( getMenuId( COMMON_ACTIONS::zoneMerge ), mergeEnabled );
@@ -82,16 +82,18 @@ private:
 
 
 PCB_EDITOR_CONTROL::PCB_EDITOR_CONTROL() :
-    TOOL_INTERACTIVE( "pcbnew.EditorControl" ), m_frame( NULL )
+    TOOL_INTERACTIVE( "pcbnew.EditorControl" ), m_frame( NULL ), m_zoneMenu( NULL )
 {
     m_placeOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D( 0.8, 0.0, 0.0, 1.0 ),
-                                                KIGFX::ORIGIN_VIEWITEM::CROSS );
+                                                KIGFX::ORIGIN_VIEWITEM::CIRCLE_CROSS );
+    m_probingSchToPcb = false;
 }
 
 
 PCB_EDITOR_CONTROL::~PCB_EDITOR_CONTROL()
 {
     delete m_placeOrigin;
+    delete m_zoneMenu;
 }
 
 
@@ -114,7 +116,9 @@ bool PCB_EDITOR_CONTROL::Init()
 
     if( selTool )
     {
-        selTool->GetMenu().AddMenu( new ZONE_CONTEXT_MENU, _( "Zones" ), false,
+        m_zoneMenu = new ZONE_CONTEXT_MENU;
+        m_zoneMenu->SetTool( this );
+        selTool->GetMenu().AddMenu( m_zoneMenu, _( "Zones" ), false,
                                     SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) );
     }
 
@@ -213,11 +217,9 @@ int PCB_EDITOR_CONTROL::PlaceModule( const TOOL_EVENT& aEvent )
     m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
     controls->ShowCursor( true );
     controls->SetSnapping( true );
-    controls->SetAutoPan( true );
-    controls->CaptureCursor( true );
 
     Activate();
-    m_frame->SetToolID( ID_PCB_MODULE_BUTT, wxCURSOR_HAND, _( "Add module" ) );
+    m_frame->SetToolID( ID_PCB_MODULE_BUTT, wxCURSOR_HAND, _( "Add footprint" ) );
 
     // Main loop: keep receiving events
     while( OPT_TOOL_EVENT evt = Wait() )
@@ -260,14 +262,13 @@ int PCB_EDITOR_CONTROL::PlaceModule( const TOOL_EVENT& aEvent )
         {
             if( !module )
             {
-                // Init the new item attributes
+                // Pick the module to be placed
                 module = m_frame->LoadModuleFromLibrary( wxEmptyString,
                                                          m_frame->Prj().PcbFootprintLibs(),
                                                          true, NULL );
                 if( module == NULL )
                     continue;
 
-                controls->ShowCursor( false );
                 module->SetPosition( wxPoint( cursorPos.x, cursorPos.y ) );
 
                 // Add all the drawable parts to preview
@@ -278,6 +279,7 @@ int PCB_EDITOR_CONTROL::PlaceModule( const TOOL_EVENT& aEvent )
             }
             else
             {
+                // Place the selected module
                 module->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, view, _1 ) );
                 view->Add( module );
                 module->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
@@ -289,9 +291,13 @@ int PCB_EDITOR_CONTROL::PlaceModule( const TOOL_EVENT& aEvent )
                 preview.Remove( module );
                 module->RunOnChildren( boost::bind( &KIGFX::VIEW_GROUP::Remove, &preview, _1 ) );
                 module = NULL;  // to indicate that there is no module that we currently modify
-
-                controls->ShowCursor( true );
             }
+
+            bool placing = ( module != NULL );
+
+            controls->SetAutoPan( placing );
+            controls->CaptureCursor( placing );
+            controls->ShowCursor( !placing );
         }
 
         else if( module && evt->IsMotion() )
@@ -308,6 +314,31 @@ int PCB_EDITOR_CONTROL::PlaceModule( const TOOL_EVENT& aEvent )
     view->Remove( &preview );
 
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
+
+    return 0;
+}
+
+
+int PCB_EDITOR_CONTROL::ToggleLockModule( const TOOL_EVENT& aEvent )
+{
+    SELECTION_TOOL* selTool = m_toolMgr->GetTool<SELECTION_TOOL>();
+    const SELECTION& selection = selTool->GetSelection();
+    bool clearSelection = selection.Empty();
+
+    if( clearSelection )
+        m_toolMgr->RunAction( COMMON_ACTIONS::selectionCursor, true );
+
+    for( int i = 0; i < selection.Size(); ++i )
+    {
+        if( selection.Item<BOARD_ITEM>( i )->Type() == PCB_MODULE_T )
+        {
+            MODULE* module = selection.Item<MODULE>( i );
+            module->SetLocked( !module->IsLocked() );
+        }
+    }
+
+    if( clearSelection )
+        m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
 
     return 0;
 }
@@ -335,8 +366,6 @@ int PCB_EDITOR_CONTROL::PlaceTarget( const TOOL_EVENT& aEvent )
 
     m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
     controls->SetSnapping( true );
-    controls->SetAutoPan( true );
-    controls->CaptureCursor( true );
 
     Activate();
     m_frame->SetToolID( ID_PCB_MIRE_BUTT, wxCURSOR_PENCIL, _( "Add layer alignment target" ) );
@@ -395,8 +424,6 @@ int PCB_EDITOR_CONTROL::PlaceTarget( const TOOL_EVENT& aEvent )
     delete target;
 
     controls->SetSnapping( false );
-    controls->SetAutoPan( false );
-    controls->CaptureCursor( false );
     view->Remove( &preview );
 
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
@@ -588,13 +615,46 @@ int PCB_EDITOR_CONTROL::ZoneMerge( const TOOL_EVENT& aEvent )
 }
 
 
-int PCB_EDITOR_CONTROL::SelectionCrossProbe( const TOOL_EVENT& aEvent )
+int PCB_EDITOR_CONTROL::CrossProbePcbToSch( const TOOL_EVENT& aEvent )
 {
+    if( m_probingSchToPcb )
+    {
+        m_probingSchToPcb = false;
+        return 0;
+    }
+
     SELECTION_TOOL* selTool = m_toolMgr->GetTool<SELECTION_TOOL>();
     const SELECTION& selection = selTool->GetSelection();
 
     if( selection.Size() == 1 )
         m_frame->SendMessageToEESCHEMA( selection.Item<BOARD_ITEM>( 0 ) );
+
+    return 0;
+}
+
+
+int PCB_EDITOR_CONTROL::CrossProbeSchToPcb( const TOOL_EVENT& aEvent )
+{
+    BOARD_ITEM* item = aEvent.Parameter<BOARD_ITEM*>();
+
+    if( item )
+    {
+        m_probingSchToPcb = true;
+        getView()->SetCenter( VECTOR2D( item->GetPosition() ) );
+        m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+
+        // If it is a pad and the net highlighting tool is enabled, highlight the net
+        if( item->Type() == PCB_PAD_T && m_frame->GetToolId() == ID_PCB_HIGHLIGHT_BUTT )
+        {
+            int net = static_cast<D_PAD*>( item )->GetNetCode();
+            m_toolMgr->RunAction( COMMON_ACTIONS::highlightNet, false, net );
+        }
+        else
+        // Otherwise simply select the corresponding item
+        {
+            m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, item );
+        }
+    }
 
     return 0;
 }
@@ -613,12 +673,15 @@ static bool setDrillOrigin( KIGFX::VIEW* aView, PCB_BASE_FRAME* aFrame,
 
 int PCB_EDITOR_CONTROL::DrillOrigin( const TOOL_EVENT& aEvent )
 {
+    Activate();
+
     PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
     assert( picker );
 
     m_frame->SetToolID( ID_PCB_PLACE_OFFSET_COORD_BUTT, wxCURSOR_PENCIL, _( "Adjust zero" ) );
     picker->SetClickHandler( boost::bind( setDrillOrigin, getView(), m_frame, m_placeOrigin, _1 ) );
     picker->Activate();
+    Wait();
 
     return 0;
 }
@@ -646,7 +709,11 @@ static bool highlightNet( TOOL_MANAGER* aToolMgr, const VECTOR2D& aPosition )
     if( enableHighlight )
         net = static_cast<BOARD_CONNECTED_ITEM*>( collector[0] )->GetNetCode();
 
-    if( enableHighlight != render->GetHighlight() || net != render->GetHighlightNetCode() )
+    // Toggle highlight when the same net was picked
+    if( net > 0 && net == render->GetHighlightNetCode() )
+        enableHighlight = !render->IsHighlightEnabled();
+
+    if( enableHighlight != render->IsHighlightEnabled() || net != render->GetHighlightNetCode() )
     {
         render->SetHighlight( enableHighlight, net );
         aToolMgr->GetView()->UpdateAllLayersColor();
@@ -658,7 +725,19 @@ static bool highlightNet( TOOL_MANAGER* aToolMgr, const VECTOR2D& aPosition )
 
 int PCB_EDITOR_CONTROL::HighlightNet( const TOOL_EVENT& aEvent )
 {
-    highlightNet( m_toolMgr, getView()->ToWorld( getViewControls()->GetMousePosition() ) );
+    int netcode = aEvent.Parameter<long>();
+
+    if( netcode > 0 )
+    {
+        KIGFX::RENDER_SETTINGS* render = m_toolMgr->GetView()->GetPainter()->GetSettings();
+        render->SetHighlight( true, netcode );
+        m_toolMgr->GetView()->UpdateAllLayersColor();
+    }
+    else
+    {
+        // No net code specified, pick the net code belonging to the item under the cursor
+        highlightNet( m_toolMgr, getView()->ToWorld( getViewControls()->GetMousePosition() ) );
+    }
 
     return 0;
 }
@@ -666,12 +745,16 @@ int PCB_EDITOR_CONTROL::HighlightNet( const TOOL_EVENT& aEvent )
 
 int PCB_EDITOR_CONTROL::HighlightNetCursor( const TOOL_EVENT& aEvent )
 {
+    Activate();
+
     PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
     assert( picker );
 
     m_frame->SetToolID( ID_PCB_HIGHLIGHT_BUTT, wxCURSOR_PENCIL, _( "Highlight net" ) );
     picker->SetClickHandler( boost::bind( highlightNet, m_toolMgr, _1 ) );
+    picker->SetSnapping( false );
     picker->Activate();
+    Wait();
 
     return 0;
 }
@@ -697,7 +780,9 @@ void PCB_EDITOR_CONTROL::SetTransitions()
     Go( &PCB_EDITOR_CONTROL::PlaceModule,        COMMON_ACTIONS::placeModule.MakeEvent() );
 
     // Other
-    Go( &PCB_EDITOR_CONTROL::SelectionCrossProbe, SELECTION_TOOL::SelectedEvent );
+    Go( &PCB_EDITOR_CONTROL::ToggleLockModule,    COMMON_ACTIONS::toggleLockModule.MakeEvent() );
+    Go( &PCB_EDITOR_CONTROL::CrossProbePcbToSch,  SELECTION_TOOL::SelectedEvent );
+    Go( &PCB_EDITOR_CONTROL::CrossProbeSchToPcb,  COMMON_ACTIONS::crossProbeSchToPcb.MakeEvent() );
     Go( &PCB_EDITOR_CONTROL::DrillOrigin,         COMMON_ACTIONS::drillOrigin.MakeEvent() );
     Go( &PCB_EDITOR_CONTROL::HighlightNet,        COMMON_ACTIONS::highlightNet.MakeEvent() );
     Go( &PCB_EDITOR_CONTROL::HighlightNetCursor,  COMMON_ACTIONS::highlightNetCursor.MakeEvent() );

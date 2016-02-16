@@ -128,8 +128,7 @@ void PCB_EDIT_FRAME::duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone )
     if( success && ( aZone->GetLayer() == zoneSettings.m_CurrentZone_Layer ) )
     {
         DisplayError( this,
-            _( "The duplicated zone is on the same layer as the initial zone, which has no sense.\n"
-               "Please, choose an other layer for the new zone") );
+            _( "The duplicated zone cannot be on the same layer as the original zone." ) );
         success = false;
     }
 
@@ -158,8 +157,7 @@ void PCB_EDIT_FRAME::duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone )
         if( GetBoard()->GetAreaIndex( newZone ) >= 0
            && GetBoard()->Test_Drc_Areas_Outlines_To_Areas_Outlines( newZone, true ) )
         {
-            DisplayError( this,
-                _( "The outline of the duplicated zone fails DRC check!" ) );
+            DisplayInfoMessage( this, _( "Warning: The new zone fails DRC" ) );
         }
 
         UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
@@ -345,10 +343,8 @@ void PCB_EDIT_FRAME::End_Move_Zone_Corner_Or_Outlines( wxDC* DC, ZONE_CONTAINER*
     SetCurItem( NULL );       // This outline can be deleted when merging outlines
 
     // Combine zones if possible
-    wxBusyCursor dummy;
     GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, aZone );
     m_canvas->Refresh();
-
 
     int ii = GetBoard()->GetAreaIndex( aZone );     // test if aZone exists
 
@@ -593,9 +589,12 @@ int PCB_EDIT_FRAME::Begin_Zone( wxDC* DC )
                 if( GetToolId() == ID_PCB_KEEPOUT_AREA_BUTT )
                 {
                     zoneInfo.SetIsKeepout( true );
-                    // Netcode and netname are irrelevant,
+                    // Netcode, netname and some other settings are irrelevant,
                     // so ensure they are cleared
                     zone->SetNetCode( NETINFO_LIST::UNCONNECTED );
+                    zoneInfo.SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_NONE );
+                    zoneInfo.SetCornerRadius( 0 );
+
                     edited = InvokeKeepoutAreaEditor( this, &zoneInfo );
                 }
                 else

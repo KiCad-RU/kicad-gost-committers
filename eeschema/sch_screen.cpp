@@ -71,16 +71,19 @@ static double SchematicZoomList[] =
 
 
 /* Default grid sizes for the schematic editor.
- * Do NOT add others values (mainly grid values in mm),
- * because they can break the schematic:
- * because wires and pins are considered as connected when the are to the same coordinate
- * we cannot mix coordinates in mils (internal units) and mm
- * (that cannot exactly converted in mils in many cases
- * in fact schematic must only use 50 and 25 mils to place labels, wires and components
- * others values are useful only for graphic items (mainly in library editor)
- * so use integer values in mils only.
+ * Do NOT add others values (mainly grid values in mm), because they
+ * can break the schematic: Because wires and pins are considered as
+ * connected when the are to the same coordinate we cannot mix
+ * coordinates in mils (internal units) and mm (that cannot exactly
+ * converted in mils in many cases).  In fact schematic must only use
+ * 50 and 25 mils to place labels, wires and components others values
+ * are useful only for graphic items (mainly in library editor) so use
+ * integer values in mils only.  The 100 mil grid is added to help
+ * conform to the KiCad Library Convention. Which states: "Using a
+ * 100mil grid, pin ends and origin must lie on grid nodes IEC-60617"
 */
 static GRID_TYPE SchematicGridList[] = {
+    { ID_POPUP_GRID_LEVEL_100, wxRealPoint( 100, 100 ) },
     { ID_POPUP_GRID_LEVEL_50, wxRealPoint( 50, 50 ) },
     { ID_POPUP_GRID_LEVEL_25, wxRealPoint( 25, 25 ) },
     { ID_POPUP_GRID_LEVEL_10, wxRealPoint( 10, 10 ) },
@@ -1490,7 +1493,7 @@ int SCH_SCREENS::ReplaceDuplicateTimeStamps()
 }
 
 
-void SCH_SCREENS::DeleteAllMarkers( int aMarkerType )
+void SCH_SCREENS::DeleteAllMarkers( enum MARKER_BASE::TYPEMARKER aMarkerType )
 {
     SCH_ITEM* item;
     SCH_ITEM* nextItem;
@@ -1517,29 +1520,27 @@ void SCH_SCREENS::DeleteAllMarkers( int aMarkerType )
 }
 
 
-int SCH_SCREENS::GetMarkerCount( int aMarkerType )
+int SCH_SCREENS::GetMarkerCount( enum MARKER_BASE::TYPEMARKER aMarkerType,
+                                 enum MARKER_BASE::MARKER_SEVERITY aSeverity )
 {
-    SCH_ITEM* item;
-    SCH_ITEM* nextItem;
-    SCH_MARKER* marker;
-    SCH_SCREEN* screen;
     int count = 0;
 
-    for( screen = GetFirst(); screen; screen = GetNext() )
+    for( SCH_SCREEN* screen = GetFirst(); screen; screen = GetNext() )
     {
-        for( item = screen->GetDrawItems(); item; item = nextItem )
+        for( SCH_ITEM* item = screen->GetDrawItems(); item; item = item->Next() )
         {
-            nextItem = item->Next();
-
             if( item->Type() != SCH_MARKER_T )
                 continue;
 
-            marker = (SCH_MARKER*) item;
+            SCH_MARKER* marker = (SCH_MARKER*) item;
 
-            if( (aMarkerType != -1) && (marker->GetMarkerType() != aMarkerType) )
+            if( ( aMarkerType != MARKER_BASE::MARKER_UNSPEC ) &&
+                ( marker->GetMarkerType() != aMarkerType ) )
                 continue;
 
-            count++;
+            if( aSeverity == MARKER_BASE::MARKER_SEVERITY_UNSPEC ||
+                aSeverity == marker->GetErrorLevel() )
+                count++;
         }
     }
 

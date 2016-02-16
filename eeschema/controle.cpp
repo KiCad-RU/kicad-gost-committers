@@ -52,7 +52,6 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateAndShowItem( const wxPoint& aPosition, const KIC
                                              int aHotKeyCommandId )
 {
     SCH_ITEM*      item;
-    wxString       msg;
     LIB_PIN*       Pin     = NULL;
     SCH_COMPONENT* LibItem = NULL;
     wxPoint        gridPosition = GetNearestGridPosition( aPosition );
@@ -203,7 +202,7 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateItem( const wxPoint& aPosition, const KICAD_T aF
 }
 
 
-bool SCH_EDIT_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey )
+bool SCH_EDIT_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey )
 {
     bool eventHandled = true;
 
@@ -250,7 +249,7 @@ bool SCH_EDIT_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aH
 }
 
 
-bool LIB_EDIT_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey )
+bool LIB_EDIT_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey )
 {
     bool eventHandled = true;
 
@@ -292,7 +291,7 @@ bool LIB_EDIT_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aH
 }
 
 
-bool LIB_VIEW_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey )
+bool LIB_VIEW_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey )
 {
     bool eventHandled = true;
 

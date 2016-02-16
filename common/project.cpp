@@ -63,9 +63,13 @@ PROJECT::~PROJECT()
 
 void PROJECT::SetProjectFullName( const wxString& aFullPathAndName )
 {
+    // Compare paths, rather than inodes, to be less surprising to the user.
+    // Create a temporary wxFileName to normalize the path
+    wxFileName candidate_path( aFullPathAndName );
+
     // Edge transitions only.  This is what clears the project
     // data using the Clear() function.
-    if( m_project_name != aFullPathAndName )
+    if( m_project_name.GetFullPath() != candidate_path.GetFullPath() )
     {
         Clear();            // clear the data when the project changes.
 
@@ -253,9 +257,22 @@ static bool copy_pro_file_template( const SEARCH_STACK& aSearchS, const wxString
 
     DBG( printf( "%s: using template file '%s' as project file.\n", __func__, TO_UTF8( kicad_pro_template ) );)
 
-    wxCopyFile( kicad_pro_template, aDestination );
+    // Verify aDestination can be created. if this is not the case, wxCopyFile
+    // will generate a crappy log error message, and we *do not want* this kind
+    // of stupid message
+    wxFileName fn( aDestination );
+    bool success = true;
 
-    return true;
+    if( fn.IsOk() && fn.IsDirWritable() )
+        success = wxCopyFile( kicad_pro_template, aDestination );
+    else
+    {
+        wxLogMessage( _( "Cannot create prj file '%s' (Directory not writable)" ),
+                      GetChars( aDestination) );
+        success = false;
+    }
+
+    return success;
 }
 
 
@@ -297,7 +314,7 @@ void PROJECT::ConfigSave( const SEARCH_STACK& aSList, const wxString& aGroupName
         return;
     }
 
-    cfg->SetPath( wxCONFIG_PATH_SEPARATOR );
+    cfg->SetPath( wxT( "/" ) );
 
     cfg->Write( wxT( "update" ), DateAndTime() );
 
@@ -311,11 +328,11 @@ void PROJECT::ConfigSave( const SEARCH_STACK& aSList, const wxString& aGroupName
     cfg->SetPath( aGroupName );
     cfg->Write( wxT( "version" ), CONFIG_VERSION );
 
-    cfg->SetPath( wxCONFIG_PATH_SEPARATOR );
+    cfg->SetPath( wxT( "/" ) );
 
     wxConfigSaveParams( cfg.get(), aParams, aGroupName );
 
-    cfg->SetPath( UNIX_STRING_DIR_SEP );
+    cfg->SetPath( wxT( "/" ) );
 
     // cfg is deleted here by std::auto_ptr, that saves the *.pro file to disk
 }

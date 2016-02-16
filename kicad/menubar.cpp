@@ -74,9 +74,7 @@ BEGIN_EVENT_TABLE( KICAD_MANAGER_FRAME, EDA_BASE_FRAME )
 
 
     // Special functions
-#ifdef KICAD_USE_FILES_WATCHER
     EVT_MENU( ID_INIT_WATCHED_PATHS, KICAD_MANAGER_FRAME::OnChangeWatchedPaths )
-#endif
 
     // Button events (in command frame), and menu events equivalent to buttons
     EVT_BUTTON( ID_TO_SCH, KICAD_MANAGER_FRAME::OnRunEeschema )
@@ -106,6 +104,8 @@ BEGIN_EVENT_TABLE( KICAD_MANAGER_FRAME, EDA_BASE_FRAME )
     EVT_UPDATE_UI( ID_SELECT_DEFAULT_PDF_BROWSER, KICAD_MANAGER_FRAME::OnUpdateDefaultPdfBrowser )
     EVT_UPDATE_UI( ID_SELECT_PREFERED_PDF_BROWSER,
                    KICAD_MANAGER_FRAME::OnUpdatePreferredPdfBrowser )
+    EVT_UPDATE_UI_RANGE( ID_TO_SCH, ID_TO_PCB_FP_EDITOR,
+                         KICAD_MANAGER_FRAME::OnUpdateRequiresProject )
 
 END_EVENT_TABLE()
 
@@ -148,7 +148,7 @@ static EDA_HOTKEY HkRunGerbview( _HKI( "Run Gerbview" ), HK_RUN_GERBVIEW, 'G' + 
 static EDA_HOTKEY HkRunBm2Cmp( _HKI( "Run Bitmap2Component" ),
                                HK_RUN_BM2COMPONENT, 'B' + GR_KB_CTRL, 0 );
 static EDA_HOTKEY HkRunPcbCalc( _HKI( "Run PcbCalculator" ),
-                                HK_RUN_PCBCALCULATOR, 'C' + GR_KB_CTRL, 0 );
+                                HK_RUN_PCBCALCULATOR, 'A' + GR_KB_CTRL, 0 );
 static EDA_HOTKEY HkRunPleditor( _HKI( "Run PlEditor" ), HK_RUN_PLEDITOR, 'Y' + GR_KB_CTRL, 0 );
 
 // List of hotkey descriptors
@@ -361,28 +361,23 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
     wxMenu* toolsMenu = new wxMenu;
 
     msg = AddHotkeyName( _( "Run Eeschema" ), kicad_Manager_Hokeys_Descr, HK_RUN_EESCHEMA );
-    AddMenuItem( toolsMenu, ID_TO_SCH, msg,
-                 KiBitmap( eeschema_xpm ) );
+    AddMenuItem( toolsMenu, ID_TO_SCH, msg, KiBitmap( eeschema_xpm ) );
 
     msg = AddHotkeyName( _( "Run Library Editor" ),
                          kicad_Manager_Hokeys_Descr, HK_RUN_LIBEDIT );
-    AddMenuItem( toolsMenu, ID_TO_SCH_LIB_EDITOR, msg,
-                 KiBitmap( libedit_xpm ) );
+    AddMenuItem( toolsMenu, ID_TO_SCH_LIB_EDITOR, msg, KiBitmap( libedit_xpm ) );
 
     msg = AddHotkeyName( _( "Run Pcbnew" ),
                          kicad_Manager_Hokeys_Descr, HK_RUN_PCBNEW );
-    AddMenuItem( toolsMenu, ID_TO_PCB, msg,
-                 KiBitmap( pcbnew_xpm ) );
+    AddMenuItem( toolsMenu, ID_TO_PCB, msg, KiBitmap( pcbnew_xpm ) );
 
     msg = AddHotkeyName( _( "Run Footprint Editor" ),
                          kicad_Manager_Hokeys_Descr, HK_RUN_FPEDITOR );
-    AddMenuItem( toolsMenu, ID_TO_PCB_FP_EDITOR, msg,
-                 KiBitmap( module_editor_xpm ) );
+    AddMenuItem( toolsMenu, ID_TO_PCB_FP_EDITOR, msg, KiBitmap( module_editor_xpm ) );
 
     msg = AddHotkeyName( _( "Run Gerbview" ),
                          kicad_Manager_Hokeys_Descr, HK_RUN_GERBVIEW );
-    AddMenuItem( toolsMenu, ID_TO_GERBVIEW, msg,
-                 KiBitmap( icon_gerbview_small_xpm ) );
+    AddMenuItem( toolsMenu, ID_TO_GERBVIEW, msg, KiBitmap( icon_gerbview_small_xpm ) );
 
     msg = AddHotkeyName( _( "Run Bitmap2Component" ),
                          kicad_Manager_Hokeys_Descr, HK_RUN_BM2COMPONENT );
@@ -424,7 +419,7 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
     // About
     AddMenuItem( helpMenu, wxID_ABOUT,
                  _( "&About KiCad" ),
-                 _( "About KiCad project manager" ),
+                 _( "About KiCad" ),
                  KiBitmap( info_xpm ) );
 
     // Create the menubar and append all submenus

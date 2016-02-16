@@ -1,5 +1,3 @@
-#ifndef HASHTABLES_H_
-#define HASHTABLES_H_
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -23,6 +21,9 @@
  * or you may write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
+
+#ifndef HASHTABLES_H_
+#define HASHTABLES_H_
 
 #include <base_struct.h>
 #include <wx/string.h>
@@ -107,10 +108,10 @@ struct WXSTRING_HASH : std::unary_function<wxString, std::size_t>
 
         for( wxString::const_iterator it = aString.begin(); it != aString.end(); ++it )
         {
-            hash ^= (unsigned char) *it;
+            unsigned ch = static_cast<unsigned>( *it );
+            hash ^= ch;
             hash *= 16777619;
         }
-
         return hash;
     }
 };

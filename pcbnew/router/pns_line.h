@@ -70,7 +70,7 @@ public:
         m_width = 1;        // Dummy value
     }
 
-    PNS_LINE( const PNS_LINE& aOther ) ;
+    PNS_LINE( const PNS_LINE& aOther );
 
     /**
      * Constructor
@@ -202,7 +202,7 @@ public:
 
     PNS_SEGMENT* GetLink( int aIndex ) const
     {
-        return (*m_segmentRefs) [ aIndex ];
+        return (*m_segmentRefs)[aIndex];
     }
 
     ///> Erases the linking information. Used to detach the line from the owning node.

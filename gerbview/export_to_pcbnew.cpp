@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007-2014 Jean-Pierre Charras  jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -43,6 +43,7 @@
 #include <select_layers_to_pcb.h>
 #include <build_version.h>
 #include <wildcards_and_files_ext.h>
+
 
 // Imported function
 extern const wxString GetPCBDefaultLayerName( LAYER_NUM aLayerNumber );
@@ -174,11 +175,11 @@ void GERBVIEW_FRAME::ExportDataInPcbnewFormat( wxCommandEvent& event )
     }
 
     wxString        fileName;
-    wxString        path = wxGetCwd();
+    wxString        path = m_mruPath;
 
     wxFileDialog    filedlg( this, _( "Board file name:" ),
                              path, fileName, PcbFileWildcard,
-                             wxFD_SAVE );
+                             wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
 
     if( filedlg.ShowModal() == wxID_CANCEL )
         return;
@@ -195,16 +196,11 @@ void GERBVIEW_FRAME::ExportDataInPcbnewFormat( wxCommandEvent& event )
     if( ok != wxID_OK )
         return;
 
-    if( wxFileExists( fileName ) )
-    {
-        if( !IsOK( this, _( "OK to change the existing file ?" ) ) )
-            return;
-    }
+    m_mruPath = wxFileName( fileName ).GetPath();
 
     GBR_TO_PCB_EXPORTER gbr_exporter( this, fileName );
 
-    gbr_exporter.ExportPcb( layerdlg->GetLayersLookUpTable(),
-                            layerdlg->GetCopperLayersCount() );
+    gbr_exporter.ExportPcb( layerdlg->GetLayersLookUpTable(), layerdlg->GetCopperLayersCount() );
 }
 
 
@@ -291,8 +287,8 @@ void GBR_TO_PCB_EXPORTER::export_non_copper_item( GERBER_DRAW_ITEM* aGbrItem, LA
     }
 
     // Reverse Y axis:
-    NEGATE( seg_start.y );
-    NEGATE( seg_end.y );
+    seg_start.y = -seg_start.y;
+    seg_end.y = -seg_end.y;
     writePcbLineItem( isArc, seg_start, seg_end, aGbrItem->m_Size.x, aLayer, angle );
 }
 
@@ -327,8 +323,8 @@ void GBR_TO_PCB_EXPORTER::export_segline_copper_item( GERBER_DRAW_ITEM* aGbrItem
     seg_end     = aGbrItem->m_End;
 
     // Reverse Y axis:
-    NEGATE( seg_start.y );
-    NEGATE( seg_end.y );
+    seg_start.y = -seg_start.y;
+    seg_end.y = -seg_end.y;
 
     writeCopperLineItem( seg_start, seg_end, aGbrItem->m_Size.x, aLayer );
 }
@@ -382,8 +378,8 @@ void GBR_TO_PCB_EXPORTER::export_segarc_copper_item( GERBER_DRAW_ITEM* aGbrItem,
                      -RAD2DECIDEG( DELTA_ANGLE * ii ) );
         seg_end = curr_end;
         // Reverse Y axis:
-        NEGATE( seg_start.y );
-        NEGATE( seg_end.y );
+        seg_start.y = -seg_start.y;
+        seg_end.y = -seg_end.y;
         writeCopperLineItem( seg_start, seg_end, aGbrItem->m_Size.x, aLayer );
         curr_start = curr_end;
     }
@@ -393,8 +389,8 @@ void GBR_TO_PCB_EXPORTER::export_segarc_copper_item( GERBER_DRAW_ITEM* aGbrItem,
         seg_start   = curr_start;
         seg_end     = end;
         // Reverse Y axis:
-        NEGATE( seg_start.y );
-        NEGATE( seg_end.y );
+        seg_start.y = -seg_start.y;
+        seg_end.y = -seg_end.y;
         writeCopperLineItem( seg_start, seg_end, aGbrItem->m_Size.x, aLayer );
     }
 }
@@ -419,7 +415,7 @@ void GBR_TO_PCB_EXPORTER::export_flashed_copper_item( GERBER_DRAW_ITEM* aGbrItem
     wxPoint via_pos = aGbrItem->m_Start;
     int width   = (aGbrItem->m_Size.x + aGbrItem->m_Size.y) / 2;
     // Reverse Y axis:
-    NEGATE( via_pos.y );
+    via_pos.y = -via_pos.y;
 
     // Layers are Front to Back
     fprintf( m_fp, " (via (at %s %s) (size %s)",

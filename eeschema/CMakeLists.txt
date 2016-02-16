@@ -45,8 +45,6 @@ set( EESCHEMA_DLGS
     dialogs/dialog_bom.cpp
     dialogs/dialog_bom_base.cpp
     dialogs/dialog_bom_cfg_keywords.cpp
-    dialogs/dialog_color_config.cpp
-    dialogs/dialog_color_config_base.cpp
     dialogs/dialog_choose_component.cpp
     dialogs/dialog_choose_component_base.cpp
     dialogs/dialog_lib_edit_text.cpp
@@ -67,8 +65,6 @@ set( EESCHEMA_DLGS
     dialogs/dialog_eeschema_options.cpp
     dialogs/dialog_erc.cpp
     dialogs/dialog_erc_base.cpp
-    dialogs/dialog_libedit_dimensions.cpp
-    dialogs/dialog_libedit_dimensions_base.cpp
     dialogs/dialog_lib_edit_draw_item.cpp
     dialogs/dialog_lib_edit_draw_item_base.cpp
     dialogs/dialog_libedit_options_base.cpp
@@ -95,7 +91,13 @@ set( EESCHEMA_DLGS
     dialogs/dialog_schematic_find_base.cpp
     )
 
+set( EESCHEMA_WIDGETS
+    widgets/widget_eeschema_color_config.cpp
+    )
+
+
 set( EESCHEMA_SRCS
+    autoplace_fields.cpp
     annotate.cpp
     backanno.cpp
     block.cpp
@@ -113,6 +115,7 @@ set( EESCHEMA_SRCS
     controle.cpp
     cross-probing.cpp
     ${EESCHEMA_DLGS}
+    ${EESCHEMA_WIDGETS}
     edit_component_in_schematic.cpp
     edit_bitmap.cpp
     edit_label.cpp
@@ -136,7 +139,6 @@ set( EESCHEMA_SRCS
     libedit_undo_redo.cpp
     lib_arc.cpp
     lib_bezier.cpp
-    lib_cache_rescue.cpp
     lib_circle.cpp
     lib_collectors.cpp
     lib_draw_item.cpp
@@ -156,11 +158,13 @@ set( EESCHEMA_SRCS
     onrightclick.cpp
     operations_on_items_lists.cpp
     pinedit.cpp
+    pin_number.cpp
     plot_schematic_DXF.cpp
     plot_schematic_HPGL.cpp
     plot_schematic_PS.cpp
     plot_schematic_PDF.cpp
     plot_schematic_SVG.cpp
+    project_rescue.cpp
     sch_base_frame.cpp
     sch_bitmap.cpp
     sch_bus_entry.cpp
@@ -215,6 +219,8 @@ set( EESCHEMA_COMMON_SRCS
 if( MINGW )
     # EESCHEMA_RESOURCES variable is set by the macro.
     mingw_resource_compiler( eeschema )
+else()
+    set( EESCHEMA_RESOURCES eeschema.rc )
 endif()
 
 # Create a C++ compilable string initializer containing html text into a *.h file:
@@ -271,7 +277,7 @@ if( APPLE )
         MACOSX_PACKAGE_LOCATION Resources
         )
     set( MACOSX_BUNDLE_ICON_FILE eeschema.icns )
-    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.kicad )
+    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-pcb.kicad )
     set( MACOSX_BUNDLE_NAME eeschema )
 endif()
 

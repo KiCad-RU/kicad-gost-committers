@@ -120,11 +120,8 @@ typedef unsigned                LEG_MASK;
 #define LAYER_N_15              14
 #define LAYER_N_FRONT           15
 #define LAST_COPPER_LAYER       LAYER_N_FRONT
-#define NB_COPPER_LAYERS        (LAST_COPPER_LAYER - FIRST_COPPER_LAYER + 1)
 
 #define FIRST_NON_COPPER_LAYER  16
-#define FIRST_TECHNICAL_LAYER   16
-#define FIRST_USER_LAYER        24
 #define ADHESIVE_N_BACK         16
 #define ADHESIVE_N_FRONT        17
 #define SOLDERPASTE_N_BACK      18
@@ -139,14 +136,6 @@ typedef unsigned                LEG_MASK;
 #define ECO2_N                  27
 #define EDGE_N                  28
 #define LAST_NON_COPPER_LAYER   28
-#define LAST_TECHNICAL_LAYER    23
-#define LAST_USER_LAYER         27
-#define NB_PCB_LAYERS           (LAST_NON_COPPER_LAYER + 1)
-#define UNUSED_LAYER_29         29
-#define UNUSED_LAYER_30         30
-#define UNUSED_LAYER_31         31
-#define NB_GERBER_LAYERS        32
-#define NB_LAYERS               32
 
 // Masks to identify a layer by a bit map
 typedef unsigned LAYER_MSK;
@@ -180,17 +169,11 @@ typedef unsigned LAYER_MSK;
 #define ECO2_LAYER              (1 << ECO2_N)
 #define EDGE_LAYER              (1 << EDGE_N)
 
-//      extra bits              0xE0000000
-
 // Helpful global layer masks:
 // ALL_AUX_LAYERS layers are technical layers, ALL_NO_CU_LAYERS has user
 // and edge layers too!
-#define ALL_LAYERS              0x1FFFFFFF              // Pcbnew used 29 layers
-#define FULL_LAYERS             0xFFFFFFFF              // Gerbview used 32 layers
 #define ALL_NO_CU_LAYERS        0x1FFF0000
 #define ALL_CU_LAYERS           0x0000FFFF
-#define INTERNAL_CU_LAYERS      0x00007FFE
-#define EXTERNAL_CU_LAYERS      0x00008001
 #define FRONT_TECH_LAYERS       (SILKSCREEN_LAYER_FRONT | SOLDERMASK_LAYER_FRONT \
                                     | ADHESIVE_LAYER_FRONT | SOLDERPASTE_LAYER_FRONT)
 #define BACK_TECH_LAYERS        (SILKSCREEN_LAYER_BACK | SOLDERMASK_LAYER_BACK \
@@ -258,32 +241,6 @@ static inline char* ReadLine( LINE_READER* rdr, const char* caller )
 using namespace std;    // auto_ptr
 
 
-static inline const char* ShowVertJustify( EDA_TEXT_VJUSTIFY_T vertical )
-{
-    const char* rs;
-    switch( vertical )
-    {
-    case GR_TEXT_VJUSTIFY_TOP:      rs = "T";   break;
-    case GR_TEXT_VJUSTIFY_CENTER:   rs = "C";   break;
-    case GR_TEXT_VJUSTIFY_BOTTOM:   rs = "B";   break;
-    default:                        rs = "?";   break;
-    }
-    return rs;
-}
-
-static inline const char* ShowHorizJustify( EDA_TEXT_HJUSTIFY_T horizontal )
-{
-    const char* rs;
-    switch( horizontal )
-    {
-    case GR_TEXT_HJUSTIFY_LEFT:     rs = "L";   break;
-    case GR_TEXT_HJUSTIFY_CENTER:   rs = "C";   break;
-    case GR_TEXT_HJUSTIFY_RIGHT:    rs = "R";   break;
-    default:                        rs = "?";   break;
-    }
-    return rs;
-}
-
 static EDA_TEXT_HJUSTIFY_T horizJustify( const char* horizontal )
 {
     if( !strcmp( "L", horizontal ) )
@@ -318,6 +275,14 @@ inline int layerMaskCountSet( LEG_MASK aMask )
 }
 
 
+// return true if aLegacyLayerNum is a valid copper layer legacy id, therefore
+// top, bottom or inner activated layer
+inline bool is_leg_copperlayer_valid( int aCu_Count, LAYER_NUM aLegacyLayerNum )
+{
+    return ( aLegacyLayerNum == LAYER_N_FRONT ) || ( aLegacyLayerNum < aCu_Count );
+}
+
+
 LAYER_ID LEGACY_PLUGIN::leg_layer2new( int cu_count, LAYER_NUM aLayerNum )
 {
     int         newid;
@@ -334,7 +299,6 @@ LAYER_ID LEGACY_PLUGIN::leg_layer2new( int cu_count, LAYER_NUM aLayerNum )
         else
         {
             newid = cu_count - 1 - old;
-
             wxASSERT( newid >= 0 );
         }
     }
@@ -356,8 +320,9 @@ LAYER_ID LEGACY_PLUGIN::leg_layer2new( int cu_count, LAYER_NUM aLayerNum )
         case ECO2_N:                newid = Eco2_User;  break;
         case EDGE_N:                newid = Edge_Cuts;  break;
         default:
-            wxASSERT( 0 );
-            newid = 0;
+//            wxASSERT( 0 );
+            // Remap all illegal non copper layers to comment layer
+            newid = Cmts_User;
         }
     }
 
@@ -1458,12 +1423,12 @@ void LEGACY_PLUGIN::loadPAD( MODULE* aModule )
 
             switch( padchar )
             {
-            case 'C':   padshape = PAD_CIRCLE;      break;
-            case 'R':   padshape = PAD_RECT;        break;
-            case 'O':   padshape = PAD_OVAL;        break;
-            case 'T':   padshape = PAD_TRAPEZOID;   break;
+            case 'C':   padshape = PAD_SHAPE_CIRCLE;      break;
+            case 'R':   padshape = PAD_SHAPE_RECT;        break;
+            case 'O':   padshape = PAD_SHAPE_OVAL;        break;
+            case 'T':   padshape = PAD_SHAPE_TRAPEZOID;   break;
             default:
-                m_error.Printf( _( "Unknown padshape '%c=0x%02x' on line: %d of module: '%s'" ),
+                m_error.Printf( _( "Unknown padshape '%c=0x%02x' on line: %d of footprint: '%s'" ),
                                 padchar,
                                 padchar,
                                 m_reader->LineNumber(),
@@ -1509,14 +1474,14 @@ void LEGACY_PLUGIN::loadPAD( MODULE* aModule )
             BIU offs_x  = biuParse( data, &data );
             BIU offs_y  = biuParse( data, &data );
 
-            PAD_DRILL_SHAPE_T drShape = PAD_DRILL_CIRCLE;
+            PAD_DRILL_SHAPE_T drShape = PAD_DRILL_SHAPE_CIRCLE;
 
             data = strtok_r( (char*) data, delims, &saveptr );
             if( data )  // optional shape
             {
                 if( data[0] == 'O' )
                 {
-                    drShape = PAD_DRILL_OBLONG;
+                    drShape = PAD_DRILL_SHAPE_OBLONG;
 
                     data    = strtok_r( NULL, delims, &saveptr );
                     drill_x = biuParse( data );
@@ -1541,13 +1506,13 @@ void LEGACY_PLUGIN::loadPAD( MODULE* aModule )
             data = strtok_r( line + SZ( "At" ), delims, &saveptr );
 
             if( !strcmp( data, "SMD" ) )
-                attribute = PAD_SMD;
+                attribute = PAD_ATTRIB_SMD;
             else if( !strcmp( data, "CONN" ) )
-                attribute = PAD_CONN;
+                attribute = PAD_ATTRIB_CONN;
             else if( !strcmp( data, "HOLE" ) )
-                attribute = PAD_HOLE_NOT_PLATED;
+                attribute = PAD_ATTRIB_HOLE_NOT_PLATED;
             else
-                attribute = PAD_STANDARD;
+                attribute = PAD_ATTRIB_STANDARD;
 
             strtok_r( NULL, delims, &saveptr );  // skip BufCar
             data = strtok_r( NULL, delims, &saveptr );
@@ -2082,6 +2047,13 @@ void LEGACY_PLUGIN::loadPCB_LINE()
 
 void LEGACY_PLUGIN::loadNETINFO_ITEM()
 {
+    /* a net description is something like
+     * $EQUIPOT
+     * Na 5 "/BIT1"
+     * St ~
+     * $EndEQUIPOT
+     */
+
     char  buf[1024];
 
     NETINFO_ITEM*   net = NULL;
@@ -2099,14 +2071,20 @@ void LEGACY_PLUGIN::loadNETINFO_ITEM()
             netCode = intParse( line + SZ( "Na" ), &data );
 
             ReadDelimitedText( buf, data, sizeof(buf) );
-            net = new NETINFO_ITEM( m_board, FROM_UTF8( buf ), netCode );
+
+            if( net == NULL )
+                net = new NETINFO_ITEM( m_board, FROM_UTF8( buf ), netCode );
+            else
+            {
+                THROW_IO_ERROR( "Two net definitions in  '$EQUIPOT' block" );
+            }
         }
 
         else if( TESTLINE( "$EndEQUIPOT" ) )
         {
             // net 0 should be already in list, so store this net
             // if it is not the net 0, or if the net 0 does not exists.
-            if( net != NULL && ( net->GetNet() > 0 || m_board->FindNet( 0 ) == NULL ) )
+            if( net && ( net->GetNet() > 0 || m_board->FindNet( 0 ) == NULL ) )
             {
                 m_board->AppendNet( net );
 
@@ -2115,10 +2093,12 @@ void LEGACY_PLUGIN::loadNETINFO_ITEM()
                     m_netCodes.resize( netCode+1 );
 
                 m_netCodes[netCode] = net->GetNet();
+                net = NULL;
             }
             else
             {
                 delete net;
+                net = NULL;     // Avoid double deletion.
             }
 
             return;     // preferred exit
@@ -2139,7 +2119,7 @@ void LEGACY_PLUGIN::loadPCB_TEXT()
         $TEXTPCB
         Te "Text example"
         Po 66750 53450 600 800 150 0
-        From 24 1 0 Italic
+        De 24 1 0 Italic
         $EndTEXTPCB
 
         For a multi line text:
@@ -2148,7 +2128,7 @@ void LEGACY_PLUGIN::loadPCB_TEXT()
         Te "Text example"
         Nl "Line 2"
         Po 66750 53450 600 800 150 0
-        From 24 1 0 Italic
+        De 24 1 0 Italic
         $EndTEXTPCB
         Nl "line nn" is a line added to the current text
     */
@@ -2248,7 +2228,11 @@ void LEGACY_PLUGIN::loadPCB_TEXT()
             else if( layer_num > LAST_NON_COPPER_LAYER )
                 layer_num = LAST_NON_COPPER_LAYER;
 
-            pcbtxt->SetLayer( leg_layer2new( m_cu_count,  layer_num ) );
+            if( layer_num >= FIRST_NON_COPPER_LAYER ||
+                is_leg_copperlayer_valid( m_cu_count, layer_num ) )
+                pcbtxt->SetLayer( leg_layer2new( m_cu_count, layer_num ) );
+            else    // not perfect, but putting this text on front layer is a workaround
+                pcbtxt->SetLayer( F_Cu );
         }
 
         else if( TESTLINE( "$EndTEXTPCB" ) )
@@ -2377,18 +2361,37 @@ void LEGACY_PLUGIN::loadTrackList( int aStructType )
                 LAYER_ID  back  = leg_layer2new( m_cu_count, (layer_num >> 4) & 0xf );
                 LAYER_ID  front = leg_layer2new( m_cu_count, layer_num & 0xf );
 
-                via->SetLayerPair( front, back );
+                if( is_leg_copperlayer_valid( m_cu_count, back ) &&
+                    is_leg_copperlayer_valid( m_cu_count, front ) )
+                    via->SetLayerPair( front, back );
+                else
+                {
+                    delete via;
+                    newTrack = NULL;
+                }
             }
         }
         else
         {
-            newTrack->SetLayer( leg_layer2new( m_cu_count, layer_num ) );
+            // A few legacy boards can have tracks on non existent layers, because
+            // reducing the number of layers does not remove tracks on removed layers
+            // If happens, skip them
+            if( is_leg_copperlayer_valid( m_cu_count, layer_num ) )
+                newTrack->SetLayer( leg_layer2new( m_cu_count, layer_num ) );
+            else
+            {
+                delete newTrack;
+                newTrack = NULL;
+            }
         }
 
-        newTrack->SetNetCode( getNetCode( net_code ) );
-        newTrack->SetState( flags, true );
+        if( newTrack )
+        {
+            newTrack->SetNetCode( getNetCode( net_code ) );
+            newTrack->SetState( flags, true );
 
-        m_board->Add( newTrack );
+            m_board->Add( newTrack );
+        }
     }
 
     THROW_IO_ERROR( "Missing '$EndTRACK'" );
@@ -2646,10 +2649,10 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
             ZoneConnection popt;
             switch( *padoption )
             {
-            case 'I':   popt = PAD_IN_ZONE;        break;
-            case 'T':   popt = THERMAL_PAD;        break;
-            case 'H':   popt = THT_THERMAL;        break;
-            case 'X':   popt = PAD_NOT_IN_ZONE;    break;
+            case 'I': popt = PAD_ZONE_CONN_FULL;        break;
+            case 'T': popt = PAD_ZONE_CONN_THERMAL;     break;
+            case 'H': popt = PAD_ZONE_CONN_THT_THERMAL; break;
+            case 'X': popt = PAD_ZONE_CONN_NONE;        break;
 
             default:
                 m_error.Printf( wxT( "Bad ZClearance padoption for CZONE_CONTAINER '%s'" ),
@@ -2676,7 +2679,9 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
         else if( TESTLINE( "$POLYSCORNERS" ) )
         {
             // Read the PolysList (polygons used for fill areas in the zone)
-            CPOLYGONS_LIST polysList;
+            SHAPE_POLY_SET polysList;
+
+            bool makeNewOutline = true;
 
             while( ( line = READLINE( m_reader ) ) != NULL )
             {
@@ -2687,11 +2692,17 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
                 BIU     x = biuParse( line, &data );
                 BIU     y = biuParse( data, &data );
 
-                bool    end_contour = intParse( data, &data );  // end_countour was a bool when file saved, so '0' or '1' here
-                int     cornerUtilityFlg  = intParse( data );
+                if( makeNewOutline )
+                    polysList.NewOutline();
 
-               polysList.Append( CPolyPt( x, y, end_contour, cornerUtilityFlg ) );
+                polysList.Append( x, y );
+
+                bool end_contour = intParse( data, &data );  // end_countour was a bool when file saved, so '0' or '1' here
+                intParse( data ); // skip corner utility flag
+
+                makeNewOutline = end_contour;
             }
+
             zc->AddFilledPolysList( polysList );
         }
 
@@ -3123,6 +3134,35 @@ void LEGACY_PLUGIN::SaveModule3D( const MODULE* me ) const
 #if 0
 
 //-----<BOARD Save Functions>---------------------------------------------------
+
+
+static inline const char* ShowVertJustify( EDA_TEXT_VJUSTIFY_T vertical )
+{
+    const char* rs;
+    switch( vertical )
+    {
+    case GR_TEXT_VJUSTIFY_TOP:      rs = "T";   break;
+    case GR_TEXT_VJUSTIFY_CENTER:   rs = "C";   break;
+    case GR_TEXT_VJUSTIFY_BOTTOM:   rs = "B";   break;
+    default:                        rs = "?";   break;
+    }
+    return rs;
+}
+
+
+static inline const char* ShowHorizJustify( EDA_TEXT_HJUSTIFY_T horizontal )
+{
+    const char* rs;
+    switch( horizontal )
+    {
+    case GR_TEXT_HJUSTIFY_LEFT:     rs = "L";   break;
+    case GR_TEXT_HJUSTIFY_CENTER:   rs = "C";   break;
+    case GR_TEXT_HJUSTIFY_RIGHT:    rs = "R";   break;
+    default:                        rs = "?";   break;
+    }
+    return rs;
+}
+
 
 #define SPBUFZ  50      // wire all usages of this together.
 
@@ -3652,10 +3692,10 @@ void LEGACY_PLUGIN::savePAD( const D_PAD* me ) const
 
     switch( me->GetShape() )
     {
-    case PAD_CIRCLE:    cshape = 'C';   break;
-    case PAD_RECT:      cshape = 'R';   break;
-    case PAD_OVAL:      cshape = 'O';   break;
-    case PAD_TRAPEZOID: cshape = 'T';   break;
+    case PAD_SHAPE_CIRCLE:    cshape = 'C';   break;
+    case PAD_SHAPE_RECT:      cshape = 'R';   break;
+    case PAD_SHAPE_OVAL:      cshape = 'O';   break;
+    case PAD_SHAPE_TRAPEZOID: cshape = 'T';   break;
 
     default:
         THROW_IO_ERROR( wxString::Format( UNKNOWN_PAD_FORMAT, me->GetShape() ) );
@@ -3695,7 +3735,7 @@ void LEGACY_PLUGIN::savePAD( const D_PAD* me ) const
                     fmtBIU( me->GetDrillSize().x ).c_str(),
                     fmtBIUPoint( me->GetOffset() ).c_str() );
 
-    if( me->GetDrillShape() == PAD_DRILL_OBLONG )
+    if( me->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG )
     {
         fprintf( m_fp, " %c %s", 'O', fmtBIUSize( me->GetDrillSize() ).c_str() );
     }
@@ -3706,10 +3746,10 @@ void LEGACY_PLUGIN::savePAD( const D_PAD* me ) const
 
     switch( me->GetAttribute() )
     {
-    case PAD_STANDARD:          texttype = "STD";       break;
-    case PAD_SMD:               texttype = "SMD";       break;
-    case PAD_CONN:              texttype = "CONN";      break;
-    case PAD_HOLE_NOT_PLATED:   texttype = "HOLE";      break;
+    case PAD_ATTRIB_STANDARD:          texttype = "STD";       break;
+    case PAD_ATTRIB_SMD:               texttype = "SMD";       break;
+    case PAD_ATTRIB_CONN:              texttype = "CONN";      break;
+    case PAD_ATTRIB_HOLE_NOT_PLATED:   texttype = "HOLE";      break;
 
     default:
         THROW_IO_ERROR( wxString::Format( UNKNOWN_PAD_ATTRIBUTE, me->GetAttribute() ) );
@@ -3738,7 +3778,7 @@ void LEGACY_PLUGIN::savePAD( const D_PAD* me ) const
     if( me->GetLocalClearance() != 0 )
         fprintf( m_fp, ".LocalClearance %s\n", fmtBIU( me->GetLocalClearance( ) ).c_str() );
 
-    if( me->GetZoneConnection() != UNDEFINED_CONNECTION )
+    if( me->GetZoneConnection() != PAD_ZONE_CONN_INHERITED )
         fprintf( m_fp, ".ZoneConnection %d\n", me->GetZoneConnection() );
 
     if( me->GetThermalWidth() != 0 )
@@ -3803,7 +3843,7 @@ void LEGACY_PLUGIN::saveMODULE( const MODULE* me ) const
     if( me->GetLocalClearance() != 0 )
         fprintf( m_fp, ".LocalClearance %s\n", fmtBIU( me->GetLocalClearance( ) ).c_str() );
 
-    if( me->GetZoneConnection() != UNDEFINED_CONNECTION )
+    if( me->GetZoneConnection() != PAD_ZONE_CONN_INHERITED )
         fprintf( m_fp, ".ZoneConnection %d\n", me->GetZoneConnection() );
 
     if( me->GetThermalWidth() != 0 )
@@ -3979,10 +4019,10 @@ void LEGACY_PLUGIN::saveZONE_CONTAINER( const ZONE_CONTAINER* me ) const
     switch( me->GetPadConnection() )
     {
     default:
-    case PAD_IN_ZONE:       padoption = 'I';  break;
-    case THERMAL_PAD:       padoption = 'T';  break;
-    case THT_THERMAL:       padoption = 'H';  break; // H is for 'hole' since it reliefs holes only
-    case PAD_NOT_IN_ZONE:   padoption = 'X';  break;
+    case PAD_ZONE_CONN_FULL:        padoption = 'I';  break;
+    case PAD_ZONE_CONN_THERMAL:     padoption = 'T';  break;
+    case PAD_ZONE_CONN_THT_THERMAL: padoption = 'H';  break; // H is for 'hole' since it reliefs holes only
+    case PAD_ZONE_CONN_NONE:        padoption = 'X';  break;
     }
 
     fprintf( m_fp,  "ZClearance %s %c\n",

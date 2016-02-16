@@ -202,16 +202,14 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             if( !editor )
             {
                 editor = (FOOTPRINT_EDIT_FRAME*) Kiway().Player( FRAME_PCB_MODULE_EDITOR, true );
-
-                editor->Show( true );
                 editor->Zoom_Automatique( false );
             }
             else
             {
-                /* not needed on linux, other platforms need this?
+                // Needed on Windows, other platforms do not use it,
+                // but it creates no issue
                 if( editor->IsIconized() )
                      editor->Iconize( false );
-                */
 
                 editor->Raise();
 
@@ -220,6 +218,8 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 if( wxWindow::FindFocus() != editor )
                     editor->SetFocus();
             }
+
+            editor->PushPreferences( m_canvas );
         }
         break;
 
@@ -230,16 +230,14 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             if( !viewer )
             {
                 viewer = (FOOTPRINT_VIEWER_FRAME*) Kiway().Player( FRAME_PCB_MODULE_VIEWER, true );
-
-                viewer->Show( true );
                 viewer->Zoom_Automatique( false );
             }
             else
             {
-                /* not needed on linux, other platforms need this?
+                // Needed on Windows, other platforms do not use it,
+                // but it creates no issue
                 if( viewer->IsIconized() )
                      viewer->Iconize( false );
-                */
 
                 viewer->Raise();
 
@@ -248,6 +246,8 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 if( wxWindow::FindFocus() != viewer )
                     viewer->SetFocus();
             }
+
+            viewer->PushPreferences( m_canvas );
         }
         break;
 
@@ -649,7 +649,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         {
             // Remove filled areas in zone
             ZONE_CONTAINER* zone_container = GetBoard()->GetArea( ii );
-            zone_container->ClearFilledPolysList();
+            zone_container->UnFill();
         }
 
         SetCurItem( NULL );        // CurItem might be deleted by this command, clear the pointer
@@ -703,7 +703,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_POPUP_PCB_GET_AND_MOVE_MODULE_REQUEST:      // get module by name and move it
-        SetCurItem( GetModuleByName() );
+        SetCurItem( GetFootprintFromBoardByReference() );
         module = (MODULE*) GetCurItem();
 
         if( module == NULL )
@@ -744,7 +744,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             break;
         }
 
-        if( Delete_Module( (MODULE*) GetCurItem(), &dc, true ) )
+        if( Delete_Module( (MODULE*) GetCurItem(), &dc ) )
         {
             SetCurItem( NULL );
         }
@@ -835,6 +835,16 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         Change_Side_Module( (MODULE*) GetCurItem(), &dc );
         break;
 
+    case ID_POPUP_PCB_EXCHANGE_FOOTPRINTS:
+        if( !GetCurItem() || GetCurItem()->Type() != PCB_MODULE_T )
+            break;
+
+        InstallExchangeModuleFrame( (MODULE*) GetCurItem() );
+        // Warning: the current item can be deleted by exchange module
+        SetCurItem( NULL );
+        m_canvas->MoveCursorToCrossHair();
+        break;
+
     case ID_POPUP_PCB_EDIT_MODULE_PRMS:
         // If the current Item is a pad, text module ...: Get its parent
         if( GetCurItem()->Type() != PCB_MODULE_T )
@@ -871,10 +881,6 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
             editor->Load_Module_From_BOARD( (MODULE*)GetCurItem() );
             SetCurItem( NULL );     // the current module could be deleted by
-
-            editor->Show( true );
-
-            editor->Raise();        // Iconize( false );
         }
         m_canvas->MoveCursorToCrossHair();
         break;
@@ -977,7 +983,7 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
             if( itmp >= 0 )
             {
                 // if user changed colors and we are in high contrast mode, then redraw
-                // because the PAD_SMD pads may change color.
+                // because the PAD_ATTRIB_SMD pads may change color.
                 if( displ_opts->m_ContrastModeDisplay && GetActiveLayer() != itmp )
                 {
                     m_canvas->Refresh();
@@ -1229,12 +1235,12 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         }
         break;
 
-    case ID_MENU_ARCHIVE_NEW_MODULES:
-        ArchiveModulesOnBoard( true );
+    case ID_MENU_ARCHIVE_MODULES_IN_LIBRARY:
+        ArchiveModulesOnBoard( false );
         break;
 
-    case ID_MENU_ARCHIVE_ALL_MODULES:
-        ArchiveModulesOnBoard( false );
+    case ID_MENU_CREATE_LIBRARY_AND_ARCHIVE_MODULES:
+        ArchiveModulesOnBoard( true );
         break;
 
     case ID_GEN_IMPORT_DXF_FILE:
@@ -1262,7 +1268,7 @@ void PCB_EDIT_FRAME::RemoveStruct( BOARD_ITEM* Item, wxDC* DC )
     switch( Item->Type() )
     {
     case PCB_MODULE_T:
-        Delete_Module( (MODULE*) Item, DC, true );
+        Delete_Module( (MODULE*) Item, DC );
         break;
 
     case PCB_DIMENSION_T:
@@ -1436,7 +1442,7 @@ void PCB_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
         break;
 
     case ID_PCB_MODULE_BUTT:
-        SetToolID( id, wxCURSOR_PENCIL, _( "Add module" ) );
+        SetToolID( id, wxCURSOR_PENCIL, _( "Add footprint" ) );
         break;
 
     case ID_PCB_ZONES_BUTT:
@@ -1483,7 +1489,7 @@ void PCB_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
         break;
 
     case ID_COMPONENT_BUTT:
-        SetToolID( id, wxCURSOR_HAND, _( "Add module" ) );
+        SetToolID( id, wxCURSOR_HAND, _( "Add footprint" ) );
         break;
 
     case ID_PCB_DIMENSION_BUTT:

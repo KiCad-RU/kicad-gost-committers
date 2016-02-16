@@ -583,6 +583,7 @@ static void export_vrml_drawsegment( MODEL_VRML& aModel, DRAWSEGMENT* drawseg )
     double  y   = drawseg->GetStart().y * aModel.scale;
     double  xf  = drawseg->GetEnd().x * aModel.scale;
     double  yf  = drawseg->GetEnd().y * aModel.scale;
+    double  r   = sqrt( pow( x - xf, 2 ) + pow( y - yf, 2 ) );
 
     // Items on the edge layer are handled elsewhere; just return
     if( layer == Edge_Cuts )
@@ -600,7 +601,10 @@ static void export_vrml_drawsegment( MODEL_VRML& aModel, DRAWSEGMENT* drawseg )
         break;
 
     case S_CIRCLE:
-        export_vrml_circle( aModel, layer, x, y, xf, yf, w );
+        // Break circles into two 180 arcs to prevent the vrml hole from obscuring objects
+        // within the hole area of the circle.
+        export_vrml_arc( aModel, layer, x, y, x, y-r, w, 180.0 );
+        export_vrml_arc( aModel, layer, x, y, x, y+r, w, 180.0 );
         break;
 
     default:
@@ -633,7 +637,7 @@ static void export_vrml_pcbtext( MODEL_VRML& aModel, TEXTE_PCB* text )
     wxSize size = text->GetSize();
 
     if( text->IsMirrored() )
-        NEGATE( size.x );
+        size.x = -size.x;
 
     EDA_COLOR_T color = BLACK;  // not actually used, but needed by DrawGraphicText
 
@@ -671,9 +675,9 @@ static void export_vrml_pcbtext( MODEL_VRML& aModel, TEXTE_PCB* text )
 static void export_vrml_drawings( MODEL_VRML& aModel, BOARD* pcb )
 {
     // draw graphic items
-    for( EDA_ITEM* drawing = pcb->m_Drawings; drawing != 0; drawing = drawing->Next() )
+    for( BOARD_ITEM* drawing = pcb->m_Drawings; drawing != 0; drawing = drawing->Next() )
     {
-        LAYER_ID layer = ( (DRAWSEGMENT*) drawing )->GetLayer();
+        LAYER_ID layer = drawing->GetLayer();
 
         if( layer != F_Cu && layer != B_Cu && layer != B_SilkS && layer != F_SilkS )
             continue;
@@ -698,11 +702,8 @@ static void export_vrml_drawings( MODEL_VRML& aModel, BOARD* pcb )
 // board edges and cutouts
 static void export_vrml_board( MODEL_VRML& aModel, BOARD* pcb )
 {
-    CPOLYGONS_LIST  bufferPcbOutlines;      // stores the board main outlines
-    CPOLYGONS_LIST  allLayerHoles;          // Contains through holes, calculated only once
-
-    allLayerHoles.reserve( 20000 );
-
+    SHAPE_POLY_SET  bufferPcbOutlines;      // stores the board main outlines
+    SHAPE_POLY_SET  allLayerHoles;          // Contains through holes, calculated only once
     // Build a polygon from edge cut items
     wxString msg;
 
@@ -715,47 +716,28 @@ static void export_vrml_board( MODEL_VRML& aModel, BOARD* pcb )
     }
 
     double  scale = aModel.scale;
-
-    int i = 0;
     int seg;
 
-    // deal with the solid outlines
-    int nvert = bufferPcbOutlines.GetCornersCount();
-
-    while( i < nvert )
+    for( int i = 0; i < bufferPcbOutlines.OutlineCount(); i++ )
     {
+        const SHAPE_LINE_CHAIN& outline = bufferPcbOutlines.COutline( i );
+
         seg = aModel.board.NewContour();
 
-        if( seg < 0 )
+        for( int j = 0; j < outline.PointCount(); j++ )
         {
-            msg << wxT( "\n\n" ) <<
-                _( "VRML Export Failed:\nCould not add outline to contours." );
-            wxMessageBox( msg );
+            aModel.board.AddVertex( seg, (double)outline.CPoint(j).x * scale,
+                                        -((double)outline.CPoint(j).y * scale ) );
 
-            return;
-        }
-
-        while( i < nvert )
-        {
-            if( bufferPcbOutlines[i].end_contour )
-                break;
-
-            aModel.board.AddVertex( seg, bufferPcbOutlines[i].x * scale,
-                                    -(bufferPcbOutlines[i].y * scale ) );
-
-            ++i;
         }
 
         aModel.board.EnsureWinding( seg, false );
-        ++i;
     }
 
-    // deal with the holes
-    nvert = allLayerHoles.GetCornersCount();
-
-    i = 0;
-    while( i < nvert )
+    for( int i = 0; i < allLayerHoles.OutlineCount(); i++ )
     {
+        const SHAPE_LINE_CHAIN& outline = allLayerHoles.COutline( i );
+
         seg = aModel.holes.NewContour();
 
         if( seg < 0 )
@@ -767,19 +749,14 @@ static void export_vrml_board( MODEL_VRML& aModel, BOARD* pcb )
             return;
         }
 
-        while( i < nvert )
+        for( int j = 0; j < outline.PointCount(); j++ )
         {
-            if( allLayerHoles[i].end_contour )
-                break;
+            aModel.holes.AddVertex( seg, (double)outline.CPoint(j).x * scale,
+                                        -((double)outline.CPoint(j).y * scale ) );
 
-            aModel.holes.AddVertex( seg, allLayerHoles[i].x * scale,
-                                    -( allLayerHoles[i].y * scale ) );
-
-            ++i;
         }
 
         aModel.holes.EnsureWinding( seg, true );
-        ++i;
     }
 }
 
@@ -871,9 +848,7 @@ static void export_vrml_tracks( MODEL_VRML& aModel, BOARD* pcb )
 
 static void export_vrml_zones( MODEL_VRML& aModel, BOARD* aPcb )
 {
-
     double scale = aModel.scale;
-    double x, y;
 
     for( int ii = 0; ii < aPcb->GetAreaCount(); ii++ )
     {
@@ -890,33 +865,23 @@ static void export_vrml_zones( MODEL_VRML& aModel, BOARD* aPcb )
             zone->BuildFilledSolidAreasPolygons( aPcb );
         }
 
-        const CPOLYGONS_LIST& poly = zone->GetFilledPolysList();
-        int nvert = poly.GetCornersCount();
-        int i = 0;
+        const SHAPE_POLY_SET& poly = zone->GetFilledPolysList();
 
-        while( i < nvert )
+        for( int i = 0; i < poly.OutlineCount(); i++ )
         {
+            const SHAPE_LINE_CHAIN& outline = poly.COutline( i );
+
             int seg = vl->NewContour();
 
-            if( seg < 0 )
-                break;
-
-            while( i < nvert )
+            for( int j = 0; j < outline.PointCount(); j++ )
             {
-                x = poly.GetX(i) * scale;
-                y = -(poly.GetY(i) * scale);
-
-                if( poly.IsEndContour(i) )
-                    break;
-
-                if( !vl->AddVertex( seg, x, y ) )
+                if( !vl->AddVertex( seg, (double)outline.CPoint( j ).x * scale,
+                                         -((double)outline.CPoint( j ).y * scale ) ) )
                     throw( std::runtime_error( vl->GetError() ) );
 
-                ++i;
             }
 
-             vl->EnsureWinding( seg, false );
-            ++i;
+            vl->EnsureWinding( seg, false );
         }
     }
 }
@@ -929,7 +894,7 @@ static void export_vrml_text_module( TEXTE_MODULE* module )
         wxSize size = module->GetSize();
 
         if( module->IsMirrored() )
-            NEGATE( size.x );  // Text is mirrored
+            size.x = -size.x;  // Text is mirrored
 
         model_vrml->s_text_layer    = module->GetLayer();
         model_vrml->s_text_width    = module->GetThickness();
@@ -1026,14 +991,14 @@ static void export_vrml_padshape( MODEL_VRML& aModel, VRML_LAYER* aTinLayer, D_P
 
     switch( aPad->GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
 
         if( !aTinLayer->AddCircle( pad_x, -pad_y, pad_w, false ) )
             throw( std::runtime_error( aTinLayer->GetError() ) );
 
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
 
         if( !aTinLayer->AddSlot( pad_x, -pad_y, pad_w * 2.0, pad_h * 2.0,
                                  aPad->GetOrientation()/10.0, false ) )
@@ -1041,12 +1006,12 @@ static void export_vrml_padshape( MODEL_VRML& aModel, VRML_LAYER* aTinLayer, D_P
 
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         // Just to be sure :D
         pad_dx  = 0;
         pad_dy  = 0;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
     {
         double coord[8] =
         {
@@ -1107,11 +1072,11 @@ static void export_vrml_pad( MODEL_VRML& aModel, BOARD* pcb, D_PAD* aPad )
     {
         bool pth = false;
 
-        if( ( aPad->GetAttribute() != PAD_HOLE_NOT_PLATED )
+        if( ( aPad->GetAttribute() != PAD_ATTRIB_HOLE_NOT_PLATED )
             && !aModel.plainPCB )
             pth = true;
 
-        if( aPad->GetDrillShape() == PAD_DRILL_OBLONG )
+        if( aPad->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG )
         {
             // Oblong hole (slot)
             aModel.holes.AddSlot( hole_x, -hole_y, hole_drill_w * 2.0, hole_drill_h * 2.0,
@@ -1279,8 +1244,8 @@ static void export_vrml_module( MODEL_VRML& aModel, BOARD* aPcb, MODULE* aModule
             if( isFlipped )
             {
                 rotx += 180.0;
-                NEGATE( roty );
-                NEGATE( rotz );
+                roty = -roty;
+                rotz = -rotz;
             }
 
             // Do some quaternion munching
@@ -1313,9 +1278,9 @@ static void export_vrml_module( MODEL_VRML& aModel, BOARD* aPcb, MODULE* aModule
             double offsetz = vrmlm->m_MatPosition.z * IU_PER_MILS * 1000.0;
 
             if( isFlipped )
-                NEGATE( offsetz );
+                offsetz = -offsetz;
             else // In normal mode, Y axis is reversed in Pcbnew.
-                NEGATE( offsety );
+                offsety = -offsety;
 
             RotatePoint( &offsetx, &offsety, aModule->GetOrientation() );
 
@@ -1352,9 +1317,9 @@ static void export_vrml_module( MODEL_VRML& aModel, BOARD* aPcb, MODULE* aModule
 
 bool PCB_EDIT_FRAME::ExportVRML_File( const wxString& aFullFileName, double aMMtoWRMLunit,
                                       bool aExport3DFiles, bool aUseRelativePaths,
-                                      bool aUsePlainPCB, const wxString& a3D_Subdir )
+                                      bool aUsePlainPCB, const wxString& a3D_Subdir,
+                                      double aXRef, double aYRef )
 {
-    wxString        msg;
     BOARD*          pcb = GetBoard();
     bool            ok  = true;
 
@@ -1385,11 +1350,8 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString& aFullFileName, double aMMt
 
         output_file << "Transform {\n";
 
-        // compute the offset to center the board on (0, 0, 0)
-        // XXX - NOTE: we should allow the user a GUI option to specify the offset
-        EDA_RECT bbbox = pcb->ComputeBoundingBox();
-
-        model3d.SetOffset( -model3d.scale * bbbox.Centre().x, model3d.scale * bbbox.Centre().y );
+        // board reference point
+        model3d.SetOffset( -aXRef, aYRef );
 
         output_file << "  children [\n";
 

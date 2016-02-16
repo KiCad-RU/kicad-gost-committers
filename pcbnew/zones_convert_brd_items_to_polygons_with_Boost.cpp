@@ -44,11 +44,15 @@
  *      - shapes are smoothed.
  */
 
+// Polygon calculations can use fast mode or force strickly simple polygons after calculations
+// Forcing strickly simple polygons is time consuming, and we have not see issues in fast mode
+// so we use fast mode
+#define POLY_CALC_MODE SHAPE_POLY_SET::PM_FAST
+
 #include <cmath>
 #include <sstream>
 
 #include <fctsys.h>
-#include <polygons_defs.h>
 #include <wxPcbStruct.h>
 #include <trigo.h>
 
@@ -70,7 +74,7 @@
 
 #include <boost/foreach.hpp>
 
-extern void BuildUnconnectedThermalStubsPolygonList( CPOLYGONS_LIST& aCornerBuffer,
+extern void BuildUnconnectedThermalStubsPolygonList( SHAPE_POLY_SET& aCornerBuffer,
                                                      BOARD* aPcb, ZONE_CONTAINER* aZone,
                                                      double aArcCorrection,
                                                      double aRoundPadThermalRotation);
@@ -78,7 +82,7 @@ extern void BuildUnconnectedThermalStubsPolygonList( CPOLYGONS_LIST& aCornerBuff
 extern void Test_For_Copper_Island_And_Remove( BOARD*          aPcb,
                                                ZONE_CONTAINER* aZone_container );
 
-extern void CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
+extern void CreateThermalReliefPadPolygon( SHAPE_POLY_SET&       aCornerBuffer,
                                            D_PAD&                aPad,
                                            int                   aThermalGap,
                                            int                   aCopperThickness,
@@ -90,7 +94,7 @@ extern void CreateThermalReliefPadPolygon( CPOLYGONS_LIST& aCornerBuffer,
 // Local Variables:
 static double s_thermalRot = 450;  // angle of stubs in thermal reliefs for round pads
 
-void ZONE_CONTAINER::buildFeatureHoleList( BOARD* aPcb, CPOLYGONS_LIST& aFeatures )
+void ZONE_CONTAINER::buildFeatureHoleList( BOARD* aPcb, SHAPE_POLY_SET& aFeatures )
 {
     int segsPerCircle;
     double correctionFactor;
@@ -167,8 +171,8 @@ void ZONE_CONTAINER::buildFeatureHoleList( BOARD* aPcb, CPOLYGONS_LIST& aFeature
                 // the pad hole
                 dummypad.SetSize( pad->GetDrillSize() );
                 dummypad.SetOrientation( pad->GetOrientation() );
-                dummypad.SetShape( pad->GetDrillShape() == PAD_DRILL_OBLONG ?
-                                   PAD_OVAL : PAD_CIRCLE );
+                dummypad.SetShape( pad->GetDrillShape() == PAD_DRILL_SHAPE_OBLONG ?
+                                   PAD_SHAPE_OVAL : PAD_SHAPE_CIRCLE );
                 dummypad.SetPosition( pad->GetPosition() );
 
                 pad = &dummypad;
@@ -193,7 +197,7 @@ void ZONE_CONTAINER::buildFeatureHoleList( BOARD* aPcb, CPOLYGONS_LIST& aFeature
                 continue;
             }
 
-            if( GetPadConnection( pad ) == PAD_NOT_IN_ZONE )
+            if( GetPadConnection( pad ) == PAD_ZONE_CONN_NONE )
             {
                 int gap = zone_clearance;
                 int thermalGap = GetThermalReliefGap( pad );
@@ -337,12 +341,12 @@ void ZONE_CONTAINER::buildFeatureHoleList( BOARD* aPcb, CPOLYGONS_LIST& aFeature
         for( D_PAD* pad = module->Pads(); pad != NULL; pad = pad->Next() )
         {
             // Rejects non-standard pads with tht-only thermal reliefs
-            if( GetPadConnection( pad ) == THT_THERMAL
-             && pad->GetAttribute() != PAD_STANDARD )
+            if( GetPadConnection( pad ) == PAD_ZONE_CONN_THT_THERMAL
+             && pad->GetAttribute() != PAD_ATTRIB_STANDARD )
                 continue;
 
-            if( GetPadConnection( pad ) != THERMAL_PAD
-             && GetPadConnection( pad ) != THT_THERMAL )
+            if( GetPadConnection( pad ) != PAD_ZONE_CONN_THERMAL
+             && GetPadConnection( pad ) != PAD_ZONE_CONN_THT_THERMAL )
                 continue;
 
             if( !pad->IsOnLayer( GetLayer() ) )
@@ -368,83 +372,6 @@ void ZONE_CONTAINER::buildFeatureHoleList( BOARD* aPcb, CPOLYGONS_LIST& aFeature
 
 }
 
-static const SHAPE_POLY_SET convertPolyListToPolySet(const CPOLYGONS_LIST& aList)
-{
-    SHAPE_POLY_SET rv;
-
-    unsigned    corners_count = aList.GetCornersCount();
-
-    // Enter main outline: this is the first contour
-    unsigned    ic = 0;
-
-    if(!corners_count)
-        return rv;
-
-    while( ic < corners_count )
-    {
-        rv.NewOutline( );
-
-        while( ic < corners_count )
-        {
-            rv.AppendVertex( aList.GetX(ic), aList.GetY(ic) );
-            if( aList.IsEndContour( ic ) )
-                break;
-
-            ic++;
-        }
-        ic++;
-    }
-
-    return rv;
-}
-
-static const CPOLYGONS_LIST convertPolySetToPolyList(const SHAPE_POLY_SET& aPolyset)
-{
-    CPOLYGONS_LIST list;
-
-    CPolyPt corner, firstCorner;
-
-    for( int ii = 0; ii < aPolyset.OutlineCount(); ii++ )
-    {
-
-        for( int jj = 0; jj < aPolyset.VertexCount(ii); jj++ )
-        {
-            VECTOR2I v = aPolyset.GetVertex( jj, ii );
-
-
-            corner.x    = v.x;
-            corner.y    = v.y;
-            corner.end_contour = false;
-
-            if(!jj)
-                firstCorner = corner;
-
-            list.AddCorner( corner );
-        }
-
-        firstCorner.end_contour = true;
-        list.AddCorner( firstCorner );
-    }
-
-    return list;
-
-}
-
-static const SHAPE_POLY_SET convertBoostToPolySet ( const KI_POLYGON_SET& aSet )
-{
-    SHAPE_POLY_SET rv;
-
-    BOOST_FOREACH ( const KI_POLYGON &poly, aSet )
-    {
-        rv.NewOutline();
-        for ( KI_POLYGON::iterator_type corner = poly.begin(); corner != poly.end(); ++ corner )
-        {
-            rv.AppendVertex ( corner->x(), corner->y() );
-        }
-    }
-
-    return rv;
-}
 
 /**
  * Function AddClearanceAreasPolygonsToPolysList
@@ -482,7 +409,9 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList_NG( BOARD* aPcb )
     double correctionFactor;
     int outline_half_thickness = m_ZoneMinThickness / 2;
 
-    std::auto_ptr<SHAPE_FILE_IO> dumper( new SHAPE_FILE_IO( "zones_dump.txt", true ) );
+
+    std::auto_ptr<SHAPE_FILE_IO> dumper( new SHAPE_FILE_IO(
+            g_DumpZonesWhenFilling ? "zones_dump.txt" : "", SHAPE_FILE_IO::IOM_APPEND ) );
 
     // Set the number of segments in arc approximations
     if( m_ArcToSegmentsCount == ARC_APPROX_SEGMENTS_COUNT_HIGHT_DEF  )
@@ -502,80 +431,70 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList_NG( BOARD* aPcb )
     if(g_DumpZonesWhenFilling)
         dumper->BeginGroup("clipper-zone");
 
-    m_smoothedPoly->m_CornersList.InflateOutline( tmp, -outline_half_thickness, true );
-    SHAPE_POLY_SET solidAreas = convertPolyListToPolySet( tmp );
+    SHAPE_POLY_SET solidAreas = ConvertPolyListToPolySet( m_smoothedPoly->m_CornersList );
+
+    solidAreas.Inflate( -outline_half_thickness, segsPerCircle );
+    solidAreas.Simplify( POLY_CALC_MODE );
+
+    SHAPE_POLY_SET holes;
 
     if(g_DumpZonesWhenFilling)
-        dumper->Write ( &solidAreas, "solid-areas" );
-
+        dumper->Write( &solidAreas, "solid-areas" );
 
     tmp.RemoveAllContours();
-    buildFeatureHoleList( aPcb, tmp );
-    SHAPE_POLY_SET holes = convertPolyListToPolySet( tmp );
+    buildFeatureHoleList( aPcb, holes );
 
     if(g_DumpZonesWhenFilling)
-        dumper->Write ( &holes, "feature-holes" );
+        dumper->Write( &holes, "feature-holes" );
 
-    holes.Simplify();
-
-    if (g_DumpZonesWhenFilling)
-        dumper->Write ( &holes, "feature-holes-postsimplify" );
-
-    solidAreas.Subtract ( holes );
+    holes.Simplify( POLY_CALC_MODE );
 
     if (g_DumpZonesWhenFilling)
-        dumper->Write ( &solidAreas, "solid-areas-minus-holes" );
+        dumper->Write( &holes, "feature-holes-postsimplify" );
 
-    m_FilledPolysList.RemoveAllContours();
+    solidAreas.BooleanSubtract( holes, POLY_CALC_MODE );
+
+    if (g_DumpZonesWhenFilling)
+        dumper->Write( &solidAreas, "solid-areas-minus-holes" );
 
     SHAPE_POLY_SET fractured = solidAreas;
-    fractured.Fracture();
+    fractured.Fracture( POLY_CALC_MODE );
 
     if (g_DumpZonesWhenFilling)
-        dumper->Write ( &fractured, "fractured" );
+        dumper->Write( &fractured, "fractured" );
 
-    m_FilledPolysList =  convertPolySetToPolyList( fractured );
-
-    if (g_DumpZonesWhenFilling)
-    {
-        SHAPE_POLY_SET dupa = convertPolyListToPolySet ( m_FilledPolysList );
-        dumper->Write ( &dupa, "verify-conv" );
-    }
-
+    m_FilledPolysList = fractured;
 
     // Remove insulated islands:
     if( GetNetCode() > 0 )
         TestForCopperIslandAndRemoveInsulatedIslands( aPcb );
 
-    tmp.RemoveAllContours();
+    SHAPE_POLY_SET thermalHoles;
+
     // Test thermal stubs connections and add polygons to remove unconnected stubs.
     // (this is a refinement for thermal relief shapes)
     if( GetNetCode() > 0 )
-        BuildUnconnectedThermalStubsPolygonList( tmp, aPcb, this,
+        BuildUnconnectedThermalStubsPolygonList( thermalHoles, aPcb, this,
                                                  correctionFactor, s_thermalRot );
 
     // remove copper areas corresponding to not connected stubs
-    if( tmp.GetCornersCount() )
+    if( !thermalHoles.IsEmpty() )
     {
-        SHAPE_POLY_SET thermalHoles = convertPolyListToPolySet ( tmp );
-        thermalHoles.Simplify();
+        thermalHoles.Simplify( POLY_CALC_MODE );
         // Remove unconnected stubs
-        solidAreas.Subtract ( thermalHoles );
+        solidAreas.BooleanSubtract( thermalHoles, POLY_CALC_MODE );
 
-        if (g_DumpZonesWhenFilling)
-            dumper->Write ( &thermalHoles, "thermal-holes" );
-
+        if( g_DumpZonesWhenFilling )
+            dumper->Write( &thermalHoles, "thermal-holes" );
 
         // put these areas in m_FilledPolysList
-        m_FilledPolysList.RemoveAllContours();
-
         SHAPE_POLY_SET fractured = solidAreas;
-        fractured.Fracture();
+        fractured.Fracture( POLY_CALC_MODE );
 
-        if (g_DumpZonesWhenFilling)
+        if( g_DumpZonesWhenFilling )
             dumper->Write ( &fractured, "fractured" );
 
-        m_FilledPolysList = convertPolySetToPolyList( fractured );
+        m_FilledPolysList = fractured;
 
         if( GetNetCode() > 0 )
             TestForCopperIslandAndRemoveInsulatedIslands( aPcb );
@@ -587,121 +506,4 @@ void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList_NG( BOARD* aPcb )
 
 void ZONE_CONTAINER::AddClearanceAreasPolygonsToPolysList( BOARD* aPcb )
 {
-    int segsPerCircle;
-    double correctionFactor;
-
-    std::auto_ptr<SHAPE_FILE_IO> dumper( new SHAPE_FILE_IO( "zones_dump.txt", true ) );
-
-
-    if(g_DumpZonesWhenFilling)
-        dumper->BeginGroup("boost-zone");
-
-    // Set the number of segments in arc approximations
-    if( m_ArcToSegmentsCount == ARC_APPROX_SEGMENTS_COUNT_HIGHT_DEF  )
-        segsPerCircle = ARC_APPROX_SEGMENTS_COUNT_HIGHT_DEF;
-    else
-        segsPerCircle = ARC_APPROX_SEGMENTS_COUNT_LOW_DEF;
-
-    /* calculates the coeff to compensate radius reduction of holes clearance
-     * due to the segment approx.
-     * For a circle the min radius is radius * cos( 2PI / s_CircleToSegmentsCount / 2)
-     * s_Correction is 1 /cos( PI/s_CircleToSegmentsCount  )
-     */
-    correctionFactor = 1.0 / cos( M_PI / (double) segsPerCircle );
-
-    // this is a place to store holes (i.e. tracks, pads ... areas as polygons outlines)
-    // static to avoid unnecessary memory allocation when filling many zones.
-    CPOLYGONS_LIST cornerBufferPolysToSubstract;
-
-    // This KI_POLYGON_SET is the area(s) to fill, with m_ZoneMinThickness/2
-    KI_POLYGON_SET polyset_zone_solid_areas;
-
-
-
-    int outline_half_thickness = m_ZoneMinThickness / 2;
-
-    /* First, creates the main polygon (i.e. the filled area using only one outline)
-     * to reserve a m_ZoneMinThickness/2 margin around the outlines and holes
-     * this margin is the room to redraw outlines with segments having a width set to
-     * m_ZoneMinThickness
-     * so m_ZoneMinThickness is the min thickness of the filled zones areas
-     * the main polygon is stored in polyset_zone_solid_areas
-     */
-    CPOLYGONS_LIST tmp;
-    m_smoothedPoly->m_CornersList.InflateOutline( tmp, -outline_half_thickness, true );
-    tmp.ExportTo( polyset_zone_solid_areas );
-
-    if( polyset_zone_solid_areas.size() == 0 )
-        return;
-
- if (g_DumpZonesWhenFilling)
-        dumper->Write ( convertBoostToPolySet( polyset_zone_solid_areas ), "solid-areas" );
-
-    buildFeatureHoleList( aPcb, cornerBufferPolysToSubstract );
-
-    // cornerBufferPolysToSubstract contains polygons to substract.
-    // polyset_zone_solid_areas contains the main filled area
-    // Calculate now actual solid areas
-    if( cornerBufferPolysToSubstract.GetCornersCount() > 0 )
-    {
-        KI_POLYGON_SET polyset_holes;
-
-        cornerBufferPolysToSubstract.ExportTo( polyset_holes );
-
-        if (g_DumpZonesWhenFilling)
-            dumper->Write ( convertBoostToPolySet( polyset_holes ), "feature-holes" );
-
-        // Remove holes from initial area.:
-        polyset_zone_solid_areas -= polyset_holes;
-      }
-
-    // put solid areas in m_FilledPolysList:
-    m_FilledPolysList.RemoveAllContours();
-    CopyPolygonsFromKiPolygonListToFilledPolysList( polyset_zone_solid_areas );
-
-    // Remove insulated islands:
-    if( GetNetCode() > 0 )
-        TestForCopperIslandAndRemoveInsulatedIslands( aPcb );
-
-    // Now we remove all unused thermal stubs.
-    cornerBufferPolysToSubstract.RemoveAllContours();
-
-    // Test thermal stubs connections and add polygons to remove unconnected stubs.
-    // (this is a refinement for thermal relief shapes)
-    if( GetNetCode() > 0 )
-        BuildUnconnectedThermalStubsPolygonList( cornerBufferPolysToSubstract, aPcb, this,
-                                                 correctionFactor, s_thermalRot );
-
-    // remove copper areas corresponding to not connected stubs
-    if( cornerBufferPolysToSubstract.GetCornersCount() )
-    {
-        KI_POLYGON_SET polyset_holes;
-        cornerBufferPolysToSubstract.ExportTo( polyset_holes );
-
-        if (g_DumpZonesWhenFilling)
-            dumper->Write ( convertBoostToPolySet( polyset_holes ), "thermal-holes" );
-
-        // Remove unconnected stubs
-        polyset_zone_solid_areas -= polyset_holes;
-
-        // put these areas in m_FilledPolysList
-        m_FilledPolysList.RemoveAllContours();
-        CopyPolygonsFromKiPolygonListToFilledPolysList( polyset_zone_solid_areas );
-
-        if( GetNetCode() > 0 )
-            TestForCopperIslandAndRemoveInsulatedIslands( aPcb );
-    }
-
-
-  if (g_DumpZonesWhenFilling)
-            dumper->Write ( convertBoostToPolySet( polyset_zone_solid_areas ), "complete" );
-
-    cornerBufferPolysToSubstract.RemoveAllContours();
-}
-
-
-void ZONE_CONTAINER::CopyPolygonsFromKiPolygonListToFilledPolysList( KI_POLYGON_SET& aKiPolyList )
-{
-    m_FilledPolysList.RemoveAllContours();
-    m_FilledPolysList.ImportFrom( aKiPolyList );
 }

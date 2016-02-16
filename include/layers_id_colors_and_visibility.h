@@ -31,7 +31,6 @@
 #ifndef LAYERS_ID_AND_VISIBILITY_H_
 #define LAYERS_ID_AND_VISIBILITY_H_
 
-#include <stdint.h>
 #include <vector>
 #include <bitset>
 #include <wx/string.h>
@@ -55,9 +54,6 @@ typedef int     LAYER_NUM;
  * One of these cannot be "incremented".
  */
 enum LAYER_ID
-#if __cplusplus >= 201103L
-    : unsigned char
-#endif
 {
     F_Cu,           // 0
     In1_Cu,
@@ -117,12 +113,12 @@ enum LAYER_ID
     B_Fab,
     F_Fab,
 
-    LAYER_ID_COUNT
+    LAYER_ID_COUNT,
+
+    UNDEFINED_LAYER = -1,
+    UNSELECTED_LAYER = -2,
 };
 
-
-#define UNDEFINED_LAYER     LAYER_ID(-1)
-#define UNSELECTED_LAYER    LAYER_ID(-2)
 
 #define MAX_CU_LAYERS       (B_Cu - F_Cu + 1)
 
@@ -617,16 +613,24 @@ inline bool IsBackLayer( LAYER_ID aLayerId )
 /**
  * Function FlippedLayerNumber
  * @return the layer number after flipping an item
- * some (not all) layers: external copper, Mask, Paste, and solder
+ * some (not all) layers: external copper, and paired layers( Mask, Paste, solder ... )
  * are swapped between front and back sides
+ * internal layers are flipped only if the copper layers count is known
+ * @param aLayer = the LAYER_ID to flip
+ * @param aCopperLayersCount = the number of copper layers. if 0 (in fact if < 4 )
+ *  internal layers will be not flipped because the layer count is not known
  */
-LAYER_ID FlipLayer( LAYER_ID oldlayer );
+LAYER_ID FlipLayer( LAYER_ID aLayerId, int aCopperLayersCount = 0 );
 
 /**
  * Calculate the mask layer when flipping a footprint
  * BACK and FRONT copper layers, mask, paste, solder layers are swapped
+ * internal layers are flipped only if the copper layers count is known
+ * @param aMask = the LSET to flip
+ * @param aCopperLayersCount = the number of copper layers. if 0 (in fact if < 4 )
+ *  internal layers will be not flipped because the layer count is not known
  */
-LSET FlipLayerMask( LSET aMask );
+LSET FlipLayerMask( LSET aMask, int aCopperLayersCount = 0 );
 
 /**
  * Return a string (to be shown to the user) describing a layer mask.

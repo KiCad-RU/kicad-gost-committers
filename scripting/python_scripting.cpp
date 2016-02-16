@@ -55,6 +55,13 @@ extern "C" void init_pcbnew( void );
 struct _inittab*    SwigImportInittab;
 static int          SwigNumModules = 0;
 
+static bool wxPythonLoaded = false;      // true if the wxPython scripting layer was successfully loaded
+
+bool IsWxPythonLoaded()
+{
+    return wxPythonLoaded;
+}
+
 
 /* Add a name + initfuction to our SwigImportInittab */
 
@@ -131,7 +138,7 @@ static void swigSwitchPythonBuiltin()
 
 PyThreadState* g_PythonMainTState;
 
-bool pcbnewInitPythonScripting( const char * aUserPluginsPath )
+bool pcbnewInitPythonScripting( const char * aUserScriptingPath )
 {
     swigAddBuiltin();           // add builtin functions
     swigAddModules();           // add our own modules
@@ -142,12 +149,23 @@ bool pcbnewInitPythonScripting( const char * aUserPluginsPath )
 #ifdef KICAD_SCRIPTING_WXPYTHON
     PyEval_InitThreads();
 
+#ifndef __WINDOWS__     // import wxversion.py currently not working under winbuilder, and not useful.
     char cmd[1024];
     // Make sure that that the correct version of wxPython is loaded. In systems where there
     // are different versions of wxPython installed this can lead to select wrong wxPython
     // version being selected.
-    snprintf( cmd, sizeof(cmd), "import wxversion; wxversion.select('%s')", WXPYTHON_VERSION );
-    PyRun_SimpleString( cmd );
+    snprintf( cmd, sizeof(cmd), "import wxversion;  wxversion.select('%s')", WXPYTHON_VERSION );
+
+    int retv = PyRun_SimpleString( cmd );
+
+    if( retv != 0 )
+    {
+        wxLogError( wxT( "Python error %d occurred running string `%s`" ), retv, cmd );
+        PyErr_Print();
+        Py_Finalize();
+        return false;
+    }
+#endif      // ifndef __WINDOWS__
 
     // Load the wxPython core API.  Imports the wx._core_ module and sets a
     // local pointer to a function table located there.  The pointer is used
@@ -160,12 +178,14 @@ bool pcbnewInitPythonScripting( const char * aUserPluginsPath )
         return false;
     }
 
+    wxPythonLoaded = true;
+
     // Save the current Python thread state and release the
     // Global Interpreter Lock.
 
     g_PythonMainTState = wxPyBeginAllowThreads();
+#endif  // ifdef KICAD_SCRIPTING_WXPYTHON
 
-#endif
     // load pcbnew inside python, and load all the user plugins, TODO: add system wide plugins
     {
         char cmd[1024];
@@ -173,7 +193,7 @@ bool pcbnewInitPythonScripting( const char * aUserPluginsPath )
         snprintf( cmd, sizeof(cmd), "import sys, traceback\n"
                       "sys.path.append(\".\")\n"
                       "import pcbnew\n"
-                      "pcbnew.LoadPlugins(\"%s\")", aUserPluginsPath );
+                      "pcbnew.LoadPlugins(\"%s\")", aUserScriptingPath );
         PyRun_SimpleString( cmd );
     }
 
@@ -210,29 +230,14 @@ void RedirectStdio()
 }
 
 
-wxWindow* CreatePythonShellWindow( wxWindow* parent )
+wxWindow* CreatePythonShellWindow( wxWindow* parent, const wxString& aFramenameId )
 {
-    const char* pycrust_panel =
-        "import wx\n"
-        "from wx.py import shell, version\n"
-        "\n"
-        "class PyCrustPanel(wx.Panel):\n"
-        "\tdef __init__(self, parent):\n"
-        "\t\twx.Panel.__init__(self, parent, -1, style=wx.SUNKEN_BORDER)\n"
-        "\t\t\n"
-        "\t\t\n"
-        "\t\tintro = \"Welcome To PyCrust %s - KiCAD Python Shell\" % version.VERSION\n"
-        "\t\tpycrust = shell.Shell(self, -1, introText=intro)\n"
-        "\t\t\n"
-        "\t\tsizer = wx.BoxSizer(wx.VERTICAL)\n\n"
-        "\t\tsizer.Add(pycrust, 1, wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT, 10)\n\n"
-        "\t\tself.SetSizer(sizer)\n\n"
+    const char* pcbnew_pyshell =
+        "import kicad_pyshell\n"
         "\n"
         "def makeWindow(parent):\n"
-        "    shell_window = PyCrustPanel(parent)\n"
-        "    return shell_window\n"
+        "    return kicad_pyshell.makePcbnewShellWindow(parent)\n"
         "\n";
-
 
     wxWindow*   window = NULL;
     PyObject*   result;
@@ -250,7 +255,7 @@ wxWindow* CreatePythonShellWindow( wxWindow* parent )
     Py_DECREF( builtins );
 
     // Execute the code to make the makeWindow function we defined above
-    result = PyRun_String( pycrust_panel, Py_file_input, globals, globals );
+    result = PyRun_String( pcbnew_pyshell, Py_file_input, globals, globals );
 
     // Was there an exception?
     if( !result )
@@ -290,6 +295,8 @@ wxWindow* CreatePythonShellWindow( wxWindow* parent )
 
         wxASSERT_MSG( success, _T( "Returned object was not a wxWindow!" ) );
         Py_DECREF( result );
+
+        window->SetName( aFramenameId );
     }
 
     // Release the python objects we still have

@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -76,23 +76,49 @@ BEGIN_EVENT_TABLE( LIB_VIEW_FRAME, EDA_DRAW_FRAME )
 END_EVENT_TABLE()
 
 
+/* Note:
+ * LIB_VIEW_FRAME can be build in "modal mode", or as a usual frame.
+ * In modal mode:
+ *  a tool to export the selected symbol is shown in the toolbar
+ *  the style is wxSTAY_ON_TOP on Windows and wxFRAME_FLOAT_ON_PARENT on unix
+ * reason:
+ * the parent is usually the kicad window manager (not easy to change)
+ * On windows, when the frame with stype wxFRAME_FLOAT_ON_PARENT is displayed
+ * its parent frame is brought to the foreground, on the top of the calling frame.
+ * and stays displayed when closing the LIB_VIEW_FRAME frame.
+ * this issue does not happen on unix.
+ *
+ * So we use wxSTAY_ON_TOP on Windows, and wxFRAME_FLOAT_ON_PARENT on unix
+ * to simulate a dialog called by ShowModal.
+ */
+
 #define LIB_VIEW_FRAME_NAME wxT( "ViewlibFrame" )
+#define LIB_VIEW_FRAME_NAME_MODAL wxT( "ViewlibFrameModal" )
 
 LIB_VIEW_FRAME::LIB_VIEW_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrameType,
         PART_LIB* aLibrary ) :
     SCH_BASE_FRAME( aKiway, aParent, aFrameType, _( "Library Browser" ),
             wxDefaultPosition, wxDefaultSize,
-            aFrameType==FRAME_SCH_VIEWER ?
-                KICAD_DEFAULT_DRAWFRAME_STYLE :
-                KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT,
-            GetLibViewerFrameName() )
+            aFrameType==FRAME_SCH_VIEWER_MODAL ?
+#ifdef __WINDOWS__
+                KICAD_DEFAULT_DRAWFRAME_STYLE | wxSTAY_ON_TOP
+#else
+                aParent ? KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT
+                          : KICAD_DEFAULT_DRAWFRAME_STYLE | wxSTAY_ON_TOP
+#endif
+                : KICAD_DEFAULT_DRAWFRAME_STYLE,
+            aFrameType == FRAME_SCH_VIEWER_MODAL ?
+                          LIB_VIEW_FRAME_NAME_MODAL : LIB_VIEW_FRAME_NAME )
 {
-    wxASSERT( aFrameType==FRAME_SCH_VIEWER || aFrameType==FRAME_SCH_VIEWER_MODAL );
+    wxASSERT( aFrameType == FRAME_SCH_VIEWER || aFrameType == FRAME_SCH_VIEWER_MODAL );
 
     if( aFrameType == FRAME_SCH_VIEWER_MODAL )
         SetModal( true );
 
-    m_configPath = wxT( "LibraryViewer" );
+    // Force the frame name used in config. the lib viewer frame has a name
+    // depending on aFrameType (needed to identify the frame by wxWidgets),
+    // but only one configuration is preferable.
+    m_configFrameName = LIB_VIEW_FRAME_NAME;
 
     // Give an icon
     wxIcon  icon;
@@ -120,11 +146,6 @@ LIB_VIEW_FRAME::LIB_VIEW_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrame
     ReCreateHToolbar();
     ReCreateVToolbar();
 
-    wxSize  size = GetClientSize();
-    size.y -= m_MsgFrameHeight + 2;
-
-    wxPoint win_pos( 0, 0 );
-
     if( !aLibrary )
     {
         // Creates the libraries window display
@@ -142,7 +163,6 @@ LIB_VIEW_FRAME::LIB_VIEW_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrame
     }
 
     // Creates the component window display
-    win_pos.x = m_libListWidth;
     m_cmpList = new wxListBox( this, ID_LIBVIEW_CMP_LIST,
                                wxPoint( 0, 0 ), wxSize(m_cmpListWidth, -1),
                                0, NULL, wxLB_HSCROLL );
@@ -210,18 +230,16 @@ LIB_VIEW_FRAME::LIB_VIEW_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrame
     Zoom_Automatique( false );
 #endif
 
-    Show( true );
+    if( !IsModal() )        // For modal mode, calling ShowModal() will show this frame
+    {
+        Raise();
+        Show( true );
+    }
 }
 
 
 LIB_VIEW_FRAME::~LIB_VIEW_FRAME()
 {
-}
-
-
-const wxChar* LIB_VIEW_FRAME::GetLibViewerFrameName()
-{
-    return LIB_VIEW_FRAME_NAME;
 }
 
 
@@ -525,8 +543,6 @@ void LIB_VIEW_FRAME::LoadSettings( wxConfigBase* aCfg )
     SetGridColor( GetLayerColor( LAYER_GRID ) );
     SetDrawBgColor( GetLayerColor( LAYER_BACKGROUND ) );
 
-    wxConfigPathChanger cpc( aCfg, m_configPath );
-
     aCfg->Read( LIBLIST_WIDTH_KEY, &m_libListWidth, 150 );
     aCfg->Read( CMPLIST_WIDTH_KEY, &m_cmpListWidth, 150 );
 
@@ -542,8 +558,6 @@ void LIB_VIEW_FRAME::LoadSettings( wxConfigBase* aCfg )
 void LIB_VIEW_FRAME::SaveSettings( wxConfigBase* aCfg )
 {
     EDA_DRAW_FRAME::SaveSettings( aCfg );
-
-    wxConfigPathChanger cpc( aCfg, m_configPath );
 
     if( m_libListWidth && m_libList )
     {

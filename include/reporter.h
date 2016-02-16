@@ -1,13 +1,3 @@
-#ifndef _REPORTER_H_
-#define _REPORTER_H_
-
-/**
- * @file reporter.h
- * @author Wayne Stambaugh
- * @note A special thanks to Dick Hollenbeck who came up with the idea that inspired
- *       me to write this.
- */
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -32,6 +22,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#ifndef _REPORTER_H_
+#define _REPORTER_H_
+
+/**
+ * @file reporter.h
+ * @author Wayne Stambaugh
+ * @note A special thanks to Dick Hollenbeck who came up with the idea that inspired
+ *       me to write this.
+ */
 
 class wxString;
 class wxTextCtrl;
@@ -145,6 +144,24 @@ public:
     }
 
     REPORTER& Report( const wxString& aText, SEVERITY aSeverity = RPT_UNDEFINED );
+};
+
+/**
+ * Class NULL_REPORTER
+ *
+ * A singleton reporter that reports to nowhere. Used as to simplify code by
+ * avoiding the reportee to check for a non-NULL reporter object.
+ */
+class NULL_REPORTER : public REPORTER
+{
+    public:
+        NULL_REPORTER()
+        {
+        };
+
+        static REPORTER& GetInstance();
+
+        REPORTER& Report( const wxString& aText, SEVERITY aSeverity = RPT_UNDEFINED );
 };
 
 #endif     // _REPORTER_H_

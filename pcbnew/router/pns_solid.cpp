@@ -24,13 +24,14 @@
 #include <geometry/shape_line_chain.h>
 #include <geometry/shape_rect.h>
 #include <geometry/shape_circle.h>
+#include <geometry/shape_convex.h>
 
 #include "pns_solid.h"
 #include "pns_utils.h"
 
 const SHAPE_LINE_CHAIN PNS_SOLID::Hull( int aClearance, int aWalkaroundThickness ) const
 {
-    int cl = aClearance + aWalkaroundThickness / 2;
+    int cl = aClearance + ( aWalkaroundThickness + 1 )/ 2;
 
     switch( m_shape->Type() )
     {
@@ -50,8 +51,15 @@ const SHAPE_LINE_CHAIN PNS_SOLID::Hull( int aClearance, int aWalkaroundThickness
 
     case SH_SEGMENT:
     {
-        SHAPE_SEGMENT* seg = static_cast<SHAPE_SEGMENT*> ( m_shape );
+        SHAPE_SEGMENT* seg = static_cast<SHAPE_SEGMENT*>( m_shape );
         return SegmentHull( *seg, aClearance, aWalkaroundThickness );
+    }
+
+    case SH_CONVEX:
+    {
+        SHAPE_CONVEX* convex = static_cast<SHAPE_CONVEX*>( m_shape );
+
+        return ConvexHull( *convex, cl );
     }
 
     default:

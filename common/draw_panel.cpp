@@ -38,6 +38,7 @@
 #include <class_draw_panel_gal.h>
 #include <class_base_screen.h>
 #include <draw_frame.h>
+#include <view/view_controls.h>
 
 #include <kicad_device_context.h>
 
@@ -69,8 +70,9 @@ static const int CURSOR_SIZE = 12; ///< Cursor size in pixels
 // Events used by EDA_DRAW_PANEL
 BEGIN_EVENT_TABLE( EDA_DRAW_PANEL, wxScrolledWindow )
     EVT_LEAVE_WINDOW( EDA_DRAW_PANEL::OnMouseLeaving )
+    EVT_ENTER_WINDOW( EDA_DRAW_PANEL::OnMouseEntering )
     EVT_MOUSEWHEEL( EDA_DRAW_PANEL::OnMouseWheel )
-#ifdef USE_OSX_MAGNIFY_EVENT
+#if wxCHECK_VERSION( 3, 1, 0 ) || defined( USE_OSX_MAGNIFY_EVENT )
     EVT_MAGNIFY( EDA_DRAW_PANEL::OnMagnify )
 #endif
     EVT_MOUSE_EVENTS( EDA_DRAW_PANEL::OnMouseEvent )
@@ -186,6 +188,7 @@ BASE_SCREEN* EDA_DRAW_PANEL::GetScreen()
     return parentFrame->GetScreen();
 }
 
+
 wxPoint EDA_DRAW_PANEL::ToDeviceXY( const wxPoint& pos )
 {
     wxPoint ret;
@@ -195,6 +198,7 @@ wxPoint EDA_DRAW_PANEL::ToDeviceXY( const wxPoint& pos )
     return ret;
 }
 
+
 wxPoint EDA_DRAW_PANEL::ToLogicalXY( const wxPoint& pos )
 {
     wxPoint ret;
@@ -203,6 +207,7 @@ wxPoint EDA_DRAW_PANEL::ToLogicalXY( const wxPoint& pos )
     ret.y = dc.DeviceToLogicalY( pos.y );
     return ret;
 }
+
 
 void EDA_DRAW_PANEL::DrawCrossHair( wxDC* aDC, EDA_COLOR_T aColor )
 {
@@ -638,6 +643,15 @@ void EDA_DRAW_PANEL::ReDraw( wxDC* DC, bool erasebg )
 }
 
 
+void EDA_DRAW_PANEL::SetEnableZoomNoCenter( bool aEnable )
+{
+    m_enableZoomNoCenter = aEnable;
+
+    if( GetParent()->IsGalCanvasActive() )
+        GetParent()->GetGalCanvas()->GetViewControls()->EnableCursorWarping( !aEnable );
+}
+
+
 void EDA_DRAW_PANEL::DrawBackGround( wxDC* DC )
 {
     EDA_COLOR_T axis_color = BLUE;
@@ -653,12 +667,10 @@ void EDA_DRAW_PANEL::DrawBackGround( wxDC* DC )
         wxSize  pageSize = GetParent()->GetPageSizeIU();
 
         // Draw the Y axis
-        GRDashedLine( &m_ClipBox, DC, 0, -pageSize.y,
-                      0, pageSize.y, 0, axis_color );
+        GRLine( &m_ClipBox, DC, 0, -pageSize.y, 0, pageSize.y, 0, axis_color );
 
         // Draw the X axis
-        GRDashedLine( &m_ClipBox, DC, -pageSize.x, 0,
-                      pageSize.x, 0, 0, axis_color );
+        GRLine( &m_ClipBox, DC, -pageSize.x, 0, pageSize.x, 0, 0, axis_color );
     }
 
     if( GetParent()->m_showOriginAxis )
@@ -712,87 +724,63 @@ void EDA_DRAW_PANEL::DrawGrid( wxDC* aDC )
     if( org.y < m_ClipBox.GetY() )
         org.y += KiROUND( gridSize.y );
 
-#if ( defined( __WXMAC__ ) || 1 )
     // Use a pixel based draw to display grid.  There are a lot of calls, so the cost is
-    // high and grid is slowly drawn on some platforms.  Please note that this should
-    // always be enabled until the bitmap based solution below is fixed.
-#ifndef __WXMAC__
-    GRSetColorPen( aDC, GetParent()->GetGridColor() );
-#else
-    // On mac (Cocoa), a point isn't a pixel and being of size 1 don't survive to antialiasing
-    GRSetColorPen( aDC, GetParent()->GetGridColor(), aDC->DeviceToLogicalXRel(2) );
-#endif
-
+    // high and grid is slowly drawn on some platforms. An other way using blit transfert was used,
+    // a long time ago, but it did not give very good results.
+    // The better way is highly dependent on the platform and the graphic card.
     int xpos;
     double right = ( double ) m_ClipBox.GetRight();
     double bottom = ( double ) m_ClipBox.GetBottom();
 
-    for( double x = (double) org.x; x <= right; x += gridSize.x )
+#if defined( __WXMAC__ ) && defined( USE_WX_GRAPHICS_CONTEXT )
+    wxGCDC *gcdc = wxDynamicCast( aDC, wxGCDC );
+    if( gcdc )
     {
-        xpos = KiROUND( x );
+        wxGraphicsContext *gc = gcdc->GetGraphicsContext();
 
-        for( double y = (double) org.y; y <= bottom; y += gridSize.y )
+        // Grid point size
+        const int gsz = 1;
+        const double w = aDC->DeviceToLogicalXRel( gsz );
+        const double h = aDC->DeviceToLogicalYRel( gsz );
+
+        // Use our own pen
+        wxPen pen( MakeColour( GetParent()->GetGridColor() ), h );
+        pen.SetCap( wxCAP_BUTT );
+        gc->SetPen( pen );
+
+        // draw grid
+        wxGraphicsPath path = gc->CreatePath();
+        for( double x = (double) org.x - w/2.0; x <= right - w/2.0; x += gridSize.x )
         {
-            aDC->DrawPoint( xpos, KiROUND( y )  );
+            for( double y = (double) org.y; y <= bottom; y += gridSize.y )
+            {
+                path.MoveToPoint( x, y );
+                path.AddLineToPoint( x+w, y );
+            }
+        }
+        gc->StrokePath( path );
+    }
+    else
+#endif
+    {
+        GRSetColorPen( aDC, GetParent()->GetGridColor() );
+
+        for( double x = (double) org.x; x <= right; x += gridSize.x )
+        {
+            xpos = KiROUND( x );
+
+            for( double y = (double) org.y; y <= bottom; y += gridSize.y )
+            {
+                aDC->DrawPoint( xpos, KiROUND( y )  );
+            }
         }
     }
-#else
-    /* This is fast only if the Blit function is fast.  Not true on all platforms.
-     *
-     * A first grid column is drawn in a temporary bitmap, and after is duplicated using
-     * the Blit function (copy from a screen area to an other screen area).
-     */
-    wxMemoryDC tmpDC;
-    wxBitmap tmpBM( 1, aDC->LogicalToDeviceYRel( m_ClipBox.GetHeight() ) );
-    tmpDC.SelectObject( tmpBM );
-    tmpDC.SetLogicalFunction( wxCOPY );
-    tmpDC.SetBackground( wxBrush( GetBackgroundColour() ) );
-    tmpDC.Clear();
-    tmpDC.SetPen( MakeColour( GetParent()->GetGridColor() ) );
-
-    double usx, usy;
-    int lox, loy, dox, doy;
-
-    aDC->GetUserScale( &usx, &usy );
-    aDC->GetLogicalOrigin( &lox, &loy );
-    aDC->GetDeviceOrigin( &dox, &doy );
-
-    // Create a dummy DC for coordinate translation because the actual DC scale and origin
-    // must be reset in order to work correctly.
-    wxBitmap tmpBitmap( 1, 1 );
-    wxMemoryDC scaleDC( tmpBitmap );
-    scaleDC.SetUserScale( usx, usy );
-    scaleDC.SetLogicalOrigin( lox, loy );
-    scaleDC.SetDeviceOrigin( dox, doy );
-
-    double bottom = ( double ) m_ClipBox.GetBottom();
-
-    // Draw a column of grid points.
-    for( double y = (double) org.y; y <= bottom; y += gridSize.y )
-    {
-        tmpDC.DrawPoint( 0, scaleDC.LogicalToDeviceY( KiROUND( y ) ) );
-    }
-
-    // Reset the device context scale and origin and restore on exit.
-    EDA_BLIT_NORMALIZER blitNorm( aDC );
-
-    // Mask of everything but the grid points.
-    tmpDC.SelectObject( wxNullBitmap );
-    tmpBM.SetMask( new wxMask( tmpBM, GetBackgroundColour() ) );
-    tmpDC.SelectObject( tmpBM );
-
-    double right = m_ClipBox.GetRight();
-
-    // Blit the column for each row of the damaged region.
-    for( double x = (double) org.x; x <= right; x += gridSize.x )
-    {
-        aDC->Blit( scaleDC.LogicalToDeviceX( KiROUND( x ) ),
-                   scaleDC.LogicalToDeviceY( m_ClipBox.GetY() ),
-                   1, tmpBM.GetHeight(), &tmpDC, 0, 0, wxCOPY, true );
-    }
-#endif
 }
 
+// Set to 1 to draw auxirilary axis as lines, 0 to draw as target (circle with cross)
+#define DRAW_AXIS_AS_LINES 0
+// Size in pixels of the target shape
+#define AXIS_SIZE_IN_PIXELS 15
 
 void EDA_DRAW_PANEL::DrawAuxiliaryAxis( wxDC* aDC, GR_DRAWMODE aDrawMode )
 {
@@ -801,26 +789,34 @@ void EDA_DRAW_PANEL::DrawAuxiliaryAxis( wxDC* aDC, GR_DRAWMODE aDrawMode )
     if( origin == wxPoint( 0, 0 ) )
         return;
 
-    EDA_COLOR_T color = DARKRED;
-    wxSize  pageSize = GetParent()->GetPageSizeIU();
+    EDA_COLOR_T color = RED;
 
     GRSetDrawMode( aDC, aDrawMode );
 
+#if DRAW_AXIS_AS_LINES
+    wxSize  pageSize = GetParent()->GetPageSizeIU();
     // Draw the Y axis
-    GRDashedLine( &m_ClipBox, aDC,
-                  origin.x,
-                  -pageSize.y,
-                  origin.x,
-                  pageSize.y,
-                  0, color );
+    GRLine( &m_ClipBox, aDC, origin.x, -pageSize.y,
+            origin.x, pageSize.y, 0, color );
 
     // Draw the X axis
-    GRDashedLine( &m_ClipBox, aDC,
-                  -pageSize.x,
-                  origin.y,
-                  pageSize.x,
-                  origin.y,
-                  0, color );
+    GRLine( &m_ClipBox, aDC, -pageSize.x, origin.y,
+            pageSize.x, origin.y, 0, color );
+#else
+    int radius = aDC->DeviceToLogicalXRel( AXIS_SIZE_IN_PIXELS );
+    int linewidth = aDC->DeviceToLogicalXRel( 1 );
+
+    GRSetColorPen( aDC, color, linewidth );
+
+    GRLine( &m_ClipBox, aDC, origin.x, origin.y-radius,
+            origin.x, origin.y+radius, 0, color );
+
+    // Draw the + shape
+    GRLine( &m_ClipBox, aDC, origin.x-radius, origin.y,
+            origin.x+radius, origin.y, 0, color );
+
+    GRCircle( &m_ClipBox, aDC, origin, radius, linewidth, color );
+#endif
 }
 
 
@@ -830,25 +826,33 @@ void EDA_DRAW_PANEL::DrawGridAxis( wxDC* aDC, GR_DRAWMODE aDrawMode, const wxPoi
         return;
 
     EDA_COLOR_T color    = GetParent()->GetGridColor();
-    wxSize      pageSize = GetParent()->GetPageSizeIU();
 
     GRSetDrawMode( aDC, aDrawMode );
 
+#if DRAW_AXIS_AS_LINES
+    wxSize      pageSize = GetParent()->GetPageSizeIU();
     // Draw the Y axis
-    GRDashedLine( &m_ClipBox, aDC,
-                  aGridOrigin.x,
-                  -pageSize.y,
-                  aGridOrigin.x,
-                  pageSize.y,
-                  0, color );
+    GRLine( &m_ClipBox, aDC, aGridOrigin.x, -pageSize.y,
+            aGridOrigin.x, pageSize.y, 0, color );
 
     // Draw the X axis
-    GRDashedLine( &m_ClipBox, aDC,
-                  -pageSize.x,
-                  aGridOrigin.y,
-                  pageSize.x,
-                  aGridOrigin.y,
-                  0, color );
+    GRLine( &m_ClipBox, aDC, -pageSize.x, aGridOrigin.y,
+            pageSize.x, aGridOrigin.y, 0, color );
+#else
+    int radius = aDC->DeviceToLogicalXRel( AXIS_SIZE_IN_PIXELS );
+    int linewidth = aDC->DeviceToLogicalXRel( 1 );
+
+    GRSetColorPen( aDC, GetParent()->GetGridColor(), linewidth );
+
+    GRLine( &m_ClipBox, aDC, aGridOrigin.x-radius, aGridOrigin.y-radius,
+            aGridOrigin.x+radius, aGridOrigin.y+radius, 0, color );
+
+    // Draw the X shape
+    GRLine( &m_ClipBox, aDC, aGridOrigin.x+radius, aGridOrigin.y-radius,
+            aGridOrigin.x-radius, aGridOrigin.y+radius, 0, color );
+
+    GRCircle( &m_ClipBox, aDC, aGridOrigin, radius, linewidth, color );
+#endif
 }
 
 
@@ -876,6 +880,17 @@ bool EDA_DRAW_PANEL::OnRightClick( wxMouseEvent& event )
 }
 
 
+void EDA_DRAW_PANEL::OnMouseEntering( wxMouseEvent& aEvent )
+{
+    // This is an ugly hack that fixes some cross hair display bugs when the mouse leaves the
+    // canvas area during middle button mouse panning.
+    if( m_cursorLevel != 0 )
+        m_cursorLevel = 0;
+
+    aEvent.Skip();
+}
+
+
 void EDA_DRAW_PANEL::OnMouseLeaving( wxMouseEvent& event )
 {
     if( m_mouseCaptureCallback == NULL )          // No command in progress.
@@ -888,22 +903,23 @@ void EDA_DRAW_PANEL::OnMouseLeaving( wxMouseEvent& event )
     // Ensure the cross_hair position is updated,
     // because it will be used to center the screen.
     // We use a position inside the client window
-    wxSize size = GetClientSize();
+    wxRect area( wxPoint( 0, 0 ), GetClientSize() );
     wxPoint cross_hair_pos = event.GetPosition();
-    cross_hair_pos.x = std::min( cross_hair_pos.x, size.x );
-    cross_hair_pos.y = std::min( cross_hair_pos.y, size.x );
-    cross_hair_pos.x = std::max( cross_hair_pos.x, 0 );
-    cross_hair_pos.y = std::max( cross_hair_pos.y, 0 );
 
-    INSTALL_UNBUFFERED_DC( dc, this );
-    cross_hair_pos.x = dc.DeviceToLogicalX( cross_hair_pos.x );
-    cross_hair_pos.y = dc.DeviceToLogicalY( cross_hair_pos.y );
+    // Certain window managers (e.g. awesome wm) incorrectly trigger "on leave" event,
+    // therefore test if the cursor has really left the panel area
+    if( !area.Contains( cross_hair_pos ) )
+    {
+        INSTALL_UNBUFFERED_DC( dc, this );
+        cross_hair_pos.x = dc.DeviceToLogicalX( cross_hair_pos.x );
+        cross_hair_pos.y = dc.DeviceToLogicalY( cross_hair_pos.y );
 
-    GetParent()->SetCrossHairPosition( cross_hair_pos );
+        GetParent()->SetCrossHairPosition( cross_hair_pos );
 
-    wxCommandEvent cmd( wxEVT_COMMAND_MENU_SELECTED, ID_POPUP_ZOOM_CENTER );
-    cmd.SetEventObject( this );
-    GetEventHandler()->ProcessEvent( cmd );
+        wxCommandEvent cmd( wxEVT_COMMAND_MENU_SELECTED, ID_POPUP_ZOOM_CENTER );
+        cmd.SetEventObject( this );
+        GetEventHandler()->ProcessEvent( cmd );
+    }
 
     event.Skip();
 }
@@ -937,11 +953,7 @@ void EDA_DRAW_PANEL::OnMouseWheel( wxMouseEvent& event )
     bool offCenterReq = event.ControlDown() && event.ShiftDown();
     offCenterReq = offCenterReq || m_enableZoomNoCenter;
 
-#if wxMAJOR_VERSION >= 2 && wxMINOR_VERSION >= 9
     int axis = event.GetWheelAxis();
-#else
-    const int axis = 0;
-#endif
 
     // This is a zoom in or out command
     if( event.GetWheelRotation() > 0 )
@@ -982,7 +994,7 @@ void EDA_DRAW_PANEL::OnMouseWheel( wxMouseEvent& event )
 }
 
 
-#ifdef USE_OSX_MAGNIFY_EVENT
+#if wxCHECK_VERSION( 3, 1, 0 ) || defined( USE_OSX_MAGNIFY_EVENT )
 void EDA_DRAW_PANEL::OnMagnify( wxMouseEvent& event )
 {
     // Scale the panel around our cursor position.
@@ -1012,7 +1024,7 @@ void EDA_DRAW_PANEL::OnMagnify( wxMouseEvent& event )
 
 void EDA_DRAW_PANEL::OnMouseEvent( wxMouseEvent& event )
 {
-    int          localrealbutt = 0, localbutt = 0;
+    int          localbutt = 0;
     BASE_SCREEN* screen = GetScreen();
 
     if( !screen )
@@ -1046,12 +1058,6 @@ void EDA_DRAW_PANEL::OnMouseEvent( wxMouseEvent& event )
     if( m_ignoreMouseEvents )
         return;
 
-    if( event.LeftIsDown() )
-        localrealbutt |= GR_M_LEFT_DOWN;
-
-    if( event.MiddleIsDown() )
-        localrealbutt |= GR_M_MIDDLE_DOWN;
-
     if( event.LeftDown() )
         localbutt = GR_M_LEFT_DOWN;
 
@@ -1060,8 +1066,6 @@ void EDA_DRAW_PANEL::OnMouseEvent( wxMouseEvent& event )
 
     if( event.MiddleDown() )
         localbutt = GR_M_MIDDLE_DOWN;
-
-    localrealbutt |= localbutt;     // compensation default wxGTK
 
     INSTALL_UNBUFFERED_DC( DC, this );
     DC.SetBackground( *wxBLACK_BRUSH );
@@ -1141,6 +1145,7 @@ void EDA_DRAW_PANEL::OnMouseEvent( wxMouseEvent& event )
     if( event.MiddleIsDown() && m_enableMiddleButtonPan )
     {
         wxPoint currentPosition = event.GetPosition();
+
         if( m_panScrollbarLimits )
         {
             int x, y;
@@ -1191,7 +1196,7 @@ void EDA_DRAW_PANEL::OnMouseEvent( wxMouseEvent& event )
                 shouldMoveCursor = true;
             }
 
-            if ( shouldMoveCursor )
+            if( shouldMoveCursor )
                 WarpPointer( currentPosition.x, currentPosition.y );
 
             Scroll( x/ppux, y/ppuy );
@@ -1450,14 +1455,20 @@ void EDA_DRAW_PANEL::OnPan( wxCommandEvent& event )
     int ppux, ppuy;
     int unitsX, unitsY;
     int maxX, maxY;
+    int tmpX, tmpY;
 
     GetViewStart( &x, &y );
     GetScrollPixelsPerUnit( &ppux, &ppuy );
     GetVirtualSize( &unitsX, &unitsY );
+    tmpX = x;
+    tmpY = y;
     maxX = unitsX;
     maxY = unitsY;
     unitsX /= ppux;
     unitsY /= ppuy;
+
+    wxLogTrace( KICAD_TRACE_COORDS,
+                wxT( "Scroll center position before pan: (%d, %d)" ), tmpX, tmpY );
 
     switch( event.GetId() )
     {
@@ -1481,17 +1492,45 @@ void EDA_DRAW_PANEL::OnPan( wxCommandEvent& event )
         wxLogDebug( wxT( "Unknown ID %d in EDA_DRAW_PANEL::OnPan()." ), event.GetId() );
     }
 
+    bool updateCenterScrollPos = true;
+
     if( x < 0 )
+    {
         x = 0;
+        updateCenterScrollPos = false;
+    }
 
     if( y < 0 )
+    {
         y = 0;
+        updateCenterScrollPos = false;
+    }
 
     if( x > maxX )
+    {
         x = maxX;
+        updateCenterScrollPos = false;
+    }
 
     if( y > maxY )
+    {
         y = maxY;
+        updateCenterScrollPos = false;
+    }
+
+    // Don't update the scroll position beyond the scroll limits.
+    if( updateCenterScrollPos )
+    {
+        double scale = GetParent()->GetScreen()->GetScalingFactor();
+
+        wxPoint center = GetParent()->GetScrollCenterPosition();
+        center.x += KiROUND( (double) ( x - tmpX ) / scale );
+        center.y += KiROUND( (double) ( y - tmpY ) / scale );
+        GetParent()->SetScrollCenterPosition( center );
+
+        wxLogTrace( KICAD_TRACE_COORDS,
+                    wxT( "Scroll center position after pan: (%d, %d)" ), center.x, center.y );
+    }
 
     Scroll( x/ppux, y/ppuy );
 }

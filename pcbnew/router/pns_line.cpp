@@ -38,23 +38,21 @@ PNS_LINE::PNS_LINE( const PNS_LINE& aOther ) :
         m_line( aOther.m_line ),
         m_width( aOther.m_width )
 {
-        m_net = aOther.m_net;
-        m_movable = aOther.m_movable;
-        m_layers = aOther.m_layers;
-        m_owner = aOther.m_owner;
-        m_via = aOther.m_via;
-        m_hasVia = aOther.m_hasVia;
-        m_marker = aOther.m_marker;
-        m_rank = aOther.m_rank;
+    m_net = aOther.m_net;
+    m_movable = aOther.m_movable;
+    m_layers = aOther.m_layers;
+    m_via = aOther.m_via;
+    m_hasVia = aOther.m_hasVia;
+    m_marker = aOther.m_marker;
+    m_rank = aOther.m_rank;
 
-        copyLinks ( &aOther );
+    copyLinks( &aOther );
 }
 
 
 PNS_LINE::~PNS_LINE()
 {
-    if( m_segmentRefs )
-        delete m_segmentRefs;
+    delete m_segmentRefs;
 }
 
 
@@ -64,14 +62,13 @@ const PNS_LINE& PNS_LINE::operator=( const PNS_LINE& aOther )
     m_width = aOther.m_width;
     m_net = aOther.m_net;
     m_movable = aOther.m_movable;
-    m_owner = aOther.m_owner;
     m_layers = aOther.m_layers;
     m_via = aOther.m_via;
     m_hasVia = aOther.m_hasVia;
     m_marker = aOther.m_marker;
     m_rank = aOther.m_rank;
 
-    copyLinks ( &aOther );
+    copyLinks( &aOther );
 
     return *this;
 }
@@ -97,7 +94,7 @@ void PNS_LINE::Mark( int aMarker )
 }
 
 
-void PNS_LINE::Unmark ()
+void PNS_LINE::Unmark()
 {
     if( m_segmentRefs )
     {
@@ -109,14 +106,16 @@ void PNS_LINE::Unmark ()
 }
 
 
-int PNS_LINE::Marker()const
+int PNS_LINE::Marker() const
 {
     int marker = m_marker;
 
     if( m_segmentRefs )
     {
         BOOST_FOREACH( PNS_SEGMENT* s, *m_segmentRefs )
+        {
             marker |= s->Marker();
+        }
     }
 
     return marker;
@@ -136,7 +135,7 @@ void PNS_LINE::copyLinks( const PNS_LINE* aParent )
 }
 
 
-PNS_SEGMENT* PNS_SEGMENT::Clone( ) const
+PNS_SEGMENT* PNS_SEGMENT::Clone() const
 {
     PNS_SEGMENT* s = new PNS_SEGMENT;
 
@@ -145,7 +144,6 @@ PNS_SEGMENT* PNS_SEGMENT::Clone( ) const
     s->m_layers = m_layers;
     s->m_marker = m_marker;
     s->m_rank = m_rank;
-    s->m_owner = m_owner;
 
     return s;
 }
@@ -176,7 +174,7 @@ int PNS_LINE::CountCorners( int aAngles )
 bool PNS_LINE::Walkaround( SHAPE_LINE_CHAIN aObstacle, SHAPE_LINE_CHAIN& aPre,
                            SHAPE_LINE_CHAIN& aWalk, SHAPE_LINE_CHAIN& aPost, bool aCw ) const
 {
-    const SHAPE_LINE_CHAIN& line ( CLine() );
+    const SHAPE_LINE_CHAIN& line( CLine() );
     VECTOR2I ip_start;
     VECTOR2I ip_end;
 
@@ -294,6 +292,9 @@ bool PNS_LINE::Is45Degree()
     {
         const SEG& s = m_line.CSegment( i );
 
+        if( s.Length() < 10 )
+            continue;
+
         double angle = 180.0 / M_PI *
                        atan2( (double) s.B.y - (double) s.A.y,
                               (double) s.B.x - (double) s.A.x );
@@ -313,16 +314,25 @@ bool PNS_LINE::Is45Degree()
 
 const PNS_LINE PNS_LINE::ClipToNearestObstacle( PNS_NODE* aNode ) const
 {
+    const int IterationLimit = 5;
+    int i;
     PNS_LINE l( *this );
 
-    PNS_NODE::OPT_OBSTACLE obs = aNode->NearestObstacle( &l );
-
-    if( obs )
+    for( i = 0; i < IterationLimit; i++ )
     {
-        l.RemoveVia();
-        int p = l.Line().Split( obs->m_ipFirst );
-        l.Line().Remove( p + 1, -1 );
+        PNS_NODE::OPT_OBSTACLE obs = aNode->NearestObstacle( &l );
+
+        if( obs )
+        {
+            l.RemoveVia();
+            int p = l.Line().Split( obs->m_ipFirst );
+            l.Line().Remove( p + 1, -1 );
+        } else
+            break;
     }
+
+    if( i == IterationLimit )
+        l.Line().Clear();
 
     return l;
 }
@@ -347,6 +357,13 @@ SHAPE_LINE_CHAIN dragCornerInternal( const SHAPE_LINE_CHAIN& aOrigin, const VECT
     optional<SHAPE_LINE_CHAIN> picked;
     int i;
     int d = 2;
+
+    if( aOrigin.SegmentCount() == 1)
+    {
+        DIRECTION_45 dir( aOrigin.CPoint( 0 ) - aOrigin.CPoint( 1 ) );
+
+        return DIRECTION_45().BuildInitialTrace( aOrigin.CPoint( 0 ), aP, dir.IsDiagonal() );
+    }
 
     if( aOrigin.CSegment( -1 ).Length() > 100000 * 30 ) // fixme: constant/parameter?
         d = 1;
@@ -398,7 +415,9 @@ SHAPE_LINE_CHAIN dragCornerInternal( const SHAPE_LINE_CHAIN& aOrigin, const VECT
         return path;
     }
 
-    return DIRECTION_45().BuildInitialTrace( aOrigin.CPoint( 0 ), aP, true );
+    DIRECTION_45 dir( aOrigin.CPoint( -1 ) - aOrigin.CPoint( -2 ) );
+
+    return DIRECTION_45().BuildInitialTrace( aOrigin.CPoint( 0 ), aP, dir.IsDiagonal() );
 }
 
 
@@ -698,10 +717,7 @@ void PNS_LINE::Reverse()
 
 void PNS_LINE::AppendVia( const PNS_VIA& aVia )
 {
-    if( m_line.PointCount() == 0 )
-        return;
-
-    if( aVia.Pos() == m_line.CPoint( 0 ) )
+    if( m_line.PointCount() > 1 && aVia.Pos() == m_line.CPoint( 0 ) )
     {
         Reverse();
     }

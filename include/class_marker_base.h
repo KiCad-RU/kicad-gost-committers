@@ -29,12 +29,32 @@
 #include <class_drc_item.h>
 #include <gr_basic.h>
 
+
+/* Marker are mainly used to show a DRC or ERC error or warning
+ */
+
+
 class MARKER_BASE
 {
 public:
+    enum TYPEMARKER {   // Marker type: can be used to identify the purpose of the marker
+        MARKER_UNSPEC,
+        MARKER_ERC,
+        MARKER_PCB,
+        MARKER_SIMUL
+    };
+    enum MARKER_SEVERITY {  // Severity of the marker: this is the level of error
+        MARKER_SEVERITY_UNSPEC,
+        MARKER_SEVERITY_INFO,
+        MARKER_SEVERITY_WARNING,
+        MARKER_SEVERITY_ERROR
+    };
+
     wxPoint               m_Pos;                 ///< position of the marker
+
 protected:
-    int                   m_MarkerType;          ///< Can be used as a flag
+    TYPEMARKER            m_MarkerType;          ///< The type of marker (useful to filter markers)
+    MARKER_SEVERITY       m_ErrorLevel;          ///< Specify the severity of the error
     EDA_COLOR_T           m_Color;               ///< color
     EDA_RECT              m_ShapeBoundingBox;    ///< Bounding box of the graphic symbol, relative
                                                  ///< to the position of the shape, used for Hit
@@ -108,34 +128,28 @@ public:
     }
 
     /**
-     * Function to set/get error levels (warning, fatal ..)
-     * this value is stored in m_MarkerType
+     * accessors to set/get error levels (warning, error, fatal error..)
      */
-    void SetErrorLevel( int aErrorLevel )
+    void SetErrorLevel( MARKER_SEVERITY aErrorLevel )
     {
-        m_MarkerType &= ~0xFF00;
-        aErrorLevel  &= 0xFF;
-        m_MarkerType |= aErrorLevel << 8;
+        m_ErrorLevel = aErrorLevel;
     }
 
-    int GetErrorLevel() const
+    MARKER_SEVERITY GetErrorLevel() const
     {
-        return (m_MarkerType >> 8) & 0xFF;
+        return m_ErrorLevel;
     }
 
-    /** Functions to set/get marker type (DRC, ERC, or other)
-     * this value is stored in m_MarkerType
+    /** accessors to set/get marker type (DRC, ERC, or other)
      */
-    void SetMarkerType( int aMarkerType )
+    void SetMarkerType( enum TYPEMARKER aMarkerType )
     {
-        m_MarkerType &= ~0xFF;
-        aMarkerType  &= 0xFF;
-        m_MarkerType |= aMarkerType;
+        m_MarkerType = aMarkerType;
     }
 
-    int GetMarkerType() const
+    enum TYPEMARKER GetMarkerType() const
     {
-        return m_MarkerType & 0xFF;
+        return m_MarkerType;
     }
 
     /**

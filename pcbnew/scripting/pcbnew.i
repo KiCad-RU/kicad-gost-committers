@@ -39,6 +39,7 @@
 
 // ignore a couple of items that generate warnings from swig built code
 
+%ignore NETINFO_ITEM;
 %ignore BOARD_ITEM::ZeroOffset;
 %ignore D_PAD::m_PadSketchModePenSize;
 
@@ -89,6 +90,7 @@
   #include <class_module.h>
   #include <class_track.h>
   #include <class_zone.h>
+  #include <zones.h>
   #include <layers_id_colors_and_visibility.h>
   #include <class_pad.h>
   #include <pad_shapes.h>
@@ -127,6 +129,7 @@
 %include <class_module.h>
 %include <class_track.h>
 %include <class_zone.h>
+%include <zones.h>
 %include <layers_id_colors_and_visibility.h>
 %include <class_pad.h>
 %include <pad_shapes.h>

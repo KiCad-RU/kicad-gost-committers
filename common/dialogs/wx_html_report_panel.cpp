@@ -32,14 +32,23 @@ WX_HTML_REPORT_PANEL::WX_HTML_REPORT_PANEL( wxWindow*      parent,
     WX_HTML_REPORT_PANEL_BASE( parent, id, pos, size, style ),
     m_reporter( this ),
     m_severities( -1 ),
-    m_showAll( true )
+    m_showAll( true ),
+    m_lazyUpdate( false )
 {
     syncCheckboxes();
+    m_htmlView->SetPage( addHeader( "" ) );
 }
 
 
 WX_HTML_REPORT_PANEL::~WX_HTML_REPORT_PANEL()
 {
+}
+
+
+void WX_HTML_REPORT_PANEL::MsgPanelSetMinSize( const wxSize& aMinSize )
+{
+    m_htmlView->SetMinSize( aMinSize );
+    GetSizer()->SetSizeHints( this );
 }
 
 
@@ -56,7 +65,26 @@ void WX_HTML_REPORT_PANEL::Report( const wxString& aText, REPORTER::SEVERITY aSe
     line.severity = aSeverity;
 
     m_report.push_back( line );
-    m_htmlView->AppendToPage( generateHtml( line ) );
+
+    m_html += generateHtml( line );
+
+    if( !m_lazyUpdate )
+    {
+        m_htmlView->AppendToPage( generateHtml( line ) );
+        scrollToBottom();
+    }
+}
+
+
+void WX_HTML_REPORT_PANEL::SetLazyUpdate( bool aLazyUpdate )
+{
+    m_lazyUpdate = aLazyUpdate;
+}
+
+
+void WX_HTML_REPORT_PANEL::Flush()
+{
+    m_htmlView->SetPage( addHeader( m_html ) );
     scrollToBottom();
 }
 
@@ -64,6 +92,7 @@ void WX_HTML_REPORT_PANEL::Report( const wxString& aText, REPORTER::SEVERITY aSe
 void WX_HTML_REPORT_PANEL::scrollToBottom()
 {
     int x, y, xUnit, yUnit;
+
     m_htmlView->GetVirtualSize( &x, &y );
     m_htmlView->GetScrollPixelsPerUnit( &xUnit, &yUnit );
     m_htmlView->Scroll( 0, y / yUnit );
@@ -79,8 +108,21 @@ void WX_HTML_REPORT_PANEL::refreshView()
         html += generateHtml( l );
     }
 
-    m_htmlView->SetPage( html );
+    m_htmlView->SetPage( addHeader( html ) );
     scrollToBottom();
+}
+
+
+wxString WX_HTML_REPORT_PANEL::addHeader( const wxString& aBody )
+{
+    wxColour bgcolor = wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOW );
+    wxColour fgcolor = wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOWTEXT );
+    wxString s = "<html><body bgcolor=\"" + bgcolor.GetAsString( wxC2S_HTML_SYNTAX ) +
+                 "\" text=\"" + fgcolor.GetAsString( wxC2S_HTML_SYNTAX ) + "\">";
+    s += aBody;
+    s += "</body></html>";
+
+    return s;
 }
 
 
@@ -135,6 +177,7 @@ void WX_HTML_REPORT_PANEL::onCheckBoxShowAll( wxCommandEvent& event )
 
 void WX_HTML_REPORT_PANEL::syncCheckboxes()
 {
+    m_checkBoxShowAll->SetValue( m_showAll );
     m_checkBoxShowWarnings->Enable( !m_showAll );
     m_checkBoxShowWarnings->SetValue( m_severities & REPORTER::RPT_WARNING );
     m_checkBoxShowErrors->Enable( !m_showAll );
@@ -149,9 +192,9 @@ void WX_HTML_REPORT_PANEL::syncCheckboxes()
 void WX_HTML_REPORT_PANEL::onCheckBoxShowWarnings( wxCommandEvent& event )
 {
     if ( event.IsChecked() )
-         m_severities |= REPORTER::RPT_WARNING;
-     else
-         m_severities &= ~REPORTER::RPT_WARNING;
+        m_severities |= REPORTER::RPT_WARNING;
+    else
+        m_severities &= ~REPORTER::RPT_WARNING;
 
      refreshView();
 }
@@ -228,5 +271,32 @@ void WX_HTML_REPORT_PANEL::onBtnSaveToFile( wxCommandEvent& event )
 
 void WX_HTML_REPORT_PANEL::Clear()
 {
+    m_html.clear();
     m_report.clear();
+}
+
+
+void WX_HTML_REPORT_PANEL::SetLabel( const wxString& aLabel )
+{
+    m_box->GetStaticBox()->SetLabel( aLabel );
+}
+
+
+void WX_HTML_REPORT_PANEL::SetVisibleSeverities( int aSeverities )
+{
+    if( aSeverities < 0 )
+        m_showAll = true;
+    else
+    {
+        m_showAll = false;
+        m_severities = aSeverities;
+    }
+
+    syncCheckboxes();
+}
+
+
+int WX_HTML_REPORT_PANEL::GetVisibleSeverities()
+{
+    return m_showAll ? m_severities | 0x80000000 : m_severities & ~0x80000000;
 }

@@ -29,6 +29,7 @@
 #include <macros.h>
 #include <common.h>
 #include <base_units.h>
+#include <macros.h>
 
 #include <pcbnew.h>
 #include <pcbnew_id.h>
@@ -38,7 +39,14 @@
 #include <gal/graphics_abstraction_layer.h>
 #include <class_draw_panel_gal.h>
 #include <tool/tool_manager.h>
+#include <tools/common_actions.h>
 
+// Max values for grid size
+#define MAX_GRID_SIZE ( 50.0 * IU_PER_MM )
+#define MIN_GRID_SIZE ( 0.001 * IU_PER_MM )
+
+// Min/Max value for grid offset
+#define MAX_GRID_OFFSET ((double)INT_MAX/2)
 
 class DIALOG_SET_GRID : public DIALOG_SET_GRID_BASE
 {
@@ -65,10 +73,10 @@ private:
     EDA_UNITS_T     getGridUnits();
 
     void            setGridSize( const wxRealPoint& grid );
-    wxRealPoint     getGridSize();
+    bool            getGridSize( wxRealPoint& aGrisSize );
 
     void            setGridOrigin( const wxPoint& grid );
-    wxPoint         getGridOrigin();
+    bool            getGridOrigin( wxPoint& aGridOrigin );
 
     void            setGridForFastSwitching( const wxArrayString& aGrids, int aGrid1, int aGrid2 );
     void            getGridForFastSwitching( int& aGrid1, int& aGrid2 );
@@ -125,30 +133,58 @@ void DIALOG_SET_GRID::setGridSize( const wxRealPoint& grid )
 }
 
 
-wxRealPoint DIALOG_SET_GRID::getGridSize()
+bool DIALOG_SET_GRID::getGridSize( wxRealPoint& aGrisSize )
 {
     wxRealPoint grid;
+    m_callers_grid_units = getGridUnits();
+    double grid_unit_to_iu = m_callers_grid_units == INCHES ? IU_PER_MILS*1000 : IU_PER_MM;
 
-    // @todo: Some error checking here would be a good thing.
-    wxString    x = m_OptGridSizeX->GetValue();
-    wxString    y = m_OptGridSizeY->GetValue();
+    wxString val = m_OptGridSizeX->GetValue();
 
-    x.ToDouble( &grid.x );
-    y.ToDouble( &grid.y );
+    double tmp;
 
-    return grid;
+    if( !val.ToDouble( &tmp ) ||
+        tmp*grid_unit_to_iu < MIN_GRID_SIZE || tmp*grid_unit_to_iu > MAX_GRID_SIZE )
+    {
+        return false;
+    }
+    else
+        aGrisSize.x = tmp;
+
+    val = m_OptGridSizeY->GetValue();
+
+    if( !val.ToDouble( &tmp ) ||
+        tmp*grid_unit_to_iu < MIN_GRID_SIZE || tmp*grid_unit_to_iu > MAX_GRID_SIZE )
+    {
+        return false;
+    }
+    else
+        aGrisSize.y = tmp;
+
+    return true;
 }
 
 
-wxPoint DIALOG_SET_GRID::getGridOrigin()
+bool DIALOG_SET_GRID::getGridOrigin( wxPoint& aGridOrigin )
 {
-    wxPoint grid;
+    double tmp;
 
-    // @todo Some error checking here would be a good thing.
-    grid.x = ValueFromTextCtrl( *m_GridOriginXCtrl );
-    grid.y = ValueFromTextCtrl( *m_GridOriginYCtrl );
+    tmp = DoubleValueFromString( g_UserUnit, m_GridOriginXCtrl->GetValue() );
 
-    return grid;
+    // Some error checking here is a good thing.
+    if( tmp < -MAX_GRID_OFFSET || tmp > MAX_GRID_OFFSET )
+        return false;
+
+    aGridOrigin.x = KiROUND( tmp );
+
+    tmp = DoubleValueFromString( g_UserUnit, m_GridOriginYCtrl->GetValue() );
+
+    if( tmp < -MAX_GRID_OFFSET || tmp > MAX_GRID_OFFSET )
+        return false;
+
+    aGridOrigin.y = KiROUND( tmp );
+
+    return true;
 }
 
 
@@ -190,9 +226,23 @@ void DIALOG_SET_GRID::OnCancelClick( wxCommandEvent& event )
 
 void DIALOG_SET_GRID::OnOkClick( wxCommandEvent& event )
 {
-    m_callers_grid_units = getGridUnits();
-    m_callers_user_size  = getGridSize();
-    m_callers_origin     = getGridOrigin();
+    bool success  = getGridSize( m_callers_user_size );
+
+    if( !success )
+    {
+        wxMessageBox( wxString::Format( _( "Incorrect grid size (size must be >= %.3f mm and <= %.3f mm)"),
+            MIN_GRID_SIZE/IU_PER_MM, MAX_GRID_SIZE/IU_PER_MM ) );
+        return;
+    }
+
+    success = getGridOrigin( m_callers_origin );
+
+    if( !success )
+    {
+        wxMessageBox( wxString::Format( _( "Incorrect grid origin (coordinates must be >= %.3f mm and <= %.3f mm)" ),
+            -MAX_GRID_OFFSET/IU_PER_MM, MAX_GRID_OFFSET/IU_PER_MM ) );
+        return;
+    }
 
     getGridForFastSwitching( m_callers_fast_grid1, m_callers_fast_grid2 );
 
@@ -233,8 +283,14 @@ bool PCB_BASE_FRAME::InvokeDialogGrid()
         TOOL_MANAGER* mgr = GetToolManager();
 
         if( mgr && IsGalCanvasActive() )
+        {
             mgr->RunAction( "common.Control.gridPreset", true,
-                    ID_POPUP_GRID_USER - ID_POPUP_GRID_LEVEL_1000 );
+                    screen->GetGridCmdId() - ID_POPUP_GRID_LEVEL_1000 );
+
+            TOOL_EVENT gridOriginUpdate = COMMON_ACTIONS::gridSetOrigin.MakeEvent();
+            gridOriginUpdate.SetParameter( new VECTOR2D( grid_origin ) );
+            mgr->ProcessEvent( gridOriginUpdate );
+        }
 
         m_canvas->Refresh();
 

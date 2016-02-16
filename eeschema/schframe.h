@@ -153,6 +153,10 @@ private:
     GOST_COMP_MANAGER*    m_GOST_comp_manager;
 #endif
 
+    bool                    m_autoplaceFields;    ///< automatically place component fields
+    bool                    m_autoplaceJustify;   ///< allow autoplace to change justification
+    bool                    m_autoplaceAlign;     ///< align autoplaced fields to the grid
+
     /// An index to the last find item in the found items list #m_foundItems.
     int         m_foundItemIndex;
 
@@ -207,9 +211,9 @@ protected:
      * adds the item currently being edited to the schematic and adds the changes to
      * the undo/redo container.
      *
-     * @param aDC A pointer the device context to draw on when not NULL.
+     * @param aRedraw = true (default) to redrw -the screen after adding the item.
      */
-    void addCurrentItemToList( wxDC* aDC );
+    void addCurrentItemToList( bool aRedraw = true );
 
     void updateFindReplaceView( wxFindDialogEvent& aEvent );
 
@@ -269,11 +273,10 @@ public:
     void SetPlotDirectoryName( const wxString& aDirName ) { m_plotDirectoryName = aDirName; }
 
     void Process_Special_Functions( wxCommandEvent& event );
-    void OnColorConfig( wxCommandEvent& aEvent );
     void Process_Config( wxCommandEvent& event );
     void OnSelectTool( wxCommandEvent& aEvent );
 
-    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey = 0 );
+    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
 
     /**
      * Function GetProjectFileParametersList
@@ -772,6 +775,12 @@ public:
 private:
 
     /**
+     * Function OnAutoplaceFields
+     * handles the #ID_AUTOPLACE_FIELDS event.
+     */
+    void OnAutoplaceFields( wxCommandEvent& aEvent );
+
+    /**
      * Function OnMoveItem
      * handles the #ID_SCH_MOVE_ITEM event used to move schematic itams.
      */
@@ -807,6 +816,7 @@ private:
     void OnAnnotate( wxCommandEvent& event );
     void OnErc( wxCommandEvent& event );
     void OnCreateNetlist( wxCommandEvent& event );
+    void OnUpdatePCB( wxCommandEvent& event );
     void OnCreateBillOfMaterials( wxCommandEvent& event );
 #if defined(KICAD_GOST)
     void OnCreateOldBillOfMaterials( wxCommandEvent& event );
@@ -844,7 +854,7 @@ private:
     void OnOpenPcbModuleEditor( wxCommandEvent& event );
     void OnOpenCvpcb( wxCommandEvent& event );
     void OnOpenLibraryEditor( wxCommandEvent& event );
-    void OnRescueCached( wxCommandEvent& event );
+    void OnRescueProject( wxCommandEvent& event );
     void OnPreferencesOptions( wxCommandEvent& event );
     void OnCancelCurrentCommand( wxCommandEvent& aEvent );
 
@@ -880,8 +890,8 @@ private:
     void UpdateTitle();
 
     // Bus Entry
-    SCH_BUS_WIRE_ENTRY* CreateBusWireEntry( wxDC* DC );
-    SCH_BUS_BUS_ENTRY* CreateBusBusEntry( wxDC* DC );
+    SCH_BUS_WIRE_ENTRY* CreateBusWireEntry();
+    SCH_BUS_BUS_ENTRY* CreateBusBusEntry();
     void SetBusEntryShape( wxDC* DC, SCH_BUS_ENTRY_BASE* BusEntry, char entry_shape );
 
     /**
@@ -965,7 +975,7 @@ private:
     void EditImage( SCH_BITMAP* aItem );
 
     // Hierarchical Sheet & PinSheet
-    void        InstallHierarchyFrame( wxDC* DC, wxPoint& pos );
+    void        InstallHierarchyFrame( wxPoint& pos );
     SCH_SHEET*  CreateSheet( wxDC* DC );
     void        ReSizeSheet( SCH_SHEET* Sheet, wxDC* DC );
 
@@ -1014,8 +1024,10 @@ public:
      * <li>and the file name does not exist in the schematic hierarchy or on the file system,
      * the current associated screen file name is changed and saved to disk.</li>
      * </ul> </p>
+     *
+     * Note: the screen is not refresh. The caller is responsible to do that
      */
-    bool EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy, wxDC* aDC );
+    bool EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy );
 
     wxPoint GetLastSheetPinPosition() const { return m_lastSheetPinPosition; }
 
@@ -1033,10 +1045,10 @@ private:
      * Function EditSheetPin
      * displays the dialog for editing the parameters of \a aSheetPin.
      * @param aSheetPin The sheet pin item to edit.
-     * @param aDC The device context to draw on.
+     * @param aRedraw = true to refresh the screen
      * @return The user response from the edit dialog.
      */
-    int EditSheetPin( SCH_SHEET_PIN* aSheetPin, wxDC* aDC );
+    int EditSheetPin( SCH_SHEET_PIN* aSheetPin, bool aRedraw );
 
     /**
      * Function ImportSheetPin
@@ -1229,7 +1241,7 @@ public:
      * @param aKey = the key modifiers (Alt, Shift ...)
      * @return the block command id (BLOCK_MOVE, BLOCK_COPY...)
      */
-    virtual int BlockCommand( int aKey );
+    virtual int BlockCommand( EDA_KEY aKey );
 
     /**
      * Function HandleBlockPlace
@@ -1319,10 +1331,13 @@ public:
     bool CreateArchiveLibrary( const wxString& aFileName );
 
     /**
-     * Function RescueCacheConflicts
-     * exports components from the '-cache' library that conflict with parts
-     * in the project libraries to a new library, renaming them to add a suffix
-     * of the root document's name to avoid conflicts.
+     * Function RescueProject
+     * performs rescue operations to recover old projects from before certain
+     * changes were made.
+     *
+     * - Exports cached symbols that conflict with new symbols to a separate
+     *   library
+     * - Renames symbols named before libraries were case sensitive
      *
      * @param aRunningOnDemand - indicates whether the tool has been called up by the user
      *      (as opposed to being run automatically). If true, an information dialog is
@@ -1330,7 +1345,7 @@ public:
      *      if there are no components to rescue, and a "Never Show Again" button is
      *      displayed.
      */
-    bool RescueCacheConflicts( bool aRunningOnDemand );
+    bool RescueProject( bool aRunningOnDemand );
 
     /**
      * Function PrintPage

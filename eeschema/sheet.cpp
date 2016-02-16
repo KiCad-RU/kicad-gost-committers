@@ -41,7 +41,7 @@
 #include <project.h>
 
 
-bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy, wxDC* aDC )
+bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy )
 {
     if( aSheet == NULL || aHierarchy == NULL )
         return false;
@@ -82,10 +82,6 @@ bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy, w
     if( !fileName.IsOk() )
     {
         DisplayError( this, _( "File name is not valid!" ) );
-
-        if( m_canvas )
-            m_canvas->Refresh();
-
         return false;
     }
 
@@ -96,15 +92,10 @@ bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy, w
     {
         DisplayError( this, wxString::Format( _( "A sheet named \"%s\" already exists." ),
                                               GetChars( dlg.GetSheetName() ) ) );
-
-        if( m_canvas )
-            m_canvas->Refresh();
-
         return false;
     }
 
     wxString msg;
-    wxString tmp;
     bool loadFromFile = false;
     SCH_SCREEN* useScreen = NULL;
 
@@ -143,15 +134,13 @@ bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy, w
 
             if( !IsOK( this, msg ) )
             {
-                if( m_canvas )
-                    m_canvas->Refresh();
-
                 return false;
             }
         }
         else                                                   // New file.
         {
             aSheet->SetScreen( new SCH_SCREEN( &Kiway() ) );
+            aSheet->GetScreen()->SetMaxUndoItems( m_UndoRedoCountMax );
             aSheet->GetScreen()->SetFileName( newFilename );
         }
     }
@@ -209,7 +198,6 @@ bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy, w
             }
         }
 
-        aSheet->Draw( m_canvas, aDC, wxPoint( 0, 0 ), g_XorMode );
         m_canvas->SetIgnoreMouseEvents( true );
 
         if( isUndoable )
@@ -267,7 +255,6 @@ bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy, w
 
     m_canvas->MoveCursorToCrossHair();
     m_canvas->SetIgnoreMouseEvents( false );
-    aSheet->Draw( m_canvas, aDC, wxPoint( 0, 0 ), GR_DEFAULT_DRAWMODE );
     OnModify();
 
     return true;
@@ -282,7 +269,6 @@ bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy, w
 static void resizeSheetWithMouseCursor( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosition,
                                         bool aErase )
 {
-    wxPoint        moveVector;
     BASE_SCREEN*   screen = aPanel->GetScreen();
     SCH_SHEET*     sheet = (SCH_SHEET*) screen->GetCurItem();
 

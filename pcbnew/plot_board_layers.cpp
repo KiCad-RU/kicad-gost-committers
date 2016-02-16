@@ -113,7 +113,7 @@ void PlotSilkScreen( BOARD *aBoard, PLOTTER* aPlotter, LSET aLayerMask,
     {
         if( ! itemplotter.PlotAllTextsModule( module ) )
         {
-             wxLogMessage( _( "Your BOARD has a bad layer number for module %s" ),
+             wxLogMessage( _( "Your BOARD has a bad layer number for footprint %s" ),
                            GetChars( module->GetReference() ) );
         }
     }
@@ -298,7 +298,7 @@ void PlotStandardLayer( BOARD *aBoard, PLOTTER* aPlotter,
     {
         if( ! itemplotter.PlotAllTextsModule( module ) )
         {
-            wxLogMessage( _( "Your BOARD has a bad layer number for module %s" ),
+            wxLogMessage( _( "Your BOARD has a bad layer number for footprint %s" ),
                            GetChars( module->GetReference() ) );
         }
     }
@@ -370,16 +370,16 @@ void PlotStandardLayer( BOARD *aBoard, PLOTTER* aPlotter,
             pad->SetSize( padPlotsSize );
             switch( pad->GetShape() )
             {
-            case PAD_CIRCLE:
-            case PAD_OVAL:
+            case PAD_SHAPE_CIRCLE:
+            case PAD_SHAPE_OVAL:
                 if( aPlotOpt.GetSkipPlotNPTH_Pads() &&
                     (pad->GetSize() == pad->GetDrillSize()) &&
-                    (pad->GetAttribute() == PAD_HOLE_NOT_PLATED) )
+                    (pad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED) )
                     break;
 
                 // Fall through:
-            case PAD_TRAPEZOID:
-            case PAD_RECT:
+            case PAD_SHAPE_TRAPEZOID:
+            case PAD_SHAPE_RECT:
             default:
                 itemplotter.PlotPad( pad, color, plotMode );
                 break;
@@ -542,15 +542,14 @@ static const LAYER_ID plot_seq[] = {
 
 /* Plot outlines of copper, for copper layer
  */
-#include "clipper.hpp"
-void PlotLayerOutlines( BOARD *aBoard, PLOTTER* aPlotter,
+void PlotLayerOutlines( BOARD* aBoard, PLOTTER* aPlotter,
                         LSET aLayerMask, const PCB_PLOT_PARAMS& aPlotOpt )
 {
 
     BRDITEMS_PLOTTER itemplotter( aPlotter, aBoard, aPlotOpt );
     itemplotter.SetLayerSet( aLayerMask );
 
-    CPOLYGONS_LIST outlines;
+    SHAPE_POLY_SET outlines;
 
     for( LSEQ seq = aLayerMask.Seq( plot_seq, DIM( plot_seq ) );  seq;  ++seq )
     {
@@ -559,47 +558,25 @@ void PlotLayerOutlines( BOARD *aBoard, PLOTTER* aPlotter,
         outlines.RemoveAllContours();
         aBoard->ConvertBrdLayerToPolygonalContours( layer, outlines );
 
-        // Merge all overlapping polygons.
-        KI_POLYGON_SET kpolygons;
-        KI_POLYGON_SET ktmp;
-        outlines.ExportTo( ktmp );
-
-        kpolygons += ktmp;
+        outlines.Simplify( SHAPE_POLY_SET::PM_FAST );
 
         // Plot outlines
         std::vector< wxPoint > cornerList;
 
-        for( unsigned ii = 0; ii < kpolygons.size(); ii++ )
+        // Now we have one or more basic polygons: plot each polygon
+        for( int ii = 0; ii < outlines.OutlineCount(); ii++ )
         {
-            KI_POLYGON polygon = kpolygons[ii];
-
-            // polygon contains only one polygon, but it can have holes linked by
-            // overlapping segments.
-            // To plot clean outlines, we have to break this polygon into more polygons with
-            // no overlapping segments, using Clipper, because boost::polygon
-            // does not allow that
-            ClipperLib::Path raw_polygon;
-            ClipperLib::Paths normalized_polygons;
-
-            for( unsigned ic = 0; ic < polygon.size(); ic++ )
+            for(int kk = 0; kk <= outlines.HoleCount (ii); kk++ )
             {
-                KI_POLY_POINT corner = *(polygon.begin() + ic);
-                raw_polygon.push_back( ClipperLib::IntPoint( corner.x(), corner.y() ) );
-            }
-
-            ClipperLib::SimplifyPolygon( raw_polygon, normalized_polygons );
-
-            // Now we have one or more basic polygons: plot each polygon
-            for( unsigned ii = 0; ii < normalized_polygons.size(); ii++ )
-            {
-                ClipperLib::Path& polygon = normalized_polygons[ii];
                 cornerList.clear();
+                const SHAPE_LINE_CHAIN& path = (kk == 0) ? outlines.COutline( ii ) : outlines.CHole( ii, kk - 1 );
 
-                for( unsigned jj = 0; jj < polygon.size(); jj++ )
-                    cornerList.push_back( wxPoint( polygon[jj].X , polygon[jj].Y ) );
+                for( int jj = 0; jj < path.PointCount(); jj++ )
+                    cornerList.push_back( wxPoint( path.CPoint( jj ).x , path.CPoint( jj ).y ) );
+
 
                 // Ensure the polygon is closed
-                if( cornerList[0] != cornerList[cornerList.size()-1] )
+                if( cornerList[0] != cornerList[cornerList.size() - 1] )
                     cornerList.push_back( cornerList[0] );
 
                 aPlotter->PlotPoly( cornerList, NO_FILL );
@@ -654,7 +631,7 @@ void PlotLayerOutlines( BOARD *aBoard, PLOTTER* aPlotter,
  *      mask clearance + (min width solder mask /2)
  * 2 - Merge shapes
  * 3 - deflate result by (min width solder mask /2)
- * 4 - oring result by all pad shapes as polygons with a size inflated by
+ * 4 - ORing result by all pad shapes as polygons with a size inflated by
  *      mask clearance only (because deflate sometimes creates shape artifacts)
  * 5 - draw result as polygons
  *
@@ -674,7 +651,9 @@ void PlotSolderMaskLayer( BOARD *aBoard, PLOTTER* aPlotter,
     BRDITEMS_PLOTTER itemplotter( aPlotter, aBoard, aPlotOpt );
     itemplotter.SetLayerSet( aLayerMask );
 
-     // Plot edge layer and graphic items
+    // Plot edge layer and graphic items
+    // They do not have a solder Mask margin, because they are only graphic items
+    // on this layer (like logos), not actually areas around pads.
     itemplotter.PlotBoardGraphicItems();
 
     for( MODULE* module = aBoard->m_Modules;  module;  module = module->Next() )
@@ -704,8 +683,8 @@ void PlotSolderMaskLayer( BOARD *aBoard, PLOTTER* aPlotter,
     // This extra margin is used to merge too close shapes
     // (distance < aMinThickness), and will be removed when creating
     // the actual shapes
-    CPOLYGONS_LIST bufferPolys;   // Contains shapes to plot
-    CPOLYGONS_LIST initialPolys;  // Contains exact shapes to plot
+    SHAPE_POLY_SET areas;           // Contains shapes to plot
+    SHAPE_POLY_SET initialPolys;    // Contains exact shapes to plot
 
     /* calculates the coeff to compensate radius reduction of holes clearance
      * due to the segment approx ( 1 /cos( PI/circleToSegmentsCount )
@@ -722,7 +701,7 @@ void PlotSolderMaskLayer( BOARD *aBoard, PLOTTER* aPlotter,
                         circleToSegmentsCount, correction );
         // add shapes inflated by aMinThickness/2
         module->TransformPadsShapesWithClearanceToPolygon( layer,
-                        bufferPolys, inflate,
+                        areas, inflate,
                         circleToSegmentsCount, correction );
     }
 
@@ -754,7 +733,7 @@ void PlotSolderMaskLayer( BOARD *aBoard, PLOTTER* aPlotter,
             if( !( via_set & aLayerMask ).any() )
                 continue;
 
-            via->TransformShapeWithClearanceToPolygon( bufferPolys, via_margin,
+            via->TransformShapeWithClearanceToPolygon( areas, via_margin,
                     circleToSegmentsCount,
                     correction );
             via->TransformShapeWithClearanceToPolygon( initialPolys, via_clearance,
@@ -763,7 +742,13 @@ void PlotSolderMaskLayer( BOARD *aBoard, PLOTTER* aPlotter,
         }
     }
 
-    // Add filled zone areas
+    // Add filled zone areas.
+#if 0   // Set to 1 if a solder mask margin must be applied to zones on solder mask
+    int zone_margin = aBoard->GetDesignSettings().m_SolderMaskMargin;
+#else
+    int zone_margin = 0;
+#endif
+
     for( int ii = 0; ii < aBoard->GetAreaCount(); ii++ )
     {
         ZONE_CONTAINER* zone = aBoard->GetArea( ii );
@@ -771,10 +756,10 @@ void PlotSolderMaskLayer( BOARD *aBoard, PLOTTER* aPlotter,
         if( zone->GetLayer() != layer )
             continue;
 
-        zone->TransformOutlinesShapeWithClearanceToPolygon( bufferPolys,
-                    inflate, true );
+        zone->TransformOutlinesShapeWithClearanceToPolygon( areas,
+                    inflate+zone_margin, false );
         zone->TransformOutlinesShapeWithClearanceToPolygon( initialPolys,
-                    0, true );
+                    zone_margin, false );
     }
 
     // To avoid a lot of code, use a ZONE_CONTAINER
@@ -788,56 +773,15 @@ void PlotSolderMaskLayer( BOARD *aBoard, PLOTTER* aPlotter,
     zone.SetMinThickness( 0 );      // trace polygons only
     zone.SetLayer ( layer );
 
-    // Now:
-    // 1 - merge polygons which are intersecting, i.e. remove gaps
-    //     having a thickness < aMinThickness
-    // 2 - deflate resulting polygons by aMinThickness/2
-    KI_POLYGON_SET areasToMerge;
-    bufferPolys.ExportTo( areasToMerge );
-    KI_POLYGON_SET initialAreas;
-    initialPolys.ExportTo( initialAreas );
-
-    // Merge polygons: because each shape was created with an extra margin
-    // = aMinThickness/2, shapes too close ( dist < aMinThickness )
-    // will be merged, because they are overlapping
-    KI_POLYGON_SET areas;
-    areas |= areasToMerge;      // Populates with merged polygons
-
-    // Deflate: remove the extra margin, to create the actual shapes
-    // Here I am using polygon:resize, because this function creates better shapes
-    // than deflate algo.
-    // Use here deflate made by Clipper, because:
-    // Clipper is (by far) faster and better, event using arcs to deflate shapes
-    // boost::polygon < 1.56 polygon resize function sometimes crashes when deflating using arcs
-    // boost::polygon >=1.56 polygon resize function just does not work
-    // Note also we combine polygons using boost::polygon, which works better than Clipper,
-    // especially with zones using holes linked to main outlines by overlapping segments
-    CPOLYGONS_LIST tmp;
-    tmp.ImportFrom( areas );
-
-    // Deflate area using Clipper, better than boost::polygon
-    ClipperLib::Paths areasDeflate;
-    tmp.ExportTo( areasDeflate );
-
-    // Deflate areas: they will have the right size after deflate
-    ClipperLib::ClipperOffset offset_engine;
-    circleToSegmentsCount = 16;
-    offset_engine.ArcTolerance = (double)inflate / 3.14 / circleToSegmentsCount;
-    offset_engine.AddPaths( areasDeflate, ClipperLib::jtRound, ClipperLib::etClosedPolygon );
-    offset_engine.Execute( areasDeflate, -inflate );
+    areas.BooleanAdd( initialPolys, SHAPE_POLY_SET::PM_FAST );
+    areas.Inflate( -inflate, circleToSegmentsCount );
 
     // Combine the current areas to initial areas. This is mandatory because
     // inflate/deflate transform is not perfect, and we want the initial areas perfectly kept
-    tmp.RemoveAllContours();
-    tmp.ImportFrom( areasDeflate );
-    areas.clear();
-    tmp.ExportTo( areas );
+    areas.BooleanAdd( initialPolys, SHAPE_POLY_SET::PM_FAST );
+    areas.Fracture( SHAPE_POLY_SET::PM_STRICTLY_SIMPLE );
 
-    // Resize slightly changes shapes (the transform is not perfect).
-    // So *ensure* initial shapes are kept
-    areas |= initialAreas;
-
-    zone.CopyPolygonsFromKiPolygonListToFilledPolysList( areas );
+    zone.AddFilledPolysList( areas );
 
     itemplotter.PlotFilledAreas( &zone );
 }
@@ -959,20 +903,9 @@ static void ConfigureHPGLPenSizes( HPGL_PLOTTER *aPlotter,
     int pen_diam = KiROUND( aPlotOpts->GetHPGLPenDiameter() * IU_PER_MILS /
                             aPlotOpts->GetScale() );
 
-    // compute pen_overlay (value comes in mils) in pcb units with plot scale
-    if( aPlotOpts->GetHPGLPenOverlay() < 0 )
-        aPlotOpts->SetHPGLPenOverlay( 0 );
-
-    if( aPlotOpts->GetHPGLPenOverlay() >= aPlotOpts->GetHPGLPenDiameter() )
-        aPlotOpts->SetHPGLPenOverlay( aPlotOpts->GetHPGLPenDiameter() - 1 );
-
-    int pen_overlay = KiROUND( aPlotOpts->GetHPGLPenOverlay() * IU_PER_MILS /
-                               aPlotOpts->GetScale() );
-
     // Set HPGL-specific options and start
     aPlotter->SetPenSpeed( aPlotOpts->GetHPGLPenSpeed() );
     aPlotter->SetPenNumber( aPlotOpts->GetHPGLPenNum() );
-    aPlotter->SetPenOverlap( pen_overlay );
     aPlotter->SetPenDiameter( pen_diam );
 }
 

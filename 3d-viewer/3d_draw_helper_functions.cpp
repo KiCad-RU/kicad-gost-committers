@@ -189,16 +189,24 @@ void EDA_3D_CANVAS::draw3DAxis()
         glNewList( m_glLists[GL_ID_AXIS], GL_COMPILE );
 
         glEnable( GL_COLOR_MATERIAL );
-        SetGLColor( WHITE );
         glBegin( GL_LINES );
+        SetGLColor( RED );
         glNormal3f( 0.0f, 0.0f, 1.0f );     // Normal is Z axis
         glVertex3f( 0.0f, 0.0f, 0.0f );
-        glVertex3f( 1.0f, 0.0f, 0.0f );     // X axis
+        glVertex3f( -10.0f, 0.0f, 0.0f );
         glVertex3f( 0.0f, 0.0f, 0.0f );
-        glVertex3f( 0.0f, -1.0f, 0.0f );    // Y axis
+        glVertex3f( 10.0f, 0.0f, 0.0f );    // X axis
+        SetGLColor( GREEN );
+        glVertex3f( 0.0f, 0.0f, 0.0f );
+        glVertex3f( 0.0f, -10.0f, 0.0f );   // Y axis
+        glVertex3f( 0.0f, 0.0f, 0.0f );
+        glVertex3f( 0.0f, 10.0f, 0.0f );
+        SetGLColor( BLUE );
         glNormal3f( 1.0f, 0.0f, 0.0f );     // Normal is Y axis
         glVertex3f( 0.0f, 0.0f, 0.0f );
-        glVertex3f( 0.0f, 0.0f, 0.3f );     // Z axis
+        glVertex3f( 0.0f, 0.0f, -10.0f );
+        glVertex3f( 0.0f, 0.0f, 0.0f );
+        glVertex3f( 0.0f, 0.0f, 10.0f );    // Z axis
         glEnd();
 
         glEndList();
@@ -219,10 +227,10 @@ void EDA_3D_CANVAS::draw3DGrid( double aGriSizeMM )
 
     wxSize  brd_size = getBoardSize();
     wxPoint brd_center_pos = getBoardCenter();
-    NEGATE( brd_center_pos.y );
+    brd_center_pos.y = -brd_center_pos.y;
 
-    int     xsize   = std::max( brd_size.x, Millimeter2iu( 100 ) );
-    int     ysize   = std::max( brd_size.y, Millimeter2iu( 100 ) );
+    int     xsize   = std::max( brd_size.x, Millimeter2iu( 100 ) ) * 1.2;
+    int     ysize   = std::max( brd_size.y, Millimeter2iu( 100 ) ) * 1.2;
 
     // Grid limits, in 3D units
     double  xmin    = (brd_center_pos.x - xsize / 2) * scale;
@@ -278,10 +286,12 @@ void EDA_3D_CANVAS::draw3DGrid( double aGriSizeMM )
             break;
     }
 
-    // Draw vertical grid n Z axis
+    // Draw vertical grid on Z axis
     glNormal3f( 0.0, -1.0, 0.0 );
 
     // Draw vertical grid lines (parallel to Z axis)
+    double posy = -brd_center_pos.y * scale;
+
     for( int ii = 0; ; ii++ )
     {
         if( (ii % 5) )
@@ -292,15 +302,18 @@ void EDA_3D_CANVAS::draw3DGrid( double aGriSizeMM )
         double delta = ii * aGriSizeMM * IU_PER_MM;
 
         glBegin( GL_LINES );
-        glVertex3f( (brd_center_pos.x + delta) * scale, -brd_center_pos.y * scale, zmin );
-        glVertex3f( (brd_center_pos.x + delta) * scale, -brd_center_pos.y * scale, zmax );
+        xmax = (brd_center_pos.x + delta) * scale;
+
+        glVertex3f( xmax, posy, zmin );
+        glVertex3f( xmax, posy, zmax );
         glEnd();
 
         if( ii != 0 )
         {
             glBegin( GL_LINES );
-            glVertex3f( (brd_center_pos.x - delta) * scale, -brd_center_pos.y * scale, zmin );
-            glVertex3f( (brd_center_pos.x - delta) * scale, -brd_center_pos.y * scale, zmax );
+            xmin = (brd_center_pos.x - delta) * scale;
+            glVertex3f( xmin, posy, zmin );
+            glVertex3f( xmin, posy, zmax );
             glEnd();
         }
 
@@ -308,7 +321,7 @@ void EDA_3D_CANVAS::draw3DGrid( double aGriSizeMM )
             break;
     }
 
-    // Draw horizontal grid lines on Z axis
+    // Draw horizontal grid lines on Z axis (parallel to X axis)
     for( int ii = 0; ; ii++ )
     {
         if( (ii % 5) )
@@ -322,8 +335,8 @@ void EDA_3D_CANVAS::draw3DGrid( double aGriSizeMM )
         {
             // Draw grid lines on Z axis (positive Z axis coordinates)
             glBegin( GL_LINES );
-            glVertex3f( xmin, -brd_center_pos.y * scale, delta );
-            glVertex3f( xmax, -brd_center_pos.y * scale, delta );
+            glVertex3f( xmin, posy, delta );
+            glVertex3f( xmax, posy, delta );
             glEnd();
         }
 
@@ -331,8 +344,8 @@ void EDA_3D_CANVAS::draw3DGrid( double aGriSizeMM )
         {
             // Draw grid lines on Z axis (negative Z axis coordinates)
             glBegin( GL_LINES );
-            glVertex3f( xmin, -brd_center_pos.y * scale, -delta );
-            glVertex3f( xmax, -brd_center_pos.y * scale, -delta );
+            glVertex3f( xmin, posy, -delta );
+            glVertex3f( xmax, posy, -delta );
             glEnd();
         }
 
@@ -353,7 +366,7 @@ void EDA_3D_CANVAS::draw3DPadHole( const D_PAD* aPad )
         return;
 
     // Store here the points to approximate hole by segments
-    CPOLYGONS_LIST  holecornersBuffer;
+    SHAPE_POLY_SET  holecornersBuffer;
     int             thickness   = GetPrm3DVisu().GetCopperThicknessBIU();
     int             height      = GetPrm3DVisu().GetLayerZcoordBIU( F_Cu ) -
                                   GetPrm3DVisu().GetLayerZcoordBIU( B_Cu );
@@ -406,7 +419,7 @@ void EDA_3D_CANVAS::draw3DViaHole( const VIA* aVia )
 {
     LAYER_ID    top_layer, bottom_layer;
     int         thickness       = GetPrm3DVisu().GetCopperThicknessBIU();
-    int         inner_radius    = (int)((float)aVia->GetDrillValue() * 1.01f) / 2.0f;      // This add a bit more in order to correct a draw artifact while using tickness
+    int         inner_radius    = (int)((float)aVia->GetDrillValue() * 1.01f) / 2.0f;      // This add a bit more in order to correct a draw artifact while using thickness
 
     aVia->LayerPair( &top_layer, &bottom_layer );
 
@@ -431,12 +444,12 @@ void EDA_3D_CANVAS::draw3DViaHole( const VIA* aVia )
  * Used only to draw pads outlines on silkscreen layers.
  */
 void EDA_3D_CANVAS::buildPadShapeThickOutlineAsPolygon( const D_PAD*  aPad,
-                                                CPOLYGONS_LIST& aCornerBuffer,
+                                                SHAPE_POLY_SET& aCornerBuffer,
                                                 int             aWidth,
                                                 int             aCircleToSegmentsCount,
                                                 double          aCorrectionFactor )
 {
-    if( aPad->GetShape() == PAD_CIRCLE )    // Draw a ring
+    if( aPad->GetShape() == PAD_SHAPE_CIRCLE )    // Draw a ring
     {
         TransformRingToPolygon( aCornerBuffer, aPad->ShapePos(),
                                 aPad->GetSize().x / 2, aCircleToSegmentsCount, aWidth );
@@ -444,18 +457,37 @@ void EDA_3D_CANVAS::buildPadShapeThickOutlineAsPolygon( const D_PAD*  aPad,
     }
 
     // For other shapes, draw polygon outlines
-    CPOLYGONS_LIST corners;
+    SHAPE_POLY_SET corners;
     aPad->BuildPadShapePolygon( corners, wxSize( 0, 0 ),
                                 aCircleToSegmentsCount, aCorrectionFactor );
 
     // Add outlines as thick segments in polygon buffer
-    for( unsigned ii = 0, jj = corners.GetCornersCount() - 1;
-         ii < corners.GetCornersCount(); jj = ii, ii++ )
+
+    const SHAPE_LINE_CHAIN& path = corners.COutline( 0 );
+
+    for( int ii = 0; ii < path.PointCount(); ii++ )
     {
+        const VECTOR2I& a = path.CPoint( ii );
+        const VECTOR2I& b = path.CPoint( ii + 1 );
+
         TransformRoundedEndsSegmentToPolygon( aCornerBuffer,
-                                              corners.GetPos( jj ),
-                                              corners.GetPos( ii ),
+                                              wxPoint( a.x, a.y ),
+                                              wxPoint( b.x, b.y ),
                                               aCircleToSegmentsCount, aWidth );
     }
 }
 
+
+GLfloat Get3DLayer_Z_Orientation( LAYER_NUM aLayer )
+{
+    double nZ = 1.0;
+
+    if( ( aLayer == B_Cu )
+        || ( aLayer == B_Adhes )
+        || ( aLayer == B_Paste )
+        || ( aLayer == B_SilkS )
+        || ( aLayer == B_Mask ) )
+        nZ = -1.0;
+
+    return nZ;
+}

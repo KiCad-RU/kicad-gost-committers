@@ -40,6 +40,7 @@ class BOARD_ITEM;
 class D_PAD;
 class TRACK;
 class VIA;
+class GRID_HELPER;
 class PNS_NODE;
 class PNS_DIFF_PAIR_PLACER;
 class PNS_PLACEMENT_ALGO;
@@ -106,7 +107,6 @@ public:
 
     void StopRouting();
 
-
     int GetClearance( const PNS_ITEM* aA, const PNS_ITEM* aB ) const;
 
     PNS_NODE* GetWorld() const
@@ -129,7 +129,7 @@ public:
     void SetOrthoMode ( bool aEnable );
 
     int GetCurrentLayer() const;
-    int GetCurrentNet() const;
+    const std::vector<int> GetCurrentNets() const;
 
     void DumpLog();
 
@@ -216,6 +216,11 @@ public:
 
     PNS_PLACEMENT_ALGO *Placer() { return m_placer; }
 
+    void SetGrid( GRID_HELPER *aGridHelper )
+    {
+        m_gridHelper = aGridHelper;
+    }
+
 private:
     void movePlacing( const VECTOR2I& aP, PNS_ITEM* aItem );
     void moveDragging( const VECTOR2I& aP, PNS_ITEM* aItem );
@@ -258,15 +263,11 @@ private:
     KIGFX::VIEW* m_view;
     KIGFX::VIEW_GROUP* m_previewItems;
 
-    PNS_ITEM* m_currentEndItem;
-
     bool m_snappingEnabled;
     bool m_violation;
 
-    // optHoverItem m_startItem, m_endItem;
-
     PNS_ROUTING_SETTINGS m_settings;
-    PNS_CLEARANCE_FUNC* m_clearanceFunc;
+    PNS_PCBNEW_CLEARANCE_FUNC* m_clearanceFunc;
 
     boost::unordered_set<BOARD_CONNECTED_ITEM*> m_hiddenItems;
 
@@ -277,6 +278,8 @@ private:
 
     wxString m_toolStatusbarName;
     wxString m_failureReason;
+
+    GRID_HELPER *m_gridHelper;
 };
 
 #endif

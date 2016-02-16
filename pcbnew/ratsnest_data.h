@@ -47,7 +47,7 @@ class D_PAD;
 class VIA;
 class TRACK;
 class ZONE_CONTAINER;
-class CPolyPt;
+class SHAPE_POLY_SET;
 
 ///> Types of items that are handled by the class
 enum RN_ITEM_TYPE
@@ -265,7 +265,8 @@ protected:
 class RN_POLY
 {
 public:
-    RN_POLY( const CPolyPt* aBegin, const CPolyPt* aEnd,
+    RN_POLY( const SHAPE_POLY_SET* aParent,
+             int aSubpolygonIndex,
              RN_LINKS& aConnections, const BOX2I& aBBox );
 
     /**
@@ -274,6 +275,11 @@ public:
      * bounding polyline.
      */
     inline const RN_NODE_PTR& GetNode() const
+    {
+        return m_node;
+    }
+
+    inline RN_NODE_PTR& GetNode()
     {
         return m_node;
     }
@@ -287,14 +293,15 @@ public:
     bool HitTest( const RN_NODE_PTR& aNode ) const;
 
 private:
-    ///> Pointer to the first point of polyline bounding the polygon.
-    const CPolyPt* m_begin;
 
-    ///> Pointer to the last point of polyline bounding the polygon.
-    const CPolyPt* m_end;
+    ///> Index of the outline in the parent polygon set
+    int m_subpolygonIndex;
 
     ///> Bounding box of the polygon.
     BOX2I m_bbox;
+
+    ///> Polygon set containing the geometry
+    const SHAPE_POLY_SET* m_parentPolyset;
 
     ///> Node representing a polygon (it has the same coordinates as the first point of its
     ///> bounding polyline.
@@ -445,7 +452,7 @@ public:
     std::list<RN_NODE_PTR> GetNodes( const BOARD_CONNECTED_ITEM* aItem ) const;
 
     /**
-     * Function GetAllNodes()
+     * Function GetAllItems()
      * Adds all stored items to a list.
      * @param aOutput is the list that will have items added.
      * @param aType determines the type of added items.
@@ -506,7 +513,7 @@ public:
      */
     inline void AddBlockedNode( RN_NODE_PTR& aNode )
     {
-        m_blockedNodes.push_back( aNode );
+        m_blockedNodes.insert( aNode );
         aNode->SetFlag( true );
     }
 
@@ -516,7 +523,10 @@ public:
      * ratsnest line per node).
      * @return list of nodes for which ratsnest is drawn in simple mode.
      */
-    boost::unordered_set<RN_NODE_PTR> GetSimpleNodes() const;
+    inline const boost::unordered_set<RN_NODE_PTR>& GetSimpleNodes() const
+    {
+        return m_simpleNodes;
+    }
 
     /**
      * Function ClearSimple()
@@ -540,11 +550,22 @@ protected:
     ///> to make sure that they are not ones with the flag set.
     void validateEdge( RN_EDGE_MST_PTR& aEdge );
 
+    ///> Removes a link between a node and a parent,
+    ///> and clears linked edges if it was the last parent.
+    void removeNode( RN_NODE_PTR& aNode, const BOARD_CONNECTED_ITEM* aParent );
+
+    ///> Removes a link between an edge and a parent,
+    ///> and clears its node data if it was the last parent.
+    void removeEdge( RN_EDGE_MST_PTR& aEdge, const BOARD_CONNECTED_ITEM* aParent );
+
     ///> Removes all ratsnest edges for a given node.
     void clearNode( const RN_NODE_PTR& aNode );
 
     ///> Adds appropriate edges for nodes that are connected by zones.
     void processZones();
+
+    ///> Adds additional edges to account for connections made by items located in pads areas.
+    void processPads();
 
     ///> Recomputes ratsnset from scratch.
     void compute();
@@ -556,14 +577,15 @@ protected:
     boost::shared_ptr< std::vector<RN_EDGE_MST_PTR> > m_rnEdges;
 
     ///> List of nodes which will not be used as ratsnest target nodes.
-    std::deque<RN_NODE_PTR> m_blockedNodes;
+    boost::unordered_set<RN_NODE_PTR> m_blockedNodes;
 
-    ///> Map that stores items to be computed in simple mode, keyed by their tags.
-    boost::unordered_map<int, const BOARD_CONNECTED_ITEM*> m_simpleItems;
+    ///> Nodes to be displayed using the simplified ratsnest algorithm.
+    boost::unordered_set<RN_NODE_PTR> m_simpleNodes;
 
     ///> Flag indicating necessity of recalculation of ratsnest for a net.
     bool m_dirty;
 
+    ///> Structure to hold ratsnest data for ZONE_CONTAINER objects.
     typedef struct
     {
         ///> Subpolygons belonging to a zone
@@ -573,8 +595,18 @@ protected:
         std::deque<RN_EDGE_MST_PTR> m_Edges;
     } RN_ZONE_DATA;
 
+    ///> Structureo to hold ratsnest data for D_PAD objects.
+    typedef struct
+    {
+        ///> Node representing the pad.
+        RN_NODE_PTR m_Node;
+
+        ///> Helper nodes that make for connections to items located in the pad area.
+        std::deque<RN_EDGE_MST_PTR> m_Edges;
+    } RN_PAD_DATA;
+
     ///> Helper typedefs
-    typedef boost::unordered_map<const D_PAD*, RN_NODE_PTR> PAD_NODE_MAP;
+    typedef boost::unordered_map<const D_PAD*, RN_PAD_DATA> PAD_NODE_MAP;
     typedef boost::unordered_map<const VIA*, RN_NODE_PTR> VIA_NODE_MAP;
     typedef boost::unordered_map<const TRACK*, RN_EDGE_MST_PTR> TRACK_EDGE_MAP;
     typedef boost::unordered_map<const ZONE_CONTAINER*, RN_ZONE_DATA> ZONE_DATA_MAP;
@@ -723,6 +755,13 @@ public:
      * @return True if they are connected, false otherwise.
      */
     bool AreConnected( const BOARD_CONNECTED_ITEM* aItem, const BOARD_CONNECTED_ITEM* aOther );
+
+    /**
+     * Function GetUnconnectedCount()
+     * Returns the number of missing connections.
+     * @return Number of missing connections.
+     */
+    int GetUnconnectedCount() const;
 
 protected:
     /**

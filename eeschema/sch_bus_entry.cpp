@@ -89,8 +89,8 @@ void SCH_BUS_ENTRY_BASE::SwapData( SCH_ITEM* aItem )
     SCH_BUS_ENTRY_BASE* item = dynamic_cast<SCH_BUS_ENTRY_BASE*>( aItem );
     wxCHECK_RET( item, wxT( "Cannot swap bus entry data with invalid item." ) );
 
-    EXCHG( m_pos, item->m_pos );
-    EXCHG( m_size, item->m_size );
+    std::swap( m_pos, item->m_pos );
+    std::swap( m_size, item->m_size );
 }
 
 
@@ -123,7 +123,7 @@ bool SCH_BUS_ENTRY_BASE::Load( LINE_READER& aLine, wxString& aErrorMsg,
     while( (*line != ' ' ) && *line )
         line++;
 
-    if( sscanf( line, "%s %s", Name1, Name2 ) != 2  )
+    if( sscanf( line, "%255s %255s", Name1, Name2 ) != 2  )
     {
         aErrorMsg.Printf( wxT( "Eeschema file bus entry load error at line %d" ),
                           aLine.LineNumber() );
@@ -199,35 +199,33 @@ void SCH_BUS_ENTRY_BASE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint&
 
 
     // Draw pin targets if part is being dragged
-    bool dragging = ( aPanel->GetScreen()->GetCurItem() == this );
+    bool dragging = aPanel->GetScreen()->GetCurItem() == this && aPanel->IsMouseCaptured();
 
     if( m_isDanglingStart || dragging )
     {
-        GRCircle( clipbox, aDC, m_pos.x + aOffset.x, m_pos.y + aOffset.y, TARGET_BUSENTRY_RADIUS, 0, color );
+        GRCircle( clipbox, aDC, m_pos.x + aOffset.x, m_pos.y + aOffset.y,
+                TARGET_BUSENTRY_RADIUS, 0, color );
     }
 
     if( m_isDanglingEnd || dragging )
     {
-        GRCircle( clipbox, aDC, m_End().x + aOffset.x, m_End().y + aOffset.y, TARGET_BUSENTRY_RADIUS, 0, color );
+        GRCircle( clipbox, aDC, m_End().x + aOffset.x, m_End().y + aOffset.y,
+                TARGET_BUSENTRY_RADIUS, 0, color );
     }
 }
 
 
 void SCH_BUS_ENTRY_BASE::MirrorX( int aXaxis_position )
 {
-    m_pos.y -= aXaxis_position;
-    NEGATE(  m_pos.y );
-    m_pos.y += aXaxis_position;
-    NEGATE(  m_size.y );
+    MIRROR( m_pos.y, aXaxis_position );
+    m_size.y = -m_size.y;
 }
 
 
 void SCH_BUS_ENTRY_BASE::MirrorY( int aYaxis_position )
 {
-    m_pos.x -= aYaxis_position;
-    NEGATE(  m_pos.x );
-    m_pos.x += aYaxis_position;
-    NEGATE(  m_size.x );
+    MIRROR( m_pos.x, aYaxis_position );
+    m_size.x = -m_size.x;
 }
 
 

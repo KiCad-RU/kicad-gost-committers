@@ -65,6 +65,9 @@
 #include <GOST-doc-gen/GOST_comp_manager.h>
 #endif
 
+#include <netlist_exporter_kicad.h>
+#include <kiway.h>
+
 // non-member so it can be moved easily, and kept REALLY private.
 // Do NOT Clear() in here.
 static void add_search_paths( SEARCH_STACK* aDst, const SEARCH_STACK& aSrc, int aIndex )
@@ -241,13 +244,12 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_MENU_RANGE( ID_PREFERENCES_HOTKEY_START, ID_PREFERENCES_HOTKEY_END,
                     SCH_EDIT_FRAME::Process_Config )
 
-    EVT_MENU( ID_COLORS_SETUP, SCH_EDIT_FRAME::OnColorConfig )
     EVT_TOOL( wxID_PREFERENCES, SCH_EDIT_FRAME::OnPreferencesOptions )
 
     EVT_TOOL( ID_RUN_LIBRARY, SCH_EDIT_FRAME::OnOpenLibraryEditor )
     EVT_TOOL( ID_POPUP_SCH_CALL_LIBEDIT_AND_LOAD_CMP, SCH_EDIT_FRAME::OnOpenLibraryEditor )
     EVT_TOOL( ID_TO_LIBVIEW, SCH_EDIT_FRAME::OnOpenLibraryViewer )
-    EVT_TOOL( ID_RESCUE_CACHED, SCH_EDIT_FRAME::OnRescueCached )
+    EVT_TOOL( ID_RESCUE_CACHED, SCH_EDIT_FRAME::OnRescueProject )
 
     EVT_TOOL( ID_RUN_PCB, SCH_EDIT_FRAME::OnOpenPcbnew )
     EVT_TOOL( ID_RUN_PCB_MODULE_EDITOR, SCH_EDIT_FRAME::OnOpenPcbModuleEditor )
@@ -265,6 +267,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( wxID_PRINT, SCH_EDIT_FRAME::OnPrint )
     EVT_TOOL( ID_GET_ERC, SCH_EDIT_FRAME::OnErc )
     EVT_TOOL( ID_GET_NETLIST, SCH_EDIT_FRAME::OnCreateNetlist )
+    EVT_TOOL( ID_UPDATE_PCB_FROM_SCH, SCH_EDIT_FRAME::OnUpdatePCB )
     EVT_TOOL( ID_GET_TOOLS, SCH_EDIT_FRAME::OnCreateBillOfMaterials )
 #if defined(KICAD_GOST)
     EVT_TOOL( ID_GEN_OLD_BOM, SCH_EDIT_FRAME::OnCreateOldBillOfMaterials )
@@ -275,6 +278,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( wxID_REPLACE, SCH_EDIT_FRAME::OnFindItems )
     EVT_TOOL( ID_BACKANNO_ITEMS, SCH_EDIT_FRAME::OnLoadCmpToFootprintLinkFile )
     EVT_TOOL( ID_SCH_MOVE_ITEM, SCH_EDIT_FRAME::OnMoveItem )
+    EVT_TOOL( ID_AUTOPLACE_FIELDS, SCH_EDIT_FRAME::OnAutoplaceFields )
     EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
@@ -357,8 +361,6 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     SetSpiceAddReferencePrefix( false );
     SetSpiceUseNetcodeAsNetname( false );
 
-    CreateScreens();
-
     // Give an icon
     wxIcon icon;
     icon.CopyFromBitmap( KiBitmap( icon_eeschema_xpm ) );
@@ -369,6 +371,8 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     m_LastGridSizeId = default_grid;
 
     LoadSettings( config() );
+
+    CreateScreens();
 
     // Ensure m_LastGridSizeId is an offset inside the allowed schematic grid range
     if( !GetScreen()->GridExists( m_LastGridSizeId + ID_POPUP_GRID_LEVEL_1000 ) )
@@ -474,7 +478,7 @@ void SCH_EDIT_FRAME::SetRepeatItem( SCH_ITEM* aItem )
 
 void SCH_EDIT_FRAME::SetSheetNumberAndCount()
 {
-    SCH_SCREEN* screen = GetScreen();
+    SCH_SCREEN* screen;
     SCH_SCREENS s_list;
 
     /* Set the sheet count, and the sheet number (1 for root sheet)
@@ -532,7 +536,9 @@ void SCH_EDIT_FRAME::CreateScreens()
 
     if( g_RootSheet->GetScreen() == NULL )
     {
-        g_RootSheet->SetScreen( new SCH_SCREEN( &Kiway() ) );
+        SCH_SCREEN* screen = new SCH_SCREEN( &Kiway() );
+        screen->SetMaxUndoItems( m_UndoRedoCountMax );
+        g_RootSheet->SetScreen( screen );
         SetScreen( g_RootSheet->GetScreen() );
     }
 
@@ -542,10 +548,13 @@ void SCH_EDIT_FRAME::CreateScreens()
     m_CurrentSheet->Push( g_RootSheet );
 
     if( GetScreen() == NULL )
-        SetScreen( new SCH_SCREEN( &Kiway() ) );
+    {
+        SCH_SCREEN* screen = new SCH_SCREEN( &Kiway() );
+        screen->SetMaxUndoItems( m_UndoRedoCountMax );
+        SetScreen( screen );
+    }
 
     GetScreen()->SetZoom( 32.0 );
-    GetScreen()->m_UndoRedoCountMax = 10;
 }
 
 
@@ -824,6 +833,50 @@ void SCH_EDIT_FRAME::OnErc( wxCommandEvent& event )
         InvokeDialogERC( this );
 }
 
+void SCH_EDIT_FRAME::OnUpdatePCB( wxCommandEvent& event )
+{
+    wxFileName fn = Prj().AbsolutePath( g_RootSheet->GetScreen()->GetFileName() );
+
+    fn.SetExt( PcbFileExtension );
+
+    if( Kiface().IsSingle() )
+    {
+        DisplayError( this,  _( "Cannot update the PCB, because the Schematic Editor is"
+                                " opened in stand-alone mode. In order to create/update"
+                                " PCBs from schematics, you need to launch Kicad shell"
+                                " and create a PCB project." ) );
+        return;
+    } else {
+        KIWAY_PLAYER* frame = Kiway().Player( FRAME_PCB, true );
+
+        // a pcb frame can be already existing, but not yet used.
+        // this is the case when running the footprint editor, or the footprint viewer first
+        // if the frame is not visible, the board is not yet loaded
+        if( !frame->IsVisible() )
+        {
+            frame->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
+            frame->Show( true );
+        }
+
+        // On Windows, Raise() does not bring the window on screen, when iconized
+        if( frame->IsIconized() )
+            frame->Iconize( false );
+
+        frame->Raise();
+    }
+
+    NETLIST_OBJECT_LIST* net_atoms = BuildNetListBase();
+    NETLIST_EXPORTER_KICAD exporter( net_atoms, Prj().SchLibs() );
+    STRING_FORMATTER formatter;
+
+    exporter.Format( &formatter, GNL_ALL );
+
+    Kiway().ExpressMail( FRAME_PCB,
+        MAIL_SCH_PCB_UPDATE,
+        formatter.GetString(),  // an abbreviated "kicad" (s-expr) netlist
+        this
+    );
+}
 
 void SCH_EDIT_FRAME::OnCreateNetlist( wxCommandEvent& event )
 {
@@ -943,7 +996,7 @@ void SCH_EDIT_FRAME::OnLoadCmpToFootprintLinkFile( wxCommandEvent& event )
 void SCH_EDIT_FRAME::OnNewProject( wxCommandEvent& event )
 {
 //  wxString pro_dir = wxPathOnly( Prj().GetProjectFullName() );
-    wxString pro_dir = wxGetCwd();
+    wxString pro_dir = m_mruPath;
 
     wxFileDialog dlg( this, _( "New Schematic" ), pro_dir,
                       wxEmptyString, SchematicFileWildcard,
@@ -969,6 +1022,7 @@ void SCH_EDIT_FRAME::OnNewProject( wxCommandEvent& event )
         wxASSERT_MSG( create_me.IsAbsolute(), wxT( "wxFileDialog returned non-absolute" ) );
 
         OpenProjectFiles( std::vector<wxString>( 1, create_me.GetFullPath() ), KICTL_CREATE );
+        m_mruPath = create_me.GetPath();
     }
 }
 
@@ -976,7 +1030,7 @@ void SCH_EDIT_FRAME::OnNewProject( wxCommandEvent& event )
 void SCH_EDIT_FRAME::OnLoadProject( wxCommandEvent& event )
 {
 //  wxString pro_dir = wxPathOnly( Prj().GetProjectFullName() );
-    wxString pro_dir = wxGetCwd();
+    wxString pro_dir = m_mruPath;
 
     wxFileDialog dlg( this, _( "Open Schematic" ), pro_dir,
                       wxEmptyString, SchematicFileWildcard,
@@ -985,34 +1039,46 @@ void SCH_EDIT_FRAME::OnLoadProject( wxCommandEvent& event )
     if( dlg.ShowModal() != wxID_CANCEL )
     {
         OpenProjectFiles( std::vector<wxString>( 1, dlg.GetPath() ) );
+        m_mruPath = Prj().GetProjectPath();
     }
 }
 
 
 void SCH_EDIT_FRAME::OnOpenPcbnew( wxCommandEvent& event )
 {
-    wxFileName fn = Prj().AbsolutePath( g_RootSheet->GetScreen()->GetFileName() );
+    wxFileName kicad_board = Prj().AbsolutePath( g_RootSheet->GetScreen()->GetFileName() );
 
-    if( fn.IsOk() )
+    if( kicad_board.IsOk() )
     {
-        fn.SetExt( PcbFileExtension );
+        kicad_board.SetExt( PcbFileExtension );
+        wxFileName legacy_board( kicad_board );
+        legacy_board.SetExt( LegacyPcbFileExtension );
+        wxFileName& boardfn = ( !legacy_board.FileExists() || kicad_board.FileExists() ) ?
+                                    kicad_board : legacy_board;
 
         if( Kiface().IsSingle() )
         {
-            wxString filename = QuoteFullPath( fn );
+            wxString filename = QuoteFullPath( boardfn );
             ExecuteFile( this, PCBNEW_EXE, filename );
         }
         else
         {
-            KIWAY_PLAYER* player = Kiway().Player( FRAME_PCB, false );  // test open already.
+            KIWAY_PLAYER* frame = Kiway().Player( FRAME_PCB, true );
 
-            if( !player )
+            // a pcb frame can be already existing, but not yet used.
+            // this is the case when running the footprint editor, or the footprint viewer first
+            // if the frame is not visible, the board is not yet loaded
+             if( !frame->IsVisible() )
             {
-                player = Kiway().Player( FRAME_PCB, true );
-                player->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
-                player->Show( true );
+                frame->OpenProjectFiles( std::vector<wxString>( 1, boardfn.GetFullPath() ) );
+                frame->Show( true );
             }
-            player->Raise();
+
+            // On Windows, Raise() does not bring the window on screen, when iconized
+            if( frame->IsIconized() )
+                frame->Iconize( false );
+
+            frame->Raise();
         }
     }
     else
@@ -1024,16 +1090,18 @@ void SCH_EDIT_FRAME::OnOpenPcbnew( wxCommandEvent& event )
 
 void SCH_EDIT_FRAME::OnOpenPcbModuleEditor( wxCommandEvent& event )
 {
-    if( !Kiface().IsSingle() )
-    {
-        wxFileName fn = Prj().AbsolutePath( g_RootSheet->GetScreen()->GetFileName() );
+    wxFileName fn = Prj().AbsolutePath( g_RootSheet->GetScreen()->GetFileName() );
 
-        if( fn.IsOk() )
-        {
-            KIWAY_PLAYER* player = Kiway().Player( FRAME_PCB_MODULE_EDITOR );
-            player->Show( true );
-            player->Raise();
-        }
+    if( fn.IsOk() )
+    {
+        KIWAY_PLAYER* fp_editor = Kiway().Player( FRAME_PCB_MODULE_EDITOR );
+
+        // On Windows, Raise() does not bring the window on screen, when iconized
+        if( fp_editor->IsIconized() )
+            fp_editor->Iconize( false );
+
+        fp_editor->Show( true );
+        fp_editor->Raise();
     }
 }
 
@@ -1044,45 +1112,20 @@ void SCH_EDIT_FRAME::OnOpenCvpcb( wxCommandEvent& event )
 
     fn.SetExt( NetlistFileExtension );
 
-    if( Kiface().IsSingle() )
+    if( prepareForNetlist() )
     {
-        /* the CVPCB executable is now gone, only the *.kiface remains, that is because
-         * CVPCB can now read the netlist ONLY from the Kiway.  This removes cvpcb's
-         * use of the *.cmp file altogether, and also its use of reading the *.net file
-         * from disk.
-        ExecuteFile( this, CVPCB_EXE, QuoteFullPath( fn ) );
-        */
-    }
-    else
-    {
-#if 0
         KIWAY_PLAYER* player = Kiway().Player( FRAME_CVPCB, false );  // test open already.
 
         if( !player )
         {
             player = Kiway().Player( FRAME_CVPCB, true );
             player->Show( true );
-            player->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
+            // player->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
         }
+
+        sendNetlist();
 
         player->Raise();
-#else
-        if( prepareForNetlist() )
-        {
-            KIWAY_PLAYER* player = Kiway().Player( FRAME_CVPCB, false );  // test open already.
-
-            if( !player )
-            {
-                player = Kiway().Player( FRAME_CVPCB, true );
-                player->Show( true );
-                // player->OpenProjectFiles( std::vector<wxString>( 1, fn.GetFullPath() ) );
-            }
-
-            sendNetlist();
-
-            player->Raise();
-        }
-#endif
     }
 }
 
@@ -1134,6 +1177,12 @@ void SCH_EDIT_FRAME::OnOpenLibraryEditor( wxCommandEvent& event )
         libeditFrame->Show( true );
     }
 
+    libeditFrame->PushPreferences( m_canvas );
+
+    // On Windows, Raise() does not bring the window on screen, when iconized
+    if( libeditFrame->IsIconized() )
+        libeditFrame->Iconize( false );
+
     libeditFrame->Raise();
 
     if( component )
@@ -1150,16 +1199,21 @@ void SCH_EDIT_FRAME::OnOpenLibraryEditor( wxCommandEvent& event )
             libeditFrame->LoadComponentAndSelectLib( entry, library );
         }
     }
+
+    GetScreen()->SchematicCleanUp( m_canvas, NULL );
+    m_canvas->Refresh();
 }
 
-void SCH_EDIT_FRAME::OnRescueCached( wxCommandEvent& event )
+
+void SCH_EDIT_FRAME::OnRescueProject( wxCommandEvent& event )
 {
-    RescueCacheConflicts( true );
+    RescueProject( true );
 }
+
 
 void SCH_EDIT_FRAME::OnExit( wxCommandEvent& event )
 {
-    Close( true );
+    Close( false );
 }
 
 
@@ -1219,7 +1273,7 @@ bool SCH_EDIT_FRAME::isAutoSaveRequired() const
 }
 
 
-void SCH_EDIT_FRAME::addCurrentItemToList( wxDC* aDC )
+void SCH_EDIT_FRAME::addCurrentItemToList( bool aRedraw )
 {
     SCH_SCREEN* screen = GetScreen();
     SCH_ITEM*   item = screen->GetCurItem();
@@ -1258,11 +1312,14 @@ void SCH_EDIT_FRAME::addCurrentItemToList( wxDC* aDC )
             // the m_mouseCaptureCallback function.
             m_canvas->SetMouseCapture( NULL, NULL );
 
-            if( !EditSheet( (SCH_SHEET*)item, m_CurrentSheet, aDC ) )
+            if( !EditSheet( (SCH_SHEET*)item, m_CurrentSheet ) )
             {
                 screen->SetCurItem( NULL );
-                item->Draw( m_canvas, aDC, wxPoint( 0, 0 ), g_XorMode );
                 delete item;
+
+                if( aRedraw )
+                    GetCanvas()->Refresh();
+
                 return;
             }
 
@@ -1291,17 +1348,13 @@ void SCH_EDIT_FRAME::addCurrentItemToList( wxDC* aDC )
                 ( (SCH_SHEET*)undoItem )->AddPin( (SCH_SHEET_PIN*) item );
             else
                 wxLogMessage( wxT( "addCurrentItemToList: expected type = SCH_SHEET_PIN_T, actual type = %d" ),
-                            item->Type() );
+                              item->Type() );
         }
     }
     else
     {
         SaveUndoItemInUndoList( undoItem );
     }
-
-    // Erase the wire representation before the 'normal' view is drawn.
-    if ( item->IsWireImage() )
-        item->Draw( m_canvas, aDC, wxPoint( 0, 0 ), g_XorMode );
 
     item->ClearFlags();
     screen->SetModify();
@@ -1312,13 +1365,8 @@ void SCH_EDIT_FRAME::addCurrentItemToList( wxDC* aDC )
     if( item->IsConnectable() )
         screen->TestDanglingEnds();
 
-    if( aDC )
-    {
-        EDA_CROSS_HAIR_MANAGER( m_canvas, aDC );  // Erase schematic cursor
-        undoItem->Draw( m_canvas, aDC, wxPoint( 0, 0 ), GR_DEFAULT_DRAWMODE );
-    }
-
-    m_canvas->Refresh();
+    if( aRedraw )
+        GetCanvas()->Refresh();
 }
 
 

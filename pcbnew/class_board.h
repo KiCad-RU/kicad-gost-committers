@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -57,13 +57,7 @@ class MSG_PANEL_ITEM;
 class NETLIST;
 class REPORTER;
 class RN_DATA;
-
-namespace KIGFX
-{
-    class RATSNEST_VIEWITEM;
-    class WORKSHEET_VIEWITEM;
-}
-
+class SHAPE_POLY_SET;
 
 // non-owning container of item candidates when searching for items on the same track.
 typedef std::vector< TRACK* >   TRACK_PTRS;
@@ -217,10 +211,10 @@ private:
      * segment located at \a aPosition on aLayerMask.
      *  Vias are put in list but their flags BUSY is not set
      * @param aPosition A wxPoint object containing the position of the starting search.
-     * @param aLayerMask The allowed layers for segments to search.
+     * @param aLayerSet The allowed layers for segments to search.
      * @param aList The track list to fill with points of flagged segments.
      */
-    void chainMarkedSegments( wxPoint aPosition, LSET aLayerMask, TRACK_PTRS* aList );
+    void chainMarkedSegments( wxPoint aPosition, const LSET& aLayerSet, TRACK_PTRS* aList );
 
 public:
     static inline bool ClassOf( const EDA_ITEM* aItem )
@@ -606,15 +600,14 @@ public:
      * from lines, arcs and circle items on edge cut layer
      * Any closed outline inside the main outline is a hole
      * All contours should be closed, i.e. have valid vertices to build a closed polygon
-     * @param aOutlines The CPOLYGONS_LIST to fill in with main outlines.
-     * @param aHoles The empty CPOLYGONS_LIST to fill in with holes, if any.
+     * @param aPoly The SHAPE_POLY_SET to fill in with outlines/holes.
      * @param aErrorText = a wxString reference to display an error message
      *          with the coordinate of the point which creates the error
      *          (default = NULL , no message returned on error)
      * @return true if success, false if a contour is not valid
      */
-    bool GetBoardPolygonOutlines( CPOLYGONS_LIST& aOutlines,
-                                  CPOLYGONS_LIST& aHoles,
+    bool GetBoardPolygonOutlines( SHAPE_POLY_SET& aOutlines,
+                                  SHAPE_POLY_SET& aHoles,
                                   wxString* aErrorText = NULL );
 
     /**
@@ -626,9 +619,9 @@ public:
      * or 3D viewer
      * the polygons are not merged.
      * @param aLayer = A copper layer, like B_Cu, etc.
-     * @param aOutlines The CPOLYGONS_LIST to fill in with items outline.
+     * @param aOutlines The SHAPE_POLY_SET to fill in with items outline.
      */
-    void ConvertBrdLayerToPolygonalContours( LAYER_ID aLayer, CPOLYGONS_LIST& aOutlines );
+    void ConvertBrdLayerToPolygonalContours( LAYER_ID aLayer, SHAPE_POLY_SET& aOutlines );
 
     /**
      * Function GetLayerID
@@ -828,6 +821,11 @@ public:
         m_NetInfo.AppendNet( aNewNet );
     }
 
+    NETINFO_LIST& GetNetInfo()
+    {
+        return m_NetInfo;
+    }
+
 #ifndef SWIG
     /**
      * Function BeginNets
@@ -969,7 +967,7 @@ public:
      *                  the #BOARD.  If NULL, no change reporting occurs.
      */
     void ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
-                         REPORTER* aReporter = NULL );
+                         std::vector<MODULE*>* aNewFootprints, REPORTER* aReporter = NULL );
 
     /**
      * Function SortedNetnamesList
@@ -1223,10 +1221,10 @@ public:
      * of the via.
      * </p>
      * @param aPosition The wxPoint to HitTest() against.
-     * @param aLayer The layer to search.  Use -1 for a don't care.
+     * @param aLayer The layer to search.  Use -1 (LAYER_ID::UNDEFINED_LAYER) for a don't care.
      * @return VIA* A point a to the VIA object if found, else NULL.
      */
-    VIA* GetViaByPosition( const wxPoint& aPosition, LAYER_ID aLayer = UNDEFINED_LAYER ) const;
+    VIA* GetViaByPosition( const wxPoint& aPosition, LAYER_ID aLayer = LAYER_ID( -1 ) ) const;
 
     /**
      * Function GetPad
@@ -1280,6 +1278,14 @@ public:
      * @return a D_PAD object pointer to the connected pad.
      */
     D_PAD* GetPad( std::vector<D_PAD*>& aPadList, const wxPoint& aPosition, LSET aLayerMask );
+
+    /**
+     * Function PadDelete
+     * deletes a given bad from the BOARD by removing it from its module and
+     * from the m_NetInfo.  Makes no UI calls.
+     * @param aPad is the pad to delete.
+     */
+    void PadDelete( D_PAD* aPad );
 
     /**
      * Function GetSortedPadListByXthenYCoord

@@ -3577,7 +3577,7 @@ bool dxfRW::processPolyline()
                 processVertex( &pl );
             }
         }
-
+        // Fall through
         default:
             pl.parseCode( code, reader );
             break;
@@ -3615,7 +3615,7 @@ bool dxfRW::processVertex( DRW_Polyline* pl )
                 v = new DRW_Vertex();        // another vertex
             }
         }
-
+        // Fall through
         default:
             v->parseCode( code, reader );
             break;

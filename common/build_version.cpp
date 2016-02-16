@@ -22,24 +22,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-/* Date for KiCad build version */
+// Date for KiCad build version
 #include <fctsys.h>
 
-#ifdef HAVE_SVN_VERSION
-#include <version.h>    // define the KICAD_BUILD_VERSION
-#endif
-
-#ifndef KICAD_BUILD_VERSION
-#if defined KICAD_GOST
-#   define KICAD_BUILD_VERSION "(after 2015-may-25 BZR ???? GOST (bzr????-testing))"
-#else
-#   define KICAD_BUILD_VERSION "(after 2015-may-25 BZR unknown)"
-#endif
-#endif
+// The include file version.h is always created even if the repo version cannot be
+// determined.  In this case KICAD_BUILD_VERSION will default to "no-bzr".
+#include <kicad_build_version.h>
 
 /**
  * Function GetBuildVersion
- * Return the build date and version
+ * Return the build version string.
  */
 wxString GetBuildVersion()
 {

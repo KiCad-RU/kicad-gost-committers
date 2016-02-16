@@ -34,6 +34,7 @@
 #include <wx/timer.h>
 #include <layers_id_colors_and_visibility.h>
 #include <math/vector2d.h>
+#include <msgpanel.h>
 
 class BOARD;
 class TOOL_DISPATCHER;
@@ -51,28 +52,31 @@ class PAINTER;
 class EDA_DRAW_PANEL_GAL : public wxScrolledCanvas
 {
 public:
-    enum GalType {
+    enum GAL_TYPE {
         GAL_TYPE_NONE,      ///< Not used
         GAL_TYPE_OPENGL,    ///< OpenGL implementation
         GAL_TYPE_CAIRO,     ///< Cairo implementation
+        GAL_TYPE_LAST       ///< Sentinel, do not use as a parameter
     };
 
     EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWindowId, const wxPoint& aPosition,
-                        const wxSize& aSize, GalType aGalType = GAL_TYPE_OPENGL );
+                        const wxSize& aSize, GAL_TYPE aGalType = GAL_TYPE_OPENGL );
     ~EDA_DRAW_PANEL_GAL();
+
+    virtual void SetFocus();
 
     /**
      * Function SwitchBackend
      * Switches method of rendering graphics.
      * @param aGalType is a type of rendering engine that you want to use.
      */
-    bool SwitchBackend( GalType aGalType );
+    bool SwitchBackend( GAL_TYPE aGalType );
 
     /**
      * Function GetBackend
      * Returns the type of backend currently used by GAL canvas.
      */
-    inline GalType GetBackend() const
+    inline GAL_TYPE GetBackend() const
     {
         return m_backend;
     }
@@ -150,17 +154,29 @@ public:
      */
     virtual void SetTopLayer( LAYER_ID aLayer );
 
+    virtual void GetMsgPanelInfo( std::vector<MSG_PANEL_ITEM>& aList )
+    {
+        assert( false );
+    }
+
+    /**
+     * Function GetLegacyZoom()
+     * Returns current view scale converted to zoom value used by the legacy canvas.
+     */
+    double GetLegacyZoom() const;
+
 protected:
     void onPaint( wxPaintEvent& WXUNUSED( aEvent ) );
     void onSize( wxSizeEvent& aEvent );
     void onEvent( wxEvent& aEvent );
     void onEnter( wxEvent& aEvent );
+    void onLostFocus( wxFocusEvent& aEvent );
     void onRefreshTimer( wxTimerEvent& aEvent );
 
     static const int MinRefreshPeriod = 17;             ///< 60 FPS.
 
     /// Pointer to the parent window
-    wxWindow*               m_parent;
+    wxWindow*                m_parent;
 
     /// Last timestamp when the panel was refreshed
     wxLongLong               m_lastRefresh;
@@ -170,6 +186,9 @@ protected:
 
     /// True if GAL is currently redrawing the view
     bool                     m_drawing;
+
+    /// Flag that determines if VIEW may use GAL for redrawing the screen.
+    bool                     m_drawingEnabled;
 
     /// Timer responsible for preventing too frequent refresh
     wxTimer                  m_refreshTimer;
@@ -187,10 +206,14 @@ protected:
     KIGFX::WX_VIEW_CONTROLS* m_viewControls;
 
     /// Currently used GAL
-    GalType                  m_backend;
+    GAL_TYPE                 m_backend;
 
     /// Processes and forwards events to tools
     TOOL_DISPATCHER*         m_eventDispatcher;
+
+    /// Flag to indicate that focus should be regained on the next mouse event. It is a workaround
+    /// for cases when the panel loses keyboard focus, so it does not react to hotkeys anymore.
+    bool                     m_lostFocus;
 };
 
 #endif

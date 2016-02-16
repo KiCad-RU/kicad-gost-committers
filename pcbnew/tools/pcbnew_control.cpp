@@ -26,18 +26,22 @@
 #include "common_actions.h"
 #include "selection_tool.h"
 #include "picker_tool.h"
+#include "grid_helper.h"
 
-#include <pcbnew_id.h>
-#include <wxPcbStruct.h>
 #include <class_board.h>
 #include <class_module.h>
 #include <class_track.h>
 #include <class_zone.h>
-#include <class_draw_panel_gal.h>
 #include <class_pcb_screen.h>
+
 #include <confirm.h>
 #include <hotkeys_basic.h>
+#include <io_mgr.h>
 
+#include <pcbnew_id.h>
+#include <wxPcbStruct.h>
+#include <pcb_draw_panel_gal.h>
+#include <ratsnest_data.h>
 #include <tool/tool_manager.h>
 #include <gal/graphics_abstraction_layer.h>
 #include <view/view_controls.h>
@@ -45,6 +49,12 @@
 #include <origin_viewitem.h>
 
 #include <boost/bind.hpp>
+
+
+// files.cpp
+extern bool AskLoadBoardFileName( wxWindow* aParent, int* aCtl, wxString* aFileName,
+                                    bool aKicadFilesOnly = false );
+extern IO_MGR::PCB_FILE_T plugin_type( const wxString& aFileName, int aCtl );
 
 
 PCBNEW_CONTROL::PCBNEW_CONTROL() :
@@ -76,6 +86,7 @@ void PCBNEW_CONTROL::Reset( RESET_REASON aReason )
 int PCBNEW_CONTROL::ZoomInOut( const TOOL_EVENT& aEvent )
 {
     KIGFX::VIEW* view = m_frame->GetGalCanvas()->GetView();
+    KIGFX::VIEW_CONTROLS* ctls = getViewControls();
     double zoomScale = 1.0;
 
     if( aEvent.IsAction( &COMMON_ACTIONS::zoomIn ) )
@@ -85,13 +96,16 @@ int PCBNEW_CONTROL::ZoomInOut( const TOOL_EVENT& aEvent )
 
     view->SetScale( view->GetScale() * zoomScale, getViewControls()->GetCursorPosition() );
 
+    if( ctls->IsCursorWarpingEnabled() )
+        ctls->CenterOnCursor();
+
     return 0;
 }
 
 
 int PCBNEW_CONTROL::ZoomInOutCenter( const TOOL_EVENT& aEvent )
 {
-    KIGFX::VIEW* view = m_frame->GetGalCanvas()->GetView();
+    KIGFX::VIEW* view = getView();
     double zoomScale = 1.0;
 
     if( aEvent.IsAction( &COMMON_ACTIONS::zoomInCenter ) )
@@ -107,8 +121,12 @@ int PCBNEW_CONTROL::ZoomInOutCenter( const TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::ZoomCenter( const TOOL_EVENT& aEvent )
 {
-    KIGFX::VIEW* view = m_frame->GetGalCanvas()->GetView();
-    view->SetCenter( getViewControls()->GetCursorPosition() );
+    KIGFX::VIEW_CONTROLS* ctls = getViewControls();
+
+    if( ctls->IsCursorWarpingEnabled() )
+        ctls->CenterOnCursor();
+    else
+        getView()->SetCenter( getViewControls()->GetCursorPosition() );
 
     return 0;
 }
@@ -116,32 +134,36 @@ int PCBNEW_CONTROL::ZoomCenter( const TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::ZoomFitScreen( const TOOL_EVENT& aEvent )
 {
-    KIGFX::VIEW* view = m_frame->GetGalCanvas()->GetView();
-    KIGFX::GAL* gal = m_frame->GetGalCanvas()->GetGAL();
+    KIGFX::VIEW* view = getView();
+    EDA_DRAW_PANEL_GAL* galCanvas = m_frame->GetGalCanvas();
     BOARD* board = getModel<BOARD>();
     board->ComputeBoundingBox();
-    BOX2I boardBBox = board->ViewBBox();
-    VECTOR2I screenSize = gal->GetScreenPixelSize();
 
-    if( boardBBox.GetSize().x == 0 || boardBBox.GetSize().y == 0 )
+    BOX2I boardBBox = board->ViewBBox();
+    VECTOR2D scrollbarSize = VECTOR2D( galCanvas->GetSize() - galCanvas->GetClientSize() );
+    VECTOR2D screenSize = view->ToWorld( galCanvas->GetClientSize(), false );
+
+    if( boardBBox.GetWidth() == 0 || boardBBox.GetHeight() == 0 )
     {
         // Empty view
-        view->SetCenter( view->ToWorld( VECTOR2D( screenSize.x / 2, screenSize.y / 2 ) ) );
-        view->SetScale( 17.0 );
+        view->SetScale( 17.0 );     // works fine for the standard worksheet frame
+
+        view->SetCenter( screenSize / 2.0 );
     }
     else
     {
-        // Autozoom to board
-        double iuPerX = screenSize.x ? boardBBox.GetWidth() / screenSize.x : 1.0;
-        double iuPerY = screenSize.y ? boardBBox.GetHeight() / screenSize.y : 1.0;
+        VECTOR2D vsize = boardBBox.GetSize();
+        double scale = view->GetScale() / std::max( fabs( vsize.x / screenSize.x ),
+                                                    fabs( vsize.y / screenSize.y ) );
 
-        double bestZoom = std::max( iuPerX, iuPerY );
-        double zoomFactor = gal->GetWorldScale() / gal->GetZoomFactor();
-        double zoom = 1.0 / ( zoomFactor * bestZoom );
-
+        view->SetScale( scale );
         view->SetCenter( boardBBox.Centre() );
-        view->SetScale( zoom );
     }
+
+
+    // Take scrollbars into account
+    VECTOR2D worldScrollbarSize = view->ToWorld( scrollbarSize, false );
+    view->SetCenter( view->GetCenter() + worldScrollbarSize / 2.0 );
 
     return 0;
 }
@@ -294,16 +316,12 @@ int PCBNEW_CONTROL::HighContrastMode( const TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::HighContrastInc( const TOOL_EVENT& aEvent )
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-
     return 0;
 }
 
 
 int PCBNEW_CONTROL::HighContrastDec( const TOOL_EVENT& aEvent )
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-
     return 0;
 }
 
@@ -421,6 +439,151 @@ int PCBNEW_CONTROL::LayerAlphaDec( const TOOL_EVENT& aEvent )
 }
 
 
+// Cursor control
+int PCBNEW_CONTROL::CursorControl( const TOOL_EVENT& aEvent )
+{
+    long type = aEvent.Parameter<long>();
+    bool fastMove = type & COMMON_ACTIONS::CURSOR_FAST_MOVE;
+    type &= ~COMMON_ACTIONS::CURSOR_FAST_MOVE;
+
+    GRID_HELPER gridHelper( m_frame );
+    VECTOR2D cursor = getViewControls()->GetCursorPosition();
+    VECTOR2I gridSize = gridHelper.GetGrid();
+    VECTOR2D newCursor = gridHelper.Align( cursor );
+
+    if( fastMove )
+        gridSize = gridSize * 10;
+
+    switch( type )
+    {
+        case COMMON_ACTIONS::CURSOR_UP:
+            newCursor -= VECTOR2D( 0, gridSize.y );
+            break;
+
+        case COMMON_ACTIONS::CURSOR_DOWN:
+            newCursor += VECTOR2D( 0, gridSize.y );
+            break;
+
+        case COMMON_ACTIONS::CURSOR_LEFT:
+            newCursor -= VECTOR2D( gridSize.x, 0 );
+            break;
+
+        case COMMON_ACTIONS::CURSOR_RIGHT:
+            newCursor += VECTOR2D( gridSize.x, 0 );
+            break;
+
+        case COMMON_ACTIONS::CURSOR_CLICK:              // fall through
+        case COMMON_ACTIONS::CURSOR_DBL_CLICK:
+        {
+            TOOL_ACTIONS action = TA_NONE;
+            int modifiers = 0;
+
+            modifiers |= wxGetKeyState( WXK_SHIFT ) ? MD_SHIFT : 0;
+            modifiers |= wxGetKeyState( WXK_CONTROL ) ? MD_CTRL : 0;
+            modifiers |= wxGetKeyState( WXK_ALT ) ? MD_ALT : 0;
+
+            if( type == COMMON_ACTIONS::CURSOR_CLICK )
+                action = TA_MOUSE_CLICK;
+            else if( type == COMMON_ACTIONS::CURSOR_DBL_CLICK )
+                action = TA_MOUSE_DBLCLICK;
+            else
+                assert( false );
+
+            TOOL_EVENT evt( TC_MOUSE, action, BUT_LEFT | modifiers );
+            evt.SetMousePosition( getViewControls()->GetCursorPosition() );
+            m_toolMgr->ProcessEvent( evt );
+
+            return 0;
+        }
+        break;
+    }
+
+    // Handler cursor movement
+    KIGFX::VIEW* view = getView();
+    newCursor = view->ToScreen( newCursor );
+    newCursor.x = KiROUND( newCursor.x );
+    newCursor.y = KiROUND( newCursor.y );
+
+    // Pan the screen if required
+    const VECTOR2I& screenSize = view->GetGAL()->GetScreenPixelSize();
+    BOX2I screenBox( VECTOR2I( 0, 0 ), screenSize );
+
+    if( !screenBox.Contains( newCursor ) )
+    {
+        VECTOR2D delta( 0, 0 );
+
+        if( newCursor.x < screenBox.GetLeft() )
+        {
+            delta.x = newCursor.x - screenBox.GetLeft();
+            newCursor.x = screenBox.GetLeft();
+        }
+        else if( newCursor.x > screenBox.GetRight() )
+        {
+            delta.x = newCursor.x - screenBox.GetRight();
+            // -1 is to keep the cursor within the drawing area,
+            // so the cursor coordinates are still updated
+            newCursor.x = screenBox.GetRight() - 1;
+        }
+
+        if( newCursor.y < screenBox.GetTop() )
+        {
+            delta.y = newCursor.y - screenBox.GetTop();
+            newCursor.y = screenBox.GetTop();
+        }
+        else if( newCursor.y > screenBox.GetBottom() )
+        {
+            delta.y = newCursor.y - screenBox.GetBottom();
+            // -1 is to keep the cursor within the drawing area,
+            // so the cursor coordinates are still updated
+            newCursor.y = screenBox.GetBottom() - 1;
+        }
+
+        view->SetCenter( view->GetCenter() + view->ToWorld( delta, false ) );
+    }
+
+    m_frame->GetGalCanvas()->WarpPointer( newCursor.x, newCursor.y );
+
+    return 0;
+}
+
+
+int PCBNEW_CONTROL::PanControl( const TOOL_EVENT& aEvent )
+{
+    long type = aEvent.Parameter<long>();
+    KIGFX::VIEW* view = getView();
+    GRID_HELPER gridHelper( m_frame );
+    VECTOR2D center = view->GetCenter();
+    VECTOR2I gridSize = gridHelper.GetGrid() * 10;
+
+    switch( type )
+    {
+        case COMMON_ACTIONS::CURSOR_UP:
+            center -= VECTOR2D( 0, gridSize.y );
+            break;
+
+        case COMMON_ACTIONS::CURSOR_DOWN:
+            center += VECTOR2D( 0, gridSize.y );
+            break;
+
+        case COMMON_ACTIONS::CURSOR_LEFT:
+            center -= VECTOR2D( gridSize.x, 0 );
+            break;
+
+        case COMMON_ACTIONS::CURSOR_RIGHT:
+            center += VECTOR2D( gridSize.x, 0 );
+            break;
+
+        default:
+            assert( false );
+            break;
+    }
+
+    view->SetCenter( center );
+
+    return 0;
+}
+
+
 // Grid control
 int PCBNEW_CONTROL::GridFast1( const TOOL_EVENT& aEvent )
 {
@@ -472,13 +635,26 @@ static bool setOrigin( KIGFX::VIEW* aView, PCB_BASE_FRAME* aFrame,
 
 int PCBNEW_CONTROL::GridSetOrigin( const TOOL_EVENT& aEvent )
 {
-    PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
-    assert( picker );
+    VECTOR2D* origin = aEvent.Parameter<VECTOR2D*>();
 
-    // TODO it will not check the toolbar button in module editor, as it uses a different ID..
-    m_frame->SetToolID( ID_PCB_PLACE_GRID_COORD_BUTT, wxCURSOR_PENCIL, _( "Adjust grid origin" ) );
-    picker->SetClickHandler( boost::bind( setOrigin, getView(), m_frame, m_gridOrigin, _1 ) );
-    picker->Activate();
+    if( origin )
+    {
+        setOrigin( getView(), m_frame, m_gridOrigin, *origin );
+        delete origin;
+    }
+    else
+    {
+        Activate();
+
+        PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
+        assert( picker );
+
+        // TODO it will not check the toolbar button in module editor, as it uses a different ID..
+        m_frame->SetToolID( ID_PCB_PLACE_GRID_COORD_BUTT, wxCURSOR_PENCIL, _( "Adjust grid origin" ) );
+        picker->SetClickHandler( boost::bind( setOrigin, getView(), m_frame, m_gridOrigin, _1 ) );
+        picker->Activate();
+        Wait();
+    }
 
     return 0;
 }
@@ -509,15 +685,12 @@ int PCBNEW_CONTROL::ResetCoords( const TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::SwitchCursor( const TOOL_EVENT& aEvent )
 {
-    const unsigned int BIG_CURSOR = 4000;
+    const unsigned int BIG_CURSOR = 8000;
     const unsigned int SMALL_CURSOR = 80;
 
-    KIGFX::GAL* gal = getEditFrame<PCB_BASE_FRAME>()->GetGalCanvas()->GetGAL();
-
-    if( gal->GetCursorSize() == BIG_CURSOR )
-        gal->SetCursorSize( SMALL_CURSOR );
-    else
-        gal->SetCursorSize( BIG_CURSOR );
+    PCB_BASE_FRAME* frame = getEditFrame<PCB_BASE_FRAME>();
+    KIGFX::GAL* gal = frame->GetGalCanvas()->GetGAL();
+    gal->SetCursorSize( frame->GetCursorShape() ? BIG_CURSOR : SMALL_CURSOR );
 
     return 0;
 }
@@ -548,13 +721,17 @@ static bool deleteItem( TOOL_MANAGER* aToolMgr, const VECTOR2D& aPosition )
     aToolMgr->RunAction( COMMON_ACTIONS::selectionCursor, true );
     selectionTool->SanitizeSelection();
 
-    if( selectionTool->GetSelection().Empty() )
+    const SELECTION& selection = selectionTool->GetSelection();
+
+    if( selection.Empty() )
         return true;
 
-    if( IsOK( aToolMgr->GetEditFrame(), _( "Are you sure you want to delete item?" ) ) )
-        aToolMgr->RunAction( COMMON_ACTIONS::remove, true );
+    bool canBeRemoved = ( selection.Item<EDA_ITEM>( 0 )->Type() != PCB_MODULE_T );
 
-    aToolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    if( canBeRemoved || IsOK( aToolMgr->GetEditFrame(), _( "Are you sure you want to delete item?" ) ) )
+        aToolMgr->RunAction( COMMON_ACTIONS::remove, true );
+    else
+        aToolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
 
     return true;
 }
@@ -562,6 +739,8 @@ static bool deleteItem( TOOL_MANAGER* aToolMgr, const VECTOR2D& aPosition )
 
 int PCBNEW_CONTROL::DeleteItemCursor( const TOOL_EVENT& aEvent )
 {
+    Activate();
+
     PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
     assert( picker );
 
@@ -570,6 +749,153 @@ int PCBNEW_CONTROL::DeleteItemCursor( const TOOL_EVENT& aEvent )
     picker->SetSnapping( false );
     picker->SetClickHandler( boost::bind( deleteItem, m_toolMgr, _1 ) );
     picker->Activate();
+    Wait();
+
+    return 0;
+}
+
+
+int PCBNEW_CONTROL::AppendBoard( const TOOL_EVENT& aEvent )
+{
+    int open_ctl;
+    wxString fileName;
+    PICKED_ITEMS_LIST undoListPicker;
+    ITEM_PICKER picker( NULL, UR_NEW );
+
+    PCB_EDIT_FRAME* editFrame = dynamic_cast<PCB_EDIT_FRAME*>( m_frame );
+    BOARD* board = getModel<BOARD>();
+    KIGFX::VIEW* view = getView();
+
+    if( !editFrame )
+        return 0;
+
+    // Pick a file to append
+    if( !AskLoadBoardFileName( editFrame, &open_ctl, &fileName, true ) )
+        return 0;
+
+    IO_MGR::PCB_FILE_T pluginType = plugin_type( fileName, open_ctl );
+    PLUGIN::RELEASER pi( IO_MGR::PluginFind( pluginType ) );
+
+    // keep track of existing items, in order to know what are the new items
+    // (for undo command for instance)
+
+    // Tracks are inserted, not appended, so mark the existing tracks to know what are the new tracks
+    for( TRACK* track = board->m_Track; track; track = track->Next() )
+        track->SetFlags( FLAG0 );
+
+    // Other items are appended to the item list, so keep trace to the last existing item is enough
+    MODULE* module = board->m_Modules.GetLast();
+    BOARD_ITEM* drawing = board->m_Drawings.GetLast();
+    int zonescount = board->GetAreaCount();
+
+    // Keep also the count of copper layers, to adjust if necessary
+    int initialCopperLayerCount = board->GetCopperLayerCount();
+    LSET initialEnabledLayers = board->GetEnabledLayers();
+
+    // Load the data
+    try
+    {
+        PROPERTIES  props;
+        char        xbuf[30];
+        char        ybuf[30];
+
+        // EAGLE_PLUGIN can use this info to center the BOARD, but it does not yet.
+        sprintf( xbuf, "%d", editFrame->GetPageSizeIU().x );
+        sprintf( ybuf, "%d", editFrame->GetPageSizeIU().y );
+
+        props["page_width"]  = xbuf;
+        props["page_height"] = ybuf;
+
+        editFrame->GetDesignSettings().m_NetClasses.Clear();
+        pi->Load( fileName, board, &props );
+    }
+    catch( const IO_ERROR& ioe )
+    {
+        wxString msg = wxString::Format( _( "Error loading board.\n%s" ), GetChars( ioe.errorText ));
+        DisplayError( editFrame, msg );
+
+        return 0;
+    }
+
+    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+
+    // Process the new items
+    for( TRACK* track = board->m_Track; track; track = track->Next() )
+    {
+        if( track->GetFlags() & FLAG0 )
+        {
+            track->ClearFlags( FLAG0 );
+            continue;
+        }
+
+        picker.SetItem( track );
+        undoListPicker.PushItem( picker );
+        view->Add( track );
+        m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, track );
+    }
+
+    module = module ? module->Next() : board->m_Modules;
+
+    for( ; module; module = module->Next() )
+    {
+        picker.SetItem( module );
+        undoListPicker.PushItem( picker );
+
+        module->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, view, _1 ) );
+        view->Add( module );
+        m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, module );
+    }
+
+    drawing = drawing ? drawing->Next() : board->m_Drawings;
+
+    for( ; drawing; drawing = drawing->Next() )
+    {
+        picker.SetItem( drawing );
+        undoListPicker.PushItem( picker );
+        view->Add( drawing );
+        m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, drawing );
+    }
+
+    for( ZONE_CONTAINER* zone = board->GetArea( zonescount ); zone;
+         zone = board->GetArea( zonescount ) )
+    {
+        picker.SetItem( zone );
+        undoListPicker.PushItem( picker );
+        zonescount++;
+        view->Add( zone );
+        m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, zone );
+    }
+
+    if( undoListPicker.GetCount() == 0 )
+        return 0;
+
+    editFrame->SaveCopyInUndoList( undoListPicker, UR_NEW );
+
+    // Synchronize layers
+    // we should not ask PLUGINs to do these items:
+    int copperLayerCount = board->GetCopperLayerCount();
+
+    if( copperLayerCount > initialCopperLayerCount )
+        board->SetCopperLayerCount( copperLayerCount );
+
+    // Enable all used layers, and make them visible:
+    LSET enabledLayers = board->GetEnabledLayers();
+    enabledLayers |= initialEnabledLayers;
+    board->SetEnabledLayers( enabledLayers );
+    board->SetVisibleLayers( enabledLayers );
+    editFrame->ReCreateLayerBox();
+    editFrame->ReFillLayerWidget();
+    static_cast<PCB_DRAW_PANEL_GAL*>( editFrame->GetGalCanvas() )->SyncLayersVisibility( board );
+
+    // Ratsnest
+    board->BuildListOfNets();
+    board->SynchronizeNetsAndNetClasses();
+    board->GetRatsnest()->Recalculate();
+
+    // Start dragging the appended board
+    VECTOR2D v( static_cast<BOARD_ITEM*>( undoListPicker.GetPickedItem( 0 ) )->GetPosition() );
+    getViewControls()->WarpCursor( v, true, true );
+    m_toolMgr->InvokeTool( "pcbnew.InteractiveEdit" );
 
     return 0;
 }
@@ -628,6 +954,24 @@ void PCBNEW_CONTROL::SetTransitions()
     Go( &PCBNEW_CONTROL::LayerAlphaInc,      COMMON_ACTIONS::layerAlphaInc.MakeEvent() );
     Go( &PCBNEW_CONTROL::LayerAlphaDec,      COMMON_ACTIONS::layerAlphaDec.MakeEvent() );
 
+    // Cursor control
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorUp.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorDown.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorLeft.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorRight.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorUpFast.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorDownFast.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorLeftFast.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorRightFast.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorClick.MakeEvent() );
+    Go( &PCBNEW_CONTROL::CursorControl,      COMMON_ACTIONS::cursorDblClick.MakeEvent() );
+
+    // Pan control
+    Go( &PCBNEW_CONTROL::PanControl,         COMMON_ACTIONS::panUp.MakeEvent() );
+    Go( &PCBNEW_CONTROL::PanControl,         COMMON_ACTIONS::panDown.MakeEvent() );
+    Go( &PCBNEW_CONTROL::PanControl,         COMMON_ACTIONS::panLeft.MakeEvent() );
+    Go( &PCBNEW_CONTROL::PanControl,         COMMON_ACTIONS::panRight.MakeEvent() );
+
     // Grid control
     Go( &PCBNEW_CONTROL::GridFast1,          COMMON_ACTIONS::gridFast1.MakeEvent() );
     Go( &PCBNEW_CONTROL::GridFast2,          COMMON_ACTIONS::gridFast2.MakeEvent() );
@@ -641,6 +985,7 @@ void PCBNEW_CONTROL::SetTransitions()
     Go( &PCBNEW_CONTROL::SwitchCursor,       COMMON_ACTIONS::switchCursor.MakeEvent() );
     Go( &PCBNEW_CONTROL::SwitchUnits,        COMMON_ACTIONS::switchUnits.MakeEvent() );
     Go( &PCBNEW_CONTROL::DeleteItemCursor,   COMMON_ACTIONS::deleteItemCursor.MakeEvent() );
+    Go( &PCBNEW_CONTROL::AppendBoard,        COMMON_ACTIONS::appendBoard.MakeEvent() );
     Go( &PCBNEW_CONTROL::ShowHelp,           COMMON_ACTIONS::showHelp.MakeEvent() );
     Go( &PCBNEW_CONTROL::ToBeDone,           COMMON_ACTIONS::toBeDone.MakeEvent() );
 }

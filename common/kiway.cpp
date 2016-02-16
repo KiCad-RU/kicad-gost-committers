@@ -62,7 +62,7 @@ void KIWAY::player_destroy_handler( wxWindowDestroyEvent& event )
 {
     wxWindow* w = event.GetWindow();
 
-    for( unsigned i=0; i<DIM(m_player);  ++i )
+    for( unsigned i=0; i < KIWAY_PLAYER_COUNT;  ++i )
     {
         // if destroying one of our flock, then mark it as deceased.
         if( (wxWindow*) m_player[i] == w )
@@ -215,7 +215,7 @@ KIFACE*  KIWAY::KiFACE( FACE_T aFaceId, bool doLoad )
         if( ! wxFileExists( dname ) )
             msg << wxT( "It is missing.\n" );
         else
-            msg << wxT( "Perhaps a wxWidgets shared (.dll or .so) file is missing.\n" );
+            msg << wxT( "Perhaps a shared library (.dll or .so) file is missing.\n" );
 
         msg << wxT( "From command line: argv[0]:\n'" );
         msg << wxStandardPaths::Get().GetExecutablePath() << wxT( "'\n" );
@@ -277,11 +277,20 @@ KIWAY::FACE_T KIWAY::KifaceType( FRAME_T aFrameType )
 }
 
 
+KIWAY_PLAYER* KIWAY::GetPlayerFrame( FRAME_T aFrameType )
+{
+    if( unsigned( aFrameType ) >= KIWAY_PLAYER_COUNT )
+        return NULL;
+
+    return m_player[aFrameType];
+}
+
+
 KIWAY_PLAYER* KIWAY::Player( FRAME_T aFrameType, bool doCreate )
 {
     // Since this will be called from python, cannot assume that code will
     // not pass a bad aFrameType.
-    if( unsigned( aFrameType ) >= DIM( m_player ) )
+    if( unsigned( aFrameType ) >= KIWAY_PLAYER_COUNT )
     {
         // @todo : throw an exception here for python's benefit, at least that
         // way it gets some explanatory text.
@@ -291,8 +300,10 @@ KIWAY_PLAYER* KIWAY::Player( FRAME_T aFrameType, bool doCreate )
     }
 
     // return the previously opened window
-    if( m_player[aFrameType] )
-        return m_player[aFrameType];
+    KIWAY_PLAYER* frame = GetPlayerFrame( aFrameType );
+
+    if( frame )
+        return frame;
 
     if( doCreate )
     {
@@ -304,7 +315,7 @@ KIWAY_PLAYER* KIWAY::Player( FRAME_T aFrameType, bool doCreate )
 
         if( kiface )
         {
-            KIWAY_PLAYER* frame = (KIWAY_PLAYER*) kiface->CreateWindow(
+            frame = (KIWAY_PLAYER*) kiface->CreateWindow(
                     m_top,
                     aFrameType,
                     this,
@@ -324,7 +335,7 @@ bool KIWAY::PlayerClose( FRAME_T aFrameType, bool doForce )
 {
     // Since this will be called from python, cannot assume that code will
     // not pass a bad aFrameType.
-    if( unsigned( aFrameType ) >= DIM( m_player ) )
+    if( unsigned( aFrameType ) >= KIWAY_PLAYER_COUNT )
     {
         // @todo : throw an exception here for python's benefit, at least that
         // way it gets some explanatory text.
@@ -333,18 +344,18 @@ bool KIWAY::PlayerClose( FRAME_T aFrameType, bool doForce )
         return false;
     }
 
-    if( m_player[aFrameType] )
-    {
-        if( m_player[aFrameType]->Close( doForce ) )
-        {
-            m_player[aFrameType] = 0;
-            return true;
-        }
+    KIWAY_PLAYER* frame =  GetPlayerFrame( aFrameType );
 
-        return false;
+    if( frame == NULL ) // Already closed
+        return true;
+
+    if( frame->Close( doForce ) )
+    {
+        m_player[aFrameType] = 0;
+        return true;
     }
 
-    return true;    // window is closed already.
+    return false;
 }
 
 
@@ -352,7 +363,7 @@ bool KIWAY::PlayersClose( bool doForce )
 {
     bool ret = true;
 
-    for( unsigned i=0; i < DIM( m_player );  ++i )
+    for( unsigned i=0; i < KIWAY_PLAYER_COUNT;  ++i )
     {
         ret = ret && PlayerClose( FRAME_T( i ), doForce );
     }
@@ -385,15 +396,19 @@ void KIWAY::SetLanguage( int aLanguage )
     // the array below.
     if( m_ctl & KFCTL_CPP_PROJECT_SUITE )
     {
-        EDA_BASE_FRAME* top = (EDA_BASE_FRAME*) m_top;
+        // A dynamic_cast could be better, but creates link issues
+        // (some basic_frame functions not found) on some platforms,
+        // so a static_cast is used.
+        EDA_BASE_FRAME* top = static_cast<EDA_BASE_FRAME*>( m_top );
+
         if( top )
             top->ShowChangedLanguage();
     }
 #endif
 
-    for( unsigned i=0;  i < DIM( m_player );  ++i )
+    for( unsigned i=0;  i < KIWAY_PLAYER_COUNT;  ++i )
     {
-        KIWAY_PLAYER* frame = m_player[i];
+        KIWAY_PLAYER* frame = GetPlayerFrame( ( FRAME_T )i );
 
         if( frame )
         {

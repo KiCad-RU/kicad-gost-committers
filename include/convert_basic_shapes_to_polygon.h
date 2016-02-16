@@ -1,6 +1,3 @@
-/**
- * @file convert_basic_shapes_to_polygon.h
- */
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -28,13 +25,17 @@
 #ifndef CONVERT_BASIC_SHAPES_TO_POLYGON_H
 #define CONVERT_BASIC_SHAPES_TO_POLYGON_H
 
+/**
+ * @file convert_basic_shapes_to_polygon.h
+ */
+
 #include <vector>
 
 #include <fctsys.h>
 #include <trigo.h>
 #include <macros.h>
-#include <PolyLine.h>
 
+#include <geometry/shape_poly_set.h>
 /**
  * Function TransformCircleToPolygon
  * convert a circle to a polygon, using multiple straight lines
@@ -45,9 +46,37 @@
  * Note: the polygon is inside the circle, so if you want to have the polygon
  * outside the circle, you should give aRadius calculated with a correction factor
  */
-void TransformCircleToPolygon( CPOLYGONS_LIST& aCornerBuffer,
-                                           wxPoint aCenter, int aRadius,
-                                           int aCircleToSegmentsCount );
+void TransformCircleToPolygon( SHAPE_POLY_SET&  aCornerBuffer,
+                                                wxPoint aCenter, int aRadius,
+                                                int aCircleToSegmentsCount );
+
+/**
+ * Helper function GetRoundRectCornerCenters
+ * Has meaning only for rounded rect
+ * Returns the centers of the rounded corners.
+ * @param aPosition = position of the round rect
+ * @param aSize = size of the of the round rect.
+ * @param aRotation = rotation of the of the round rect
+ * @param aCenters a buffer to store the 4 coordinates.
+ */
+void GetRoundRectCornerCenters( wxPoint aCenters[4], int aRadius,
+            const wxPoint& aPosition, const wxSize& aSize, double aRotation );
+
+/**
+ * Function TransformRoundRectToPolygon
+ * convert a rectangle with rounded corners to a polygon
+ * Convert arcs to multiple straight lines
+ * @param aCornerBuffer = a buffer to store the polygon
+ * @param aPosition = the coordinate of the center of the rectangle
+ * @param aSize = the size of the rectangle
+ * @param aCornerRadius = radius of rounded corners
+ * @param aRotation = rotation in 0.1 degrees of the rectangle
+ * @param aCircleToSegmentsCount = the number of segments to approximate a circle
+ */
+void TransformRoundRectToPolygon( SHAPE_POLY_SET& aCornerBuffer,
+                                  const wxPoint& aPosition, const wxSize& aSize,
+                                  double aRotation, int aCornerRadius,
+                                  int aCircleToSegmentsCount );
 
 /**
  * Function TransformRoundedEndsSegmentToPolygon
@@ -61,7 +90,7 @@ void TransformCircleToPolygon( CPOLYGONS_LIST& aCornerBuffer,
  * Note: the polygon is inside the arc ends, so if you want to have the polygon
  * outside the circle, you should give aStart and aEnd calculated with a correction factor
  */
-void TransformRoundedEndsSegmentToPolygon( CPOLYGONS_LIST& aCornerBuffer,
+void TransformRoundedEndsSegmentToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                                            wxPoint aStart, wxPoint aEnd,
                                            int aCircleToSegmentsCount,
                                            int aWidth );
@@ -78,7 +107,7 @@ void TransformRoundedEndsSegmentToPolygon( CPOLYGONS_LIST& aCornerBuffer,
  * @param aCircleToSegmentsCount = the number of segments to approximate a circle
  * @param aWidth = width (thickness) of the line
  */
-void TransformArcToPolygon( CPOLYGONS_LIST& aCornerBuffer,
+void TransformArcToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                             wxPoint aCentre, wxPoint aStart, double aArcAngle,
                             int aCircleToSegmentsCount, int aWidth );
 
@@ -92,7 +121,7 @@ void TransformArcToPolygon( CPOLYGONS_LIST& aCornerBuffer,
  * @param aCircleToSegmentsCount = the number of segments to approximate a circle
  * @param aWidth = width (thickness) of the ring
  */
-void TransformRingToPolygon( CPOLYGONS_LIST& aCornerBuffer,
+void TransformRingToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                             wxPoint aCentre, int aRadius,
                             int aCircleToSegmentsCount, int aWidth );
 

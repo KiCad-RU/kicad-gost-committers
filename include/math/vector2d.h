@@ -228,10 +228,10 @@ public:
     VECTOR2<T> operator/( const T& aFactor ) const;
 
     /// Equality operator
-    const bool operator==( const VECTOR2<T>& aVector ) const;
+    bool operator==( const VECTOR2<T>& aVector ) const;
 
     /// Not equality operator
-    const bool operator!=( const VECTOR2<T>& aVector ) const;
+    bool operator!=( const VECTOR2<T>& aVector ) const;
 
     /// Smaller than operator
     bool operator<( const VECTOR2<T>& aVector ) const;
@@ -298,7 +298,7 @@ typename VECTOR2<T>::extended_type VECTOR2<T>::SquaredEuclideanNorm() const
 template <class T>
 double VECTOR2<T>::Angle() const
 {
-    return atan2( y, x );
+    return atan2( (double) y, (double) x );
 }
 
 
@@ -503,14 +503,14 @@ bool VECTOR2<T>::operator>=( const VECTOR2<T>& aVector ) const
 
 
 template <class T>
-bool const VECTOR2<T>::operator==( VECTOR2<T> const& aVector ) const
+bool VECTOR2<T>::operator==( VECTOR2<T> const& aVector ) const
 {
     return ( aVector.x == x ) && ( aVector.y == y );
 }
 
 
 template <class T>
-bool const VECTOR2<T>::operator!=( VECTOR2<T> const& aVector ) const
+bool VECTOR2<T>::operator!=( VECTOR2<T> const& aVector ) const
 {
     return ( aVector.x != x ) || ( aVector.y != y );
 }

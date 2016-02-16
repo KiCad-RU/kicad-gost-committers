@@ -78,7 +78,7 @@ const SHAPE_LINE_CHAIN PNS_VIA::Hull( int aClearance, int aWalkaroundThickness )
 }
 
 
-PNS_VIA* PNS_VIA::Clone ( ) const
+PNS_VIA* PNS_VIA::Clone() const
 {
     PNS_VIA* v = new PNS_VIA();
 
@@ -87,7 +87,6 @@ PNS_VIA* PNS_VIA::Clone ( ) const
     v->m_pos = m_pos;
     v->m_diameter = m_diameter;
     v->m_drill = m_drill;
-    v->m_owner = NULL;
     v->m_shape = SHAPE_CIRCLE( m_pos, m_diameter / 2 );
     v->m_rank = m_rank;
     v->m_marker = m_marker;
@@ -97,12 +96,12 @@ PNS_VIA* PNS_VIA::Clone ( ) const
 }
 
 
-OPT_BOX2I PNS_VIA::ChangedArea ( const PNS_VIA* aOther ) const
+OPT_BOX2I PNS_VIA::ChangedArea( const PNS_VIA* aOther ) const
 {
     if ( aOther->Pos() != Pos() )
     {
         BOX2I tmp = Shape()->BBox();
-        tmp.Merge ( aOther->Shape()->BBox() );
+        tmp.Merge( aOther->Shape()->BBox() );
         return tmp;
     }
 

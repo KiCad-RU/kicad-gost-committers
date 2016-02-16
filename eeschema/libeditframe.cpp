@@ -50,7 +50,6 @@
 
 #include <dialogs/dialog_lib_edit_text.h>
 #include <dialogs/dialog_edit_component_in_lib.h>
-#include <dialogs/dialog_libedit_dimensions.h>
 #include <dialogs/dialog_lib_edit_pin_table.h>
 
 #include <menus_helpers.h>
@@ -131,11 +130,8 @@ BEGIN_EVENT_TABLE( LIB_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
 
-    EVT_MENU( ID_COLORS_SETUP, LIB_EDIT_FRAME::OnColorConfig )
     EVT_MENU( wxID_PREFERENCES, LIB_EDIT_FRAME::OnPreferencesOptions )
     EVT_MENU( ID_CONFIG_REQ, LIB_EDIT_FRAME::InstallConfigFrame )
-    EVT_MENU( ID_COLORS_SETUP, LIB_EDIT_FRAME::Process_Config )
-    EVT_MENU( ID_LIBEDIT_DIMENSIONS, LIB_EDIT_FRAME::InstallDimensionsDialog )
 
     // Multiple item selection context menu commands.
     EVT_MENU_RANGE( ID_SELECT_ITEM_START, ID_SELECT_ITEM_END, LIB_EDIT_FRAME::OnSelectItem )
@@ -181,12 +177,11 @@ END_EVENT_TABLE()
 
 LIB_EDIT_FRAME::LIB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     SCH_BASE_FRAME( aKiway, aParent, FRAME_SCH_LIB_EDITOR, _( "Library Editor" ),
-        wxDefaultPosition, wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, GetLibEditFrameName() )
+        wxDefaultPosition, wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, LIB_EDIT_FRAME_NAME )
 {
     wxASSERT( aParent );
 
     m_showAxis   = true;            // true to draw axis
-    m_configPath = wxT( "LibraryEditor" );
     SetShowDeMorgan( false );
     m_drawSpecificConvert = true;
     m_drawSpecificUnit    = false;
@@ -208,12 +203,13 @@ LIB_EDIT_FRAME::LIB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     icon.CopyFromBitmap( KiBitmap( libedit_icon_xpm ) );
     SetIcon( icon );
 
+    LoadSettings( config() );
+
     SetScreen( new SCH_SCREEN( aKiway ) );
     GetScreen()->m_Center = true;
+    GetScreen()->SetMaxUndoItems( m_UndoRedoCountMax );
 
     SetCrossHairPosition( wxPoint( 0, 0 ) );
-
-    LoadSettings( config() );
 
     // Ensure m_LastGridSizeId is an offset inside the allowed schematic range
     if( m_LastGridSizeId < ID_POPUP_GRID_LEVEL_50 - ID_POPUP_GRID_LEVEL_1000 )
@@ -287,6 +283,7 @@ LIB_EDIT_FRAME::LIB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
 
     m_auimgr.Update();
 
+    Raise();
     Show( true );
 
     wxCommandEvent evt( wxEVT_COMMAND_MENU_SELECTED, ID_ZOOM_PAGE );
@@ -302,11 +299,6 @@ LIB_EDIT_FRAME::~LIB_EDIT_FRAME()
     delete m_my_part;
     m_my_part = NULL;
     m_tempCopyComponent = NULL;
-}
-
-const wxChar* LIB_EDIT_FRAME::GetLibEditFrameName()
-{
-    return LIB_EDIT_FRAME_NAME;
 }
 
 
@@ -539,7 +531,7 @@ void LIB_EDIT_FRAME::OnUpdatePinByPin( wxUpdateUIEvent& event )
 void LIB_EDIT_FRAME::OnUpdatePinTable( wxUpdateUIEvent& event )
 {
     LIB_PART* part = GetCurPart();
-    event.Enable( part );
+    event.Enable( part != NULL );
 }
 
 void LIB_EDIT_FRAME::OnUpdatePartNumber( wxUpdateUIEvent& event )
@@ -1073,13 +1065,6 @@ void LIB_EDIT_FRAME::OnEditComponentProperties( wxCommandEvent& event )
     DisplayCmpDoc();
     OnModify();
     m_canvas->Refresh();
-}
-
-
-void LIB_EDIT_FRAME::InstallDimensionsDialog( wxCommandEvent& event )
-{
-    DIALOG_LIBEDIT_DIMENSIONS dlg( this );
-    dlg.ShowModal();
 }
 
 

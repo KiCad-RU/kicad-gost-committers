@@ -78,7 +78,7 @@ static void MoveMarkedItems( MODULE* module, wxPoint offset );
 static void DeleteMarkedItems( MODULE* module );
 
 
-int FOOTPRINT_EDIT_FRAME::BlockCommand( int key )
+int FOOTPRINT_EDIT_FRAME::BlockCommand( EDA_KEY key )
 {
     int cmd;
 
@@ -88,7 +88,14 @@ int FOOTPRINT_EDIT_FRAME::BlockCommand( int key )
         cmd = key & 0xFF;
         break;
 
-    case - 1:
+    case EDA_KEY_C( 0xffffffff ):   // -1
+        // Historically, -1 has been used as a key, which can cause bit flag
+        // clashes with unaware code. On debug builds, catch any old code that
+        // might still be doing this. TODO: remove if sure all this old code is gone.
+        wxFAIL_MSG( "negative EDA_KEY value should be converted to GR_KEY_INVALID" );
+        // fall through on release builds
+
+    case GR_KEY_INVALID:
         cmd = BLOCK_PRESELECT_MOVE;
         break;
 
@@ -485,10 +492,10 @@ void MoveMarkedItems( MODULE* module, wxPoint offset )
         return;
 
     if( module->Reference().IsSelected() )
-        module->Reference().MoveTransformWithModule( offset );
+        module->Reference().Move( offset );
 
     if( module->Value().IsSelected() )
-        module->Value().MoveTransformWithModule( offset );
+        module->Value().Move( offset );
 
     D_PAD* pad = module->Pads();
 
@@ -511,7 +518,7 @@ void MoveMarkedItems( MODULE* module, wxPoint offset )
         switch( item->Type() )
         {
         case PCB_MODULE_TEXT_T:
-            static_cast<TEXTE_MODULE*>( item )->MoveTransformWithModule( offset );
+            static_cast<TEXTE_MODULE*>( item )->Move( offset );
             break;
 
         case PCB_MODULE_EDGE_T:
@@ -537,29 +544,28 @@ void MoveMarkedItems( MODULE* module, wxPoint offset )
  */
 void DeleteMarkedItems( MODULE* module )
 {
-    BOARD_ITEM* item;
-    BOARD_ITEM* next_item;
-    D_PAD*      pad;
-    D_PAD*      next_pad;
-
     if( module == NULL )
         return;
 
-    pad = module->Pads();
+    D_PAD*      next_pad;
+    BOARD*      board = module->GetBoard();
 
-    for( ; pad != NULL; pad = next_pad )
+    for( D_PAD* pad = module->Pads();  pad;  pad = next_pad )
     {
         next_pad = pad->Next();
 
         if( !pad->IsSelected() )
             continue;
 
-        pad->DeleteStructure();
+        if( board )
+            board->PadDelete( pad );
+        else
+            pad->DeleteStructure();
     }
 
-    item = module->GraphicalItems();
+    BOARD_ITEM* next_item;
 
-    for( ; item != NULL; item = next_item )
+    for( BOARD_ITEM* item = module->GraphicalItems();  item;  item = next_item )
     {
         next_item = item->Next();
 
@@ -588,10 +594,10 @@ void MirrorMarkedItems( MODULE* module, wxPoint offset, bool force_all )
         return;
 
     if( module->Reference().IsSelected() || force_all )
-        module->Reference().MirrorTransformWithModule( offset.x );
+        module->Reference().Mirror( offset, false );
 
     if( module->Value().IsSelected() || force_all )
-        module->Value().MirrorTransformWithModule( offset.x );
+        module->Value().Mirror( offset, false );
 
     for( D_PAD* pad = module->Pads();  pad;  pad = pad->Next() )
     {
@@ -606,11 +612,11 @@ void MirrorMarkedItems( MODULE* module, wxPoint offset, bool force_all )
         pad->SetX0( pad->GetPosition().x );
 
         tmp = pad->GetOffset();
-        NEGATE( tmp.x );
+        tmp.x = -tmp.x;
         pad->SetOffset( tmp );
 
         tmpz = pad->GetDelta();
-        NEGATE( tmpz.x );
+        tmpz.x = -tmpz.x;
         pad->SetDelta( tmpz );
 
         pad->SetOrientation( 1800 - pad->GetOrientation() );
@@ -625,25 +631,11 @@ void MirrorMarkedItems( MODULE* module, wxPoint offset, bool force_all )
         switch( item->Type() )
         {
         case PCB_MODULE_EDGE_T:
-            {
-                EDGE_MODULE* em = (EDGE_MODULE*) item;
-
-                tmp = em->GetStart0();
-                SETMIRROR( tmp.x );
-                em->SetStart0( tmp );
-                em->SetStartX( tmp.x );
-
-                tmp = em->GetEnd0();
-                SETMIRROR( tmp.x );
-                em->SetEnd0( tmp );
-                em->SetEndX( tmp.x );
-
-                em->SetAngle( -em->GetAngle() );
-            }
+            ((EDGE_MODULE*) item)->Mirror( offset, false );
             break;
 
         case PCB_MODULE_TEXT_T:
-            static_cast<TEXTE_MODULE*>( item )->MirrorTransformWithModule( offset.x );
+            static_cast<TEXTE_MODULE*>( item )->Mirror( offset, false );
             break;
 
         default:
@@ -667,10 +659,10 @@ void RotateMarkedItems( MODULE* module, wxPoint offset, bool force_all )
         return;
 
     if( module->Reference().IsSelected() || force_all )
-        module->Reference().RotateTransformWithModule( offset, 900 );
+        module->Reference().Rotate( offset, 900 );
 
     if( module->Value().IsSelected() || force_all )
-        module->Value().RotateTransformWithModule( offset, 900 );
+        module->Value().Rotate( offset, 900 );
 
     for( D_PAD* pad = module->Pads();  pad;  pad = pad->Next() )
     {
@@ -693,23 +685,11 @@ void RotateMarkedItems( MODULE* module, wxPoint offset, bool force_all )
         switch( item->Type() )
         {
         case PCB_MODULE_EDGE_T:
-        {
-            EDGE_MODULE* em = (EDGE_MODULE*) item;
-
-            wxPoint tmp = em->GetStart0();
-            ROTATE( tmp );
-            em->SetStart0( tmp );
-
-            tmp = em->GetEnd0();
-            ROTATE( tmp );
-            em->SetEnd0( tmp );
-
-            em->SetDrawCoord();
-        }
-        break;
+            ((EDGE_MODULE*) item)->Rotate( offset, 900 );
+            break;
 
         case PCB_MODULE_TEXT_T:
-            static_cast<TEXTE_MODULE*>( item )->RotateTransformWithModule( offset, 900 );
+            static_cast<TEXTE_MODULE*>( item )->Rotate( offset, 900 );
             break;
 
         default:
@@ -754,14 +734,14 @@ void MoveMarkedItemsExactly( MODULE* module, const wxPoint& centre,
 
     if( module->Reference().IsSelected() || force_all )
     {
-        module->Reference().RotateTransformWithModule( centre, rotation );
-        module->Reference().MoveTransformWithModule( translation );
+        module->Reference().Rotate( centre, rotation );
+        module->Reference().Move( translation );
     }
 
     if( module->Value().IsSelected() || force_all )
     {
-        module->Value().RotateTransformWithModule( centre, rotation );
-        module->Value().MoveTransformWithModule( translation );
+        module->Value().Rotate( centre, rotation );
+        module->Value().Move( translation );
     }
 
     D_PAD* pad = module->Pads();
@@ -797,8 +777,8 @@ void MoveMarkedItemsExactly( MODULE* module, const wxPoint& centre,
         {
             TEXTE_MODULE* text = static_cast<TEXTE_MODULE*>( item );
 
-            text->RotateTransformWithModule( centre, rotation );
-            text->MoveTransformWithModule( translation );
+            text->Rotate( centre, rotation );
+            text->Move( translation );
             break;
         }
         case PCB_MODULE_EDGE_T:

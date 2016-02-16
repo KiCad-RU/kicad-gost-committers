@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar  9 2015)
+// C++ code generated with wxFormBuilder (version Jun 20 2015)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -50,6 +50,7 @@ class DIALOG_ANNOTATE_BASE : public DIALOG_SHIM
 	private:
 	
 	protected:
+		wxStaticText* m_userMessage;
 		wxStaticText* m_staticTextScope;
 		wxRadioButton* m_rbEntireSchematic;
 		wxRadioButton* m_rbCurrPage;
@@ -70,8 +71,8 @@ class DIALOG_ANNOTATE_BASE : public DIALOG_SHIM
 		wxRadioButton* m_rbStartSheetNumLarge;
 		wxStaticLine* m_staticline4;
 		wxStaticText* m_staticTextDlgOpts;
-		wxCheckBox* m_cbAutoCloseDlg;
-		wxCheckBox* m_cbUseSilentMode;
+		wxCheckBox* m_cbKeepDlgOpen;
+		wxCheckBox* m_cbAskForConfirmation;
 		wxStaticLine* m_staticline41;
 		wxButton* m_btnClose;
 		wxButton* m_btnClear;

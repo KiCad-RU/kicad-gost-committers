@@ -42,6 +42,7 @@
 
 #include <tool/context_menu.h>
 #include <tools/common_actions.h>
+#include <tools/grid_helper.h>
 
 #include <ratsnest_data.h>
 
@@ -75,19 +76,25 @@ PNS_TOOL_BASE::PNS_TOOL_BASE( const std::string& aToolName ) :
     m_frame = NULL;
     m_ctls = NULL;
     m_board = NULL;
+    m_gridHelper = NULL;
 }
 
 
 PNS_TOOL_BASE::~PNS_TOOL_BASE()
 {
     delete m_router;
+    delete m_gridHelper;
 }
+
 
 
 void PNS_TOOL_BASE::Reset( RESET_REASON aReason )
 {
     if( m_router )
         delete m_router;
+
+    if( m_gridHelper)
+        delete m_gridHelper;
 
     m_frame = getEditFrame<PCB_EDIT_FRAME>();
     m_ctls = getViewControls();
@@ -100,6 +107,10 @@ void PNS_TOOL_BASE::Reset( RESET_REASON aReason )
     m_router->SyncWorld();
     m_router->LoadSettings( m_savedSettings );
     m_router->UpdateSizes( m_savedSizes );
+
+    m_gridHelper = new GRID_HELPER( m_frame );
+    m_router->SetGrid( m_gridHelper );
+
     m_needsSync = false;
 
     if( getView() )
@@ -195,48 +206,48 @@ void PNS_TOOL_BASE::updateStartItem( TOOL_EVENT& aEvent )
 {
     int tl = getView()->GetTopLayer();
     VECTOR2I cp = m_ctls->GetCursorPosition();
+    VECTOR2I p;
+
     PNS_ITEM* startItem = NULL;
+    bool snapEnabled = true;
 
     if( aEvent.IsMotion() || aEvent.IsClick() )
     {
-        bool snapEnabled = !aEvent.Modifier( MD_SHIFT );
+        snapEnabled = !aEvent.Modifier( MD_SHIFT );
+        p = aEvent.Position();
+    } else {
+        p = cp;
+    }
 
-        VECTOR2I p( aEvent.Position() );
-        startItem = pickSingleItem( p );
-        m_router->EnableSnapping ( snapEnabled );
+    startItem = pickSingleItem( p );
+    m_router->EnableSnapping ( snapEnabled );
 
-        if( !snapEnabled && startItem && !startItem->Layers().Overlaps( tl ) )
-            startItem = NULL;
+    if( !snapEnabled && startItem && !startItem->Layers().Overlaps( tl ) )
+        startItem = NULL;
 
-        if( startItem && startItem->Net() >= 0 )
+    if( startItem && startItem->Net() >= 0 )
+    {
+        bool dummy;
+        VECTOR2I psnap = m_router->SnapToItem( startItem, p, dummy );
+
+        if( snapEnabled )
         {
-            bool dummy;
-            VECTOR2I psnap = m_router->SnapToItem( startItem, p, dummy );
-
-            if( snapEnabled )
-            {
-                m_startSnapPoint = psnap;
-                m_ctls->ForceCursorPosition( true, psnap );
-            }
-            else
-            {
-                m_startSnapPoint = cp;
-                m_ctls->ForceCursorPosition( false );
-            }
-
-//            if( startItem->Layers().IsMultilayer() )
-//                m_startLayer = tl;
-//            else
-//                m_startLayer = startItem->Layers().Start();
-
-            m_startItem = startItem;
+            m_startSnapPoint = psnap;
+            m_ctls->ForceCursorPosition( true, psnap );
         }
         else
         {
-            m_startItem = NULL;
             m_startSnapPoint = cp;
             m_ctls->ForceCursorPosition( false );
         }
+
+        m_startItem = startItem;
+    }
+    else
+    {
+        m_startItem = NULL;
+        m_startSnapPoint = cp;
+        m_ctls->ForceCursorPosition( false );
     }
 }
 
@@ -247,11 +258,11 @@ void PNS_TOOL_BASE::updateEndItem( TOOL_EVENT& aEvent )
     VECTOR2I p = getView()->ToWorld( mp );
     VECTOR2I cp = m_ctls->GetCursorPosition();
     int layer;
-    bool snapEnabled = !aEvent.Modifier( MD_CTRL );
+    bool snapEnabled = !aEvent.Modifier( MD_SHIFT );
 
     m_router->EnableSnapping( snapEnabled );
 
-    if( !snapEnabled || m_router->GetCurrentNet() < 0 || !m_startItem )
+    if( m_router->GetCurrentNets().empty() || m_router->GetCurrentNets().front() < 0 )
     {
         m_endItem = NULL;
         m_endSnapPoint = cp;
@@ -265,7 +276,17 @@ void PNS_TOOL_BASE::updateEndItem( TOOL_EVENT& aEvent )
     else
         layer = m_router->GetCurrentLayer();
 
-    PNS_ITEM* endItem = pickSingleItem( p, m_startItem->Net(), layer );
+    PNS_ITEM* endItem = NULL;
+
+    std::vector<int> nets = m_router->GetCurrentNets();
+
+    BOOST_FOREACH( int net, nets )
+    {
+        endItem = pickSingleItem( p, net, layer );
+
+        if( endItem )
+            break;
+    }
 
     if( endItem )
     {

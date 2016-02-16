@@ -90,9 +90,9 @@ private:
     /// Set of layers to plot
     LSET        m_layerSelection;
 
-    /** When plotting gerbers use a conventional set of extensions instead of
-     * appending a suffix to the board name */
-    bool        m_useGerberExtensions;
+    /** When plotting gerbers use a conventional set of Protel extensions
+     * instead of appending a suffix to the board name */
+    bool        m_useGerberProtelExtensions;
 
     /// Include attributes from the Gerber X2 format (chapter 5 in revision J2)
     bool        m_useGerberAttributes;
@@ -149,7 +149,6 @@ private:
     int         m_HPGLPenNum;           ///< HPGL only: pen number selection(1 to 9)
     int         m_HPGLPenSpeed;         ///< HPGL only: pen speed, always in cm/s (1 to 99 cm/s)
     int         m_HPGLPenDiam;          ///< HPGL only: pen diameter in MILS, useful to fill areas
-    int         m_HPGLPenOvr;           ///< HPGL only: pen overlay in MILS, useful only to fill areas
     EDA_COLOR_T m_color;                ///< Color for plotting the current layer
     EDA_COLOR_T m_referenceColor;       ///< Color for plotting references
     EDA_COLOR_T m_valueColor;           ///< Color for plotting values
@@ -232,8 +231,8 @@ public:
     void        SetUseGerberAttributes( bool aUse ) { m_useGerberAttributes = aUse; }
     bool        GetUseGerberAttributes() const { return m_useGerberAttributes; }
 
-    void        SetUseGerberExtensions( bool aUse ) { m_useGerberExtensions = aUse; }
-    bool        GetUseGerberExtensions() const { return m_useGerberExtensions; }
+    void        SetUseGerberProtelExtensions( bool aUse ) { m_useGerberProtelExtensions = aUse; }
+    bool        GetUseGerberProtelExtensions() const { return m_useGerberProtelExtensions; }
 
     void        SetGerberPrecision( int aPrecision );
     int         GetGerberPrecision() const { return m_gerberPrecision; }
@@ -263,8 +262,6 @@ public:
     bool        SetHPGLPenDiameter( int aValue );
     int         GetHPGLPenSpeed() const { return m_HPGLPenSpeed; };
     bool        SetHPGLPenSpeed( int aValue );
-    int         GetHPGLPenOverlay() const { return m_HPGLPenOvr; };
-    bool        SetHPGLPenOverlay( int aValue );
     void        SetHPGLPenNum( int aVal ) { m_HPGLPenNum = aVal; }
     int         GetHPGLPenNum() const { return m_HPGLPenNum; }
 

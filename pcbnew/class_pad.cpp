@@ -67,16 +67,16 @@ D_PAD::D_PAD( MODULE* parent ) :
         m_Pos = GetParent()->GetPosition();
     }
 
-    SetShape( PAD_CIRCLE );                 // Default pad shape is PAD_CIRCLE.
-    SetDrillShape( PAD_DRILL_CIRCLE );      // Default pad drill shape is a circle.
-    m_Attribute           = PAD_STANDARD;   // Default pad type is NORMAL (thru hole)
+    SetShape( PAD_SHAPE_CIRCLE );                   // Default pad shape is PAD_CIRCLE.
+    SetDrillShape( PAD_DRILL_SHAPE_CIRCLE );        // Default pad drill shape is a circle.
+    m_Attribute           = PAD_ATTRIB_STANDARD;    // Default pad type is NORMAL (thru hole)
     m_LocalClearance      = 0;
     m_LocalSolderMaskMargin  = 0;
     m_LocalSolderPasteMargin = 0;
     m_LocalSolderPasteMarginRatio = 0.0;
-    m_ZoneConnection      = UNDEFINED_CONNECTION; // Use parent setting by default
-    m_ThermalWidth        = 0;                // Use parent setting by default
-    m_ThermalGap          = 0;                // Use parent setting by default
+    m_ZoneConnection      = PAD_ZONE_CONN_INHERITED; // Use parent setting by default
+    m_ThermalWidth        = 0;                  // Use parent setting by default
+    m_ThermalGap          = 0;                  // Use parent setting by default
 
     // Set layers mask to default for a standard thru hole pad.
     m_layerMask           = StandardMask();
@@ -110,7 +110,7 @@ LSET D_PAD::ConnSMDMask()
 
 LSET D_PAD::UnplatedHoleMask()
 {
-    // was #define PAD_HOLE_NOT_PLATED_DEFAULT_LAYERS ALL_CU_LAYERS |
+    // was #define PAD_ATTRIB_HOLE_NOT_PLATED_DEFAULT_LAYERS ALL_CU_LAYERS |
     // SILKSCREEN_LAYER_FRONT | SOLDERMASK_LAYER_BACK | SOLDERMASK_LAYER_FRONT
     static LSET saved = LSET::AllCuMask() | LSET( 3, F_SilkS, B_Mask, F_Mask );
     return saved;
@@ -124,19 +124,19 @@ int D_PAD::boundingRadius() const
 
     switch( GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         radius = m_Size.x / 2;
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         radius = std::max( m_Size.x, m_Size.y ) / 2;
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         radius = 1 + KiROUND( EuclideanNorm( m_Size ) / 2 );
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         x = m_Size.x + std::abs( m_DeltaSize.y );   // Remember: m_DeltaSize.y is the m_Size.x change
         y = m_Size.y + std::abs( m_DeltaSize.x );   // Remember: m_DeltaSize.x is the m_Size.y change
         radius = 1 + KiROUND( hypot( x, y ) / 2 );
@@ -158,12 +158,12 @@ const EDA_RECT D_PAD::GetBoundingBox() const
 
     switch( GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         area.SetOrigin( m_Pos );
         area.Inflate( m_Size.x / 2 );
         break;
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         //Use the maximal two most distant points and track their rotation
         // (utilise symmetry to avoid four points)
         quadrant1.x =  m_Size.x/2;
@@ -179,7 +179,7 @@ const EDA_RECT D_PAD::GetBoundingBox() const
         area.SetSize( 2*dx, 2*dy );
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         //Use two corners and track their rotation
         // (utilise symmetry to avoid four points)
         quadrant1.x =  m_Size.x/2;
@@ -195,7 +195,7 @@ const EDA_RECT D_PAD::GetBoundingBox() const
         area.SetSize( 2*dx, 2*dy );
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         //Use the four corners and track their rotation
         // (Trapezoids will not be symmetric)
         quadrant1.x =  (m_Size.x + m_DeltaSize.y)/2;
@@ -263,7 +263,7 @@ void D_PAD::SetAttribute( PAD_ATTR_T aAttribute )
 {
     m_Attribute = aAttribute;
 
-    if( aAttribute == PAD_SMD )
+    if( aAttribute == PAD_ATTRIB_SMD )
         m_Drill = wxSize( 0, 0 );
 }
 
@@ -285,13 +285,16 @@ void D_PAD::Flip( const wxPoint& aCentre )
 
     SetY( y );
 
-    NEGATE( m_Pos0.y );
-    NEGATE( m_Offset.y );
-    NEGATE( m_DeltaSize.y );
+    m_Pos0.y = -m_Pos0.y;
+    m_Offset.y = -m_Offset.y;
+    m_DeltaSize.y = -m_DeltaSize.y;
 
     SetOrientation( -GetOrientation() );
 
     // flip pads layers
+    // PADS items are currently on all copper layers, or
+    // currently, only on Front or Back layers.
+    // So the copper layers count is not taken in account
     SetLayerSet( FlipLayerMask( m_layerMask ) );
 
     // m_boundingRadius = -1;  the shape has not been changed
@@ -335,16 +338,11 @@ const wxPoint D_PAD::ShapePos() const
     if( m_Offset.x == 0 && m_Offset.y == 0 )
         return m_Pos;
 
-    wxPoint shape_pos;
-    int     dX, dY;
+    wxPoint loc_offset = m_Offset;
 
-    dX = m_Offset.x;
-    dY = m_Offset.y;
+    RotatePoint( &loc_offset, m_Orient );
 
-    RotatePoint( &dX, &dY, m_Orient );
-
-    shape_pos.x = m_Pos.x + dX;
-    shape_pos.y = m_Pos.y + dY;
+    wxPoint shape_pos = m_Pos + loc_offset;
 
     return shape_pos;
 }
@@ -352,26 +350,10 @@ const wxPoint D_PAD::ShapePos() const
 
 const wxString D_PAD::GetPadName() const
 {
-#if 0   // m_Padname is not ASCII and not UTF8, it is LATIN1 basically, whatever
-        // 8 bit font is supported in KiCad plotting and drawing.
-
-    // Return pad name as wxString, assume it starts as a non-terminated
-    // utf8 character sequence
-
-    char    temp[sizeof(m_Padname)+1];      // a place to terminate with '\0'
-
-    strncpy( temp, m_Padname, sizeof(m_Padname) );
-
-    temp[sizeof(m_Padname)] = 0;
-
-    return FROM_UTF8( temp );
-#else
-
     wxString name;
 
     StringPadName( name );
     return name;
-#endif
 }
 
 
@@ -417,7 +399,7 @@ bool D_PAD::IncrementItemReference()
 
 bool D_PAD::IncrementPadName( bool aSkipUnconnectable, bool aFillSequenceGaps )
 {
-    bool skip = aSkipUnconnectable && ( GetAttribute() == PAD_HOLE_NOT_PLATED );
+    bool skip = aSkipUnconnectable && ( GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED );
 
     if( !skip )
         SetPadName( GetParent()->GetNextPadName( aFillSequenceGaps ) );
@@ -460,20 +442,23 @@ void D_PAD::Copy( D_PAD* source )
 }
 
 
-void D_PAD::CopyNetlistSettings( D_PAD* aPad )
+void D_PAD::CopyNetlistSettings( D_PAD* aPad, bool aCopyLocalSettings )
 {
     // Don't do anything foolish like trying to copy to yourself.
     wxCHECK_RET( aPad != NULL && aPad != this, wxT( "Cannot copy to NULL or yourself." ) );
 
     aPad->SetNetCode( GetNetCode() );
 
-    aPad->SetLocalClearance( m_LocalClearance );
-    aPad->SetLocalSolderMaskMargin( m_LocalSolderMaskMargin );
-    aPad->SetLocalSolderPasteMargin( m_LocalSolderPasteMargin );
-    aPad->SetLocalSolderPasteMarginRatio( m_LocalSolderPasteMarginRatio );
-    aPad->SetZoneConnection( m_ZoneConnection );
-    aPad->SetThermalWidth( m_ThermalWidth );
-    aPad->SetThermalGap( m_ThermalGap );
+    if( aCopyLocalSettings )
+    {
+        aPad->SetLocalClearance( m_LocalClearance );
+        aPad->SetLocalSolderMaskMargin( m_LocalSolderMaskMargin );
+        aPad->SetLocalSolderPasteMargin( m_LocalSolderPasteMargin );
+        aPad->SetLocalSolderPasteMarginRatio( m_LocalSolderPasteMarginRatio );
+        aPad->SetZoneConnection( m_ZoneConnection );
+        aPad->SetThermalWidth( m_ThermalWidth );
+        aPad->SetThermalGap( m_ThermalGap );
+    }
 }
 
 
@@ -583,9 +568,9 @@ wxSize D_PAD::GetSolderPasteMargin() const
 
 ZoneConnection D_PAD::GetZoneConnection() const
 {
-    MODULE* module = (MODULE*) GetParent();
+    MODULE* module = GetParent();
 
-    if( m_ZoneConnection == UNDEFINED_CONNECTION && module )
+    if( m_ZoneConnection == PAD_ZONE_CONN_INHERITED && module )
         return module->GetZoneConnection();
     else
         return m_ZoneConnection;
@@ -594,7 +579,7 @@ ZoneConnection D_PAD::GetZoneConnection() const
 
 int D_PAD::GetThermalWidth() const
 {
-    MODULE* module = (MODULE*) GetParent();
+    MODULE* module = GetParent();
 
     if( m_ThermalWidth == 0 && module )
         return module->GetThermalWidth();
@@ -605,7 +590,7 @@ int D_PAD::GetThermalWidth() const
 
 int D_PAD::GetThermalGap() const
 {
-    MODULE* module = (MODULE*) GetParent();
+    MODULE* module = GetParent();
 
     if( m_ThermalGap == 0 && module )
         return module->GetThermalGap();
@@ -654,7 +639,7 @@ void D_PAD::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM>& aList )
 
     Line = ::CoordinateToString( (unsigned) m_Drill.x );
 
-    if( GetDrillShape() == PAD_DRILL_CIRCLE )
+    if( GetDrillShape() == PAD_DRILL_SHAPE_CIRCLE )
     {
         aList.push_back( MSG_PANEL_ITEM( _( "Drill" ), Line, RED ) );
     }
@@ -741,13 +726,13 @@ bool D_PAD::HitTest( const wxPoint& aPosition ) const
 
     switch( GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         if( KiROUND( EuclideanNorm( delta ) ) <= dx )
             return true;
 
         break;
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
     {
         wxPoint poly[4];
         BuildPadPolygon( poly, wxSize(0,0), 0 );
@@ -755,7 +740,7 @@ bool D_PAD::HitTest( const wxPoint& aPosition ) const
         return TestPointInsidePolygon( poly, 4, delta );
     }
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
     {
         RotatePoint( &delta, -m_Orient );
         // An oval pad has the same shape as a segment with rounded ends
@@ -776,7 +761,7 @@ bool D_PAD::HitTest( const wxPoint& aPosition ) const
     }
         break;
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         RotatePoint( &delta, -m_Orient );
 
         if( (abs( delta.x ) <= dx ) && (abs( delta.y ) <= dy) )
@@ -857,16 +842,16 @@ wxString D_PAD::ShowPadShape() const
 {
     switch( GetShape() )
     {
-    case PAD_CIRCLE:
+    case PAD_SHAPE_CIRCLE:
         return _( "Circle" );
 
-    case PAD_OVAL:
+    case PAD_SHAPE_OVAL:
         return _( "Oval" );
 
-    case PAD_RECT:
+    case PAD_SHAPE_RECT:
         return _( "Rect" );
 
-    case PAD_TRAPEZOID:
+    case PAD_SHAPE_TRAPEZOID:
         return _( "Trap" );
 
     default:
@@ -879,16 +864,16 @@ wxString D_PAD::ShowPadAttr() const
 {
     switch( GetAttribute() )
     {
-    case PAD_STANDARD:
+    case PAD_ATTRIB_STANDARD:
         return _( "Std" );
 
-    case PAD_SMD:
+    case PAD_ATTRIB_SMD:
         return _( "SMD" );
 
-    case PAD_CONN:
+    case PAD_ATTRIB_CONN:
         return _( "Conn" );
 
-    case PAD_HOLE_NOT_PLATED:
+    case PAD_ATTRIB_HOLE_NOT_PLATED:
         return _( "Not Plated" );
 
     default:
@@ -905,15 +890,15 @@ wxString D_PAD::GetSelectMenuText() const
 
     if( padname.IsEmpty() )
     {
-    text.Printf( _( "Pad on %s of %s" ),
-                 GetChars( padlayers ),
-                 GetChars(( (MODULE*) GetParent() )->GetReference() ) );
+        text.Printf( _( "Pad on %s of %s" ),
+                     GetChars( padlayers ),
+                     GetChars(GetParent()->GetReference() ) );
     }
     else
     {
         text.Printf( _( "Pad %s on %s of %s" ),
                      GetChars(GetPadName() ), GetChars( padlayers ),
-                     GetChars(( (MODULE*) GetParent() )->GetReference() ) );
+                     GetChars(GetParent()->GetReference() ) );
     }
 
     return text;
@@ -931,7 +916,7 @@ void D_PAD::ViewGetLayers( int aLayers[], int& aCount ) const
     aCount = 0;
 
     // These types of pads contain a hole
-    if( m_Attribute == PAD_STANDARD || m_Attribute == PAD_HOLE_NOT_PLATED )
+    if( m_Attribute == PAD_ATTRIB_STANDARD || m_Attribute == PAD_ATTRIB_HOLE_NOT_PLATED )
         aLayers[aCount++] = ITEM_GAL_LAYER( PADS_HOLES_VISIBLE );
 
     if( IsOnLayer( F_Cu ) && IsOnLayer( B_Cu ) )
@@ -967,7 +952,7 @@ void D_PAD::ViewGetLayers( int aLayers[], int& aCount ) const
     {
         wxString msg;
         msg.Printf( wxT( "footprint %s, pad %s: could not find valid layer for pad" ),
-                GetParent()->GetReference(),
+                GetParent() ? GetParent()->GetReference() : "<null>",
                 GetPadName().IsEmpty() ? "(unnamed)" : GetPadName() );
         wxLogWarning( msg );
     }
@@ -985,7 +970,7 @@ unsigned int D_PAD::ViewGetLOD( int aLayer ) const
         if( ( m_Size.x == 0 ) && ( m_Size.y == 0 ) )
             return UINT_MAX;
 
-        return ( 100000000 / std::max( m_Size.x, m_Size.y ) );
+        return ( Millimeter2iu( 100 ) / std::max( m_Size.x, m_Size.y ) );
     }
 
     // Other layers are shown without any conditions

@@ -336,7 +336,7 @@ public:
      *  default = false
      */
     void TransformPadsShapesWithClearanceToPolygon( LAYER_ID aLayer,
-                            CPOLYGONS_LIST& aCornerBuffer,
+                            SHAPE_POLY_SET& aCornerBuffer,
                             int             aInflateValue,
                             int             aCircleToSegmentsCount,
                             double          aCorrectionFactor,
@@ -358,13 +358,17 @@ public:
      *  if aCorrectionFactor = 1.0, the polygon is inside the circle
      *  the radius of circle approximated by segments is
      *  initial radius * aCorrectionFactor
+     * @param aCircleToSegmentsCountForTexts = number of segments to generate
+     *       a circle when building the texts polygonal shapes of the stroke font
+     *       if 0, use the aCircleToSegmentsCount value
      */
     void TransformGraphicShapesWithClearanceToPolygonSet(
                             LAYER_ID aLayer,
-                            CPOLYGONS_LIST& aCornerBuffer,
+                            SHAPE_POLY_SET& aCornerBuffer,
                             int             aInflateValue,
                             int             aCircleToSegmentsCount,
-                            double          aCorrectionFactor );
+                            double          aCorrectionFactor,
+                            int             aCircleToSegmentsCountForTexts = 0 );
 
     /**
      * Function DrawEdgesOnly
@@ -493,6 +497,20 @@ public:
     unsigned GetPadCount( INCLUDE_NPTH_T aIncludeNPTH = INCLUDE_NPTH_T( INCLUDE_NPTH ) ) const;
 
     /**
+     * GetUniquePadCount
+     * returns the number of unique pads.
+     * A complex pad can be built with many pads having the same pad name
+     * to create a complex shape or fragmented solder paste areas.
+     *
+     * GetUniquePadCount calculate the count of not blank pad names
+     *
+     * @param aIncludeNPTH includes non-plated through holes when true.  Does not include
+     *                     non-plated through holes when false.
+     * @return the number of unique pads according to \a aIncludeNPTH.
+     */
+    unsigned GetUniquePadCount( INCLUDE_NPTH_T aIncludeNPTH = INCLUDE_NPTH_T( INCLUDE_NPTH ) ) const;
+
+    /**
      * Function GetNextPadName
      * returns the next available pad name in the module
      *
@@ -566,15 +584,20 @@ public:
     /**
      * Function CopyNetlistSettings
      * copies the netlist settings to \a aModule.
+     * Used to copy some footprint parameters when replacing a footprint by an other
+     * footprint when reading a netlist, or in exchange footprint dialog
      *
      * The netlist settings are all of the #MODULE settings not define by a #MODULE in
-     * a netlist.  These setting include position, orientation, local clearances, ets.
+     * a netlist.  These setting include placement prms (position, orientation, side)
+     * and optionally local prms( clearances, zone connection type, etc).
      * The reference designator, value, path, and physical geometry settings are not
      * copied.
      *
      * @param aModule is the #MODULE to copy the settings to.
+     * @param aCopyLocalSettings = false to copy only module placement
+     *   true to also copy local prms
      */
-    void CopyNetlistSettings( MODULE* aModule );
+    void CopyNetlistSettings( MODULE* aModule, bool aCopyLocalSettings );
 
     /**
      * static function IsLibNameValid

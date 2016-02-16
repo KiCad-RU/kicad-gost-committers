@@ -47,9 +47,7 @@ DIALOG_CHOOSE_COMPONENT::DIALOG_CHOOSE_COMPONENT( SCH_BASE_FRAME* aParent, const
     m_searchBox->SetFocus();
     m_componentDetails->SetEditable( false );
 
-#if wxCHECK_VERSION( 3, 0, 0 )
     m_libraryComponentTree->ScrollTo( m_libraryComponentTree->GetFocusedItem() );
-#endif
 
     // The tree showing libs and component uses a fixed font,
     // because we want controle the position of some info when drawing the
@@ -322,6 +320,15 @@ void DIALOG_CHOOSE_COMPONENT::OnHandlePreviewRepaint( wxPaintEvent& aRepaintEven
 void DIALOG_CHOOSE_COMPONENT::renderPreview( LIB_PART* aComponent, int aUnit )
 {
     wxPaintDC dc( m_componentView );
+
+    const wxSize dc_size = dc.GetSize();
+
+    // Avoid rendering when either dimension is zero
+    if( dc_size.x == 0 || dc_size.y == 0 )
+        return;
+
+    GRResetPenAndBrush( &dc );
+
     EDA_COLOR_T bgcolor = m_parent->GetDrawBgColor();
 
     dc.SetBackground( bgcolor == BLACK ? *wxBLACK_BRUSH : *wxWHITE_BRUSH );
@@ -333,7 +340,6 @@ void DIALOG_CHOOSE_COMPONENT::renderPreview( LIB_PART* aComponent, int aUnit )
     if( aUnit <= 0 )
         aUnit = 1;
 
-    const wxSize dc_size = dc.GetSize();
     dc.SetDeviceOrigin( dc_size.x / 2, dc_size.y / 2 );
 
     // Find joint bounding box for everything we are about to draw.
@@ -344,16 +350,8 @@ void DIALOG_CHOOSE_COMPONENT::renderPreview( LIB_PART* aComponent, int aUnit )
 
     dc.SetUserScale( scale, scale );
 
-    wxPoint offset =  bBox.Centre();
-    NEGATE( offset.x );
-    NEGATE( offset.y );
+    wxPoint offset = -bBox.Centre();
 
-    // Avoid rendering when either dimension is zero
-    int width, height;
-
-    dc.GetSize( &width, &height );
-    if( !width || !height )
-        return;
 
     aComponent->Draw( NULL, &dc, offset, aUnit, m_deMorganConvert, GR_COPY,
                       UNSPECIFIED_COLOR, DefaultTransform, true, true, false );
@@ -381,6 +379,9 @@ static wxTreeItemId GetNextItem( const wxTreeCtrl& tree, const wxTreeItemId& ite
 {
     wxTreeItemId nextItem;
 
+    if( !item.IsOk() )
+        return nextItem;    // item is not valid: return a not valid wxTreeItemId
+
     if( tree.IsExpanded( item ) )
     {
         wxTreeItemIdValue dummy;
@@ -388,9 +389,14 @@ static wxTreeItemId GetNextItem( const wxTreeCtrl& tree, const wxTreeItemId& ite
     }
     else
     {
+        wxTreeItemId root_cell=  tree.GetRootItem();
+
         // Walk up levels until we find one that has a next sibling.
         for ( wxTreeItemId walk = item; walk.IsOk(); walk = tree.GetItemParent( walk ) )
         {
+            if( walk == root_cell )     // the root cell (not displayed) is reached
+                break;                  // Exit (calling GetNextSibling( root_cell ) crashes.
+
             nextItem = tree.GetNextSibling( walk );
 
             if( nextItem.IsOk() )

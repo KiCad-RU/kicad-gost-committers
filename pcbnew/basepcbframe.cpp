@@ -39,6 +39,8 @@
 #include <base_units.h>
 #include <msgpanel.h>
 
+#include <3d_viewer.h>
+
 #include <pcbnew.h>
 #include <fp_lib_table.h>
 #include <pcbnew_id.h>
@@ -60,6 +62,8 @@
 
 #include <tool/tool_manager.h>
 #include <tool/tool_dispatcher.h>
+
+const wxChar PCB_BASE_FRAME::CANVAS_TYPE_KEY[] = wxT( "canvas_type" );
 
 // Configuration entry names.
 static const wxChar UserGridSizeXEntry[] = wxT( "PcbUserGrid_X" );
@@ -96,7 +100,6 @@ PCB_BASE_FRAME::PCB_BASE_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrame
     EDA_DRAW_FRAME( aKiway, aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName )
 {
     m_Pcb                 = NULL;
-    m_Draw3DFrame         = NULL;   // Display Window in 3D mode (OpenGL)
 
     m_UserGridSize        = wxRealPoint( 100.0, 100.0 );
     m_UserGridUnit        = INCHES;
@@ -118,6 +121,14 @@ PCB_BASE_FRAME::~PCB_BASE_FRAME()
 {
     delete m_Collector;
     delete m_Pcb;
+}
+
+
+EDA_3D_FRAME* PCB_BASE_FRAME::Get3DViewerFrame()
+{
+    // return the 3D viewer frame, when exists, or NULL
+    return dynamic_cast<EDA_3D_FRAME*>
+        ( wxWindow::FindWindowByName( VIEWER3D_FRAMENAME ) );
 }
 
 
@@ -365,7 +376,7 @@ void PCB_BASE_FRAME::Show3D_Frame( wxCommandEvent& event )
 // Note: virtual, overridden in PCB_EDIT_FRAME;
 void PCB_BASE_FRAME::SwitchLayer( wxDC* DC, LAYER_ID layer )
 {
-    LAYER_ID preslayer = ((PCB_SCREEN*)GetScreen())->m_Active_Layer;
+    LAYER_ID preslayer = GetActiveLayer();
     DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)GetDisplayOptions();
 
     // Check if the specified layer matches the present layer
@@ -505,10 +516,11 @@ void PCB_BASE_FRAME::OnUpdateSelectZoom( wxUpdateUIEvent& aEvent )
         return;
 
     int current = 0;
+    double zoom = IsGalCanvasActive() ? GetGalCanvas()->GetLegacyZoom() : GetScreen()->GetZoom();
 
     for( unsigned i = 0; i < GetScreen()->m_ZoomList.size(); i++ )
     {
-        if( GetScreen()->GetZoom() == GetScreen()->m_ZoomList[i] )
+        if( std::fabs( zoom - GetScreen()->m_ZoomList[i] ) < 1e-6 )
         {
             current = i + 1;
             break;
@@ -545,33 +557,29 @@ void PCB_BASE_FRAME::SetCurItem( BOARD_ITEM* aItem, bool aDisplayInfo )
 {
     GetScreen()->SetCurItem( aItem );
 
-    if( aItem )
+    if( aDisplayInfo )
+        UpdateMsgPanel();
+}
+
+
+void PCB_BASE_FRAME::UpdateMsgPanel()
+{
+    BOARD_ITEM* item = GetScreen()->GetCurItem();
+    MSG_PANEL_ITEMS items;
+
+    if( item )
     {
-        if( aDisplayInfo )
-        {
-            MSG_PANEL_ITEMS items;
-            aItem->GetMsgPanelInfo( items );
-            SetMsgPanel( items );
-        }
-
-#if 0 && defined(DEBUG)
-    aItem->Show( 0, std::cout );
-#endif
-
+        item->GetMsgPanelInfo( items );
     }
-    else
+    else       // show general information about the board
     {
-        // we can use either of these two:
-
-        MSG_PANEL_ITEMS items;
-        m_Pcb->GetMsgPanelInfo( items );       // show the BOARD stuff
-        SetMsgPanel( items );
-
-#if 0 && defined(DEBUG)
-        std::cout << "SetCurItem(NULL)\n";
-#endif
-
+        if( IsGalCanvasActive() )
+            GetGalCanvas()->GetMsgPanelInfo( items );
+        else
+            m_Pcb->GetMsgPanelInfo( items );
     }
+
+    SetMsgPanel( items );
 }
 
 
@@ -584,7 +592,7 @@ BOARD_ITEM* PCB_BASE_FRAME::GetCurItem()
 GENERAL_COLLECTORS_GUIDE PCB_BASE_FRAME::GetCollectorsGuide()
 {
     GENERAL_COLLECTORS_GUIDE guide( m_Pcb->GetVisibleLayers(),
-                                    ( (PCB_SCREEN*)GetScreen())->m_Active_Layer );
+                                    GetActiveLayer() );
 
     // account for the globals
     guide.SetIgnoreMTextsMarkedNoShow( ! m_Pcb->IsElementVisible( MOD_TEXT_INVISIBLE ));
@@ -790,6 +798,12 @@ void PCB_BASE_FRAME::OnModify()
 {
     GetScreen()->SetModify();
     GetScreen()->SetSave();
+
+    if( IsGalCanvasActive() )
+    {
+        UpdateStatusBar();
+        UpdateMsgPanel();
+    }
 }
 
 
@@ -858,7 +872,7 @@ void PCB_BASE_FRAME::SetFastGrid1()
 
     if( m_gridSelectBox )
     {
-        wxCommandEvent cmd( wxEVT_COMMAND_COMBOBOX_SELECTED );
+        wxCommandEvent cmd( wxEVT_CHOICE );
         cmd.SetEventObject( this );
         OnSelectGrid( cmd );
     }
@@ -877,7 +891,7 @@ void PCB_BASE_FRAME::SetFastGrid2()
 
     if( m_gridSelectBox )
     {
-        wxCommandEvent cmd( wxEVT_COMMAND_COMBOBOX_SELECTED );
+        wxCommandEvent cmd( wxEVT_CHOICE );
         cmd.SetEventObject( this );
         OnSelectGrid( cmd );
     }
@@ -891,7 +905,7 @@ void PCB_BASE_FRAME::SetNextGrid()
 
     if( m_gridSelectBox )
     {
-        wxCommandEvent cmd( wxEVT_COMMAND_COMBOBOX_SELECTED );
+        wxCommandEvent cmd( wxEVT_CHOICE );
         cmd.SetEventObject( this );
         OnSelectGrid( cmd );
     }
@@ -906,10 +920,110 @@ void PCB_BASE_FRAME::SetPrevGrid()
 
     if( m_gridSelectBox )
     {
-        wxCommandEvent cmd( wxEVT_COMMAND_COMBOBOX_SELECTED );
+        wxCommandEvent cmd( wxEVT_CHOICE );
         cmd.SetEventObject( this );
         OnSelectGrid( cmd );
     }
     else
         GetCanvas()->Refresh();
+}
+
+
+void PCB_BASE_FRAME::SwitchCanvas( wxCommandEvent& aEvent )
+{
+    bool use_gal = false;
+    EDA_DRAW_PANEL_GAL::GAL_TYPE canvasType = EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE;
+
+    switch( aEvent.GetId() )
+    {
+    case ID_MENU_CANVAS_LEGACY:
+        break;
+
+    case ID_MENU_CANVAS_CAIRO:
+        use_gal = GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_CAIRO );
+
+        if( use_gal )
+            canvasType = EDA_DRAW_PANEL_GAL::GAL_TYPE_CAIRO;
+        break;
+
+    case ID_MENU_CANVAS_OPENGL:
+        use_gal = GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_OPENGL );
+
+        if( use_gal )
+            canvasType = EDA_DRAW_PANEL_GAL::GAL_TYPE_OPENGL;
+        break;
+    }
+
+    SaveCanvasTypeSetting( canvasType );
+    UseGalCanvas( use_gal );
+}
+
+
+void PCB_BASE_FRAME::UseGalCanvas( bool aEnable )
+{
+    EDA_DRAW_FRAME::UseGalCanvas( aEnable );
+
+    EDA_DRAW_PANEL_GAL* galCanvas = GetGalCanvas();
+
+    if( m_toolManager )
+        m_toolManager->SetEnvironment( m_Pcb, GetGalCanvas()->GetView(),
+                                    GetGalCanvas()->GetViewControls(), this );
+
+    if( aEnable )
+    {
+        SetBoard( m_Pcb );
+
+        if( m_toolManager )
+            m_toolManager->ResetTools( TOOL_BASE::GAL_SWITCH );
+
+        galCanvas->GetView()->RecacheAllItems( true );
+        galCanvas->SetEventDispatcher( m_toolDispatcher );
+        galCanvas->StartDrawing();
+    }
+    else
+    {
+        if( m_toolManager )
+            m_toolManager->ResetTools( TOOL_BASE::GAL_SWITCH );
+
+        // Redirect all events to the legacy canvas
+        galCanvas->SetEventDispatcher( NULL );
+    }
+}
+
+
+EDA_DRAW_PANEL_GAL::GAL_TYPE PCB_BASE_FRAME::LoadCanvasTypeSetting() const
+{
+    EDA_DRAW_PANEL_GAL::GAL_TYPE canvasType = EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE;
+    wxConfigBase* cfg = Kiface().KifaceSettings();
+
+    if( cfg )
+        canvasType = (EDA_DRAW_PANEL_GAL::GAL_TYPE) cfg->ReadLong( CANVAS_TYPE_KEY,
+                                                                   EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE );
+
+    if( canvasType < EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE
+            || canvasType >= EDA_DRAW_PANEL_GAL::GAL_TYPE_LAST )
+    {
+        assert( false );
+        canvasType = EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE;
+    }
+
+    return canvasType;
+}
+
+
+bool PCB_BASE_FRAME::SaveCanvasTypeSetting( EDA_DRAW_PANEL_GAL::GAL_TYPE aCanvasType )
+{
+    if( aCanvasType < EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE
+            || aCanvasType >= EDA_DRAW_PANEL_GAL::GAL_TYPE_LAST )
+    {
+        assert( false );
+        return false;
+    }
+
+    wxConfigBase* cfg = Kiface().KifaceSettings();
+
+    if( cfg )
+        return cfg->Write( CANVAS_TYPE_KEY, (long) aCanvasType );
+
+    return false;
 }

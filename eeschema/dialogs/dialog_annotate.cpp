@@ -36,14 +36,15 @@
 #include <dialog_annotate_base.h>
 #include <kiface_i.h>
 
-#define KEY_ANNOTATE_SORT_OPTION        wxT( "AnnotateSortOption" )
-#define KEY_ANNOTATE_ALGO_OPTION        wxT( "AnnotateAlgoOption" )
-#define KEY_ANNOTATE_AUTOCLOSE_OPTION   wxT( "AnnotateAutoCloseOption" )
-#define KEY_ANNOTATE_USE_SILENTMODE     wxT( "AnnotateSilentMode" )
+#define KEY_ANNOTATE_SORT_OPTION          wxT( "AnnotateSortOption" )
+#define KEY_ANNOTATE_ALGO_OPTION          wxT( "AnnotateAlgoOption" )
+#define KEY_ANNOTATE_KEEP_OPEN_OPTION     wxT( "AnnotateKeepOpenOption" )
+#define KEY_ANNOTATE_ASK_FOR_CONFIRMATION wxT( "AnnotateRequestConfirmation" )
 
 
 class wxConfigBase;
 
+namespace {
 
 /**
  * Class DIALOG_ANNOTATE
@@ -51,7 +52,7 @@ class wxConfigBase;
 class DIALOG_ANNOTATE: public DIALOG_ANNOTATE_BASE
 {
 public:
-    DIALOG_ANNOTATE( SCH_EDIT_FRAME* parent );
+    DIALOG_ANNOTATE( SCH_EDIT_FRAME* parent, wxString message );
 
 
 private:
@@ -85,23 +86,26 @@ private:
      */
     int GetAnnotateAlgo();
 
-    bool GetAnnotateAutoCloseOpt()
+    bool GetAnnotateKeepOpen()
     {
-        return m_cbAutoCloseDlg->GetValue();
+        return m_cbKeepDlgOpen->GetValue();
     }
 
-    bool GetAnnotateSilentMode()
+    bool GetAnnotateAskForConfirmation()
     {
-        return m_cbUseSilentMode->GetValue();
+        return m_cbAskForConfirmation->GetValue();
     }
 };
 
+}  // anonymous namespace
 
 
-DIALOG_ANNOTATE::DIALOG_ANNOTATE( SCH_EDIT_FRAME* parent )
+DIALOG_ANNOTATE::DIALOG_ANNOTATE( SCH_EDIT_FRAME* parent, wxString message )
     : DIALOG_ANNOTATE_BASE( parent )
 {
     m_Parent = parent;
+    m_userMessage->SetLabelText( message );
+    m_userMessage->Show( !message.empty() );
 
     InitValues();
     Layout();
@@ -118,7 +122,7 @@ void DIALOG_ANNOTATE::InitValues()
     {
         long option;
 
-        m_Config->Read( KEY_ANNOTATE_SORT_OPTION, &option, 0l );
+        m_Config->Read( KEY_ANNOTATE_SORT_OPTION, &option, 0L );
         switch( option )
         {
         default:
@@ -135,7 +139,7 @@ void DIALOG_ANNOTATE::InitValues()
             break;
         }
 
-        m_Config->Read( KEY_ANNOTATE_ALGO_OPTION, &option, 0l );
+        m_Config->Read( KEY_ANNOTATE_ALGO_OPTION, &option, 0L );
         switch( option )
         {
         default:
@@ -152,13 +156,13 @@ void DIALOG_ANNOTATE::InitValues()
             break;
         }
 
-        m_Config->Read( KEY_ANNOTATE_AUTOCLOSE_OPTION, &option, 0l );
-        if( option )
-            m_cbAutoCloseDlg->SetValue( 1 );
 
-        m_Config->Read( KEY_ANNOTATE_USE_SILENTMODE, &option, 0l );
-        if( option )
-            m_cbUseSilentMode->SetValue( 1 );
+        m_Config->Read( KEY_ANNOTATE_KEEP_OPEN_OPTION, &option, 0L );
+        m_cbKeepDlgOpen->SetValue( option );
+
+
+        m_Config->Read( KEY_ANNOTATE_ASK_FOR_CONFIRMATION, &option, 1L );
+        m_cbAskForConfirmation->SetValue( option );
     }
 
     annotate_down_right_bitmap->SetBitmap( KiBitmap( annotate_down_right_xpm ) );
@@ -177,13 +181,13 @@ void DIALOG_ANNOTATE::OnApplyClick( wxCommandEvent& event )
     {
         m_Config->Write( KEY_ANNOTATE_SORT_OPTION, GetSortOrder() );
         m_Config->Write( KEY_ANNOTATE_ALGO_OPTION, GetAnnotateAlgo() );
-        m_Config->Write( KEY_ANNOTATE_AUTOCLOSE_OPTION, GetAnnotateAutoCloseOpt() );
-        m_Config->Write( KEY_ANNOTATE_USE_SILENTMODE, GetAnnotateSilentMode() );
+        m_Config->Write( KEY_ANNOTATE_KEEP_OPEN_OPTION, GetAnnotateKeepOpen() );
+        m_Config->Write( KEY_ANNOTATE_ASK_FOR_CONFIRMATION, GetAnnotateAskForConfirmation() );
     }
 
-    // Display a message info in verbose mode,
+    // Display a message info if we always ask for confirmation
     // or if a reset of the previous annotation is asked.
-    bool promptUser = ! GetAnnotateSilentMode();
+    bool promptUser = GetAnnotateAskForConfirmation();
 
     if( GetResetItems() )
     {
@@ -205,6 +209,10 @@ void DIALOG_ANNOTATE::OnApplyClick( wxCommandEvent& event )
 
     if( promptUser )
     {
+        // TODO(hzeller): ideally, this would be a wxMessageDialog that contains
+        // a checkbox asking the 'ask for confirmation' flag for better
+        // discoverability (and it should only show in the 'benign' case, so if
+        // !GetResetItems())
         response = wxMessageBox( message, wxT( "" ), wxICON_EXCLAMATION | wxOK | wxCANCEL );
 
         if( response == wxCANCEL )
@@ -218,7 +226,7 @@ void DIALOG_ANNOTATE::OnApplyClick( wxCommandEvent& event )
 
     m_btnClear->Enable();
 
-    if( GetAnnotateAutoCloseOpt() )
+    if( !GetAnnotateKeepOpen() )
     {
         if( IsModal() )
             EndModal( wxID_OK );
@@ -248,8 +256,6 @@ void DIALOG_ANNOTATE::OnClearAnnotationCmpClick( wxCommandEvent& event )
         return;
 
     m_Parent->DeleteAnnotation( GetLevel() ? false : true );
-    m_Parent->GetCanvas()->Refresh();
-
     m_btnClear->Enable( false );
 }
 
@@ -306,10 +312,9 @@ int DIALOG_ANNOTATE::GetAnnotateAlgo()
 }
 
 
-int InvokeDialogAnnotate( SCH_EDIT_FRAME* aCaller )
+int InvokeDialogAnnotate( SCH_EDIT_FRAME* aCaller, wxString message )
 {
-    DIALOG_ANNOTATE dlg( aCaller );
+    DIALOG_ANNOTATE dlg( aCaller, message );
 
     return dlg.ShowModal();
 }
-

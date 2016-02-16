@@ -24,6 +24,9 @@
 
 #include <collectors.h>
 #include <pcbnew.h>
+#include <netlist_reader.h>
+#include <pcb_netlist.h>
+#include <dialogs/dialog_update_pcb.h>
 
 #include <tools/common_actions.h>
 #include <tool/tool_manager.h>
@@ -38,14 +41,15 @@
  */
 void PCB_EDIT_FRAME::ExecuteRemoteCommand( const char* cmdline )
 {
-    char            line[1024];
-    wxString        msg;
-    wxString        modName;
-    char*           idcmd;
-    char*           text;
-    MODULE*         module = 0;
-    BOARD* pcb = GetBoard();
-    wxPoint         pos;
+    char        line[1024];
+    wxString    msg;
+    wxString    modName;
+    char*       idcmd;
+    char*       text;
+    MODULE*     module = NULL;
+    D_PAD*      pad = NULL;
+    BOARD*      pcb = GetBoard();
+    wxPoint     pos;
 
     strncpy( line, cmdline, sizeof(line) - 1 );
     line[sizeof(line) - 1] = 0;
@@ -75,7 +79,6 @@ void PCB_EDIT_FRAME::ExecuteRemoteCommand( const char* cmdline )
     else if( strcmp( idcmd, "$PIN:" ) == 0 )
     {
         wxString pinName;
-        D_PAD*   pad     = NULL;
         int      netcode = -1;
 
         pinName = FROM_UTF8( text );
@@ -132,9 +135,12 @@ void PCB_EDIT_FRAME::ExecuteRemoteCommand( const char* cmdline )
     {
         if( IsGalCanvasActive() )
         {
-            GetGalCanvas()->GetView()->SetCenter( VECTOR2D( module->GetPosition() ) );
-            m_toolManager->RunAction( COMMON_ACTIONS::selectionClear, true );
-            m_toolManager->RunAction( COMMON_ACTIONS::selectItem, true, module );
+            GetToolManager()->RunAction( COMMON_ACTIONS::crossProbeSchToPcb,
+                true,
+                pad ?
+                    static_cast<BOARD_ITEM*>( pad ) :
+                    static_cast<BOARD_ITEM*>( module )
+                );
         }
         else
         {
@@ -239,6 +245,28 @@ void PCB_EDIT_FRAME::KiwayMailIn( KIWAY_EXPRESS& mail )
     case MAIL_CROSS_PROBE:
         ExecuteRemoteCommand( payload.c_str() );
         break;
+
+    case MAIL_SCH_PCB_UPDATE:
+    {
+        NETLIST netlist;
+
+        try {
+            STRING_LINE_READER* lineReader = new STRING_LINE_READER( payload, _( "EEschema netlist" ) );
+            KICAD_NETLIST_READER netlistReader( lineReader, &netlist );
+            netlistReader.LoadNetlist();
+        }
+        catch( const IO_ERROR& ioe )
+        {
+            assert( false ); // should never happen
+        }
+
+        DIALOG_UPDATE_PCB updateDialog( this, &netlist );
+
+        updateDialog.PerformUpdate( true );
+        updateDialog.ShowModal();
+
+        break;
+    }
 
     // many many others.
     default:

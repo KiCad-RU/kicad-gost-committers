@@ -77,8 +77,8 @@ BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
 
     EVT_SIZE( FOOTPRINT_EDIT_FRAME::OnSize )
 
-    EVT_COMBOBOX( ID_ON_ZOOM_SELECT, FOOTPRINT_EDIT_FRAME::OnSelectZoom )
-    EVT_COMBOBOX( ID_ON_GRID_SELECT, FOOTPRINT_EDIT_FRAME::OnSelectGrid )
+    EVT_CHOICE( ID_ON_ZOOM_SELECT, FOOTPRINT_EDIT_FRAME::OnSelectZoom )
+    EVT_CHOICE( ID_ON_GRID_SELECT, FOOTPRINT_EDIT_FRAME::OnSelectGrid )
 
     EVT_TOOL( ID_MODEDIT_SELECT_CURRENT_LIB, FOOTPRINT_EDIT_FRAME::Process_Special_Functions )
 
@@ -167,10 +167,11 @@ BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_MENU_PCB_SHOW_3D_FRAME, FOOTPRINT_EDIT_FRAME::Show3D_Frame )
 
     // Switching canvases
-    EVT_MENU( ID_MENU_CANVAS_DEFAULT, FOOTPRINT_EDIT_FRAME::SwitchCanvas )
-    EVT_MENU( ID_MENU_CANVAS_CAIRO, FOOTPRINT_EDIT_FRAME::SwitchCanvas )
-    EVT_MENU( ID_MENU_CANVAS_OPENGL, FOOTPRINT_EDIT_FRAME::SwitchCanvas )
+    EVT_MENU( ID_MENU_CANVAS_LEGACY, PCB_BASE_FRAME::SwitchCanvas )
+    EVT_MENU( ID_MENU_CANVAS_CAIRO, PCB_BASE_FRAME::SwitchCanvas )
+    EVT_MENU( ID_MENU_CANVAS_OPENGL, PCB_BASE_FRAME::SwitchCanvas )
 
+    // UI update events.
     EVT_UPDATE_UI( ID_MODEDIT_DELETE_PART, FOOTPRINT_EDIT_FRAME::OnUpdateLibSelected )
     EVT_UPDATE_UI( ID_MODEDIT_SELECT_CURRENT_LIB, FOOTPRINT_EDIT_FRAME::OnUpdateSelectCurrentLib )
     EVT_UPDATE_UI( ID_MODEDIT_EXPORT_PART, FOOTPRINT_EDIT_FRAME::OnUpdateModuleSelected )
@@ -203,9 +204,6 @@ END_EVENT_TABLE()
 
 #define FOOTPRINT_EDIT_FRAME_NAME wxT( "ModEditFrame" )
 
-// Store the canvas mode during a session:
-static enum PCB_DRAW_PANEL_GAL::GalType galmode = PCB_DRAW_PANEL_GAL::GAL_TYPE_NONE;
-
 FOOTPRINT_EDIT_FRAME::FOOTPRINT_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     PCB_BASE_EDIT_FRAME( aKiway, aParent, FRAME_PCB_MODULE_EDITOR, wxEmptyString,
                          wxDefaultPosition, wxDefaultSize,
@@ -225,9 +223,9 @@ FOOTPRINT_EDIT_FRAME::FOOTPRINT_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     updateTitle();
 
     // Create GAL canvas
+    PCB_BASE_FRAME* parentFrame = static_cast<PCB_BASE_FRAME*>( Kiway().Player( FRAME_PCB, true ) );
     PCB_DRAW_PANEL_GAL* drawPanel = new PCB_DRAW_PANEL_GAL( this, -1, wxPoint( 0, 0 ), m_FrameSize,
-                                            galmode != PCB_DRAW_PANEL_GAL::GAL_TYPE_NONE ?
-                                            galmode : PCB_DRAW_PANEL_GAL::GAL_TYPE_CAIRO );
+                                                            parentFrame->GetGalCanvas()->GetBackend() );
     SetGalCanvas( drawPanel );
 
     SetBoard( new BOARD() );
@@ -249,10 +247,10 @@ FOOTPRINT_EDIT_FRAME::FOOTPRINT_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     wxFont font = wxSystemSettings::GetFont( wxSYS_DEFAULT_GUI_FONT );
     m_Layers = new PCB_LAYER_WIDGET( this, GetCanvas(), font.GetPointSize(), true );
 
-    SetScreen( new PCB_SCREEN( GetPageSettings().GetSizeIU() ) );
-
-    GetScreen()->SetCurItem( NULL );
     LoadSettings( config() );
+    SetScreen( new PCB_SCREEN( GetPageSettings().GetSizeIU() ) );
+    GetScreen()->SetMaxUndoItems( m_UndoRedoCountMax );
+    GetScreen()->SetCurItem( NULL );
 
     GetScreen()->AddGrid( m_UserGridSize, m_UserGridUnit, ID_POPUP_GRID_USER );
     GetScreen()->SetGrid( ID_POPUP_GRID_LEVEL_1000 + m_LastGridSizeId );
@@ -319,7 +317,7 @@ FOOTPRINT_EDIT_FRAME::FOOTPRINT_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
 
     // Create the manager and dispatcher & route draw panel events to the dispatcher
     setupTools();
-    UseGalCanvas( galmode != PCB_DRAW_PANEL_GAL::GAL_TYPE_NONE );
+    UseGalCanvas( parentFrame->IsGalCanvasActive() );
 
     if( m_auimgr.GetPane( wxT( "m_LayersManagerToolBar" ) ).IsShown() )
     {
@@ -332,6 +330,9 @@ FOOTPRINT_EDIT_FRAME::FOOTPRINT_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     }
 
     m_auimgr.Update();
+
+    Raise();            // On some window managers, this is needed
+    Show( true );
 
     Zoom_Automatique( false );
 }
@@ -470,12 +471,14 @@ void FOOTPRINT_EDIT_FRAME::SetPlotSettings( const PCB_PLOT_PARAMS& aSettings )
 
 void FOOTPRINT_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )
 {
-    EDA_DRAW_FRAME::LoadSettings( aCfg );
+    PCB_BASE_FRAME::LoadSettings( aCfg );
     wxConfigLoadSetups( aCfg, GetConfigurationSettings() );
 
     // Ensure some params are valid
     BOARD_DESIGN_SETTINGS& settings = GetDesignSettings();
 
+    // Usually, graphic items are drawn on F_SilkS or F_Fab layer
+    // Force these layers if not default
     if( ( settings.m_RefDefaultlayer != F_SilkS ) && ( settings.m_RefDefaultlayer != F_Fab ) )
         settings.m_RefDefaultlayer = F_SilkS;
 
@@ -486,7 +489,7 @@ void FOOTPRINT_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )
 
 void FOOTPRINT_EDIT_FRAME::SaveSettings( wxConfigBase* aCfg )
 {
-    EDA_DRAW_FRAME::SaveSettings( aCfg );
+    PCB_BASE_FRAME::SaveSettings( aCfg );
     wxConfigSaveSetups( aCfg, GetConfigurationSettings() );
 }
 
@@ -525,6 +528,9 @@ void FOOTPRINT_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
             return;
         }
     }
+
+    if( IsGalCanvasActive() )
+        GetGalCanvas()->StopDrawing();
 
     //close the editor
     Destroy();
@@ -666,28 +672,31 @@ void FOOTPRINT_EDIT_FRAME::OnUpdateSelectCurrentLib( wxUpdateUIEvent& aEvent )
 
 void FOOTPRINT_EDIT_FRAME::Show3D_Frame( wxCommandEvent& event )
 {
-    if( m_Draw3DFrame )
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
     {
         // Raising the window does not show the window on Windows if iconized.
         // This should work on any platform.
-        if( m_Draw3DFrame->IsIconized() )
-             m_Draw3DFrame->Iconize( false );
+        if( draw3DFrame->IsIconized() )
+             draw3DFrame->Iconize( false );
 
-        m_Draw3DFrame->Raise();
+        draw3DFrame->Raise();
 
         // Raising the window does not set the focus on Linux.  This should work on any platform.
-        if( wxWindow::FindFocus() != m_Draw3DFrame )
-            m_Draw3DFrame->SetFocus();
+        if( wxWindow::FindFocus() != draw3DFrame )
+            draw3DFrame->SetFocus();
 
         return;
     }
 
-    m_Draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, _( "3D Viewer" ) );
-    m_Draw3DFrame->Show( true );
+    draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, _( "3D Viewer" ) );
+    draw3DFrame->Raise();     // Needed with some Window Managers
+    draw3DFrame->Show( true );
 }
 
 
-bool FOOTPRINT_EDIT_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey )
+bool FOOTPRINT_EDIT_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey )
 {
     bool eventHandled = true;
 
@@ -728,8 +737,10 @@ void FOOTPRINT_EDIT_FRAME::OnModify()
 {
     PCB_BASE_FRAME::OnModify();
 
-    if( m_Draw3DFrame )
-        m_Draw3DFrame->ReloadRequest();
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
+        draw3DFrame->ReloadRequest();
 }
 
 
@@ -902,32 +913,6 @@ void FOOTPRINT_EDIT_FRAME::OnConfigurePaths( wxCommandEvent& aEvent )
 }
 
 
-void FOOTPRINT_EDIT_FRAME::SwitchCanvas( wxCommandEvent& aEvent )
-{
-    int id = aEvent.GetId();
-    bool use_gal = false;
-
-    switch( id )
-    {
-    case ID_MENU_CANVAS_DEFAULT:
-        galmode = PCB_DRAW_PANEL_GAL::GAL_TYPE_NONE;
-        break;
-
-    case ID_MENU_CANVAS_CAIRO:
-        galmode = EDA_DRAW_PANEL_GAL::GAL_TYPE_CAIRO;
-        use_gal = GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_CAIRO );
-        break;
-
-    case ID_MENU_CANVAS_OPENGL:
-        galmode = EDA_DRAW_PANEL_GAL::GAL_TYPE_OPENGL;
-        use_gal = GetGalCanvas()->SwitchBackend( EDA_DRAW_PANEL_GAL::GAL_TYPE_OPENGL );
-        break;
-    }
-
-    UseGalCanvas( use_gal );
-}
-
-
 void FOOTPRINT_EDIT_FRAME::setupTools()
 {
     PCB_DRAW_PANEL_GAL* drawPanel = static_cast<PCB_DRAW_PANEL_GAL*>( GetGalCanvas() );
@@ -961,21 +946,8 @@ void FOOTPRINT_EDIT_FRAME::setupTools()
 
 void FOOTPRINT_EDIT_FRAME::UseGalCanvas( bool aEnable )
 {
-    EDA_DRAW_FRAME::UseGalCanvas( aEnable );
+    PCB_BASE_EDIT_FRAME::UseGalCanvas( aEnable );
 
     if( aEnable )
-    {
-        SetBoard( m_Pcb );
-        m_toolManager->ResetTools( TOOL_BASE::GAL_SWITCH );
         updateView();
-        GetGalCanvas()->SetEventDispatcher( m_toolDispatcher );
-        GetGalCanvas()->StartDrawing();
-    }
-    else
-    {
-        m_toolManager->ResetTools( TOOL_BASE::GAL_SWITCH );
-
-        // Redirect all events to the legacy canvas
-        GetGalCanvas()->SetEventDispatcher( NULL );
-    }
 }

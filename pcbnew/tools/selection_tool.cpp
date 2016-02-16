@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2015 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -70,8 +70,9 @@ public:
 
 SELECTION_TOOL::SELECTION_TOOL() :
         TOOL_INTERACTIVE( "pcbnew.InteractiveSelection" ),
-        m_frame( NULL ), m_additive( false ), m_multiple( false ),
-        m_editModules( false ), m_locked( true )
+        m_frame( NULL ), m_additive( false ), m_multiple( false ), m_editModules( false ),
+        m_locked( true ), m_menu( this ), m_contextMenu( NULL ), m_selectMenu( NULL ),
+        m_zoomMenu( NULL ), m_gridMenu( NULL )
 {
     // Do not leave uninitialized members:
     m_preliminary = false;
@@ -81,6 +82,10 @@ SELECTION_TOOL::SELECTION_TOOL() :
 SELECTION_TOOL::~SELECTION_TOOL()
 {
     delete m_selection.group;
+    delete m_contextMenu;
+    delete m_selectMenu;
+    delete m_zoomMenu;
+    delete m_gridMenu;
 }
 
 
@@ -88,7 +93,10 @@ bool SELECTION_TOOL::Init()
 {
     m_selection.group = new KIGFX::VIEW_GROUP;
 
-    m_menu.AddMenu( new SELECT_MENU, _( "Select..." ), false,
+    m_selectMenu = new SELECT_MENU;
+    m_selectMenu->SetTool( this );
+
+    m_menu.AddMenu( m_selectMenu, _( "Select..." ), false,
             ( SELECTION_CONDITIONS::OnlyType( PCB_VIA_T ) || SELECTION_CONDITIONS::OnlyType( PCB_TRACE_T ) ) &&
             SELECTION_CONDITIONS::Count( 1 ) );
 
@@ -99,10 +107,13 @@ bool SELECTION_TOOL::Init()
     m_menu.AddItem( COMMON_ACTIONS::zoomOut , SELECTION_CONDITIONS::ShowAlways, 1000 );
     m_menu.AddItem( COMMON_ACTIONS::zoomFitScreen , SELECTION_CONDITIONS::ShowAlways, 1000 );
 
-    m_menu.AddMenu( new ZOOM_MENU( getEditFrame<PCB_BASE_FRAME>() ), _( "Zoom" ),
-            false, SELECTION_CONDITIONS::ShowAlways, 1000 );
-    m_menu.AddMenu( new GRID_MENU( getEditFrame<PCB_BASE_FRAME>() ), _( "Grid" ),
-            false, SELECTION_CONDITIONS::ShowAlways, 1000 );
+    PCB_BASE_FRAME* frame = getEditFrame<PCB_BASE_FRAME>();
+
+    m_zoomMenu = new ZOOM_MENU( frame );
+    m_menu.AddMenu( m_zoomMenu, _( "Zoom" ), false, SELECTION_CONDITIONS::ShowAlways, 1000 );
+
+    m_gridMenu = new GRID_MENU( frame );
+    m_menu.AddMenu( m_gridMenu, _( "Grid" ), false, SELECTION_CONDITIONS::ShowAlways, 1000 );
 
     return true;
 }
@@ -110,6 +121,10 @@ bool SELECTION_TOOL::Init()
 
 void SELECTION_TOOL::Reset( RESET_REASON aReason )
 {
+    m_frame = getEditFrame<PCB_BASE_FRAME>();
+    m_locked = true;
+    m_preliminary = true;
+
     if( aReason == TOOL_BASE::MODEL_RELOAD )
     {
         // Remove pointers to the selected items from containers
@@ -121,10 +136,6 @@ void SELECTION_TOOL::Reset( RESET_REASON aReason )
     else
         // Restore previous properties of selected items and remove them from containers
         clearSelection();
-
-    m_frame = getEditFrame<PCB_BASE_FRAME>();
-    m_locked = true;
-    m_preliminary = true;
 
     // Reinsert the VIEW_GROUP, in case it was removed from the VIEW
     getView()->Remove( m_selection.group );
@@ -153,7 +164,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
                 if( !m_additive )
                     clearSelection();
 
-                selectCursor( evt->Position() );
+                selectPoint( evt->Position() );
             }
         }
 
@@ -163,12 +174,13 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
             bool emptySelection = m_selection.Empty();
 
             if( emptySelection )
-                selectCursor( evt->Position() );
+                selectPoint( evt->Position() );
 
-            CONTEXT_MENU& contextMenu = m_menu.Generate( m_selection );
+            delete m_contextMenu;
+            m_contextMenu = m_menu.Generate( m_selection );
 
-            if( contextMenu.GetMenuItemCount() > 0 )
-                SetContextMenu( &contextMenu, CMENU_NOW );
+            if( m_contextMenu->GetMenuItemCount() > 0 )
+                SetContextMenu( m_contextMenu, CMENU_NOW );
 
             m_preliminary = emptySelection;
         }
@@ -177,7 +189,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
         else if( evt->IsDblClick( BUT_LEFT ) )
         {
             if( m_selection.Empty() )
-                selectCursor( evt->Position() );
+                selectPoint( evt->Position() );
 
             m_toolMgr->RunAction( COMMON_ACTIONS::properties );
         }
@@ -196,7 +208,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
                 m_preliminary = false;
 
                 // There is nothing selected, so try to select something
-                if( !selectCursor( getView()->ToWorld( getViewControls()->GetMousePosition() ), false ) )
+                if( !selectCursor() )
                 {
                     // If nothings has been selected or user wants to select more
                     // draw the selection box
@@ -226,8 +238,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
 
         else if( evt->IsAction( &COMMON_ACTIONS::selectionCursor ) )
         {
-            // GetMousePosition() is used, as it is independent of snapping settings
-            selectCursor( getView()->ToWorld( getViewControls()->GetMousePosition() ) );
+            selectCursor( true );
         }
 
         else if( evt->IsAction( &COMMON_ACTIONS::find ) )
@@ -275,6 +286,12 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
         {
             if( m_preliminary )
                 clearSelection();
+
+            if( evt->Parameter<CONTEXT_MENU*>() == m_contextMenu )
+            {
+                delete m_contextMenu;
+                m_contextMenu = NULL;
+            }
         }
     }
 
@@ -282,6 +299,31 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
     assert( false );
 
     return 0;
+}
+
+
+const SELECTION& SELECTION_TOOL::GetSelection()
+{
+    // The selected items list has been requested, so it is no longer preliminary
+    m_preliminary = false;
+
+    // Filter out not modifiable items
+    for( int i = 0; i < m_selection.Size(); )
+    {
+        BOARD_ITEM* item = m_selection.Item<BOARD_ITEM>( i );
+
+        if( !modifiable( item ) )
+        {
+            m_selection.items.RemovePicker( i );
+            m_selection.group->Remove( item );
+        }
+        else
+        {
+            ++i;
+        }
+    }
+
+    return m_selection;
 }
 
 
@@ -311,7 +353,7 @@ void SELECTION_TOOL::toggleSelection( BOARD_ITEM* aItem )
 }
 
 
-bool SELECTION_TOOL::selectCursor( const VECTOR2I& aWhere, bool aOnDrag )
+bool SELECTION_TOOL::selectPoint( const VECTOR2I& aWhere, bool aOnDrag )
 {
     BOARD_ITEM* item;
     GENERAL_COLLECTORS_GUIDE guide = m_frame->GetCollectorsGuide();
@@ -378,6 +420,18 @@ bool SELECTION_TOOL::selectCursor( const VECTOR2I& aWhere, bool aOnDrag )
 }
 
 
+bool SELECTION_TOOL::selectCursor( bool aSelectAlways )
+{
+    if( aSelectAlways || m_selection.Empty() )
+    {
+        clearSelection();
+        selectPoint( getViewControls()->GetCursorPosition() );
+    }
+
+    return !m_selection.Empty();
+}
+
+
 bool SELECTION_TOOL::selectMultiple()
 {
     bool cancelled = false;     // Was the tool cancelled while it was running?
@@ -432,14 +486,14 @@ bool SELECTION_TOOL::selectMultiple()
                 }
             }
 
-            // Do not display information about selected item,as there is more than one
-            m_frame->SetCurItem( NULL );
+            if( m_selection.Size() == 1 )
+                m_frame->SetCurItem( m_selection.Item<BOARD_ITEM>( 0 ) );
+            else
+                m_frame->SetCurItem( NULL );
 
+            // Inform other potentially interested tools
             if( !m_selection.Empty() )
-            {
-                // Inform other potentially interested tools
                 m_toolMgr->ProcessEvent( SelectedEvent );
-            }
 
             break;  // Stop waiting for events
         }
@@ -502,7 +556,7 @@ SELECTION_LOCK_FLAGS SELECTION_TOOL::CheckLock()
 
     if( containsLocked )
     {
-        if ( IsOK( m_frame, _( "Selection contains locked items. Do you want to continue?" ) ) )
+        if( IsOK( m_frame, _( "Selection contains locked items. Do you want to continue?" ) ) )
         {
             m_locked = false;
             return SELECTION_LOCK_OVERRIDE;
@@ -519,7 +573,7 @@ SELECTION_LOCK_FLAGS SELECTION_TOOL::CheckLock()
 
 int SELECTION_TOOL::CursorSelection( const TOOL_EVENT& aEvent )
 {
-    selectCursor( getView()->ToWorld( getViewControls()->GetMousePosition() ) );
+    selectCursor( true );
 
     return 0;
 }
@@ -569,15 +623,18 @@ int SELECTION_TOOL::UnselectItem( const TOOL_EVENT& aEvent )
 
 int SELECTION_TOOL::selectConnection( const TOOL_EVENT& aEvent )
 {
+    if( !selectCursor( true ) )
+        return 0;
+
     BOARD_CONNECTED_ITEM* item = m_selection.Item<BOARD_CONNECTED_ITEM>( 0 );
-    int segmentCount;
+    clearSelection();
 
     if( item->Type() != PCB_TRACE_T && item->Type() != PCB_VIA_T )
         return 0;
 
-    clearSelection();
+    int segmentCount;
     TRACK* trackList = getModel<BOARD>()->MarkTrace( static_cast<TRACK*>( item ), &segmentCount,
-                                                        NULL, NULL, true );
+                                                     NULL, NULL, true );
 
     if( segmentCount == 0 )
         return 0;
@@ -589,8 +646,7 @@ int SELECTION_TOOL::selectConnection( const TOOL_EVENT& aEvent )
     }
 
     // Inform other potentially interested tools
-    TOOL_EVENT selectEvent( SelectedEvent );
-    m_toolMgr->ProcessEvent( selectEvent );
+    m_toolMgr->ProcessEvent( SelectedEvent );
 
     return 0;
 }
@@ -598,11 +654,18 @@ int SELECTION_TOOL::selectConnection( const TOOL_EVENT& aEvent )
 
 int SELECTION_TOOL::selectCopper( const TOOL_EVENT& aEvent )
 {
+    if( !selectCursor( true ) )
+        return 0;
+
+    BOARD_CONNECTED_ITEM* item = m_selection.Item<BOARD_CONNECTED_ITEM>( 0 );
+    clearSelection();
+
+    if( item->Type() != PCB_TRACE_T && item->Type() != PCB_VIA_T )
+        return 0;
+
     std::list<BOARD_CONNECTED_ITEM*> itemsList;
     RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
-    BOARD_CONNECTED_ITEM* item = m_selection.Item<BOARD_CONNECTED_ITEM>( 0 );
 
-    clearSelection();
     ratsnest->GetConnectedItems( item, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
 
     BOOST_FOREACH( BOARD_CONNECTED_ITEM* i, itemsList )
@@ -610,10 +673,7 @@ int SELECTION_TOOL::selectCopper( const TOOL_EVENT& aEvent )
 
     // Inform other potentially interested tools
     if( itemsList.size() > 0 )
-    {
-        TOOL_EVENT selectEvent( SelectedEvent );
-        m_toolMgr->ProcessEvent( selectEvent );
-    }
+        m_toolMgr->ProcessEvent( SelectedEvent );
 
     return 0;
 }
@@ -621,9 +681,13 @@ int SELECTION_TOOL::selectCopper( const TOOL_EVENT& aEvent )
 
 int SELECTION_TOOL::selectNet( const TOOL_EVENT& aEvent )
 {
+    if( !selectCursor( true ) )
+        return 0;
+
+    BOARD_CONNECTED_ITEM* item = m_selection.Item<BOARD_CONNECTED_ITEM>( 0 );
+
     std::list<BOARD_CONNECTED_ITEM*> itemsList;
     RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
-    BOARD_CONNECTED_ITEM* item = m_selection.Item<BOARD_CONNECTED_ITEM>( 0 );
     int netCode = item->GetNetCode();
 
     clearSelection();
@@ -634,10 +698,7 @@ int SELECTION_TOOL::selectNet( const TOOL_EVENT& aEvent )
 
     // Inform other potentially interested tools
     if( itemsList.size() > 0 )
-    {
-        TOOL_EVENT selectEvent( SelectedEvent );
-        m_toolMgr->ProcessEvent( selectEvent );
-    }
+        m_toolMgr->ProcessEvent( SelectedEvent );
 
     return 0;
 }
@@ -649,7 +710,6 @@ void SELECTION_TOOL::findCallback( BOARD_ITEM* aItem )
 
     if( aItem )
     {
-        clearSelection();
         select( aItem );
         EDA_RECT bbox = aItem->GetBoundingBox();
         BOX2D viewport( VECTOR2D( bbox.GetOrigin() ), VECTOR2D( bbox.GetSize() ) );
@@ -676,7 +736,7 @@ int SELECTION_TOOL::find( const TOOL_EVENT& aEvent )
 
 int SELECTION_TOOL::findMove( const TOOL_EVENT& aEvent )
 {
-    MODULE* module = m_frame->GetModuleByName();
+    MODULE* module = m_frame->GetFootprintFromBoardByReference();
 
     if( module )
     {
@@ -705,6 +765,7 @@ void SELECTION_TOOL::clearSelection()
         item->ClearSelected();
         item->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY ) ;
     }
+
     m_selection.clear();
 
     m_frame->SetCurItem( NULL );
@@ -761,6 +822,8 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
             // User has selected an item, so this one will be returned
             if( id && ( *id > 0 ) )
                 current = ( *aCollector )[*id - 1];
+            else
+                current = NULL;
 
             break;
         }
@@ -875,7 +938,6 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
 
         return aItem->ViewIsVisible() && board->IsLayerVisible( aItem->GetLayer() );
 
-    // These are not selectable
     case PCB_MODULE_EDGE_T:
     case PCB_PAD_T:
     {
@@ -889,6 +951,7 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
         break;
     }
 
+    // These are not selectable
     case NOT_USED:
     case TYPE_NOT_INIT:
         return false;
@@ -902,8 +965,20 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
 }
 
 
+bool SELECTION_TOOL::modifiable( const BOARD_ITEM* aItem ) const
+{
+    if( aItem->Type() == PCB_MARKER_T )
+        return false;
+
+    return true;
+}
+
+
 void SELECTION_TOOL::select( BOARD_ITEM* aItem )
 {
+    if( aItem->IsSelected() )
+        return;
+
     // Modules are treated in a special way - when they are selected, we have to mark
     // all the parts that make the module as selected
     if( aItem->Type() == PCB_MODULE_T )
@@ -939,6 +1014,9 @@ void SELECTION_TOOL::select( BOARD_ITEM* aItem )
 
 void SELECTION_TOOL::unselect( BOARD_ITEM* aItem )
 {
+    if( !aItem->IsSelected() )
+        return;
+
     // Modules are treated in a special way - when they are selected, we have to
     // unselect all the parts that make the module, not the module itself
     if( aItem->Type() == PCB_MODULE_T )
@@ -958,9 +1036,6 @@ void SELECTION_TOOL::unselect( BOARD_ITEM* aItem )
         m_frame->SetCurItem( NULL );
         m_locked = true;
     }
-
-    // Inform other potentially interested tools
-    m_toolMgr->ProcessEvent( UnselectedEvent );
 }
 
 
@@ -1005,22 +1080,24 @@ bool SELECTION_TOOL::selectionContains( const VECTOR2I& aPoint ) const
 }
 
 
-static double calcArea( BOARD_ITEM* aItem )
+static EDA_RECT getRect( const BOARD_ITEM* aItem )
 {
-    switch( aItem -> Type() )
+    if( aItem->Type() == PCB_MODULE_T )
+        return static_cast<const MODULE*>( aItem )->GetFootprintRect();
+
+    return aItem->GetBoundingBox();
+}
+
+
+static double calcArea( const BOARD_ITEM* aItem )
+{
+    if( aItem->Type() == PCB_TRACE_T )
     {
-        case PCB_MODULE_T:
-            return static_cast <MODULE*>( aItem )->GetFootprintRect().GetArea();
-
-        case PCB_TRACE_T:
-        {
-            TRACK* t = static_cast<TRACK*>( aItem );
-            return ( t->GetWidth() + t->GetLength() ) * t->GetWidth();
-        }
-
-        default:
-            return aItem->GetBoundingBox().GetArea();
+        const TRACK* t = static_cast<const TRACK*>( aItem );
+        return ( t->GetWidth() + t->GetLength() ) * t->GetWidth();
     }
+
+    return getRect( aItem ).GetArea();
 }
 
 
@@ -1036,7 +1113,6 @@ static double calcMinArea( GENERAL_COLLECTOR& aCollector, KICAD_T aType )
         BOARD_ITEM* item = aCollector[i];
         if( item->Type() == aType )
             best = std::min( best, calcArea( item ) );
-
     }
 
     return best;
@@ -1051,19 +1127,24 @@ static double calcMaxArea( GENERAL_COLLECTOR& aCollector, KICAD_T aType )
     {
         BOARD_ITEM* item = aCollector[i];
         if( item->Type() == aType )
-            best = std::max(best, calcArea( item ) );
-
+            best = std::max( best, calcArea( item ) );
     }
 
     return best;
 }
 
 
+static inline double calcCommonArea( const BOARD_ITEM* aItem, const BOARD_ITEM* aOther )
+{
+    return getRect( aItem ).Common( getRect( aOther ) ).GetArea();
+}
+
+
 double calcRatio( double a, double b )
 {
-    if ( a == 0.0 && b == 0.0 )
+    if( a == 0.0 && b == 0.0 )
         return 1.0;
-    if ( b == 0.0 )
+    if( b == 0.0 )
         return 10000000.0; // something arbitrarily big for the moment
 
     return a / b;
@@ -1082,6 +1163,10 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
     const double trackTrackLengthRatio = 0.3;
     const double textToFeatureMinRatio = 0.2;
     const double textToFootprintMinRatio = 0.4;
+    // If the common area of two compared items is above the following threshold, they cannot
+    // be rejected (it means they overlap and it might be hard to pick one by selecting
+    // its unique area).
+    const double commonAreaRatio = 0.6;
 
     LAYER_ID actLayer = m_frame->GetActiveLayer();
 
@@ -1094,10 +1179,13 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
         for( int i = 0; i < aCollector.GetCount(); ++i )
         {
             BOARD_ITEM* item = aCollector[i];
+            KICAD_T type = item->Type();
 
-            if ( item->Type() == PCB_MODULE_TEXT_T || item->Type() == PCB_TEXT_T || item->Type() == PCB_LINE_T )
-                if ( silkLayers[item->GetLayer()] )
-                    preferred.insert ( item );
+            if( ( type == PCB_MODULE_TEXT_T || type == PCB_TEXT_T || type == PCB_LINE_T )
+                    && silkLayers[item->GetLayer()] )
+            {
+                preferred.insert( item );
+            }
         }
 
         if( preferred.size() != 0 )
@@ -1113,21 +1201,26 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
     if( aCollector.CountType( PCB_MODULE_TEXT_T ) > 0 )
     {
         for( int i = 0; i < aCollector.GetCount(); ++i )
+        {
             if( TEXTE_MODULE* txt = dyn_cast<TEXTE_MODULE*>( aCollector[i] ) )
             {
                 double textArea = calcArea( txt );
 
                 for( int j = 0; j < aCollector.GetCount(); ++j )
                 {
+                    if( i == j )
+                        continue;
+
                     BOARD_ITEM* item = aCollector[j];
-                    double areaRatio = calcRatio( textArea, calcArea( item ) );
+                    double itemArea = calcArea( item );
+                    double areaRatio = calcRatio( textArea, itemArea );
+                    double commonArea = calcCommonArea( txt, item );
+                    double itemCommonRatio = calcRatio( commonArea, itemArea );
+                    double txtCommonRatio = calcRatio( commonArea, textArea );
 
-                    if( item->Type() == PCB_MODULE_T && areaRatio < textToFootprintMinRatio )
-                    {
-                        //printf("rejectModuleN\n");
-
+                    if( item->Type() == PCB_MODULE_T && areaRatio < textToFootprintMinRatio &&
+                            itemCommonRatio < commonAreaRatio )
                         rejected.insert( item );
-                    }
 
                     switch( item->Type() )
                     {
@@ -1136,17 +1229,15 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
                         case PCB_LINE_T:
                         case PCB_VIA_T:
                         case PCB_MODULE_T:
-                            if( areaRatio > textToFeatureMinRatio )
-                            {
-                                //printf("t after moduleRejected\n");
+                            if( areaRatio > textToFeatureMinRatio && txtCommonRatio < commonAreaRatio )
                                 rejected.insert( txt );
-                            }
                             break;
                         default:
                             break;
                     }
                 }
             }
+        }
     }
 
     if( aCollector.CountType( PCB_MODULE_T ) > 0 )
@@ -1157,25 +1248,23 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
         if( calcRatio( minArea, maxArea ) <= footprintAreaRatio )
         {
             for( int i = 0; i < aCollector.GetCount(); ++i )
+            {
                 if( MODULE* mod = dyn_cast<MODULE*>( aCollector[i] ) )
                 {
-                    double normalizedArea = calcRatio( calcArea(mod), maxArea );
+                    double normalizedArea = calcRatio( calcArea( mod ), maxArea );
 
                     if( normalizedArea > footprintAreaRatio )
-                    {
-                        //printf("rejectModule1\n");
-
                         rejected.insert( mod );
-                    }
                 }
+            }
         }
     }
 
-    if( aCollector.CountType ( PCB_PAD_T ) > 0 )
+    if( aCollector.CountType( PCB_PAD_T ) > 0 )
     {
         for( int i = 0; i < aCollector.GetCount(); ++i )
         {
-            if ( D_PAD* pad = dyn_cast<D_PAD*>( aCollector[i] ) )
+            if( D_PAD* pad = dyn_cast<D_PAD*>( aCollector[i] ) )
             {
                 double ratio = pad->GetParent()->PadCoverageRatio();
 
@@ -1195,8 +1284,11 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
 
                 for( int j = 0; j < aCollector.GetCount(); ++j )
                 {
+                    if( i == j )
+                        continue;
+
                     BOARD_ITEM* item = aCollector[j];
-                    double areaRatio = calcRatio ( viaArea, calcArea( item ) );
+                    double areaRatio = calcRatio( viaArea, calcArea( item ) );
 
                     if( item->Type() == PCB_MODULE_T && areaRatio < modulePadMinCoverRatio )
                         rejected.insert( item );
@@ -1209,7 +1301,8 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
                         if( track->GetNetCode() != via->GetNetCode() )
                             continue;
 
-                        double lenRatio = (double) ( track->GetLength() + track->GetWidth() ) / (double) via->GetWidth();
+                        double lenRatio = (double) ( track->GetLength() + track->GetWidth() ) /
+                                          (double) via->GetWidth();
 
                         if( lenRatio > trackViaLengthRatio )
                             rejected.insert( track );
@@ -1219,7 +1312,7 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
         }
     }
 
-    int nTracks = aCollector.CountType ( PCB_TRACE_T );
+    int nTracks = aCollector.CountType( PCB_TRACE_T );
 
     if( nTracks > 0 )
     {
@@ -1228,27 +1321,29 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
         double maxArea = 0.0;
 
         for( int i = 0; i < aCollector.GetCount(); ++i )
-            if ( TRACK *track = dyn_cast<TRACK*> ( aCollector[i] ) )
+        {
+            if( TRACK* track = dyn_cast<TRACK*> ( aCollector[i] ) )
             {
                 maxLength = std::max( track->GetLength(), maxLength );
-                maxLength = std::max( (double)track->GetWidth(), maxLength );
+                maxLength = std::max( (double) track->GetWidth(), maxLength );
 
-                minLength = std::min( std::max ( track->GetLength(), (double)track->GetWidth() ), minLength );
+                minLength = std::min( std::max( track->GetLength(), (double)track->GetWidth() ), minLength );
 
                 double area =  ( track->GetLength() + track->GetWidth() * track->GetWidth() );
                 maxArea = std::max(area, maxArea);
             }
+        }
 
-        if( maxLength > 0.0 && minLength/maxLength < trackTrackLengthRatio && nTracks > 1 )
+        if( maxLength > 0.0 && minLength / maxLength < trackTrackLengthRatio && nTracks > 1 )
         {
             for( int i = 0; i < aCollector.GetCount(); ++i )
              {
                 if( TRACK* track = dyn_cast<TRACK*>( aCollector[i] ) )
                 {
-                    double ratio = std::max( (double) track->GetWidth(), track->GetLength()) / maxLength;
+                    double ratio = std::max( (double) track->GetWidth(), track->GetLength() ) / maxLength;
 
                     if( ratio > trackTrackLengthRatio )
-                        rejected.insert( track) ;
+                        rejected.insert( track );
                 }
             }
         }
@@ -1260,26 +1355,25 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
                 double ratio = maxArea / mod->GetFootprintRect().GetArea();
 
                 if( ratio < modulePadMinCoverRatio )
-                {
-                    //printf("rejectModule\n");
                     rejected.insert( mod );
-                }
             }
         }
     }
 
-    BOOST_FOREACH( BOARD_ITEM* item, rejected )
+    if( (unsigned) aCollector.GetCount() > rejected.size() )  // do not remove everything
     {
-        aCollector.Remove( item );
+        BOOST_FOREACH( BOARD_ITEM* item, rejected )
+        {
+            aCollector.Remove( item );
+        }
     }
-
-    //printf("Post-selection: %d\n", aCollector.GetCount() );
 }
 
 
 bool SELECTION_TOOL::SanitizeSelection()
 {
     std::set<BOARD_ITEM*> rejected;
+    std::set<BOARD_ITEM*> added;
 
     if( !m_editModules )
     {
@@ -1289,11 +1383,16 @@ bool SELECTION_TOOL::SanitizeSelection()
 
             if( item->Type() == PCB_PAD_T )
             {
-                MODULE* mod = static_cast <MODULE*>( item->GetParent() );
+                MODULE* mod = static_cast<MODULE*>( item->GetParent() );
 
                 // case 1: module (or its pads) are locked
                 if( mod && ( mod->PadsLocked() || mod->IsLocked() ) )
+                {
                     rejected.insert( item );
+
+                    if( !mod->IsLocked() && !mod->IsSelected() )
+                        added.insert( mod );
+                }
 
                 // case 2: multi-item selection contains both the module and its pads - remove the pads
                 if( mod && m_selection.items.FindItem( mod ) >= 0 )
@@ -1302,8 +1401,23 @@ bool SELECTION_TOOL::SanitizeSelection()
         }
     }
 
-    BOOST_FOREACH( BOARD_ITEM* item, rejected )
-        unselect( item );
+    if( !rejected.empty() )
+    {
+        BOOST_FOREACH( BOARD_ITEM* item, rejected )
+            unselect( item );
+
+        // Inform other potentially interested tools
+        m_toolMgr->ProcessEvent( UnselectedEvent );
+    }
+
+    if( !added.empty() )
+    {
+        BOOST_FOREACH( BOARD_ITEM* item, added )
+            select( item );
+
+        // Inform other potentially interested tools
+        m_toolMgr->ProcessEvent( UnselectedEvent );
+    }
 
     return true;
 }

@@ -204,9 +204,7 @@ void SCH_TEXT::MirrorY( int aYaxis_position )
         break;
     }
 
-    m_Pos.x -= aYaxis_position;
-    NEGATE( m_Pos.x );
-    m_Pos.x += aYaxis_position;
+    MIRROR( m_Pos.x, aYaxis_position );
 }
 
 
@@ -228,9 +226,8 @@ void SCH_TEXT::MirrorX( int aXaxis_position )
     default:
         break;
     }
-    m_Pos.y -= aXaxis_position;
-    NEGATE( m_Pos.y );
-    m_Pos.y += aXaxis_position;
+
+    MIRROR( m_Pos.y, aXaxis_position );
 }
 
 
@@ -306,18 +303,18 @@ void SCH_TEXT::SwapData( SCH_ITEM* aItem )
 {
     SCH_TEXT* item = (SCH_TEXT*) aItem;
 
-    EXCHG( m_Text, item->m_Text );
-    EXCHG( m_Pos, item->m_Pos );
-    EXCHG( m_Size, item->m_Size );
-    EXCHG( m_Thickness, item->m_Thickness );
-    EXCHG( m_shape, item->m_shape );
-    EXCHG( m_Orient, item->m_Orient );
+    std::swap( m_Text, item->m_Text );
+    std::swap( m_Pos, item->m_Pos );
+    std::swap( m_Size, item->m_Size );
+    std::swap( m_Thickness, item->m_Thickness );
+    std::swap( m_shape, item->m_shape );
+    std::swap( m_Orient, item->m_Orient );
 
-    EXCHG( m_Layer, item->m_Layer );
-    EXCHG( m_HJustify, item->m_HJustify );
-    EXCHG( m_VJustify, item->m_VJustify );
-    EXCHG( m_isDangling, item->m_isDangling );
-    EXCHG( m_schematicOrientation, item->m_schematicOrientation );
+    std::swap( m_Layer, item->m_Layer );
+    std::swap( m_HJustify, item->m_HJustify );
+    std::swap( m_VJustify, item->m_VJustify );
+    std::swap( m_isDangling, item->m_isDangling );
+    std::swap( m_schematicOrientation, item->m_schematicOrientation );
 }
 
 
@@ -356,9 +353,9 @@ void SCH_TEXT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& aOffset,
     GRSetDrawMode( DC, DrawMode );
 
     wxPoint text_offset = aOffset + GetSchematicTextOffset();
-    EXCHG( linewidth, m_Thickness );            // Set the minimum width
+    std::swap( linewidth, m_Thickness );            // Set the minimum width
     EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
-    EXCHG( linewidth, m_Thickness );            // set initial value
+    std::swap( linewidth, m_Thickness );            // set initial value
 
     if( m_isDangling && panel)
         DrawDanglingSymbol( panel, DC, m_Pos + aOffset, color );
@@ -428,7 +425,7 @@ bool SCH_TEXT::Load( LINE_READER& aLine, wxString& aErrorMsg )
         sline++;
 
     // sline points the start of parameters
-    int ii = sscanf( sline, "%s %d %d %d %d %s %s %d", Name1, &m_Pos.x, &m_Pos.y,
+    int ii = sscanf( sline, "%255s %d %d %d %d %255s %255s %d", Name1, &m_Pos.x, &m_Pos.y,
                      &orient, &size, Name2, Name3, &thickness );
 
     if( ii < 4 )
@@ -859,9 +856,7 @@ void SCH_LABEL::MirrorX( int aXaxis_position )
         break;
     }
 
-    m_Pos.y -= aXaxis_position;
-    NEGATE( m_Pos.y );
-    m_Pos.y += aXaxis_position;
+    MIRROR( m_Pos.y, aXaxis_position );
 }
 
 
@@ -906,7 +901,7 @@ bool SCH_LABEL::Load( LINE_READER& aLine, wxString& aErrorMsg )
         sline++;
 
     // sline points the start of parameters
-    int ii = sscanf( sline, "%s %d %d %d %d %s %s %d", Name1, &m_Pos.x, &m_Pos.y,
+    int ii = sscanf( sline, "%255s %d %d %d %d %255s %255s %d", Name1, &m_Pos.x, &m_Pos.y,
                      &orient, &size, Name2, Name3, &thickness );
 
     if( ii < 4 )
@@ -1067,7 +1062,7 @@ bool SCH_GLOBALLABEL::Load( LINE_READER& aLine, wxString& aErrorMsg )
         sline++;
 
     // sline points the start of parameters
-    int ii = sscanf( sline, "%s %d %d %d %d %s %s %d", Name1, &m_Pos.x, &m_Pos.y,
+    int ii = sscanf( sline, "%255s %d %d %d %d %255s %255s %d", Name1, &m_Pos.x, &m_Pos.y,
                      &orient, &size, Name2, Name3, &thickness );
 
     if( ii < 4 )
@@ -1140,9 +1135,7 @@ void SCH_GLOBALLABEL::MirrorY( int aYaxis_position )
         break;
     }
 
-    m_Pos.x -= aYaxis_position;
-    NEGATE( m_Pos.x );
-    m_Pos.x += aYaxis_position;
+    MIRROR( m_Pos.x, aYaxis_position );
 }
 
 
@@ -1159,9 +1152,7 @@ void SCH_GLOBALLABEL::MirrorX( int aXaxis_position )
         break;
     }
 
-    m_Pos.y -= aXaxis_position;
-    NEGATE( m_Pos.y );
-    m_Pos.y += aXaxis_position;
+    MIRROR( m_Pos.y, aXaxis_position );
 }
 
 
@@ -1274,10 +1265,10 @@ void SCH_GLOBALLABEL::Draw( EDA_DRAW_PANEL* panel,
 
     int linewidth = (m_Thickness == 0) ? GetDefaultLineThickness() : m_Thickness;
     linewidth = Clamp_Text_PenSize( linewidth, m_Size, m_Bold );
-    EXCHG( linewidth, m_Thickness );            // Set the minimum width
+    std::swap( linewidth, m_Thickness );            // Set the minimum width
     EDA_RECT* clipbox = panel? panel->GetClipBox() : NULL;
     EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
-    EXCHG( linewidth, m_Thickness );            // set initial value
+    std::swap( linewidth, m_Thickness );            // set initial value
 
     CreateGraphicShape( Poly, m_Pos + aOffset );
     GRPoly( clipbox, DC, Poly.size(), &Poly[0], 0, linewidth, color, color );
@@ -1496,7 +1487,7 @@ bool SCH_HIERLABEL::Load( LINE_READER& aLine, wxString& aErrorMsg )
         sline++;
 
     // sline points the start of parameters
-    int ii = sscanf( sline, "%s %d %d %d %d %s %s %d", Name1, &m_Pos.x, &m_Pos.y,
+    int ii = sscanf( sline, "%255s %d %d %d %d %255s %255s %d", Name1, &m_Pos.x, &m_Pos.y,
                      &orient, &size, Name2, Name3, &thickness );
 
     if( ii < 4 )
@@ -1606,10 +1597,10 @@ void SCH_HIERLABEL::Draw( EDA_DRAW_PANEL* panel,
 
     GRSetDrawMode( DC, DrawMode );
 
-    EXCHG( linewidth, m_Thickness );            // Set the minimum width
+    std::swap( linewidth, m_Thickness );            // Set the minimum width
     wxPoint text_offset = offset + GetSchematicTextOffset();
     EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
-    EXCHG( linewidth, m_Thickness );            // set initial value
+    std::swap( linewidth, m_Thickness );            // set initial value
 
     CreateGraphicShape( Poly, m_Pos + offset );
     GRPoly( clipbox, DC, Poly.size(), &Poly[0], 0, linewidth, color, color );
@@ -1750,9 +1741,7 @@ void SCH_HIERLABEL::MirrorY( int aYaxis_position )
         break;
     }
 
-    m_Pos.x -= aYaxis_position;
-    NEGATE( m_Pos.x );
-    m_Pos.x += aYaxis_position;
+    MIRROR( m_Pos.x, aYaxis_position );
 }
 
 
@@ -1769,9 +1758,7 @@ void SCH_HIERLABEL::MirrorX( int aXaxis_position )
         break;
     }
 
-    m_Pos.y -= aXaxis_position;
-    NEGATE( m_Pos.y );
-    m_Pos.y += aXaxis_position;
+    MIRROR( m_Pos.y, aXaxis_position );
 }
 
 

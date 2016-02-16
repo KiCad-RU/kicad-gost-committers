@@ -67,7 +67,7 @@ MODULE::MODULE( BOARD* parent ) :
     m_LocalSolderMaskMargin  = 0;
     m_LocalSolderPasteMargin = 0;
     m_LocalSolderPasteMarginRatio = 0.0;
-    m_ZoneConnection = UNDEFINED_CONNECTION; // Use zone setting by default
+    m_ZoneConnection = PAD_ZONE_CONN_INHERITED; // Use zone setting by default
     m_ThermalWidth = 0;     // Use zone setting by default
     m_ThermalGap = 0;       // Use zone setting by default
 
@@ -115,6 +115,7 @@ MODULE::MODULE( const MODULE& aModule ) :
     for( D_PAD* pad = aModule.m_Pads;  pad;  pad = pad->Next() )
     {
         D_PAD* newpad = new D_PAD( *pad );
+        assert( newpad->GetNet() == pad->GetNet() );
         newpad->SetParent( this );
         m_Pads.PushBack( newpad );
     }
@@ -186,7 +187,7 @@ void MODULE::ClearAllNets()
     // Force the ORPHANED dummy net info for all pads.
     // ORPHANED dummy net does not depend on a board
     for( D_PAD* pad = Pads(); pad; pad = pad->Next() )
-        pad->SetNetCode( NETINFO_LIST::FORCE_ORPHANED );
+        pad->SetNetCode( NETINFO_LIST::ORPHANED );
 }
 
 
@@ -321,9 +322,9 @@ void MODULE::Add( BOARD_ITEM* aBoardItem, bool doAppend )
 
     case PCB_MODULE_EDGE_T:
         if( doAppend )
-            m_Drawings.PushBack( static_cast<BOARD_ITEM*>( aBoardItem ) );
+            m_Drawings.PushBack( aBoardItem );
         else
-            m_Drawings.PushFront( static_cast<BOARD_ITEM*>( aBoardItem ) );
+            m_Drawings.PushFront( aBoardItem );
         break;
 
     case PCB_PAD_T:
@@ -359,7 +360,7 @@ BOARD_ITEM* MODULE::Remove( BOARD_ITEM* aBoardItem )
         // no break
 
     case PCB_MODULE_EDGE_T:
-        return m_Drawings.Remove( static_cast<BOARD_ITEM*>( aBoardItem ) );
+        return m_Drawings.Remove( aBoardItem );
 
     case PCB_PAD_T:
         return m_Pads.Remove( static_cast<D_PAD*>( aBoardItem ) );
@@ -377,7 +378,7 @@ BOARD_ITEM* MODULE::Remove( BOARD_ITEM* aBoardItem )
 }
 
 
-void MODULE::CopyNetlistSettings( MODULE* aModule )
+void MODULE::CopyNetlistSettings( MODULE* aModule, bool aCopyLocalSettings )
 {
     // Don't do anything foolish like trying to copy to yourself.
     wxCHECK_RET( aModule != NULL && aModule != this, wxT( "Cannot copy to NULL or yourself." ) );
@@ -391,20 +392,30 @@ void MODULE::CopyNetlistSettings( MODULE* aModule )
     if( aModule->GetOrientation() != GetOrientation() )
         aModule->Rotate( aModule->GetPosition(), GetOrientation() );
 
-    aModule->SetLocalSolderMaskMargin( GetLocalSolderMaskMargin() );
-    aModule->SetLocalClearance( GetLocalClearance() );
-    aModule->SetLocalSolderPasteMargin( GetLocalSolderPasteMargin() );
-    aModule->SetLocalSolderPasteMarginRatio( GetLocalSolderPasteMarginRatio() );
-    aModule->SetZoneConnection( GetZoneConnection() );
-    aModule->SetThermalWidth( GetThermalWidth() );
-    aModule->SetThermalGap( GetThermalGap() );
+    aModule->SetLocked( IsLocked() );
 
-    for( D_PAD* pad = Pads();  pad;  pad = pad->Next() )
+    if( aCopyLocalSettings )
     {
-        D_PAD* newPad = aModule->FindPadByName( pad->GetPadName() );
+        aModule->SetLocalSolderMaskMargin( GetLocalSolderMaskMargin() );
+        aModule->SetLocalClearance( GetLocalClearance() );
+        aModule->SetLocalSolderPasteMargin( GetLocalSolderPasteMargin() );
+        aModule->SetLocalSolderPasteMarginRatio( GetLocalSolderPasteMarginRatio() );
+        aModule->SetZoneConnection( GetZoneConnection() );
+        aModule->SetThermalWidth( GetThermalWidth() );
+        aModule->SetThermalGap( GetThermalGap() );
+    }
 
-        if( newPad )
-            pad->CopyNetlistSettings( newPad );
+    for( D_PAD* pad = aModule->Pads();  pad;  pad = pad->Next() )
+    {
+        // Fix me: if aCopyLocalSettings == true, for "multiple" pads
+        // (set of pads having the same name/number) this is broken
+        // because we copy settings from the first pad found.
+        // When old and new footprints have very few differences, a better
+        // algo can be used.
+        D_PAD* oldPad = FindPadByName( pad->GetPadName() );
+
+        if( oldPad )
+            oldPad->CopyNetlistSettings( pad, aCopyLocalSettings );
     }
 
     // Not sure about copying description, keywords, 3D models or any other
@@ -637,10 +648,7 @@ void MODULE::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 
 bool MODULE::HitTest( const wxPoint& aPosition ) const
 {
-    if( m_BoundaryBox.Contains( aPosition ) )
-        return true;
-
-    return false;
+    return m_BoundaryBox.Contains( aPosition );
 }
 
 
@@ -700,13 +708,46 @@ unsigned MODULE::GetPadCount( INCLUDE_NPTH_T aIncludeNPTH ) const
 
     for( D_PAD* pad = m_Pads; pad; pad = pad->Next() )
     {
-        if( pad->GetAttribute() == PAD_HOLE_NOT_PLATED )
+        if( pad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED )
             continue;
 
         cnt++;
     }
 
     return cnt;
+}
+
+
+unsigned MODULE::GetUniquePadCount( INCLUDE_NPTH_T aIncludeNPTH ) const
+{
+    std::set<wxUint32> usedNames;
+
+    // Create a set of used pad numbers
+    for( D_PAD* pad = Pads(); pad; pad = pad->Next() )
+    {
+        // Skip pads not on copper layers (used to build complex
+        // solder paste shapes for instance)
+        if( ( pad->GetLayerSet() & LSET::AllCuMask() ).none() )
+            continue;
+
+        // Skip pads with no name, because they are usually "mechanical"
+        // pads, not "electrical" pads
+        if( pad->GetPadName().IsEmpty() )
+            continue;
+
+        if( !aIncludeNPTH )
+        {
+            // skip NPTH
+            if( pad->GetAttribute() == PAD_ATTRIB_HOLE_NOT_PLATED )
+            {
+                continue;
+            }
+        }
+
+        usedNames.insert( pad->GetPackedPadName() );
+    }
+
+    return usedNames.size();
 }
 
 
@@ -945,27 +986,23 @@ void MODULE::Flip( const wxPoint& aCentre )
 {
     // Move module to its final position:
     wxPoint finalPos = m_Pos;
-
-    finalPos.y  = aCentre.y - ( finalPos.y - aCentre.y );     /// Mirror the Y position
-
+    MIRROR( finalPos.y, aCentre.y );     /// Mirror the Y position
     SetPosition( finalPos );
 
     // Flip layer
     SetLayer( FlipLayer( GetLayer() ) );
 
     // Reverse mirror orientation.
-    NEGATE( m_Orient );
+    m_Orient = -m_Orient;
     NORMALIZE_ANGLE_POS( m_Orient );
 
     // Mirror pads to other side of board about the x axis, i.e. vertically.
     for( D_PAD* pad = m_Pads; pad; pad = pad->Next() )
         pad->Flip( m_Pos );
 
-    // Mirror reference.
-    m_Reference->FlipWithModule( m_Pos.y );
-
-    // Mirror value.
-    m_Value->FlipWithModule( m_Pos.y );
+    // Mirror reference and value.
+    m_Reference->Flip( m_Pos );
+    m_Value->Flip( m_Pos );
 
     // Reverse mirror module graphics and texts.
     for( EDA_ITEM* item = m_Drawings; item; item = item->Next() )
@@ -977,7 +1014,7 @@ void MODULE::Flip( const wxPoint& aCentre )
             break;
 
         case PCB_MODULE_TEXT_T:
-            static_cast<TEXTE_MODULE*>( item )->FlipWithModule( m_Pos.y );
+            static_cast<TEXTE_MODULE*>( item )->Flip( m_Pos );
             break;
 
         default:
@@ -1093,7 +1130,6 @@ void MODULE::MoveAnchorPosition( const wxPoint& aMoveVector )
 void MODULE::SetOrientation( double newangle )
 {
     double  angleChange = newangle - m_Orient;  // change in rotation
-    wxPoint pt;
 
     NORMALIZE_ANGLE_POS( newangle );
 

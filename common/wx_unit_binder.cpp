@@ -27,15 +27,13 @@
 #include <wx/textctrl.h>
 #include <limits>
 #include <base_units.h>
-#if wxCHECK_VERSION( 2, 9, 0 )
 #include <wx/valnum.h>
-#endif
 
 #include <boost/optional.hpp>
 
 #include "wx_unit_binder.h"
 
-WX_UNIT_BINDER::WX_UNIT_BINDER( wxWindow* aParent, wxTextCtrl* aTextInput, 
+WX_UNIT_BINDER::WX_UNIT_BINDER( wxWindow* aParent, wxTextCtrl* aTextInput,
                                 wxStaticText* aUnitLabel, wxSpinButton* aSpinButton ) :
     m_textCtrl( aTextInput ),
     m_unitLabel( aUnitLabel ),
@@ -60,7 +58,7 @@ void WX_UNIT_BINDER::SetValue( int aValue )
     wxString s = StringFromValue( m_units, aValue, false );
 
     m_textCtrl->SetValue( s );
-    
+
     m_unitLabel->SetLabel( GetAbbreviatedUnitsLabel( m_units ) );
 }
 
@@ -70,6 +68,14 @@ int WX_UNIT_BINDER::GetValue() const
     wxString s = m_textCtrl->GetValue();
 
     return ValueFromString( m_units, s );
+}
+
+
+bool WX_UNIT_BINDER::Valid() const
+{
+    double dummy;
+
+    return m_textCtrl->GetValue().ToDouble( &dummy );
 }
 
 

@@ -31,6 +31,7 @@
 #include <view/view_controls.h>
 #include <view/view_group.h>
 #include <pcb_painter.h>
+#include <origin_viewitem.h>
 
 #include <kicad_plugin.h>
 #include <pcbnew_id.h>
@@ -51,6 +52,18 @@ MODULE_TOOLS::MODULE_TOOLS() :
     TOOL_INTERACTIVE( "pcbnew.ModuleEditor" ), m_view( NULL ), m_controls( NULL ),
     m_board( NULL ), m_frame( NULL )
 {
+    // Generate an origin marker at 0,0 which is used as an axis origin marker (0,0)
+    m_axisOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D(0.0, 0.0, 0.8, 1.0),
+                                               KIGFX::ORIGIN_VIEWITEM::CROSS,
+                                               20000,
+                                               VECTOR2D(0,0) );
+    m_axisOrigin->SetDrawAtZero( true );
+}
+
+
+MODULE_TOOLS::~MODULE_TOOLS()
+{
+    delete m_axisOrigin;
 }
 
 
@@ -61,6 +74,13 @@ void MODULE_TOOLS::Reset( RESET_REASON aReason )
     m_controls = getViewControls();
     m_board = getModel<BOARD>();
     m_frame = getEditFrame<PCB_EDIT_FRAME>();
+
+    if( aReason == MODEL_RELOAD || aReason == GAL_SWITCH )
+    {
+        // Draw the axis origin if we're editing modules (essentially in the footprint editor)
+        m_view->Remove( m_axisOrigin );
+        m_view->Add( m_axisOrigin );
+    }
 }
 
 
@@ -85,10 +105,9 @@ int MODULE_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
 {
     m_frame->SetToolID( ID_MODEDIT_PAD_TOOL, wxCURSOR_PENCIL, _( "Add pads" ) );
 
-    MODULE* module = m_board->m_Modules;
-    assert( module );
+    assert( m_board->m_Modules );
 
-    D_PAD* pad = new D_PAD( module );
+    D_PAD* pad = new D_PAD( m_board->m_Modules );
     m_frame->Import_Pad_Settings( pad, false );     // use the global settings for pad
 
     VECTOR2I cursorPos = m_controls->GetCursorPosition();
@@ -139,11 +158,12 @@ int MODULE_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
         else if( evt->IsClick( BUT_LEFT ) )
         {
             m_frame->OnModify();
-            m_frame->SaveCopyInUndoList( module, UR_MODEDIT );
+            m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
 
             m_board->m_Status_Pcb = 0;    // I have no clue why, but it is done in the legacy view
-            module->SetLastEditTime();
-            module->Pads().PushBack( pad );
+            pad->SetParent( m_board->m_Modules );
+            m_board->m_Modules->SetLastEditTime();
+            m_board->m_Modules->Pads().PushBack( pad );
 
             // Set the relative pad position
             // ( pad position for module orient, 0, and relative to the module position)
@@ -157,7 +177,7 @@ int MODULE_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
             m_view->Add( pad );
 
             // Start placing next pad
-            pad = new D_PAD( module );
+            pad = new D_PAD( m_board->m_Modules );
             m_frame->Import_Pad_Settings( pad, false );
             pad->SetPosition( wxPoint( cursorPos.x, cursorPos.y ) );
             preview.Add( pad );
@@ -179,7 +199,9 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
 {
     std::list<D_PAD*> pads;
     std::set<D_PAD*> allPads;
-    MODULE* module = m_board->m_Modules;
+
+    if( !m_board->m_Modules || !m_board->m_Modules->Pads() )
+        return 0;
 
     GENERAL_COLLECTOR collector;
     const KICAD_T types[] = { PCB_PAD_T, EOT };
@@ -192,7 +214,7 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
     guide.SetIgnoreModulesRefs( true );
 
     // Create a set containing all pads (to avoid double adding to the list)
-    for( D_PAD* p = module->Pads(); p; p = p->Next() )
+    for( D_PAD* p = m_board->m_Modules->Pads(); p; p = p->Next() )
         allPads.insert( p );
 
     DIALOG_ENUM_PADS settingsDlg( m_frame );
@@ -286,7 +308,7 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
         {
             // Accept changes
             m_frame->OnModify();
-            m_frame->SaveCopyInUndoList( module, UR_MODEDIT );
+            m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
 
             BOOST_FOREACH( D_PAD* pad, pads )
                 pad->SetPadName( wxString::Format( wxT( "%s%d" ), padPrefix.c_str(), padNumber++ ) );

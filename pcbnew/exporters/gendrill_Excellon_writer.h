@@ -37,20 +37,22 @@ class BOARD;
 class PLOTTER;
 
 
-/* the DRILL_TOOL class  handles tools used in the excellon drill file */
+// the DRILL_TOOL class  handles tools used in the excellon drill file:
 class DRILL_TOOL
 {
 public:
     int m_Diameter;         // the diameter of the used tool (for oblong, the smaller size)
     int m_TotalCount;       // how many times it is used (round and oblong)
     int m_OvalCount;        // oblong count
+    bool m_Hole_NotPlated;  // Is the hole plated or not plated
 
 public:
-    DRILL_TOOL( int diametre )
+    DRILL_TOOL( int aDiameter, bool a_NotPlated )
     {
-        m_TotalCount = 0;
-        m_OvalCount  = 0;
-        m_Diameter   = diametre;
+        m_TotalCount     = 0;
+        m_OvalCount      = 0;
+        m_Diameter       = aDiameter;
+        m_Hole_NotPlated = a_NotPlated;
     }
 };
 
@@ -73,7 +75,7 @@ public:
     LAYER_ID    m_Hole_Bottom_Layer;    // hole ending layer (usually back layer)
     LAYER_ID    m_Hole_Top_Layer;       // hole starting layer (usually front layer):
                                         // m_Hole_Top_Layer < m_Hole_Bottom_Layer
-    bool        m_Hole_NotPlated;       // hole not plated. Must be in a specific drill file
+    bool        m_Hole_NotPlated;       // hole not plated. Must be in a specific drill file or section
 
 public:
     HOLE_INFO()
@@ -113,6 +115,9 @@ public: DRILL_PRECISION( int l = 2, int r = 4 )
 };
 
 
+typedef std::pair<LAYER_ID, LAYER_ID>   LAYER_PAIR;
+class OUTPUTFORMATTER;
+
 /**
  * EXCELLON_WRITER is a class mainly used to create Excellon drill files
  * However, this class is also used to create drill maps and drill report
@@ -142,7 +147,7 @@ private:
                                                         // (i.e inches or mm)
     bool                     m_mirror;
     wxPoint                  m_offset;                  // Drill offset coordinates
-    bool                     m_merge_PTH_NPTH;
+    bool                     m_merge_PTH_NPTH;          // True to generate only one drill file
     std::vector<HOLE_INFO>   m_holeListBuffer;          // Buffer containing holes
     std::vector<DRILL_TOOL>  m_toolListBuffer;          // Buffer containing tools
 
@@ -201,7 +206,6 @@ public:
      * @param aMirror = true to create mirrored coordinates (Y coordinates negated)
      * @param aMinimalHeader = true to use a minimal header (no comments, no info)
      * @param aOffset = drill coordinates offset
-     * @param aMerge_PTH_NPTH : true to create only one list which contains both PTH and NPTH
      */
     void SetOptions( bool aMirror, bool aMinimalHeader, wxPoint aOffset, bool aMerge_PTH_NPTH )
     {
@@ -214,21 +218,18 @@ public:
     /**
      * Function BuildHolesList
      * Create the list of holes and tools for a given board
-     * The list is sorted by increasing drill values
-     * Only holes from aFirstLayer to aLastLayer copper layers  are listed (for vias, because
-     * pad holes are always through holes)
-     * @param aFirstLayer = first layer to consider. if < 0 aFirstLayer is ignored
-     * @param aLastLayer = last layer to consider. if < 0 aLastLayer is ignored
-     * @param aExcludeThroughHoles Exclude through holes if true.
+     * The list is sorted by increasing drill size.
+     * Only holes included within aLayerPair are listed.
+     * If aLayerPair identifies with [F_Cu, B_Cu], then
+     * pad holes are always included also.
+     *
+     * @param aLayerPair is an inclusive range of layers.
      * @param aGenerateNPTH_list :
      *       true to create NPTH only list (with no plated holes)
      *       false to created plated holes list (with no NPTH )
-     * @param aMerge_PTH_NPTH : true to create only one list which contains both PTH and NPTH
      */
-    void BuildHolesList( int aFirstLayer, int aLastLayer,
-                         bool aExcludeThroughHoles,
-                         bool aGenerateNPTH_list,
-                         bool aMerge_PTH_NPTH );
+    void BuildHolesList( LAYER_PAIR aLayerPair,
+                         bool aGenerateNPTH_list );
 
     int  GetHolesCount() const { return m_holeListBuffer.size(); }
 
@@ -345,7 +346,23 @@ private:
      * @param aPlotter = a PLOTTER instance (HPGL, POSTSCRIPT ... plotter).
      */
     bool PlotDrillMarks( PLOTTER* aPlotter );
-};
 
+    /// Get unique layer pairs by examining the micro and blind_buried vias.
+    std::vector<LAYER_PAIR> getUniqueLayerPairs() const;
+
+    /**
+     * Function printToolSummary
+     * prints m_toolListBuffer[] tools to aOut and returns total hole count.
+     * @param aOut = the current OUTPUTFORMATTER to print summary
+     * @param aSummaryNPTH = true to print summary for NPTH, false for PTH
+     */
+    unsigned printToolSummary( OUTPUTFORMATTER& aOut, bool aSummaryNPTH ) const;
+
+    const std::string layerPairName( LAYER_PAIR aPair ) const;
+
+    const std::string layerName( LAYER_ID aLayer ) const;
+
+    const wxString drillFileName( LAYER_PAIR aPair, bool aNPTH ) const;
+};
 
 #endif  //  #ifndef _GENDRILL_EXCELLON_WRITER_

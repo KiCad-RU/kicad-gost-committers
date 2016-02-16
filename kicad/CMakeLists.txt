@@ -25,6 +25,8 @@ set( KICAD_SRCS
 if( MINGW )
     # KICAD_RESOURCES variable is set by the macro.
     mingw_resource_compiler( kicad )
+else()
+    set( KICAD_RESOURCES kicad.rc )
 endif()
 
 if( APPLE )
@@ -36,7 +38,7 @@ if( APPLE )
         MACOSX_PACKAGE_LOCATION Resources
         )
     set( MACOSX_BUNDLE_ICON_FILE kicad.icns )
-    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-eda.kicad )
+    set( MACOSX_BUNDLE_GUI_IDENTIFIER org.kicad-pcb.kicad )
     set( MACOSX_BUNDLE_NAME kicad )
 endif()
 
@@ -94,9 +96,10 @@ if( APPLE )
         # find all libs and modules
         file( GLOB BUNDLE_FIX_LIBS ${OSX_BUNDLE_INSTALL_KIFACE_DIR}/*.kiface )
         if( ${SCRIPTING_HELPER} )
+            file( GLOB WXPYTHON_DIR RELATIVE ${OSX_BUNDLE_INSTALL_LIB_DIR}/${PYTHON_LIB_DIR} ${OSX_BUNDLE_INSTALL_LIB_DIR}/${PYTHON_LIB_DIR}/wx-?.?-osx_cocoa )
             file( GLOB PYTHON_SCRIPTING_SO ${OSX_BUNDLE_INSTALL_LIB_DIR}/${PYTHON_LIB_DIR}/*.so )
             set( BUNDLE_FIX_LIBS \${BUNDLE_FIX_LIBS} \${PYTHON_SCRIPTING_SO} )
-            file( GLOB PYTHON_SCRIPTING_SO ${OSX_BUNDLE_INSTALL_LIB_DIR}/${PYTHON_LIB_DIR}/wx/*.so )
+            file( GLOB PYTHON_SCRIPTING_SO ${OSX_BUNDLE_INSTALL_LIB_DIR}/${PYTHON_LIB_DIR}/\${WXPYTHON_DIR}/wx/*.so )
             set( BUNDLE_FIX_LIBS \${BUNDLE_FIX_LIBS} \${PYTHON_SCRIPTING_SO} )
         endif()
 

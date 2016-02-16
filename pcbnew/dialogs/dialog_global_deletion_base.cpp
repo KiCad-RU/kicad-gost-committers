@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar  9 2015)
+// C++ code generated with wxFormBuilder (version Jun  5 2014)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -43,7 +43,7 @@ DIALOG_GLOBAL_DELETION_BASE::DIALOG_GLOBAL_DELETION_BASE( wxWindow* parent, wxWi
 	m_DelMarkers = new wxCheckBox( this, wxID_ANY, _("Markers"), wxDefaultPosition, wxDefaultSize, 0 );
 	sbSizerLeft->Add( m_DelMarkers, 0, wxALL, 5 );
 	
-	m_DelAlls = new wxCheckBox( this, wxID_ANY, _("Clear Board"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_DelAlls = new wxCheckBox( this, wxID_ANY, _("Clear board"), wxDefaultPosition, wxDefaultSize, 0 );
 	sbSizerLeft->Add( m_DelAlls, 0, wxALL, 5 );
 	
 	
@@ -70,11 +70,11 @@ DIALOG_GLOBAL_DELETION_BASE::DIALOG_GLOBAL_DELETION_BASE( wxWindow* parent, wxWi
 	sbFilter->Add( m_TrackFilterVias, 0, wxALL, 5 );
 	
 	m_ModuleFilterLocked = new wxCheckBox( this, wxID_ANY, _("Locked footprints"), wxDefaultPosition, wxDefaultSize, 0 );
-	sbFilter->Add( m_ModuleFilterLocked, 0, wxALL, 5 );
+	sbFilter->Add( m_ModuleFilterLocked, 0, wxBOTTOM|wxLEFT|wxRIGHT, 5 );
 	
 	m_ModuleFilterNormal = new wxCheckBox( this, wxID_ANY, _("Unlocked footprints"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_ModuleFilterNormal->SetValue(true); 
-	sbFilter->Add( m_ModuleFilterNormal, 0, wxALL, 5 );
+	sbFilter->Add( m_ModuleFilterNormal, 0, wxBOTTOM|wxLEFT|wxRIGHT, 5 );
 	
 	
 	bSizerRight->Add( sbFilter, 0, wxALL|wxEXPAND, 5 );
@@ -85,22 +85,31 @@ DIALOG_GLOBAL_DELETION_BASE::DIALOG_GLOBAL_DELETION_BASE( wxWindow* parent, wxWi
 	m_rbLayersOption->SetSelection( 0 );
 	bSizerRight->Add( m_rbLayersOption, 0, wxALL|wxEXPAND, 5 );
 	
-	m_staticText1 = new wxStaticText( this, wxID_ANY, _("Current layer:"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText1->Wrap( -1 );
-	bSizerRight->Add( m_staticText1, 0, wxTOP|wxRIGHT|wxLEFT, 5 );
-	
-	m_textCtrlCurrLayer = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY );
-	m_textCtrlCurrLayer->SetMaxLength( 0 ); 
-	bSizerRight->Add( m_textCtrlCurrLayer, 0, wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT, 5 );
-	
 	
 	bSizerUpper->Add( bSizerRight, 3, wxALL|wxEXPAND, 5 );
 	
 	
 	bSizerMain->Add( bSizerUpper, 1, wxALL|wxEXPAND, 5 );
 	
+	wxFlexGridSizer* fgSizer1;
+	fgSizer1 = new wxFlexGridSizer( 0, 2, 0, 0 );
+	fgSizer1->AddGrowableCol( 1 );
+	fgSizer1->SetFlexibleDirection( wxBOTH );
+	fgSizer1->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
+	
+	m_staticText1 = new wxStaticText( this, wxID_ANY, _("Current layer:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText1->Wrap( -1 );
+	fgSizer1->Add( m_staticText1, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
+	
+	m_textCtrlCurrLayer = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY );
+	m_textCtrlCurrLayer->SetMaxLength( 0 ); 
+	fgSizer1->Add( m_textCtrlCurrLayer, 0, wxEXPAND|wxALL|wxALIGN_CENTER_VERTICAL, 5 );
+	
+	
+	bSizerMain->Add( fgSizer1, 0, wxEXPAND, 5 );
+	
 	m_staticline1 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
-	bSizerMain->Add( m_staticline1, 0, wxEXPAND|wxLEFT|wxRIGHT, 5 );
+	bSizerMain->Add( m_staticline1, 0, wxEXPAND|wxTOP|wxRIGHT|wxLEFT, 5 );
 	
 	m_sdbSizer1 = new wxStdDialogButtonSizer();
 	m_sdbSizer1OK = new wxButton( this, wxID_OK );

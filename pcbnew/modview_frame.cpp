@@ -96,24 +96,54 @@ BEGIN_EVENT_TABLE( FOOTPRINT_VIEWER_FRAME, EDA_DRAW_FRAME )
 END_EVENT_TABLE()
 
 
+/* Note:
+ * FOOTPRINT_VIEWER_FRAME can be created in "modal mode", or as a usual frame.
+ * In modal mode:
+ *  a tool to export the selected footprint is shown in the toolbar
+ *  the style is wxSTAY_ON_TOP on Windows and wxFRAME_FLOAT_ON_PARENT on unix
+ * Reason:
+ * the parent is usually the kicad window manager (not easy to change)
+ * On windows, when the frame with stype wxFRAME_FLOAT_ON_PARENT is displayed
+ * its parent frame is brought to the foreground, on the top of the calling frame.
+ * and stays displayed when closing the FOOTPRINT_VIEWER_FRAME frame.
+ * this issue does not happen on unix
+ *
+ * So we use wxSTAY_ON_TOP on Windows, and wxFRAME_FLOAT_ON_PARENT on unix
+ * to force FOOTPRINT_VIEWER_FRAME to stay on parent when it is Modal.
+ */
 
-#define FOOTPRINT_VIEWER_FRAME_NAME     wxT( "ModViewFrame" )
+
+#define FOOTPRINT_VIEWER_FRAME_NAME         wxT( "ModViewFrame" )
+#define FOOTPRINT_VIEWER_FRAME_NAME_MODAL   wxT( "ModViewFrameModal" )
 
 
 FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrameType ) :
     PCB_BASE_FRAME( aKiway, aParent, aFrameType, _( "Footprint Library Browser" ),
             wxDefaultPosition, wxDefaultSize,
             aFrameType == FRAME_PCB_MODULE_VIEWER_MODAL ?
-                KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT :
-                KICAD_DEFAULT_DRAWFRAME_STYLE,
-            GetFootprintViewerFrameName() )
+#ifdef __WINDOWS__
+                KICAD_DEFAULT_DRAWFRAME_STYLE | wxSTAY_ON_TOP
+#else
+                    aParent ?
+                        KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT
+                        : KICAD_DEFAULT_DRAWFRAME_STYLE | wxSTAY_ON_TOP
+#endif
+                : KICAD_DEFAULT_DRAWFRAME_STYLE,
+            aFrameType == FRAME_PCB_MODULE_VIEWER_MODAL ?
+                                FOOTPRINT_VIEWER_FRAME_NAME_MODAL
+                                : FOOTPRINT_VIEWER_FRAME_NAME )
 {
-    wxASSERT( aFrameType==FRAME_PCB_MODULE_VIEWER || aFrameType==FRAME_PCB_MODULE_VIEWER_MODAL );
+    wxASSERT( aFrameType==FRAME_PCB_MODULE_VIEWER ||
+              aFrameType==FRAME_PCB_MODULE_VIEWER_MODAL );
 
     if( aFrameType == FRAME_PCB_MODULE_VIEWER_MODAL )
         SetModal( true );
 
-    m_configPath = wxT( "FootprintViewer" );
+    // Force the frame name used in config. the footprint viewer frame has a name
+    // depending on aFrameType (needed to identify the frame by wxWidgets),
+    // but only one configuration is preferable.
+    m_configFrameName = FOOTPRINT_VIEWER_FRAME_NAME;
+
     m_showAxis   = true;         // true to draw axis.
 
     // Give an icon
@@ -240,12 +270,6 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
         m_auimgr.GetPane( m_mainToolBar ).BestSize( tbsize );
     }
 
-#if 0   // no.
-    // Set min size (overwrite params read in LoadPerspective(), if any)
-    m_auimgr.GetPane( m_libList ).MinSize( minsize );
-    m_auimgr.GetPane( m_footprintList ).MinSize( minsize );
-#endif
-
     // after changing something to the aui manager,
     // call Update()() to reflect the changes
     m_auimgr.Update();
@@ -257,23 +281,24 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
     Zoom_Automatique( false );
 #endif
 
-    Show( true );
-
     UseGalCanvas( parentFrame->IsGalCanvasActive() );
+
+    if( !IsModal() )        // For modal mode, calling ShowModal() will show this frame
+    {
+        Raise();            // On some window managers, this is needed
+        Show( true );
+    }
 }
 
 
 FOOTPRINT_VIEWER_FRAME::~FOOTPRINT_VIEWER_FRAME()
 {
-    if( m_Draw3DFrame )
-        m_Draw3DFrame->Destroy();
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
+        draw3DFrame->Destroy();
 }
 
-
-const wxChar* FOOTPRINT_VIEWER_FRAME::GetFootprintViewerFrameName()
-{
-    return FOOTPRINT_VIEWER_FRAME_NAME;
-}
 
 
 void FOOTPRINT_VIEWER_FRAME::OnCloseWindow( wxCloseEvent& Event )
@@ -341,15 +366,6 @@ void FOOTPRINT_VIEWER_FRAME::ReCreateLibraryList()
     ReCreateHToolbar();
 
     m_canvas->Refresh();
-}
-
-
-void FOOTPRINT_VIEWER_FRAME::UseGalCanvas( bool aEnable )
-{
-    EDA_DRAW_FRAME::UseGalCanvas( aEnable );
-
-    if( aEnable )
-        GetGalCanvas()->StartDrawing();
 }
 
 
@@ -575,7 +591,7 @@ void FOOTPRINT_VIEWER_FRAME::OnActivate( wxActivateEvent& event )
 }
 
 
-bool FOOTPRINT_VIEWER_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey )
+bool FOOTPRINT_VIEWER_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey )
 {
     bool eventHandled = true;
 
@@ -609,46 +625,51 @@ bool FOOTPRINT_VIEWER_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition
 
 void FOOTPRINT_VIEWER_FRAME::Show3D_Frame( wxCommandEvent& event )
 {
-    if( m_Draw3DFrame )
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame )
     {
         // Raising the window does not show the window on Windows if iconized.
         // This should work on any platform.
-        if( m_Draw3DFrame->IsIconized() )
-             m_Draw3DFrame->Iconize( false );
+        if( draw3DFrame->IsIconized() )
+            draw3DFrame->Iconize( false );
 
-        m_Draw3DFrame->Raise();
+        draw3DFrame->Raise();
 
         // Raising the window does not set the focus on Linux.  This should work on any platform.
-        if( wxWindow::FindFocus() != m_Draw3DFrame )
-            m_Draw3DFrame->SetFocus();
+        if( wxWindow::FindFocus() != draw3DFrame )
+            draw3DFrame->SetFocus();
 
         return;
     }
 
-    m_Draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, wxEmptyString );
+    draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, wxEmptyString );
     Update3D_Frame( false );
-    m_Draw3DFrame->Show( true );
+    draw3DFrame->Raise();     // Needed with some Window Managers
+    draw3DFrame->Show( true );
 }
 
 
 void FOOTPRINT_VIEWER_FRAME::Update3D_Frame( bool aForceReloadFootprint )
 {
-    if( m_Draw3DFrame == NULL )
+    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+
+    if( draw3DFrame == NULL )
         return;
 
     wxString frm3Dtitle = wxString::Format(
                 _( "ModView: 3D Viewer [%s]" ),
                 GetChars( getCurFootprintName() ) );
 
-    m_Draw3DFrame->SetTitle( frm3Dtitle );
+    draw3DFrame->SetTitle( frm3Dtitle );
 
     if( aForceReloadFootprint )
     {
-        m_Draw3DFrame->ReloadRequest();
+        draw3DFrame->ReloadRequest();
 
         // Force 3D screen refresh immediately
         if( GetBoard()->m_Modules )
-            m_Draw3DFrame->NewDisplay();
+            draw3DFrame->NewDisplay();
     }
 }
 
@@ -661,8 +682,6 @@ EDA_COLOR_T FOOTPRINT_VIEWER_FRAME::GetGridColor() const
 
 void FOOTPRINT_VIEWER_FRAME::OnIterateFootprintList( wxCommandEvent& event )
 {
-    wxString   msg;
-
     switch( event.GetId() )
     {
     case ID_MODVIEW_NEXT:

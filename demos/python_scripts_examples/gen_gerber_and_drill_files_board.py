@@ -36,13 +36,14 @@ popt = pctl.GetPlotOptions()
 popt.SetOutputDirectory(plotDir)
 
 # Set some important plot options:
-popt.SetPlotFrameRef(False)
+popt.SetPlotFrameRef(False)     #do not change it
 popt.SetLineWidth(FromMM(0.35))
 
-popt.SetAutoScale(False)
-popt.SetScale(1)
+popt.SetAutoScale(False)        #do not change it
+popt.SetScale(1)                #do not change it
 popt.SetMirror(False)
 popt.SetUseGerberAttributes(True)
+popt.SetUseGerberProtelExtensions(False)
 popt.SetExcludeEdgeLayer(False);
 popt.SetScale(1)
 popt.SetUseAuxOrigin(True)
@@ -71,7 +72,9 @@ plot_plan = [
 for layer_info in plot_plan:
     pctl.SetLayer(layer_info[1])
     pctl.OpenPlotfile(layer_info[0], PLOT_FORMAT_GERBER, layer_info[2])
-    pctl.PlotLayer()
+    print 'plot %s' % pctl.GetPlotFileName()
+    if pctl.PlotLayer() == False:
+        print "plot error"
 
 #generate internal copper layers, if any
 lyrcnt = board.GetCopperLayerCount();
@@ -80,7 +83,9 @@ for innerlyr in range ( 1, lyrcnt-1 ):
     pctl.SetLayer(innerlyr)
     lyrname = 'inner%s' % innerlyr
     pctl.OpenPlotfile(lyrname, PLOT_FORMAT_GERBER, "inner")
-    pctl.PlotLayer()
+    print 'plot %s' % pctl.GetPlotFileName()
+    if pctl.PlotLayer() == False:
+        print "plot error"
 
 
 # At the end you have to close the last plot, otherwise you don't know when
@@ -95,6 +100,8 @@ drlwriter.SetMapFileFormat( PLOT_FORMAT_PDF )
 mirror = False
 minimalHeader = False
 offset = wxPoint(0,0)
+# False to generate 2 separate drill files (one for plated holes, one for non plated holes)
+# True to generate only one drill file
 mergeNPTH = False
 drlwriter.SetOptions( mirror, minimalHeader, offset, mergeNPTH )
 
@@ -103,8 +110,10 @@ drlwriter.SetFormat( metricFmt )
 
 genDrl = True
 genMap = True
-drlwriter.CreateDrillandMapFilesSet( plotDir, genDrl, genMap );
+print 'create drill and map files in %s' % pctl.GetPlotDirName()
+drlwriter.CreateDrillandMapFilesSet( pctl.GetPlotDirName(), genDrl, genMap );
 
 # One can create a text file to report drill statistics
-rptfn = plotDir + '/drill_report.txt'
+rptfn = pctl.GetPlotDirName() + 'drill_report.rpt'
+print 'report: %s' % rptfn
 drlwriter.GenDrillReportFile( rptfn );

@@ -143,7 +143,7 @@ void DIALOG_NON_COPPER_ZONES_EDITOR::Init()
     wxImageList* imageList = new wxImageList( LAYER_BITMAP_SIZE_X, LAYER_BITMAP_SIZE_Y );
     m_LayerSelectionCtrl->AssignImageList( imageList, wxIMAGE_LIST_SMALL );
 
-    int lyrSelect = ( (PCB_SCREEN*) m_parent->GetScreen() )->m_Active_Layer;
+    LAYER_ID lyrSelect = m_parent->GetActiveLayer();
 
     if( m_zone )
         lyrSelect = m_zone->GetLayer();
@@ -259,12 +259,7 @@ wxBitmap DIALOG_NON_COPPER_ZONES_EDITOR::makeLayerBitmap( EDA_COLOR_T aColor )
 
     iconDC.SelectObject( bitmap );
     brush.SetColour( MakeColour( aColor ) );
-
-#if wxCHECK_VERSION( 3, 0, 0 )
     brush.SetStyle( wxBRUSHSTYLE_SOLID );
-#else
-    brush.SetStyle( wxSOLID );
-#endif
 
     iconDC.SetBrush( brush );
     iconDC.DrawRectangle( 0, 0, LAYER_BITMAP_SIZE_X, LAYER_BITMAP_SIZE_Y );

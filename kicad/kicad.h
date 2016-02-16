@@ -7,7 +7,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013 CERN (www.cern.ch)
- * Copyright (C) 2013 KiCad Developers, see CHANGELOG.txt for contributors.
+ * Copyright (C) 2015 KiCad Developers, see CHANGELOG.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,12 +40,6 @@
 #include <id.h>
 #include <wxstruct.h>
 
-// With a recent wxWidget, we can use the wxFileSystemWatcherEvent
-// to monitor files add/remove/rename in tree project
-#if wxCHECK_VERSION( 2, 9, 4  )
- #define KICAD_USE_FILES_WATCHER
-#endif
-
 #define KICAD_MANAGER_FRAME_NAME   wxT( "KicadFrame" )
 
 class LAUNCHER_PANEL;
@@ -64,6 +58,7 @@ enum TreeFileType {
     TREE_LEGACY_PCB,        // board file (.brd) legacy format
     TREE_SEXP_PCB,          // board file (.kicad_brd) new s expression format
     TREE_GERBER,            // Gerber  file (.pho, .g*)
+    TREE_HTML,              // HTML file (.htm, *.html)
     TREE_PDF,               // PDF file (.pdf)
     TREE_TXT,               // ascii text file (.txt)
     TREE_NET,               // netlist file (.net)
@@ -114,9 +109,9 @@ enum id_kicad_frm {
 
     ID_TO_SCH,
     ID_TO_SCH_LIB_EDITOR,
-    ID_TO_CVPCB,
     ID_TO_PCB,
     ID_TO_PCB_FP_EDITOR,
+    ID_TO_CVPCB,
     ID_TO_GERBVIEW,
     ID_TO_BITMAP_CONVERTER,
     ID_TO_PCB_CALCULATOR,
@@ -136,6 +131,7 @@ enum id_kicad_frm {
     // less than ROOM_FOR_KICADMANAGER (see id.h)
     ID_KICADMANAGER_END_LIST
 };
+
 
 /**
  * Class KICAD_MANAGER_FRAME
@@ -224,6 +220,7 @@ public:
 
     void OnUpdateDefaultPdfBrowser( wxUpdateUIEvent& event );
     void OnUpdatePreferredPdfBrowser( wxUpdateUIEvent& event );
+    void OnUpdateRequiresProject( wxUpdateUIEvent& event );
 
     void CreateNewProject( const wxString& aPrjFullFileName, bool aTemplateSelector );
 
@@ -255,13 +252,12 @@ public:
         void OnTerminate( int pid, int status );
     };
 
-#ifdef KICAD_USE_FILES_WATCHER
     /**
      * Called by sending a event with id = ID_INIT_WATCHED_PATHS
      * rebuild the list of wahtched paths
      */
     void OnChangeWatchedPaths(wxCommandEvent& aEvent );
-#endif
+
 
     void SetProjectFileName( const wxString& aFullProjectProFileName );
     const wxString GetProjectFileName();
@@ -300,6 +296,8 @@ private:
     EDA_HOTKEY_CONFIG* m_manager_Hokeys_Descr;
 
     void language_change( wxCommandEvent& event );
+
+    bool m_active_project;
 };
 
 
