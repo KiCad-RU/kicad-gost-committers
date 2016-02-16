@@ -339,6 +339,10 @@ if( NOT APPLE )
         CACHE PATH "Location of KiCad data files." )
     set( KICAD_DOCS share/doc/kicad
         CACHE PATH "Location of KiCad documentation files." )
+
+    set( KICAD_INTERNAT ${KICAD_DATA}/internat
+        CACHE PATH "Location of KiCad i18n files." )
+
     set( KICAD_DEMOS ${KICAD_DATA}/demos
         CACHE PATH "Location of KiCad demo files." )
     set( KICAD_TEMPLATE ${KICAD_DATA}/template
@@ -376,6 +380,7 @@ else()
         CACHE PATH "Location of KiCad plugins." FORCE )
     set( KICAD_DOCS doc
         CACHE PATH "Location of KiCad documentation files." FORCE )
+
     set( KICAD_DEMOS demos
         CACHE PATH "Location of KiCad demo files." FORCE )
 
