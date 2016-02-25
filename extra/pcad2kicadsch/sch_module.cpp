@@ -38,6 +38,8 @@
 #include <sch_pin.h>
 #include <sch_text.h>
 
+#include <trigo.h>
+
 namespace PCAD2KICAD {
 
 SCH_MODULE::SCH_MODULE()
@@ -324,8 +326,17 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
 {
     int i, symbolIndex;
 
-    CorrectTextPosition( &m_name, m_rotation );
-    CorrectTextPosition( &m_reference, m_rotation );
+//    CorrectTextPosition( &m_name, m_rotation );
+//    CorrectTextPosition( &m_reference, m_rotation );
+
+    CorrectTextPosition( &m_name );
+    RotatePoint( &m_name.correctedPositionX, &m_name.correctedPositionY,
+                 (double) -m_rotation );
+
+    CorrectTextPosition( &m_reference );
+    RotatePoint( &m_reference.correctedPositionX, &m_reference.correctedPositionY,
+                 (double) -m_rotation );
+
     // Go out
     aFile->Write( wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );

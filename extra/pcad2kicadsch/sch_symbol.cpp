@@ -35,6 +35,8 @@
 
 #include <sch_symbol.h>
 
+#include <trigo.h>
+
 namespace PCAD2KICAD {
 
 SCH_SYMBOL::SCH_SYMBOL()
@@ -312,8 +314,17 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     wxString orientation, visibility, str;
     int      a, b, c, d, i;
 
-    CorrectTextPosition( &m_value, m_rotation );
-    CorrectTextPosition( &m_reference, m_rotation );
+//    CorrectTextPosition( &m_value, m_rotation );
+//    CorrectTextPosition( &m_reference, m_rotation );
+
+    CorrectTextPosition( &m_value );
+    RotatePoint( &m_value.correctedPositionX, &m_value.correctedPositionY,
+                 (double) -m_rotation );
+
+    CorrectTextPosition( &m_reference );
+    RotatePoint( &m_reference.correctedPositionX, &m_reference.correctedPositionY,
+                 (double) -m_rotation );
+
     // Go out
     aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol )
                   + wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
