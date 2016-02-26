@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2013 Alexander Lunev <al.lunev@yahoo.com>
- * Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2007-2016 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2013-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,6 +39,8 @@
 #include <python_scripting.h>
 #include <wx_python_helpers.h>
 #endif
+
+#include <wx/filesys.h>
 
 namespace GOST_DOC_GEN {
 
@@ -376,7 +378,7 @@ wxString AddUrlPrefix( wxString aFileName )
 wxString FindOOInstallationPath()
 {
     wxString fullPath;
-    char ver_str[2] = { 0, 0 };
+    wxFileSystem fs;
 
 #ifdef __WXMSW__
     char letter_str[2] = { 0, 0 };
@@ -384,48 +386,35 @@ wxString FindOOInstallationPath()
 
     for( char letter = 'C'; letter <= 'H'; letter++ )
     {
-        for( char ver = '2'; ver <= '4'; ver++ )
-        {
-            letter_str[0] = letter;
-            ver_str[0] = ver;
+        letter_str[0] = letter;
 
-            fullPath = wxString( letter_str ) + wxT( ":\\Program Files (x86)\\OpenOffice.org " ) +
-                       wxString( ver_str ) + wxT( "\\program\\" );
-            if( wxFileExists( fullPath + sofficeExe ) )
-                return fullPath;
+        fullPath = fs.FindFirst( wxString( letter_str ) +
+                                 wxT( ":\\Program Files (x86)\\OpenOffice.org*" ), wxDIR )
+                 + wxT( "\\program\\" );
+        fullPath.Replace( wxT( "file:" ), wxT( "" ) );
+        if( wxFileExists( fullPath + sofficeExe ) )
+            return fullPath;
 
-            fullPath = wxString( letter_str ) + wxT( ":\\Program Files\\OpenOffice.org " ) +
-                       wxString( ver_str ) + wxT( "\\program\\" );
-            if( wxFileExists( fullPath + sofficeExe ) )
-                return fullPath;
+        fullPath = fs.FindFirst( wxString( letter_str ) +
+                                 wxT( ":\\Program Files\\OpenOffice.org*" ), wxDIR )
+                 + wxT( "\\program\\" );
+        fullPath.Replace( wxT( "file:" ), wxT( "" ) );
+        if( wxFileExists( fullPath + sofficeExe ) )
+            return fullPath;
 
-            fullPath = wxString( letter_str ) + wxT( ":\\Program Files (x86)\\LibreOffice " ) +
-                       wxString( ver_str ) + wxT( "\\program\\" );
-            if( wxFileExists( fullPath + sofficeExe ) )
-                return fullPath;
+        fullPath = fs.FindFirst( wxString( letter_str ) +
+                                 wxT( ":\\Program Files (x86)\\LibreOffice*" ), wxDIR )
+                 + wxT( "\\program\\" );
+        fullPath.Replace( wxT( "file:" ), wxT( "" ) );
+        if( wxFileExists( fullPath + sofficeExe ) )
+            return fullPath;
 
-            fullPath = wxString( letter_str ) + wxT( ":\\Program Files\\LibreOffice " ) +
-                       wxString( ver_str ) + wxT( "\\program\\" );
-            if( wxFileExists( fullPath + sofficeExe ) )
-                return fullPath;
-        }
-
-        // search for LibreOffice 4.0 - 4.5
-        for( char minor_ver = '0'; minor_ver <= '5'; minor_ver++ )
-        {
-            letter_str[0] = letter;
-            ver_str[0] = minor_ver;
-
-            fullPath = wxString( letter_str ) + wxT( ":\\Program Files (x86)\\LibreOffice 4." ) +
-                       wxString( ver_str ) + wxT( "\\program\\" );
-            if( wxFileExists( fullPath + sofficeExe ) )
-                return fullPath;
-
-            fullPath = wxString( letter_str ) + wxT( ":\\Program Files\\LibreOffice 4." ) +
-                       wxString( ver_str ) + wxT( "\\program\\" );
-            if( wxFileExists( fullPath + sofficeExe ) )
-                return fullPath;
-        }
+        fullPath = fs.FindFirst( wxString( letter_str ) +
+                                 wxT( ":\\Program Files\\LibreOffice*" ), wxDIR )
+                 + wxT( "\\program\\" );
+        fullPath.Replace( wxT( "file:" ), wxT( "" ) );
+        if( wxFileExists( fullPath + sofficeExe ) )
+            return fullPath;
     }
 
     wxMessageBox( _( "Unable to find OpenOffice or LibreOffice installation path" ),
@@ -435,20 +424,18 @@ wxString FindOOInstallationPath()
 #else
     wxString sofficeExe( wxT( "soffice" ) );
 
-    for( char ver = '2'; ver <= '4'; ver++ )
-    {
-        ver_str[0] = ver;
+    fullPath = fs.FindFirst( wxT( "/opt/openoffice.org*" ), wxDIR ) + wxT( "/program/" );
+    fullPath.Replace( wxT( "file:" ), wxT( "" ) );
 
-        fullPath = wxT( "/opt/openoffice.org" )
-                 + wxString::FromUTF8( ver_str ) + wxT( "/program/" );
-        if( wxFileExists( fullPath + sofficeExe ) )
-            return fullPath;
+    if( wxFileExists( fullPath + sofficeExe ) )
+        return fullPath;
 
-        fullPath = wxT( "/opt/libreoffice" )
-                 + wxString::FromUTF8( ver_str ) + wxT( ".0/program/" );
-        if( wxFileExists( fullPath + sofficeExe ) )
-            return fullPath;
-    }
+    fullPath = fs.FindFirst( wxT( "/opt/libreoffice*" ), wxDIR ) + wxT( "/program/" );
+    fullPath.Replace( wxT( "file:" ), wxT( "" ) );
+
+    if( wxFileExists( fullPath + sofficeExe ) )
+        return fullPath;
+
 #endif  // __WXMSW__
 
     return wxEmptyString;
