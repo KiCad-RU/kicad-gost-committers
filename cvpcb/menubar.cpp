@@ -29,8 +29,6 @@
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <kiface_i.h>
-#include <confirm.h>
-#include <gestfich.h>
 #include <menus_helpers.h>
 
 #include <cvpcb.h>
@@ -45,8 +43,7 @@
  */
 void CVPCB_MAINFRAME::ReCreateMenuBar()
 {
-    // Create and try to get the current  menubar
-    wxMenuItem* item;
+    // Create the current menubar if it does not yet exist
     wxMenuBar*  menuBar = GetMenuBar();
 
     if( ! menuBar )     // Delete all menus
@@ -66,7 +63,7 @@ void CVPCB_MAINFRAME::ReCreateMenuBar()
 
     // Save the footprints back into eeschema
     AddMenuItem( filesMenu, wxID_SAVE,
-                 _( "&Save Edits\tCtrl+S" ),
+                 _( "&Save Footprint Association\tCtrl+S" ),
                  _( "Save footprint association in schematic component footprint fields" ),
                  KiBitmap( save_xpm ) );
 
@@ -77,14 +74,6 @@ void CVPCB_MAINFRAME::ReCreateMenuBar()
     AddMenuItem( filesMenu, wxID_EXIT,
                  _( "&Close" ), _( "Close CvPcb" ),
                  KiBitmap( exit_xpm ) );
-
-    // Find menu
-    wxMenu* findMenu = new wxMenu;
-
-    AddMenuItem( findMenu, ID_FIND_ITEMS,
-                 _( "&Find footprint\tCtrl+F" ),
-                 _( "Find footprint by its name\nor filter the footprint list by the partial name" ),
-                 KiBitmap( info_xpm ));
 
     // Preferences Menu :
     wxMenu* preferencesMenu = new wxMenu;
@@ -100,27 +89,24 @@ void CVPCB_MAINFRAME::ReCreateMenuBar()
                  _( "Edit path configuration environment variables" ),
                  KiBitmap( editor_xpm ) );
 
+    preferencesMenu->AppendSeparator();
     AddMenuItem( preferencesMenu, ID_CVPCB_EQUFILES_LIST_EDIT,
                  _( "Edit &Equ Files List" ),
                  _( "Setup equ files list (.equ files)\n"
                     "They are files which give the footprint name from the component value"),
                  KiBitmap( library_table_xpm ) );
+    preferencesMenu->AppendSeparator();
 
     // Language submenu
     Pgm().AddMenuLanguageList( preferencesMenu );
 
-    // Keep open on save
-    item = new wxMenuItem( preferencesMenu, ID_CVPCB_CONFIG_KEEP_OPEN_ON_SAVE,
+    // Keep open on save data
+    preferencesMenu->AppendSeparator();
+    AddMenuItem( preferencesMenu, ID_CVPCB_CONFIG_KEEP_OPEN_ON_SAVE,
                            _( "&Keep Open On Save" ),
                            _( "Prevent CvPcb from exiting after saving netlist file" ),
+                           KiBitmap( exit_xpm ),
                            wxITEM_CHECK );
-    preferencesMenu->Append( item );
-    SETBITMAPS( window_close_xpm );
-
-    // Separator
-    preferencesMenu->AppendSeparator();
-    AddMenuItem( preferencesMenu, ID_SAVE_PROJECT,
-                 _( "&Save Project File" ), SAVE_HLP_MSG, KiBitmap( save_setup_xpm ) );
 
     // Menu Help:
     wxMenu* helpMenu = new wxMenu;
@@ -147,7 +133,6 @@ void CVPCB_MAINFRAME::ReCreateMenuBar()
 
     // Create the menubar and append all submenus
     menuBar->Append( filesMenu, _( "&Save" ) );
-    menuBar->Append( findMenu, _( "&Find" ) );
     menuBar->Append( preferencesMenu, _( "&Preferences" ) );
     menuBar->Append( helpMenu, _( "&Help" ) );
 
