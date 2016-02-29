@@ -33,6 +33,7 @@ include_directories(
     ./netlist_exporters
     ${BOM_INCLUDE_DIR}
     ${GOST_DOC_GEN_INCLUDE_DIR}
+    ./widgets
     ../common
     ../common/dialogs
     ${INC_AFTER}
@@ -93,6 +94,8 @@ set( EESCHEMA_DLGS
 
 set( EESCHEMA_WIDGETS
     widgets/widget_eeschema_color_config.cpp
+    widgets/pin_shape_combobox.cpp
+    widgets/pin_type_combobox.cpp
     )
 
 
@@ -159,6 +162,8 @@ set( EESCHEMA_SRCS
     operations_on_items_lists.cpp
     pinedit.cpp
     pin_number.cpp
+    pin_shape.cpp
+    pin_type.cpp
     plot_schematic_DXF.cpp
     plot_schematic_HPGL.cpp
     plot_schematic_PS.cpp
