@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KiCad\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-27 00:38+0300\n"
-"PO-Revision-Date: 2016-02-27 00:41+0300\n"
+"POT-Creation-Date: 2016-02-29 11:04+0300\n"
+"PO-Revision-Date: 2016-02-29 11:05+0300\n"
 "Last-Translator: Andrey Fedorushkov <andrf@mail.ru>\n"
 "Language-Team: Russian KiCad Translation Team: Andrey Fedorushkov, Eldar "
 "Khayrullin, Igor Plyatov <andrf@mail.ru>\n"
@@ -30,71 +30,71 @@ msgstr ""
 "X-Poedit-SearchPath-8: pcb_calculator\n"
 "X-Poedit-SearchPath-9: pcbnew\n"
 
-#: 3d-viewer/3d_canvas.cpp:387
+#: 3d-viewer/3d_canvas.cpp:399
 msgid "Zoom +"
 msgstr "Масштаб +"
 
-#: 3d-viewer/3d_canvas.cpp:391
+#: 3d-viewer/3d_canvas.cpp:403
 msgid "Zoom -"
 msgstr "Масштаб -"
 
-#: 3d-viewer/3d_canvas.cpp:396
+#: 3d-viewer/3d_canvas.cpp:408
 msgid "Top View"
 msgstr "Вид сверху"
 
-#: 3d-viewer/3d_canvas.cpp:400
+#: 3d-viewer/3d_canvas.cpp:412
 msgid "Bottom View"
 msgstr "Вид снизу"
 
-#: 3d-viewer/3d_canvas.cpp:405
+#: 3d-viewer/3d_canvas.cpp:417
 msgid "Right View"
 msgstr "Вид справа"
 
-#: 3d-viewer/3d_canvas.cpp:409
+#: 3d-viewer/3d_canvas.cpp:421
 msgid "Left View"
 msgstr "Вид слева"
 
-#: 3d-viewer/3d_canvas.cpp:414
+#: 3d-viewer/3d_canvas.cpp:426
 msgid "Front View"
 msgstr "Вид спереди"
 
-#: 3d-viewer/3d_canvas.cpp:418
+#: 3d-viewer/3d_canvas.cpp:430
 msgid "Back View"
 msgstr "Вид сзади"
 
-#: 3d-viewer/3d_canvas.cpp:423
+#: 3d-viewer/3d_canvas.cpp:435
 msgid "Move left <-"
 msgstr "Сдвинуть влево <-"
 
-#: 3d-viewer/3d_canvas.cpp:427
+#: 3d-viewer/3d_canvas.cpp:439
 msgid "Move right ->"
 msgstr "Сдвинуть вправо ->"
 
-#: 3d-viewer/3d_canvas.cpp:431
+#: 3d-viewer/3d_canvas.cpp:443
 msgid "Move Up ^"
 msgstr "Сдвинуть вверх ^"
 
-#: 3d-viewer/3d_canvas.cpp:435
+#: 3d-viewer/3d_canvas.cpp:447
 #: cvpcb/dialogs/dialog_config_equfiles_base.cpp:47
 #: pcbnew/dialogs/dialog_fp_lib_table_base.cpp:151
 #: pcbnew/dialogs/dialog_fp_plugin_options_base.cpp:72
 msgid "Move Down"
 msgstr "Сдвинуть вниз"
 
-#: 3d-viewer/3d_canvas.cpp:515
+#: 3d-viewer/3d_canvas.cpp:527
 #, c-format
 msgid "Zoom: %3.1f"
 msgstr "Масштаб: %3.1f"
 
-#: 3d-viewer/3d_canvas.cpp:650
+#: 3d-viewer/3d_canvas.cpp:662
 msgid "3D Image File Name:"
 msgstr "Имя файла 3D изображения:"
 
-#: 3d-viewer/3d_canvas.cpp:706
+#: 3d-viewer/3d_canvas.cpp:718
 msgid "Failed to copy image to clipboard"
 msgstr "Не удалось скопировать изображение в буфер обмена"
 
-#: 3d-viewer/3d_canvas.cpp:719
+#: 3d-viewer/3d_canvas.cpp:731
 msgid "Can't save file"
 msgstr "Не удалось сохранить файл"
 
@@ -883,9 +883,9 @@ msgid "millimeters"
 msgstr "мм"
 
 #: common/common.cpp:179 eeschema/dialogs/dialog_edit_label_base.cpp:57
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:125
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:137
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:149
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:127
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:139
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:151
 #: eeschema/dialogs/dialog_sch_edit_sheet_pin_base.cpp:47
 #: eeschema/dialogs/dialog_sch_edit_sheet_pin_base.cpp:59
 #: eeschema/dialogs/dialog_sch_sheet_props_base.cpp:49
@@ -1167,7 +1167,7 @@ msgstr "Помощь по переменным окружения"
 #: eeschema/dialogs/dialog_eeschema_options_base.cpp:338
 #: eeschema/dialogs/dialog_eeschema_options_base.cpp:341
 #: eeschema/dialogs/dialog_lib_edit_pin_table.cpp:180
-#: eeschema/lib_pin.cpp:1977 eeschema/libedit.cpp:477
+#: eeschema/lib_pin.cpp:1971 eeschema/libedit.cpp:477
 #: pcb_calculator/dialogs/dialog_regulator_data_base.cpp:26
 #: pcbnew/dialogs/dialog_footprint_wizard_list_base.cpp:34
 #: pcbnew/dialogs/dialog_layers_setup.cpp:342
@@ -3212,11 +3212,11 @@ msgstr ""
 "\n"
 "Изменения были переданы обратно в Менеджер компонентов."
 
-#: eeschema/GOST-doc-gen/common_funcs.cpp:358
+#: eeschema/GOST-doc-gen/common_funcs.cpp:360
 msgid "Unable to open file: "
 msgstr "Не удается открыть файл: "
 
-#: eeschema/GOST-doc-gen/common_funcs.cpp:431
+#: eeschema/GOST-doc-gen/common_funcs.cpp:420
 msgid "Unable to find OpenOffice or LibreOffice installation path"
 msgstr "Не удается найти путь установки OpenOffice или LibreOffice"
 
@@ -4193,14 +4193,14 @@ msgstr "Назначить посад.место"
 
 #: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:985
 #: eeschema/dialogs/dialog_edit_component_in_schematic_fbp.cpp:41
-#: eeschema/lib_pin.cpp:2000 gerbview/class_gerber_draw_item.cpp:572
+#: eeschema/lib_pin.cpp:1989 gerbview/class_gerber_draw_item.cpp:572
 #: gerbview/class_gerber_draw_item.cpp:573 pcbnew/class_pcb_text.cpp:145
 #: pcbnew/class_text_mod.cpp:380
 msgid "Yes"
 msgstr "Да"
 
 #: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:987
-#: eeschema/lib_pin.cpp:2002 gerbview/class_gerber_draw_item.cpp:572
+#: eeschema/lib_pin.cpp:1991 gerbview/class_gerber_draw_item.cpp:572
 #: gerbview/class_gerber_draw_item.cpp:573 pcbnew/class_pcb_text.cpp:143
 #: pcbnew/class_text_mod.cpp:378
 msgid "No"
@@ -4377,7 +4377,7 @@ msgstr "Переместить  выбранное дополнительное 
 #: eeschema/dialogs/dialog_edit_component_in_schematic_fbp.cpp:147
 #: eeschema/dialogs/dialog_edit_label_base.cpp:70
 #: eeschema/dialogs/dialog_edit_libentry_fields_in_lib_base.cpp:54
-#: eeschema/lib_pin.cpp:167
+#: eeschema/lib_pin.cpp:116
 #: pagelayout_editor/dialogs/properties_frame_base.cpp:84
 #: pcbnew/dialogs/dialog_pcb_text_properties_base.cpp:106
 msgid "Left"
@@ -4386,7 +4386,7 @@ msgstr "Влево"
 #: eeschema/dialogs/dialog_edit_component_in_schematic_fbp.cpp:147
 #: eeschema/dialogs/dialog_edit_label_base.cpp:70
 #: eeschema/dialogs/dialog_edit_libentry_fields_in_lib_base.cpp:54
-#: eeschema/lib_pin.cpp:166
+#: eeschema/lib_pin.cpp:115
 #: pagelayout_editor/dialogs/properties_frame_base.cpp:84
 #: pcbnew/dialogs/dialog_pcb_text_properties_base.cpp:106
 msgid "Right"
@@ -4584,12 +4584,12 @@ msgid "&Size:"
 msgstr "Размер:"
 
 #: eeschema/dialogs/dialog_edit_label_base.cpp:70
-#: eeschema/dialogs/dialog_eeschema_config_fbp.cpp:53 eeschema/lib_pin.cpp:168
+#: eeschema/dialogs/dialog_eeschema_config_fbp.cpp:53 eeschema/lib_pin.cpp:117
 msgid "Up"
 msgstr "Вверх"
 
 #: eeschema/dialogs/dialog_edit_label_base.cpp:70
-#: eeschema/dialogs/dialog_eeschema_config_fbp.cpp:56 eeschema/lib_pin.cpp:169
+#: eeschema/dialogs/dialog_eeschema_config_fbp.cpp:56 eeschema/lib_pin.cpp:118
 msgid "Down"
 msgstr "Вниз"
 
@@ -4602,19 +4602,19 @@ msgid "St&yle"
 msgstr "Стиль"
 
 #: eeschema/dialogs/dialog_edit_label_base.cpp:82
-#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:30 eeschema/lib_pin.cpp:183
+#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:30 eeschema/pin_type.cpp:38
 #: eeschema/sch_text.cpp:777
 msgid "Input"
 msgstr "Вход"
 
 #: eeschema/dialogs/dialog_edit_label_base.cpp:82
-#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:31 eeschema/lib_pin.cpp:184
+#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:31 eeschema/pin_type.cpp:41
 #: eeschema/sch_text.cpp:778
 msgid "Output"
 msgstr "Выход"
 
 #: eeschema/dialogs/dialog_edit_label_base.cpp:82
-#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:32 eeschema/lib_pin.cpp:185
+#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:32 eeschema/pin_type.cpp:44
 #: eeschema/sch_text.cpp:779
 msgid "Bidirectional"
 msgstr "Двунаправленный"
@@ -4624,7 +4624,7 @@ msgid "Tri-State"
 msgstr "Трехстабильный"
 
 #: eeschema/dialogs/dialog_edit_label_base.cpp:82
-#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:34 eeschema/lib_pin.cpp:187
+#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:34 eeschema/pin_type.cpp:50
 #: eeschema/sch_text.cpp:781
 msgid "Passive"
 msgstr "Пассивный"
@@ -4964,7 +4964,7 @@ msgid "Default Value"
 msgstr "Значение по умолчанию"
 
 #: eeschema/dialogs/dialog_eeschema_options_base.cpp:340
-#: eeschema/lib_pin.cpp:2004
+#: eeschema/lib_pin.cpp:1993
 #: pcbnew/dialogs/dialog_edit_module_text_base.cpp:116
 #: pcbnew/dialogs/dialog_modedit_options_base.cpp:129
 #: pcbnew/dialogs/dialog_modedit_options_base.cpp:158
@@ -5088,17 +5088,17 @@ msgid "&Width:"
 msgstr "Толщина:"
 
 #: eeschema/dialogs/dialog_lib_edit_draw_item_base.cpp:52
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:81
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:83
 msgid "Sharing"
 msgstr "Общие выводы"
 
 #: eeschema/dialogs/dialog_lib_edit_draw_item_base.cpp:64
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:83
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:85
 msgid "Common to all &units in component"
 msgstr "Общий для всех частей компонента"
 
 #: eeschema/dialogs/dialog_lib_edit_draw_item_base.cpp:76
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:86
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:88
 msgid "Common to all body &styles (DeMorgan)"
 msgstr "Общий для всех начертаний (по де Моргану)"
 
@@ -5118,61 +5118,61 @@ msgstr "Заливка переднего плана"
 msgid "Fill &background"
 msgstr "Заливка фона"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:33
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:35
 msgid "Pin &name:"
 msgstr "Имя вывода:"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:41
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:43
 msgid "Pin n&umber:"
 msgstr "Номер вывода:"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:43
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:45
 msgid "Pin number: 1 to 4 ASCII letters and/or digits"
 msgstr "Номер вывода: от 1 до 4 букв ASCII и/или цифр"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:51
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:53
 msgid "&Orientation:"
 msgstr "Ориентация:"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:58
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:60
 msgid "&Electrical type:"
 msgstr "Электр.тип:"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:60
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:62
 msgid "Used by the ERC."
 msgstr "Используется при ERC."
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:67
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:69
 msgid "Graphic &Style:"
 msgstr "Графический стиль:"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:93
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:95
 msgid "Schematic Properties"
 msgstr "Свойства схемы"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:95
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:97
 msgid "&Visible"
 msgstr "Видимый"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:117
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:119
 msgid "N&ame text size:"
 msgstr "Размер шрифта имени:"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:129
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:131
 msgid "Number te&xt size:"
 msgstr "Размер шрифта номера:"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:141
+#: eeschema/dialogs/dialog_lib_edit_pin_base.cpp:143
 msgid "&Length:"
 msgstr "Длина:"
 
 #: eeschema/dialogs/dialog_lib_edit_pin_table.cpp:173
-#: eeschema/lib_pin.cpp:1984
+#: eeschema/lib_pin.cpp:1978
 msgid "Number"
 msgstr "Номер"
 
 #: eeschema/dialogs/dialog_lib_edit_pin_table.cpp:187
-#: eeschema/lib_draw_item.cpp:65 eeschema/lib_pin.cpp:1986
+#: eeschema/lib_draw_item.cpp:65 eeschema/lib_pin.cpp:1980
 #: eeschema/libedit.cpp:511 eeschema/sch_text.cpp:785
 #: gerbview/class_gerber_draw_item.cpp:549
 #: pagelayout_editor/dialogs/properties_frame_base.cpp:29
@@ -5224,7 +5224,7 @@ msgid "Invisible"
 msgstr "Невидимый"
 
 #: eeschema/dialogs/dialog_lib_edit_text_base.cpp:99
-#: eeschema/lib_field.cpp:746 eeschema/lib_pin.cpp:1997
+#: eeschema/lib_field.cpp:746 eeschema/lib_pin.cpp:1986
 #: eeschema/sch_text.cpp:767
 #: pcbnew/dialogs/dialog_edit_module_text_base.cpp:106
 msgid "Style"
@@ -5687,7 +5687,7 @@ msgstr "Чертить текущий лист"
 msgid "Plot All Pages"
 msgstr "Чертить все листы"
 
-#: eeschema/dialogs/dialog_print_using_printer.cpp:247
+#: eeschema/dialogs/dialog_print_using_printer.cpp:249
 #: eeschema/dialogs/dialog_print_using_printer_base.cpp:47
 #: gerbview/dialogs/dialog_print_using_printer_base.cpp:102
 #: pagelayout_editor/dialogs/dialogs_for_printing.cpp:237
@@ -5696,20 +5696,24 @@ msgstr "Чертить все листы"
 msgid "Preview"
 msgstr "Просмотр"
 
-#: eeschema/dialogs/dialog_print_using_printer.cpp:299
+#: eeschema/dialogs/dialog_print_using_printer.cpp:256
+msgid "Print preview error!"
+msgstr "Ошибка предварительно просмотра!"
+
+#: eeschema/dialogs/dialog_print_using_printer.cpp:301
 msgid "Print Schematic"
 msgstr "Печать схемы"
 
-#: eeschema/dialogs/dialog_print_using_printer.cpp:304
+#: eeschema/dialogs/dialog_print_using_printer.cpp:306
 msgid "An error occurred attempting to print the schematic."
 msgstr "При печати схемы произошла ошибка."
 
-#: eeschema/dialogs/dialog_print_using_printer.cpp:305
+#: eeschema/dialogs/dialog_print_using_printer.cpp:307
 #: pagelayout_editor/dialogs/dialogs_for_printing.cpp:225
 msgid "Printing"
 msgstr "Печать"
 
-#: eeschema/dialogs/dialog_print_using_printer.cpp:317
+#: eeschema/dialogs/dialog_print_using_printer.cpp:319
 #, c-format
 msgid "Print page %d"
 msgstr "Печать страницы %d"
@@ -5814,7 +5818,7 @@ msgstr "Часть библиотеки:"
 msgid "Never Show Again"
 msgstr "Больше никогда не показывать"
 
-#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:33 eeschema/lib_pin.cpp:186
+#: eeschema/dialogs/dialog_sch_edit_sheet_pin.cpp:33 eeschema/pin_type.cpp:47
 msgid "Tri-state"
 msgstr "Трехстабильный"
 
@@ -6726,86 +6730,22 @@ msgstr "Ширина"
 msgid "Height"
 msgstr "Высота"
 
-#: eeschema/lib_pin.cpp:188
-msgid "Unspecified"
-msgstr "Не определено"
-
-#: eeschema/lib_pin.cpp:189
-msgid "Power input"
-msgstr "Вход питания"
-
-#: eeschema/lib_pin.cpp:190
-msgid "Power output"
-msgstr "Выход питания"
-
-#: eeschema/lib_pin.cpp:191
-msgid "Open collector"
-msgstr "Открытый коллектор"
-
-#: eeschema/lib_pin.cpp:192
-msgid "Open emitter"
-msgstr "Открытый эмиттер"
-
-#: eeschema/lib_pin.cpp:193
-msgid "Not connected"
-msgstr "Не подсоединен"
-
-#: eeschema/lib_pin.cpp:207 gerbview/class_gerber_draw_item.cpp:183
-#: pcbnew/class_board_item.cpp:42
-#: pcbnew/dialogs/dialog_copper_zones_base.cpp:236
-#: pcbnew/dialogs/dialog_keepout_area_properties_base.cpp:53
-#: pcbnew/dialogs/dialog_non_copper_zones_properties_base.cpp:52
-msgid "Line"
-msgstr "Линия"
-
-#: eeschema/lib_pin.cpp:208
-msgid "Inverted"
-msgstr "Инверсный"
-
-#: eeschema/lib_pin.cpp:209
-msgid "Clock"
-msgstr "Динамический вход"
-
-#: eeschema/lib_pin.cpp:210
-msgid "Inverted clock"
-msgstr "Инверсный динамический вход"
-
-#: eeschema/lib_pin.cpp:211
-msgid "Input low"
-msgstr "Негативный вход"
-
-#: eeschema/lib_pin.cpp:212
-msgid "Clock low"
-msgstr "Негативный динамический вход"
-
-#: eeschema/lib_pin.cpp:213
-msgid "Output low"
-msgstr "Негативный выход"
-
-#: eeschema/lib_pin.cpp:214
-msgid "Falling edge clock"
-msgstr "Тактовый по заднему фронту"
-
-#: eeschema/lib_pin.cpp:215
-msgid "NonLogic"
-msgstr "Не логический"
-
-#: eeschema/lib_pin.cpp:255
+#: eeschema/lib_pin.cpp:157
 #: eeschema/widgets/widget_eeschema_color_config.cpp:72
 msgid "Pin"
 msgstr "Вывод"
 
-#: eeschema/lib_pin.cpp:2008 pcbnew/class_drawsegment.cpp:391
+#: eeschema/lib_pin.cpp:1997 pcbnew/class_drawsegment.cpp:391
 #: pcbnew/class_track.cpp:1057
 msgid "Length"
 msgstr "Длина"
 
-#: eeschema/lib_pin.cpp:2011 eeschema/sch_text.cpp:756
+#: eeschema/lib_pin.cpp:2000 eeschema/sch_text.cpp:756
 #: pcbnew/dialogs/dialog_edit_module_text_base.cpp:112
 msgid "Orientation"
 msgstr "Ориентация"
 
-#: eeschema/lib_pin.cpp:2271
+#: eeschema/lib_pin.cpp:2198
 #, c-format
 msgid "Pin %s, %s, %s"
 msgstr "Вывод %s, %s, %s"
@@ -8347,19 +8287,83 @@ msgstr "Установить вход в шину \\"
 msgid "Delete Bus Entry"
 msgstr "Удалить вход в шину"
 
-#: eeschema/pinedit.cpp:249
+#: eeschema/pin_shape.cpp:38 gerbview/class_gerber_draw_item.cpp:183
+#: pcbnew/class_board_item.cpp:42
+#: pcbnew/dialogs/dialog_copper_zones_base.cpp:236
+#: pcbnew/dialogs/dialog_keepout_area_properties_base.cpp:53
+#: pcbnew/dialogs/dialog_non_copper_zones_properties_base.cpp:52
+msgid "Line"
+msgstr "Линия"
+
+#: eeschema/pin_shape.cpp:41
+msgid "Inverted"
+msgstr "Инверсный"
+
+#: eeschema/pin_shape.cpp:44
+msgid "Clock"
+msgstr "Динамический вход"
+
+#: eeschema/pin_shape.cpp:47
+msgid "Inverted clock"
+msgstr "Инверсный динамический вход"
+
+#: eeschema/pin_shape.cpp:50
+msgid "Input low"
+msgstr "Негативный вход"
+
+#: eeschema/pin_shape.cpp:53
+msgid "Clock low"
+msgstr "Негативный динамический вход"
+
+#: eeschema/pin_shape.cpp:56
+msgid "Output low"
+msgstr "Негативный выход"
+
+#: eeschema/pin_shape.cpp:59
+msgid "Falling edge clock"
+msgstr "Тактовый по заднему фронту"
+
+#: eeschema/pin_shape.cpp:62
+msgid "NonLogic"
+msgstr "Не логический"
+
+#: eeschema/pin_type.cpp:53
+msgid "Unspecified"
+msgstr "Не определено"
+
+#: eeschema/pin_type.cpp:56
+msgid "Power input"
+msgstr "Вход питания"
+
+#: eeschema/pin_type.cpp:59
+msgid "Power output"
+msgstr "Выход питания"
+
+#: eeschema/pin_type.cpp:62
+msgid "Open collector"
+msgstr "Открытый коллектор"
+
+#: eeschema/pin_type.cpp:65
+msgid "Open emitter"
+msgstr "Открытый эмиттер"
+
+#: eeschema/pin_type.cpp:68
+msgid "Not connected"
+msgstr "Не подсоединен"
+
+#: eeschema/pinedit.cpp:246
 msgid "This position is already occupied by another pin. Continue?"
 msgstr "Позиция занята другим выводом. Продолжить?"
 
-#: eeschema/pinedit.cpp:674
+#: eeschema/pinedit.cpp:671
 msgid "No pins!"
 msgstr "Нет выводов!"
 
-#: eeschema/pinedit.cpp:684
+#: eeschema/pinedit.cpp:681
 msgid "Marker Information"
 msgstr "Информация маркера"
 
-#: eeschema/pinedit.cpp:710
+#: eeschema/pinedit.cpp:707
 #, c-format
 msgid ""
 "<b>Duplicate pin %s</b> \"%s\" at location <b>(%.3f, %.3f)</b> conflicts "
@@ -8368,48 +8372,48 @@ msgstr ""
 "<b>Дубликат вывода %s</b> \"%s\" с координатами <b>(%.3f, %.3f)</b>, "
 "конфликт с выводом %s \"%s\" с координатами <b>(%.3f, %.3f)</b>"
 
-#: eeschema/pinedit.cpp:725 eeschema/pinedit.cpp:771
+#: eeschema/pinedit.cpp:722 eeschema/pinedit.cpp:768
 #, c-format
 msgid " in part %d"
 msgstr " в элементе %d"
 
-#: eeschema/pinedit.cpp:727 eeschema/pinedit.cpp:773
+#: eeschema/pinedit.cpp:724 eeschema/pinedit.cpp:770
 #, c-format
 msgid " in part %c"
 msgstr " в элементе %c"
 
-#: eeschema/pinedit.cpp:734 eeschema/pinedit.cpp:780
+#: eeschema/pinedit.cpp:731 eeschema/pinedit.cpp:777
 msgid "  of converted"
 msgstr " (дополнительный вид)"
 
-#: eeschema/pinedit.cpp:736 eeschema/pinedit.cpp:782
+#: eeschema/pinedit.cpp:733 eeschema/pinedit.cpp:779
 msgid "  of normal"
 msgstr " (нормальный вид)"
 
-#: eeschema/pinedit.cpp:761
+#: eeschema/pinedit.cpp:758
 #, c-format
 msgid "<b>Off grid pin %s</b> \"%s\" at location <b>(%.3f, %.3f)</b>"
 msgstr "<b>Вывод %s не по сетке</b> \"%s\" с координатами <b>(%.3f, %.3f)</b>"
 
-#: eeschema/pinedit.cpp:791
+#: eeschema/pinedit.cpp:788
 msgid "No off grid or duplicate pins were found."
 msgstr "Дубликатов выводов и выводов, расположенных не по сетке, не найдено."
 
-#: eeschema/plot_schematic_DXF.cpp:94 eeschema/plot_schematic_HPGL.cpp:190
-#: eeschema/plot_schematic_PDF.cpp:139 eeschema/plot_schematic_PS.cpp:122
-#: eeschema/plot_schematic_SVG.cpp:100 eeschema/plot_schematic_SVG.cpp:137
+#: eeschema/plot_schematic_DXF.cpp:86 eeschema/plot_schematic_HPGL.cpp:184
+#: eeschema/plot_schematic_PDF.cpp:137 eeschema/plot_schematic_PS.cpp:115
+#: eeschema/plot_schematic_SVG.cpp:91 eeschema/plot_schematic_SVG.cpp:128
 #, c-format
 msgid "Plot: '%s' OK.\n"
 msgstr "Черчение: '%s' OK.\n"
 
-#: eeschema/plot_schematic_DXF.cpp:99 eeschema/plot_schematic_HPGL.cpp:195
-#: eeschema/plot_schematic_PDF.cpp:102 eeschema/plot_schematic_PS.cpp:128
-#: eeschema/plot_schematic_SVG.cpp:144
+#: eeschema/plot_schematic_DXF.cpp:91 eeschema/plot_schematic_HPGL.cpp:189
+#: eeschema/plot_schematic_PDF.cpp:99 eeschema/plot_schematic_PS.cpp:121
+#: eeschema/plot_schematic_SVG.cpp:135
 #, c-format
 msgid "Unable to create file '%s'.\n"
 msgstr "Не удается создать файл '%s'.\n"
 
-#: eeschema/plot_schematic_SVG.cpp:94
+#: eeschema/plot_schematic_SVG.cpp:85
 #, c-format
 msgid "Cannot create file '%s'.\n"
 msgstr "Невозможно создать файл '%s'.\n"
@@ -8518,29 +8522,24 @@ msgstr "%s линия на неопределенном слое из (%s,%s) в
 msgid "Electronics Rule Check Error"
 msgstr "Ошибка проверки электрических правил"
 
-#: eeschema/sch_sheet.cpp:828
+#: eeschema/sch_sheet.cpp:829
 msgid "Sheet Name"
 msgstr "Имя листа"
 
-#: eeschema/sch_sheet.cpp:829
+#: eeschema/sch_sheet.cpp:830
 msgid "File Name"
 msgstr "Имя файла"
 
-#: eeschema/sch_sheet.cpp:834
+#: eeschema/sch_sheet.cpp:835
 msgid "Time Stamp"
 msgstr "Временная метка"
 
-#: eeschema/sch_sheet.cpp:1047
+#: eeschema/sch_sheet.cpp:1048
 #, c-format
 msgid "Hierarchical Sheet %s"
 msgstr "Иерархический лист %s"
 
-#: eeschema/sch_sheet_path.cpp:175
-#, c-format
-msgid "Schematic sheets can only be nested %d levels deep."
-msgstr "Листы схемы могут иметь только %d уровней вложенности."
-
-#: eeschema/sch_sheet_path.cpp:206
+#: eeschema/sch_sheet_path.cpp:143
 #, c-format
 msgid "%8.8lX/"
 msgstr "%8.8lX/"
@@ -9698,13 +9697,13 @@ msgid "Visibles"
 msgstr "Видимость"
 
 #: gerbview/events_called_functions.cpp:382 gerbview/menubar.cpp:155
-#: gerbview/menubar.cpp:157 gerbview/options.cpp:89
-#: pcbnew/pcbnew_config.cpp:80 pcbnew/tool_pcb.cpp:806
+#: gerbview/menubar.cpp:157 pcbnew/pcbnew_config.cpp:80
+#: pcbnew/tool_pcb.cpp:806
 msgid "Hide &Layers Manager"
 msgstr "Скрыть менеджер слоев"
 
 #: gerbview/events_called_functions.cpp:382 gerbview/menubar.cpp:157
-#: gerbview/options.cpp:89 pcbnew/pcbnew_config.cpp:80 pcbnew/tool_pcb.cpp:806
+#: pcbnew/pcbnew_config.cpp:80 pcbnew/tool_pcb.cpp:806
 msgid "Show &Layers Manager"
 msgstr "Показать менеджер слоев"
 
@@ -23372,7 +23371,7 @@ msgstr "Проверка электрических правил"
 msgid "Drawing Properties"
 msgstr "Свойства отображения"
 
-#: eeschema/dialogs/dialog_lib_edit_pin_base.h:99
+#: eeschema/dialogs/dialog_lib_edit_pin_base.h:101
 msgid "Pin Properties"
 msgstr "Свойства вывода"
 
@@ -23780,6 +23779,9 @@ msgstr ""
 #: pcbnew/import_dxf/dialog_dxf_import_base.h:72
 msgid "Import DXF File"
 msgstr "Импорт DXF файла"
+
+#~ msgid "Schematic sheets can only be nested %d levels deep."
+#~ msgstr "Листы схемы могут иметь только %d уровней вложенности."
 
 #~ msgid "Find footprint"
 #~ msgstr "Поиск посад.места"
