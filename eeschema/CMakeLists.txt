@@ -1,11 +1,3 @@
-# the map generation creates on Windows/gcc a lot of useless warnings
-# so disable it on windows
-if( WIN32 AND NOT CMAKE_CROSSCOMPILING )
-    set( MAKE_LINK_MAPS false )
-else()
-    set( MAKE_LINK_MAPS true )
-endif()
-
 add_definitions( -DEESCHEMA )
 
 if(KICAD_GOST AND USE_OPENOFFICE_SDK)
@@ -358,6 +350,7 @@ if( APPLE )
         DESTINATION ${KICAD_BIN}
         COMPONENT binary
         )
+
     install( CODE "
             # override default embedded path settings
             ${OSX_BUNDLE_OVERRIDE_PATHS}
