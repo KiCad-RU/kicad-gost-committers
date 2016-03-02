@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KiCad\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-29 11:04+0300\n"
-"PO-Revision-Date: 2016-02-29 11:05+0300\n"
+"POT-Creation-Date: 2016-03-02 18:17+0300\n"
+"PO-Revision-Date: 2016-03-02 18:20+0300\n"
 "Last-Translator: Andrey Fedorushkov <andrf@mail.ru>\n"
 "Language-Team: Russian KiCad Translation Team: Andrey Fedorushkov, Eldar "
 "Khayrullin, Igor Plyatov <andrf@mail.ru>\n"
@@ -29,6 +29,7 @@ msgstr ""
 "X-Poedit-SearchPath-7: pagelayout_editor\n"
 "X-Poedit-SearchPath-8: pcb_calculator\n"
 "X-Poedit-SearchPath-9: pcbnew\n"
+"X-Poedit-SearchPath-10: extra\n"
 
 #: 3d-viewer/3d_canvas.cpp:399
 msgid "Zoom +"
@@ -918,7 +919,7 @@ msgstr "Директория '%s' создана.\n"
 msgid "Cannot create output directory '%s'.\n"
 msgstr "Невозможно создать выходную директорию '%s'.\n"
 
-#: common/confirm.cpp:73 common/pgm_base.cpp:863 eeschema/symbedit.cpp:111
+#: common/confirm.cpp:73 common/pgm_base.cpp:874 eeschema/symbedit.cpp:111
 #: eeschema/widgets/widget_eeschema_color_config.cpp:274
 msgid "Warning"
 msgstr "Предупреждение"
@@ -1996,15 +1997,15 @@ msgstr "Предпочитаемый редактор:"
 msgid "%s is already running, Continue?"
 msgstr "%s уже запущен, продолжить?"
 
-#: common/pgm_base.cpp:780
+#: common/pgm_base.cpp:791
 msgid "Language"
 msgstr "Язык"
 
-#: common/pgm_base.cpp:781
+#: common/pgm_base.cpp:792
 msgid "Select application language (only for testing!)"
 msgstr "Выбрать язык для приложения (только для тестирования!)"
 
-#: common/pgm_base.cpp:856
+#: common/pgm_base.cpp:867
 msgid ""
 "Warning!  Some of paths you have configured have been defined \n"
 "externally to the running process and will be temporarily overwritten."
@@ -2012,7 +2013,7 @@ msgstr ""
 "Предупреждение!  Некоторые пути, сконфигурированные вами, были определены \n"
 "внешне рабочему процессу и будут временно перезаписаны."
 
-#: common/pgm_base.cpp:858
+#: common/pgm_base.cpp:869
 msgid ""
 "The next time KiCad is launched, any paths that have already\n"
 "been defined are honored and any settings defined in the path\n"
@@ -2027,7 +2028,7 @@ msgstr ""
 "либо удалите внешние определения переменных окружения\n"
 "из вашей системы."
 
-#: common/pgm_base.cpp:865
+#: common/pgm_base.cpp:876
 msgid "Do not show this message again."
 msgstr "Больше не показывать данное сообщение."
 
@@ -2817,9 +2818,10 @@ msgstr "Сохранить"
 
 #: cvpcb/menubar.cpp:137 eeschema/menubar.cpp:554
 #: eeschema/menubar_libedit.cpp:281 eeschema/tool_viewlib.cpp:274
-#: gerbview/menubar.cpp:248 kicad/menubar.cpp:433
-#: pagelayout_editor/menubar.cpp:174 pcbnew/menubar_modedit.cpp:364
-#: pcbnew/menubar_pcbframe.cpp:681 pcbnew/tool_modview.cpp:209
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:157 gerbview/menubar.cpp:248
+#: kicad/menubar.cpp:433 pagelayout_editor/menubar.cpp:174
+#: pcbnew/menubar_modedit.cpp:364 pcbnew/menubar_pcbframe.cpp:681
+#: pcbnew/tool_modview.cpp:209
 msgid "&Help"
 msgstr "Справка"
 
@@ -9214,6 +9216,90 @@ msgstr ""
 "задний фон и они не будут видны на экране.\n"
 "Вы уверены что хотите использовать эти цвета?"
 
+#: extra/pcad2kicadsch/dialogs/pcad2kicad_frame_base.cpp:27
+msgid "Convert P-Cad 200x ASCII schematic file"
+msgstr "Конвертировать P-Cad 200x ASCII файл схемы"
+
+#: extra/pcad2kicadsch/dialogs/pcad2kicad_frame_base.cpp:30
+msgid "Convert P-Cad 200x ASCII library file"
+msgstr "Конвертировать P-Cad 200x ASCII файл библиотеки"
+
+#: extra/pcad2kicadsch/dialogs/pcad2kicad_frame_base.cpp:33
+msgid "Actual input file :"
+msgstr "Текущий входной файл :"
+
+#: extra/pcad2kicadsch/dialogs/pcad2kicad_frame_base.cpp:37
+msgid "FileName"
+msgstr "Имя файла"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:59
+msgid "Open lia file"
+msgstr "Открыть lia файл"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:60
+msgid "P-Cad 200x ASCII schematic library |*.lia"
+msgstr "P-Cad 200x ASCII библиотека схемы |*.lia"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:79
+#, c-format
+msgid ""
+"Error loading library.\n"
+"%s"
+msgstr ""
+"Ошибка загрузки библиотеки.\n"
+"%s"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:81
+msgid "Open Library File"
+msgstr "Открыть файл библиотеки"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:88
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:132
+msgid "Generating output file.... "
+msgstr "Генерация выходного файла.... "
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:94
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:141
+msgid "Done."
+msgstr "Сделано."
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:103
+msgid "Open sch file"
+msgstr "Открыть sch файл"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:104
+msgid "P-Cad 200x ASCII schematic |*.sch"
+msgstr "P-Cad 200x ASCII схема |*.sch"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:123
+#, c-format
+msgid ""
+"Error loading scheme.\n"
+"%s"
+msgstr ""
+"Ошибка загрузки схемы.\n"
+"%s"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:125
+msgid "Open Schematic File"
+msgstr "Открыть файл схемы"
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:156
+msgid "&About pcad2kicadsch ..."
+msgstr "О pcad2kicadsch ..."
+
+#: extra/pcad2kicadsch/pcad2kicad_frame.cpp:177
+msgid ""
+"An utility which allows schematic capture and schematic library file "
+"conversion from P-CAD 200x ASCII to KiCad."
+msgstr ""
+"Утилита, которая позволяет конвертировать файлы схемотехнического "
+"проектирования и библиотеки схемы из P-CAD 200x ASCII в KiCad."
+
+#: extra/pcad2kicadsch/sch_module.cpp:81
+msgid "Creating Component : "
+msgstr "Создание компонента : "
+
 #: gerbview/class_GERBER.cpp:347
 msgid "Image name"
 msgstr "Имя образа:"
@@ -14595,7 +14681,7 @@ msgstr "Новая дорожка с областью перех.отв."
 
 #: pcbnew/dialogs/dialog_display_options_base.cpp:53
 msgid "New and edited tracks with via area"
-msgstr "Новая и редактированная дорожка с областью перех.отв."
+msgstr "Новая и редактируемая дорожка с областью перех.отв."
 
 #: pcbnew/dialogs/dialog_display_options_base.cpp:55
 msgid "Show Track Clearance:"
@@ -23567,6 +23653,10 @@ msgstr "Маркер ERC"
 msgid "No Connect"
 msgstr "\"Не подключено\""
 
+#: extra/pcad2kicadsch/dialogs/pcad2kicad_frame_base.h:56
+msgid "PCad to Kicad converter"
+msgstr "Конвертер PCad в Kicad"
+
 #: gerbview/dialogs/dialog_show_page_borders_base.h:50
 msgid "Page Borders"
 msgstr "Рамка страницы"
@@ -23817,69 +23907,3 @@ msgstr "Импорт DXF файла"
 #~ msgstr ""
 #~ "Интернет форум, посвященный русскоязычной поддержке проекта KiCad, "
 #~ "включая поддержку ГОСТ"
-
-#~ msgid "Convert P-Cad 200x ASCII schematic file"
-#~ msgstr "Конвертировать P-Cad 200x ASCII файл схемы"
-
-#~ msgid "Convert P-Cad 200x ASCII library file"
-#~ msgstr "Конвертировать P-Cad 200x ASCII файл библиотеки"
-
-#~ msgid "Actual input file :"
-#~ msgstr "Текущий входной файл :"
-
-#~ msgid "FileName"
-#~ msgstr "Имя файла"
-
-#~ msgid "Open lia file"
-#~ msgstr "Открыть lia файл"
-
-#~ msgid "P-Cad 200x ASCII schematic library |*.lia"
-#~ msgstr "P-Cad 200x ASCII библиотека схемы |*.lia"
-
-#~ msgid ""
-#~ "Error loading library.\n"
-#~ "%s"
-#~ msgstr ""
-#~ "Ошибка загрузки библиотеки.\n"
-#~ "%s"
-
-#~ msgid "Open Library File"
-#~ msgstr "Открыть файл библиотеки"
-
-#~ msgid "Generating output file.... "
-#~ msgstr "Генерация выходного файла.... "
-
-#~ msgid "Done."
-#~ msgstr "Сделано."
-
-#~ msgid "Open sch file"
-#~ msgstr "Открыть sch файл"
-
-#~ msgid "P-Cad 200x ASCII schematic |*.sch"
-#~ msgstr "P-Cad 200x ASCII схема |*.sch"
-
-#~ msgid ""
-#~ "Error loading scheme.\n"
-#~ "%s"
-#~ msgstr ""
-#~ "Ошибка загрузки схемы.\n"
-#~ "%s"
-
-#~ msgid "Open Schematic File"
-#~ msgstr "Открыть файл схемы"
-
-#~ msgid "&About pcad2kicadsch ..."
-#~ msgstr "О pcad2kicadsch ..."
-
-#~ msgid ""
-#~ "An utility which allows schematic capture and schematic library file "
-#~ "conversion from P-CAD 200x ASCII to KiCad."
-#~ msgstr ""
-#~ "Утилита, которая позволяет конвертировать файлы схемотехнического "
-#~ "проектирования и библиотеки схемы из P-CAD 200x ASCII в KiCad."
-
-#~ msgid "Creating Component : "
-#~ msgstr "Создание компонента : "
-
-#~ msgid "PCad to Kicad converter"
-#~ msgstr "Конвертер PCad в Kicad"
