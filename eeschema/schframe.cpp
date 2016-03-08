@@ -486,15 +486,13 @@ void SCH_EDIT_FRAME::SetSheetNumberAndCount()
     int            sheet_count = g_RootSheet->CountSheets();
     int            SheetNumber = 1;
     wxString       current_sheetpath = m_CurrentSheet->Path();
-    SCH_SHEET_LIST sheetList;
+    SCH_SHEET_LIST sheetList( g_RootSheet );
 
     // Examine all sheets path to find the current sheets path,
     // and count them from root to the current sheet path:
-    SCH_SHEET_PATH* sheet;
-
-    for( sheet = sheetList.GetFirst(); sheet != NULL; sheet = sheetList.GetNext() )
+    for( unsigned i = 0; i < sheetList.size(); i++ )
     {
-        wxString sheetpath = sheet->Path();
+        wxString sheetpath = sheetList[i].Path();
 
         if( sheetpath == current_sheetpath )    // Current sheet path found
             break;
@@ -623,7 +621,7 @@ void SCH_EDIT_FRAME::OnCloseWindow( wxCloseEvent& aEvent )
             return;
     }
 
-    SCH_SHEET_LIST sheetList;
+    SCH_SHEET_LIST sheetList( g_RootSheet );
 
     if( sheetList.IsModified() )
     {
@@ -796,7 +794,7 @@ void SCH_EDIT_FRAME::OnUpdateHiddenPins( wxUpdateUIEvent& aEvent )
 
 void SCH_EDIT_FRAME::OnUpdateSave( wxUpdateUIEvent& aEvent )
 {
-    SCH_SHEET_LIST sheetList;
+    SCH_SHEET_LIST sheetList( g_RootSheet );
 
     aEvent.Enable( sheetList.IsModified() );
 }
@@ -1264,7 +1262,7 @@ bool SCH_EDIT_FRAME::isAutoSaveRequired() const
 
     if( g_RootSheet != NULL )
     {
-        SCH_SHEET_LIST sheetList;
+        SCH_SHEET_LIST sheetList( g_RootSheet );
 
         return sheetList.IsAutoSaveRequired();
     }
