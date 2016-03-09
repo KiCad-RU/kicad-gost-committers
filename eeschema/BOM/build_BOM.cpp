@@ -51,7 +51,7 @@ void BOM_LISTER::CreateCsvBOMListByValues( FILE* aFile )
 {
     m_outFile = aFile;
 
-    SCH_SHEET_LIST sheetList;
+    SCH_SHEET_LIST sheetList( g_RootSheet );
 
     sheetList.GetComponents( m_libs, m_cmplist, false );
 
@@ -162,14 +162,16 @@ void BOM_LISTER::buildGlobalAndHierarchicalLabelsList()
 {
     m_labelList.clear();
 
+    SCH_SHEET_PATH* path;
+
     // Explore the flat sheet list
-    SCH_SHEET_LIST sheetList;
+    SCH_SHEET_LIST sheetList( g_RootSheet );
 
-    for( SCH_SHEET_PATH* path = sheetList.GetFirst(); path; path = sheetList.GetNext() )
+    for( unsigned i = 0;  i < sheetList.size();  i++ )
     {
-        SCH_ITEM* schItem = (SCH_ITEM*) path->LastDrawList();
+        path = &sheetList[i];
 
-        for( ; schItem; schItem = schItem->Next() )
+        for( SCH_ITEM* schItem = (SCH_ITEM*) path->LastDrawList();  schItem;  schItem = schItem->Next() )
         {
             switch( schItem->Type() )
             {
