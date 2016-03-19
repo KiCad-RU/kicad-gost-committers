@@ -6,9 +6,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KiCad\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-17 11:40+0300\n"
-"PO-Revision-Date: 2016-03-17 11:44+0300\n"
-"Last-Translator: faa <andrf@mail.ru>\n"
+"POT-Creation-Date: 2016-03-19 10:00+0300\n"
+"PO-Revision-Date: 2016-03-19 10:01+0300\n"
+"Last-Translator: Andrey Fedorushkov <andrf@mail.ru>\n"
 "Language-Team: Russian KiCad Translation Team: Andrey Fedorushkov, Eldar "
 "Khayrullin, Igor Plyatov <andrf@mail.ru>\n"
 "Language: ru_RU\n"
@@ -18,7 +18,7 @@ msgstr ""
 "X-Poedit-KeywordsList: _;_HKI\n"
 "X-Poedit-Basepath: ../..\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-Generator: Poedit 1.8.6\n"
+"X-Generator: Poedit 1.6.9\n"
 "X-Poedit-SearchPath-0: 3d-viewer\n"
 "X-Poedit-SearchPath-1: bitmap2component\n"
 "X-Poedit-SearchPath-2: common\n"
@@ -755,31 +755,22 @@ msgstr ""
 msgid "Help file '%s' could not be found."
 msgstr "Файл помощи '%s' невозможно найти."
 
-#: common/basicframe.cpp:451
-#, c-format
-msgid "Executable file (%s)|%s"
-msgstr "Исполняемый файл (%s)|%s"
-
-#: common/basicframe.cpp:454
-msgid "Select Preferred Editor"
-msgstr "Выбрать редактор текстов"
-
-#: common/basicframe.cpp:494
+#: common/basicframe.cpp:486
 #, c-format
 msgid "You do not have write permissions to folder <%s>."
 msgstr "У Вас нет прав на запись в директорию <%s>."
 
-#: common/basicframe.cpp:499
+#: common/basicframe.cpp:491
 #, c-format
 msgid "You do not have write permissions to save file <%s> to folder <%s>."
 msgstr "У Вас нет прав на запись для сохранения файла <%s> в директорию <%s>."
 
-#: common/basicframe.cpp:504
+#: common/basicframe.cpp:496
 #, c-format
 msgid "You do not have write permissions to save file <%s>."
 msgstr "У Вас нет прав на запись для сохранения файла <%s>."
 
-#: common/basicframe.cpp:536
+#: common/basicframe.cpp:528
 #, c-format
 msgid ""
 "Well this is potentially embarrassing!\n"
@@ -792,12 +783,12 @@ msgstr ""
 "При последнем редактировании файл '%s'\n"
 "не был корректно сохранен. Хотите восстановить последние изменения?"
 
-#: common/basicframe.cpp:564
+#: common/basicframe.cpp:556
 #, c-format
 msgid "Could not create backup file <%s>"
 msgstr "Не удалось создать файл резервной копии <%s>"
 
-#: common/basicframe.cpp:572
+#: common/basicframe.cpp:564
 msgid "The auto save file could not be renamed to the board file name."
 msgstr "Файл автосохранения не может быть переименован в файл платы."
 
@@ -898,7 +889,7 @@ msgstr "Директория '%s' создана.\n"
 msgid "Cannot create output directory '%s'.\n"
 msgstr "Невозможно создать выходную директорию '%s'.\n"
 
-#: common/confirm.cpp:73 common/pgm_base.cpp:874 eeschema/symbedit.cpp:111
+#: common/confirm.cpp:73 common/pgm_base.cpp:890 eeschema/symbedit.cpp:111
 #: eeschema/widgets/widget_eeschema_color_config.cpp:274
 msgid "Warning"
 msgstr "Предупреждение"
@@ -1062,7 +1053,7 @@ msgstr "OK"
 #: pcbnew/dialogs/dialog_plot_base.cpp:358
 #: pcbnew/dialogs/dialog_print_for_modedit_base.cpp:57
 #: pcbnew/dialogs/dialog_print_using_printer_base.cpp:144
-#: pcbnew/dialogs/dialog_update_pcb.cpp:123
+#: pcbnew/dialogs/dialog_update_pcb.cpp:126
 #: pcbnew/dialogs/dialog_update_pcb_base.cpp:56
 msgid "Close"
 msgstr "Закрыть"
@@ -1992,24 +1983,32 @@ msgstr "Болгарский"
 msgid "No default editor found, you must choose it"
 msgstr "Редактор по умолчанию не найден, нужно выбрать его"
 
-#: common/pgm_base.cpp:346
-msgid "Preferred Editor:"
-msgstr "Предпочитаемый редактор:"
+#: common/pgm_base.cpp:358
+msgid "Executable file (*.exe)|*.exe"
+msgstr "Исполняемый файл (*.exe)|*.exe"
 
-#: common/pgm_base.cpp:375
+#: common/pgm_base.cpp:360
+msgid "Executable file (*)|*"
+msgstr "Исполняемые файлы (*)|*"
+
+#: common/pgm_base.cpp:370
+msgid "Select Preferred Editor"
+msgstr "Выбрать редактор текстов"
+
+#: common/pgm_base.cpp:391
 #, c-format
 msgid "%s is already running, Continue?"
 msgstr "%s уже запущен, продолжить?"
 
-#: common/pgm_base.cpp:791
+#: common/pgm_base.cpp:807
 msgid "Language"
 msgstr "Язык"
 
-#: common/pgm_base.cpp:792
+#: common/pgm_base.cpp:808
 msgid "Select application language (only for testing!)"
 msgstr "Выбрать язык для приложения (только для тестирования!)"
 
-#: common/pgm_base.cpp:867
+#: common/pgm_base.cpp:883
 msgid ""
 "Warning!  Some of paths you have configured have been defined \n"
 "externally to the running process and will be temporarily overwritten."
@@ -2017,7 +2016,7 @@ msgstr ""
 "Предупреждение!  Некоторые пути, сконфигурированные вами, были определены \n"
 "внешне рабочему процессу и будут временно перезаписаны."
 
-#: common/pgm_base.cpp:869
+#: common/pgm_base.cpp:885
 msgid ""
 "The next time KiCad is launched, any paths that have already\n"
 "been defined are honored and any settings defined in the path\n"
@@ -2032,7 +2031,7 @@ msgstr ""
 "либо удалите внешние определения переменных окружения\n"
 "из вашей системы."
 
-#: common/pgm_base.cpp:876
+#: common/pgm_base.cpp:892
 msgid "Do not show this message again."
 msgstr "Больше не показывать данное сообщение."
 
@@ -18733,11 +18732,11 @@ msgstr ""
 "библиотеки в конфигурацию печатной платы. Печатная плата обновлена не "
 "полностью."
 
-#: pcbnew/dialogs/dialog_update_pcb.cpp:122
+#: pcbnew/dialogs/dialog_update_pcb.cpp:125
 msgid "Update complete"
 msgstr "Обновление завершено"
 
-#: pcbnew/dialogs/dialog_update_pcb.cpp:139
+#: pcbnew/dialogs/dialog_update_pcb.cpp:142
 msgid "Changes applied to the PCB:"
 msgstr "Изменения в плате:"
 
@@ -23196,7 +23195,7 @@ msgstr "Не удалось удалить обозначение компоне
 msgid "Cannot delete component value."
 msgstr "Не удалось удалить значение компонента"
 
-#: pcbnew/tools/edit_tool.cpp:783
+#: pcbnew/tools/edit_tool.cpp:784
 #, c-format
 msgid "Duplicated %d item(s)"
 msgstr "Скопирован(о) %d элемент(ов)"
@@ -23857,6 +23856,9 @@ msgstr ""
 #: pcbnew/import_dxf/dialog_dxf_import_base.h:72
 msgid "Import DXF File"
 msgstr "Импорт DXF файла"
+
+#~ msgid "Preferred Editor:"
+#~ msgstr "Предпочитаемый редактор:"
 
 #~ msgid "Copy the version string to clipboard to send with bug reports"
 #~ msgstr ""
