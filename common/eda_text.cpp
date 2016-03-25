@@ -33,6 +33,8 @@
 #include <trigo.h>               // RotatePoint
 #include <class_drawpanel.h>     // EDA_DRAW_PANEL
 
+#include <basic_gal.h>
+
 // Conversion to application internal units defined at build time.
 #if defined( PCBNEW )
     #include <class_board_item.h>       // for FMT_IU
@@ -45,8 +47,6 @@
 #else
 #error "Cannot resolve units formatting due to no definition of EESCHEMA or PCBNEW."
 #endif
-
-#include <gal/stroke_font.h>
 
 #include <convert_to_biu.h>
 
@@ -90,7 +90,13 @@ EDA_TEXT::~EDA_TEXT()
 
 int EDA_TEXT::LenSize( const wxString& aLine ) const
 {
-    return GraphicTextWidth( aLine, m_Size.x, m_Italic, m_Bold );
+    basic_gal.SetItalic( m_Italic );
+    basic_gal.SetBold( m_Bold );
+    basic_gal.SetGlyphSize( VECTOR2D( m_Size ) );
+
+    VECTOR2D tsize = basic_gal.GetTextLineSize( aLine );
+
+    return KiROUND( tsize.x );
 }
 
 
@@ -117,17 +123,17 @@ wxString EDA_TEXT::ShortenedShownText() const
 int EDA_TEXT::GetInterline( int aTextThickness ) const
 {
     int thickness = aTextThickness <= 0 ? m_Thickness : aTextThickness;
-    return KiROUND( m_Size.y * KIGFX::STROKE_FONT::INTERLINE_PITCH_RATIO ) + thickness;
+    return KiROUND( KIGFX::STROKE_FONT::GetInterline( m_Size.y, thickness ) );
 }
 
 EDA_RECT EDA_TEXT::GetTextBox( int aLine, int aThickness, bool aInvertY ) const
 {
     EDA_RECT       rect;
-    wxPoint        pos;
     wxArrayString  strings;
     wxString       text = GetShownText();
     int            thickness = ( aThickness < 0 ) ? m_Thickness : aThickness;
     int            linecount = 1;
+    bool           hasOverBar = false;     // true if the first line of text as an overbar
 
     if( m_MultilineAllowed )
     {
@@ -144,24 +150,50 @@ EDA_RECT EDA_TEXT::GetTextBox( int aLine, int aThickness, bool aInvertY ) const
         }
     }
 
-    // calculate the H and V size
-    int    dx = LenSize( text );
-    int    dy = GetInterline( aThickness );
+    // Search for overbar symbol. Only text is scanned,
+    // because only this line can change the bounding box
+    for( unsigned ii = 1; ii < text.size(); ii++ )
+    {
+        if( text[ii-1] == '~' && text[ii] != '~' )
+        {
+            hasOverBar = true;
+            break;
+        }
+    }
 
-    // Creates bounding box (rectangle) for an horizontal text
+    // calculate the H and V size
+    int dx = KiROUND( basic_gal.GetStrokeFont().ComputeStringBoundaryLimits(
+                            text, VECTOR2D( m_Size ), double( thickness ) ).x );
+    int dy = GetInterline( thickness );
+
+    // Creates bounding box (rectangle) for an horizontal
+    // and left and top justified text. the bounding box will be moved later
+    // according to the catual text options
     wxSize textsize = wxSize( dx, dy );
+    wxPoint pos = m_Pos;
 
     if( aInvertY )
-        rect.SetOrigin( m_Pos.x, -m_Pos.y );
-    else
-        rect.SetOrigin( m_Pos );
+        pos.x = -pos.y;
+
+    rect.SetOrigin( pos );
 
     // The bbox vertical size returned by GetInterline( aThickness )
     // includes letters like j and y and ] + interval between lines.
     // The interval below the last line is not usefull, and we can use its half value
     // as vertical margin above the text
     // the full interval is roughly m_Size.y * 0.4 - aThickness/2
-    rect.Move( wxPoint( 0, aThickness/4 - KiROUND( m_Size.y * 0.2 ) ) );
+    rect.Move( wxPoint( 0, thickness/4 - KiROUND( m_Size.y * 0.22 ) ) );
+
+    if( hasOverBar )
+    {   // A overbar adds an extra size to the text
+        // Height from the base line text of chars like [ or {
+        double curr_height = m_Size.y * 1.15;
+        int extra_height = KiROUND(
+            basic_gal.GetStrokeFont().ComputeOverbarVerticalPosition( m_Size.y, thickness ) - curr_height );
+        extra_height += thickness/2;
+        textsize.y += extra_height;
+        rect.Move( wxPoint( 0, -extra_height ) );
+    }
 
     // for multiline texts and aLine < 0, merge all rectangles
     // ( if aLine < 0, we want the full text bounding box )
@@ -170,7 +202,8 @@ EDA_RECT EDA_TEXT::GetTextBox( int aLine, int aThickness, bool aInvertY ) const
         for( unsigned ii = 1; ii < strings.GetCount(); ii++ )
         {
             text = strings.Item( ii );
-            dx   = LenSize( text );
+            dx   = KiROUND( basic_gal.GetStrokeFont().ComputeStringBoundaryLimits(
+                            text, VECTOR2D( m_Size ), double( thickness ) ).x );
             textsize.x  = std::max( textsize.x, dx );
             textsize.y += dy;
         }

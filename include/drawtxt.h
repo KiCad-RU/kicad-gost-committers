@@ -78,18 +78,7 @@ int GetPenSizeForBold( int aTextSize );
  * @return the X size of the graphic text
  * the full X size is GraphicTextWidth + the thickness of graphic lines
  */
-int GraphicTextWidth( const wxString& aText, int size_h, bool italic, bool bold );
-
-/**
- * Function NegableTextLength
- * Return the text length of a negable string, excluding the ~ markers */
-int NegableTextLength( const wxString& aText );
-
-/**
- * Helper function for texts with over bar, can be used as strut value
- * for multiline text (add interline spacing)
- */
-int OverbarPositionY( int size_v );
+int GraphicTextWidth( const wxString& aText, const wxSize& aSize, bool italic, bool bold );
 
 /**
  * Function DrawGraphicText

@@ -38,8 +38,10 @@ add_custom_target(
 
 set( GAL_SRCS
     # Common part
+    basic_gal.cpp
     draw_panel_gal.cpp
     painter.cpp
+    newstroke_font.cpp
     worksheet_viewitem.cpp
     origin_viewitem.cpp
     gal/graphics_abstraction_layer.cpp
@@ -235,7 +237,6 @@ set( COMMON_SRCS
     lockfile.cpp
     msgpanel.cpp
     netlist_keywords.cpp
-    newstroke_font.cpp
     prependpath.cpp
     project.cpp
     ptree.cpp
