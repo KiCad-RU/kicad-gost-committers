@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KiCad\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-25 12:14+0300\n"
-"PO-Revision-Date: 2016-03-25 12:14+0300\n"
+"POT-Creation-Date: 2016-03-26 12:11+0300\n"
+"PO-Revision-Date: 2016-03-26 12:19+0300\n"
 "Last-Translator: Andrey Fedorushkov <andrf@mail.ru>\n"
 "Language-Team: Russian KiCad Translation Team: Andrey Fedorushkov, Eldar "
 "Khayrullin, Igor Plyatov <andrf@mail.ru>\n"
@@ -925,47 +925,55 @@ msgstr ""
 "KiCad EDA Suite — программный комплекс с открытыми исходными текстами, "
 "предназначенный для разработки электрических схем и печатных плат."
 
-#: common/dialog_about/AboutDialog_main.cpp:142
+#: common/dialog_about/AboutDialog_main.cpp:141
 msgid "KiCad on the web"
 msgstr "KiCad в Интернете"
 
-#: common/dialog_about/AboutDialog_main.cpp:149
+#: common/dialog_about/AboutDialog_main.cpp:148
 msgid "The official KiCad site"
 msgstr "Официальный сайт KiCad"
 
-#: common/dialog_about/AboutDialog_main.cpp:153
-msgid "The original site of the KiCad project founder"
-msgstr "Оригинальный сайт основателя проекта KiCad"
-
-#: common/dialog_about/AboutDialog_main.cpp:157
+#: common/dialog_about/AboutDialog_main.cpp:152
 msgid "Developer's website on Launchpad"
 msgstr "Веб-сайт разработчиков на Launchpad"
 
-#: common/dialog_about/AboutDialog_main.cpp:161
-msgid "Repository with additional component libraries"
-msgstr "Хранилище с дополнительными библиотеками компонент"
+#: common/dialog_about/AboutDialog_main.cpp:156
+msgid "Our official Repository for component and footprint libraries"
+msgstr "Наше официальное хранилище библиотек компонентов и посадочных мест"
+
+#: common/dialog_about/AboutDialog_main.cpp:160
+msgid "Non official repositories"
+msgstr "Неофициальные хранилища"
+
+#: common/dialog_about/AboutDialog_main.cpp:164
+msgid "Additional component libraries repository (kicadlib)"
+msgstr "Дополнительные библиотеки компонентов (kicadlib)"
 
 #: common/dialog_about/AboutDialog_main.cpp:168
+msgid "Additional component libraries repository (smisioto)"
+msgstr "Дополнительные библиотеки компонентов (smisioto)"
+
+#: common/dialog_about/AboutDialog_main.cpp:174
 msgid "Contribute to KiCad"
 msgstr "Сделать вклад в KiCad"
 
-#: common/dialog_about/AboutDialog_main.cpp:175
+#: common/dialog_about/AboutDialog_main.cpp:181
 msgid "Report bugs if you found any"
 msgstr "Сообщить о любых ошибках и дефектах"
 
-#: common/dialog_about/AboutDialog_main.cpp:179
+#: common/dialog_about/AboutDialog_main.cpp:185
 msgid "File an idea for improvement"
 msgstr "Файл с идеями для усовершенствования"
 
-#: common/dialog_about/AboutDialog_main.cpp:183
+#: common/dialog_about/AboutDialog_main.cpp:189
 msgid "KiCad links to user groups, tutorials and much more"
 msgstr "KiCad - группы пользователей, руководства и многое другое"
 
-#: common/dialog_about/AboutDialog_main.cpp:197
+#: common/dialog_about/AboutDialog_main.cpp:203
 msgid "The complete KiCad EDA Suite is released under the"
 msgstr "Программный комплекс KiCad EDA Suite  распространяется под"
 
-#: common/dialog_about/AboutDialog_main.cpp:199
+#: common/dialog_about/AboutDialog_main.cpp:205
 msgid "GNU General Public License (GPL) version 3 or any later version"
 msgstr "GNU General Public License (GPL) version 3 или любая поздняя версия"
 
@@ -3225,11 +3233,11 @@ msgstr "Не удается открыть файл: "
 msgid "Unable to find OpenOffice or LibreOffice installation path"
 msgstr "Не удается найти путь установки OpenOffice или LibreOffice"
 
-#: eeschema/GOST-doc-gen/component_db.cpp:270
+#: eeschema/GOST-doc-gen/component_db.cpp:276
 msgid "Unspecified component reference: "
 msgstr "Не задано поз.обозначение у компонента:"
 
-#: eeschema/GOST-doc-gen/component_db.cpp:271
+#: eeschema/GOST-doc-gen/component_db.cpp:277
 msgid ""
 "\n"
 "\n"
@@ -3245,7 +3253,7 @@ msgstr ""
 "\n"
 "Менеджер компонентов будет закрыт."
 
-#: eeschema/GOST-doc-gen/component_db.cpp:304
+#: eeschema/GOST-doc-gen/component_db.cpp:310
 msgid ""
 "Some components have equal 'Chip Name' and 'Value' attributes!\n"
 "'Value' attributes will be copied to 'Type' ones including their position, "
@@ -3260,7 +3268,7 @@ msgstr ""
 "Если некоторые компоненты не имеют атрибута 'Type', то он будет создан.\n"
 "Продолжить?"
 
-#: eeschema/GOST-doc-gen/component_db.cpp:330
+#: eeschema/GOST-doc-gen/component_db.cpp:336
 msgid ""
 "Some components do not have 'Type' attribute!\n"
 "'Type' attributes will be created for such components.\n"
@@ -23858,6 +23866,12 @@ msgstr ""
 #: pcbnew/import_dxf/dialog_dxf_import_base.h:72
 msgid "Import DXF File"
 msgstr "Импорт DXF файла"
+
+#~ msgid "The original site of the KiCad project founder"
+#~ msgstr "Оригинальный сайт основателя проекта KiCad"
+
+#~ msgid "Repository with additional component libraries"
+#~ msgstr "Хранилище с дополнительными библиотеками компонент"
 
 #~ msgid "field"
 #~ msgstr "поле"
