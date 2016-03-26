@@ -5,7 +5,7 @@
 #
 # Copyright (C) 2007-2013 Alexander Lunev <al.lunev@yahoo.com>
 # Copyright (C) 2013 Baranovskiy Konstantin <baranvoskiykonstantin@gmail.com>
-# Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
+# Copyright (C) 2013-2015 KiCad Developers, see AUTHORS.txt for contributors.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License

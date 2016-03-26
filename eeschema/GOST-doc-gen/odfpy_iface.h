@@ -1,6 +1,6 @@
 /* This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Alexander Lunev <al.lunev@yahoo.com>
+ * Copyright (C) 2013-2016 Alexander Lunev <al.lunev@yahoo.com>
  * Copyright (C) 2013 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
