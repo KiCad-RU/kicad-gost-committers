@@ -38,6 +38,8 @@
 #include <rpc_doc_iface.h>
 #elif defined(USE_OPENOFFICE_SDK)
 #include <oo_iface.hxx>
+#elif defined(USE_ODFPY)
+#include <odfpy_iface.h>
 #else
 #include <oo_python_uno_iface.h>
 #endif
@@ -153,6 +155,8 @@ void COMPONENT_DB::GenerateComponentIndexDoc()
     COMMON_DOC_IFACE* docIface = new RPC_DOC_IFACE( m_dbgEna );
 #elif defined(USE_OPENOFFICE_SDK)
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
+#elif defined(USE_ODFPY)
+    COMMON_DOC_IFACE* docIface = new ODFPY_IFACE();
 #else
     COMMON_DOC_IFACE* docIface = new OO_PYTHON_UNO_IFACE();
 #endif
@@ -170,6 +174,8 @@ void COMPONENT_DB::GenerateSpecificationDoc()
     COMMON_DOC_IFACE* docIface = new RPC_DOC_IFACE( m_dbgEna );
 #elif defined(USE_OPENOFFICE_SDK)
     COMMON_DOC_IFACE* docIface = new OO_IFACE();
+#elif defined(USE_ODFPY)
+    COMMON_DOC_IFACE* docIface = new ODFPY_IFACE();
 #else
     COMMON_DOC_IFACE* docIface = new OO_PYTHON_UNO_IFACE();
 #endif

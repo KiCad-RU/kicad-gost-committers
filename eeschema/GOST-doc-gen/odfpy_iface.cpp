@@ -28,6 +28,8 @@
 
 #include <macros.h>
 
+#include <common_funcs.h>
+
 #include <odfpy_iface.h>
 
 namespace GOST_DOC_GEN {
@@ -36,14 +38,6 @@ ODFPY_IFACE::ODFPY_IFACE()
 {
     // launch the Python interpreter
     Py_Initialize();
-
-    PyRun_SimpleString( "import sys\n"
-                        "sys.path.append('/home/a-lunev/git/bzr/GOST-doc-gen/Debug/eeschema')\n"
-                      );
-
-    PyObject* pyModuleString = PyString_FromString( (char*)"odfpy_iface" );
-    PyObject* pyModule = PyImport_Import( pyModuleString );
-    m_pyOdfpy_iface_inst = PyObject_GetAttrString( pyModule, (char*)"odfpy_iface_inst" );
 }
 
 
@@ -55,7 +49,47 @@ ODFPY_IFACE::~ODFPY_IFACE()
 
 bool ODFPY_IFACE::Connect()
 {
+    wxString path = GetResourceFile( wxT( "odfpy_iface.py" ) );
+
+    if( path == wxEmptyString )
+        return false;
+
+    // remove filename from the full path
+#if defined (__WXMSW__)
+    path.Replace( wxT( "\\odfpy_iface.py" ), wxEmptyString );
+#else
+    path.Replace( wxT( "/odfpy_iface.py" ), wxEmptyString );
+#endif
+
+    path = wxT( "import sys\nsys.path.append('" ) + path + wxT( "')" );
+
+    if( PyRun_SimpleString( TO_UTF8( path ) ) == -1 )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
+
+    PyObject* pyModuleString = PyString_FromString( (char*)"odfpy_iface" );
+    PyObject* pyModule = PyImport_Import( pyModuleString );
+
+    if( !pyModule )
+    {
+        wxMessageBox( PyErrStringWithTraceback(),
+                      wxEmptyString,
+                      wxOK | wxICON_ERROR );
+        return false;
+    }
+
+    m_pyOdfpy_iface_inst = PyObject_GetAttrString( pyModule, (char*)"odfpy_iface_inst" );
+
     return true;
+}
+
+
+void ODFPY_IFACE::Disconnect()
+{
 }
 
 
