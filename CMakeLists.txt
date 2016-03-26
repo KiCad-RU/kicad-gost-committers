@@ -28,6 +28,7 @@ option( wxUSE_UNICODE "enable/disable building unicode (default OFF)" )
 option( KICAD_GOST "enable/disable building using GOST notation for multiple gates per package (default OFF)" )
 option( USE_INTERNAT "this option needs to be clarified (default OFF)" )
 option( USE_RPC_DOC_SERVER "enable/disable building GOST document generator using RPC document server (default ON)" ON )
+option( USE_ODFPY "enable/disable building GOST document generator using odfpy library (default OFF)" )
 option( USE_OPENOFFICE_SDK "enable/disable building GOST document generator with use of OpenOffice/LibreOffice SDK (default OFF)" )
 option( USE_PYTHON_GOSTDOCGEN "enable/disable building Python based GOST document generator (default OFF)" )
 # USE_RPC_DOC_SERVER and USE_OPENOFFICE_SDK are suboptions of KICAD_GOST option.
@@ -271,6 +272,14 @@ endif()
 
 if( USE_OPENOFFICE_SDK )
     add_definitions( -DUSE_OPENOFFICE_SDK )
+endif()
+
+if( USE_ODFPY )
+    add_definitions( -DUSE_ODFPY )
+endif()
+
+if( USE_PYTHON_GOSTDOCGEN )
+    add_definitions( -DUSE_PYTHON_GOSTDOCGEN )
 endif()
 
 if(USE_PCAD2KICAD)

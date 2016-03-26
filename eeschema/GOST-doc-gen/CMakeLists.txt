@@ -78,7 +78,11 @@ if(USE_RPC_DOC_SERVER)
     set(RPC_DOC_SERVER_SRCS rpc_doc_iface.cpp)
 endif(USE_RPC_DOC_SERVER)
 
-if(NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK)
+if(USE_ODFPY)
+    set(ODFPY_SRCS odfpy_iface.cpp)
+endif(USE_ODFPY)
+
+if(NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK AND NOT USE_ODFPY)
     set(OO_PYTHON_UNO_IFACE_SRCS
         oo_python_uno_iface.cpp
         )
@@ -106,6 +110,7 @@ set(GOST_DOC_GEN_SRCS
     ${OO_PYTHON_UNO_IFACE_SRCS}
     ${OO_SDK_SRCS}
     ${RPC_DOC_SERVER_SRCS}
+    ${ODFPY_SRCS}
     )
 
 add_library(GOST-doc-gen STATIC ${GOST_DOC_GEN_SRCS})
@@ -120,6 +125,7 @@ if(NOT USE_OPENOFFICE_SDK)
     install(FILES
                 doc_common.py
                 uno_iface.py
+                odfpy_iface.py
             DESTINATION ${KICAD_DATA}/GOST-doc-gen
             COMPONENT resources)
 endif()

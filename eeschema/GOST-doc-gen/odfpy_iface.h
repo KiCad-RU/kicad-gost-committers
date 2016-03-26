@@ -41,6 +41,7 @@ public:
     ~ODFPY_IFACE();
 
     bool Connect();
+    void Disconnect();
     bool LoadDocument( wxString aUrl );
     bool AppendDocument( wxString aUrl );
     void SelectTable( int aIndex );
