@@ -338,7 +338,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceHumanReadable( FILE* aFile )
 
     if( m_cmplist.GetCount() == 0 )    // Build component list
     {
-        SCH_SHEET_LIST sheetList;
+        SCH_SHEET_LIST sheetList( g_RootSheet );
         sheetList.GetComponents( m_libs, m_cmplist, false );
 
         // sort component list
@@ -459,7 +459,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceCsvForm( FILE* aFile )
 
     if( m_cmplist.GetCount() == 0 )    // Build component list
     {
-        SCH_SHEET_LIST sheetList;
+        SCH_SHEET_LIST sheetList( g_RootSheet );
         sheetList.GetComponents( m_libs, m_cmplist, false );
 
         // sort component list
@@ -650,7 +650,7 @@ int BOM_LISTER::PrintComponentsListByValue( FILE* aFile )
 
     if( m_cmplist.GetCount() == 0 )    // Build component list
     {
-        SCH_SHEET_LIST sheetList;
+        SCH_SHEET_LIST sheetList( g_RootSheet );
         sheetList.GetComponents( m_libs, m_cmplist, false );
 
         if( !m_includeSubComponents )
