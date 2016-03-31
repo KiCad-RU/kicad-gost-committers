@@ -343,6 +343,8 @@ wxString GetResourceFile( wxString aFileName )
     // If there's a KICAD environment variable set, use that guy's path also
     ss.AddPaths( Pgm().GetKicadEnvVariable(), 0 );
 
+    ss.AddPaths( wxT( "/usr" ), 0 );
+
     subdirs.Add( wxT( "share" ) );
 
 #ifndef __WXMSW__
