@@ -98,6 +98,12 @@ protected:
     void ResetItem( wxTreeListItem aItem );
 
     /**
+     * Method ResetItemToDefault
+     * Reset the item to the default value.
+     */
+    void ResetItemToDefault( wxTreeListItem aItem );
+
+    /**
      * Method OnActivated
      * Handle activation of a row.
      */
@@ -176,6 +182,13 @@ public:
      * placeholder in the layout.
      */
     void InstallOnPanel( wxPanel* aPanel );
+
+    /**
+     * Method TransferDefaultsToControl
+     * Set hotkeys in the control to default values.
+     * @return true iff the operation was successful
+     */
+    bool TransferDefaultsToControl();
 
     /**
      * Method TransferDataToControl

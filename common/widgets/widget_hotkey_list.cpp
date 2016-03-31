@@ -52,7 +52,9 @@ enum ID_WHKL_MENU_IDS
 {
     ID_EDIT = 2001,
     ID_RESET,
+    ID_DEFAULT,
     ID_RESET_ALL,
+    ID_DEFAULT_ALL,
 };
 
 
@@ -359,6 +361,15 @@ void WIDGET_HOTKEY_LIST::ResetItem( wxTreeListItem aItem )
 }
 
 
+void WIDGET_HOTKEY_LIST::ResetItemToDefault( wxTreeListItem aItem )
+{
+    WIDGET_HOTKEY_CLIENT_DATA* hkdata = GetHKClientData( aItem );
+    EDA_HOTKEY* hk = &hkdata->GetHotkey();
+    hk->ResetKeyCodeToDefault();
+    UpdateFromClientData();
+}
+
+
 void WIDGET_HOTKEY_LIST::OnActivated( wxTreeListEvent& aEvent )
 {
     EditItem( aEvent.GetItem() );
@@ -374,8 +385,10 @@ void WIDGET_HOTKEY_LIST::OnContextMenu( wxTreeListEvent& aEvent )
 
     menu.Append( ID_EDIT, _( "Edit..." ) );
     menu.Append( ID_RESET, _( "Reset" ) );
+    menu.Append( ID_DEFAULT, _( "Default" ) );
     menu.Append( wxID_SEPARATOR );
     menu.Append( ID_RESET_ALL, _( "Reset all" ) );
+    menu.Append( ID_DEFAULT_ALL, _( "Reset all to default" ) );
 
     PopupMenu( &menu );
 }
@@ -393,8 +406,16 @@ void WIDGET_HOTKEY_LIST::OnMenu( wxCommandEvent& aEvent )
         ResetItem( m_context_menu_item );
         break;
 
+    case ID_DEFAULT:
+        ResetItemToDefault( m_context_menu_item );
+        break;
+
     case ID_RESET_ALL:
         TransferDataToControl();
+        break;
+
+    case ID_DEFAULT_ALL:
+        TransferDefaultsToControl();
         break;
 
     default:
@@ -572,6 +593,26 @@ void WIDGET_HOTKEY_LIST::InstallOnPanel( wxPanel* aPanel )
 
     sizer->Add( this, 1, wxALL | wxEXPAND, 0 );
     aPanel->SetSizer( sizer );
+}
+
+
+bool WIDGET_HOTKEY_LIST::TransferDefaultsToControl()
+{
+    Freeze();
+
+    for( wxTreeListItem item = GetFirstItem(); item.IsOk(); item = GetNextItem( item ) )
+    {
+        WIDGET_HOTKEY_CLIENT_DATA* hkdata = GetHKClientData( item );
+        if( hkdata == NULL)
+            continue;
+
+        hkdata->GetHotkey().ResetKeyCodeToDefault();
+    }
+
+    UpdateFromClientData();
+    Thaw();
+
+    return true;
 }
 
 

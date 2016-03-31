@@ -56,6 +56,9 @@ extern wxString g_CommonSectionTag;
  */
 class EDA_HOTKEY
 {
+private:
+    int m_defaultKeyCode;   // Key code assigned upon object construction, to be used as default value
+
 public:
     int      m_KeyCode;      // Key code (ascii value for ascii keys or wxWidgets code for function key
     wxString m_InfoMsg;      // info message.
@@ -65,6 +68,7 @@ public:
 public:
     EDA_HOTKEY( const wxChar* infomsg, int idcommand, int keycode, int idmenuevent = 0 );
     EDA_HOTKEY( const EDA_HOTKEY* base);
+    void ResetKeyCodeToDefault() { m_KeyCode = m_defaultKeyCode; }
 };
 
 
