@@ -259,7 +259,7 @@ void COMPONENT_DB::AddNewVariant( int aVariant )
 
 bool COMPONENT_DB::ValidateKiCadCompRefs()
 {
-    SCH_SHEET_LIST  sheetList;
+    SCH_SHEET_LIST  sheetList( g_RootSheet );
     wxString        str;
 
     sheetList.GetComponents( m_libs, m_cmplist, false );
@@ -288,7 +288,7 @@ bool COMPONENT_DB::ValidateKiCadCompRefs()
 
 void COMPONENT_DB::ValidateKiCadAttrs()
 {
-    SCH_SHEET_LIST  sheetList;
+    SCH_SHEET_LIST  sheetList( g_RootSheet );
     SCH_FIELD*      pSch_field;
     bool            warnAttrValueDuplication_flag = false;
     bool            copyValueAttrPosition;
@@ -432,7 +432,7 @@ bool COMPONENT_DB::CompareAttrFromKiCad( COMPONENT* aComp,
 
 void COMPONENT_DB::LoadFromKiCad()
 {
-    SCH_SHEET_LIST  sheetList;
+    SCH_SHEET_LIST  sheetList( g_RootSheet );
     wxString        str;
     COMPONENT*      pComp;
 
@@ -488,7 +488,7 @@ void COMPONENT_DB::LoadFromKiCad()
 //return false if Component manager DB is not consistent to that of EESchema
 bool COMPONENT_DB::CompareDB()
 {
-    SCH_SHEET_LIST  sheetList;
+    SCH_SHEET_LIST  sheetList( g_RootSheet );
     wxString        str;
     COMPONENT*      pComp;
 
