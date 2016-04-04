@@ -6,9 +6,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KiCad\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-31 14:43+0300\n"
-"PO-Revision-Date: 2016-03-31 14:50+0300\n"
-"Last-Translator: Andrey Fedorushkov <andrf@mail.ru>\n"
+"POT-Creation-Date: 2016-04-04 08:18+0300\n"
+"PO-Revision-Date: 2016-04-04 08:34+0300\n"
+"Last-Translator: faa <andrf@mail.ru>\n"
 "Language-Team: Russian KiCad Translation Team: Andrey Fedorushkov, Eldar "
 "Khayrullin, Igor Plyatov <andrf@mail.ru>\n"
 "Language: ru_RU\n"
@@ -18,7 +18,7 @@ msgstr ""
 "X-Poedit-KeywordsList: _;_HKI\n"
 "X-Poedit-Basepath: ../..\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-Generator: Poedit 1.6.9\n"
+"X-Generator: Poedit 1.8.6\n"
 "X-Poedit-SearchPath-0: 3d-viewer\n"
 "X-Poedit-SearchPath-1: bitmap2component\n"
 "X-Poedit-SearchPath-2: common\n"
@@ -546,8 +546,8 @@ msgstr "пикселей"
 #: pcbnew/dialogs/dialog_create_array_base.cpp:61
 #: pcbnew/dialogs/dialog_create_array_base.cpp:72
 #: pcbnew/dialogs/dialog_create_array_base.cpp:83
-#: pcbnew/dialogs/dialog_create_array_base.cpp:189
-#: pcbnew/dialogs/dialog_create_array_base.cpp:200
+#: pcbnew/dialogs/dialog_create_array_base.cpp:188
+#: pcbnew/dialogs/dialog_create_array_base.cpp:199
 #: pcbnew/dialogs/dialog_export_idf_base.cpp:46
 #: pcbnew/dialogs/dialog_export_vrml_base.cpp:64
 #: pcbnew/dialogs/dialog_export_vrml_base.cpp:98
@@ -868,7 +868,7 @@ msgstr "ед.изм."
 msgid "in"
 msgstr "\""
 
-#: common/common.cpp:209 pcbnew/dialogs/dialog_create_array_base.cpp:221
+#: common/common.cpp:209 pcbnew/dialogs/dialog_create_array_base.cpp:220
 #: pcbnew/dialogs/dialog_move_exact_base.cpp:63
 #: pcbnew/dialogs/dialog_pad_properties_base.cpp:141
 msgid "deg"
@@ -1170,8 +1170,8 @@ msgstr "Помощь по переменным окружения"
 #: common/dialogs/dialog_env_var_config_base.cpp:38
 #: cvpcb/dialogs/dialog_config_equfiles_base.cpp:82
 #: eeschema/GOST-doc-gen/GOST_comp_manager.cpp:56
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:186
-#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:181
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:188
+#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:182
 #: eeschema/dialogs/dialog_eeschema_options_base.cpp:338
 #: eeschema/dialogs/dialog_eeschema_options_base.cpp:341
 #: eeschema/dialogs/dialog_lib_edit_pin_table.cpp:180
@@ -2659,8 +2659,8 @@ msgid "Available environment variables for relative paths:"
 msgstr "Доступные переменные окружения для относительных путей:"
 
 #: cvpcb/dialogs/dialog_config_equfiles_base.cpp:83
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:189
-#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:184
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:191
+#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:185
 #: eeschema/dialogs/dialog_rescue_each.cpp:111 eeschema/lib_field.cpp:581
 #: eeschema/lib_field.cpp:759 eeschema/onrightclick.cpp:426
 #: eeschema/sch_component.cpp:1543 eeschema/template_fieldnames.cpp:42
@@ -3238,11 +3238,11 @@ msgstr ""
 "\n"
 "Изменения были переданы обратно в Менеджер компонентов."
 
-#: eeschema/GOST-doc-gen/common_funcs.cpp:360
+#: eeschema/GOST-doc-gen/common_funcs.cpp:362
 msgid "Unable to open file: "
 msgstr "Не удается открыть файл: "
 
-#: eeschema/GOST-doc-gen/common_funcs.cpp:420
+#: eeschema/GOST-doc-gen/common_funcs.cpp:422
 msgid "Unable to find OpenOffice or LibreOffice installation path"
 msgstr "Не удается найти путь установки OpenOffice или LibreOffice"
 
@@ -4172,39 +4172,39 @@ msgstr ""
 msgid "Edit"
 msgstr "Править"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:223
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:225
 #, c-format
 msgid "Component '%s' found in library '%s'"
 msgstr "Компонент '%s' найден в библиотеке '%s'"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:229
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:231
 #, c-format
 msgid "Component '%s' not found in any library"
 msgstr "Компонент '%s' не найден в библиотеках."
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:245
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:247
 msgid "However, some candidates are found:"
 msgstr "Тем не менее, некоторые кандидаты найдены:"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:251
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:253
 #, c-format
 msgid "'%s' found in library '%s'"
 msgstr "'%s' найден в библиотеке '%s'."
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:313
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:315
 msgid "No Component Name!"
 msgstr "Нет имени компонента!"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:322
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:324
 #, c-format
 msgid "Component '%s' not found!"
 msgstr "Компонент '%s' не найден!"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:396
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:398
 msgid "Illegal reference. A reference must start with a letter"
 msgstr "Неправильная обозначение. Обозначение должно начинаться с буквы"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:422
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:424
 #, c-format
 msgid ""
 "The field name <%s> does not have a value and is not defined in the field "
@@ -4215,23 +4215,23 @@ msgstr ""
 "значений быть не должно и они будут удалены из компонента. Желаете удалить "
 "это и все остальные пустые поля?"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:429
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:431
 msgid "Remove Fields"
 msgstr "Удалить поля"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:848
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:851
 #: eeschema/dialogs/dialog_edit_component_in_schematic_fbp.cpp:213
-#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:697
+#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:677
 #: eeschema/dialogs/dialog_edit_libentry_fields_in_lib_base.cpp:124
 msgid "Show in Browser"
 msgstr "Показать в браузере"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:850
-#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:699
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:853
+#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:679
 msgid "Assign Footprint"
 msgstr "Назначить посад.место"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:985
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:993
 #: eeschema/dialogs/dialog_edit_component_in_schematic_fbp.cpp:41
 #: eeschema/lib_pin.cpp:1987 gerbview/class_gerber_draw_item.cpp:572
 #: gerbview/class_gerber_draw_item.cpp:573 pcbnew/class_pcb_text.cpp:145
@@ -4239,7 +4239,7 @@ msgstr "Назначить посад.место"
 msgid "Yes"
 msgstr "Да"
 
-#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:987
+#: eeschema/dialogs/dialog_edit_component_in_schematic.cpp:995
 #: eeschema/lib_pin.cpp:1989 gerbview/class_gerber_draw_item.cpp:572
 #: gerbview/class_gerber_draw_item.cpp:573 pcbnew/class_pcb_text.cpp:143
 #: pcbnew/class_text_mod.cpp:378
@@ -4259,9 +4259,9 @@ msgstr "Все части взаимозаменяемы:"
 #: eeschema/dialogs/dialog_edit_component_in_schematic_fbp.cpp:48
 #: pcbnew/dialogs/dialog_create_array_base.cpp:69
 #: pcbnew/dialogs/dialog_create_array_base.cpp:80
-#: pcbnew/dialogs/dialog_create_array_base.cpp:186
-#: pcbnew/dialogs/dialog_create_array_base.cpp:197
-#: pcbnew/dialogs/dialog_create_array_base.cpp:216
+#: pcbnew/dialogs/dialog_create_array_base.cpp:185
+#: pcbnew/dialogs/dialog_create_array_base.cpp:196
+#: pcbnew/dialogs/dialog_create_array_base.cpp:215
 #: pcbnew/dialogs/dialog_export_idf_base.cpp:62
 #: pcbnew/dialogs/dialog_export_idf_base.cpp:76
 #: pcbnew/dialogs/dialog_export_vrml_base.cpp:74
@@ -4337,7 +4337,7 @@ msgstr ""
 "Для логических элементов это преобразование по законам де Моргана"
 
 #: eeschema/dialogs/dialog_edit_component_in_schematic_fbp.cpp:70
-#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:670
+#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:649
 msgid "Chip Name"
 msgstr "Имя компонента"
 
@@ -4673,12 +4673,11 @@ msgstr "Пассивный"
 msgid "S&hape"
 msgstr "Форма"
 
-#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:243
-msgid "Illegal reference prefix. A reference must start by a letter"
-msgstr ""
-"Неправильный префикс обозначения. Обозначение должно начинаться с буквы"
+#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:244
+msgid "Illegal reference.  References must start with a letter."
+msgstr "Неправильная обозначение. Обозначение должно начинаться с буквы."
 
-#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:259
+#: eeschema/dialogs/dialog_edit_libentry_fields_in_lib.cpp:260
 #, c-format
 msgid ""
 "A new name is entered for this component\n"
@@ -4707,15 +4706,9 @@ msgid ""
 "The vertical height of the currently selected field's text in the schematic"
 msgstr "Верт. высота текущего выбранного текста поля в схематике"
 
-#: eeschema/dialogs/dialog_edit_one_field.cpp:172
-#, c-format
-msgid ""
-"Whitespace is not permitted inside references or values (symbol names in "
-"lib).\n"
-"The text you entered has been converted to use underscores: %s"
-msgstr ""
-"Не допускаются пробелы внутри ссылок или значений (имена символов в lib).\n"
-"Введенный вами текст преобразуется с использованием подчеркиваний: %s"
+#: eeschema/dialogs/dialog_edit_one_field.cpp:185
+msgid "Illegal reference field value!"
+msgstr "Неправильное обозначение!"
 
 #: eeschema/dialogs/dialog_eeschema_config.cpp:137
 #, c-format
@@ -5981,22 +5974,10 @@ msgstr "Заменить все"
 msgid "Couldn't load image from <%s>"
 msgstr "Не удалось загрузить изображение из <%s>"
 
-#: eeschema/edit_component_in_schematic.cpp:73
+#: eeschema/edit_component_in_schematic.cpp:69
 #, c-format
 msgid "Edit %s Field"
 msgstr "Правка %s поля"
-
-#: eeschema/edit_component_in_schematic.cpp:108
-msgid "Illegal reference string!  No change"
-msgstr "Неправильная строка обозначения! Не изменено"
-
-#: eeschema/edit_component_in_schematic.cpp:117
-msgid "The reference field cannot be empty!  No change"
-msgstr "Поле обозначения не может быть пустым! Не изменено"
-
-#: eeschema/edit_component_in_schematic.cpp:127
-msgid "The value field cannot be empty!  No change"
-msgstr "Поле значения не может быть пустым! Не изменено"
 
 #: eeschema/eeschema_config.cpp:245 pcbnew/pcbnew_config.cpp:217
 msgid "Read Project File"
@@ -7328,33 +7309,24 @@ msgstr "Правка поля %s"
 msgid "Enter a new value for the %s field."
 msgstr "Ввод нового значения для поля %s."
 
-#: eeschema/libfield.cpp:79
-#, c-format
-msgid "A %s field cannot be empty."
-msgstr "Поле %s не может быть пустым."
-
-#: eeschema/libfield.cpp:88
-msgid "Illegal reference. A reference must start by a letter"
-msgstr "Неправильная обозначение. Обозначение должно начинаться с буквы"
-
-#: eeschema/libfield.cpp:108
+#: eeschema/libfield.cpp:91
 #, c-format
 msgid ""
 "The name '%s' conflicts with an existing entry in the component library "
 "'%s'.\n"
 "\n"
-"Do you wish to replace the current component in library with this one?"
+"Do you wish to replace the current component in the library with this one?"
 msgstr ""
 "Поле с именем '%s' конфликтует с компонентом в библиотеке '%s'.\n"
 "\n"
 "Желаете заместить компонент в библиотеке?"
 
-#: eeschema/libfield.cpp:114 eeschema/libfield.cpp:130
-#: eeschema/libfield.cpp:149
+#: eeschema/libfield.cpp:97 eeschema/libfield.cpp:111
+#: eeschema/libfield.cpp:131
 msgid "Confirm"
 msgstr "Подтверждение"
 
-#: eeschema/libfield.cpp:125
+#: eeschema/libfield.cpp:107
 #, c-format
 msgid ""
 "The current component already has an alias named '%s'.\n"
@@ -7365,7 +7337,7 @@ msgstr ""
 "\n"
 "Удалить этот псевдоним компонента?"
 
-#: eeschema/libfield.cpp:144
+#: eeschema/libfield.cpp:125
 #, c-format
 msgid ""
 "The new component contains alias names that conflict with entries in the "
@@ -8639,6 +8611,76 @@ msgstr "Глобальная метка %s"
 #, c-format
 msgid "Hierarchical Label %s"
 msgstr "Иерархическая метка %s"
+
+#: eeschema/sch_validators.cpp:80
+msgid "reference designator"
+msgstr "обозначение"
+
+#: eeschema/sch_validators.cpp:81
+msgid "value"
+msgstr "значение"
+
+#: eeschema/sch_validators.cpp:82
+msgid "footprint"
+msgstr "посадочное место"
+
+#: eeschema/sch_validators.cpp:83
+msgid "data sheet"
+msgstr "Документация"
+
+#: eeschema/sch_validators.cpp:84
+msgid "user definded"
+msgstr "определено пользователем"
+
+#: eeschema/sch_validators.cpp:92
+#, c-format
+msgid "The %s field cannot be empty."
+msgstr "Поле %s не может быть пустым."
+
+#: eeschema/sch_validators.cpp:98
+msgid "carriage return"
+msgstr "возврат каретки"
+
+#: eeschema/sch_validators.cpp:100
+msgid "line feed"
+msgstr "перевод строки"
+
+#: eeschema/sch_validators.cpp:102
+msgid "tab"
+msgstr "табуляция"
+
+#: eeschema/sch_validators.cpp:104
+msgid "space"
+msgstr "пробел"
+
+#: eeschema/sch_validators.cpp:111
+#, c-format
+msgid "%s or %s"
+msgstr "%s или %s"
+
+#: eeschema/sch_validators.cpp:113
+#, c-format
+msgid "%s, %s, or %s"
+msgstr "%s, %s, или %s"
+
+#: eeschema/sch_validators.cpp:115
+#, c-format
+msgid "%s, %s, %s, or %s"
+msgstr "%s, %s, %s, или %s"
+
+#: eeschema/sch_validators.cpp:120
+#, c-format
+msgid "The %s field cannot contain %s characters."
+msgstr "Поле %s не должно содержать символы %s."
+
+#: eeschema/sch_validators.cpp:124
+#, c-format
+msgid "The %s field cannot contain leading and/or trailing white space."
+msgstr "Поле %s не должно содержать начальные и конечные пробелы."
+
+#: eeschema/sch_validators.cpp:132
+msgid "Field Validation Error"
+msgstr "Ошибка проверки полей"
 
 #: eeschema/schedit.cpp:265
 msgid "There are no undefined labels in this sheet to clean up."
@@ -14057,23 +14099,62 @@ msgid ""
 "copper zones."
 msgstr "Экспорт установок этой зоны (исключая слой и цепь) во все медные зоны."
 
-#: pcbnew/dialogs/dialog_create_array.cpp:53
+#: pcbnew/dialogs/dialog_create_array.cpp:56
 msgid "Numerals (0,1,2,...,9,10)"
 msgstr "Числа (0,1,2,...,9,10)"
 
-#: pcbnew/dialogs/dialog_create_array.cpp:54
+#: pcbnew/dialogs/dialog_create_array.cpp:57
 msgid "Hexadecimal (0,1,...,F,10,...)"
 msgstr "Шестнадцатеричный (0,1,...,F,10,...)"
 
-#: pcbnew/dialogs/dialog_create_array.cpp:55
+#: pcbnew/dialogs/dialog_create_array.cpp:58
 msgid "Alphabet, minus IOSQXZ"
 msgstr "Алфавит, за исключением IOSQXZ"
 
-#: pcbnew/dialogs/dialog_create_array.cpp:56
+#: pcbnew/dialogs/dialog_create_array.cpp:59
 msgid "Alphabet, full 26 characters"
 msgstr "Алфавит, все 26 символов"
 
-#: pcbnew/dialogs/dialog_create_array.cpp:296
+#: pcbnew/dialogs/dialog_create_array.cpp:232
+#, c-format
+msgid "Unrecognised numbering scheme: %d"
+msgstr "Недопустимая схема нумерации: %d"
+
+#: pcbnew/dialogs/dialog_create_array.cpp:246
+#, c-format
+msgid ""
+"Could not determine numbering start from \"%s\": expected value consistent "
+"with alphabet \"%s\""
+msgstr ""
+"Не удалось определить начало нумерации для  \"%s\": ожидаемое значение  "
+"должно состоять только из \"%s\""
+
+#: pcbnew/dialogs/dialog_create_array.cpp:275
+#, c-format
+msgid "Bad integral value for %s: %s"
+msgstr "Неверное полное значение %s: %s"
+
+#: pcbnew/dialogs/dialog_create_array.cpp:298
+msgid "horizontal count"
+msgstr "кол-во по гориз."
+
+#: pcbnew/dialogs/dialog_create_array.cpp:300
+msgid "vertical count"
+msgstr "кол-во по верт."
+
+#: pcbnew/dialogs/dialog_create_array.cpp:310
+msgid "stagger"
+msgstr "смещение"
+
+#: pcbnew/dialogs/dialog_create_array.cpp:359
+msgid "point count"
+msgstr "кол-вл точек"
+
+#: pcbnew/dialogs/dialog_create_array.cpp:372
+msgid "numbering start"
+msgstr "начало нумерации"
+
+#: pcbnew/dialogs/dialog_create_array.cpp:398
 msgid "Bad parameters"
 msgstr "Неверные параметры"
 
@@ -14113,9 +14194,9 @@ msgid "Stagger:"
 msgstr "Шахматность:"
 
 #: pcbnew/dialogs/dialog_create_array_base.cpp:91
-#: pcbnew/dialogs/dialog_create_array_base.cpp:156
-#: pcbnew/dialogs/dialog_create_array_base.cpp:159
-#: pcbnew/dialogs/dialog_create_array_base.cpp:263
+#: pcbnew/dialogs/dialog_create_array_base.cpp:155
+#: pcbnew/dialogs/dialog_create_array_base.cpp:158
+#: pcbnew/dialogs/dialog_create_array_base.cpp:261
 msgid "1"
 msgstr "1"
 
@@ -14131,87 +14212,87 @@ msgstr "Столбцы"
 msgid "Stagger Type"
 msgstr "Тип шахматной расстановки"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:106
+#: pcbnew/dialogs/dialog_create_array_base.cpp:105
 msgid "Horizontal, then vertical"
 msgstr "Гориз. затем верт."
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:106
+#: pcbnew/dialogs/dialog_create_array_base.cpp:105
 msgid "Vertical, then horizontal"
 msgstr "Верт. затем гориз."
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:108
+#: pcbnew/dialogs/dialog_create_array_base.cpp:107
 msgid "Pad Numbering Direction"
 msgstr "Направление нумерации выводов"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:112
+#: pcbnew/dialogs/dialog_create_array_base.cpp:111
 msgid "Reverse pad numbering on alternate rows or columns"
 msgstr "Обратная нумерация выводов для альтернативных строк или столбцов"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:115
-#: pcbnew/dialogs/dialog_create_array_base.cpp:250
+#: pcbnew/dialogs/dialog_create_array_base.cpp:114
+#: pcbnew/dialogs/dialog_create_array_base.cpp:248
 msgid "Use first free number"
 msgstr "Использовать первый свободный номер"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:115
-#: pcbnew/dialogs/dialog_create_array_base.cpp:250
+#: pcbnew/dialogs/dialog_create_array_base.cpp:114
+#: pcbnew/dialogs/dialog_create_array_base.cpp:248
 msgid "From start value"
 msgstr "С начального значения"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:117
-#: pcbnew/dialogs/dialog_create_array_base.cpp:252
+#: pcbnew/dialogs/dialog_create_array_base.cpp:116
+#: pcbnew/dialogs/dialog_create_array_base.cpp:250
 msgid "Initial pad number"
 msgstr "Начальный номер вывода:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:121
+#: pcbnew/dialogs/dialog_create_array_base.cpp:120
 msgid "Continuous (1, 2, 3...)"
 msgstr "Последовательная (1, 2, 3...)"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:121
+#: pcbnew/dialogs/dialog_create_array_base.cpp:120
 msgid "Coordinate (A1, A2, ... B1, ...)"
 msgstr "Координатная (A1, A2, ... B1, ...)"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:123
+#: pcbnew/dialogs/dialog_create_array_base.cpp:122
 msgid "Pad Numbering Scheme"
 msgstr "Схема нумерации выводов"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:127
+#: pcbnew/dialogs/dialog_create_array_base.cpp:126
 msgid "Primary axis numbering:"
 msgstr "Основная ось нумерации:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:136
+#: pcbnew/dialogs/dialog_create_array_base.cpp:135
 msgid "Secondary axis numbering:"
 msgstr "Вторичная ось нумерации:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:152
+#: pcbnew/dialogs/dialog_create_array_base.cpp:151
 msgid "Pad numbering start:"
 msgstr "Начало нумерации вывода:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:172
+#: pcbnew/dialogs/dialog_create_array_base.cpp:171
 msgid "Grid Array"
 msgstr "Массив по сетке"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:182
+#: pcbnew/dialogs/dialog_create_array_base.cpp:181
 msgid "Horizontal center:"
 msgstr "Центр по гориз.:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:193
+#: pcbnew/dialogs/dialog_create_array_base.cpp:192
 msgid "Vertical center:"
 msgstr "Центр по верт.:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:204
+#: pcbnew/dialogs/dialog_create_array_base.cpp:203
 msgid "Radius:"
 msgstr "Радиус:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:208
+#: pcbnew/dialogs/dialog_create_array_base.cpp:207
 msgid "0 mm"
 msgstr "0 мм"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:212
+#: pcbnew/dialogs/dialog_create_array_base.cpp:211
 #: pcbnew/dialogs/dialog_move_exact.cpp:137
 msgid "Angle:"
 msgstr "Угол:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:217
+#: pcbnew/dialogs/dialog_create_array_base.cpp:216
 msgid ""
 "Positive angles represent an anti-clockwise rotation. An angle of 0 will "
 "produce a full circle divided evenly into \"Count\" portions."
@@ -14219,24 +14300,24 @@ msgstr ""
 "Вращение против ч.с. имеет положительный угол. При 0 будет произведено "
 "деление на \"Кол-во\" равных частей."
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:225
+#: pcbnew/dialogs/dialog_create_array_base.cpp:224
 msgid "Count:"
 msgstr "Кол-во:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:229
+#: pcbnew/dialogs/dialog_create_array_base.cpp:228
 #: pcbnew/dialogs/dialog_layers_setup_base.cpp:45
 msgid "4"
 msgstr "4"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:230
+#: pcbnew/dialogs/dialog_create_array_base.cpp:229
 msgid "How many items in the array."
 msgstr "Сколько элементов в массиве."
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:234
+#: pcbnew/dialogs/dialog_create_array_base.cpp:233
 msgid "Rotate:"
 msgstr "Вращать:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:240
+#: pcbnew/dialogs/dialog_create_array_base.cpp:239
 msgid ""
 "Rotate the item as well as move it - multi-selections will be rotated "
 "together"
@@ -14244,15 +14325,15 @@ msgstr ""
 "Повернуть и переместить элемент - множественный выбор будет повернут как "
 "единое целое"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:248
+#: pcbnew/dialogs/dialog_create_array_base.cpp:246
 msgid "Pad Numbering Options"
 msgstr "Параметры нумерации вывода"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:259
+#: pcbnew/dialogs/dialog_create_array_base.cpp:257
 msgid "Pad numbering start value:"
 msgstr "Начальное значение нумерации вывода:"
 
-#: pcbnew/dialogs/dialog_create_array_base.cpp:276
+#: pcbnew/dialogs/dialog_create_array_base.cpp:274
 msgid "Circular Array"
 msgstr "Круговой массив"
 
@@ -19689,7 +19770,7 @@ msgstr "Дублировать элемент"
 msgid "Duplicate Item and Increment"
 msgstr "Дубликат элемента и инкремент"
 
-#: pcbnew/hotkeys.cpp:122 pcbnew/dialogs/dialog_create_array_base.h:113
+#: pcbnew/hotkeys.cpp:122 pcbnew/dialogs/dialog_create_array_base.h:115
 msgid "Create Array"
 msgstr "Создать массив"
 
@@ -23893,6 +23974,28 @@ msgstr ""
 #: pcbnew/import_dxf/dialog_dxf_import_base.h:72
 msgid "Import DXF File"
 msgstr "Импорт DXF файла"
+
+#~ msgid "Illegal reference prefix. A reference must start by a letter"
+#~ msgstr ""
+#~ "Неправильный префикс обозначения. Обозначение должно начинаться с буквы"
+
+#~ msgid ""
+#~ "Whitespace is not permitted inside references or values (symbol names in "
+#~ "lib).\n"
+#~ "The text you entered has been converted to use underscores: %s"
+#~ msgstr ""
+#~ "Не допускаются пробелы внутри ссылок или значений (имена символов в "
+#~ "lib).\n"
+#~ "Введенный вами текст преобразуется с использованием подчеркиваний: %s"
+
+#~ msgid "The reference field cannot be empty!  No change"
+#~ msgstr "Поле обозначения не может быть пустым! Не изменено"
+
+#~ msgid "The value field cannot be empty!  No change"
+#~ msgstr "Поле значения не может быть пустым! Не изменено"
+
+#~ msgid "Illegal reference. A reference must start by a letter"
+#~ msgstr "Неправильная обозначение. Обозначение должно начинаться с буквы"
 
 #~ msgid "Contribute to KiCad"
 #~ msgstr "Сделать вклад в KiCad"
