@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -175,7 +175,8 @@ void CACHED_CONTAINER::Delete( VERTEX_ITEM* aItem )
     // can create memory fragmentation and no room to reallocate large chuncks
     // after many free/reallocate cycles during a session using the same complex board
     // So it can be disable.
-#if 1
+    // Currently: it is disable to avoid "out of memory" issues
+#if 0
     // Dynamic memory freeing, there is no point in holding
     // a large amount of memory when there is no use for it
     if( m_freeSpace > ( 0.75 * m_currentSize ) && m_currentSize > m_initialSize )
@@ -188,20 +189,12 @@ void CACHED_CONTAINER::Delete( VERTEX_ITEM* aItem )
 
 void CACHED_CONTAINER::Clear()
 {
-    // Change size to the default one
-    m_vertices = static_cast<VERTEX*>( realloc( m_vertices,
-                                                m_initialSize * sizeof( VERTEX ) ) );
-
-    // Reset state variables
-    m_freeSpace     = m_initialSize;
-    m_currentSize   = m_initialSize;
+    m_freeSpace = m_currentSize;
     m_failed = false;
 
     // Set the size of all the stored VERTEX_ITEMs to 0, so it is clear that they are not held
     // in the container anymore
-    ITEMS::iterator it;
-
-    for( it = m_items.begin(); it != m_items.end(); ++it )
+    for( ITEMS::iterator it = m_items.begin(); it != m_items.end(); ++it )
     {
         ( *it )->setSize( 0 );
     }

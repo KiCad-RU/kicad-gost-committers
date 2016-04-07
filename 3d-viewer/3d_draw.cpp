@@ -56,6 +56,7 @@
 #include <info3d_visu.h>
 #include <trackball.h>
 #include <3d_draw_basic_functions.h>
+#include "3d_rendering/3d_render_ogl_legacy/ogl_legacy_utils.h"
 
 #include <CImage.h>
 #include <reporter.h>
@@ -1128,16 +1129,15 @@ void EDA_3D_CANVAS::render3DComponentShape( MODULE* module,
             shape3D->Render( aIsRenderingJustNonTransparentObjects,
                              aIsRenderingJustTransparentObjects );
 
-            if( isEnabled( FL_RENDER_SHOW_MODEL_BBOX ) )
+            const CBBOX &shapeBBox = shape3D->getBBox();
+            if( isEnabled( FL_RENDER_SHOW_MODEL_BBOX ) && shapeBBox.IsInitialized() )
             {
                 // Set the alpha current color to opaque
                 float currentColor[4];
                 glGetFloatv( GL_CURRENT_COLOR,currentColor );
                 currentColor[3] = 1.0f;
                 glColor4fv( currentColor );
-
-                CBBOX thisBBox = shape3D->getBBox();
-                thisBBox.GLdebug();
+                OGL_draw_bbox( shapeBBox );
             }
 
             glPopMatrix();
