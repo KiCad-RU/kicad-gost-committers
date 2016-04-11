@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar 28 2016)
+// C++ code generated with wxFormBuilder (version Apr  9 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -170,7 +170,6 @@ class DIALOG_PAD_PROPERTIES_BASE : public DIALOG_SHIM
 		virtual void onCornerSizePercentChange( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnDrillShapeSelected( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnPaintShowPanel( wxPaintEvent& event ) { event.Skip(); }
-		virtual void PadPropertiesAccept( wxCommandEvent& event ) { event.Skip(); }
 		
 	
 	public:

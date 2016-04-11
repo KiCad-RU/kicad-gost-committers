@@ -35,13 +35,9 @@
 #include <class_drawpanel.h>
 #include <confirm.h>
 #include <pcbnew.h>
-#include <trigo.h>
-#include <macros.h>
 #include <wxBasePcbFrame.h>
 #include <pcbcommon.h>
 #include <base_units.h>
-
-#include <wx/dcbuffer.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -103,7 +99,8 @@ void PCB_BASE_FRAME::InstallPadOptionsFrame( D_PAD* aPad )
 
 
 DIALOG_PAD_PROPERTIES::DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aPad ) :
-    DIALOG_PAD_PROPERTIES_BASE( aParent )
+    DIALOG_PAD_PROPERTIES_BASE( aParent ),
+    m_OrientValidator( 1, &m_OrientValue )
 {
     m_canUpdate  = false;
     m_parent     = aParent;
@@ -111,6 +108,10 @@ DIALOG_PAD_PROPERTIES::DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aP
                                 // from the footprint editor to set default pad setup
 
     m_board      = m_parent->GetBoard();
+
+    m_OrientValidator.SetRange( -360.0, 360.0 );
+    m_PadOrientCtrl->SetValidator( m_OrientValidator );
+    m_OrientValidator.SetWindow( m_PadOrientCtrl );
 
     m_padMaster  = &m_parent->GetDesignSettings().m_Pad_Master;
     m_dummyPad   = new D_PAD( (MODULE*) NULL );
@@ -147,6 +148,7 @@ DIALOG_PAD_PROPERTIES::DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aP
     }
 
     initValues();
+    TransferDataToWindow();
 
     m_sdbSizerOK->SetDefault();
     GetSizer()->SetSizeHints( this );
@@ -265,6 +267,11 @@ void DIALOG_PAD_PROPERTIES::updateRoundRectCornerValues()
                                         m_dummyPad->GetRoundRectRadiusRatio()*100 ) );
         m_staticTextCornerRadiusValue->SetLabel( StringFromValue( g_UserUnit,
                                                  m_dummyPad->GetRoundRectCornerRadius() ) );
+    }
+    else if( m_dummyPad->GetShape() == PAD_SHAPE_RECT )
+    {
+        m_tcCornerSizeRatio->ChangeValue( "0" );
+        m_staticTextCornerRadiusValue->SetLabel( "0" );
     }
     else
     {
@@ -513,8 +520,7 @@ void DIALOG_PAD_PROPERTIES::initValues()
         break;
     }
 
-    msg.Printf( wxT( "%g" ), angle );
-    m_PadOrientCtrl->SetValue( msg );
+    m_OrientValue = angle / 10.0;
 
     // Type of pad selection
     m_PadType->SetSelection( 0 );
@@ -547,14 +553,6 @@ void DIALOG_PAD_PROPERTIES::initValues()
     OnDrillShapeSelected( cmd_event );
     OnPadShapeSelection( cmd_event );
     updateRoundRectCornerValues();
-}
-
-// A small helper function, to display coordinates:
-static wxString formatCoord( wxPoint aCoord )
-{
-    return wxString::Format( "X=%s  Y=%s",
-                CoordinateToString( aCoord.x, true ),
-                CoordinateToString( aCoord.y, true ) );
 }
 
 
@@ -607,18 +605,14 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
         m_ShapeSize_Y_Ctrl->Enable( true );
         m_ShapeOffset_X_Ctrl->Enable( true );
         m_ShapeOffset_Y_Ctrl->Enable( true );
+        // Ensure m_tcCornerSizeRatio contains the right value:
+        m_tcCornerSizeRatio->ChangeValue( wxString::Format( "%.1f",
+                                m_dummyPad->GetRoundRectRadiusRatio()*100 ) );
         break;
     }
 
     // A few widgets are enabled only for rounded rect pads:
-    bool roundrect = m_PadShape->GetSelection() == CHOICE_SHAPE_ROUNDRECT;
-
-    m_staticTextCornerSizeRatio->Enable( roundrect );
-	m_tcCornerSizeRatio->Enable( roundrect );
-	m_staticTextCornerSizeRatioUnit->Enable( roundrect );
-	m_staticTextCornerRadius->Enable( roundrect );
-	m_staticTextCornerRadiusValue->Enable( roundrect );
-	m_staticTextCornerSizeUnit->Enable( roundrect );
+	m_tcCornerSizeRatio->Enable( m_PadShape->GetSelection() == CHOICE_SHAPE_ROUNDRECT );
 
     transferDataToPad( m_dummyPad );
 
@@ -680,9 +674,8 @@ void DIALOG_PAD_PROPERTIES::PadOrientEvent( wxCommandEvent& event )
         break;
     }
 
-    wxString msg;
-    msg.Printf( wxT( "%g" ), m_dummyPad->GetOrientation() );
-    m_PadOrientCtrl->SetValue( msg );
+    m_OrientValue = m_dummyPad->GetOrientation() / 10.0;
+    m_OrientValidator.TransferToWindow();
 
     transferDataToPad( m_dummyPad );
     redraw();
@@ -903,10 +896,34 @@ void DIALOG_PAD_PROPERTIES::redraw()
 }
 
 
-void DIALOG_PAD_PROPERTIES::PadPropertiesAccept( wxCommandEvent& event )
+bool DIALOG_PAD_PROPERTIES::TransferDataToWindow()
 {
+    if( !wxDialog::TransferDataToWindow() )
+        return false;
+
+    if( !m_panelGeneral->TransferDataToWindow() )
+        return false;
+
+    if( !m_localSettingsPanel->TransferDataToWindow() )
+        return false;
+
+    return true;
+}
+
+
+bool DIALOG_PAD_PROPERTIES::TransferDataFromWindow()
+{
+    if( !wxDialog::TransferDataFromWindow() )
+        return false;
+
+    if( !m_panelGeneral->TransferDataFromWindow() )
+        return false;
+
+    if( !m_localSettingsPanel->TransferDataFromWindow() )
+        return false;
+
     if( !padValuesOK() )
-        return;
+        return false;
 
     bool rastnestIsChanged = false;
     int  isign = m_isFlipped ? -1 : 1;
@@ -1007,6 +1024,14 @@ void DIALOG_PAD_PROPERTIES::PadPropertiesAccept( wxCommandEvent& event )
         m_currentPad->SetThermalGap( m_padMaster->GetThermalGap() );
         m_currentPad->SetRoundRectRadiusRatio( m_padMaster->GetRoundRectRadiusRatio() );
 
+        // rounded rect pads with radius ratio = 0 are in fact rect pads.
+        // So set the right shape (and perhaps issues with a radius = 0)
+        if( m_currentPad->GetShape() == PAD_SHAPE_ROUNDRECT &&
+            m_currentPad->GetRoundRectRadiusRatio() == 0.0 )
+        {
+            m_currentPad->SetShape( PAD_SHAPE_RECT );
+        }
+
         footprint->CalculateBoundingBox();
         m_parent->SetMsgPanel( m_currentPad );
 
@@ -1015,10 +1040,10 @@ void DIALOG_PAD_PROPERTIES::PadPropertiesAccept( wxCommandEvent& event )
         m_parent->OnModify();
     }
 
-    EndModal( wxID_OK );
-
     if( rastnestIsChanged )  // The net ratsnest must be recalculated
         m_board->m_Status_Pcb = 0;
+
+    return true;
 }
 
 
@@ -1026,6 +1051,15 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
 {
     wxString    msg;
     int         x, y;
+
+    if( !Validate() )
+        return true;
+    if( !m_panelGeneral->Validate() )
+        return true;
+    if( !m_localSettingsPanel->Validate() )
+        return true;
+
+    m_OrientValidator.TransferFromWindow();
 
     aPad->SetAttribute( code_type[m_PadType->GetSelection()] );
     aPad->SetShape( code_shape[m_PadShape->GetSelection()] );
@@ -1151,11 +1185,7 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     y = ValueFromTextCtrl( *m_ShapeOffset_Y_Ctrl );
     aPad->SetOffset( wxPoint( x, y ) );
 
-    double orient_value = 0;
-    msg = m_PadOrientCtrl->GetValue();
-    msg.ToDouble( &orient_value );
-
-    aPad->SetOrientation( orient_value );
+    aPad->SetOrientation( m_OrientValue * 10.0 );
 
     msg = m_PadNumCtrl->GetValue().Left( 4 );
     aPad->SetPadName( msg );
