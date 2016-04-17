@@ -168,9 +168,9 @@ void LIB_VIEW_FRAME::ReCreateHToolbar()
     for( int ii = 0; ii < parts_count; ii++ )
     {
 #if defined(KICAD_GOST)
-        wxString msg = wxString::Format( _( "Unit %d" ), ii + 1 );
+        msg.Printf( _( "Unit %d" ), ii + 1 );
 #else
-        wxString msg = wxString::Format( _( "Unit %c" ), 'A' + ii );
+        msg.Printf( _( "Unit %c" ), 'A' + ii );
 #endif
         m_selpartBox->Append( msg );
     }
