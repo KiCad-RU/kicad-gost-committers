@@ -205,7 +205,8 @@ bool PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
     case HK_CALL_MACROS_7:
     case HK_CALL_MACROS_8:
     case HK_CALL_MACROS_9:
-        CallMacros( aDC, GetCrossHairPosition( false ), hk_id - HK_CALL_MACROS_0 );
+        if( m_RecordingMacros == -1 )
+            CallMacros( aDC, GetCrossHairPosition( false ), hk_id - HK_CALL_MACROS_0 );
         break;
 
     case HK_SET_TRACK_WIDTH:
