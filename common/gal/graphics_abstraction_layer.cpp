@@ -51,7 +51,7 @@ GAL::GAL() :
     SetLayerDepth( 0.0 );
     SetFlip( false, false );
     SetLineWidth( 1.0 );
-    ComputeWorldScale();
+    computeWorldScale();
 
     // Set grid defaults
     SetGridVisibility( true );
@@ -76,12 +76,12 @@ GAL::~GAL()
 
 void GAL::SetTextAttributes( const EDA_TEXT* aText )
 {
-    strokeFont.SetGlyphSize( VECTOR2D( aText->GetSize() ) );
-    strokeFont.SetHorizontalJustify( aText->GetHorizJustify() );
-    strokeFont.SetVerticalJustify( aText->GetVertJustify() );
-    strokeFont.SetBold( aText->IsBold() );
-    strokeFont.SetItalic( aText->IsItalic() );
-    strokeFont.SetMirrored( aText->IsMirrored() );
+    SetGlyphSize( VECTOR2D( aText->GetSize() ) );
+    SetHorizontalJustify( aText->GetHorizJustify() );
+    SetVerticalJustify( aText->GetVertJustify() );
+    SetFontBold( aText->IsBold() );
+    SetFontItalic( aText->IsItalic() );
+    SetTextMirrored( aText->IsMirrored() );
 }
 
 VECTOR2D GAL::GetTextLineSize( const UTF8& aText ) const
@@ -95,7 +95,7 @@ VECTOR2D GAL::GetTextLineSize( const UTF8& aText ) const
 
 void GAL::ComputeWorldScreenMatrix()
 {
-    ComputeWorldScale();
+    computeWorldScale();
 
     worldScreenMatrix.SetIdentity();
 

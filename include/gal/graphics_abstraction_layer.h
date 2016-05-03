@@ -79,6 +79,12 @@ public:
     /// @brief End the drawing, needs to be called for every new frame.
     virtual void EndDrawing() {};
 
+    /// @brief Enables item update mode.
+    virtual void BeginUpdate() {}
+
+    /// @brief Disables item update mode.
+    virtual void EndUpdate() {}
+
     /**
      * @brief Draw a line.
      *
@@ -188,7 +194,7 @@ public:
      *
      * @param aIsFillEnabled is true, when the graphics objects should be filled, else false.
      */
-    inline virtual void SetIsFill( bool aIsFillEnabled )
+    virtual void SetIsFill( bool aIsFillEnabled )
     {
         isFillEnabled = aIsFillEnabled;
     }
@@ -198,7 +204,7 @@ public:
      *
      * @param aIsStrokeEnabled is true, if the outline of an object should be stroked.
      */
-    inline virtual void SetIsStroke( bool aIsStrokeEnabled )
+    virtual void SetIsStroke( bool aIsStrokeEnabled )
     {
         isStrokeEnabled = aIsStrokeEnabled;
     }
@@ -208,7 +214,7 @@ public:
      *
      * @param aColor is the color for filling.
      */
-    inline virtual void SetFillColor( const COLOR4D& aColor )
+    virtual void SetFillColor( const COLOR4D& aColor )
     {
         fillColor = aColor;
     }
@@ -218,7 +224,7 @@ public:
      *
      * @param aColor is the color for stroking the outline.
      */
-    inline virtual void SetStrokeColor( const COLOR4D& aColor )
+    virtual void SetStrokeColor( const COLOR4D& aColor )
     {
         strokeColor = aColor;
     }
@@ -238,7 +244,7 @@ public:
      *
      * @param aLineWidth is the line width.
      */
-    inline virtual void SetLineWidth( double aLineWidth )
+    virtual void SetLineWidth( double aLineWidth )
     {
         lineWidth = aLineWidth;
     }
@@ -258,7 +264,7 @@ public:
      *
      * @param aLayerDepth the layer depth for the objects.
      */
-    inline virtual void SetLayerDepth( double aLayerDepth )
+    virtual void SetLayerDepth( double aLayerDepth )
     {
         assert( aLayerDepth <= depthRange.y );
         assert( aLayerDepth >= depthRange.x );
@@ -282,10 +288,25 @@ public:
      * @param aPosition is the text position in world coordinates.
      * @param aRotationAngle is the text rotation angle.
      */
-    inline virtual void StrokeText( const wxString& aText, const VECTOR2D& aPosition,
+    virtual void StrokeText( const wxString& aText, const VECTOR2D& aPosition,
                                     double aRotationAngle )
     {
         strokeFont.Draw( aText, aPosition, aRotationAngle );
+    }
+
+    /**
+     * @brief Draws a text using a bitmap font. It should be faster than StrokeText(),
+     * but can be used only for non-Gerber elements.
+     *
+     * @param aText is the text to be drawn.
+     * @param aPosition is the text position in world coordinates.
+     * @param aRotationAngle is the text rotation angle.
+     */
+    virtual void BitmapText( const wxString& aText, const VECTOR2D& aPosition,
+                             double aRotationAngle )
+    {
+        // Fallback: use stroke font
+        StrokeText( aText, aPosition, aRotationAngle );
     }
 
     /**
@@ -314,41 +335,114 @@ public:
      */
     virtual void SetTextAttributes( const EDA_TEXT* aText );
 
-    /// @copydoc STROKE_FONT::SetGlyphSize()
+    /**
+     * @brief Set the font glyph size.
+     *
+     * @param aGlyphSize is the new font glyph size.
+     */
     inline void SetGlyphSize( const VECTOR2D aGlyphSize )
     {
-        strokeFont.SetGlyphSize( aGlyphSize );
+        textProperties.m_glyphSize = aGlyphSize;
     }
 
-    /// @copydoc STROKE_FONT::SetBold()
-    inline void SetBold( const bool aBold )
+    /**
+     * @return the current font glyph size.
+     */
+    const VECTOR2D& GetGlyphSize() const
     {
-        strokeFont.SetBold( aBold );
+        return textProperties.m_glyphSize;
     }
 
-    /// @copydoc STROKE_FONT::SetItalic()
-    inline void SetItalic( const bool aItalic )
+    /**
+     * @brief Set bold property of current font.
+     *
+     * @param aBold tells if the font should be bold or not.
+     */
+    inline void SetFontBold( const bool aBold )
     {
-        strokeFont.SetItalic( aItalic );
+        textProperties.m_bold = aBold;
     }
 
-    /// @copydoc STROKE_FONT::SetMirrored()
-    inline void SetMirrored( const bool aMirrored )
+    /**
+     * @brief Returns true if current font has 'bold' attribute enabled.
+     */
+    inline bool IsFontBold() const
     {
-        strokeFont.SetMirrored( aMirrored );
+        return textProperties.m_bold;
     }
 
-    /// @copydoc STROKE_FONT::SetHorizontalJustify()
+    /**
+     * @brief Set italic property of current font.
+     *
+     * @param aItalic tells if the font should be italic or not.
+     */
+    inline void SetFontItalic( const bool aItalic )
+    {
+        textProperties.m_italic = aItalic;
+    }
+
+    /**
+     * @brief Returns true if current font has 'italic' attribute enabled.
+     */
+    inline bool IsFontItalic() const
+    {
+        return textProperties.m_italic;
+    }
+
+    /**
+     * @brief Set a mirrored property of text.
+     *
+     * @param aMirrored tells if the text should be mirrored or not.
+     */
+    inline void SetTextMirrored( const bool aMirrored )
+    {
+        textProperties.m_mirrored = aMirrored;
+    }
+
+    /**
+     * @brief Returns true if text should displayed mirrored.
+     */
+    inline bool IsTextMirrored() const
+    {
+        return textProperties.m_mirrored;
+    }
+
+    /**
+     * @brief Set the horizontal justify for text drawing.
+     *
+     * @param aHorizontalJustify is the horizontal justify value.
+     */
     inline void SetHorizontalJustify( const EDA_TEXT_HJUSTIFY_T aHorizontalJustify )
     {
-        strokeFont.SetHorizontalJustify( aHorizontalJustify );
+        textProperties.m_horizontalJustify = aHorizontalJustify;
     }
 
-    /// @copydoc STROKE_FONT::SetVerticalJustify()
+    /**
+     * @brief Returns current text horizontal justification setting.
+     */
+    inline EDA_TEXT_HJUSTIFY_T GetHorizontalJustify() const
+    {
+        return textProperties.m_horizontalJustify;
+    }
+
+    /**
+     * @brief Set the vertical justify for text drawing.
+     *
+     * @param aVerticalJustify is the vertical justify value.
+     */
     inline void SetVerticalJustify( const EDA_TEXT_VJUSTIFY_T aVerticalJustify )
     {
-        strokeFont.SetVerticalJustify( aVerticalJustify );
+        textProperties.m_verticalJustify = aVerticalJustify;
     }
+
+    /**
+     * @brief Returns current text vertical justification setting.
+     */
+    inline EDA_TEXT_VJUSTIFY_T GetVerticalJustify() const
+    {
+        return textProperties.m_verticalJustify;
+    }
+
 
     // --------------
     // Transformation
@@ -743,7 +837,7 @@ public:
     }
 
     ///> @brief Draw the grid
-    void DrawGrid();
+    virtual void DrawGrid();
 
     /**
      * Function GetGridPoint()
@@ -759,9 +853,17 @@ public:
      *
      * @param aGridStyle is the new style for grid.
      */
-    inline virtual void SetGridStyle( GRID_STYLE aGridStyle )
+    virtual void SetGridStyle( GRID_STYLE aGridStyle )
     {
         gridStyle = aGridStyle;
+    }
+
+    /**
+     * @brief Returns the current grid drawing style.
+     */
+    virtual GRID_STYLE GetGridStyle() const
+    {
+        return gridStyle;
     }
 
     /**
@@ -839,7 +941,7 @@ public:
      */
     inline void AdvanceDepth()
     {
-        layerDepth -= 0.001;
+        layerDepth -= 0.05;
     }
 
     /**
@@ -909,7 +1011,7 @@ protected:
     STROKE_FONT        strokeFont;
 
     /// Compute the scaling factor for the world->screen matrix
-    inline void ComputeWorldScale()
+    inline void computeWorldScale()
     {
         worldScale = screenDPI * worldUnitLength * zoomFactor;
     }
@@ -929,6 +1031,16 @@ protected:
     /// Depth level on which the grid is drawn
     static const int GRID_DEPTH;
 
+private:
+    struct TEXT_PROPERTIES
+    {
+        VECTOR2D            m_glyphSize;            ///< Size of the glyphs
+        EDA_TEXT_HJUSTIFY_T m_horizontalJustify;    ///< Horizontal justification
+        EDA_TEXT_VJUSTIFY_T m_verticalJustify;      ///< Vertical justification
+        bool                m_bold;
+        bool                m_italic;
+        bool                m_mirrored;
+    } textProperties;
 };
 }    // namespace KIGFX
 

@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2015 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -23,12 +23,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <wx/wx.h>
-#include <wx/frame.h>
-#include <wx/window.h>
-#include <wx/event.h>
-#include <wx/colour.h>
-#include <wx/filename.h>
+#include <draw_frame.h>
+#include <kiface_i.h>
 #include <confirm.h>
 
 #include <class_draw_panel_gal.h>
@@ -45,9 +41,10 @@
 
 #include <boost/foreach.hpp>
 
-#ifdef __WXDEBUG__
+#ifdef PROFILE
 #include <profile.h>
-#endif /* __WXDEBUG__ */
+#endif /* PROFILE */
+
 
 EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWindowId,
                                         const wxPoint& aPosition, const wxSize& aSize,
@@ -55,6 +52,7 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
     wxScrolledCanvas( aParentWindow, aWindowId, aPosition, aSize )
 {
     m_parent     = aParentWindow;
+    m_edaFrame   = dynamic_cast<EDA_DRAW_FRAME*>( aParentWindow );
     m_gal        = NULL;
     m_backend    = GAL_TYPE_NONE;
     m_view       = NULL;
@@ -107,11 +105,15 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
     m_drawing = false;
     m_drawingEnabled = false;
     Connect( wxEVT_TIMER, wxTimerEventHandler( EDA_DRAW_PANEL_GAL::onRefreshTimer ), NULL, this );
+
+    LoadGalSettings();
 }
 
 
 EDA_DRAW_PANEL_GAL::~EDA_DRAW_PANEL_GAL()
 {
+    SaveGalSettings();
+
     delete m_painter;
     delete m_viewControls;
     delete m_view;
@@ -142,15 +144,25 @@ void EDA_DRAW_PANEL_GAL::onPaint( wxPaintEvent& WXUNUSED( aEvent ) )
     if( m_drawing )
         return;
 
+#ifdef PROFILE
+    prof_counter totalRealTime;
+    prof_start( &totalRealTime );
+#endif /* PROFILE */
+
     m_drawing = true;
+    KIGFX::PCB_RENDER_SETTINGS* settings = static_cast<KIGFX::PCB_RENDER_SETTINGS*>( m_painter->GetSettings() );
 
     m_viewControls->UpdateScrollbars();
-    m_view->UpdateItems();
-    m_gal->BeginDrawing();
-    m_gal->ClearScreen( m_painter->GetSettings()->GetBackgroundColor() );
 
-    KIGFX::COLOR4D gridColor = static_cast<KIGFX::PCB_RENDER_SETTINGS*> (m_painter->GetSettings())->GetLayerColor( ITEM_GAL_LAYER ( GRID_VISIBLE ) );
-    m_gal->SetGridColor ( gridColor );
+    m_gal->BeginUpdate();
+    m_view->UpdateItems();
+    m_gal->EndUpdate();
+
+    m_gal->BeginDrawing();
+    m_gal->ClearScreen( settings->GetBackgroundColor() );
+
+    KIGFX::COLOR4D gridColor = settings->GetLayerColor( ITEM_GAL_LAYER( GRID_VISIBLE ) );
+    m_gal->SetGridColor( gridColor );
 
     if( m_view->IsDirty() )
     {
@@ -165,6 +177,11 @@ void EDA_DRAW_PANEL_GAL::onPaint( wxPaintEvent& WXUNUSED( aEvent ) )
 
     m_gal->DrawCursor( m_viewControls->GetCursorPosition() );
     m_gal->EndDrawing();
+
+#ifdef PROFILE
+    prof_end( &totalRealTime );
+    wxLogDebug( wxT( "EDA_DRAW_PANEL_GAL::onPaint(): %.1f ms" ), totalRealTime.msecs() );
+#endif /* PROFILE */
 
     m_lastRefresh = wxGetLocalTimeMillis();
     m_drawing = false;
@@ -331,6 +348,8 @@ bool EDA_DRAW_PANEL_GAL::SwitchBackend( GAL_TYPE aGalType )
         result = false;
     }
 
+    SaveGalSettings();
+
     assert( new_gal );
     delete m_gal;
     m_gal = new_gal;
@@ -345,8 +364,46 @@ bool EDA_DRAW_PANEL_GAL::SwitchBackend( GAL_TYPE aGalType )
         m_view->SetGAL( m_gal );
 
     m_backend = aGalType;
+    LoadGalSettings();
 
     return result;
+}
+
+
+bool EDA_DRAW_PANEL_GAL::SaveGalSettings()
+{
+    if( !m_edaFrame || !m_gal )
+        return false;
+
+    wxConfigBase* cfg = Kiface().KifaceSettings();
+    wxString baseCfgName = m_edaFrame->GetName();
+
+    if( !cfg )
+        return false;
+
+    if( !cfg->Write( baseCfgName + GRID_STYLE_CFG, (long) GetGAL()->GetGridStyle() ) )
+        return false;
+
+    return true;
+}
+
+
+bool EDA_DRAW_PANEL_GAL::LoadGalSettings()
+{
+    if( !m_edaFrame || !m_gal )
+        return false;
+
+    wxConfigBase* cfg = Kiface().KifaceSettings();
+    wxString baseCfgName = m_edaFrame->GetName();
+
+    if( !cfg )
+        return false;
+
+    long gridStyle;
+    cfg->Read( baseCfgName + GRID_STYLE_CFG, &gridStyle, (long) KIGFX::GRID_STYLE::GRID_STYLE_DOTS );
+    GetGAL()->SetGridStyle( (KIGFX::GRID_STYLE) gridStyle );
+
+    return true;
 }
 
 
@@ -403,3 +460,5 @@ void EDA_DRAW_PANEL_GAL::onRefreshTimer( wxTimerEvent& aEvent )
     wxPaintEvent redrawEvent;
     wxPostEvent( this, redrawEvent );
 }
+
+const wxChar EDA_DRAW_PANEL_GAL::GRID_STYLE_CFG[] = wxT( "GridStyle" );

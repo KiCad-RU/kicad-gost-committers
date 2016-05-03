@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -31,14 +31,15 @@
 #include <gal/opengl/cached_container.h>
 #include <gal/opengl/noncached_container.h>
 #include <gal/opengl/shader.h>
+#include <gal/opengl/utils.h>
+
 #include <typeinfo>
-#include <wx/msgdlg.h>
 #include <confirm.h>
-#ifdef PROFILE
+
+#ifdef __WXDEBUG__
 #include <profile.h>
-#include <wx/debug.h>
 #include <wx/log.h>
-#endif /* PROFILE */
+#endif /* __WXDEBUG__ */
 
 using namespace KIGFX;
 
@@ -68,7 +69,6 @@ GPU_MANAGER::~GPU_MANAGER()
 void GPU_MANAGER::SetShader( SHADER& aShader )
 {
     m_shader = &aShader;
-
     m_shaderAttrib = m_shader->GetAttribute( "attrShaderParams" );
 
     if( m_shaderAttrib == -1 )
@@ -81,7 +81,7 @@ void GPU_MANAGER::SetShader( SHADER& aShader )
 // Cached manager
 GPU_CACHED_MANAGER::GPU_CACHED_MANAGER( VERTEX_CONTAINER* aContainer ) :
     GPU_MANAGER( aContainer ), m_buffersInitialized( false ), m_indicesPtr( NULL ),
-    m_verticesBuffer( 0 ), m_indicesBuffer( 0 ), m_indicesSize( 0 ), m_indicesCapacity( 0 )
+    m_indicesBuffer( 0 ), m_indicesSize( 0 ), m_indicesCapacity( 0 )
 {
     // Allocate the biggest possible buffer for indices
     resizeIndices( aContainer->GetSize() );
@@ -93,21 +93,7 @@ GPU_CACHED_MANAGER::~GPU_CACHED_MANAGER()
     if( m_buffersInitialized )
     {
         glBindBuffer( GL_ARRAY_BUFFER, 0 );
-        glDeleteBuffers( 1, &m_verticesBuffer );
         glDeleteBuffers( 1, &m_indicesBuffer );
-    }
-}
-
-
-void GPU_CACHED_MANAGER::Initialize()
-{
-    wxASSERT( !m_buffersInitialized );
-
-    if( !m_buffersInitialized )
-    {
-        glGenBuffers( 1, &m_verticesBuffer );
-        glGenBuffers( 1, &m_indicesBuffer );
-        m_buffersInitialized = true;
     }
 }
 
@@ -116,8 +102,15 @@ void GPU_CACHED_MANAGER::BeginDrawing()
 {
     wxASSERT( !m_isDrawing );
 
+    if( !m_buffersInitialized )
+    {
+        glGenBuffers( 1, &m_indicesBuffer );
+        checkGlError( "generating vertices buffer" );
+        m_buffersInitialized = true;
+    }
+
     if( m_container->IsDirty() )
-        uploadToGpu();
+        resizeIndices( m_container->GetSize() );
 
     // Number of vertices to be drawn in the EndDrawing()
     m_indicesSize = 0;
@@ -150,14 +143,30 @@ void GPU_CACHED_MANAGER::DrawAll()
 
 void GPU_CACHED_MANAGER::EndDrawing()
 {
+#ifdef __WXDEBUG__
+    prof_counter totalRealTime;
+    prof_start( &totalRealTime );
+#endif /* __WXDEBUG__ */
+
     wxASSERT( m_isDrawing );
+
+    CACHED_CONTAINER* cached = static_cast<CACHED_CONTAINER*>( m_container );
+
+    if( cached->IsMapped() )
+        cached->Unmap();
+
+    if( m_indicesSize == 0 )
+    {
+        m_isDrawing = false;
+        return;
+    }
 
     // Prepare buffers
     glEnableClientState( GL_VERTEX_ARRAY );
     glEnableClientState( GL_COLOR_ARRAY );
 
     // Bind vertices data buffers
-    glBindBuffer( GL_ARRAY_BUFFER, m_verticesBuffer );
+    glBindBuffer( GL_ARRAY_BUFFER, cached->GetBufferHandle() );
     glVertexPointer( CoordStride, GL_FLOAT, VertexSize, 0 );
     glColorPointer( ColorStride, GL_UNSIGNED_BYTE, VertexSize, (GLvoid*) ColorOffset );
 
@@ -170,9 +179,14 @@ void GPU_CACHED_MANAGER::EndDrawing()
     }
 
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indicesBuffer );
-    glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indicesSize * sizeof(int), (GLvoid*) m_indices.get(), GL_DYNAMIC_DRAW );
+    glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indicesSize * sizeof(int),
+            (GLvoid*) m_indices.get(), GL_DYNAMIC_DRAW );
 
     glDrawElements( GL_TRIANGLES, m_indicesSize, GL_UNSIGNED_INT, 0 );
+
+#ifdef __WXDEBUG__
+    wxLogTrace( "GAL_PROFILE", wxT( "Cached manager size: %d" ), m_indicesSize );
+#endif /* __WXDEBUG__ */
 
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
@@ -188,38 +202,12 @@ void GPU_CACHED_MANAGER::EndDrawing()
     }
 
     m_isDrawing = false;
-}
 
-
-void GPU_CACHED_MANAGER::uploadToGpu()
-{
-#ifdef PROFILE
-    prof_counter totalTime;
-    prof_start( &totalTime );
-#endif /* PROFILE  */
-
-    if( !m_buffersInitialized )
-        Initialize();
-
-    int bufferSize    = m_container->GetSize();
-    GLfloat* vertices = (GLfloat*) m_container->GetAllVertices();
-
-    // Upload vertices coordinates and shader types to GPU memory
-    glBindBuffer( GL_ARRAY_BUFFER, m_verticesBuffer );
-    glBufferData( GL_ARRAY_BUFFER, bufferSize * VertexSize, vertices, GL_STATIC_DRAW );
-    glBindBuffer( GL_ARRAY_BUFFER, 0 );
-
-    // Allocate the biggest possible buffer for indices
-    resizeIndices( bufferSize );
-
-    if( glGetError() != GL_NO_ERROR )
-        DisplayError( NULL, wxT( "Error during data upload to the GPU memory" ) );
-
-#ifdef PROFILE
-    prof_end( &totalTime );
-
-    wxLogDebug( wxT( "Uploading %d vertices to GPU / %.1f ms" ), bufferSize, totalTime.msecs() );
-#endif /* PROFILE */
+#ifdef __WXDEBUG__
+    prof_end( &totalRealTime );
+    wxLogTrace( "GAL_PROFILE",
+                wxT( "GPU_CACHED_MANAGER::EndDrawing(): %.1f ms" ), totalRealTime.msecs() );
+#endif /* __WXDEBUG__ */
 }
 
 
@@ -237,12 +225,6 @@ void GPU_CACHED_MANAGER::resizeIndices( unsigned int aNewSize )
 GPU_NONCACHED_MANAGER::GPU_NONCACHED_MANAGER( VERTEX_CONTAINER* aContainer ) :
     GPU_MANAGER( aContainer )
 {
-}
-
-
-void GPU_NONCACHED_MANAGER::Initialize()
-{
-    // Nothing has to be intialized
 }
 
 
@@ -267,6 +249,14 @@ void GPU_NONCACHED_MANAGER::DrawAll()
 
 void GPU_NONCACHED_MANAGER::EndDrawing()
 {
+#ifdef __WXDEBUG__
+    prof_counter totalRealTime;
+    prof_start( &totalRealTime );
+#endif /* __WXDEBUG__ */
+
+    if( m_container->GetSize() == 0 )
+        return;
+
     VERTEX*  vertices       = m_container->GetAllVertices();
     GLfloat* coordinates    = (GLfloat*) ( vertices );
     GLubyte* colors         = (GLubyte*) ( vertices ) + ColorOffset;
@@ -290,6 +280,10 @@ void GPU_NONCACHED_MANAGER::EndDrawing()
 
     glDrawArrays( GL_TRIANGLES, 0, m_container->GetSize() );
 
+#ifdef __WXDEBUG__
+    wxLogTrace( "GAL_PROFILE", wxT( "Noncached manager size: %d" ), m_container->GetSize() );
+#endif /* __WXDEBUG__ */
+
     // Deactivate vertex array
     glDisableClientState( GL_COLOR_ARRAY );
     glDisableClientState( GL_VERTEX_ARRAY );
@@ -299,4 +293,10 @@ void GPU_NONCACHED_MANAGER::EndDrawing()
         glDisableVertexAttribArray( m_shaderAttrib );
         m_shader->Deactivate();
     }
+
+#ifdef __WXDEBUG__
+    prof_end( &totalRealTime );
+    wxLogTrace( "GAL_PROFILE",
+                wxT( "GPU_NONCACHED_MANAGER::EndDrawing(): %.1f ms" ), totalRealTime.msecs() );
+#endif /* __WXDEBUG__ */
 }

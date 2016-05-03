@@ -36,9 +36,6 @@
 #include <map>
 #include <set>
 
-// Debug messages verbosity level
-// #define CACHED_CONTAINER_TEST 1
-
 namespace KIGFX
 {
 class VERTEX_ITEM;
@@ -48,6 +45,7 @@ class CACHED_CONTAINER : public VERTEX_CONTAINER
 {
 public:
     CACHED_CONTAINER( unsigned int aSize = defaultInitSize );
+    ~CACHED_CONTAINER();
 
     ///> @copydoc VERTEX_CONTAINER::SetItem()
     virtual void SetItem( VERTEX_ITEM* aItem );
@@ -63,6 +61,30 @@ public:
 
     ///> @copydoc VERTEX_CONTAINER::Clear()
     virtual void Clear();
+
+    /**
+     * Function GetBufferHandle()
+     * returns handle to the vertex buffer. It might be negative if the buffer is not initialized.
+     */
+    inline unsigned int GetBufferHandle() const
+    {
+        return m_glBufferHandle;
+    }
+
+    /**
+     * Function IsMapped()
+     * returns true if vertex buffer is currently mapped.
+     */
+    inline bool IsMapped() const
+    {
+        return m_isMapped;
+    }
+
+    ///> @copydoc VERTEX_CONTAINER::Map()
+    void Map();
+
+    ///> @copydoc VERTEX_CONTAINER::Unmap()
+    void Unmap();
 
 protected:
     ///> Maps size of free memory chunks to their offsets
@@ -84,44 +106,54 @@ protected:
     ///> Properties of currently modified chunk & item
     unsigned int        m_chunkSize;
     unsigned int        m_chunkOffset;
-    unsigned int        m_itemSize;
+
+    ///> Flag saying if vertex buffer is currently mapped
+    bool m_isMapped;
+
+    ///> Flag saying if the vertex buffer is initialized
+    bool m_isInitialized;
+
+    ///> Vertex buffer handle
+    unsigned int m_glBufferHandle;
+
+    ///> Flag saying whether it is safe to use glCopyBufferSubData
+    bool m_useCopyBuffer;
+
+    /**
+     * Function init()
+     * performs the GL vertex buffer initialization. It can be invoked only when an OpenGL context
+     * is bound.
+     */
+    void init();
 
     /**
      * Function reallocate()
-     * resizes the chunk that stores the current item to the given size.
+     * resizes the chunk that stores the current item to the given size. The current item has
+     * its offset adjusted after the call, and the new chunk parameters are stored
+     * in m_chunkOffset and m_chunkSize.
      *
-     * @param aSize is the number of vertices to be stored.
-     * @return offset of the new chunk.
+     * @param aSize is the requested chunk size.
+     * @return true in case of success, false otherwise
      */
-    virtual unsigned int reallocate( unsigned int aSize );
+    bool reallocate( unsigned int aSize );
 
     /**
-     * Function defragment()
-     * removes empty spaces between chunks, so after that there is a long continous space
-     * for storing vertices at the and of the container.
+     * Function defragmentResize()
+     * removes empty spaces between chunks and optionally resizes the container.
+     * After the operation there is continous space for storing vertices at the end of the container.
      *
-     * @param aTarget is the already allocated destination for defragmented data. It has to be
-     * at least of the same size as the current container. If left NULL, it will be allocated
-     * inside the defragment() function.
-     * @return false in case of failure (eg. memory shortage)
+     * @param aNewSize is the new size of container, expressed in number of vertices
+     * @return false in case of failure (e.g. memory shortage)
      */
-    virtual bool defragment( VERTEX* aTarget = NULL );
+    bool defragmentResize( unsigned int aNewSize );
+    bool defragmentResizeMemcpy( unsigned int aNewSize );
 
     /**
      * Function mergeFreeChunks()
      * looks for consecutive free memory chunks and merges them, decreasing fragmentation of
      * memory.
      */
-    virtual void mergeFreeChunks();
-
-    /**
-     * Function resizeContainer()
-     *
-     * prepares a bigger container of a given size.
-     * @param aNewSize is the new size of container, expressed in vertices
-     * @return false in case of failure (eg. memory shortage)
-     */
-    virtual bool resizeContainer( unsigned int aNewSize );
+    void mergeFreeChunks();
 
     /**
      * Function getPowerOf2()
@@ -154,16 +186,16 @@ private:
         return aChunk.second;
     }
 
+    /**
+     * Function addFreeChunk
+     * Adds a chunk marked as free.
+     */
+    void addFreeChunk( unsigned int aOffset, unsigned int aSize );
+
     /// Debug & test functions
-#if CACHED_CONTAINER_TEST > 0
     void showFreeChunks();
-    void showReservedChunks();
+    void showUsedChunks();
     void test();
-#else
-    inline void showFreeChunks() {}
-    inline void showReservedChunks() {}
-    inline void test() {}
-#endif /* CACHED_CONTAINER_TEST */
 };
 } // namespace KIGFX
 

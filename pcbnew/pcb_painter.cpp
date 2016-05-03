@@ -93,9 +93,14 @@ void PCB_RENDER_SETTINGS::ImportLegacyColors( const COLORS_DESIGN_SETTINGS* aSet
     // Netnames for copper layers
     for( LSEQ cu = LSET::AllCuMask().CuStack();  cu;  ++cu )
     {
+        const COLOR4D lightLabel( 0.8, 0.8, 0.8, 0.7 );
+        const COLOR4D darkLabel = lightLabel.Inverted();
         LAYER_ID layer = *cu;
 
-        m_layerColors[GetNetnameLayer( layer )] = COLOR4D( 0.8, 0.8, 0.8, 0.7 );
+        if( m_layerColors[layer].GetBrightness() > 0.5 )
+            m_layerColors[GetNetnameLayer( layer )] = darkLabel;
+        else
+            m_layerColors[GetNetnameLayer( layer )] = lightLabel;
     }
 
     update();
@@ -295,25 +300,19 @@ void PCB_PAINTER::draw( const TRACK* aTrack, int aLayer )
             const wxString& netName = aTrack->GetShortNetname();
             VECTOR2D textPosition = start + line / 2.0;     // center of the track
             double textOrientation = -atan( line.y / line.x );
-            double textSize = std::min( static_cast<double>( width ), length / netName.length() );
+            double textSize = width;
 
-            // Set a proper color for the label
-            const COLOR4D& color = m_pcbSettings.GetColor( aTrack, aTrack->GetLayer() );
-            const COLOR4D labelColor = m_pcbSettings.GetColor( NULL, aLayer );
-
-            if( color.GetBrightness() > 0.5 )
-                m_gal->SetStrokeColor( labelColor.Inverted() );
-            else
-                m_gal->SetStrokeColor( labelColor );
-
+            m_gal->SetIsStroke( true );
+            m_gal->SetIsFill( false );
+            m_gal->SetStrokeColor( m_pcbSettings.GetColor( NULL, aLayer ) );
             m_gal->SetLineWidth( width / 10.0 );
-            m_gal->SetBold( false );
-            m_gal->SetItalic( false );
-            m_gal->SetMirrored( false );
+            m_gal->SetFontBold( false );
+            m_gal->SetFontItalic( false );
+            m_gal->SetTextMirrored( false );
             m_gal->SetGlyphSize( VECTOR2D( textSize * 0.7, textSize * 0.7 ) );
             m_gal->SetHorizontalJustify( GR_TEXT_HJUSTIFY_CENTER );
             m_gal->SetVerticalJustify( GR_TEXT_VJUSTIFY_CENTER );
-            m_gal->StrokeText( netName, textPosition, textOrientation );
+            m_gal->BitmapText( netName, textPosition, textOrientation );
         }
     }
     else if( IsCopperLayer( aLayer ) )
@@ -451,9 +450,6 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
         // Is anything that we can display enabled?
         if( m_pcbSettings.m_netNamesOnPads || m_pcbSettings.m_padNumbers )
         {
-            // Min char count to calculate string size
-            const int MIN_CHAR_COUNT = 3;
-
             bool displayNetname = ( m_pcbSettings.m_netNamesOnPads &&
                                     !aPad->GetNetname().empty() );
             VECTOR2D padsize = VECTOR2D( aPad->GetSize() );
@@ -487,20 +483,14 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
             // Default font settings
             m_gal->SetHorizontalJustify( GR_TEXT_HJUSTIFY_CENTER );
             m_gal->SetVerticalJustify( GR_TEXT_VJUSTIFY_CENTER );
-            m_gal->SetBold( false );
-            m_gal->SetItalic( false );
-            m_gal->SetMirrored( false );
+            m_gal->SetFontBold( false );
+            m_gal->SetFontItalic( false );
+            m_gal->SetTextMirrored( false );
+            m_gal->SetStrokeColor( m_pcbSettings.GetColor( NULL, aLayer ) );
+            m_gal->SetIsStroke( true );
+            m_gal->SetIsFill( false );
 
-            // Set a proper color for the label
-            const COLOR4D& color  = m_pcbSettings.GetColor( aPad, aPad->GetLayer() );
-            const COLOR4D labelColor = m_pcbSettings.GetColor( NULL, aLayer );
-
-            if( color.GetBrightness() > 0.5 )
-                m_gal->SetStrokeColor( labelColor.Inverted() );
-            else
-                m_gal->SetStrokeColor( labelColor );
-
-            VECTOR2D textpos( 0.0, 0.0);
+            VECTOR2D textpos( 0.0, 0.0 );
 
             // Divide the space, to display both pad numbers and netnames
             // and set the Y text position to display 2 lines
@@ -513,14 +503,15 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
             if( displayNetname )
             {
                 // calculate the size of net name text:
-                double tsize = padsize.x / aPad->GetShortNetname().Length();
+                double tsize = 1.5 * padsize.x / aPad->GetShortNetname().Length();
                 tsize = std::min( tsize, size );
                 // Use a smaller text size to handle interline, pen size..
                 tsize *= 0.7;
                 VECTOR2D namesize( tsize, tsize );
+
                 m_gal->SetGlyphSize( namesize );
                 m_gal->SetLineWidth( namesize.x / 12.0 );
-                m_gal->StrokeText( aPad->GetShortNetname(), textpos, 0.0 );
+                m_gal->BitmapText( aPad->GetShortNetname(), textpos, 0.0 );
             }
 
             if( m_pcbSettings.m_padNumbers )
@@ -528,7 +519,7 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
                 textpos.y = -textpos.y;
                 aPad->StringPadName( buffer );
                 int len = buffer.Length();
-                double tsize = padsize.x / std::max( len, MIN_CHAR_COUNT );
+                double tsize = 1.5 * padsize.x / len;
                 tsize = std::min( tsize, size );
                 // Use a smaller text size to handle interline, pen size..
                 tsize *= 0.7;
@@ -537,7 +528,7 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
 
                 m_gal->SetGlyphSize( numsize );
                 m_gal->SetLineWidth( numsize.x / 12.0 );
-                m_gal->StrokeText( aPad->GetPadName(), textpos, 0.0 );
+                m_gal->BitmapText( aPad->GetPadName(), textpos, 0.0 );
             }
 
             m_gal->Restore();
@@ -565,7 +556,7 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
 
     m_gal->Save();
     m_gal->Translate( VECTOR2D( aPad->GetPosition() ) );
-    m_gal->Rotate( -aPad->GetOrientation() * M_PI / 1800.0 );
+    m_gal->Rotate( -aPad->GetOrientationRadians() );
 
     // Choose drawing settings depending on if we are drawing a pad itself or a hole
     VECTOR2D    size;
@@ -771,7 +762,7 @@ void PCB_PAINTER::draw( const DRAWSEGMENT* aSegment, int aLayer )
         if( module )
         {
             m_gal->Translate( module->GetPosition() );
-            m_gal->Rotate( -module->GetOrientation() * M_PI / 1800.0 );
+            m_gal->Rotate( -module->GetOrientationRadians() );
         }
         else
         {
@@ -812,7 +803,6 @@ void PCB_PAINTER::draw( const TEXTE_PCB* aText, int aLayer )
 
     const COLOR4D& color = m_pcbSettings.GetColor( aText, aText->GetLayer() );
     VECTOR2D position( aText->GetTextPosition().x, aText->GetTextPosition().y );
-    double   orientation = aText->GetOrientation() * M_PI / 1800.0;
 
     if( m_pcbSettings.m_sketchMode[aLayer] )
     {
@@ -825,11 +815,9 @@ void PCB_PAINTER::draw( const TEXTE_PCB* aText, int aLayer )
         m_gal->SetLineWidth( aText->GetThickness() );
     }
 
-    m_gal->SetIsFill( false );
-    m_gal->SetIsStroke( true );
     m_gal->SetStrokeColor( color );
     m_gal->SetTextAttributes( aText );
-    m_gal->StrokeText( shownText, position, orientation );
+    m_gal->StrokeText( shownText, position, aText->GetOrientationRadians() );
 }
 
 
@@ -841,7 +829,6 @@ void PCB_PAINTER::draw( const TEXTE_MODULE* aText, int aLayer )
 
     const COLOR4D& color = m_pcbSettings.GetColor( aText, aLayer );
     VECTOR2D position( aText->GetTextPosition().x, aText->GetTextPosition().y );
-    double   orientation = aText->GetDrawRotation() * M_PI / 1800.0;
 
     if( m_pcbSettings.m_sketchMode[aLayer] )
     {
@@ -854,11 +841,9 @@ void PCB_PAINTER::draw( const TEXTE_MODULE* aText, int aLayer )
         m_gal->SetLineWidth( aText->GetThickness() );
     }
 
-    m_gal->SetIsFill( false );
-    m_gal->SetIsStroke( true );
     m_gal->SetStrokeColor( color );
     m_gal->SetTextAttributes( aText );
-    m_gal->StrokeText( shownText, position, orientation );
+    m_gal->StrokeText( shownText, position, aText->GetDrawRotationRadians() );
 
     // Draw the umbilical line
     if( aText->IsSelected() && aText->GetType() != TEXTE_MODULE::TEXT_is_DIVERS )
@@ -989,11 +974,10 @@ void PCB_PAINTER::draw( const DIMENSION* aDimension, int aLayer )
     // Draw text
     TEXTE_PCB& text = aDimension->Text();
     VECTOR2D position( text.GetTextPosition().x, text.GetTextPosition().y );
-    double   orientation = text.GetOrientation() * M_PI / 1800.0;
 
     m_gal->SetLineWidth( text.GetThickness() );
     m_gal->SetTextAttributes( &text );
-    m_gal->StrokeText( text.GetShownText(), position, orientation );
+    m_gal->StrokeText( text.GetShownText(), position, text.GetOrientationRadians() );
 }
 
 

@@ -34,6 +34,7 @@
 #include <gal/opengl/shader.h>
 #include <gal/opengl/vertex_manager.h>
 #include <gal/opengl/vertex_item.h>
+#include <gal/opengl/cached_container.h>
 #include <gal/opengl/noncached_container.h>
 #include <gal/opengl/opengl_compositor.h>
 
@@ -95,6 +96,12 @@ public:
     /// @copydoc GAL::EndDrawing()
     virtual void EndDrawing();
 
+    /// @copydoc GAL::BeginUpdate()
+    virtual void BeginUpdate();
+
+    /// @copydoc GAL::EndUpdate()
+    virtual void EndUpdate();
+
     /// @copydoc GAL::DrawLine()
     virtual void DrawLine( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint );
 
@@ -123,6 +130,13 @@ public:
     /// @copydoc GAL::DrawCurve()
     virtual void DrawCurve( const VECTOR2D& startPoint, const VECTOR2D& controlPointA,
                             const VECTOR2D& controlPointB, const VECTOR2D& endPoint );
+
+    /// @copydoc GAL::BitmapText()
+    virtual void BitmapText( const wxString& aText, const VECTOR2D& aPosition,
+                             double aRotationAngle );
+
+    /// @copydoc GAL::DrawGrid()
+    virtual void DrawGrid();
 
     // --------------
     // Screen methods
@@ -247,9 +261,6 @@ public:
         std::deque< boost::shared_array<GLdouble> >& intersectPoints;
     } TessParams;
 
-protected:
-    virtual void drawGridLine( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint );
-
 private:
     /// Super class definition
     typedef GAL super;
@@ -261,6 +272,9 @@ private:
     static wxGLContext*     glContext;              ///< OpenGL context of wxWidgets
     wxEvtHandler*           mouseListener;
     wxEvtHandler*           paintListener;
+    static int              instanceCounter;
+
+    GLuint fontTexture;                             ///< Bitmap font texture handle
 
     // Vertex buffer objects related fields
     typedef std::map< unsigned int, boost::shared_ptr<VERTEX_ITEM> > GROUPS_MAP;
@@ -282,6 +296,8 @@ private:
 
     // Internal flags
     bool                    isFramebufferInitialized;   ///< Are the framebuffers initialized?
+    static bool             isBitmapFontLoaded;         ///< Is the bitmap font texture loaded?
+    bool                    isBitmapFontInitialized;    ///< Is the shader set to use bitmap fonts?
     bool                    isGrouping;                 ///< Was a group started?
 
     // Polygon tesselation
@@ -328,6 +344,35 @@ private:
      *
      */
     void drawStrokedSemiCircle( const VECTOR2D& aCenterPoint, double aRadius, double aAngle );
+
+    /**
+     * @brief Draws a single character using bitmap font.
+     * Its main purpose is to be used in BitmapText() function.
+     *
+     * @param aCharacter is the character to be drawn.
+     * @return Width of the drawn glyph.
+     */
+    int drawBitmapChar( unsigned long aChar );
+
+    /**
+     * @brief Draws an overbar over the currently drawn text.
+     * Its main purpose is to be used in BitmapText() function.
+     * This method requires appropriate scaling to be applied (as is done in BitmapText() function).
+     * The current X coordinate will be the overbar ending.
+     *
+     * @param aLength is the width of the overbar.
+     * @param aHeight is the height for the overbar.
+     */
+    void drawBitmapOverbar( double aLength, double aHeight );
+
+    /**
+     * @brief Computes a size of text drawn using bitmap font with current text setting applied.
+     *
+     * @param aText is the text to be drawn.
+     * @return Pair containing text bounding box and common Y axis offset. The values are expressed
+     * as a number of pixels on the bitmap font texture and need to be scaled before drawing.
+     */
+    std::pair<VECTOR2D, int> computeBitmapTextSize( const wxString& aText ) const;
 
     // Event handling
     /**
