@@ -127,20 +127,29 @@ OPENGL_GAL::OPENGL_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener,
 
 OPENGL_GAL::~OPENGL_GAL()
 {
+    gluDeleteTess( tesselator );
+    ClearCache();
+
+#ifdef __LINUX__
+    if( IsShownOnScreen() )
+        SetCurrent( *OPENGL_GAL::glContext );
+#else
     SetCurrent( *OPENGL_GAL::glContext );
+#endif
+
     glFlush();
 
     if( --instanceCounter == 0 )
     {
-        glDeleteTextures( 1, &fontTexture );
-        isBitmapFontLoaded = false;
+        if( isBitmapFontLoaded )
+        {
+            glDeleteTextures( 1, &fontTexture );
+            isBitmapFontLoaded = false;
+        }
 
         delete OPENGL_GAL::glContext;
         glContext = NULL;
     }
-
-    gluDeleteTess( tesselator );
-    ClearCache();
 }
 
 
@@ -302,9 +311,7 @@ void OPENGL_GAL::EndDrawing()
 
 void OPENGL_GAL::BeginUpdate()
 {
-    if( IsShownOnScreen() )
-        SetCurrent( *OPENGL_GAL::glContext );
-
+    SetCurrent( *OPENGL_GAL::glContext );
     cachedManager.Map();
 }
 
@@ -1499,18 +1506,9 @@ void OPENGL_GAL::OPENGL_TEST::Render( wxPaintEvent& WXUNUSED( aEvent ) )
             error( (const char*) glewGetErrorString( err ) );
             return;
         }
-        else
-        {
-            wxLogDebug( wxString( wxT( "Status: Using GLEW " ) ) +
-                        FROM_UTF8( (char*) glewGetString( GLEW_VERSION ) ) );
-        }
 
         // Check the OpenGL version (minimum 2.1 is required)
-        if( GLEW_VERSION_2_1 )
-        {
-            wxLogInfo( wxT( "OpenGL 2.1 supported." ) );
-        }
-        else
+        if( !GLEW_VERSION_2_1 )
         {
             error( "OpenGL 2.1 or higher is required!" );
             return;

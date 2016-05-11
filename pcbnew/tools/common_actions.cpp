@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2015 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -331,6 +331,10 @@ TOOL_ACTION COMMON_ACTIONS::gridSetOrigin( "common.Control.gridSetOrigin",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_SET_GRID_ORIGIN ),
         "", "" );
 
+TOOL_ACTION COMMON_ACTIONS::gridResetOrigin( "common.Control.gridResetOrigin",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_RESET_GRID_ORIGIN ),
+        "", "" );
+
 TOOL_ACTION COMMON_ACTIONS::gridPreset( "common.Control.gridPreset",
         AS_GLOBAL, 0,
         "", "" );
@@ -395,9 +399,17 @@ TOOL_ACTION COMMON_ACTIONS::crossProbeSchToPcb( "pcbnew.EditorControl.crossProbS
         AS_GLOBAL, 0,
         "", "" );
 
-TOOL_ACTION COMMON_ACTIONS::toggleLockModule( "pcbnew.EditorControl.toggleLockModule",
+TOOL_ACTION COMMON_ACTIONS::toggleLock( "pcbnew.EditorControl.toggleLock",
         AS_GLOBAL, 'L',
-        "", "" );
+        "Toggle lock", "" );
+
+TOOL_ACTION COMMON_ACTIONS::lock( "pcbnew.EditorControl.lock",
+        AS_GLOBAL, 0,
+        _( "Lock" ), "" );
+
+TOOL_ACTION COMMON_ACTIONS::unlock( "pcbnew.EditorControl.unlock",
+        AS_GLOBAL, 0,
+        _( "Unlock" ), "" );
 
 TOOL_ACTION COMMON_ACTIONS::appendBoard( "pcbnew.EditorControl.appendBoard",
         AS_GLOBAL, 0,
