@@ -153,7 +153,7 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
     iNode = FindNode( (XNODE *)aXmlDoc->GetRoot(), wxT( "asciiHeader" ) );
 
     if( iNode )
-        m_defaultMeasurementUnit = FindNodeGetContent( iNode, wxT( "fileUnits" ) );
+        m_defaultMeasurementUnit = FindNodeGetContent( iNode, wxT( "fileUnits" ) ).Lower();
 
     // Allways also library file
     aActualConversion = wxT( "SCHLIB" );
