@@ -799,6 +799,9 @@ L_read:
         goto exit;
     }
 
+    // convert curText to lower case (fix issues with uppercase token names)
+    std::transform( curText.begin(), curText.end(), curText.begin(), ::tolower );
+
     curTok = findToken( curText );
 
 exit:   // single point of exit, no returns elsewhere please.
