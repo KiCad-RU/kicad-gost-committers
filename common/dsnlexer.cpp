@@ -799,8 +799,17 @@ L_read:
         goto exit;
     }
 
-    // convert curText to lower case (fix issues with uppercase token names)
-    std::transform( curText.begin(), curText.end(), curText.begin(), ::tolower );
+    // Workaround to fix issues with uppercase token names in case of importing Specctra Session
+    if( ( curText == "INCH" ) ||
+        ( curText == "MIL" ) ||
+        ( curText == "CM" ) ||
+        ( curText == "MM" ) ||
+        ( curText == "UM" ) ||
+        ( curText == "Net" ) )
+    {
+        // convert curText to lower case
+        std::transform( curText.begin(), curText.end(), curText.begin(), ::tolower );
+    }
 
     curTok = findToken( curText );
 
