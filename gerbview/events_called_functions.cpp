@@ -30,15 +30,14 @@
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <class_drawpanel.h>
-#include <confirm.h>
-#include <common.h>
 #include <gestfich.h>
 
 #include <gerbview.h>
 #include <gerbview_frame.h>
 #include <kicad_device_context.h>
 #include <gerbview_id.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 #include <dialog_helpers.h>
 #include <class_DCodeSelectionbox.h>
 #include <class_gerbview_layer_widget.h>
@@ -60,7 +59,6 @@ BEGIN_EVENT_TABLE( GERBVIEW_FRAME, EDA_DRAW_FRAME )
     // Menu Files:
     EVT_MENU( wxID_FILE, GERBVIEW_FRAME::Files_io )
     EVT_MENU( ID_NEW_BOARD, GERBVIEW_FRAME::Files_io )
-    EVT_MENU( ID_GEN_PLOT, GERBVIEW_FRAME::ToPlotter )
     EVT_MENU( ID_GERBVIEW_EXPORT_TO_PCBNEW, GERBVIEW_FRAME::ExportDataInPcbnewFormat )
 
     EVT_MENU_RANGE( wxID_FILE1, wxID_FILE9, GERBVIEW_FRAME::OnGbrFileHistory )
@@ -223,7 +221,7 @@ void GERBVIEW_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
 void GERBVIEW_FRAME::OnSelectActiveDCode( wxCommandEvent& event )
 {
-    GERBER_IMAGE* gerber_image = g_GERBER_List.GetGbrImage( getActiveLayer() );
+    GERBER_FILE_IMAGE* gerber_image = g_GERBER_List.GetGbrImage( getActiveLayer() );
 
     if( gerber_image )
     {
@@ -255,7 +253,7 @@ void GERBVIEW_FRAME::OnSelectActiveLayer( wxCommandEvent& event )
 void GERBVIEW_FRAME::OnShowGerberSourceFile( wxCommandEvent& event )
 {
     int     layer = getActiveLayer();
-    GERBER_IMAGE* gerber_layer = g_GERBER_List.GetGbrImage( layer );
+    GERBER_FILE_IMAGE* gerber_layer = g_GERBER_List.GetGbrImage( layer );
 
     if( gerber_layer )
     {

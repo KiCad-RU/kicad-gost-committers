@@ -24,14 +24,12 @@
 
 #include <fctsys.h>
 #include <class_drawpanel.h>
-#include <common.h>
 
 #include <gerbview.h>
 #include <gerbview_frame.h>
-#include <gerbview_id.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 #include <dialog_helpers.h>
-#include <class_DCodeSelectionbox.h>
 
 /* Process the command triggered by the left button of the mouse
  * currently: just display info in the message panel.
@@ -44,7 +42,7 @@ void GERBVIEW_FRAME::OnLeftClick( wxDC* DC, const wxPoint& aPosition )
 
     if( DrawStruct == NULL )
     {
-        GERBER_IMAGE* gerber = g_GERBER_List.GetGbrImage( getActiveLayer() );
+        GERBER_FILE_IMAGE* gerber = g_GERBER_List.GetGbrImage( getActiveLayer() );
 
         if( gerber )
             gerber->DisplayImageInfo( );

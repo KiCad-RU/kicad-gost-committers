@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2014 Jean-Pierre Charras  jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2007-2016 Jean-Pierre Charras  jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHOR.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,12 +32,12 @@
 #include <base_units.h>
 
 #include <gerbview.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
 #include <class_X2_gerber_attributes.h>
 
 extern int ReadInt( char*& text, bool aSkipSeparator = true );
 extern double ReadDouble( char*& text, bool aSkipSeparator = true );
-extern bool GetEndOfBlock( char buff[GERBER_BUFZ], char*& text, FILE* gerber_file );
+extern bool GetEndOfBlock( char* buff, char*& text, FILE* gerber_file );
 
 
 #define CODE( x, y ) ( ( (x) << 8 ) + (y) )
@@ -128,7 +128,7 @@ static int ReadXCommand( char*& text )
 }
 
 
-bool GERBER_IMAGE::ReadRS274XCommand( char buff[GERBER_BUFZ], char*& text )
+bool GERBER_FILE_IMAGE::ReadRS274XCommand( char* buff, char*& text )
 {
     bool ok = true;
     int  code_command;
@@ -181,9 +181,7 @@ exit:
 }
 
 
-bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
-                                   char buff[GERBER_BUFZ],
-                                   char*&    text )
+bool GERBER_FILE_IMAGE::ExecuteRS274XCommand( int command, char* buff, char*& text )
 {
     int      code;
     int      seq_len;    // not used, just provided
@@ -586,8 +584,9 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
 
         else
             GetLayerParams().m_LayerNegative = false;
-        DBG( printf( "%22s: LAYER_POLARITY m_LayerNegative=%s\n", __func__,
-                   GetLayerParams().m_LayerNegative ? "true" : "false" ); )
+
+//        DBG( printf( "%22s: LAYER_POLARITY m_LayerNegative=%s\n", __func__,
+//                   GetLayerParams().m_LayerNegative ? "true" : "false" ); )
         break;
 
     case INCLUDE_FILE:
@@ -807,7 +806,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
             }
 
             dcode->m_Shape = APT_MACRO;
-            dcode->SetMacro( (APERTURE_MACRO*) pam );
+            dcode->SetMacro( pam );
         }
         break;
 
@@ -824,7 +823,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
 }
 
 
-bool GetEndOfBlock( char buff[GERBER_BUFZ], char*& text, FILE* gerber_file )
+bool GetEndOfBlock( char* buff, char*& text, FILE* gerber_file )
 {
     for( ; ; )
     {
@@ -860,7 +859,7 @@ bool GetEndOfBlock( char buff[GERBER_BUFZ], char*& text, FILE* gerber_file )
  * @param aFile = the opened GERBER file to read
  * @return a pointer to the beginning of the next line or NULL if end of file
 */
-static char* GetNextLine(  char aBuff[GERBER_BUFZ], char* aText, FILE* aFile  )
+static char* GetNextLine(  char *aBuff, char* aText, FILE* aFile  )
 {
     for( ; ; )
     {
@@ -886,7 +885,7 @@ static char* GetNextLine(  char aBuff[GERBER_BUFZ], char* aText, FILE* aFile  )
 }
 
 
-bool GERBER_IMAGE::ReadApertureMacro( char buff[GERBER_BUFZ],
+bool GERBER_FILE_IMAGE::ReadApertureMacro( char *buff,
                                 char*&    text,
                                 FILE*     gerber_file )
 {

@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007-2014 Jean-Pierre Charras  jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2014 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,18 +26,17 @@
 #include <common.h>
 #include <confirm.h>
 #include <kicad_string.h>
-#include <gestfich.h>
 #include <gerbview.h>
 #include <gerbview_frame.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 
 #include <html_messagebox.h>
 #include <macros.h>
 
 /* Read a gerber file, RS274D, RS274X or RS274X2 format.
  */
-bool GERBVIEW_FRAME::Read_GERBER_File( const wxString& GERBER_FullFileName,
-                                           const wxString& D_Code_FullFileName )
+bool GERBVIEW_FRAME::Read_GERBER_File( const wxString& GERBER_FullFileName )
 {
     int      G_command = 0;        // command number for G commands like G04
     int      D_commande = 0;       // command number for D commands like D02
@@ -49,11 +48,11 @@ bool GERBVIEW_FRAME::Read_GERBER_File( const wxString& GERBER_FullFileName,
     int layer;         // current layer used in GerbView
 
     layer = getActiveLayer();
-    GERBER_IMAGE* gerber = g_GERBER_List.GetGbrImage( layer );
+    GERBER_FILE_IMAGE* gerber = g_GERBER_List.GetGbrImage( layer );
 
     if( gerber == NULL )
     {
-        gerber = new GERBER_IMAGE( this, layer );
+        gerber = new GERBER_FILE_IMAGE( this, layer );
         g_GERBER_List.AddGbrImage( gerber, layer );
     }
 

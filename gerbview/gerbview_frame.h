@@ -110,16 +110,6 @@ public:
         return m_gerberLayout;
     }
 
-    /**
-     * Function GetItemsList
-     * @return the first GERBER_DRAW_ITEM * item of the items list
-     */
-    GERBER_DRAW_ITEM* GetItemsList()
-    {
-        GERBER_DRAW_ITEM* item = GetGerberLayout()->m_Drawings;
-
-        return (GERBER_DRAW_ITEM*) item;
-    }
 
     /**
      * Function GetGerberLayoutBoundingBox
@@ -525,10 +515,8 @@ public:
      */
     bool OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosition, EDA_ITEM* aItem = NULL );
 
-    GERBER_DRAW_ITEM*   GerberGeneralLocateAndDisplay();
     GERBER_DRAW_ITEM*   Locate( const wxPoint& aPosition, int typeloc );
 
-    void                Process_Settings( wxCommandEvent& event );
     void                Process_Config( wxCommandEvent& event );
     void                InstallGerberOptionsDialog( wxCommandEvent& event );
 
@@ -581,13 +569,6 @@ public:
     void                Block_Move( wxDC* DC );
 
     /**
-     * Function ToPlotter
-     * Open a dialog frame to create plot and drill files
-     * relative to the current board
-     */
-    void                ToPlotter( wxCommandEvent& event );
-
-    /**
      * Function ToPrinter
      * Open a dialog frame to print layers
      */
@@ -618,9 +599,7 @@ public:
      * @return true if file was opened successfully.
      */
     bool                LoadGerberFiles( const wxString& aFileName );
-    int                 ReadGerberFile( FILE* File, bool Append );
-    bool                Read_GERBER_File( const wxString&   GERBER_FullFileName,
-                                          const wxString&   D_Code_FullFileName );
+    bool                Read_GERBER_File( const wxString&   GERBER_FullFileName );
 
     /**
      * function LoadDrllFiles
@@ -638,7 +617,6 @@ public:
     /**
      * Set Size Items (Lines, Flashes) from DCodes List
      */
-    void                CopyDCodesSizeToItems();
     void                Liste_D_Codes();
 
     // PCB handling

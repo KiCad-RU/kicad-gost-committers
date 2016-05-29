@@ -37,9 +37,8 @@
 
 #include <gerbview.h>
 #include <gerbview_frame.h>
-#include <colors_selection.h>
-#include <class_gerber_draw_item.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 #include <printout_controler.h>
 
 
@@ -62,7 +61,7 @@ void GERBVIEW_FRAME::PrintPage( wxDC* aDC, LSET aPrintMasklayer,
     PRINT_PARAMETERS* printParameters = (PRINT_PARAMETERS*) aData;
 
     // Find the layer to be printed
-    int page = printParameters->m_Flags;    // contains the page number (not necessarily layer number)
+    int page = printParameters->m_Flags;    // contains the page number (not necessarily graphic layer number)
     int layer = 0;
 
     // Find the layer number for the printed page (search through the mask and count bits)
@@ -150,248 +149,6 @@ void GERBVIEW_FRAME::RedrawActiveWindow( wxDC* DC, bool EraseBg )
 }
 
 
-/*
- * Redraw All GerbView layers, using a buffered mode or not
- */
-void GBR_LAYOUT::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMode,
-                       const wxPoint& aOffset, bool aPrintBlackAndWhite )
-{
-    GERBVIEW_FRAME* gerbFrame = (GERBVIEW_FRAME*) aPanel->GetParent();
-
-    // Because Images can be negative (i.e with background filled in color) items are drawn
-    // graphic layer per graphic layer, after the background is filled
-    // to a temporary bitmap
-    // at least when aDrawMode = GR_COPY or aDrawMode = GR_OR
-    // If aDrawMode = UNSPECIFIED_DRAWMODE, items are drawn to the main screen, and therefore
-    // artifacts can happen with negative items or negative images
-
-    wxColour bgColor = MakeColour( gerbFrame->GetDrawBgColor() );
-    wxBrush  bgBrush( bgColor, wxBRUSHSTYLE_SOLID );
-
-    int      bitmapWidth, bitmapHeight;
-    wxDC*    plotDC = aDC;
-
-    aPanel->GetClientSize( &bitmapWidth, &bitmapHeight );
-
-    wxBitmap*  layerBitmap  = NULL;
-    wxBitmap*  screenBitmap = NULL;
-    wxMemoryDC layerDC;         // used sequentially for each gerber layer
-    wxMemoryDC screenDC;
-
-    // When each image must be drawn using GR_OR (transparency mode)
-    // or GR_COPY (stacked mode) we must use a temporary bitmap
-    // to draw gerber images.
-    // this is due to negative objects (drawn using background color) that create artifacts
-    // on other images when drawn on screen
-    bool useBufferBitmap = false;
-
-#ifndef __WXMAC__
-    // Can't work with MAC
-    // Don't try this with retina display
-    if( (aDrawMode == GR_COPY) || ( aDrawMode == GR_OR ) )
-        useBufferBitmap = true;
-#endif
-
-    // these parameters are saved here, because they are modified
-    // and restored later
-    EDA_RECT drawBox = *aPanel->GetClipBox();
-    double scale;
-    aDC->GetUserScale(&scale, &scale);
-    wxPoint dev_org = aDC->GetDeviceOrigin();
-    wxPoint logical_org = aDC->GetLogicalOrigin( );
-
-
-    if( useBufferBitmap )
-    {
-        layerBitmap  = new wxBitmap( bitmapWidth, bitmapHeight );
-        screenBitmap = new wxBitmap( bitmapWidth, bitmapHeight );
-        layerDC.SelectObject( *layerBitmap );
-        aPanel->DoPrepareDC( layerDC );
-        aPanel->SetClipBox( drawBox );
-        layerDC.SetBackground( bgBrush );
-        layerDC.SetBackgroundMode( wxSOLID );
-        layerDC.Clear();
-
-        screenDC.SelectObject( *screenBitmap );
-        screenDC.SetBackground( bgBrush );
-        screenDC.SetBackgroundMode( wxSOLID );
-        screenDC.Clear();
-
-        plotDC = &layerDC;
-    }
-
-    bool doBlit = false; // this flag requests an image transfer to actual screen when true.
-
-    bool end = false;
-
-    // Draw layers from bottom to top, and active layer last
-    // in non transparent modes, the last layer drawn mask mask previously drawn layer
-    for( int layer = GERBER_DRAWLAYERS_COUNT-1; !end; --layer )
-    {
-        int active_layer = gerbFrame->getActiveLayer();
-
-        if( layer == active_layer ) // active layer will be drawn after other layers
-            continue;
-
-        if( layer < 0 )   // last loop: draw active layer
-        {
-            end   = true;
-            layer = active_layer;
-        }
-
-        if( !gerbFrame->IsLayerVisible( layer ) )
-            continue;
-
-        GERBER_IMAGE* gerber = g_GERBER_List.GetGbrImage( layer );
-
-        if( gerber == NULL )    // Graphic layer not yet used
-            continue;
-
-        // Force black and white draw mode on request:
-        if( aPrintBlackAndWhite )
-            gerbFrame->SetLayerColor( layer, gerbFrame->GetDrawBgColor() == BLACK ? WHITE : BLACK );
-
-        if( useBufferBitmap )
-        {
-            // Draw each layer into a bitmap first. Negative Gerber
-            // layers are drawn in background color.
-            if( gerber->HasNegativeItems() &&  doBlit )
-            {
-                // Set Device origin, logical origin and scale to default values
-                // This is needed by Blit function when using a mask.
-                // Beside, for Blit call, both layerDC and screenDc must have the same settings
-                layerDC.SetDeviceOrigin(0,0);
-                layerDC.SetLogicalOrigin( 0, 0 );
-                layerDC.SetUserScale( 1, 1 );
-
-                if( aDrawMode == GR_COPY )
-                {
-                    // Use the layer bitmap itself as a mask when blitting.  The bitmap
-                    // cannot be referenced by a device context when setting the mask.
-                    layerDC.SelectObject( wxNullBitmap );
-                    layerBitmap->SetMask( new wxMask( *layerBitmap, bgColor ) );
-                    layerDC.SelectObject( *layerBitmap );
-                    screenDC.Blit( 0, 0, bitmapWidth, bitmapHeight, &layerDC, 0, 0, wxCOPY, true );
-                }
-                else if( aDrawMode == GR_OR )
-                {
-                    // On Linux with a large screen, this version is much faster and without
-                    // flicker, but gives a Pcbnew look where layer colors blend together.
-                    // Plus it works only because the background color is black.  But it may
-                    // be more usable for some.  The difference is due in part because of
-                    // the cpu cycles needed to create the monochromatic bitmap above, and
-                    // the extra time needed to do bit indexing into the monochromatic bitmap
-                    // on the blit above.
-                    screenDC.Blit( 0, 0, bitmapWidth, bitmapHeight, &layerDC, 0, 0, wxOR );
-                }
-                // Restore actual values and clear bitmap for next drawing
-                layerDC.SetDeviceOrigin( dev_org.x, dev_org.y );
-                layerDC.SetLogicalOrigin( logical_org.x, logical_org.y );
-                layerDC.SetUserScale( scale, scale );
-                layerDC.SetBackground( bgBrush );
-                layerDC.SetBackgroundMode( wxSOLID );
-                layerDC.Clear();
-
-                doBlit = false;
-            }
-
-        }
-
-        if( gerber->m_ImageNegative )
-        {
-            // Draw background negative (i.e. in graphic layer color) for negative images.
-            EDA_COLOR_T neg_color = gerbFrame->GetLayerColor( layer );
-
-            GRSetDrawMode( &layerDC, GR_COPY );
-            GRFilledRect( &drawBox, plotDC, drawBox.GetX(), drawBox.GetY(),
-                          drawBox.GetRight(), drawBox.GetBottom(),
-                          0, neg_color, neg_color );
-
-            GRSetDrawMode( plotDC, GR_COPY );
-            doBlit = true;
-        }
-
-        int dcode_highlight = 0;
-
-        if( layer == gerbFrame->getActiveLayer() )
-            dcode_highlight = gerber->m_Selected_Tool;
-
-        GR_DRAWMODE layerdrawMode = GR_COPY;
-
-        if( aDrawMode == GR_OR && !gerber->HasNegativeItems() )
-            layerdrawMode = GR_OR;
-
-        EDA_COLOR_T item_color = gerbFrame->GetLayerColor( layer );
-
-        // Now we can draw the current layer to the bitmap buffer
-        // When needed, the previous bitmap is already copied to the screen buffer.
-        for( GERBER_DRAW_ITEM* item = gerbFrame->GetItemsList(); item; item = item->Next() )
-        {
-            if( item->GetLayer() != layer )
-                continue;
-
-            GR_DRAWMODE drawMode = layerdrawMode;
-
-            if( dcode_highlight && dcode_highlight == item->m_DCode )
-                DrawModeAddHighlight( &drawMode);
-
-            item->Draw( aPanel, plotDC, drawMode, wxPoint(0,0) );
-            doBlit = true;
-        }
-
-        if( aPrintBlackAndWhite )
-            gerbFrame->SetLayerColor( layer, item_color );
-    }
-
-    if( doBlit && useBufferBitmap )     // Blit is used only if aDrawMode >= 0
-    {
-        // For this Blit call, layerDC and screenDC must have the same settings
-        // So we set device origin, logical origin and scale to default values
-        // in layerDC
-        layerDC.SetDeviceOrigin(0,0);
-        layerDC.SetLogicalOrigin( 0, 0 );
-        layerDC.SetUserScale( 1, 1 );
-
-        // this is the last transfer to screenDC.  If there are no negative items, this is
-        // the only one
-        if( aDrawMode == GR_COPY )
-        {
-            layerDC.SelectObject( wxNullBitmap );
-            layerBitmap->SetMask( new wxMask( *layerBitmap, bgColor ) );
-            layerDC.SelectObject( *layerBitmap );
-            screenDC.Blit( 0, 0, bitmapWidth, bitmapHeight, &layerDC, 0, 0, wxCOPY, true );
-
-        }
-        else if( aDrawMode == GR_OR )
-        {
-            screenDC.Blit( 0, 0, bitmapWidth, bitmapHeight, &layerDC, 0, 0, wxOR );
-        }
-    }
-
-    if( useBufferBitmap )
-    {
-        // For this Blit call, aDC and screenDC must have the same settings
-        // So we set device origin, logical origin and scale to default values
-        // in aDC
-        aDC->SetDeviceOrigin( 0, 0);
-        aDC->SetLogicalOrigin( 0, 0 );
-        aDC->SetUserScale( 1, 1 );
-
-        aDC->Blit( 0, 0, bitmapWidth, bitmapHeight, &screenDC, 0, 0, wxCOPY );
-
-        // Restore aDC values
-        aDC->SetDeviceOrigin(dev_org.x, dev_org.y);
-        aDC->SetLogicalOrigin( logical_org.x, logical_org.y );
-        aDC->SetUserScale( scale, scale );
-
-        layerDC.SelectObject( wxNullBitmap );
-        screenDC.SelectObject( wxNullBitmap );
-        delete layerBitmap;
-        delete screenBitmap;
-    }
-}
-
-
 void GERBVIEW_FRAME::DrawItemsDCodeID( wxDC* aDC, GR_DRAWMODE aDrawMode )
 {
     wxPoint     pos;
@@ -401,57 +158,66 @@ void GERBVIEW_FRAME::DrawItemsDCodeID( wxDC* aDC, GR_DRAWMODE aDrawMode )
 
     GRSetDrawMode( aDC, aDrawMode );
 
-    for( GERBER_DRAW_ITEM* item = GetItemsList(); item != NULL; item = item->Next() )
+    for( int layer = 0; layer < GERBER_DRAWLAYERS_COUNT; ++layer )
     {
-        if( IsLayerVisible( item->GetLayer() ) == false )
+        GERBER_FILE_IMAGE* gerber = g_GERBER_List.GetGbrImage( layer );
+
+        if( gerber == NULL )    // Graphic layer not yet used
             continue;
 
-        if( item->m_DCode <= 0 )
+        if( IsLayerVisible( layer ) == false )
             continue;
 
-        if( item->m_Flashed || item->m_Shape == GBR_ARC )
+        for( GERBER_DRAW_ITEM* item = gerber->GetItemsList(); item != NULL; item = item->Next() )
         {
-            pos = item->m_Start;
+
+            if( item->m_DCode <= 0 )
+                continue;
+
+            if( item->m_Flashed || item->m_Shape == GBR_ARC )
+            {
+                pos = item->m_Start;
+            }
+            else
+            {
+                pos.x = (item->m_Start.x + item->m_End.x) / 2;
+                pos.y = (item->m_Start.y + item->m_End.y) / 2;
+            }
+
+            pos = item->GetABPosition( pos );
+
+            Line.Printf( wxT( "D%d" ), item->m_DCode );
+
+            if( item->GetDcodeDescr() )
+                width = item->GetDcodeDescr()->GetShapeDim( item );
+            else
+                width = std::min( item->m_Size.x, item->m_Size.y );
+
+            orient = TEXT_ORIENT_HORIZ;
+
+            if( item->m_Flashed )
+            {
+                // A reasonable size for text is width/3 because most of time this text has 3 chars.
+                width /= 3;
+            }
+            else        // this item is a line
+            {
+                wxPoint delta = item->m_Start - item->m_End;
+
+                if( abs( delta.x ) < abs( delta.y ) )
+                    orient = TEXT_ORIENT_VERT;
+
+                // A reasonable size for text is width/2 because text needs margin below and above it.
+                // a margin = width/4 seems good
+                width /= 2;
+            }
+
+            int color = GetVisibleElementColor( DCODES_VISIBLE );
+
+            DrawGraphicText( m_canvas->GetClipBox(), aDC, pos, (EDA_COLOR_T) color, Line,
+                             orient, wxSize( width, width ),
+                             GR_TEXT_HJUSTIFY_CENTER, GR_TEXT_VJUSTIFY_CENTER,
+                             0, false, false );
         }
-        else
-        {
-            pos.x = (item->m_Start.x + item->m_End.x) / 2;
-            pos.y = (item->m_Start.y + item->m_End.y) / 2;
-        }
-
-        pos = item->GetABPosition( pos );
-
-        Line.Printf( wxT( "D%d" ), item->m_DCode );
-
-        if( item->GetDcodeDescr() )
-            width = item->GetDcodeDescr()->GetShapeDim( item );
-        else
-            width = std::min( item->m_Size.x, item->m_Size.y );
-
-        orient = TEXT_ORIENT_HORIZ;
-
-        if( item->m_Flashed )
-        {
-            // A reasonable size for text is width/3 because most of time this text has 3 chars.
-            width /= 3;
-        }
-        else        // this item is a line
-        {
-            wxPoint delta = item->m_Start - item->m_End;
-
-            if( abs( delta.x ) < abs( delta.y ) )
-                orient = TEXT_ORIENT_VERT;
-
-            // A reasonable size for text is width/2 because text needs margin below and above it.
-            // a margin = width/4 seems good
-            width /= 2;
-        }
-
-        int color = GetVisibleElementColor( DCODES_VISIBLE );
-
-        DrawGraphicText( m_canvas->GetClipBox(), aDC, pos, (EDA_COLOR_T) color, Line,
-                         orient, wxSize( width, width ),
-                         GR_TEXT_HJUSTIFY_CENTER, GR_TEXT_VJUSTIFY_CENTER,
-                         0, false, false );
     }
 }
