@@ -31,6 +31,7 @@
 #include <wx/config.h>
 
 #include <common.h>
+
 #include <convert_to_biu.h>
 
 #include <pcad2kicad_common.h>
@@ -142,12 +143,14 @@ double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConv
                 || aActualConversion == wxT( "SCHLIB" ) )
                 i = i * (0.0254 / 0.025);
 #endif
-            i = Millimeter2iu( i );
+            // i = Millimeter2iu( i );
+            i = (int) ( i < 0 ? i * 1e6 - 0.5 : i * 1e6 + 0.5);
         }
         else
         {
             ls.ToDouble( &i );
-            i = Mils2iu( i );
+            // i = Mils2iu( i );
+            i = int( i < 0 ? i - 0.5 : i + 0.5 );
         }
     }
     else
