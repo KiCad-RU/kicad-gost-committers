@@ -64,10 +64,10 @@ static PRINT_PARAMETERS  s_Parameters;
 
 
 /**
- * Dialog to print schematic. Class derived from DIALOG_PRINT_USING_PRINTER_base
+ * Dialog to print schematic. Class derived from DIALOG_PRINT_USING_PRINTER_BASE
  *  created by wxFormBuilder
  */
-class DIALOG_PRINT_USING_PRINTER : public DIALOG_PRINT_USING_PRINTER_base
+class DIALOG_PRINT_USING_PRINTER : public DIALOG_PRINT_USING_PRINTER_BASE
 {
 public:
     DIALOG_PRINT_USING_PRINTER( PCB_EDIT_FRAME* parent );
@@ -141,7 +141,7 @@ void PCB_EDIT_FRAME::ToPrinter( wxCommandEvent& event )
 
 
 DIALOG_PRINT_USING_PRINTER::DIALOG_PRINT_USING_PRINTER( PCB_EDIT_FRAME* parent ) :
-    DIALOG_PRINT_USING_PRINTER_base( parent )
+    DIALOG_PRINT_USING_PRINTER_BASE( parent )
 {
     m_parent = parent;
     m_config = Kiface().KifaceSettings();
@@ -299,6 +299,9 @@ int DIALOG_PRINT_USING_PRINTER::SetLayerSetFromListSelection()
     else
         s_Parameters.m_Flags = 1;
 
+    if( PrintUsingSinglePage() )
+        page_count = 1;
+
     s_Parameters.m_PageCount = page_count;
 
     return page_count;
@@ -348,8 +351,7 @@ void DIALOG_PRINT_USING_PRINTER::SetPrintParameters( )
     s_Parameters.m_DrillShapeOpt =
         (PRINT_PARAMETERS::DrillShapeOptT) m_Drill_Shape_Opt->GetSelection();
 
-    if( m_PagesOption )
-        s_Parameters.m_OptionPrintPage = m_PagesOption->GetSelection() != 0;
+    s_Parameters.m_OptionPrintPage = m_PagesOption->GetSelection() != 0;
 
     SetLayerSetFromListSelection();
 
@@ -496,6 +498,7 @@ void DIALOG_PRINT_USING_PRINTER::OnPrintButtonClick( wxCommandEvent& event )
     }
 
     wxPrintDialogData printDialogData( *s_PrintData );
+    printDialogData.SetMaxPage( s_Parameters.m_PageCount );
 
     wxPrinter         printer( &printDialogData );
 

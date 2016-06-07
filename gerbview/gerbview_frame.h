@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,6 +38,7 @@
 #include <class_gbr_layout.h>
 #include <class_gbr_screen.h>
 #include <class_page_info.h>
+#include <class_gbr_display_options.h>
 
 #define NO_AVAILABLE_LAYERS UNDEFINED_LAYER
 
@@ -45,35 +46,6 @@ class DCODE_SELECTION_BOX;
 class GERBER_LAYER_WIDGET;
 class GBR_LAYER_BOX_SELECTOR;
 class GERBER_DRAW_ITEM;
-
-
-/**
- * Class GBR_DISPLAY_OPTIONS
- * A helper class to handle display options.
- */
-class GBR_DISPLAY_OPTIONS
-{
-public:
-    bool    m_DisplayFlashedItemsFill;
-    bool    m_DisplayLinesFill;
-    bool    m_DisplayPolygonsFill;
-    bool    m_DisplayPolarCood;
-    bool    m_DisplayDCodes;
-    bool    m_DisplayNegativeObjects;
-    bool    m_IsPrinting;
-
-public:
-    GBR_DISPLAY_OPTIONS()
-    {
-        m_DisplayFlashedItemsFill = true;
-        m_DisplayLinesFill      = true;
-        m_DisplayPolygonsFill   = true;
-        m_DisplayPolarCood      = false;
-        m_DisplayDCodes = true;
-        m_IsPrinting = false;
-        m_DisplayNegativeObjects = false;
-    }
-};
 
 
 /**
@@ -602,7 +574,7 @@ public:
     bool                Read_GERBER_File( const wxString&   GERBER_FullFileName );
 
     /**
-     * function LoadDrllFiles
+     * function Read_EXCELLON_File
      * Load a drill (EXCELLON) file or many files.
      * @param aFileName - void string or file name with full path to open or empty string to
      *                    open a new file. In this case one one file is loaded
@@ -658,15 +630,6 @@ public:
      */
     virtual void    PrintPage( wxDC* aDC, LSET aPrintMasklayer, bool aPrintMirrorMode,
                                void* aData = NULL );
-
-    /**
-     * Function DrawItemsDCodeID
-     * Draw the DCode value (if exists) corresponding to gerber item
-     * (polygons do not have a DCode)
-     * @param aDC = the current device context
-     * @param aDrawMode = GR_COPY, GR_OR ...
-     */
-    void            DrawItemsDCodeID( wxDC* aDC, GR_DRAWMODE aDrawMode );
 
     DECLARE_EVENT_TABLE()
 };

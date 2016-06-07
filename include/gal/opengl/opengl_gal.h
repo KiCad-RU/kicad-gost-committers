@@ -52,6 +52,7 @@ namespace KIGFX
 {
 class SHADER;
 
+
 /**
  * @brief Class OpenGL_GAL is the OpenGL implementation of the Graphics Abstraction Layer.
  *
@@ -62,7 +63,6 @@ class SHADER;
 class OPENGL_GAL : public GAL, public wxGLCanvas
 {
 public:
-
     /**
      * @brief Constructor OPENGL_GAL
      *
@@ -273,31 +273,30 @@ private:
     static const int    CIRCLE_POINTS   = 64;   ///< The number of points for circle approximation
     static const int    CURVE_POINTS    = 32;   ///< The number of points for curve approximation
 
-    wxClientDC*             clientDC;               ///< Drawing context
-    static wxGLContext*     glContext;              ///< OpenGL context of wxWidgets
+    static wxGLContext*     glMainContext;      ///< Parent OpenGL context
+    wxGLContext*            glPrivContext;      ///< Canvas-specific OpenGL context
     wxEvtHandler*           mouseListener;
     wxEvtHandler*           paintListener;
-    static int              instanceCounter;
 
-    GLuint fontTexture;                             ///< Bitmap font texture handle
+    static GLuint fontTexture;                  ///< Bitmap font texture handle (shared)
 
     // Vertex buffer objects related fields
     typedef std::map< unsigned int, boost::shared_ptr<VERTEX_ITEM> > GROUPS_MAP;
     GROUPS_MAP              groups;                 ///< Stores informations about VBO objects (groups)
     unsigned int            groupCounter;           ///< Counter used for generating keys for groups
     VERTEX_MANAGER*         currentManager;         ///< Currently used VERTEX_MANAGER (for storing VERTEX_ITEMs)
-    VERTEX_MANAGER          cachedManager;          ///< Container for storing cached VERTEX_ITEMs
-    VERTEX_MANAGER          nonCachedManager;       ///< Container for storing non-cached VERTEX_ITEMs
-    VERTEX_MANAGER          overlayManager;         ///< Container for storing overlaid VERTEX_ITEMs
+    VERTEX_MANAGER*         cachedManager;          ///< Container for storing cached VERTEX_ITEMs
+    VERTEX_MANAGER*         nonCachedManager;       ///< Container for storing non-cached VERTEX_ITEMs
+    VERTEX_MANAGER*         overlayManager;         ///< Container for storing overlaid VERTEX_ITEMs
 
     // Framebuffer & compositing
-    OPENGL_COMPOSITOR       compositor;             ///< Handles multiple rendering targets
+    OPENGL_COMPOSITOR*      compositor;             ///< Handles multiple rendering targets
     unsigned int            mainBuffer;             ///< Main rendering target
     unsigned int            overlayBuffer;          ///< Auxiliary rendering target (for menus etc.)
     RENDER_TARGET           currentTarget;          ///< Current rendering target
 
     // Shader
-    SHADER                  shader;         ///< There is only one shader used for different objects
+    static SHADER*          shader;                 ///< There is only one shader used for different objects
 
     // Internal flags
     bool                    isFramebufferInitialized;   ///< Are the framebuffers initialized?
@@ -416,7 +415,7 @@ private:
     class OPENGL_TEST: public wxGLCanvas
     {
     public:
-        OPENGL_TEST( wxDialog* aParent, OPENGL_GAL* aGal );
+        OPENGL_TEST( wxDialog* aParent, OPENGL_GAL* aGal, wxGLContext* aContext );
 
         void Render( wxPaintEvent& aEvent );
         void OnTimeout( wxTimerEvent& aEvent );
@@ -431,6 +430,7 @@ private:
 
         wxDialog* m_parent;
         OPENGL_GAL* m_gal;
+        wxGLContext* m_context;
         bool m_tested;
         bool m_result;
         std::string m_error;

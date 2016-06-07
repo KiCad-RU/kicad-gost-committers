@@ -64,7 +64,7 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
 
     SwitchBackend( aGalType );
     SetBackgroundStyle( wxBG_STYLE_CUSTOM );
-    
+
 // Scrollbars broken in GAL on OSX
 #ifdef __WXMAC__
     ShowScrollbars( wxSHOW_SB_NEVER, wxSHOW_SB_NEVER );
@@ -126,7 +126,10 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
 
 EDA_DRAW_PANEL_GAL::~EDA_DRAW_PANEL_GAL()
 {
+    StopDrawing();
     SaveGalSettings();
+
+    assert( !m_drawing );
 
     delete m_painter;
     delete m_viewControls;
@@ -153,6 +156,9 @@ void EDA_DRAW_PANEL_GAL::SetFocus()
 
 void EDA_DRAW_PANEL_GAL::onPaint( wxPaintEvent& WXUNUSED( aEvent ) )
 {
+    // This is required even though dc is not used otherwise.
+    wxPaintDC dc(this);
+
     m_pendingRefresh = false;
 
     if( m_drawing )
@@ -285,7 +291,6 @@ void EDA_DRAW_PANEL_GAL::StopDrawing()
     m_drawingEnabled = false;
     Disconnect( wxEVT_PAINT, wxPaintEventHandler( EDA_DRAW_PANEL_GAL::onPaint ), NULL, this );
     m_pendingRefresh = false;
-    m_drawing = true;
     m_refreshTimer.Stop();
 }
 
