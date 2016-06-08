@@ -156,7 +156,7 @@ public:
         m_ConnectionType = aFlg;
     }
 
-    NET_CONNECTION_T GetConnectionType()
+    NET_CONNECTION_T GetConnectionType() const
     {
         return m_ConnectionType;
     }
@@ -423,7 +423,7 @@ private:
      * used to interconnect group of items already physically connected,
      * when a new connection is found between aOldNetCode and aNewNetCode
      */
-    void propageNetCode( int aOldNetCode, int aNewNetCode, bool aIsBus );
+    void propagateNetCode( int aOldNetCode, int aNewNetCode, bool aIsBus );
 
     /*
      * This function merges the net codes of groups of objects already connected

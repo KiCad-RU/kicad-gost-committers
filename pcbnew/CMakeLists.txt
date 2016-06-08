@@ -293,6 +293,7 @@ set( PCBNEW_CLASS_SRCS
     tools/common_actions.cpp
     tools/grid_helper.cpp
     tools/picker_tool.cpp
+    tools/zoom_tool.cpp
     tools/tools_common.cpp
 
     tools/grid_menu.cpp
@@ -534,6 +535,8 @@ add_subdirectory( pcad2kicadpcb_plugin )
 if( BUILD_GITHUB_PLUGIN )
     add_subdirectory( github )
     add_dependencies( github_plugin lib-dependencies )
+    # github_plugin depends on make_lexer outputs in common
+    add_dependencies( github_plugin pcbcommon )
 endif()
 
 

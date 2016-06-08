@@ -799,14 +799,18 @@ wxString EDA_DRAW_FRAME::LengthDoubleToString( double aValue, bool aConvertToMil
 }
 
 
-bool EDA_DRAW_FRAME::HandleBlockBegin( wxDC* aDC, EDA_KEY aKey, const wxPoint& aPosition )
+bool EDA_DRAW_FRAME::HandleBlockBegin( wxDC* aDC, EDA_KEY aKey, const wxPoint& aPosition,
+       int aExplicitCommand )
 {
     BLOCK_SELECTOR* block = &GetScreen()->m_BlockLocate;
 
     if( ( block->GetCommand() != BLOCK_IDLE ) || ( block->GetState() != STATE_NO_BLOCK ) )
         return false;
 
-    block->SetCommand( (BLOCK_COMMAND_T) BlockCommand( aKey ) );
+    if( aExplicitCommand == 0 )
+        block->SetCommand( (BLOCK_COMMAND_T) BlockCommand( aKey ) );
+    else
+        block->SetCommand( (BLOCK_COMMAND_T) aExplicitCommand );
 
     if( block->GetCommand() == 0 )
         return false;
@@ -903,9 +907,14 @@ void EDA_DRAW_FRAME::AdjustScrollBars( const wxPoint& aCenterPositionIU )
     // Full drawing or "page" rectangle in internal units
     DBOX    pageRectIU( wxPoint( 0, 0 ), wxSize( GetPageSizeIU().x, GetPageSizeIU().y ) );
 
+    // Account for scrollbars
+    wxSize  scrollbarSizeDU = m_canvas->GetSize() - m_canvas->GetClientSize();
+    wxSize  scrollbarSizeIU = scrollbarSizeDU * (1 / scale);
+    wxPoint centerAdjustedIU = aCenterPositionIU + scrollbarSizeIU / 2;
+
     // The upper left corner of the client rectangle in internal units.
-    double xIU = aCenterPositionIU.x - clientSizeIU.x / 2.0;
-    double yIU = aCenterPositionIU.y - clientSizeIU.y / 2.0;
+    double xIU = centerAdjustedIU.x - clientSizeIU.x / 2.0;
+    double yIU = centerAdjustedIU.y - clientSizeIU.y / 2.0;
 
     // If drawn around the center, adjust the client rectangle accordingly.
     if( screen->m_Center )
