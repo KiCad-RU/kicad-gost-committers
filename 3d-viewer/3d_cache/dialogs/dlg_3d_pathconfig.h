@@ -37,14 +37,21 @@ private:
     wxString m_curdir;
     wxTextValidator m_aliasValidator;
 
+    void initDialog();
+
     void OnAddAlias( wxCommandEvent& event );
     void OnDelAlias( wxCommandEvent& event );
     void OnAliasMoveUp( wxCommandEvent& event );
     void OnAliasMoveDown( wxCommandEvent& event );
+    void OnConfigEnvVar( wxCommandEvent& event );
+    void OnHelp( wxCommandEvent& event );
 
 public:
     DLG_3D_PATH_CONFIG( wxWindow* aParent, S3D_FILENAME_RESOLVER* aResolver );
     bool TransferDataFromWindow();
+
+private:
+    void updateEnvVars( void );
 };
 
 #endif  // DLG_3D_PATHCONFIG_H

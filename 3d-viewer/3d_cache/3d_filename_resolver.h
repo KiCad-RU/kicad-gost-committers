@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2015 Cirilo Bernardo <cirilo.bernardo@gmail.com>
+ * Copyright (C) 2015-2016 Cirilo Bernardo <cirilo.bernardo@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,8 +54,6 @@ class S3D_FILENAME_RESOLVER
 private:
     wxString m_ConfigDir;           // 3D configuration directory
     std::list< S3D_ALIAS > m_Paths; // list of base paths to search from
-    // mapping of (short) file names to resolved names
-    std::map< wxString, wxString, S3D::rsort_wxString > m_NameMap;
     int m_errflags;
     PGM_BASE* m_pgm;
     wxString m_curProjDir;
@@ -99,12 +97,12 @@ private:
     bool writePathList( void );
 
     /**
-     * Function resolveVirtualEnv
-     * extracts the ${ENV_VAR} component of aFileName and puts a
-     * resolved path in aFullPath if the ${ENV_VAR} exists in the
-     * alias list and the referenced file exists.
+     * Function checkEnvVarPath
+     * checks the ${ENV_VAR} component of a path and adds
+     * it to the resolver's path list if it is not yet in
+     * the list
      */
-    bool resolveVirtualEnv( const wxString& aFileName, wxString& aFullPath );
+    void checkEnvVarPath( const wxString& aPath );
 
 public:
     S3D_FILENAME_RESOLVER();
@@ -192,6 +190,14 @@ public:
      * If the path contains an alias then hasAlias is set true.
      */
     bool ValidateFileName( const wxString& aFileName, bool& hasAlias );
+
+    /**
+     * Function GetKicadPaths
+     * returns a list of path environment variables local to Kicad;
+     * this list always includes KISYS3DMOD even if it is not
+     * defined locally.
+     */
+    bool GetKicadPaths( std::list< wxString >& paths );
 };
 
 #endif  // FILENAME_RESOLVER_3D_H

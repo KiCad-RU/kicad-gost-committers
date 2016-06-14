@@ -44,17 +44,20 @@ wxGLContext* GL_CONTEXT_MANAGER::CreateCtx( wxGLCanvas* aCanvas, const wxGLConte
 
 void GL_CONTEXT_MANAGER::DestroyCtx( wxGLContext* aContext )
 {
-    assert( m_glCtx != aContext );
-
-    if( m_glContexts.count( aContext ) && m_glCtx != aContext )
+    if( m_glContexts.count( aContext ) )
     {
         m_glContexts.erase( aContext );
         delete aContext;
     }
     else
     {
-        // Do not delete currently used or unknown GL contexts
+        // Do not delete unknown GL contexts
         assert( false );
+    }
+
+    if( m_glCtx == aContext )
+    {
+        m_glCtx = NULL;
     }
 }
 
@@ -74,6 +77,7 @@ void GL_CONTEXT_MANAGER::LockCtx( wxGLContext* aContext, wxGLCanvas* aCanvas )
 
     m_glCtxMutex.lock();
     wxGLCanvas* canvas = aCanvas ? aCanvas : m_glContexts.at( aContext );
+
     canvas->SetCurrent( *aContext );
     m_glCtx = aContext;
 }
@@ -83,7 +87,8 @@ void GL_CONTEXT_MANAGER::UnlockCtx( wxGLContext* aContext )
 {
     assert( m_glContexts.count( aContext ) > 0 );
 
-    if( m_glCtx == aContext ){
+    if( m_glCtx == aContext )
+    {
         m_glCtxMutex.unlock();
         m_glCtx = NULL;
     }

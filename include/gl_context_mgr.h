@@ -71,7 +71,7 @@ public:
      * @param aCanvas (optional) allows caller to bind the context to a non-parent canvas
      * (e.g. when a few canvases share a single GL context).
      */
-    void LockCtx( wxGLContext* aContext, wxGLCanvas* aCanvas = NULL );
+    void LockCtx( wxGLContext* aContext, wxGLCanvas* aCanvas );
 
     /**
      * Function UnlockCtx

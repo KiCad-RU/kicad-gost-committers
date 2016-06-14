@@ -51,6 +51,7 @@ static void InitTesselatorCallbacks( GLUtesselator* aTesselator );
 static const int glAttributes[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 8, 0 };
 
 wxGLContext* OPENGL_GAL::glMainContext = NULL;
+int OPENGL_GAL::instanceCounter = 0;
 GLuint OPENGL_GAL::fontTexture = 0;
 bool OPENGL_GAL::isBitmapFontLoaded = false;
 SHADER* OPENGL_GAL::shader = NULL;
@@ -73,6 +74,8 @@ OPENGL_GAL::OPENGL_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener,
     {
         glPrivContext = GL_CONTEXT_MANAGER::Get().CreateCtx( this, glMainContext );
     }
+
+    ++instanceCounter;
 
     // Check if OpenGL requirements are met
     runTest();
@@ -140,8 +143,9 @@ OPENGL_GAL::OPENGL_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener,
 
 OPENGL_GAL::~OPENGL_GAL()
 {
-    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext );
+    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext, this );
 
+    --instanceCounter;
     glFlush();
     gluDeleteTess( tesselator );
     ClearCache();
@@ -151,9 +155,18 @@ OPENGL_GAL::~OPENGL_GAL()
     delete nonCachedManager;
     delete overlayManager;
 
-    // Are destroying the last GAL instance?
-    if( glPrivContext == glMainContext )
+    GL_CONTEXT_MANAGER::Get().UnlockCtx( glPrivContext );
+
+    // If it was the main context, then it will be deleted
+    // when the last OpenGL GAL instance is destroyed (a few lines below)
+    if( glPrivContext != glMainContext )
+        GL_CONTEXT_MANAGER::Get().DestroyCtx( glPrivContext );
+
+    // Are we destroying the last GAL instance?
+    if( instanceCounter == 0 )
     {
+        GL_CONTEXT_MANAGER::Get().LockCtx( glMainContext, this );
+
         if( isBitmapFontLoaded )
         {
             glDeleteTextures( 1, &fontTexture );
@@ -161,11 +174,12 @@ OPENGL_GAL::~OPENGL_GAL()
         }
 
         delete shader;
+
+        GL_CONTEXT_MANAGER::Get().UnlockCtx( glMainContext );
+        GL_CONTEXT_MANAGER::Get().DestroyCtx( glMainContext );
         glMainContext = NULL;
     }
 
-    GL_CONTEXT_MANAGER::Get().UnlockCtx( glPrivContext );
-    GL_CONTEXT_MANAGER::Get().DestroyCtx( glPrivContext );
 }
 
 
@@ -179,7 +193,7 @@ void OPENGL_GAL::BeginDrawing()
     prof_start( &totalRealTime );
 #endif /* __WXDEBUG__ */
 
-    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext );
+    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext, this );
 
 #ifdef RETINA_OPENGL_PATCH
     const float scaleFactor = GetBackingScaleFactor();
@@ -332,7 +346,7 @@ void OPENGL_GAL::EndDrawing()
 
 void OPENGL_GAL::BeginUpdate()
 {
-    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext );
+    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext, this );
     cachedManager->Map();
 }
 

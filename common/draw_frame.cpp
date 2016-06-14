@@ -783,8 +783,6 @@ void EDA_DRAW_FRAME::UpdateMsgPanel()
 void EDA_DRAW_FRAME::PushPreferences( const EDA_DRAW_PANEL* aParentCanvas )
 {
     m_canvas->SetEnableZoomNoCenter( aParentCanvas->GetEnableZoomNoCenter() );
-    m_canvas->SetEnableMiddleButtonPan( aParentCanvas->GetEnableMiddleButtonPan() );
-    m_canvas->SetMiddleButtonPanLimited( aParentCanvas->GetMiddleButtonPanLimited() );
     m_canvas->SetEnableAutoPan( aParentCanvas->GetEnableAutoPan() );
 }
 
@@ -1035,10 +1033,11 @@ void EDA_DRAW_FRAME::AdjustScrollBars( const wxPoint& aCenterPositionIU )
     double unitsX = virtualSizeIU.x * scale;
     double unitsY = virtualSizeIU.y * scale;
 
+    // Store the requested center position for later use
+    SetScrollCenterPosition( aCenterPositionIU );
+
     // Calculate the scroll bar position in internal units to place the
     // center position at the center of client rectangle.
-    SetScrollCenterPosition( centerPositionIU );
-
     double posX = centerPositionIU.x - clientRectIU.GetWidth()  / 2.0 - screen->m_DrawOrg.x;
     double posY = centerPositionIU.y - clientRectIU.GetHeight() / 2.0 - screen->m_DrawOrg.y;
 

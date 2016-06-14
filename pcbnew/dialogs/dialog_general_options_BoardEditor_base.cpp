@@ -102,11 +102,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 	
 	bMiddleRightBoxSizer->Add( m_ShowGlobalRatsnest, 0, wxALL, 5 );
 	
-	m_ShowModuleRatsnest = new wxCheckBox( bMiddleRightBoxSizer->GetStaticBox(), wxID_RATSNEST_MODULE, _("S&how footprint ratsnest"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_ShowModuleRatsnest->SetToolTip( _("Shows (or not) the local ratsnest relative to a footprint, when moving it.\nThis ratsnest is useful to place a footprint.") );
-	
-	bMiddleRightBoxSizer->Add( m_ShowModuleRatsnest, 0, wxALL, 5 );
-	
 	m_TrackAutodel = new wxCheckBox( bMiddleRightBoxSizer->GetStaticBox(), wxID_TRACK_AUTODEL, _("&Delete unconnected tracks"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_TrackAutodel->SetToolTip( _("Enable/disable the automatic track deletion when recreating a track.") );
 	
@@ -160,16 +155,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 	
 	sbSizer2PAN->Add( m_ZoomCenterOpt, 0, wxLEFT|wxRIGHT|wxTOP, 5 );
 	
-	m_MiddleButtonPANOpt = new wxCheckBox( sbSizer2PAN->GetStaticBox(), wxID_ANY, _("Use middle mouse &button to pan"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_MiddleButtonPANOpt->SetToolTip( _("Use middle mouse button dragging to pan") );
-	
-	sbSizer2PAN->Add( m_MiddleButtonPANOpt, 0, wxLEFT|wxRIGHT|wxTOP, 5 );
-	
-	m_OptMiddleButtonPanLimited = new wxCheckBox( sbSizer2PAN->GetStaticBox(), wxID_MIDDLEBUTTONPAN, _("Limi&t panning to scroll size"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_OptMiddleButtonPanLimited->SetToolTip( _("Middle mouse button panning limited by current scrollbar size") );
-	
-	sbSizer2PAN->Add( m_OptMiddleButtonPanLimited, 0, wxLEFT|wxRIGHT|wxTOP, 5 );
-	
 	m_MousewheelPANOpt = new wxCheckBox( sbSizer2PAN->GetStaticBox(), wxID_ANY, _("Use touchpad to pan"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_MousewheelPANOpt->SetToolTip( _("Use touchpad to pan canvas") );
 	
@@ -207,7 +192,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 	bMainSizer->Fit( this );
 	
 	// Connect Events
-	m_MiddleButtonPANOpt->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnMiddleBtnPanEnbl ), NULL, this );
 	m_sdbSizerCancel->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnCancelClick ), NULL, this );
 	m_sdbSizerOK->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnOkClick ), NULL, this );
 }
@@ -215,7 +199,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::~DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE()
 {
 	// Disconnect Events
-	m_MiddleButtonPANOpt->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnMiddleBtnPanEnbl ), NULL, this );
 	m_sdbSizerCancel->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnCancelClick ), NULL, this );
 	m_sdbSizerOK->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnOkClick ), NULL, this );
 	
