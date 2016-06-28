@@ -77,11 +77,12 @@ GERBER_LAYER_WIDGET::GERBER_LAYER_WIDGET( GERBVIEW_FRAME* aParent, wxWindow* aFo
     // using installRightLayerClickHandler
 }
 
-/**
- * Function SetLayersManagerTabsText
- * Update the layer manager tabs labels
- * Useful when changing Language or to set labels to a non default value
- */
+GERBER_FILE_IMAGE_LIST* GERBER_LAYER_WIDGET::GetImagesList()
+{
+    return &GERBER_FILE_IMAGE_LIST::GetImagesList();
+}
+
+
 void GERBER_LAYER_WIDGET::SetLayersManagerTabsText( )
 {
     m_notebook->SetPageText(0, _("Layer") );
@@ -208,7 +209,7 @@ void GERBER_LAYER_WIDGET::onPopupSelection( wxCommandEvent& event )
         break;
 
     case ID_SORT_GBR_LAYERS:
-        g_GERBER_List.SortImagesByZOrder();
+        GetImagesList()->SortImagesByZOrder();
         myframe->ReFillLayerWidget();
         myframe->syncLayerBox( true );
         myframe->GetCanvas()->Refresh();
@@ -238,7 +239,7 @@ void GERBER_LAYER_WIDGET::ReFill()
 
     for( int layer = 0; layer < GERBER_DRAWLAYERS_COUNT; ++layer )
     {
-        wxString msg = g_GERBER_List.GetDisplayName( layer );
+        wxString msg = GetImagesList()->GetDisplayName( layer );
 
         AppendLayerRow( LAYER_WIDGET::ROW( msg, layer,
                         myframe->GetLayerColor( layer ), wxEmptyString, true ) );
@@ -307,11 +308,11 @@ void GERBER_LAYER_WIDGET::OnRenderEnable( int aId, bool isEnabled )
 /*
  * Virtual Function useAlternateBitmap
  * return true if bitmaps shown in Render layer list
- * must be alternate bitmaps, or false to use "normal" bitmaps
+ * must be alternate bitmap (when a gerber iùmage is loaded), or false to use "normal" bitmap
  */
 bool GERBER_LAYER_WIDGET::useAlternateBitmap(int aRow)
 {
-    return g_GERBER_List.IsUsed( aRow );
+    return GetImagesList()->GetGbrImage( aRow ) != NULL;
 }
 
 /*

@@ -28,7 +28,6 @@
 #include <vector>
 #include <set>
 
-//#include <dcode.h>
 #include <class_gerber_draw_item.h>
 #include <class_aperture_macro.h>
 
@@ -70,7 +69,10 @@ public:
     ~GERBER_FILE_IMAGE_LIST();
 
     //Accessor
+    static GERBER_FILE_IMAGE_LIST& GetImagesList();
     GERBER_FILE_IMAGE* GetGbrImage( int aIdx );
+
+    unsigned ImagesMaxCount() { return m_GERBER_List.size(); }
 
     /**
      * Add a GERBER_FILE_IMAGE* at index aIdx
@@ -83,15 +85,15 @@ public:
 
 
     /**
-     * remove all loaded data in list
+     * remove all loaded data in list, and delete all images. Memory is freed
      */
-    void ClearList();
+    void DeleteAllImages();
 
     /**
-     * remove the loaded data of image aIdx
+     * delete the loaded data of image aIdx. Memory is freed
      * @param aIdx = the index ( 0 ... GERBER_DRAWLAYERS_COUNT-1 )
      */
-    void ClearImage( int aIdx );
+    void DeleteImage( int aIdx );
 
     /**
      * @return a name for image aIdx which can be used in layers manager
@@ -107,19 +109,10 @@ public:
     const wxString GetDisplayName( int aIdx );
 
     /**
-     * @return true if image is used (loaded and with items)
-     * @param aIdx = the index ( 0 ... GERBER_DRAWLAYERS_COUNT-1 )
-     */
-    bool IsUsed( int aIdx );
-
-    /**
      * Sort loaded images by Z order priority, if they have the X2 FileFormat info
      * (SortImagesByZOrder updates the graphic layer of these items)
      */
     void SortImagesByZOrder();
 };
-
-
-extern GERBER_FILE_IMAGE_LIST g_GERBER_List;
 
 #endif  // ifndef CLASS_GERBER_FILE_IMAGE_LIST_H

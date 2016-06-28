@@ -120,9 +120,11 @@ void LAYERS_MAP_DIALOG::initDialog()
 
     LAYER_NUM pcb_layer_num = 0;
     m_gerberActiveLayersCount = 0;
-    for( int ii = 0; ii < GERBER_DRAWLAYERS_COUNT; ++ii )
+    GERBER_FILE_IMAGE_LIST* images = m_Parent->GetGerberLayout()->GetImagesList();
+
+    for( unsigned ii = 0; ii < GERBER_DRAWLAYERS_COUNT; ++ii )
     {
-        if( g_GERBER_List.GetGbrImage( ii ) == NULL )
+        if( images->GetGbrImage( ii ) == NULL )
             break;
 
         if( (pcb_layer_num == m_exportBoardCopperLayersCount - 1)
@@ -190,7 +192,7 @@ void LAYERS_MAP_DIALOG::initDialog()
                                  wxRIGHT | wxLEFT, 5 );
 
         /* Add file name and extension without path. */
-        wxFileName fn( g_GERBER_List.GetGbrImage( ii )->m_FileName );
+        wxFileName fn( images->GetGbrImage( ii )->m_FileName );
         label = new wxStaticText( this, wxID_STATIC, fn.GetFullName(),
                                   wxDefaultPosition, wxDefaultSize );
         flexColumnBoxSizer->Add( label, 0,
@@ -393,12 +395,6 @@ void LAYERS_MAP_DIALOG::OnSelectLayer( wxCommandEvent& event )
 }
 
 
-void LAYERS_MAP_DIALOG::OnCancelClick( wxCommandEvent& event )
-{
-    EndModal( wxID_CANCEL );
-}
-
-
 void LAYERS_MAP_DIALOG::OnOkClick( wxCommandEvent& event )
 {
     /* Make some test about copper layers:
@@ -425,5 +421,6 @@ void LAYERS_MAP_DIALOG::OnOkClick( wxCommandEvent& event )
         _("The exported board has not enough copper layers to handle selected inner layers") );
         return;
     }
+
     EndModal( wxID_OK );
 }

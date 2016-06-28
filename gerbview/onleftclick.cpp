@@ -42,7 +42,7 @@ void GERBVIEW_FRAME::OnLeftClick( wxDC* DC, const wxPoint& aPosition )
 
     if( DrawStruct == NULL )
     {
-        GERBER_FILE_IMAGE* gerber = g_GERBER_List.GetGbrImage( getActiveLayer() );
+        GERBER_FILE_IMAGE* gerber = GetGbrImage( getActiveLayer() );
 
         if( gerber )
             gerber->DisplayImageInfo( this );
