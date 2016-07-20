@@ -31,14 +31,11 @@
 #ifndef CLASS_NETCLASS_H
 #define CLASS_NETCLASS_H
 
+
+#include <macros.h>
 #include <set>
-#include <map>
-
-#include <wx/string.h>
-
-#include <richio.h>
-
 #include <memory>
+#include <richio.h>
 
 
 class LINE_READER;
@@ -207,7 +204,10 @@ public:
 #endif
 };
 
-typedef std::shared_ptr<NETCLASS> NETCLASSPTR;
+
+DECL_SPTR_FOR_SWIG( NETCLASSPTR, NETCLASS )
+DECL_MAP_FOR_SWIG( NETCLASS_MAP, wxString, NETCLASSPTR );
+
 
 /**
  * Class NETCLASSES
@@ -218,10 +218,9 @@ typedef std::shared_ptr<NETCLASS> NETCLASSPTR;
 class NETCLASSES
 {
 private:
-    typedef std::map<wxString, NETCLASSPTR> NETCLASSMAP;
 
     /// all the NETCLASSes except the default one.
-    NETCLASSMAP             m_NetClasses;
+    NETCLASS_MAP             m_NetClasses;
 
     /// the default NETCLASS.
     NETCLASSPTR             m_Default;
@@ -239,11 +238,11 @@ public:
         m_NetClasses.clear();
     }
 
-    typedef NETCLASSMAP::iterator iterator;
+    typedef NETCLASS_MAP::iterator iterator;
     iterator begin() { return m_NetClasses.begin(); }
     iterator end()   { return m_NetClasses.end(); }
 
-    typedef NETCLASSMAP::const_iterator const_iterator;
+    typedef NETCLASS_MAP::const_iterator const_iterator;
     const_iterator begin() const { return m_NetClasses.begin(); }
     const_iterator end()   const { return m_NetClasses.end(); }
 

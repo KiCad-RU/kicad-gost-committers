@@ -24,13 +24,16 @@
 
 /**
  * @file macros.h
- * @brief This file contains miscellaneous helper definitions and functions.
+ * @brief This file contains miscellaneous commonly used macros and functions.
  */
 
 #ifndef MACROS_H
 #define MACROS_H
 
 #include <wx/wx.h>
+#include <vector>
+#include <map>
+#include <memory>       // std::shared_ptr
 
 /**
  * Macro TO_UTF8
@@ -116,4 +119,16 @@ template <typename T> inline const T& Clamp( const T& lower, const T& value, con
 }
 
 
-#endif /* ifdef MACRO_H */
+#ifdef SWIG
+/// Declare a std::vector and also the swig %template in unison
+#define DECL_VEC_FOR_SWIG(TypeName, MemberType) namespace std { %template(TypeName) vector<MemberType>; } typedef std::vector<MemberType> TypeName;
+#define DECL_MAP_FOR_SWIG(TypeName, KeyType, ValueType) namespace std { %template(TypeName) map<KeyType, ValueType>; } typedef std::map<KeyType, ValueType> TypeName;
+#define DECL_SPTR_FOR_SWIG(TypeName, MemberType) namespace std { %template(TypeName) std::shared_ptr<MemberType>; } typedef std::shared_ptr<MemberType> TypeName;
+#else
+/// Declare a std::vector but no swig %template
+#define DECL_VEC_FOR_SWIG(TypeName, MemberType) typedef std::vector<MemberType> TypeName;
+#define DECL_MAP_FOR_SWIG(TypeName, KeyType, ValueType) typedef std::map<KeyType, ValueType> TypeName;
+#define DECL_SPTR_FOR_SWIG(TypeName, MemberType) typedef std::shared_ptr<MemberType> TypeName;
+#endif
+
+#endif // MACROS_H
