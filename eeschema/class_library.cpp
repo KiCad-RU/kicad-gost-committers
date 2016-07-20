@@ -43,8 +43,6 @@
 #include <general.h>
 #include <class_library.h>
 
-#include <boost/foreach.hpp>
-
 #include <wx/tokenzr.h>
 #include <wx/regex.h>
 
@@ -135,70 +133,6 @@ void PART_LIB::GetEntryTypePowerNames( wxArrayString& aNames, bool aSort, bool a
         {
             aNames.Add( (*it).first );
         }
-    }
-
-    if( aSort )
-        aNames.Sort();
-}
-
-
-/**
- * Function sortFunction
- * simple function used as comparator to sort a std::vector<wxArrayString>&.
- *
- * @param aItem1 is the first comparison parameter.
- * @param aItem2 is the second.
- * @return bool - which item should be put first in the sorted list.
- */
-bool sortFunction( wxArrayString aItem1, wxArrayString aItem2 )
-{
-    return( aItem1.Item( 0 ) < aItem2.Item( 0 ) );
-}
-
-
-void PART_LIB::SearchEntryNames( std::vector<wxArrayString>& aNames,
-                                    const wxString& aNameSearch,
-                                    const wxString& aKeySearch,
-                                    bool aSort )
-{
-    for( LIB_ALIAS_MAP::iterator it = m_amap.begin();  it != m_amap.end();  ++it )
-    {
-        if( !!aKeySearch && KeyWordOk( aKeySearch, it->second->GetKeyWords() ) )
-        {
-            wxArrayString item;
-
-            item.Add( it->first );
-            item.Add( GetLogicalName() );
-            aNames.push_back( item );
-        }
-
-        if( !aNameSearch.IsEmpty() &&
-                WildCompareString( aNameSearch, it->second->GetName(), false ) )
-        {
-            wxArrayString item;
-
-            item.Add( it->first );
-            item.Add( GetLogicalName() );
-            aNames.push_back( item );
-        }
-    }
-
-    if( aSort )
-        std::sort( aNames.begin(), aNames.end(), sortFunction );
-}
-
-
-void PART_LIB::SearchEntryNames( wxArrayString& aNames, const wxRegEx& aRe, bool aSort )
-{
-    if( !aRe.IsValid() )
-        return;
-
-    LIB_ALIAS_MAP::iterator it;
-
-    for( it = m_amap.begin();  it!=m_amap.end();  it++ )
-    {
-        if( aRe.Matches( it->second->GetKeyWords() ) )
-            aNames.Add( it->first );
     }
 
     if( aSort )
@@ -896,7 +830,7 @@ wxArrayString PART_LIBS::GetLibraryNames( bool aSorted )
     wxArrayString cacheNames;
     wxArrayString names;
 
-    BOOST_FOREACH( PART_LIB& lib, *this )
+    for( PART_LIB& lib : *this )
     {
         if( lib.IsCache() && aSorted )
             cacheNames.Add( lib.GetName() );
@@ -919,7 +853,7 @@ LIB_PART* PART_LIBS::FindLibPart( const wxString& aPartName, const wxString& aLi
 {
     LIB_PART* part = NULL;
 
-    BOOST_FOREACH( PART_LIB& lib, *this )
+    for( PART_LIB& lib : *this )
     {
         if( !aLibraryName.IsEmpty() && lib.GetName() != aLibraryName )
             continue;
@@ -938,7 +872,7 @@ LIB_ALIAS* PART_LIBS::FindLibraryEntry( const wxString& aEntryName, const wxStri
 {
     LIB_ALIAS* entry = NULL;
 
-    BOOST_FOREACH( PART_LIB& lib, *this )
+    for( PART_LIB& lib : *this )
     {
         if( !!aLibraryName && lib.GetName() != aLibraryName )
             continue;
@@ -952,16 +886,6 @@ LIB_ALIAS* PART_LIBS::FindLibraryEntry( const wxString& aEntryName, const wxStri
     return entry;
 }
 
-void PART_LIBS::FindLibraryEntries( const wxString& aEntryName, std::vector<LIB_ALIAS*>& aEntries )
-{
-    BOOST_FOREACH( PART_LIB& lib, *this )
-    {
-        LIB_ALIAS* entry = lib.FindEntry( aEntryName );
-
-        if( entry )
-            aEntries.push_back( entry );
-    }
-}
 
 /* searches all libraries in the list for an entry, using a case insensitive comparison.
  * Used to find an entry, when the normal (case sensitive) search fails.
@@ -970,7 +894,7 @@ void PART_LIBS::FindLibraryNearEntries( std::vector<LIB_ALIAS*>& aCandidates,
                                         const wxString& aEntryName,
                                         const wxString& aLibraryName )
 {
-    BOOST_FOREACH( PART_LIB& lib, *this )
+    for( PART_LIB& lib : *this )
     {
         if( !!aLibraryName && lib.GetName() != aLibraryName )
             continue;
@@ -1012,18 +936,6 @@ int PART_LIBS::GetModifyHash()
 
     return hash;
 }
-
-
-/*
-void PART_LIBS::RemoveCacheLibrary()
-{
-    for( PART_LIBS::iterator it = begin(); it < end();  ++it )
-    {
-        if( it->IsCache() )
-            erase( it-- );
-    }
-}
-*/
 
 
 void PART_LIBS::LibNamesAndPaths( PROJECT* aProject, bool doSave,

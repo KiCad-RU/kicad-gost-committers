@@ -87,8 +87,6 @@ DIALOG_MODULE_BOARD_EDITOR::DIALOG_MODULE_BOARD_EDITOR( PCB_EDIT_FRAME*  aParent
     m_LastSelected3DShapeIndex = 0;
     m_OrientValue = 0;
 
-    GetSizer()->SetSizeHints( this );
-    Centre();
     Layout();
 }
 
@@ -271,6 +269,7 @@ void DIALOG_MODULE_BOARD_EDITOR::InitModeditProperties()
     m_LastSelected3DShapeIndex = -1;
 
     // Init 3D shape list
+    m_3D_ShapeNameListBox->Clear();
     S3D_MASTER* draw3D = m_CurrentModule->Models();
     wxString origPath;
     wxString alias;

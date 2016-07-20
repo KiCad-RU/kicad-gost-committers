@@ -36,7 +36,6 @@
 #include <schframe.h>
 #include <plot_common.h>
 #include <msgpanel.h>
-#include <boost/foreach.hpp>
 
 #include <general.h>
 #include <class_library.h>
@@ -62,7 +61,7 @@
  * convert a wxString to UTF8 and replace any control characters with a ~,
  * where a control character is one of the first ASCII values up to ' ' 32d.
  */
-static std::string toUTFTildaText( const wxString& txt )
+std::string toUTFTildaText( const wxString& txt )
 {
     std::string ret = TO_UTF8( txt );
 
@@ -666,7 +665,7 @@ SCH_FIELD* SCH_COMPONENT::GetField( int aFieldNdx ) const
 
 void SCH_COMPONENT::GetFields( std::vector<SCH_FIELD*>& aVector, bool aVisibleOnly )
 {
-    BOOST_FOREACH( SCH_FIELD& each_field, m_Fields )
+    for( SCH_FIELD& each_field : m_Fields )
     {
         if( !aVisibleOnly || ( each_field.IsVisible() && !each_field.IsVoid() ) )
             aVector.push_back( &each_field );
@@ -1671,7 +1670,7 @@ bool SCH_COMPONENT::IsPinDanglingStateChanged( std::vector<DANGLING_END_ITEM> &a
 
     wxPoint pin_position = GetPinPhysicalPosition( aLibPins[aPin] );
 
-    BOOST_FOREACH( DANGLING_END_ITEM& each_item, aItemList )
+    for( DANGLING_END_ITEM& each_item : aItemList )
     {
         // Some people like to stack pins on top of each other in a symbol to indicate
         // internal connection. While technically connected, it is not particularly useful
@@ -1727,7 +1726,7 @@ bool SCH_COMPONENT::IsDanglingStateChanged( std::vector<DANGLING_END_ITEM>& aIte
 
 bool SCH_COMPONENT::IsDangling() const
 {
-    BOOST_FOREACH( bool each, m_isDangling )
+    for( bool each : m_isDangling )
     {
         if( each )
             return true;
@@ -1813,7 +1812,7 @@ wxString SCH_COMPONENT::GetSelectMenuText() const
 }
 
 
-SEARCH_RESULT SCH_COMPONENT::Visit( INSPECTOR* aInspector, const void* aTestData,
+SEARCH_RESULT SCH_COMPONENT::Visit( INSPECTOR aInspector, void* aTestData,
                                     const KICAD_T aFilterTypes[] )
 {
     KICAD_T     stype;
@@ -1823,7 +1822,7 @@ SEARCH_RESULT SCH_COMPONENT::Visit( INSPECTOR* aInspector, const void* aTestData
         // If caller wants to inspect component type or and component children types.
         if( stype == Type() )
         {
-            if( SEARCH_QUIT == aInspector->Inspect( this, aTestData ) )
+            if( SEARCH_QUIT == aInspector( this, aTestData ) )
                 return SEARCH_QUIT;
         }
 
@@ -1833,23 +1832,23 @@ SEARCH_RESULT SCH_COMPONENT::Visit( INSPECTOR* aInspector, const void* aTestData
             // Test the bounding boxes of fields if they are visible and not empty.
             for( int ii = 0; ii < GetFieldCount(); ii++ )
             {
-                if( SEARCH_QUIT == aInspector->Inspect( GetField( ii ), (void*) this ) )
+                if( SEARCH_QUIT == aInspector( GetField( ii ), (void*) this ) )
                     return SEARCH_QUIT;
             }
             break;
 
         case SCH_FIELD_LOCATE_REFERENCE_T:
-            if( SEARCH_QUIT == aInspector->Inspect( GetField( REFERENCE ), (void*) this ) )
+            if( SEARCH_QUIT == aInspector( GetField( REFERENCE ), (void*) this ) )
                 return SEARCH_QUIT;
             break;
 
         case SCH_FIELD_LOCATE_VALUE_T:
-            if( SEARCH_QUIT == aInspector->Inspect( GetField( VALUE ), (void*) this ) )
+            if( SEARCH_QUIT == aInspector( GetField( VALUE ), (void*) this ) )
                 return SEARCH_QUIT;
             break;
 
         case SCH_FIELD_LOCATE_FOOTPRINT_T:
-            if( SEARCH_QUIT == aInspector->Inspect( GetField( FOOTPRINT ), (void*) this ) )
+            if( SEARCH_QUIT == aInspector( GetField( FOOTPRINT ), (void*) this ) )
                 return SEARCH_QUIT;
             break;
 
@@ -1863,7 +1862,7 @@ SEARCH_RESULT SCH_COMPONENT::Visit( INSPECTOR* aInspector, const void* aTestData
 
                 for( size_t i = 0;  i < pins.size();  i++ )
                 {
-                    if( SEARCH_QUIT == aInspector->Inspect( pins[ i ], (void*) this ) )
+                    if( SEARCH_QUIT == aInspector( pins[ i ], (void*) this ) )
                         return SEARCH_QUIT;
                 }
             }

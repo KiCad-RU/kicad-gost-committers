@@ -184,7 +184,8 @@ void BOM_LISTER::buildGlobalAndHierarchicalLabelsList()
                 {
                     SCH_SHEET* sheet = (SCH_SHEET*) schItem;
 
-                    BOOST_FOREACH( SCH_SHEET_PIN & sheetPin, sheet->GetPins() ) {
+                    for( SCH_SHEET_PIN& sheetPin : sheet->GetPins() )
+                    {
                         m_labelList.push_back( BOM_LABEL( SCH_SHEET_PIN_T,
                                                           &sheetPin, *path ) );
                     }

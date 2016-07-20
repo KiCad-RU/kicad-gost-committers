@@ -54,7 +54,6 @@
 #include <sch_text.h>
 #include <lib_pin.h>
 
-#include <boost/foreach.hpp>
 
 #define EESCHEMA_FILE_STAMP   "EESchema"
 
@@ -426,20 +425,19 @@ bool SCH_SCREEN::IsTerminalPoint( const wxPoint& aPosition, int aLayer )
 
 bool SCH_SCREEN::SchematicCleanUp()
 {
-    SCH_ITEM* item, * testItem;
     bool      modified = false;
 
-    item = m_drawList.begin();
-
-    for( ; item; item = item->Next() )
+    for( SCH_ITEM* item = m_drawList.begin() ; item; item = item->Next() )
     {
         if( ( item->Type() != SCH_LINE_T ) && ( item->Type() != SCH_JUNCTION_T ) )
             continue;
 
-        testItem = item->Next();
+        bool restart;
 
-        while( testItem )
+        for( SCH_ITEM* testItem = item->Next(); testItem; testItem = restart ? m_drawList.begin() : testItem->Next() )
         {
+            restart = false;
+
             if( ( item->Type() == SCH_LINE_T ) && ( testItem->Type() == SCH_LINE_T ) )
             {
                 SCH_LINE* line = (SCH_LINE*) item;
@@ -449,12 +447,8 @@ bool SCH_SCREEN::SchematicCleanUp()
                     // Keep the current flags, because the deleted segment can be flagged.
                     item->SetFlags( testItem->GetFlags() );
                     DeleteItem( testItem );
-                    testItem = m_drawList.begin();
+                    restart = true;
                     modified = true;
-                }
-                else
-                {
-                    testItem = testItem->Next();
                 }
             }
             else if ( ( ( item->Type() == SCH_JUNCTION_T )
@@ -465,17 +459,9 @@ bool SCH_SCREEN::SchematicCleanUp()
                     // Keep the current flags, because the deleted segment can be flagged.
                     item->SetFlags( testItem->GetFlags() );
                     DeleteItem( testItem );
-                    testItem = m_drawList.begin();
+                    restart = true;
                     modified = true;
                 }
-                else
-                {
-                    testItem = testItem->Next();
-                }
-            }
-            else
-            {
-                testItem = testItem->Next();
             }
         }
     }
@@ -493,7 +479,7 @@ bool SCH_SCREEN::Save( FILE* aFile ) const
                  SCHEMATIC_HEAD_STRING, EESCHEMA_VERSION ) < 0 )
         return false;
 
-    BOOST_FOREACH( const PART_LIB& lib, *Prj().SchLibs() )
+    for( const PART_LIB& lib : *Prj().SchLibs() )
     {
         if( fprintf( aFile, "LIBS:%s\n", TO_UTF8( lib.GetName() ) ) < 0 )
             return false;

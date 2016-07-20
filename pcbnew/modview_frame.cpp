@@ -57,7 +57,8 @@
 #include "tools/pcbnew_control.h"
 #include "tools/common_actions.h"
 
-#include <boost/bind.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 
 #define NEXT_PART       1
@@ -393,7 +394,7 @@ void FOOTPRINT_VIEWER_FRAME::ReCreateFootprintList()
         return;
     }
 
-    BOOST_FOREACH( const FOOTPRINT_INFO& footprint, fp_info_list.GetList() )
+    for( const FOOTPRINT_INFO& footprint : fp_info_list.GetList() )
     {
         m_footprintList->Append( footprint.GetFootprintName() );
     }

@@ -761,8 +761,7 @@ void MODULE::Add3DModel( S3D_MASTER* a3DModel )
 
 
 // see class_module.h
-SEARCH_RESULT MODULE::Visit( INSPECTOR* inspector, const void* testData,
-                             const KICAD_T scanTypes[] )
+SEARCH_RESULT MODULE::Visit( INSPECTOR inspector, void* testData, const KICAD_T scanTypes[] )
 {
     KICAD_T        stype;
     SEARCH_RESULT  result = SEARCH_CONTINUE;
@@ -780,7 +779,7 @@ SEARCH_RESULT MODULE::Visit( INSPECTOR* inspector, const void* testData,
         switch( stype )
         {
         case PCB_MODULE_T:
-            result = inspector->Inspect( this, testData );  // inspect me
+            result = inspector( this, testData );  // inspect me
             ++p;
             break;
 
@@ -790,12 +789,12 @@ SEARCH_RESULT MODULE::Visit( INSPECTOR* inspector, const void* testData,
             break;
 
         case PCB_MODULE_TEXT_T:
-            result = inspector->Inspect( m_Reference, testData );
+            result = inspector( m_Reference, testData );
 
             if( result == SEARCH_QUIT )
                 break;
 
-            result = inspector->Inspect( m_Value, testData );
+            result = inspector( m_Value, testData );
 
             if( result == SEARCH_QUIT )
                 break;
@@ -853,7 +852,7 @@ EDA_ITEM* MODULE::Clone() const
 }
 
 
-void MODULE::RunOnChildren( boost::function<void (BOARD_ITEM*)> aFunction )
+void MODULE::RunOnChildren( std::function<void (BOARD_ITEM*)> aFunction )
 {
     try
     {
@@ -866,7 +865,7 @@ void MODULE::RunOnChildren( boost::function<void (BOARD_ITEM*)> aFunction )
         aFunction( static_cast<BOARD_ITEM*>( m_Reference ) );
         aFunction( static_cast<BOARD_ITEM*>( m_Value ) );
     }
-    catch( boost::bad_function_call& e )
+    catch( std::bad_function_call& e )
     {
         DisplayError( NULL, wxT( "Error running MODULE::RunOnChildren" ) );
     }

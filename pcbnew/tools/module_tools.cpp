@@ -44,8 +44,8 @@
 #include <class_module.h>
 #include <class_edge_mod.h>
 
-#include <boost/bind.hpp>
-#include <boost/foreach.hpp>
+#include <functional>
+using namespace std::placeholders;
 #include <wx/defs.h>
 
 MODULE_TOOLS::MODULE_TOOLS() :
@@ -279,7 +279,7 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
                 selectedPads.unique();
             }
 
-            BOOST_FOREACH( D_PAD* pad, selectedPads )
+            for( D_PAD* pad : selectedPads )
             {
                 std::set<D_PAD*>::iterator it = allPads.find( pad );
 
@@ -310,7 +310,7 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
             m_frame->OnModify();
             m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
 
-            BOOST_FOREACH( D_PAD* pad, pads )
+            for( D_PAD* pad : pads )
             {
                 pad->SetPadName( wxString::Format( wxT( "%s%d" ), padPrefix.c_str(), padNumber++ ) );
                 pad->ViewUpdate();
@@ -325,7 +325,7 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
         }
     }
 
-    BOOST_FOREACH( D_PAD* pad, pads )
+    for( D_PAD* pad : pads )
         pad->ClearSelected();
 
     m_frame->DisplayToolMsg( wxEmptyString );
@@ -431,7 +431,8 @@ int MODULE_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
     KIGFX::VIEW_GROUP preview( m_view );
     pastedModule->SetParent( m_board );
     pastedModule->SetPosition( wxPoint( cursorPos.x, cursorPos.y ) );
-    pastedModule->RunOnChildren( boost::bind( &KIGFX::VIEW_GROUP::Add, boost::ref( preview ), _1 ) );
+    pastedModule->RunOnChildren( std::bind( &KIGFX::VIEW_GROUP::Add, 
+                                                std::ref( preview ),  _1 ) );
     preview.Add( pastedModule );
     m_view->Add( &preview );
 
@@ -548,7 +549,7 @@ int MODULE_TOOLS::ModuleTextOutlines( const TOOL_EVENT& aEvent )
 
     bool enable = !settings->GetSketchMode( layers[0] );
 
-    BOOST_FOREACH( LAYER_NUM layer, layers )
+    for( LAYER_NUM layer : layers )
         settings->SetSketchMode( layer, enable );
 
     for( MODULE* module = getModel<BOARD>()->m_Modules; module; module = module->Next() )
@@ -582,7 +583,7 @@ int MODULE_TOOLS::ModuleEdgeOutlines( const TOOL_EVENT& aEvent )
 
     bool enable = !settings->GetSketchMode( layers[0] );
 
-    BOOST_FOREACH( LAYER_NUM layer, layers )
+    for( LAYER_NUM layer : layers )
         settings->SetSketchMode( layer, enable );
 
     for( MODULE* module = getModel<BOARD>()->m_Modules; module; module = module->Next() )

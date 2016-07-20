@@ -41,8 +41,8 @@
 
 #include <boost/range/adaptor/map.hpp>
 #include <boost/scoped_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 #include <geometry/shape_poly_set.h>
 
@@ -129,7 +129,7 @@ static std::vector<RN_EDGE_MST_PTR>* kruskalMST( RN_LINKS::RN_EDGE_LIST& aEdges,
     // Set tags for marking cycles
     boost::unordered_map<RN_NODE_PTR, int> tags;
     unsigned int tag = 0;
-    BOOST_FOREACH( RN_NODE_PTR& node, aNodes )
+    for( RN_NODE_PTR& node : aNodes )
     {
         node->SetTag( tag );
         tags[node] = tag++;
@@ -183,9 +183,9 @@ static std::vector<RN_EDGE_MST_PTR>* kruskalMST( RN_LINKS::RN_EDGE_LIST& aEdges,
                 // Do a copy of edge, but make it RN_EDGE_MST. In contrary to RN_EDGE,
                 // RN_EDGE_MST saves both source and target node and does not require any other
                 // edges to exist for getting source/target nodes
-                RN_EDGE_MST_PTR newEdge = boost::make_shared<RN_EDGE_MST>( dt->GetSourceNode(),
-                                                                           dt->GetTargetNode(),
-                                                                           dt->GetWeight() );
+                RN_EDGE_MST_PTR newEdge = std::make_shared<RN_EDGE_MST>( dt->GetSourceNode(),
+                                                                         dt->GetTargetNode(),
+                                                                         dt->GetWeight() );
                 mst->push_back( newEdge );
                 ++mstSize;
             }
@@ -220,7 +220,7 @@ void RN_NET::validateEdge( RN_EDGE_MST_PTR& aEdge )
         valid = false;
 
         std::list<RN_NODE_PTR> closest = GetClosestNodes( source, WITHOUT_FLAG() );
-        BOOST_FOREACH( RN_NODE_PTR& node, closest )
+        for( RN_NODE_PTR& node : closest )
         {
             if( node && node != target )
             {
@@ -235,7 +235,7 @@ void RN_NET::validateEdge( RN_EDGE_MST_PTR& aEdge )
         valid = false;
 
         std::list<RN_NODE_PTR> closest = GetClosestNodes( target, WITHOUT_FLAG() );
-        BOOST_FOREACH( RN_NODE_PTR& node, closest )
+        for( RN_NODE_PTR& node : closest )
         {
             if( node && node != source )
             {
@@ -293,7 +293,7 @@ const RN_NODE_PTR& RN_LINKS::AddNode( int aX, int aY )
     RN_NODE_SET::iterator node;
     bool wasNewElement;
 
-    boost::tie( node, wasNewElement ) = m_nodes.emplace( boost::make_shared<RN_NODE>( aX, aY ) );
+    boost::tie( node, wasNewElement ) = m_nodes.emplace( std::make_shared<RN_NODE>( aX, aY ) );
 
     return *node;
 }
@@ -316,7 +316,7 @@ RN_EDGE_MST_PTR RN_LINKS::AddConnection( const RN_NODE_PTR& aNode1, const RN_NOD
                                          unsigned int aDistance )
 {
     assert( aNode1 != aNode2 );
-    RN_EDGE_MST_PTR edge = boost::make_shared<RN_EDGE_MST>( aNode1, aNode2, aDistance );
+    RN_EDGE_MST_PTR edge = std::make_shared<RN_EDGE_MST>( aNode1, aNode2, aDistance );
     m_edges.push_back( edge );
 
     return edge;
@@ -339,11 +339,11 @@ void RN_NET::compute()
             RN_LINKS::RN_NODE_SET::iterator last = ++boardNodes.begin();
 
             // There can be only one possible connection, but it is missing
-            m_rnEdges->push_back( boost::make_shared<RN_EDGE_MST>( *boardNodes.begin(), *last ) );
+            m_rnEdges->push_back( std::make_shared<RN_EDGE_MST>( *boardNodes.begin(), *last ) );
         }
 
         // Set tags to nodes as connected
-        BOOST_FOREACH( RN_NODE_PTR node, boardNodes )
+        for( RN_NODE_PTR node : boardNodes )
             node->SetTag( 0 );
 
         return;
@@ -379,7 +379,7 @@ void RN_NET::clearNode( const RN_NODE_PTR& aNode )
 
     // Remove all ratsnest edges for associated with the node
     newEnd = std::remove_if( m_rnEdges->begin(), m_rnEdges->end(),
-                             boost::bind( isEdgeConnectingNode, _1, boost::cref( aNode ) ) );
+                             std::bind( isEdgeConnectingNode, _1, std::cref( aNode ) ) );
 
     m_rnEdges->resize( std::distance( m_rnEdges->begin(), newEnd ) );
 }
@@ -418,7 +418,7 @@ void RN_NET::Update()
 
     compute();
 
-    BOOST_FOREACH( RN_EDGE_MST_PTR& edge, *m_rnEdges )
+    for( RN_EDGE_MST_PTR& edge : *m_rnEdges )
         validateEdge( edge );
 
     m_dirty = false;
@@ -492,7 +492,7 @@ void RN_NET::RemoveItem( const D_PAD* aPad )
     RN_PAD_DATA& pad_data = it->second;
     removeNode( pad_data.m_Node, aPad );
 
-    BOOST_FOREACH( RN_EDGE_MST_PTR& edge, pad_data.m_Edges )
+    for( RN_EDGE_MST_PTR& edge : pad_data.m_Edges )
         removeEdge( edge, aPad );
 
     m_pads.erase( aPad );
@@ -534,13 +534,13 @@ void RN_NET::RemoveItem( const ZONE_CONTAINER* aZone )
 
     // Remove all subpolygons that make the zone
     std::deque<RN_POLY>& polygons = zoneData.m_Polygons;
-    BOOST_FOREACH( RN_POLY& polygon, polygons )
+    for( RN_POLY& polygon : polygons )
         removeNode( polygon.GetNode(), aZone );
     polygons.clear();
 
     // Remove all connections added by the zone
     std::deque<RN_EDGE_MST_PTR>& edges = zoneData.m_Edges;
-    BOOST_FOREACH( RN_EDGE_MST_PTR edge, edges )
+    for( RN_EDGE_MST_PTR edge : edges )
         removeEdge( edge, aZone );
     edges.clear();
 
@@ -614,11 +614,11 @@ std::list<RN_NODE_PTR> RN_NET::GetClosestNodes( const RN_NODE_PTR& aNode, int aN
     const RN_LINKS::RN_NODE_SET& nodes = m_links.GetNodes();
 
     // Copy nodes
-    BOOST_FOREACH( const RN_NODE_PTR& node, nodes )
+    for( const RN_NODE_PTR& node : nodes )
         closest.push_back( node );
 
     // Sort by the distance from aNode
-    closest.sort( boost::bind( sortDistance, boost::cref( aNode ), _1, _2 ) );
+    closest.sort( std::bind( sortDistance, std::cref( aNode ), _1, _2 ) );
 
     // aNode should not be returned in the results
     closest.remove( aNode );
@@ -638,11 +638,11 @@ std::list<RN_NODE_PTR> RN_NET::GetClosestNodes( const RN_NODE_PTR& aNode,
     const RN_LINKS::RN_NODE_SET& nodes = m_links.GetNodes();
 
     // Copy nodes
-    BOOST_FOREACH( const RN_NODE_PTR& node, nodes )
+    for( const RN_NODE_PTR& node : nodes )
         closest.push_back( node );
 
     // Sort by the distance from aNode
-    closest.sort( boost::bind( sortDistance, boost::cref( aNode ), _1, _2 ) );
+    closest.sort( std::bind( sortDistance, std::cref( aNode ), _1, _2 ) );
 
     // aNode should not be returned in the results
     closest.remove( aNode );
@@ -660,7 +660,7 @@ std::list<RN_NODE_PTR> RN_NET::GetClosestNodes( const RN_NODE_PTR& aNode,
 
 void RN_NET::AddSimple( const BOARD_CONNECTED_ITEM* aItem )
 {
-    BOOST_FOREACH( RN_NODE_PTR node, GetNodes( aItem ) )
+    for( RN_NODE_PTR node : GetNodes( aItem ) )
     {
         // Block all nodes, so they do not become targets for dynamic ratsnest lines
         AddBlockedNode( node );
@@ -734,25 +734,25 @@ void RN_NET::GetAllItems( std::list<BOARD_CONNECTED_ITEM*>& aOutput, RN_ITEM_TYP
 {
     if( aType & RN_PADS )
     {
-        BOOST_FOREACH( const BOARD_CONNECTED_ITEM* item, m_pads | boost::adaptors::map_keys )
+        for( const BOARD_CONNECTED_ITEM* item : m_pads | boost::adaptors::map_keys )
             aOutput.push_back( const_cast<BOARD_CONNECTED_ITEM*>( item ) );
     }
 
     if( aType & RN_VIAS )
     {
-        BOOST_FOREACH( const BOARD_CONNECTED_ITEM* item, m_vias | boost::adaptors::map_keys )
+        for( const BOARD_CONNECTED_ITEM* item : m_vias | boost::adaptors::map_keys )
             aOutput.push_back( const_cast<BOARD_CONNECTED_ITEM*>( item ) );
     }
 
     if( aType & RN_TRACKS )
     {
-        BOOST_FOREACH( const BOARD_CONNECTED_ITEM* item, m_tracks | boost::adaptors::map_keys )
+        for( const BOARD_CONNECTED_ITEM* item : m_tracks | boost::adaptors::map_keys )
             aOutput.push_back( const_cast<BOARD_CONNECTED_ITEM*>( item ) );
     }
 
     if( aType & RN_ZONES )
     {
-        BOOST_FOREACH( const BOARD_CONNECTED_ITEM* item, m_zones | boost::adaptors::map_keys )
+        for( const BOARD_CONNECTED_ITEM* item : m_zones | boost::adaptors::map_keys )
             aOutput.push_back( const_cast<BOARD_CONNECTED_ITEM*>( item ) );
     }
 }
@@ -760,7 +760,7 @@ void RN_NET::GetAllItems( std::list<BOARD_CONNECTED_ITEM*>& aOutput, RN_ITEM_TYP
 
 void RN_NET::ClearSimple()
 {
-    BOOST_FOREACH( const RN_NODE_PTR& node, m_blockedNodes )
+    for( const RN_NODE_PTR& node : m_blockedNodes )
         node->SetFlag( false );
 
     m_blockedNodes.clear();
@@ -809,7 +809,7 @@ void RN_NET::GetConnectedItems( const BOARD_CONNECTED_ITEM* aItem,
     {
         for( ZONE_DATA_MAP::const_iterator it = m_zones.begin(); it != m_zones.end(); ++it )
         {
-            BOOST_FOREACH( const RN_EDGE_MST_PTR& edge, it->second.m_Edges )
+            for( const RN_EDGE_MST_PTR& edge : it->second.m_Edges )
             {
                 if( edge->GetTag() == tag )
                 {
@@ -863,7 +863,7 @@ void RN_DATA::AddBlocked( const BOARD_ITEM* aItem )
             return;
 
         // Block all nodes belonging to the item
-        BOOST_FOREACH( RN_NODE_PTR node, m_nets[net].GetNodes( item ) )
+        for( RN_NODE_PTR node : m_nets[net].GetNodes( item ) )
             m_nets[net].AddBlockedNode( node );
     }
     else if( aItem->Type() == PCB_MODULE_T )
@@ -951,7 +951,7 @@ void RN_NET::processZones()
         RN_ZONE_DATA& zoneData = it->second;
 
         // Reset existing connections
-        BOOST_FOREACH( RN_EDGE_MST_PTR edge, zoneData.m_Edges )
+        for( RN_EDGE_MST_PTR edge : zoneData.m_Edges )
             m_links.RemoveConnection( edge );
 
         zoneData.m_Edges.clear();
@@ -1006,7 +1006,7 @@ void RN_NET::processPads()
         std::deque<RN_EDGE_MST_PTR>& edges = it->second.m_Edges;
 
         // Reset existing connections
-        BOOST_FOREACH( RN_EDGE_MST_PTR edge, edges )
+        for( RN_EDGE_MST_PTR edge : edges )
             m_links.RemoveConnection( edge );
 
         LSET layers = pad->GetLayerSet();

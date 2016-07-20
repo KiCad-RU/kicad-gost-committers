@@ -32,29 +32,7 @@
 class BOARD;
 class PLUGIN;
 class MODULE;
-
-/**
- * Class PROPERTIES
- * is a name/value tuple with unique names and optional values.  The names
- * may be iterated alphabetically.
- */
-class PROPERTIES : public std::map< std::string, UTF8 >
-{
-    // alphabetical tuple of name and value hereby defined.
-
-public:
-
-    /**
-     * Function Value
-     * fetches a property by aName and returns true if that property was found, else false.
-     * If not found, aFetchedValue is not touched.
-     * @param aName is the property or option to look for.
-     * @param aFetchedValue is where to put the value of the property if it
-     *  exists and aFetchedValue is not NULL.
-     * @return bool - true if property is found, else false.
-     */
-    bool Value( const char* aName, UTF8* aFetchedValue = NULL ) const;
-};
+class PROPERTIES;
 
 
 /**

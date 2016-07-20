@@ -24,9 +24,8 @@
  */
 #include <limits>
 
-#include <boost/foreach.hpp>
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 #include <class_board.h>
 #include <class_board_item.h>
@@ -670,7 +669,7 @@ int SELECTION_TOOL::selectCopper( const TOOL_EVENT& aEvent )
 
     ratsnest->GetConnectedItems( item, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
 
-    BOOST_FOREACH( BOARD_CONNECTED_ITEM* i, itemsList )
+    for( BOARD_CONNECTED_ITEM* i : itemsList )
         select( i );
 
     // Inform other potentially interested tools
@@ -695,7 +694,7 @@ int SELECTION_TOOL::selectNet( const TOOL_EVENT& aEvent )
     clearSelection();
     ratsnest->GetNetItems( netCode, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
 
-    BOOST_FOREACH( BOARD_CONNECTED_ITEM* i, itemsList )
+    for( BOARD_CONNECTED_ITEM* i : itemsList )
         select( i );
 
     // Inform other potentially interested tools
@@ -729,7 +728,7 @@ int SELECTION_TOOL::find( const TOOL_EVENT& aEvent )
 {
     DIALOG_FIND dlg( m_frame );
     dlg.EnableWarp( false );
-    dlg.SetCallback( boost::bind( &SELECTION_TOOL::findCallback, this, _1 ) );
+    dlg.SetCallback( std::bind( &SELECTION_TOOL::findCallback, this, _1 ) );
     dlg.ShowModal();
 
     return 0;
@@ -781,7 +780,7 @@ void SELECTION_TOOL::clearSelection()
 BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
 {
     BOARD_ITEM* current = NULL;
-    boost::shared_ptr<BRIGHT_BOX> brightBox;
+    std::shared_ptr<BRIGHT_BOX> brightBox;
     CONTEXT_MENU menu;
 
     int limit = std::min( 10, aCollector->GetCount() );
@@ -986,7 +985,7 @@ void SELECTION_TOOL::select( BOARD_ITEM* aItem )
     if( aItem->Type() == PCB_MODULE_T )
     {
         MODULE* module = static_cast<MODULE*>( aItem );
-        module->RunOnChildren( boost::bind( &SELECTION_TOOL::selectVisually, this, _1 ) );
+        module->RunOnChildren( std::bind( &SELECTION_TOOL::selectVisually, this, _1 ) );
     }
 
     if( aItem->Type() == PCB_PAD_T )
@@ -1024,7 +1023,7 @@ void SELECTION_TOOL::unselect( BOARD_ITEM* aItem )
     if( aItem->Type() == PCB_MODULE_T )
     {
         MODULE* module = static_cast<MODULE*>( aItem );
-        module->RunOnChildren( boost::bind( &SELECTION_TOOL::unselectVisually, this, _1 ) );
+        module->RunOnChildren( std::bind( &SELECTION_TOOL::unselectVisually, this, _1 ) );
     }
 
     unselectVisually( aItem );
@@ -1194,7 +1193,7 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
         {
             aCollector.Empty();
 
-            BOOST_FOREACH( BOARD_ITEM* item, preferred )
+            for( BOARD_ITEM* item : preferred )
                 aCollector.Append( item );
             return;
         }
@@ -1364,7 +1363,7 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
 
     if( (unsigned) aCollector.GetCount() > rejected.size() )  // do not remove everything
     {
-        BOOST_FOREACH( BOARD_ITEM* item, rejected )
+        for( BOARD_ITEM* item : rejected )
         {
             aCollector.Remove( item );
         }
@@ -1405,7 +1404,7 @@ bool SELECTION_TOOL::SanitizeSelection()
 
     if( !rejected.empty() )
     {
-        BOOST_FOREACH( BOARD_ITEM* item, rejected )
+        for( BOARD_ITEM* item : rejected )
             unselect( item );
 
         // Inform other potentially interested tools
@@ -1414,7 +1413,7 @@ bool SELECTION_TOOL::SanitizeSelection()
 
     if( !added.empty() )
     {
-        BOOST_FOREACH( BOARD_ITEM* item, added )
+        for( BOARD_ITEM* item : added )
             select( item );
 
         // Inform other potentially interested tools

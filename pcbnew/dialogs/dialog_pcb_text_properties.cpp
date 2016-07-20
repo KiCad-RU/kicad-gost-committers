@@ -64,6 +64,16 @@ private:
 
     bool TransferDataToWindow();
     bool TransferDataFromWindow();
+
+    // Virtual event handler
+    virtual void OnInitDlg( wxInitDialogEvent& event )
+    {
+        // Call the default wxDialog handler of a wxInitDialogEvent
+        TransferDataToWindow();
+
+        // Now all widgets have the size fixed, call FinishDialogSettings
+        FinishDialogSettings();
+    }
 };
 
 
@@ -90,9 +100,7 @@ DIALOG_PCB_TEXT_PROPERTIES::DIALOG_PCB_TEXT_PROPERTIES( PCB_EDIT_FRAME* parent,
 
     m_StandardSizerOK->SetDefault();
 
-    GetSizer()->Fit( this );
-    GetSizer()->SetSizeHints( this );
-    Centre();
+    FixOSXCancelButtonIssue();
 }
 
 

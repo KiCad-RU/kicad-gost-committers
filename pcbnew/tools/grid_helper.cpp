@@ -22,8 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <boost/foreach.hpp>
-#include <boost/bind.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 #include <wxPcbStruct.h>
 
@@ -218,7 +218,7 @@ VECTOR2I GRID_HELPER::BestSnapAnchor( const VECTOR2I& aOrigin, BOARD_ITEM* aDrag
 
     clearAnchors();
 
-    BOOST_FOREACH( BOARD_ITEM* item, queryVisible( bb ) )
+    for( BOARD_ITEM* item : queryVisible( bb ) )
     {
         computeAnchors( item, aOrigin );
     }
@@ -369,7 +369,7 @@ GRID_HELPER::ANCHOR* GRID_HELPER::nearestAnchor( const VECTOR2I& aPos, int aFlag
      double minDist = std::numeric_limits<double>::max();
      ANCHOR* best = NULL;
 
-     BOOST_FOREACH( ANCHOR& a, m_anchors )
+     for( ANCHOR& a : m_anchors )
      {
          if( !aMatchLayers[a.item->GetLayer()] )
              continue;

@@ -99,6 +99,33 @@ DIALOG_SHIM::~DIALOG_SHIM()
     delete m_qmodal_parent_disabler;    // usually NULL by now
 }
 
+void DIALOG_SHIM::FinishDialogSettings()
+{
+    // must be called from the constructor of derived classes,
+    // when all widgets are initialized, and therefore their size fixed
+
+    // SetSizeHints fixes the minimal size of sizers in the dialog
+    // (SetSizeHints calls Fit(), so no need to call it)
+    GetSizer()->SetSizeHints( this );
+
+    // the default position, when calling the first time the dlg
+    Center();
+}
+
+void DIALOG_SHIM::FixOSXCancelButtonIssue()
+{
+#ifdef  __WXMAC__
+    // A ugly hack to fix an issue on OSX: ctrl+c closes the dialog instead of
+    // copying a text if a  button with wxID_CANCEL is used in a wxStdDialogButtonSizer
+    // created by wxFormBuilder: the label is &Cancel, and this accelerator key has priority
+    // to copy text standard accelerator, and the dlg is closed when trying to copy text
+    wxButton* button = dynamic_cast< wxButton* > ( wxWindow::FindWindowById( wxID_CANCEL, this ) );
+
+    if( button )
+        button->SetLabel( _( "Cancel" ) );
+#endif
+}
+
 
 // our hashtable is an implementation secret, don't need or want it in a header file
 #include <hashtables.h>
@@ -568,9 +595,11 @@ void DIALOG_SHIM::OnButton( wxCommandEvent& aEvent )
             // allowing a transfer, as there is no other way to indicate failure
             // (i.e. the dialog can't refuse to close as it might with OK, because it
             // isn't closing anyway)
-
             if( Validate() )
-                wxASSERT( TransferDataFromWindow() );
+            {
+                bool success = TransferDataFromWindow();
+                (void) success;
+            }
         }
         else if( id == GetEscapeId() ||
                  (id == wxID_CANCEL && GetEscapeId() == wxID_ANY) )

@@ -68,6 +68,7 @@
 
 #include <kicad_string.h>
 #include <macros.h>
+#include <properties.h>
 #include <zones.h>
 
 #include <class_board.h>
@@ -86,8 +87,6 @@
 #include <convert_to_biu.h>
 #include <trigo.h>
 #include <build_version.h>
-
-#include <boost/make_shared.hpp>
 
 
 typedef LEGACY_PLUGIN::BIU      BIU;
@@ -2408,7 +2407,7 @@ void LEGACY_PLUGIN::loadNETCLASS()
     // yet since that would bypass duplicate netclass name checking within the BOARD.
     // store it temporarily in an unique_ptr until successfully inserted into the BOARD
     // just before returning.
-    NETCLASSPTR nc = boost::make_shared<NETCLASS>( wxEmptyString );
+    NETCLASSPTR nc = std::make_shared<NETCLASS>( wxEmptyString );
 
     while( ( line = READLINE( m_reader ) ) != NULL )
     {

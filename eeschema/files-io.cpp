@@ -2,9 +2,9 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2013-2016 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 2013 CERN (www.cern.ch)
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -45,9 +45,14 @@
 #include <wildcards_and_files_ext.h>
 #include <project_rescue.h>
 #include <eeschema_config.h>
+#include <sch_legacy_plugin.h>
 
 
-bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName, bool aCreateBackupFile )
+//#define USE_SCH_LEGACY_IO_PLUGIN
+
+
+bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName,
+                                 bool aCreateBackupFile )
 {
     wxString msg;
     wxFileName schematicFileName;
@@ -66,9 +71,9 @@ bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName, bo
     if( aSaveUnderNewName )
     {
         wxFileDialog dlg( this, _( "Schematic Files" ),
-                wxPathOnly( Prj().GetProjectFullName() ),
-                schematicFileName.GetFullName(), SchematicFileWildcard,
-                wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+                          wxPathOnly( Prj().GetProjectFullName() ),
+                          schematicFileName.GetFullName(), SchematicFileWildcard,
+                          wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
 
         if( dlg.ShowModal() == wxID_CANCEL )
             return false;
@@ -96,7 +101,7 @@ bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName, bo
         if( !wxRenameFile( schematicFileName.GetFullPath(), backupFileName.GetFullPath() ) )
         {
             msg.Printf( _( "Could not save backup of file '%s'" ),
-                    GetChars( schematicFileName.GetFullPath() ) );
+                        GetChars( schematicFileName.GetFullPath() ) );
             DisplayError( this, msg );
         }
     }
@@ -105,6 +110,26 @@ bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName, bo
     wxLogTrace( traceAutoSave,
                 wxT( "Saving file <" ) + schematicFileName.GetFullPath() + wxT( ">" ) );
 
+#ifdef USE_SCH_IO_MANAGER
+        SCH_PLUGIN::SCH_PLUGIN_RELEASER pi( SCH_IO_MGR::FindPlugin( SCH_IO_MGR::SCH_LEGACY ) );
+
+        try
+        {
+            pi->Save( schematicFileName.GetFullPath(), aScreen, &Kiway() );
+            success = true;
+        }
+        catch( const IO_ERROR& ioe )
+        {
+            msg.Printf( _( "Error saving schematic file '%s'.\n%s" ),
+                        GetChars( schematicFileName.GetFullPath() ), GetChars( ioe.errorText ) );
+            DisplayError( this, msg );
+
+            msg.Printf( _( "Failed to save '%s'" ), GetChars( schematicFileName.GetFullPath() ) );
+            AppendMsgPanel( wxEmptyString, msg, CYAN );
+
+            success = false;
+        }
+#else
     FILE* f = wxFopen( schematicFileName.GetFullPath(), wxT( "wt" ) );
 
     if( !f )
@@ -116,6 +141,8 @@ bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName, bo
     }
 
     success = aScreen->Save( f );
+    fclose( f );
+#endif
 
     if( success )
     {
@@ -135,6 +162,7 @@ bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName, bo
         // Update the screen and frame info.
         if( aSaveUnderNewName )
             aScreen->SetFileName( schematicFileName.GetFullPath() );
+
         aScreen->ClrSave();
         aScreen->ClrModify();
 
@@ -145,8 +173,6 @@ bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName, bo
     {
         DisplayError( this, _( "File write operation failed." ) );
     }
-
-    fclose( f );
 
     return success;
 }
@@ -204,7 +230,7 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
         return false;
     }
 
-    // save any currently open and modified project files.
+    // Save any currently open and modified project files.
     for( SCH_SCREEN* screen = screenList.GetFirst(); screen; screen = screenList.GetNext() )
     {
         if( screen->IsModify() )
@@ -295,13 +321,41 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     }
     else
     {
+#ifdef USE_SCH_IO_MANAGER
+        delete g_RootSheet;   // Delete the current project.
+        g_RootSheet = NULL;   // Force CreateScreens() to build new empty project on load failure.
+
+        SCH_PLUGIN::SCH_PLUGIN_RELEASER pi( SCH_IO_MGR::FindPlugin( SCH_IO_MGR::SCH_LEGACY ) );
+
+        try
+        {
+            g_RootSheet = pi->Load( fullFileName, &Kiway() );
+            m_CurrentSheet->clear();
+            m_CurrentSheet->push_back( g_RootSheet );
+        }
+        catch( const IO_ERROR& ioe )
+        {
+            msg.Printf( _( "Error loading schematic file '%s'.\n%s" ),
+                        GetChars( fullFileName ), GetChars( ioe.errorText ) );
+            DisplayError( this, msg );
+
+            msg.Printf( _( "Failed to load '%s'" ), GetChars( fullFileName ) );
+            AppendMsgPanel( wxEmptyString, msg, CYAN );
+
+            // When g_RootSheet is NULL, create a dummy root sheet and screen.
+            CreateScreens();
+            Zoom_Automatique( false );
+
+            return false;
+        }
+#else
         g_RootSheet->SetScreen( NULL );
 
         DBG( printf( "%s: loading schematic %s\n", __func__, TO_UTF8( fullFileName ) );)
 
         bool diag = g_RootSheet->Load( this );
         (void) diag;
-
+#endif
         SetScreen( m_CurrentSheet->LastScreen() );
 
         GetScreen()->ClrModify();
@@ -327,7 +381,6 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     GetScreen()->SetGrid( ID_POPUP_GRID_LEVEL_1000 + m_LastGridSizeId );
     Zoom_Automatique( false );
     SetSheetNumberAndCount();
-
     m_canvas->Refresh( true );
 
     return true;
@@ -342,7 +395,7 @@ bool SCH_EDIT_FRAME::AppendOneEEProject()
 
     if( !screen )
     {
-        wxLogError( wxT("Document not ready, cannot import") );
+        wxLogError( wxT( "Document not ready, cannot import" ) );
         return false;
     }
 
@@ -367,6 +420,7 @@ bool SCH_EDIT_FRAME::AppendOneEEProject()
     }
 
     wxString cache_name = PART_LIBS::CacheName( fullFileName );
+
     if( !!cache_name )
     {
         PART_LIBS*  libs = Prj().SchLibs();
@@ -382,8 +436,10 @@ bool SCH_EDIT_FRAME::AppendOneEEProject()
     SCH_ITEM* bs = screen->GetDrawItems();
 
     if( bs )
+    {
         while( bs->Next() )
             bs = bs->Next();
+    }
 
     // load the project
     bool success = LoadOneEEFile( screen, fullFileName, true );
@@ -428,7 +484,8 @@ bool SCH_EDIT_FRAME::AppendOneEEProject()
                 else
                     sheet->SetName( tmp );
 
-                sheet->SetFileName( wxString::Format( wxT( "file%8.8lX.sch" ), (long) newtimestamp ) );
+                sheet->SetFileName( wxString::Format( wxT( "file%8.8lX.sch" ),
+                                                      (long) newtimestamp ) );
                 SCH_SCREEN* new_screen = new SCH_SCREEN( &Kiway() );
                 new_screen->SetMaxUndoItems( m_UndoRedoCountMax );
                 sheet->SetScreen( new_screen );

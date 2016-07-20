@@ -39,7 +39,8 @@
 #endif /* __WXDEBUG__ */
 
 #include <limits>
-#include <boost/bind.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 
 using namespace KIGFX;
@@ -1048,7 +1049,7 @@ int OPENGL_GAL::BeginGroup()
 {
     isGrouping = true;
 
-    boost::shared_ptr<VERTEX_ITEM> newItem( new VERTEX_ITEM( *cachedManager ) );
+    std::shared_ptr<VERTEX_ITEM> newItem = std::make_shared<VERTEX_ITEM>( *cachedManager );
     int groupNumber = getNewGroupNumber();
     groups.insert( std::make_pair( groupNumber, newItem ) );
 
@@ -1532,7 +1533,7 @@ void OPENGL_GAL::OPENGL_TEST::Render( wxPaintEvent& WXUNUSED( aEvent ) )
 
         // One test is enough - close the testing dialog when the test is finished
         Disconnect( wxEVT_PAINT, wxPaintEventHandler( OPENGL_GAL::OPENGL_TEST::Render ) );
-        CallAfter( boost::bind( &wxDialog::EndModal, m_parent, wxID_NONE ) );
+        CallAfter( std::bind( &wxDialog::EndModal, m_parent, wxID_NONE ) );
 
         GL_CONTEXT_MANAGER::Get().LockCtx( m_context, this );
         GLenum err = glewInit();
