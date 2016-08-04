@@ -82,9 +82,22 @@ enum RS274X_PARAMETERS {
     // X2 extention attribute commands
     // Mainly are found standard attributes and user attributes
     // standard attributes commands are:
-    // TF (file attribute)
+    // TF (file attribute) TO (net attribute)
     // TA (aperture attribute) and TD (delete aperture attribute)
     FILE_ATTRIBUTE   = CODE( 'T', 'F' ),
+
+    // X2 extention Net attribute info
+    // Net attribute options are:
+    // TO (net attribute data): TO.CN ot TO.N or TO.C
+    NET_ATTRIBUTE   = CODE( 'T', 'O' ),
+
+    // X2 extention Aperture attribute TA
+    APERTURE_ATTRIBUTE   = CODE( 'T', 'A' ),
+
+    // TD (delete aperture attribute): TD (delete all) or TD.CN or TD.N or TD.C ...
+    // due to not yet fully defined,
+    // TD  TD.CNr TD.N TD.C are delete all
+    REMOVE_APERTURE_ATTRIBUTE   = CODE( 'T', 'D' ),
 
     // Layer specific parameters
     // May be used singly or may be layer specfic
@@ -113,20 +126,67 @@ enum RS274X_PARAMETERS {
 static int ReadXCommand( char*& text )
 {
     int result;
+    int currbyte;
 
     if( text && *text )
-        result = *text++ << 8;
+    {
+        currbyte = *text++;
+        result = ( currbyte & 0xFF ) << 8;
+    }
     else
         return -1;
 
     if( text && *text )
-        result += *text++;
+    {
+        currbyte = *text++;
+        result += currbyte & 0xFF;
+    }
     else
         return -1;
 
     return result;
 }
 
+/**
+ * convert a string read from a gerber file to an unicode string
+ * usual chars are just copied. \hhhh values are converted to
+ * the unicoade char value
+ */
+static const wxString fromGerberString( const wxString& aGbrString )
+{
+    wxString text;
+
+    for( unsigned ii = 0; ii < aGbrString.size(); ++ii )
+    {
+        if( aGbrString[ii] == '\\' )
+        {
+            unsigned value = 0;
+
+            for( int jj = 0; jj < 4; jj++ )
+            {
+                ii++;
+                value <<= 4;
+                int digit = aGbrString[ii];
+
+                if( digit >= '0' && digit <= '9' )
+                    digit -= '0';
+                else if( digit >= 'A' && digit <= 'F' )
+                    digit -= 'A';
+                else if( digit >= 'a' && digit <= 'f' )
+                    digit -= 'a';
+                else digit = 0;
+
+                value += digit && 0xFF;
+            }
+
+            text.Append( wxUniChar( value ) );
+        }
+        else
+            text.Append( aGbrString[ii] );
+    }
+
+    return text;
+}
 
 bool GERBER_FILE_IMAGE::ReadRS274XCommand( char* buff, char*& text )
 {
@@ -352,6 +412,7 @@ bool GERBER_FILE_IMAGE::ExecuteRS274XCommand( int command, char* buff, char*& te
     {
         X2_ATTRIBUTE dummy;
         dummy.ParseAttribCmd( m_Current_File, buff, GERBER_BUFZ, text );
+
         if( dummy.IsFileFunction() )
         {
             delete m_FileFunction;
@@ -366,6 +427,58 @@ bool GERBER_FILE_IMAGE::ExecuteRS274XCommand( int command, char* buff, char*& te
             m_PartString = dummy.GetPrm( 1 );
         }
      }
+        break;
+
+    case APERTURE_ATTRIBUTE:    // Command %TA ... Not yet supported
+        {
+        X2_ATTRIBUTE dummy;
+        dummy.ParseAttribCmd( m_Current_File, buff, GERBER_BUFZ, text );
+
+            if( dummy.GetAttribute() == ".AperFunction" )
+            m_AperFunction = dummy.GetPrm( 1 );
+        }
+        break;
+
+    case NET_ATTRIBUTE:    // Command %TO currently %TO.CN %TO.N and %TO.C
+        {
+        X2_ATTRIBUTE dummy;
+
+        dummy.ParseAttribCmd( m_Current_File, buff, GERBER_BUFZ, text );
+
+        if( dummy.GetAttribute() == ".CN" )
+        {
+            m_NetAttributeDict.m_NetAttribType = GBR_NETLIST_METADATA::GBR_NETINFO_FLASHED_PAD;
+            m_NetAttributeDict.m_ComponentRef = fromGerberString( dummy.GetPrm( 1 ) );
+            m_NetAttributeDict.m_Padname = fromGerberString( dummy.GetPrm( 2 ) );
+            m_NetAttributeDict.m_Netname = fromGerberString( dummy.GetPrm( 3 ) );
+        }
+        else if( dummy.GetAttribute() == ".N" )
+        {
+            if( m_NetAttributeDict.m_NetAttribType == GBR_NETLIST_METADATA::GBR_NETINFO_COMPONENT )
+                m_NetAttributeDict.m_NetAttribType = GBR_NETLIST_METADATA::GBR_NETINFO_NET_AND_CMP;
+            else
+                m_NetAttributeDict.m_NetAttribType = GBR_NETLIST_METADATA::GBR_NETINFO_NET;
+
+            m_NetAttributeDict.m_Netname = fromGerberString( dummy.GetPrm( 1 ) );
+        }
+        else if( dummy.GetAttribute() == ".C" )
+        {
+            if( m_NetAttributeDict.m_NetAttribType == GBR_NETLIST_METADATA::GBR_NETINFO_NET )
+                m_NetAttributeDict.m_NetAttribType = GBR_NETLIST_METADATA::GBR_NETINFO_NET_AND_CMP;
+            else
+                m_NetAttributeDict.m_NetAttribType = GBR_NETLIST_METADATA::GBR_NETINFO_COMPONENT;
+
+            m_NetAttributeDict.m_ComponentRef = fromGerberString( dummy.GetPrm( 1 ) );
+        }
+        }
+        break;
+
+    case REMOVE_APERTURE_ATTRIBUTE:    // Command %TD ...
+        {
+        X2_ATTRIBUTE dummy;
+        dummy.ParseAttribCmd( m_Current_File, buff, GERBER_BUFZ, text );
+        RemoveAttribute( dummy );
+        }
         break;
 
     case OFFSET:        // command: OFAnnBnn (nn = float number) = layer Offset
@@ -642,8 +755,11 @@ bool GERBER_FILE_IMAGE::ExecuteRS274XCommand( int command, char* buff, char*& te
 
         D_CODE* dcode;
         dcode = GetDCODE( code );
+
         if( dcode == NULL )
             break;
+
+        dcode->m_AperFunction = m_AperFunction;
 
         // at this point, text points to character after the ADD<num>,
         // i.e. R in example above.  If text[0] is one of the usual

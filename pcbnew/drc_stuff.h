@@ -193,17 +193,17 @@ private:
     int                 m_xcliphi;
     int                 m_ycliphi;
 
-    PCB_EDIT_FRAME*     m_mainWindow;
+    PCB_EDIT_FRAME*     m_pcbEditorFrame;   ///< The pcb frame editor which owns the board
     BOARD*              m_pcb;
     DIALOG_DRC_CONTROL* m_drcDialog;
 
-    DRC_LIST            m_unconnected;  ///< list of unconnected pads, as DRC_ITEMs
+    DRC_LIST            m_unconnected;      ///< list of unconnected pads, as DRC_ITEMs
 
 
     /**
      * Function updatePointers
      * is a private helper function used to update needed pointers from the
-     * one pointer which is known not to change, m_mainWindow.
+     * one pointer which is known not to change, m_pcbEditorFrame.
      */
     void updatePointers();
 
@@ -437,20 +437,29 @@ public:
 
 
     /**
-     * Function ShowDialog
+     * Function ShowDRCDialog
      * opens a dialog and prompts the user, then if a test run button is
      * clicked, runs the test(s) and creates the MARKERS.  The dialog is only
      * created if it is not already in existence.
+     * @param aParent is the parent window for wxWidgets. Usually the PCB editor frame
+     * but can be an other dialog
+     * if aParent == NULL (default), the parent will be the PCB editor frame
+     * and the dialog will be not modal (just float on parent
+     * if aParent is specified, the dialog will be modal.
+     * The modal mode is mandatory if the dialog is created from an other dialog, not
+     * from the PCB editor frame
      */
-    void ShowDialog();
+    void ShowDRCDialog( wxWindow* aParent = NULL );
 
     /**
-     * Function DestroyDialog
+     * Function DestroyDRCDialog
      * deletes this ui dialog box and zeros out its pointer to remember
      * the state of the dialog's existence.
      * @param aReason Indication of which button was clicked to cause the destruction.
+     * if aReason == wxID_OK, design parameters values which can be entered from the dialog will bbe saved
+     * in design parameters list
      */
-    void DestroyDialog( int aReason );
+    void DestroyDRCDialog( int aReason );
 
 
     /**
