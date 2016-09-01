@@ -33,11 +33,9 @@
 #include "pns_meander.h"
 #include "pns_meander_placer_base.h"
 #include "pns_diff_pair.h"
+#include "pns_debug_decorator.h"
 
 class PNS_ROUTER;
-class PNS_SHOVE;
-class PNS_OPTIMIZER;
-class PNS_ROUTER_BASE;
 
 /**
  * Class PNS_DP_MEANDER_PLACER
@@ -57,7 +55,7 @@ public:
      * Starts routing a single track at point aP, taking item aStartItem as anchor
      * (unless NULL).
      */
-    bool Start ( const VECTOR2I& aP, PNS_ITEM* aStartItem );
+    bool Start( const VECTOR2I& aP, PNS_ITEM* aStartItem );
 
     /**
      * Function Move()
@@ -108,7 +106,7 @@ public:
 private:
     friend class PNS_MEANDER_SHAPE;
 
-    void meanderSegment ( const SEG& aBase );
+    void meanderSegment( const SEG& aBase );
 
 //    void addMeander ( PNS_MEANDER *aM );
 //    void addCorner ( const VECTOR2I& aP );

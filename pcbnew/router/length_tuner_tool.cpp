@@ -41,8 +41,6 @@
 
 #include "length_tuner_tool.h"
 
-#include "trace.h"
-
 using namespace KIGFX;
 using boost::optional;
 
@@ -229,10 +227,6 @@ void LENGTH_TUNER_TOOL::performTuning()
     }
 
     m_router->StopRouting();
-
-    // Save the recent changes in the undo buffer
-    m_frame->SaveCopyInUndoList( m_router->GetUndoBuffer(), UR_UNSPECIFIED );
-    m_router->ClearUndoBuffer();
     m_frame->OnModify();
 
     highlightNet( false );
@@ -279,17 +273,14 @@ int LENGTH_TUNER_TOOL::mainLoop( PNS_ROUTER_MODE aMode )
     // Main loop: keep receiving events
     while( OPT_TOOL_EVENT evt = Wait() )
     {
-        if( m_needsSync )
-        {
-            m_router->SyncWorld();
-            m_router->SetView( getView() );
-            m_needsSync = false;
-        }
-
         if( evt->IsCancel() || evt->IsActivate() )
+        {
             break; // Finish
+        }
         else if( evt->IsMotion() )
+        {
             updateStartItem( *evt );
+        }
         else if( evt->IsClick( BUT_LEFT ) || evt->IsAction( &ACT_StartTuning ) )
         {
             updateStartItem( *evt );

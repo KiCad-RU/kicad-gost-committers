@@ -40,49 +40,27 @@ class PNS_SEGMENT;
 class PNS_LINE;
 class PNS_SOLID;
 class PNS_VIA;
-class PNS_RATSNEST;
 class PNS_INDEX;
 class PNS_ROUTER;
+class PNS_NODE;
 
 /**
- * Class PNS_CLEARANCE_FUNC
+ * Class PNS_RULE_RESOLVER
  *
- * An abstract function object, returning a required clearance between two items.
+ * An abstract function object, returning a design rule (clearance, diff pair gap, etc) required between two items.
  **/
-class PNS_CLEARANCE_FUNC
+
+class PNS_RULE_RESOLVER
 {
 public:
-    virtual ~PNS_CLEARANCE_FUNC() {}
-    virtual int operator()( const PNS_ITEM* aA, const PNS_ITEM* aB ) = 0;
-    virtual void OverrideClearance (bool aEnable, int aNetA = 0, int aNetB = 0, int aClearance = 0) = 0;
-};
+    virtual ~PNS_RULE_RESOLVER() {}
 
-class PNS_PCBNEW_CLEARANCE_FUNC : public PNS_CLEARANCE_FUNC
-{
-public:
-    PNS_PCBNEW_CLEARANCE_FUNC( PNS_ROUTER *aRouter );
-    virtual ~PNS_PCBNEW_CLEARANCE_FUNC();
-
-    virtual int operator()( const PNS_ITEM* aA, const PNS_ITEM* aB );
-    virtual void OverrideClearance (bool aEnable, int aNetA = 0, int aNetB = 0, int aClearance = 0);
-
-    void UseDpGap( bool aUseDpGap ) { m_useDpGap = aUseDpGap; }
-
-private:
-    struct CLEARANCE_ENT {
-        int coupledNet;
-        int clearance;
-    };
-
-    PNS_ROUTER *m_router;
-
-    int localPadClearance( const PNS_ITEM* aItem ) const;
-    std::vector<CLEARANCE_ENT> m_clearanceCache;
-    int m_defaultClearance;
-    bool m_overrideEnabled;
-    int m_overrideNetA, m_overrideNetB;
-    int m_overrideClearance;
-    bool m_useDpGap;
+    virtual int Clearance( const PNS_ITEM* aA, const PNS_ITEM* aB ) = 0;
+    virtual void OverrideClearance( bool aEnable, int aNetA = 0, int aNetB = 0, int aClearance = 0 ) = 0;
+    virtual void UseDpGap( bool aUseDpGap ) = 0;
+    virtual int DpCoupledNet( int aNet ) = 0;
+    virtual int DpNetPolarity( int aNet ) = 0;
+    virtual bool DpNetPair( PNS_ITEM* aItem, int& aNetP, int& aNetN ) = 0;
 };
 
 /**
@@ -111,12 +89,33 @@ struct PNS_OBSTACLE
 };
 
 /**
- * Struct PNS_COLLISION_FILTER
- * Used to override the decision of the collision search algorithm whether two
- * items collide.
+ * Struct PNS_OBSTACLE_VISITOR
  **/
-struct PNS_COLLISION_FILTER {
-    virtual bool operator()( const PNS_ITEM *aItemA, const PNS_ITEM *aItemB ) const = 0;
+class PNS_OBSTACLE_VISITOR {
+
+public:
+
+    PNS_OBSTACLE_VISITOR( const PNS_ITEM* aItem );
+
+    void SetWorld( const PNS_NODE* aNode, const PNS_NODE* aOverride = NULL );
+
+    virtual bool operator()( PNS_ITEM* aCandidate ) = 0;
+
+protected:
+
+    bool visit( PNS_ITEM* aCandidate );
+
+    ///> the item we are looking for collisions with
+    const PNS_ITEM* m_item;
+
+    ///> node we are searching in (either root or a branch)
+    const PNS_NODE* m_node;
+
+    ///> node that overrides root entries
+    const PNS_NODE* m_override;
+
+    ///> additional clearance
+    int m_extraClearance;
 };
 
 /**
@@ -157,9 +156,14 @@ public:
     }
 
     ///> Assigns a clerance resolution function object
-    void SetClearanceFunctor( PNS_CLEARANCE_FUNC* aFunc )
+    void SetRuleResolver( PNS_RULE_RESOLVER* aFunc )
     {
-        m_clearanceFunctor = aFunc;
+        m_ruleResolver = aFunc;
+    }
+
+    PNS_RULE_RESOLVER* GetRuleResolver()
+    {
+        return m_ruleResolver;
     }
 
     ///> Returns the number of joints
@@ -190,6 +194,10 @@ public:
                         int             aLimitCount = -1,
                         bool            aDifferentNetsOnly = true,
                         int             aForceClearance = -1 );
+
+    int QueryColliding( const PNS_ITEM* aItem,
+                         PNS_OBSTACLE_VISITOR& aVisitor
+                      );
 
     /**
      * Function NearestObstacle()
@@ -280,7 +288,6 @@ public:
      */
     void Remove( PNS_LINE& aLine );
 
-
     /**
      * Function Replace()
      *
@@ -358,7 +365,7 @@ public:
 #if 0
     void MapConnectivity( PNS_JOINT* aStart, std::vector<PNS_JOINT*> & aFoundJoints );
 
-    PNS_ITEM* NearestUnconnectedItem( PNS_JOINT* aStart, int *aAnchor = NULL,
+    PNS_ITEM* NearestUnconnectedItem( PNS_JOINT* aStart, int* aAnchor = NULL,
                                       int aKindMask = PNS_ITEM::ANY);
 
 #endif
@@ -380,17 +387,23 @@ public:
 
     int FindByMarker( int aMarker, PNS_ITEMSET& aItems );
     int RemoveByMarker( int aMarker );
-    void SetCollisionFilter( PNS_COLLISION_FILTER* aFilter );
 
-    PNS_ITEM* FindItemByParent( const BOARD_CONNECTED_ITEM *aParent );
+    PNS_ITEM* FindItemByParent( const BOARD_CONNECTED_ITEM* aParent );
 
     bool HasChildren() const
     {
         return !m_children.empty();
     }
 
+    ///> checks if this branch contains an updated version of the m_item
+    ///> from the root branch.
+    bool Overrides( PNS_ITEM* aItem ) const
+    {
+        return m_override.find( aItem ) != m_override.end();
+    }
+
 private:
-    struct OBSTACLE_VISITOR;
+    struct DEFAULT_OBSTACLE_VISITOR;
     typedef boost::unordered_multimap<PNS_JOINT::HASH_TAG, PNS_JOINT> JOINT_MAP;
     typedef JOINT_MAP::value_type TagJointPair;
 
@@ -431,13 +444,6 @@ private:
         return m_parent == NULL;
     }
 
-    ///> checks if this branch contains an updated version of the m_item
-    ///> from the root branch.
-    bool overrides( PNS_ITEM* aItem ) const
-    {
-        return m_override.find( aItem ) != m_override.end();
-    }
-
     PNS_SEGMENT* findRedundantSegment( PNS_SEGMENT* aSeg );
 
     ///> scans the joint map, forming a line starting from segment (current).
@@ -469,17 +475,14 @@ private:
     ///> worst case item-item clearance
     int m_maxClearance;
 
-    ///> Clearance resolution functor
-    PNS_CLEARANCE_FUNC* m_clearanceFunctor;
+    ///> Design rules resolver
+    PNS_RULE_RESOLVER* m_ruleResolver;
 
     ///> Geometric/Net index of the items
     PNS_INDEX* m_index;
 
     ///> depth of the node (number of parent nodes in the inheritance chain)
     int m_depth;
-
-    ///> optional collision filtering object
-    PNS_COLLISION_FILTER* m_collisionFilter;
 
     boost::unordered_set<PNS_ITEM*> m_garbageItems;
 };

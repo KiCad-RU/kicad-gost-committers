@@ -304,7 +304,12 @@ void LIB_PART::SetName( const wxString& aName )
 {
     m_name = aName;
     GetValueField().SetText( aName );
-    m_aliases[0]->SetName( aName );
+
+    // The LIB_ALIAS that is the LIB_PART name has to be created so create it.
+    if( m_aliases.size() == 0 )
+        m_aliases.push_back( new LIB_ALIAS( aName, this ) );
+    else
+        m_aliases[0]->SetName( aName );
 }
 
 
@@ -885,7 +890,7 @@ bool LIB_PART::Load( LINE_READER& aLineReader, wxString& aErrorMsg )
         {
             p = strtok( line, " \t\n" );
 
-            if( p && stricmp( p, "ENDDEF" ) == 0 )
+            if( p && strcasecmp( p, "ENDDEF" ) == 0 )
                 break;
         }
 
@@ -1143,7 +1148,7 @@ bool LIB_PART::LoadFootprints( LINE_READER& aLineReader, wxString& aErrorMsg )
 
         p = strtok( line, " \t\r\n" );
 
-        if( stricmp( p, "$ENDFPLIST" ) == 0 )
+        if( strcasecmp( p, "$ENDFPLIST" ) == 0 )
             break;
 
         m_FootprintList.Add( FROM_UTF8( p ) );

@@ -27,7 +27,6 @@
 #include <boost/unordered_set.hpp>
 
 #include <geometry/shape_line_chain.h>
-#include <class_undoredo_container.h>
 
 #include "pns_routing_settings.h"
 #include "pns_sizes_settings.h"
@@ -35,12 +34,7 @@
 #include "pns_itemset.h"
 #include "pns_node.h"
 
-class BOARD;
-class BOARD_ITEM;
-class D_PAD;
-class TRACK;
-class VIA;
-class GRID_HELPER;
+class PNS_DEBUG_DECORATOR;
 class PNS_NODE;
 class PNS_DIFF_PAIR_PLACER;
 class PNS_PLACEMENT_ALGO;
@@ -51,7 +45,7 @@ class PNS_SOLID;
 class PNS_SEGMENT;
 class PNS_JOINT;
 class PNS_VIA;
-class PNS_CLEARANCE_FUNC;
+class PNS_RULE_RESOLVER;
 class PNS_SHOVE;
 class PNS_DRAGGER;
 
@@ -75,6 +69,29 @@ enum PNS_ROUTER_MODE {
  *
  * Main router class.
  */
+
+ class PNS_ROUTER_IFACE
+ {
+ public:
+        PNS_ROUTER_IFACE() {};
+        virtual ~PNS_ROUTER_IFACE() {};
+
+        virtual void SetRouter( PNS_ROUTER* aRouter ) = 0;
+        virtual void SyncWorld( PNS_NODE* aNode ) = 0;
+        virtual void AddItem( PNS_ITEM* aItem ) = 0;
+        virtual void RemoveItem( PNS_ITEM* aItem ) = 0;
+        virtual void DisplayItem( const PNS_ITEM* aItem, int aColor = -1, int aClearance = -1 ) = 0;
+        virtual void HideItem( PNS_ITEM* aItem ) = 0;
+        virtual void Commit() = 0;
+//        virtual void Abort () = 0;
+
+        virtual void EraseView() = 0;
+        virtual void UpdateNet( int aNetCode ) = 0;
+
+        virtual PNS_RULE_RESOLVER* GetRuleResolver() = 0;
+        virtual PNS_DEBUG_DECORATOR* GetDebugDecorator() = 0;
+};
+
 class PNS_ROUTER
 {
 private:
@@ -89,13 +106,13 @@ public:
     PNS_ROUTER();
     ~PNS_ROUTER();
 
+    void SetInterface( PNS_ROUTER_IFACE* aIface );
     void SetMode ( PNS_ROUTER_MODE aMode );
     PNS_ROUTER_MODE Mode() const { return m_mode; }
 
     static PNS_ROUTER* GetInstance();
 
     void ClearWorld();
-    void SetBoard( BOARD* aBoard );
     void SyncWorld();
 
     void SetView( KIGFX::VIEW* aView );
@@ -118,11 +135,7 @@ public:
 
     void DisplayItem( const PNS_ITEM* aItem, int aColor = -1, int aClearance = -1 );
     void DisplayItems( const PNS_ITEMSET& aItems );
-
-    void DisplayDebugLine( const SHAPE_LINE_CHAIN& aLine, int aType = 0, int aWidth = 0 );
-    void DisplayDebugPoint( const VECTOR2I aPos, int aType = 0 );
-    void DisplayDebugBox( const BOX2I& aBox, int aType = 0, int aWidth = 0 );
-
+    void DeleteTraces( PNS_ITEM* aStartItem, bool aWholeTrack );
     void SwitchLayer( int layer );
 
     void ToggleViaPlacement();
@@ -133,10 +146,11 @@ public:
 
     void DumpLog();
 
-    PNS_CLEARANCE_FUNC* GetClearanceFunc() const
+    PNS_RULE_RESOLVER* GetRuleResolver() const
     {
-        return m_clearanceFunc;
+        return m_iface->GetRuleResolver();
     }
+
     bool IsPlacingVia() const;
 
     const PNS_ITEMSET   QueryHoverItems( const VECTOR2I& aP );
@@ -159,23 +173,6 @@ public:
     PNS_ROUTING_SETTINGS& Settings() { return m_settings; }
 
     void CommitRouting( PNS_NODE* aNode );
-
-    /**
-     * Returns the last changes introduced by the router (since the last time ClearLastChanges()
-     * was called or a new track has been started).
-     */
-    const PICKED_ITEMS_LIST& GetUndoBuffer() const
-    {
-        return m_undoBuffer;
-    }
-
-    /**
-     * Clears the list of recent changes, saved to be stored in the undo buffer.
-     */
-    void ClearUndoBuffer()
-    {
-        m_undoBuffer.ClearItemsList();
-    }
 
     /**
      * Applies stored settings.
@@ -207,18 +204,17 @@ public:
         return m_sizes;
     }
 
-    PNS_ITEM *QueryItemByParent ( const BOARD_ITEM *aItem ) const;
+    PNS_ITEM* QueryItemByParent( const BOARD_ITEM* aItem ) const;
 
-    BOARD *GetBoard();
 
     void SetFailureReason ( const wxString& aReason ) { m_failureReason = aReason; }
     const wxString& FailureReason() const { return m_failureReason; }
 
-    PNS_PLACEMENT_ALGO *Placer() { return m_placer; }
+    PNS_PLACEMENT_ALGO* Placer() { return m_placer; }
 
-    void SetGrid( GRID_HELPER *aGridHelper )
+    PNS_ROUTER_IFACE* GetInterface() const
     {
-        m_gridHelper = aGridHelper;
+        return m_iface;
     }
 
 private:
@@ -250,36 +246,29 @@ private:
     VECTOR2I m_currentEnd;
     RouterState m_state;
 
-    BOARD* m_board;
     PNS_NODE* m_world;
     PNS_NODE* m_lastNode;
     PNS_PLACEMENT_ALGO * m_placer;
     PNS_DRAGGER* m_dragger;
     PNS_SHOVE* m_shove;
+    PNS_ROUTER_IFACE* m_iface;
+
     int m_iterLimit;
     bool m_showInterSteps;
     int m_snapshotIter;
 
     KIGFX::VIEW* m_view;
-    KIGFX::VIEW_GROUP* m_previewItems;
 
     bool m_snappingEnabled;
     bool m_violation;
 
     PNS_ROUTING_SETTINGS m_settings;
-    PNS_PCBNEW_CLEARANCE_FUNC* m_clearanceFunc;
-
-    boost::unordered_set<BOARD_CONNECTED_ITEM*> m_hiddenItems;
-
     ///> Stores list of modified items in the current operation
-    PICKED_ITEMS_LIST m_undoBuffer;
     PNS_SIZES_SETTINGS m_sizes;
     PNS_ROUTER_MODE m_mode;
 
     wxString m_toolStatusbarName;
     wxString m_failureReason;
-
-    GRID_HELPER *m_gridHelper;
 };
 
 #endif

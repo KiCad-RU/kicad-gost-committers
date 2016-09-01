@@ -21,9 +21,6 @@
 #include <boost/optional.hpp>
 
 #include <base_units.h> // God forgive me doing this...
-#include <colors.h>
-
-#include "trace.h"
 
 #include "pns_node.h"
 #include "pns_itemset.h"
@@ -118,7 +115,6 @@ bool PNS_DP_MEANDER_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
 
 void PNS_DP_MEANDER_PLACER::release()
 {
-
 }
 
 
@@ -157,7 +153,7 @@ static bool pairOrientation( const PNS_DIFF_PAIR::COUPLED_SEGMENTS& aPair )
 {
     VECTOR2I midp = ( aPair.coupledP.A + aPair.coupledN.A ) / 2;
 
-    //DrawDebugPoint (midp, 6);
+    //DrawDebugPoint(midp, 6);
 
     return aPair.coupledP.Side( midp ) > 0;
 }
@@ -180,7 +176,7 @@ bool PNS_DP_MEANDER_PLACER::Move( const VECTOR2I& aP, PNS_ITEM* aEndItem )
     cutTunedLine( m_originPair.CP(), m_currentStart, aP, preP, tunedP, postP );
     cutTunedLine( m_originPair.CN(), m_currentStart, aP, preN, tunedN, postN );
 
-    PNS_DIFF_PAIR tuned ( m_originPair );
+    PNS_DIFF_PAIR tuned( m_originPair );
 
     tuned.SetShape( tunedP, tunedN );
 
@@ -189,11 +185,11 @@ bool PNS_DP_MEANDER_PLACER::Move( const VECTOR2I& aP, PNS_ITEM* aEndItem )
     if( coupledSegments.size() == 0 )
         return false;
 
-    //Router()->DisplayDebugLine ( tuned.CP(), 5, 20000 );
-    //Router()->DisplayDebugLine ( tuned.CN(), 4, 20000 );
+    //Router()->DisplayDebugLine( tuned.CP(), 5, 20000 );
+    //Router()->DisplayDebugLine( tuned.CN(), 4, 20000 );
 
-    //Router()->DisplayDebugLine ( m_originPair.CP(), 5, 20000 );
-    //Router()->DisplayDebugLine ( m_originPair.CN(), 4, 20000 );
+    //Router()->DisplayDebugLine( m_originPair.CP(), 5, 20000 );
+    //Router()->DisplayDebugLine( m_originPair.CN(), 4, 20000 );
 
     m_result = PNS_MEANDERED_LINE( this, true );
     m_result.SetWidth( tuned.Width() );
@@ -208,13 +204,13 @@ bool PNS_DP_MEANDER_PLACER::Move( const VECTOR2I& aP, PNS_ITEM* aEndItem )
     for( const PNS_ITEM* item : m_tunedPathP.CItems() )
     {
         if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
-            Router()->DisplayDebugLine( l->CLine(), 5, 10000 );
+            Dbg()->AddLine( l->CLine(), 5, 10000 );
     }
 
     for( const PNS_ITEM* item : m_tunedPathN.CItems() )
     {
         if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
-            Router()->DisplayDebugLine( l->CLine(), 5, 10000 );
+            Dbg()->AddLine( l->CLine(), 5, 10000 );
     }
 
     int curIndexP = 0, curIndexN = 0;
@@ -223,7 +219,7 @@ bool PNS_DP_MEANDER_PLACER::Move( const VECTOR2I& aP, PNS_ITEM* aEndItem )
     {
         SEG base = baselineSegment( sp );
 
-        DrawDebugSeg( base, 3 );
+        Dbg()->AddSegment( base, 3 );
 
         while( sp.indexP >= curIndexP )
         {
@@ -270,8 +266,8 @@ bool PNS_DP_MEANDER_PLACER::Move( const VECTOR2I& aP, PNS_ITEM* aEndItem )
         {
             if( m->Type() != MT_EMPTY )
             {
-                tunedP.Append ( m->CLine( 0 ) );
-                tunedN.Append ( m->CLine( 1 ) );
+                tunedP.Append( m->CLine( 0 ) );
+                tunedN.Append( m->CLine( 1 ) );
             }
         }
 

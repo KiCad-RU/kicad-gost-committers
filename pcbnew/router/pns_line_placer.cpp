@@ -20,10 +20,6 @@
 
 #include <boost/optional.hpp>
 
-#include <colors.h>
-
-#include "trace.h"
-
 #include "pns_node.h"
 #include "pns_line_placer.h"
 #include "pns_walkaround.h"
@@ -31,6 +27,7 @@
 #include "pns_utils.h"
 #include "pns_router.h"
 #include "pns_topology.h"
+#include "pns_debug_decorator.h"
 
 #include <class_board_item.h>
 
@@ -53,7 +50,6 @@ PNS_LINE_PLACER::PNS_LINE_PLACER( PNS_ROUTER* aRouter ) :
     m_currentMode = RM_MarkObstacles;
     m_startItem = NULL;
     m_chainedPlacement = false;
-    m_splitSeg = false;
     m_orthoMode = false;
 }
 
@@ -197,8 +193,8 @@ bool PNS_LINE_PLACER::handlePullback()
         m_direction = DIRECTION_45( last );
         m_p_start = last.A;
 
-        TRACE( 0, "Placer: pullback triggered [%d] [%s %s]",
-                n % last_tail.Format().c_str() % first_head.Format().c_str() );
+        wxLogTrace( "PNS", "Placer: pullback triggered [%d] [%s %s]",
+                n, last_tail.Format().c_str(), first_head.Format().c_str() );
 
         // erase the last point in the tail, hoping that the next iteration will
         // result with a head trace that starts with a segment following our
@@ -263,7 +259,7 @@ bool PNS_LINE_PLACER::reduceTail( const VECTOR2I& aEnd )
 
     if( reduce_index >= 0 )
     {
-        TRACE( 0, "Placer: reducing tail: %d", reduce_index );
+        wxLogTrace( "PNS", "Placer: reducing tail: %d", reduce_index );
         SHAPE_LINE_CHAIN reducedLine = new_direction.BuildInitialTrace( new_start, aEnd );
 
         m_p_start = new_start;
@@ -306,13 +302,13 @@ bool PNS_LINE_PLACER::mergeHead()
 
     if( n_head < 3 )
     {
-        TRACEn( 4, "Merge failed: not enough head segs." );
+        wxLogTrace( "PNS", "Merge failed: not enough head segs." );
         return false;
     }
 
     if( n_tail && head.CPoint( 0 ) != tail.CPoint( -1 ) )
     {
-        TRACEn( 4, "Merge failed: head and tail discontinuous." );
+        wxLogTrace( "PNS", "Merge failed: head and tail discontinuous." );
         return false;
     }
 
@@ -348,7 +344,7 @@ bool PNS_LINE_PLACER::mergeHead()
 
     head.Remove( 0, n_head - 2 );
 
-    TRACE( 0, "Placer: merge %d, new direction: %s", n_head % m_direction.Format().c_str() );
+    wxLogTrace( "PNS", "Placer: merge %d, new direction: %s", n_head, m_direction.Format().c_str() );
 
     head.Simplify();
     tail.Simplify();
@@ -438,7 +434,7 @@ bool PNS_LINE_PLACER::rhShoveOnly( const VECTOR2I& aP, PNS_LINE& aNewHead )
     PNS_WALKAROUND::WALKAROUND_STATUS stat_solids = walkaround.Route( initTrack, walkSolids );
 
     optimizer.SetEffortLevel( PNS_OPTIMIZER::MERGE_SEGMENTS );
-    optimizer.SetCollisionMask ( PNS_ITEM::SOLID );
+    optimizer.SetCollisionMask( PNS_ITEM::SOLID );
     optimizer.Optimize( &walkSolids );
 
     if( stat_solids == PNS_WALKAROUND::DONE )
@@ -576,7 +572,7 @@ bool PNS_LINE_PLACER::optimizeTailHeadTransition()
     {
         PNS_LINE tmp( m_tail, opt_line );
 
-        TRACE( 0, "Placer: optimize tail-head [%d]", threshold );
+        wxLogTrace( "PNS", "Placer: optimize tail-head [%d]", threshold );
 
         head.Clear();
         tail.Replace( -threshold, -1, new_head.CLine() );
@@ -601,9 +597,8 @@ void PNS_LINE_PLACER::routeStep( const VECTOR2I& aP )
 
     PNS_LINE new_head;
 
-    TRACE( 2, "INIT-DIR: %s head: %d, tail: %d segs\n",
-            m_initial_direction.Format().c_str() % m_head.SegmentCount() %
-            m_tail.SegmentCount() );
+    wxLogTrace( "PNS", "INIT-DIR: %s head: %d, tail: %d segs",
+            m_initial_direction.Format().c_str(), m_head.SegmentCount(), m_tail.SegmentCount() );
 
     for( i = 0; i < n_iter; i++ )
     {
@@ -689,26 +684,29 @@ PNS_NODE* PNS_LINE_PLACER::CurrentNode( bool aLoopsRemoved ) const
 
 void PNS_LINE_PLACER::splitAdjacentSegments( PNS_NODE* aNode, PNS_ITEM* aSeg, const VECTOR2I& aP )
 {
-    if( aSeg && aSeg->OfKind( PNS_ITEM::SEGMENT ) )
-    {
-        PNS_JOINT* jt = aNode->FindJoint( aP, aSeg );
+    if( !aSeg )
+        return;
 
-        if( jt && jt->LinkCount() >= 1 )
-            return;
+    if( !aSeg->OfKind( PNS_ITEM::SEGMENT ) )
+        return;
 
-        PNS_SEGMENT* s_old = static_cast<PNS_SEGMENT*>( aSeg );
-        PNS_SEGMENT* s_new[2];
+    PNS_JOINT* jt = aNode->FindJoint( aP, aSeg );
 
-        s_new[0] = s_old->Clone();
-        s_new[1] = s_old->Clone();
+    if( jt && jt->LinkCount() >= 1 )
+        return;
 
-        s_new[0]->SetEnds( s_old->Seg().A, aP );
-        s_new[1]->SetEnds( aP, s_old->Seg().B );
+    PNS_SEGMENT* s_old = static_cast<PNS_SEGMENT*>( aSeg );
+    PNS_SEGMENT* s_new[2];
 
-        aNode->Remove( s_old );
-        aNode->Add( s_new[0], true );
-        aNode->Add( s_new[1], true );
-    }
+    s_new[0] = s_old->Clone();
+    s_new[1] = s_old->Clone();
+
+    s_new[0]->SetEnds( s_old->Seg().A, aP );
+    s_new[1]->SetEnds( aP, s_old->Seg().B );
+
+    aNode->Remove( s_old );
+    aNode->Add( s_new[0], true );
+    aNode->Add( s_new[1], true );
 }
 
 
@@ -723,11 +721,11 @@ bool PNS_LINE_PLACER::SetLayer( int aLayer )
     {
         return false;
     }
-    else if( !m_startItem || ( m_startItem->OfKind( PNS_ITEM::VIA ) && m_startItem->Layers().Overlaps( aLayer ) ) ) {
+    else if( !m_startItem || ( m_startItem->OfKind( PNS_ITEM::VIA ) && m_startItem->Layers().Overlaps( aLayer ) ) )
+    {
         m_currentLayer = aLayer;
-        m_splitSeg = false;
-        initPlacement ( m_splitSeg );
-        Move ( m_currentEnd, NULL );
+        initPlacement();
+        Move( m_currentEnd, NULL );
         return true;
     }
 
@@ -742,11 +740,6 @@ bool PNS_LINE_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
     static int unknowNetIdx = 0;    // -10000;
     int net = -1;
 
-    bool splitSeg = false;
-
-    if( Router()->SnappingEnabled() )
-        p = Router()->SnapToItem( aStartItem, aP, splitSeg );
-
     if( !aStartItem || aStartItem->Net() < 0 )
         net = unknowNetIdx--;
     else
@@ -758,15 +751,15 @@ bool PNS_LINE_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
     m_startItem = aStartItem;
     m_placingVia = false;
     m_chainedPlacement = false;
-    m_splitSeg = splitSeg;
 
     setInitialDirection( Settings().InitialDirection() );
 
-    initPlacement( m_splitSeg );
+    initPlacement();
     return true;
 }
 
-void PNS_LINE_PLACER::initPlacement( bool aSplitSeg )
+
+void PNS_LINE_PLACER::initPlacement()
 {
     m_idle = false;
 
@@ -789,13 +782,12 @@ void PNS_LINE_PLACER::initPlacement( bool aSplitSeg )
     world->KillChildren();
     PNS_NODE* rootNode = world->Branch();
 
-    if( aSplitSeg )
-        splitAdjacentSegments( rootNode, m_startItem, m_currentStart );
+    splitAdjacentSegments( rootNode, m_startItem, m_currentStart );
 
     setWorld( rootNode );
 
-    TRACE( 1, "world %p, intitial-direction %s layer %d\n",
-            m_world % m_direction.Format().c_str() % aLayer );
+    wxLogTrace( "PNS", "world %p, intitial-direction %s layer %d",
+            m_world, m_direction.Format().c_str(), m_currentLayer );
 
     m_lastNode = NULL;
     m_currentNode = m_world;
@@ -928,7 +920,6 @@ bool PNS_LINE_PLACER::FixRoute( const VECTOR2I& aP, PNS_ITEM* aEndItem )
         m_startItem = NULL;
         m_placingVia = false;
         m_chainedPlacement = !pl.EndsWithVia();
-        m_splitSeg = false;
         initPlacement();
     }
     else
@@ -983,7 +974,7 @@ void PNS_LINE_PLACER::removeLoops( PNS_NODE* aNode, PNS_LINE& aLatest )
             }
         }
 
-        TRACE( 0, "total segs removed: %d/%d\n", removedCount % total );
+        wxLogTrace( "PNS", "total segs removed: %d/%d", removedCount, total );
     }
 
     for( PNS_SEGMENT *s : toErase )
@@ -1016,7 +1007,7 @@ void PNS_LINE_PLACER::UpdateSizes( const PNS_SIZES_SETTINGS& aSizes )
 
     if( !m_idle )
     {
-        initPlacement( m_splitSeg );
+        initPlacement();
     }
 }
 
@@ -1028,7 +1019,7 @@ void PNS_LINE_PLACER::updateLeadingRatLine()
     PNS_TOPOLOGY topo( m_lastNode );
 
     if( topo.LeadingRatLine( &current, ratLine ) )
-        Router()->DisplayDebugLine( ratLine, 5, 10000 );
+        Dbg()->AddLine( ratLine, 5, 10000 );
 }
 
 
@@ -1036,6 +1027,7 @@ void PNS_LINE_PLACER::SetOrthoMode( bool aOrthoMode )
 {
     m_orthoMode = aOrthoMode;
 }
+
 
 bool PNS_LINE_PLACER::buildInitialLine( const VECTOR2I& aP, PNS_LINE& aHead )
 {

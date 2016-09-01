@@ -87,6 +87,7 @@ endif()
 
 option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." ON )
 
+option( KICAD_SPICE "Build Kicad with internal Spice simulator." OFF )
 
 # This can be set to a custom name to brag about a particular branch in the "About" dialog:
 set( KICAD_REPO_NAME "product" CACHE STRING "Name of the tree from which this build came." )
@@ -311,6 +312,10 @@ endif()
 
 if( KICAD_SCRIPTING_WXPYTHON )
     add_definitions( -DKICAD_SCRIPTING_WXPYTHON )
+endif()
+
+if( KICAD_SPICE )
+    add_definitions( -DKICAD_SPICE )
 endif()
 
 if( USE_WX_GRAPHICS_CONTEXT OR APPLE )
@@ -564,6 +569,11 @@ include( MinGWResourceCompiler )
 if( MINGW AND USE_WX_GRAPHICS_CONTEXT )
     find_package( GdiPlus )
     check_find_package_result( GDI_PLUS_FOUND "GDI+" )
+endif()
+
+# Find ngspice library, required for integrated circuit simulator
+if( KICAD_SPICE )
+    find_package( ngspice REQUIRED )
 endif()
 
 # Assist with header file searching optimization:

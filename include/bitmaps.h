@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2014 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 2007-2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2016 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -172,6 +172,7 @@ EXTERN_BITMAP( delete_track_xpm )
 EXTERN_BITMAP( delete_xpm )
 EXTERN_BITMAP( dialog_warning_xpm )
 EXTERN_BITMAP( directory_xpm )
+EXTERN_BITMAP( dismiss_xpm )
 EXTERN_BITMAP( display_options_xpm )
 EXTERN_BITMAP( down_xpm )
 EXTERN_BITMAP( ortho_xpm )
@@ -315,7 +316,6 @@ EXTERN_BITMAP( load_module_board_xpm )
 EXTERN_BITMAP( load_module_lib_xpm )
 EXTERN_BITMAP( local_ratsnest_xpm )
 EXTERN_BITMAP( locked_xpm )
-EXTERN_BITMAP( macros_record_xpm )
 EXTERN_BITMAP( mirepcb_xpm )
 EXTERN_BITMAP( mirror_h_xpm )
 EXTERN_BITMAP( mirror_v_xpm )
@@ -571,5 +571,12 @@ EXTERN_BITMAP( zoom_xpm )
 EXTERN_BITMAP( tune_diff_pair_length_legend_xpm )
 EXTERN_BITMAP( tune_diff_pair_skew_legend_xpm )
 EXTERN_BITMAP( tune_single_track_length_legend_xpm )
+EXTERN_BITMAP( simulator_xpm )
+EXTERN_BITMAP( sim_run_xpm )
+EXTERN_BITMAP( sim_stop_xpm )
+EXTERN_BITMAP( sim_tune_xpm )
+EXTERN_BITMAP( sim_probe_xpm )
+EXTERN_BITMAP( sim_add_signal_xpm )
+EXTERN_BITMAP( sim_settings_xpm )
 
 #endif  // BITMAPS_H_

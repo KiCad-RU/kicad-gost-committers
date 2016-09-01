@@ -28,7 +28,6 @@
 #include <geometry/shape_line_chain.h>
 #include <geometry/shape_index.h>
 
-#include "trace.h"
 #include "pns_item.h"
 #include "pns_line.h"
 #include "pns_node.h"
@@ -47,14 +46,13 @@ static boost::unordered_set<PNS_NODE*> allocNodes;
 
 PNS_NODE::PNS_NODE()
 {
-    TRACE( 0, "PNS_NODE::create %p", this );
+    wxLogTrace( "PNS", "PNS_NODE::create %p", this );
     m_depth = 0;
     m_root = this;
     m_parent = NULL;
     m_maxClearance = 800000;    // fixme: depends on how thick traces are.
-    m_clearanceFunctor = NULL;
+    m_ruleResolver = NULL;
     m_index = new PNS_INDEX;
-    m_collisionFilter = NULL;
 
 #ifdef DEBUG
     allocNodes.insert( this );
@@ -64,18 +62,18 @@ PNS_NODE::PNS_NODE()
 
 PNS_NODE::~PNS_NODE()
 {
-    TRACE( 0, "PNS_NODE::delete %p", this );
+    wxLogTrace( "PNS", "PNS_NODE::delete %p", this );
 
     if( !m_children.empty() )
     {
-        TRACEn( 0, "attempting to free a node that has kids.\n" );
+        wxLogTrace( "PNS", "attempting to free a node that has kids." );
         assert( false );
     }
 
 #ifdef DEBUG
     if( allocNodes.find( this ) == allocNodes.end() )
     {
-        TRACEn( 0, "attempting to free an already-free'd node.\n" );
+        wxLogTrace( "PNS", "attempting to free an already-free'd node." );
         assert( false );
     }
 
@@ -98,10 +96,10 @@ PNS_NODE::~PNS_NODE()
 
 int PNS_NODE::GetClearance( const PNS_ITEM* aA, const PNS_ITEM* aB ) const
 {
-   if( !m_clearanceFunctor )
+   if( !m_ruleResolver )
         return 100000;
 
-   return (*m_clearanceFunctor)( aA, aB );
+   return m_ruleResolver->Clearance( aA, aB );
 }
 
 
@@ -109,15 +107,14 @@ PNS_NODE* PNS_NODE::Branch()
 {
     PNS_NODE* child = new PNS_NODE;
 
-    TRACE( 0, "PNS_NODE::branch %p (parent %p)", child % this );
+    wxLogTrace( "PNS", "PNS_NODE::branch %p (parent %p)", child, this );
 
     m_children.insert( child );
 
     child->m_depth = m_depth + 1;
     child->m_parent = this;
-    child->m_clearanceFunctor = m_clearanceFunctor;
+    child->m_ruleResolver = m_ruleResolver;
     child->m_root = isRoot() ? this : m_root;
-    child->m_collisionFilter = m_collisionFilter;
 
     // immmediate offspring of the root branch needs not copy anything.
     // For the rest, deep-copy joints, overridden item map and pointers
@@ -133,8 +130,8 @@ PNS_NODE* PNS_NODE::Branch()
         child->m_override = m_override;
     }
 
-    TRACE( 2, "%d items, %d joints, %d overrides",
-            child->m_index->Size() % child->m_joints.size() % child->m_override.size() );
+    wxLogTrace( "PNS", "%d items, %d joints, %d overrides",
+            child->m_index->Size(), (int) child->m_joints.size(), (int) child->m_override.size() );
 
     return child;
 }
@@ -149,21 +146,41 @@ void PNS_NODE::unlinkParent()
 }
 
 
+PNS_OBSTACLE_VISITOR::PNS_OBSTACLE_VISITOR( const PNS_ITEM* aItem ) :
+    m_item( aItem ),
+    m_node( NULL ),
+    m_override( NULL ),
+    m_extraClearance( 0 )
+{
+   if( aItem && aItem->Kind() == PNS_ITEM::LINE )
+        m_extraClearance += static_cast<const PNS_LINE*>( aItem )->Width() / 2;
+}
+
+
+void PNS_OBSTACLE_VISITOR::SetWorld( const PNS_NODE* aNode, const PNS_NODE* aOverride )
+{
+    m_node = aNode;
+    m_override = aOverride;
+}
+
+
+bool PNS_OBSTACLE_VISITOR::visit( PNS_ITEM* aCandidate )
+{
+    // check if there is a more recent branch with a newer
+    // (possibily modified) version of this item.
+    if( m_override && m_override->Overrides( aCandidate ) )
+        return true;
+
+    return false;
+}
+
+
 // function object that visits potential obstacles and performs
 // the actual collision refining
-struct PNS_NODE::OBSTACLE_VISITOR
+struct PNS_NODE::DEFAULT_OBSTACLE_VISITOR : public PNS_OBSTACLE_VISITOR
 {
-    ///> node we are searching in (either root or a branch)
-    PNS_NODE* m_node;
-
-    ///> node that overrides root entries
-    PNS_NODE* m_override;
-
     ///> list of encountered obstacles
     OBSTACLES& m_tab;
-
-    ///> the item we are looking for collisions with
-    const PNS_ITEM* m_item;
 
     ///> acccepted kinds of colliding items (solids, vias, segments, etc...)
     int m_kindMask;
@@ -181,11 +198,9 @@ struct PNS_NODE::OBSTACLE_VISITOR
 
     int m_forceClearance;
 
-    OBSTACLE_VISITOR( PNS_NODE::OBSTACLES& aTab, const PNS_ITEM* aItem, int aKindMask, bool aDifferentNetsOnly ) :
-        m_node( NULL ),
-        m_override( NULL ),
+    DEFAULT_OBSTACLE_VISITOR( PNS_NODE::OBSTACLES& aTab, const PNS_ITEM* aItem, int aKindMask, bool aDifferentNetsOnly ) :
+        PNS_OBSTACLE_VISITOR( aItem ),
         m_tab( aTab ),
-        m_item( aItem ),
         m_kindMask( aKindMask ),
         m_limitCount( -1 ),
         m_matchCount( 0 ),
@@ -193,8 +208,6 @@ struct PNS_NODE::OBSTACLE_VISITOR
         m_differentNetsOnly( aDifferentNetsOnly ),
         m_forceClearance( -1 )
     {
-       if( aItem->Kind() == PNS_ITEM::LINE )
-            m_extraClearance += static_cast<const PNS_LINE*>( aItem )->Width() / 2;
     }
 
     void SetCountLimit( int aLimit )
@@ -202,39 +215,31 @@ struct PNS_NODE::OBSTACLE_VISITOR
         m_limitCount = aLimit;
     }
 
-    void SetWorld( PNS_NODE* aNode, PNS_NODE* aOverride = NULL )
+    bool operator()( PNS_ITEM* aCandidate )
     {
-        m_node = aNode;
-        m_override = aOverride;
-    }
-
-    bool operator()( PNS_ITEM* aItem )
-    {
-        if( !aItem->OfKind( m_kindMask ) )
+        if( !aCandidate->OfKind( m_kindMask ) )
             return true;
 
-        // check if there is a more recent branch with a newer
-        // (possibily modified) version of this item.
-        if( m_override && m_override->overrides( aItem ) )
+        if( visit( aCandidate ) )
             return true;
 
-        int clearance = m_extraClearance + m_node->GetClearance( aItem, m_item );
+        int clearance = m_extraClearance + m_node->GetClearance( aCandidate, m_item );
 
-        if( m_node->m_collisionFilter && (*m_node->m_collisionFilter)( aItem, m_item ) )
-            return true;
-
-        if( aItem->Kind() == PNS_ITEM::LINE )
-            clearance += static_cast<PNS_LINE*>( aItem )->Width() / 2;
+        if( aCandidate->Kind() == PNS_ITEM::LINE ) // this should never happen.
+        {
+            assert( false );
+            clearance += static_cast<PNS_LINE*>( aCandidate )->Width() / 2;
+        }
 
         if( m_forceClearance >= 0 )
             clearance = m_forceClearance;
 
-        if( !aItem->Collide( m_item, clearance, m_differentNetsOnly ) )
+        if( !aCandidate->Collide( m_item, clearance, m_differentNetsOnly ) )
             return true;
 
         PNS_OBSTACLE obs;
 
-        obs.m_item = aItem;
+        obs.m_item = aCandidate;
         obs.m_head = m_item;
         m_tab.push_back( obs );
 
@@ -248,10 +253,26 @@ struct PNS_NODE::OBSTACLE_VISITOR
 };
 
 
+int PNS_NODE::QueryColliding( const PNS_ITEM* aItem, PNS_OBSTACLE_VISITOR& aVisitor )
+{
+    aVisitor.SetWorld( this, NULL );
+    m_index->Query( aItem, m_maxClearance, aVisitor );
+
+    // if we haven't found enough items, look in the root branch as well.
+    if( !isRoot() )
+    {
+        aVisitor.SetWorld( m_root, this );
+        m_root->m_index->Query( aItem, m_maxClearance, aVisitor );
+    }
+
+    return 0;
+}
+
+
 int PNS_NODE::QueryColliding( const PNS_ITEM* aItem,
         PNS_NODE::OBSTACLES& aObstacles, int aKindMask, int aLimitCount, bool aDifferentNetsOnly, int aForceClearance )
 {
-    OBSTACLE_VISITOR visitor( aObstacles, aItem, aKindMask, aDifferentNetsOnly );
+    DEFAULT_OBSTACLE_VISITOR visitor( aObstacles, aItem, aKindMask, aDifferentNetsOnly );
 
 #ifdef DEBUG
     assert( allocNodes.find( this ) != allocNodes.end() );
@@ -274,9 +295,8 @@ int PNS_NODE::QueryColliding( const PNS_ITEM* aItem,
 }
 
 
-PNS_NODE::OPT_OBSTACLE PNS_NODE::NearestObstacle(   const PNS_LINE* aItem,
-                                                    int aKindMask,
-                                                    const std::set<PNS_ITEM*>* aRestrictedSet )
+PNS_NODE::OPT_OBSTACLE PNS_NODE::NearestObstacle( const PNS_LINE* aItem, int aKindMask,
+                                                  const std::set<PNS_ITEM*>* aRestrictedSet )
 {
     OBSTACLES obs_list;
     bool found_isects = false;
@@ -453,14 +473,14 @@ bool PNS_NODE::CheckColliding( const PNS_ITEM* aItemA, const PNS_ITEM* aItemB, i
 }
 
 
-struct HIT_VISITOR
+struct HIT_VISITOR : public PNS_OBSTACLE_VISITOR
 {
     PNS_ITEMSET& m_items;
     const VECTOR2I& m_point;
-    const PNS_NODE* m_world;
 
-    HIT_VISITOR( PNS_ITEMSET& aTab, const VECTOR2I& aPoint, const PNS_NODE* aWorld ) :
-        m_items( aTab ), m_point( aPoint ), m_world( aWorld )
+    HIT_VISITOR( PNS_ITEMSET& aTab, const VECTOR2I& aPoint ) :
+        PNS_OBSTACLE_VISITOR( NULL ),
+        m_items( aTab ), m_point( aPoint )
     {}
 
     bool operator()( PNS_ITEM* aItem )
@@ -483,19 +503,21 @@ const PNS_ITEMSET PNS_NODE::HitTest( const VECTOR2I& aPoint ) const
 
     // fixme: we treat a point as an infinitely small circle - this is inefficient.
     SHAPE_CIRCLE s( aPoint, 0 );
-    HIT_VISITOR visitor( items, aPoint, this );
+    HIT_VISITOR visitor( items, aPoint );
+    visitor.SetWorld( this, NULL );
 
     m_index->Query( &s, m_maxClearance, visitor );
 
     if( !isRoot() )    // fixme: could be made cleaner
     {
         PNS_ITEMSET items_root;
-        HIT_VISITOR  visitor_root( items_root, aPoint, m_root );
+        visitor.SetWorld( m_root, NULL );
+        HIT_VISITOR  visitor_root( items_root, aPoint );
         m_root->m_index->Query( &s, m_maxClearance, visitor_root );
 
         for( PNS_ITEM* item : items_root.Items() )
         {
-            if( !overrides( item ) )
+            if( !Overrides( item ) )
                 items.Add( item );
         }
     }
@@ -560,11 +582,11 @@ void PNS_NODE::addSegment( PNS_SEGMENT* aSeg, bool aAllowRedundant )
 {
     if( aSeg->Seg().A == aSeg->Seg().B )
     {
-        TRACEn( 0, "attempting to add a segment with same end coordinates, ignoring." )
+        wxLogTrace( "PNS", "attempting to add a segment with same end coordinates, ignoring." );
         return;
     }
 
-   if( !aAllowRedundant && findRedundantSegment ( aSeg ) )
+   if( !aAllowRedundant && findRedundantSegment( aSeg ) )
         return;
 
     aSeg->SetOwner( this );
@@ -676,7 +698,7 @@ void PNS_NODE::removeVia( PNS_VIA* aVia )
 
         for( JOINT_MAP::iterator f = range.first; f != range.second; ++f )
         {
-            if( aVia->LayersOverlap ( &f->second ) )
+            if( aVia->LayersOverlap( &f->second ) )
             {
                 m_joints.erase( f );
                 split = true;
@@ -689,7 +711,7 @@ void PNS_NODE::removeVia( PNS_VIA* aVia )
     for(PNS_ITEM* item : links)
     {
         if( item != aVia )
-            linkJoint ( p, item->Layers(), net, item );
+            linkJoint( p, item->Layers(), net, item );
     }
 
     doRemove( aVia );
@@ -839,7 +861,7 @@ void PNS_NODE::FindLineEnds( const PNS_LINE& aLine, PNS_JOINT& aA, PNS_JOINT& aB
 
 
 #if 0
-void PNS_NODE::MapConnectivity ( PNS_JOINT* aStart, std::vector<PNS_JOINT*>& aFoundJoints )
+void PNS_NODE::MapConnectivity( PNS_JOINT* aStart, std::vector<PNS_JOINT*>& aFoundJoints )
 {
     std::deque<PNS_JOINT*> searchQueue;
     std::set<PNS_JOINT*> processed;
@@ -854,7 +876,7 @@ void PNS_NODE::MapConnectivity ( PNS_JOINT* aStart, std::vector<PNS_JOINT*>& aFo
 
         for( PNS_ITEM* item : current->LinkList() )
         {
-            if ( item->OfKind( PNS_ITEM::SEGMENT ) )
+            if( item->OfKind( PNS_ITEM::SEGMENT ) )
             {
                 PNS_SEGMENT* seg = static_cast<PNS_SEGMENT *>( item );
                 PNS_JOINT* a = FindJoint( seg->Seg().A, seg );
@@ -885,7 +907,7 @@ int PNS_NODE::FindLinesBetweenJoints( PNS_JOINT& aA, PNS_JOINT& aB, std::vector<
             PNS_SEGMENT* seg = static_cast<PNS_SEGMENT*>( item );
             PNS_LINE line = AssembleLine( seg );
 
-            if ( !line.Layers().Overlaps( aB.Layers() ) )
+            if( !line.Layers().Overlaps( aB.Layers() ) )
                 continue;
 
             PNS_JOINT j_start, j_end;
@@ -1000,7 +1022,7 @@ PNS_JOINT& PNS_NODE::touchJoint( const VECTOR2I& aPos, const PNS_LAYERSET& aLaye
 
 void PNS_JOINT::Dump() const
 {
-    printf( "joint layers %d-%d, net %d, pos %s, links: %d\n", m_layers.Start(),
+    wxLogTrace( "PNS", "joint layers %d-%d, net %d, pos %s, links: %d", m_layers.Start(),
             m_layers.End(), m_tag.net, m_tag.pos.Format().c_str(), LinkCount() );
 }
 
@@ -1050,7 +1072,7 @@ void PNS_NODE::Dump( bool aLong )
     if( aLong )
         for( j = m_joints.begin(); j != m_joints.end(); ++j )
         {
-            printf( "joint : %s, links : %d\n",
+            wxLogTrace( "PNS", "joint : %s, links : %d\n",
                     j->second.GetPos().Format().c_str(), j->second.LinkCount() );
             PNS_JOINT::LINKED_ITEMS::const_iterator k;
 
@@ -1063,7 +1085,7 @@ void PNS_NODE::Dump( bool aLong )
                 case PNS_ITEM::SEGMENT:
                     {
                         const PNS_SEGMENT* seg = static_cast<const PNS_SEGMENT*>( m_item );
-                        printf( " -> seg %s %s\n", seg->GetSeg().A.Format().c_str(),
+                        wxLogTrace( "PNS", " -> seg %s %s\n", seg->GetSeg().A.Format().c_str(),
                                 seg->GetSeg().B.Format().c_str() );
                         break;
                     }
@@ -1085,14 +1107,14 @@ void PNS_NODE::Dump( bool aLong )
         PNS_LINE::LinkedSegments* seg_refs = l->GetLinkedSegments();
 
         if( aLong )
-            printf( "Line: %s, net %d ", l->GetLine().Format().c_str(), l->GetNet() );
+            wxLogTrace( "PNS", "Line: %s, net %d ", l->GetLine().Format().c_str(), l->GetNet() );
 
         for( std::vector<PNS_SEGMENT*>::iterator j = seg_refs->begin(); j != seg_refs->end(); ++j )
         {
-            printf( "%s ", (*j)->GetSeg().A.Format().c_str() );
+            wxLogTrace( "PNS", "%s ", (*j)->GetSeg().A.Format().c_str() );
 
             if( j + 1 == seg_refs->end() )
-                printf( "%s\n", (*j)->GetSeg().B.Format().c_str() );
+                wxLogTrace( "PNS", "%s\n", (*j)->GetSeg().B.Format().c_str() );
 
             all_segs.erase( *j );
         }
@@ -1100,7 +1122,7 @@ void PNS_NODE::Dump( bool aLong )
         lines_count++;
     }
 
-    printf( "Local joints: %d, lines : %d \n", m_joints.size(), lines_count );
+    wxLogTrace( "PNS", "Local joints: %d, lines : %d \n", m_joints.size(), lines_count );
 #endif
 }
 
@@ -1192,7 +1214,7 @@ void PNS_NODE::AllItemsInNet( int aNet, std::set<PNS_ITEM*>& aItems )
 
         if( l_root )
             for( PNS_INDEX::NET_ITEMS_LIST::iterator i = l_root->begin(); i!= l_root->end(); ++i )
-                if( !overrides( *i ) )
+                if( !Overrides( *i ) )
                     aItems.insert( *i );
     }
 }
@@ -1226,7 +1248,7 @@ int PNS_NODE::RemoveByMarker( int aMarker )
 
     for( PNS_INDEX::ITEM_SET::iterator i = m_index->begin(); i != m_index->end(); ++i )
     {
-        if ( (*i)->Marker() & aMarker )
+        if( (*i)->Marker() & aMarker )
         {
             garbage.push_back( *i );
         }
@@ -1243,7 +1265,7 @@ int PNS_NODE::RemoveByMarker( int aMarker )
 
 PNS_SEGMENT* PNS_NODE::findRedundantSegment( PNS_SEGMENT* aSeg )
 {
-    PNS_JOINT* jtStart = FindJoint ( aSeg->Seg().A, aSeg );
+    PNS_JOINT* jtStart = FindJoint( aSeg->Seg().A, aSeg );
 
     if( !jtStart )
         return NULL;
@@ -1267,12 +1289,6 @@ PNS_SEGMENT* PNS_NODE::findRedundantSegment( PNS_SEGMENT* aSeg )
     }
 
     return NULL;
-}
-
-
-void PNS_NODE::SetCollisionFilter( PNS_COLLISION_FILTER* aFilter )
-{
-    m_collisionFilter = aFilter;
 }
 
 

@@ -216,6 +216,7 @@ set( BMAPS_MID
     delete_track
     delete
     directory
+    dismiss
     display_options
     down
     drag_module
@@ -513,6 +514,13 @@ set( BMAPS_MID
     select_w_layer
     shape_3d
     sheetset
+    simulator
+    sim_run
+    sim_stop
+    sim_tune
+    sim_probe
+    sim_add_signal
+    sim_settings
     setcolor_3d_bg
     setcolor_silkscreen
     setcolor_soldermask

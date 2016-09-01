@@ -84,7 +84,7 @@ DIALOG_MODULE_BOARD_EDITOR::DIALOG_MODULE_BOARD_EDITOR( PCB_EDIT_FRAME*  aParent
     m_OrientValidator.SetWindow( m_OrientValueCtrl );
 
     aParent->Prj().Get3DCacheManager()->GetResolver()->SetProgramBase( &Pgm() );
-    
+
     m_PreviewPane = new PANEL_PREV_3D( m_Panel3D,
                                        aParent->Prj().Get3DCacheManager(),
                                        m_currentModuleCopy,
@@ -343,7 +343,7 @@ void DIALOG_MODULE_BOARD_EDITOR::InitModeditProperties()
             "Only components with this option are put in the footprint position list file" ) );
     m_AttributsCtrl->SetItemToolTip( 2,
         _( "Use this attribute for \"virtual\" components drawn on board\n"
-           "(like a old ISA PC bus connector)" ) );
+           "like an edge connector (old ISA PC bus for instance)" ) );
 
     // Controls on right side of the dialog
     switch( m_CurrentModule->GetAttributes() & 255 )
@@ -538,7 +538,7 @@ void DIALOG_MODULE_BOARD_EDITOR::BrowseAndAdd3DShapeFile()
         long tmp;
         sidx.ToLong( &tmp );
 
-        if( tmp > 0 && tmp <= 0x7FFFFFFF )
+        if( tmp > 0 && tmp <= INT_MAX )
             filter = (int) tmp;
     }
 
@@ -585,13 +585,18 @@ void DIALOG_MODULE_BOARD_EDITOR::BrowseAndAdd3DShapeFile()
 
 bool DIALOG_MODULE_BOARD_EDITOR::TransferDataToWindow()
 {
-    if( !wxDialog::TransferDataToWindow() )
+    if( !wxDialog::TransferDataToWindow() ||
+        !m_PanelProperties->TransferDataToWindow() )
+    {
+        wxMessageBox( _( "Error: invalid footprint parameter" ) );
         return false;
+    }
 
-    if( !m_PanelProperties->TransferDataToWindow() )
-        return false;
     if( !m_Panel3D->TransferDataToWindow() )
+    {
+        wxMessageBox( _( "Error: invalid 3D parameter" ) );
         return false;
+    }
 
     InitModeditProperties();
     InitBoardProperties();
@@ -605,13 +610,18 @@ bool DIALOG_MODULE_BOARD_EDITOR::TransferDataFromWindow()
     wxPoint  modpos;
     wxString msg;
 
-    if( !Validate() || !DIALOG_MODULE_BOARD_EDITOR_BASE::TransferDataFromWindow() )
+    if( !Validate() || !DIALOG_MODULE_BOARD_EDITOR_BASE::TransferDataFromWindow() ||
+        !m_PanelProperties->TransferDataFromWindow() )
+    {
+        wxMessageBox( _( "Error: invalid or missing footprint parameter" ) );
         return false;
+    }
 
-    if( !m_PanelProperties->TransferDataFromWindow() )
-        return false;
     if( !m_Panel3D->TransferDataFromWindow() )
+    {
+        wxMessageBox( _( "Error: invalid or missing 3D parameter" ) );
         return false;
+    }
 
     if( m_CurrentModule->GetFlags() == 0 )    // this is a simple edition, we
                                               // must create an undo entry
@@ -715,6 +725,14 @@ bool DIALOG_MODULE_BOARD_EDITOR::TransferDataFromWindow()
         m_CurrentModule->Flip( m_CurrentModule->GetPosition() );
 
     // This will update the S3D_INFO list into the current module
+    msg.Clear();
+
+    if( !m_PreviewPane->Validate( msg ) )   // Verify the validity of 3D parameters
+    {
+        DisplayError( this, msg );
+        return false;
+    }
+
     std::list<S3D_INFO>* draw3D = &m_CurrentModule->Models();
     draw3D->clear();
     draw3D->insert( draw3D->end(), m_shapes3D_list.begin(), m_shapes3D_list.end() );

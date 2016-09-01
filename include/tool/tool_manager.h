@@ -187,6 +187,12 @@ public:
     }
 
     /**
+     * Function DeactivateTool()
+     * Deactivates the currently active tool.
+     */
+    void DeactivateTool();
+
+    /**
      * Function ResetTools()
      * Resets all tools (i.e. calls their Reset() method).
      */
@@ -430,7 +436,7 @@ private:
     std::map<TOOL_ID, TOOL_STATE*> m_toolIdIndex;
 
     /// Stack of the active tools
-    std::deque<TOOL_ID> m_activeTools;
+    std::list<TOOL_ID> m_activeTools;
 
     /// Instance of ACTION_MANAGER that handles TOOL_ACTIONs
     ACTION_MANAGER* m_actionMgr;

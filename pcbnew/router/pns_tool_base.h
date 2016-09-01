@@ -33,6 +33,7 @@
 
 class PNS_TUNE_STATUS_POPUP;
 class GRID_HELPER;
+class PNS_KICAD_IFACE;
 
 class APIEXPORT PNS_TOOL_BASE : public TOOL_INTERACTIVE
 {
@@ -49,16 +50,19 @@ public:
         return m_savedSettings;
     }
 
+    PNS_ROUTER* Router() const;
+
 protected:
 
+    const VECTOR2I snapToItem( PNS_ITEM* aItem, VECTOR2I aP, bool& aSplitsSegment );
     virtual PNS_ITEM* pickSingleItem( const VECTOR2I& aWhere, int aNet = -1, int aLayer = -1 );
     virtual void highlightNet( bool aEnabled, int aNetcode = -1 );
     virtual void updateStartItem( TOOL_EVENT& aEvent );
     virtual void updateEndItem( TOOL_EVENT& aEvent );
+    void deleteTraces( PNS_ITEM* aStartItem, bool aWholeTrack );
 
     MSG_PANEL_ITEMS m_panelItems;
 
-    PNS_ROUTER* m_router;
     PNS_ROUTING_SETTINGS m_savedSettings;     ///< Stores routing settings between router invocations
     PNS_SIZES_SETTINGS m_savedSizes;          ///< Stores sizes settings between router invocations
     PNS_ITEM* m_startItem;
@@ -68,15 +72,12 @@ protected:
     PNS_ITEM* m_endItem;
     VECTOR2I m_endSnapPoint;
 
-    ///> Flag marking that the router's world needs syncing.
-    bool m_needsSync;
-
     PCB_EDIT_FRAME* m_frame;
     KIGFX::VIEW_CONTROLS* m_ctls;
     BOARD* m_board;
     GRID_HELPER* m_gridHelper;
-
-
+    PNS_KICAD_IFACE* m_iface;
+    PNS_ROUTER* m_router;
 };
 
 #endif

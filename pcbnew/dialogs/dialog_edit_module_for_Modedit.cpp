@@ -71,7 +71,7 @@ DIALOG_MODULE_MODULE_EDITOR::DIALOG_MODULE_MODULE_EDITOR( FOOTPRINT_EDIT_FRAME* 
     SetIcon( icon );
 
     aParent->Prj().Get3DCacheManager()->GetResolver()->SetProgramBase( &Pgm() );
-    
+
     m_currentModuleCopy = new MODULE( *aModule );
 
     m_PreviewPane = new PANEL_PREV_3D( m_Panel3D,
@@ -175,9 +175,11 @@ void DIALOG_MODULE_MODULE_EDITOR::initModeditProperties()
 
     m_AttributsCtrl->SetItemToolTip( 0, _( "Use this attribute for most non SMD components" ) );
     m_AttributsCtrl->SetItemToolTip( 1,
-                                    _( "Use this attribute for SMD components.\nOnly components with this option are put in the footprint position list file" ) );
+                                    _( "Use this attribute for SMD components.\n"
+                                       "Only components with this option are put in the footprint position list file" ) );
     m_AttributsCtrl->SetItemToolTip( 2,
-                                    _( "Use this attribute for \"virtual\" components drawn on board (like a old ISA PC bus connector)" ) );
+                                    _( "Use this attribute for \"virtual\" components drawn on board\n"
+                                       "like an edge connector (old ISA PC bus for instance)" ) );
 
     // Controls on right side of the dialog
     switch( m_currentModule->GetAttributes() & 255 )
@@ -438,6 +440,8 @@ void DIALOG_MODULE_MODULE_EDITOR::OnCancelClick( wxCommandEvent& event )
 
 void DIALOG_MODULE_MODULE_EDITOR::OnOkClick( wxCommandEvent& event )
 {
+    wxString msg;
+
     // First, test for invalid chars in module name
     wxString footprintName = m_FootprintNameCtrl->GetValue();
 
@@ -445,14 +449,20 @@ void DIALOG_MODULE_MODULE_EDITOR::OnOkClick( wxCommandEvent& event )
     {
         if( ! MODULE::IsLibNameValid( footprintName ) )
         {
-            wxString msg;
             msg.Printf( _( "Error:\none of invalid chars <%s> found\nin <%s>" ),
                         MODULE::StringLibNameInvalidChars( true ),
                         GetChars( footprintName ) );
 
             DisplayError( NULL, msg );
-                return;
+
+            return;
         }
+    }
+
+    if( !m_PreviewPane->Validate( msg ) )   // Verify the validity of 3D parameters
+    {
+        DisplayError( NULL, msg );
+        return;
     }
 
     m_parent->SaveCopyInUndoList( m_currentModule, UR_MODEDIT );
@@ -491,7 +501,7 @@ void DIALOG_MODULE_MODULE_EDITOR::OnOkClick( wxCommandEvent& event )
     m_currentModule->SetLocalSolderMaskMargin( ValueFromTextCtrl( *m_SolderMaskMarginCtrl ) );
     m_currentModule->SetLocalSolderPasteMargin( ValueFromTextCtrl( *m_SolderPasteMarginCtrl ) );
     double   dtmp;
-    wxString msg = m_SolderPasteMarginRatioCtrl->GetValue();
+    msg = m_SolderPasteMarginRatioCtrl->GetValue();
     msg.ToDouble( &dtmp );
 
     // A  -50% margin ratio means no paste on a pad, the ratio must be >= -50 %

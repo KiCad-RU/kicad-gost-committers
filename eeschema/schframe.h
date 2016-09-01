@@ -820,6 +820,7 @@ private:
     void OnErc( wxCommandEvent& event );
     void OnCreateNetlist( wxCommandEvent& event );
     void OnUpdatePCB( wxCommandEvent& event );
+    void OnSimulate( wxCommandEvent& event );
     void OnCreateBillOfMaterials( wxCommandEvent& event );
 #if defined(KICAD_GOST)
     void OnCreateOldBillOfMaterials( wxCommandEvent& event );
@@ -1391,6 +1392,12 @@ public:
     void ClearExecFlags( const int aFlags ) { m_exec_flags &= ~( aFlags ); }
 
     wxString GetNetListerCommand() const { return m_netListerCommand; }
+
+    ///> Probe cursor, used by circuit simulator
+    const static wxCursor CURSOR_PROBE;
+
+    ///> Tuner cursor, used by circuit simulator
+    const static wxCursor CURSOR_TUNE;
 
     DECLARE_EVENT_TABLE()
 };

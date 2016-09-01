@@ -26,8 +26,6 @@
 #include <geometry/shape.h>
 #include <geometry/shape_line_chain.h>
 
-#include "trace.h"
-
 #include "pns_layerset.h"
 
 class BOARD_CONNECTED_ITEM;
@@ -300,9 +298,9 @@ public:
         m_marker = aMarker;
     }
 
-    virtual void Unmark ()
+    virtual void Unmark(int aMarker = -1)
     {
-        m_marker = 0;
+        m_marker &= ~aMarker;
     }
 
     virtual int Marker() const
@@ -322,12 +320,17 @@ public:
 
     virtual VECTOR2I Anchor( int n ) const
     {
-        return VECTOR2I ();
+        return VECTOR2I();
     }
 
     virtual int AnchorCount() const
     {
         return 0;
+    }
+
+    bool IsLocked() const
+    {
+        return Marker() & MK_LOCKED;
     }
 
 private:

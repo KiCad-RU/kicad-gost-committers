@@ -42,6 +42,7 @@
 
 #include <general.h>
 #include <class_library.h>
+#include <sch_legacy_plugin.h>
 
 #include <wx/tokenzr.h>
 #include <wx/regex.h>
@@ -458,7 +459,7 @@ bool PART_LIB::Load( wxString& aErrorMsg )
     {
         char * line = reader.Line();
 
-        if( type == LIBRARY_TYPE_EESCHEMA && strnicmp( line, "$HEADER", 7 ) == 0 )
+        if( type == LIBRARY_TYPE_EESCHEMA && strncasecmp( line, "$HEADER", 7 ) == 0 )
         {
             if( !LoadHeader( reader ) )
             {
@@ -471,7 +472,7 @@ bool PART_LIB::Load( wxString& aErrorMsg )
 
         wxString msg;
 
-        if( strnicmp( line, "DEF", 3 ) == 0 )
+        if( strncasecmp( line, "DEF", 3 ) == 0 )
         {
             // Read one DEF/ENDDEF part entry from library:
             LIB_PART* part = new LIB_PART( wxEmptyString, this );
@@ -536,10 +537,10 @@ bool PART_LIB::LoadHeader( LINE_READER& aLineReader )
         text = strtok( line, " \t\r\n" );
         data = strtok( NULL, " \t\r\n" );
 
-        if( stricmp( text, "TimeStamp" ) == 0 )
+        if( strcasecmp( text, "TimeStamp" ) == 0 )
             timeStamp = atol( data );
 
-        if( stricmp( text, "$ENDHEADER" ) == 0 )
+        if( strcasecmp( text, "$ENDHEADER" ) == 0 )
             return true;
     }
 
@@ -574,7 +575,7 @@ bool PART_LIB::LoadDocs( wxString& aErrorMsg )
         return false;
     }
 
-    if( strnicmp( line, DOCFILE_IDENT, 10 ) != 0 )
+    if( strncasecmp( line, DOCFILE_IDENT, 10 ) != 0 )
     {
         aErrorMsg.Printf( _( "File '%s' is not a valid component library document file." ),
                           GetChars( fn.GetFullPath() ) );
@@ -710,10 +711,18 @@ PART_LIB* PART_LIB::LoadLibrary( const wxString& aFileName ) throw( IO_ERROR, bo
 {
     std::unique_ptr<PART_LIB> lib( new PART_LIB( LIBRARY_TYPE_EESCHEMA, aFileName ) );
 
-    wxBusyCursor ShowWait;
+    wxBusyCursor ShowWait;  // Do we want UI elements in PART_LIB?
 
     wxString errorMsg;
 
+#ifdef USE_SCH_IO_MANAGER
+    SCH_PLUGIN::SCH_PLUGIN_RELEASER pi( SCH_IO_MGR::FindPlugin( SCH_IO_MGR::SCH_LEGACY ) );
+
+    wxArrayString tmp;
+
+    pi->EnumerateSymbolLib( tmp, aFileName );
+    pi->TransferCache( *lib.get() );
+#else
     if( !lib->Load( errorMsg ) )
         THROW_IO_ERROR( errorMsg );
 
@@ -727,6 +736,7 @@ PART_LIB* PART_LIB::LoadLibrary( const wxString& aFileName ) throw( IO_ERROR, bo
             THROW_IO_ERROR( errorMsg );
 #endif
     }
+#endif
 
     PART_LIB* ret = lib.release();
 
@@ -742,6 +752,7 @@ PART_LIB* PART_LIBS::AddLibrary( const wxString& aFileName ) throw( IO_ERROR, bo
     wxFileName fn = aFileName;
     // Don't reload the library if it is already loaded.
     lib = FindLibrary( fn.GetName() );
+
     if( lib )
         return lib;
 #endif
@@ -1061,6 +1072,7 @@ void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::ba
         try
         {
             cache_lib = AddLibrary( cache_name );
+
             if( cache_lib )
                 cache_lib->SetCache();
         }

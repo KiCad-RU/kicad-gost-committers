@@ -110,7 +110,9 @@ bool PNS_DRAGGER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
     m_draggedItems.Clear();
     m_currentMode = Settings().Mode();
 
-    TRACE( 2, "StartDragging: item %p [kind %d]", aStartItem % aStartItem->Kind() );
+    aStartItem->Unmark( MK_LOCKED );
+
+    wxLogTrace( "PNS", "StartDragging: item %p [kind %d]", aStartItem, (int) aStartItem->Kind() );
 
     switch( aStartItem->Kind() )
     {
@@ -269,7 +271,8 @@ bool PNS_DRAGGER::dragShove( const VECTOR2I& aP )
 
         if( ok )
         {
-            m_draggedVia = newVia;
+            if( newVia )
+                m_draggedVia = newVia;
             m_draggedItems.Clear();
         }
 

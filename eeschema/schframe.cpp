@@ -52,6 +52,7 @@
 #include <eeschema_config.h>
 #include <sch_sheet.h>
 #include <sch_sheet_path.h>
+#include "sim/sim_plot_frame.h"
 
 #include <invoke_sch_dialog.h>
 #include <dialogs/dialog_schematic_find.h>
@@ -288,6 +289,12 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( ID_ZOOM_SELECTION, SCH_EDIT_FRAME::OnSelectTool )
     EVT_TOOL_RANGE( ID_SCHEMATIC_VERTICAL_TOOLBAR_START, ID_SCHEMATIC_VERTICAL_TOOLBAR_END,
                     SCH_EDIT_FRAME::OnSelectTool )
+
+#ifdef KICAD_SPICE
+    EVT_TOOL( ID_SIM_SHOW, SCH_EDIT_FRAME::OnSimulate )
+    EVT_TOOL( ID_SIM_PROBE, SCH_EDIT_FRAME::OnSelectTool )
+    EVT_TOOL( ID_SIM_TUNE, SCH_EDIT_FRAME::OnSelectTool )
+#endif /* KICAD_SPICE */
 
     EVT_MENU( ID_CANCEL_CURRENT_COMMAND, SCH_EDIT_FRAME::OnCancelCurrentCommand )
     EVT_MENU( ID_SCH_DRAG_ITEM, SCH_EDIT_FRAME::OnDragItem )
@@ -625,6 +632,11 @@ void SCH_EDIT_FRAME::OnCloseWindow( wxCloseEvent& aEvent )
         if( viewlibFrame && !viewlibFrame->Close() )   // Can close modal component viewer?
             return;
     }
+
+    SIM_PLOT_FRAME* simFrame = (SIM_PLOT_FRAME*) Kiway().Player( FRAME_SIMULATOR, false );
+
+    if( simFrame && !simFrame->Close() )   // Can close the simulator?
+        return;
 
     SCH_SHEET_LIST sheetList( g_RootSheet );
 
@@ -1403,4 +1415,3 @@ void SCH_EDIT_FRAME::UpdateTitle()
 
     SetTitle( title );
 }
-

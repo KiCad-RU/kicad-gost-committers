@@ -19,15 +19,13 @@
  */
 
 #include <base_units.h> // God forgive me doing this...
-#include <colors.h>
-
-#include "trace.h"
 
 #include "pns_node.h"
 #include "pns_itemset.h"
 #include "pns_topology.h"
 #include "pns_meander_placer.h"
 #include "pns_router.h"
+#include "pns_debug_decorator.h"
 
 
 PNS_MEANDER_PLACER::PNS_MEANDER_PLACER( PNS_ROUTER* aRouter ) :
@@ -150,7 +148,7 @@ bool PNS_MEANDER_PLACER::doMove( const VECTOR2I& aP, PNS_ITEM* aEndItem, int aTa
     {
         if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
         {
-            Router()->DisplayDebugLine( l->CLine(), 5, 30000 );
+            Dbg()->AddLine( l->CLine(), 5, 30000 );
         }
     }
 

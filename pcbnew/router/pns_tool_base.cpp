@@ -20,7 +20,6 @@
 
 #include <wx/numdlg.h>
 
-#include <boost/optional.hpp>
 #include <functional>
 using namespace std::placeholders;
 
@@ -46,15 +45,17 @@ using namespace std::placeholders;
 
 #include <ratsnest_data.h>
 
+#include "pns_kicad_iface.h"
 #include "pns_tool_base.h"
 #include "pns_segment.h"
+#include "pns_solid.h"
+#include "pns_via.h"
 #include "pns_router.h"
 #include "pns_meander_placer.h" // fixme: move settings to separate header
 #include "pns_tune_status_popup.h"
-#include "trace.h"
+#include "pns_topology.h"
 
 using namespace KIGFX;
-using boost::optional;
 
 TOOL_ACTION PNS_TOOL_BASE::ACT_RouterOptions( "pcbnew.InteractiveRouter.RouterOptions",
                                             AS_CONTEXT, 'E',
@@ -65,13 +66,14 @@ TOOL_ACTION PNS_TOOL_BASE::ACT_RouterOptions( "pcbnew.InteractiveRouter.RouterOp
 PNS_TOOL_BASE::PNS_TOOL_BASE( const std::string& aToolName ) :
     TOOL_INTERACTIVE( aToolName )
 {
+    m_gridHelper = NULL;
+    m_iface = NULL;
     m_router = NULL;
+
     m_startItem = NULL;
     m_startLayer = 0;
 
     m_endItem = NULL;
-
-    m_needsSync = false;
 
     m_frame = NULL;
     m_ctls = NULL;
@@ -82,39 +84,37 @@ PNS_TOOL_BASE::PNS_TOOL_BASE( const std::string& aToolName ) :
 
 PNS_TOOL_BASE::~PNS_TOOL_BASE()
 {
-    delete m_router;
     delete m_gridHelper;
+    delete m_iface;
+    delete m_router;
 }
 
 
 
 void PNS_TOOL_BASE::Reset( RESET_REASON aReason )
 {
-    if( m_router )
-        delete m_router;
-
-    if( m_gridHelper)
-        delete m_gridHelper;
+    delete m_gridHelper;
+    delete m_iface;
+    delete m_router;
 
     m_frame = getEditFrame<PCB_EDIT_FRAME>();
     m_ctls = getViewControls();
     m_board = getModel<BOARD>();
 
-    m_router = new PNS_ROUTER;
+    m_iface = new PNS_KICAD_IFACE;
 
+    m_iface->SetBoard( m_board );
+    m_iface->SetView( getView() );
+    m_iface->SetHostFrame( m_frame );
+
+    m_router = new PNS_ROUTER;
+    m_router->SetInterface(m_iface);
     m_router->ClearWorld();
-    m_router->SetBoard( m_board );
     m_router->SyncWorld();
     m_router->LoadSettings( m_savedSettings );
     m_router->UpdateSizes( m_savedSizes );
 
     m_gridHelper = new GRID_HELPER( m_frame );
-    m_router->SetGrid( m_gridHelper );
-
-    m_needsSync = false;
-
-    if( getView() )
-        m_router->SetView( getView() );
 }
 
 
@@ -183,7 +183,9 @@ PNS_ITEM* PNS_TOOL_BASE::pickSingleItem( const VECTOR2I& aWhere, int aNet, int a
         rv = NULL;
 
     if( rv )
-        TRACE( 0, "%s, layer : %d, tl: %d", rv->KindStr().c_str() % rv->Layers().Start() % tl );
+    {
+        wxLogTrace( "PNS", "%s, layer : %d, tl: %d", rv->KindStr().c_str(), rv->Layers().Start(), tl );
+    }
 
     return rv;
 }
@@ -215,12 +217,14 @@ void PNS_TOOL_BASE::updateStartItem( TOOL_EVENT& aEvent )
     {
         snapEnabled = !aEvent.Modifier( MD_SHIFT );
         p = aEvent.Position();
-    } else {
+    }
+    else
+    {
         p = cp;
     }
 
     startItem = pickSingleItem( p );
-    m_router->EnableSnapping ( snapEnabled );
+    m_router->EnableSnapping( snapEnabled );
 
     if( !snapEnabled && startItem && !startItem->Layers().Overlaps( tl ) )
         startItem = NULL;
@@ -228,7 +232,7 @@ void PNS_TOOL_BASE::updateStartItem( TOOL_EVENT& aEvent )
     if( startItem && startItem->Net() >= 0 )
     {
         bool dummy;
-        VECTOR2I psnap = m_router->SnapToItem( startItem, p, dummy );
+        VECTOR2I psnap = snapToItem( startItem, p, dummy );
 
         if( snapEnabled )
         {
@@ -290,7 +294,7 @@ void PNS_TOOL_BASE::updateEndItem( TOOL_EVENT& aEvent )
 
     if( endItem )
     {
-        VECTOR2I cursorPos = m_router->SnapToItem( endItem, p, dummy );
+        VECTOR2I cursorPos = snapToItem( endItem, p, dummy );
         m_ctls->ForceCursorPosition( true, cursorPos );
         m_endItem = endItem;
         m_endSnapPoint = cursorPos;
@@ -303,6 +307,91 @@ void PNS_TOOL_BASE::updateEndItem( TOOL_EVENT& aEvent )
     }
 
     if( m_endItem )
-        TRACE( 0, "%s, layer : %d", m_endItem->KindStr().c_str() % m_endItem->Layers().Start() );
+    {
+        wxLogTrace( "PNS", "%s, layer : %d", m_endItem->KindStr().c_str(), m_endItem->Layers().Start() );
+    }
 }
 
+
+void PNS_TOOL_BASE::deleteTraces( PNS_ITEM* aStartItem, bool aWholeTrack )
+{
+    PNS_NODE *node = m_router->GetWorld()->Branch();
+
+    if( !aStartItem )
+        return;
+
+    if( !aWholeTrack )
+    {
+        node->Remove( aStartItem );
+    }
+    else
+    {
+        PNS_TOPOLOGY topo( node );
+        PNS_ITEMSET path = topo.AssembleTrivialPath( aStartItem );
+
+        for( auto ent : path.Items() )
+            node->Remove( ent.item );
+    }
+
+    m_router->CommitRouting( node );
+}
+
+
+PNS_ROUTER *PNS_TOOL_BASE::Router() const
+{
+    return m_router;
+}
+
+
+const VECTOR2I PNS_TOOL_BASE::snapToItem( PNS_ITEM* aItem, VECTOR2I aP, bool& aSplitsSegment )
+{
+    VECTOR2I anchor;
+
+    if( !aItem )
+    {
+        aSplitsSegment = false;
+        return aP;
+    }
+
+    switch( aItem->Kind() )
+    {
+    case PNS_ITEM::SOLID:
+        anchor = static_cast<PNS_SOLID*>( aItem )->Pos();
+        aSplitsSegment = false;
+        break;
+
+    case PNS_ITEM::VIA:
+        anchor = static_cast<PNS_VIA*>( aItem )->Pos();
+        aSplitsSegment = false;
+        break;
+
+    case PNS_ITEM::SEGMENT:
+    {
+        PNS_SEGMENT* seg = static_cast<PNS_SEGMENT*>( aItem );
+        const SEG& s = seg->Seg();
+        int w = seg->Width();
+
+        aSplitsSegment = false;
+
+        if( ( aP - s.A ).EuclideanNorm() < w / 2 )
+            anchor = s.A;
+        else if( ( aP - s.B ).EuclideanNorm() < w / 2 )
+            anchor = s.B;
+        else
+        {
+            anchor = s.NearestPoint( aP );
+            aSplitsSegment = true;
+
+            anchor = m_gridHelper->AlignToSegment( aP, s );
+            aSplitsSegment = ( anchor != s.A && anchor != s.B );
+        }
+
+        break;
+    }
+
+    default:
+        break;
+    }
+
+    return anchor;
+}

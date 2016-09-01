@@ -58,7 +58,9 @@ enum {
     GRID_VIASIZE,
     GRID_VIADRILL,
     GRID_uVIASIZE,
-    GRID_uVIADRILL
+    GRID_uVIADRILL,
+    GRID_DIFF_PAIR_WIDTH,
+    GRID_DIFF_PAIR_GAP
 };
 
 const wxString DIALOG_DESIGN_RULES::wildCard = _( "* (Any)" );
@@ -115,15 +117,15 @@ void NETS_LIST_CTRL::SetRowItems( unsigned        aRow,
  */
 
 // @todo: maybe move this to common.cpp if it works.
-void EnsureGridColumnWidths( wxGrid* aGrid )
+static void EnsureGridColumnWidths( wxWindow* aShower, wxGrid* aGrid )
 {
-    wxScreenDC sDC;
+    wxWindowDC sDC( aShower );
 
     sDC.SetFont( aGrid->GetLabelFont() );
 
     int colCount = aGrid->GetNumberCols();
 
-    for( int col = 0; col<colCount;  ++col )
+    for( int col = 0; col < colCount; ++col )
     {
         // add two spaces to the text and size it.
         wxString colText = aGrid->GetColLabelValue( col ) + wxT( "  " );
@@ -135,6 +137,28 @@ void EnsureGridColumnWidths( wxGrid* aGrid )
     }
 }
 
+static void EnsureGridRowTitleWidth( wxWindow* aShower, wxGrid* aGrid, int aMinWidth )
+{
+    wxWindowDC sDC( aShower );
+    sDC.SetFont( aGrid->GetLabelFont() );
+
+    int minsize = aMinWidth;
+    int rowCount = aGrid->GetNumberRows();
+
+    for( int row = 0; row < rowCount;  ++row )
+    {
+        // add two spaces to the text and size it.
+        wxString rowText = aGrid->GetRowLabelValue( row ) + wxT( "  " );
+
+        wxSize   needed = sDC.GetTextExtent( rowText );
+
+        minsize = std::max( minsize, needed.x );
+    }
+
+    // set the width of the row laberls
+    aGrid->SetRowLabelSize( minsize );
+}
+
 
 DIALOG_DESIGN_RULES::DIALOG_DESIGN_RULES( PCB_EDIT_FRAME* parent ) :
     DIALOG_DESIGN_RULES_BASE( parent )
@@ -142,7 +166,8 @@ DIALOG_DESIGN_RULES::DIALOG_DESIGN_RULES( PCB_EDIT_FRAME* parent ) :
     m_Parent = parent;
     SetAutoLayout( true );
 
-    EnsureGridColumnWidths( m_grid );   // override any column widths set by wxformbuilder.
+    m_initialRowLabelsSize = m_grid->GetRowLabelSize();
+    EnsureGridColumnWidths( this, m_grid );   // override any column widths set by wxformbuilder.
 
     wxListItem column0;
     wxListItem column1;
@@ -173,6 +198,8 @@ DIALOG_DESIGN_RULES::DIALOG_DESIGN_RULES( PCB_EDIT_FRAME* parent ) :
     }
 
     InitDialogRules();
+    EnsureGridRowTitleWidth( this, m_grid, m_initialRowLabelsSize );
+
     m_sdbSizer1OK->SetDefault();
 
     // Allow tabbing out of grid controls.
@@ -450,6 +477,13 @@ static void class2gridRow( wxGrid* grid, int row, NETCLASSPTR nc )
 
     msg = StringFromValue( g_UserUnit, nc->GetuViaDrill() );
     grid->SetCellValue( row, GRID_uVIADRILL, msg );
+
+    msg = StringFromValue( g_UserUnit, nc->GetDiffPairGap() );
+    grid->SetCellValue( row, GRID_DIFF_PAIR_GAP, msg );
+
+    msg = StringFromValue( g_UserUnit, nc->GetDiffPairWidth() );
+    grid->SetCellValue( row, GRID_DIFF_PAIR_WIDTH, msg );
+
 }
 
 
@@ -489,6 +523,9 @@ static void gridRow2class( wxGrid* grid, int row, NETCLASSPTR nc )
     nc->SetViaDrill( MYCELL( GRID_VIADRILL ) );
     nc->SetuViaDiameter( MYCELL( GRID_uVIASIZE ) );
     nc->SetuViaDrill( MYCELL( GRID_uVIADRILL ) );
+    nc->SetDiffPairGap( MYCELL( GRID_DIFF_PAIR_GAP ) );
+    nc->SetDiffPairWidth( MYCELL( GRID_DIFF_PAIR_WIDTH ) );
+
 }
 
 
@@ -692,6 +729,8 @@ void DIALOG_DESIGN_RULES::OnAddNetclassClick( wxCommandEvent& event )
         m_grid->SetCellValue( irow, icol, value );
     }
 
+    EnsureGridRowTitleWidth( this, m_grid, m_initialRowLabelsSize );
+
     InitializeRulesSelectionBoxes();
 }
 
@@ -746,6 +785,7 @@ void DIALOG_DESIGN_RULES::OnRemoveNetclassClick( wxCommandEvent& event )
             m_grid->SetRowLabelValue( ii, labels[ii] );
 
         InitializeRulesSelectionBoxes();
+        EnsureGridRowTitleWidth( this, m_grid, m_initialRowLabelsSize );
     }
 }
 
@@ -923,6 +963,18 @@ bool DIALOG_DESIGN_RULES::TestDataValidity( wxString* aErrorMsg )
                         GetChars( m_grid->GetRowLabelValue( row ) ) );
             errorMsg += msg;
         }
+
+        int dpsize = ValueFromString( g_UserUnit,
+                                      m_grid->GetCellValue( row, GRID_DIFF_PAIR_WIDTH ) );
+
+        if( dpsize < minTrackWidth )
+        {
+            result = false;
+            msg.Printf( _( "%s: <b>Differential Pair Size</b> &lt; <b>Min Track Size</b><br>" ),
+                        GetChars( m_grid->GetRowLabelValue( row ) ) );
+            errorMsg += msg;
+        }
+
 
         // Test vias
         int viadia = ValueFromString( g_UserUnit,

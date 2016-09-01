@@ -194,7 +194,7 @@ void SPECCTRA_DB::readTIME( time_t* time_stamp ) throw( IO_ERROR )
     mytime.tm_mon = 0;      // remains if we don't find a month match.
     for( int m=0;  months[m];  ++m )
     {
-        if( !stricmp( months[m], ptok ) )
+        if( !strcasecmp( months[m], ptok ) )
         {
             mytime.tm_mon = m;
             break;
@@ -3749,7 +3749,7 @@ void PLACE::Format( OUTPUTFORMATTER* out, int nestLevel ) throw( IO_ERROR )
 
         if( part_number.size() )
         {
-            const char* quote = out->GetQuoteChar( part_number.c_str() );
+            quote = out->GetQuoteChar( part_number.c_str() );
             out->Print( nestLevel+1, "(PN %s%s%s)\n",
                        quote, part_number.c_str(), quote );
         }
@@ -3764,7 +3764,7 @@ void PLACE::Format( OUTPUTFORMATTER* out, int nestLevel ) throw( IO_ERROR )
 
         if( part_number.size() )
         {
-            const char* quote = out->GetQuoteChar( part_number.c_str() );
+            quote = out->GetQuoteChar( part_number.c_str() );
             out->Print( 0, "%s(PN %s%s%s)", space,
                        quote, part_number.c_str(), quote );
         }
