@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -35,26 +36,27 @@
 
 #include "pns_placement_algo.h"
 
-class PNS_ROUTER;
-class PNS_SHOVE;
-class PNS_OPTIMIZER;
-class PNS_ROUTER_BASE;
-class PNS_VIA;
-class PNS_SIZES_SETTINGS;
+namespace PNS {
+
+class ROUTER;
+class SHOVE;
+class OPTIMIZER;
+class VIA;
+class SIZES_SETTINGS;
 
 
 /**
- * Class PNS_LINE_PLACER
+ * Class LINE_PLACER
  *
  * Single track placement algorithm. Interactively routes a track.
  * Applies shove and walkaround algorithms when needed.
  */
 
-class PNS_DIFF_PAIR_PLACER : public PNS_PLACEMENT_ALGO
+class DIFF_PAIR_PLACER : public PLACEMENT_ALGO
 {
 public:
-    PNS_DIFF_PAIR_PLACER( PNS_ROUTER* aRouter );
-    ~PNS_DIFF_PAIR_PLACER();
+    DIFF_PAIR_PLACER( ROUTER* aRouter );
+    ~DIFF_PAIR_PLACER();
 
     /**
      * Function Start()
@@ -62,7 +64,7 @@ public:
      * Starts routing a single track at point aP, taking item aStartItem as anchor
      * (unless NULL).
      */
-    bool Start( const VECTOR2I& aP, PNS_ITEM* aStartItem );
+    bool Start( const VECTOR2I& aP, ITEM* aStartItem );
 
     /**
      * Function Move()
@@ -71,7 +73,7 @@ public:
      * aEndItem as anchor (if not NULL).
      * (unless NULL).
      */
-    bool Move( const VECTOR2I& aP, PNS_ITEM* aEndItem );
+    bool Move( const VECTOR2I& aP, ITEM* aEndItem );
 
     /**
      * Function FixRoute()
@@ -82,7 +84,7 @@ public:
      * result is violating design rules - in such case, the track is only committed
      * if Settings.CanViolateDRC() is on.
      */
-    bool FixRoute( const VECTOR2I& aP, PNS_ITEM* aEndItem );
+    bool FixRoute( const VECTOR2I& aP, ITEM* aEndItem );
 
     /**
      * Function ToggleVia()
@@ -101,9 +103,9 @@ public:
     /**
      * Function Traces()
      *
-     * Returns the complete routed line, as a single-member PNS_ITEMSET.
+     * Returns the complete routed line, as a single-member ITEM_SET.
      */
-    const PNS_ITEMSET Traces();
+    const ITEM_SET Traces();
 
     /**
      * Function CurrentEnd()
@@ -138,7 +140,7 @@ public:
      *
      * Returns the most recent world state.
      */
-    PNS_NODE* CurrentNode( bool aLoopsRemoved = false ) const;
+    NODE* CurrentNode( bool aLoopsRemoved = false ) const;
 
     /**
      * Function FlipPosture()
@@ -154,7 +156,7 @@ public:
      * a settings class. Used to dynamically change these parameters as
      * the track is routed.
      */
-    void UpdateSizes( const PNS_SIZES_SETTINGS& aSizes );
+    void UpdateSizes( const SIZES_SETTINGS& aSizes );
 
     bool IsPlacingVia() const { return m_placingVia; }
 
@@ -192,7 +194,7 @@ private:
      *
      * Sets the board to route.
      */
-    void setWorld( PNS_NODE* aWorld );
+    void setWorld( NODE* aWorld );
 
     /**
      * Function startPlacement()
@@ -211,7 +213,7 @@ private:
 
 
     bool routeHead( const VECTOR2I& aP );
-    bool tryWalkDp( PNS_NODE* aNode, PNS_DIFF_PAIR& aPair, bool aSolidsOnly );
+    bool tryWalkDp( NODE* aNode, DIFF_PAIR& aPair, bool aSolidsOnly );
 
     ///> route step, walkaround mode
     bool rhWalkOnly( const VECTOR2I& aP );
@@ -222,12 +224,12 @@ private:
     ///> route step, mark obstacles mode
     bool rhMarkObstacles( const VECTOR2I& aP );
 
-    const PNS_VIA makeVia ( const VECTOR2I& aP, int aNet );
+    const VIA makeVia ( const VECTOR2I& aP, int aNet );
 
-    bool findDpPrimitivePair( const VECTOR2I& aP, PNS_ITEM* aItem, PNS_DP_PRIMITIVE_PAIR& aPair );
-    OPT_VECTOR2I getDanglingAnchor( PNS_NODE* aNode, PNS_ITEM* aItem );
+    bool findDpPrimitivePair( const VECTOR2I& aP, ITEM* aItem, DP_PRIMITIVE_PAIR& aPair );
+    OPT_VECTOR2I getDanglingAnchor( NODE* aNode, ITEM* aItem );
     int matchDpSuffix( wxString aNetName, wxString& aComplementNet, wxString& aBaseDpName );
-    bool attemptWalk( PNS_NODE* aNode, PNS_DIFF_PAIR* aCurrent, PNS_DIFF_PAIR& aWalk, bool aPFirst, bool aWindCw, bool aSolidsOnly );
+    bool attemptWalk( NODE* aNode, DIFF_PAIR* aCurrent, DIFF_PAIR& aWalk, bool aPFirst, bool aWindCw, bool aSolidsOnly );
     bool propagateDpHeadForces ( const VECTOR2I& aP, VECTOR2I& aNewP );
 
     enum State {
@@ -245,28 +247,28 @@ private:
 
     int m_netP, m_netN;
 
-    PNS_DP_PRIMITIVE_PAIR m_start;
-    boost::optional<PNS_DP_PRIMITIVE_PAIR> m_prevPair;
+    DP_PRIMITIVE_PAIR m_start;
+    boost::optional<DP_PRIMITIVE_PAIR> m_prevPair;
 
     ///> current algorithm iteration
     int m_iteration;
 
     ///> pointer to world to search colliding items
-    PNS_NODE* m_world;
+    NODE* m_world;
 
     ///> current routing start point (end of tail, beginning of head)
     VECTOR2I m_p_start;
 
     ///> The shove engine
-    PNS_SHOVE* m_shove;
+    SHOVE* m_shove;
 
     ///> Current world state
-    PNS_NODE* m_currentNode;
+    NODE* m_currentNode;
 
     ///> Postprocessed world state (including marked collisions & removed loops)
-    PNS_NODE* m_lastNode;
+    NODE* m_lastNode;
 
-    PNS_SIZES_SETTINGS m_sizes;
+    SIZES_SETTINGS m_sizes;
 
     ///> Are we placing a via?
     bool m_placingVia;
@@ -288,12 +290,14 @@ private:
     bool m_snapOnTarget;
 
     VECTOR2I m_currentEnd, m_currentStart;
-    PNS_DIFF_PAIR m_currentTrace;
+    DIFF_PAIR m_currentTrace;
 
-    PNS_ITEM* m_currentEndItem;
+    ITEM* m_currentEndItem;
     PNS_MODE m_currentMode;
 
     bool m_idle;
 };
+
+}
 
 #endif    // __PNS_LINE_PLACER_H

@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * Author: Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -31,45 +32,48 @@
 
 #include "pns_router.h"
 
-class PNS_TUNE_STATUS_POPUP;
 class GRID_HELPER;
-class PNS_KICAD_IFACE;
 
-class APIEXPORT PNS_TOOL_BASE : public TOOL_INTERACTIVE
+class PNS_KICAD_IFACE;
+class PNS_TUNE_STATUS_POPUP;
+
+namespace PNS {
+
+class APIEXPORT TOOL_BASE : public TOOL_INTERACTIVE
 {
 public:
     static TOOL_ACTION ACT_RouterOptions;
 
-    PNS_TOOL_BASE( const std::string& aToolName );
-    virtual ~PNS_TOOL_BASE();
+    TOOL_BASE( const std::string& aToolName );
+    virtual ~TOOL_BASE();
 
     virtual void Reset( RESET_REASON aReason );
 
-    const PNS_ROUTING_SETTINGS& PNSSettings() const
+    const ROUTING_SETTINGS& PNSSettings() const
     {
         return m_savedSettings;
     }
 
-    PNS_ROUTER* Router() const;
+    ROUTER* Router() const;
 
 protected:
 
-    const VECTOR2I snapToItem( PNS_ITEM* aItem, VECTOR2I aP, bool& aSplitsSegment );
-    virtual PNS_ITEM* pickSingleItem( const VECTOR2I& aWhere, int aNet = -1, int aLayer = -1 );
+    const VECTOR2I snapToItem( ITEM* aItem, VECTOR2I aP, bool& aSplitsSegment );
+    virtual ITEM* pickSingleItem( const VECTOR2I& aWhere, int aNet = -1, int aLayer = -1 );
     virtual void highlightNet( bool aEnabled, int aNetcode = -1 );
     virtual void updateStartItem( TOOL_EVENT& aEvent );
     virtual void updateEndItem( TOOL_EVENT& aEvent );
-    void deleteTraces( PNS_ITEM* aStartItem, bool aWholeTrack );
+    void deleteTraces( ITEM* aStartItem, bool aWholeTrack );
 
     MSG_PANEL_ITEMS m_panelItems;
 
-    PNS_ROUTING_SETTINGS m_savedSettings;     ///< Stores routing settings between router invocations
-    PNS_SIZES_SETTINGS m_savedSizes;          ///< Stores sizes settings between router invocations
-    PNS_ITEM* m_startItem;
+    ROUTING_SETTINGS m_savedSettings;     ///< Stores routing settings between router invocations
+    SIZES_SETTINGS m_savedSizes;          ///< Stores sizes settings between router invocations
+    ITEM* m_startItem;
     int m_startLayer;
     VECTOR2I m_startSnapPoint;
 
-    PNS_ITEM* m_endItem;
+    ITEM* m_endItem;
     VECTOR2I m_endSnapPoint;
 
     PCB_EDIT_FRAME* m_frame;
@@ -77,7 +81,9 @@ protected:
     BOARD* m_board;
     GRID_HELPER* m_gridHelper;
     PNS_KICAD_IFACE* m_iface;
-    PNS_ROUTER* m_router;
+    ROUTER* m_router;
 };
+
+}
 
 #endif

@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2015 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -32,18 +33,19 @@
 #include "pns_placement_algo.h"
 #include "pns_meander.h"
 
-class PNS_ROUTER;
-class PNS_SHOVE;
-class PNS_OPTIMIZER;
-class PNS_ROUTER_BASE;
+namespace PNS {
+
+class ROUTER;
+class SHOVE;
+class OPTIMIZER;
 
 /**
- * Class PNS_MEANDER_PLACER_BASE
+ * Class MEANDER_PLACER_BASE
  *
  * Base class for Single trace & Differenial pair meandering tools, as
  * both of them share a lot of code.
  */
-class PNS_MEANDER_PLACER_BASE : public PNS_PLACEMENT_ALGO
+class MEANDER_PLACER_BASE : public PLACEMENT_ALGO
 {
 public:
     ///> Result of the length tuning operation
@@ -53,8 +55,8 @@ public:
         TUNED
     };
 
-    PNS_MEANDER_PLACER_BASE( PNS_ROUTER* aRouter );
-    virtual ~PNS_MEANDER_PLACER_BASE();
+    MEANDER_PLACER_BASE( ROUTER* aRouter );
+    virtual ~MEANDER_PLACER_BASE();
 
     /**
      * Function TuningInfo()
@@ -94,7 +96,7 @@ public:
      * Returns the current meandering configuration.
      * @return the settings
      */
-    virtual const PNS_MEANDER_SETTINGS& MeanderSettings() const;
+    virtual const MEANDER_SETTINGS& MeanderSettings() const;
 
     /*
      * Function UpdateSettings()
@@ -102,7 +104,7 @@ public:
      * Sets the current meandering configuration.
      * @param aSettings the settings
      */
-    virtual void UpdateSettings( const PNS_MEANDER_SETTINGS& aSettings);
+    virtual void UpdateSettings( const MEANDER_SETTINGS& aSettings);
 
     /**
      * Function CheckFit()
@@ -113,7 +115,7 @@ public:
      * @param aShape the shape to check
      * @return true if the shape fits
      */
-    virtual bool CheckFit( PNS_MEANDER_SHAPE* aShape )
+    virtual bool CheckFit( MEANDER_SHAPE* aShape )
     {
         return false;
     }
@@ -133,11 +135,11 @@ protected:
      * @param aPost part after the end of meanders
      */
     void cutTunedLine(  const SHAPE_LINE_CHAIN& aOrigin,
-                        const VECTOR2I& aTuneStart,
-                        const VECTOR2I& aCursorPos,
-                        SHAPE_LINE_CHAIN& aPre,
-                        SHAPE_LINE_CHAIN& aTuned,
-                        SHAPE_LINE_CHAIN& aPost );
+                        const VECTOR2I&         aTuneStart,
+                        const VECTOR2I&         aCursorPos,
+                        SHAPE_LINE_CHAIN&       aPre,
+                        SHAPE_LINE_CHAIN&       aTuned,
+                        SHAPE_LINE_CHAIN&       aPost );
 
     /**
      * Function tuneLineLength()
@@ -145,7 +147,7 @@ protected:
      * Takes a set of meanders in aTuned and tunes their length to
      * extend the original line length by aElongation.
      */
-    void tuneLineLength( PNS_MEANDERED_LINE& aTuned, int aElongation );
+    void tuneLineLength( MEANDERED_LINE& aTuned, int aElongation );
 
     /**
      * Function compareWithTolerance()
@@ -157,9 +159,11 @@ protected:
     ///> width of the meandered trace(s)
     int m_currentWidth;
     ///> meandering settings
-    PNS_MEANDER_SETTINGS m_settings;
+    MEANDER_SETTINGS m_settings;
     ///> current end point
     VECTOR2I m_currentEnd;
 };
+
+}
 
 #endif    // __PNS_MEANDER_PLACER_BASE_H

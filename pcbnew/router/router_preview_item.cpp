@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -36,7 +37,7 @@
 
 using namespace KIGFX;
 
-ROUTER_PREVIEW_ITEM::ROUTER_PREVIEW_ITEM( const PNS_ITEM* aItem, VIEW_GROUP* aParent ) :
+ROUTER_PREVIEW_ITEM::ROUTER_PREVIEW_ITEM( const PNS::ITEM* aItem, VIEW_GROUP* aParent ) :
     EDA_ITEM( NOT_USED )
 {
     m_parent = aParent;
@@ -63,13 +64,13 @@ ROUTER_PREVIEW_ITEM::~ROUTER_PREVIEW_ITEM()
 }
 
 
-void ROUTER_PREVIEW_ITEM::Update( const PNS_ITEM* aItem )
+void ROUTER_PREVIEW_ITEM::Update( const PNS::ITEM* aItem )
 {
     m_originLayer = aItem->Layers().Start();
 
-    if( aItem->OfKind( PNS_ITEM::LINE ) )
+    if( aItem->OfKind( PNS::ITEM::LINE_T ) )
     {
-        const PNS_LINE* l = static_cast<const PNS_LINE*>( aItem );
+        const PNS::LINE* l = static_cast<const PNS::LINE*>( aItem );
 
         if( !l->SegmentCount() )
             return;
@@ -85,20 +86,20 @@ void ROUTER_PREVIEW_ITEM::Update( const PNS_ITEM* aItem )
 
     switch( aItem->Kind() )
     {
-    case PNS_ITEM::LINE:
+    case PNS::ITEM::LINE_T:
         m_type  = PR_SHAPE;
-        m_width = ( (PNS_LINE*) aItem )->Width();
+        m_width = ( (PNS::LINE*) aItem )->Width();
         break;
 
-    case PNS_ITEM::SEGMENT:
+    case PNS::ITEM::SEGMENT_T:
     {
-        PNS_SEGMENT* seg = (PNS_SEGMENT*) aItem;
+        PNS::SEGMENT* seg = (PNS::SEGMENT*) aItem;
         m_type  = PR_SHAPE;
         m_width = seg->Width();
         break;
     }
 
-    case PNS_ITEM::VIA:
+    case PNS::ITEM::VIA_T:
         m_originLayer = m_layer = ITEM_GAL_LAYER( VIAS_VISIBLE );
         m_type = PR_SHAPE;
         m_width = 0;
@@ -106,7 +107,7 @@ void ROUTER_PREVIEW_ITEM::Update( const PNS_ITEM* aItem )
         m_depth = ViaOverlayDepth;
         break;
 
-    case PNS_ITEM::SOLID:
+    case PNS::ITEM::SOLID_T:
         m_type = PR_SHAPE;
         m_width = 0;
         break;
@@ -115,7 +116,7 @@ void ROUTER_PREVIEW_ITEM::Update( const PNS_ITEM* aItem )
         break;
     }
 
-    if( aItem->Marker() & MK_VIOLATION )
+    if( aItem->Marker() & PNS::MK_VIOLATION )
         m_color = COLOR4D( 0, 1, 0, 1 );
 
     ViewSetVisible( true );

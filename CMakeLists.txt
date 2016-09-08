@@ -18,9 +18,9 @@ set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules )
 #
 # KiCad build options should be added below.
 #
-# If you add a new build option, please add it's state to the CopyVersionInfoToClipboard()
-# function in common/basicframe.cpp so that build option settings can be included in bug
-# reports.
+# If you add a new build option, please add it's state to the
+# OnCopyVersionInfo() function in common/dialog_about/dialog_about.cpp
+# so that build option settings can be included in bug reports.
 #
 
 # Russian GOST patch
@@ -69,8 +69,12 @@ option( KICAD_SCRIPTING_WXPYTHON
     "Build wxPython implementation for wx interface building in Python and py.shell (default OFF)."
     )
 
-option( USE_SCH_IO_MANAGER
+option( KICAD_USE_SCH_IO_MANAGER
     "Build Eeschema with the I/O manager for handling schematic and symbol library I/O. (default OFF)"
+    )
+
+option( KICAD_USE_OCE
+    "Build tools and plugins related to OpenCascade Community Edition (default OFF)"
     )
 
 # when option KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES is enabled:
@@ -316,6 +320,14 @@ endif()
 
 if( KICAD_SPICE )
     add_definitions( -DKICAD_SPICE )
+endif()
+
+if( KICAD_USE_SCH_IO_MANAGER )
+    add_definitions( -DKICAD_USE_SCH_IO_MANAGER )
+endif()
+
+if( KICAD_USE_OCE )
+    add_definitions( -DKICAD_USE_OCE )
 endif()
 
 if( USE_WX_GRAPHICS_CONTEXT OR APPLE )
@@ -574,6 +586,13 @@ endif()
 # Find ngspice library, required for integrated circuit simulator
 if( KICAD_SPICE )
     find_package( ngspice REQUIRED )
+endif()
+
+# Find OpenCascade Community Edition, required for STEP plugin and tools
+if( KICAD_USE_OCE )
+    set( LIBS_OCE TKBinXCAF TKPCAF TKSTEP TKXDESTEP TKIGES TKXDEIGES )
+
+    find_package( OCE 0.16 REQUIRED ${LIBS_OCE} )
 endif()
 
 # Assist with header file searching optimization:

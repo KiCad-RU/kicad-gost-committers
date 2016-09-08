@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -31,25 +32,27 @@
 #include <geometry/shape_circle.h>
 #include <geometry/shape_convex.h>
 
-PNS_LOGGER::PNS_LOGGER( )
+namespace PNS {
+
+LOGGER::LOGGER( )
 {
     m_groupOpened = false;
 }
 
 
-PNS_LOGGER::~PNS_LOGGER()
+LOGGER::~LOGGER()
 {
 }
 
 
-void PNS_LOGGER::Clear()
+void LOGGER::Clear()
 {
     m_theLog.str( std::string() );
     m_groupOpened = false;
 }
 
 
-void PNS_LOGGER::NewGroup( const std::string& aName, int aIter )
+void LOGGER::NewGroup( const std::string& aName, int aIter )
 {
     if( m_groupOpened )
         m_theLog << "endgroup" << std::endl;
@@ -59,7 +62,7 @@ void PNS_LOGGER::NewGroup( const std::string& aName, int aIter )
 }
 
 
-void PNS_LOGGER::EndGroup()
+void LOGGER::EndGroup()
 {
     if( !m_groupOpened )
         return;
@@ -69,7 +72,7 @@ void PNS_LOGGER::EndGroup()
 }
 
 
-void PNS_LOGGER::Log ( const PNS_ITEM* aItem, int aKind, const std::string aName )
+void LOGGER::Log ( const ITEM* aItem, int aKind, const std::string aName )
 {
     m_theLog << "item " << aKind << " " << aName << " ";
     m_theLog << aItem->Net() << " " << aItem->Layers().Start() << " " <<
@@ -77,9 +80,9 @@ void PNS_LOGGER::Log ( const PNS_ITEM* aItem, int aKind, const std::string aName
 
     switch( aItem->Kind() )
     {
-    case PNS_ITEM::LINE:
+    case ITEM::LINE_T:
     {
-        PNS_LINE* l = (PNS_LINE*) aItem;
+        LINE* l = (LINE*) aItem;
         m_theLog << " line ";
         m_theLog << l->Width() << " " << ( l->EndsWithVia() ? 1 : 0 ) << " ";
         dumpShape ( l->Shape() );
@@ -87,7 +90,7 @@ void PNS_LOGGER::Log ( const PNS_ITEM* aItem, int aKind, const std::string aName
         break;
     }
 
-    case PNS_ITEM::VIA:
+    case ITEM::VIA_T:
     {
         m_theLog << " via 0 0 ";
         dumpShape ( aItem->Shape() );
@@ -95,18 +98,18 @@ void PNS_LOGGER::Log ( const PNS_ITEM* aItem, int aKind, const std::string aName
         break;
     }
 
-    case PNS_ITEM::SEGMENT:
+    case ITEM::SEGMENT_T:
     {
-        PNS_SEGMENT* s =(PNS_SEGMENT*) aItem;
+        SEGMENT* s =(SEGMENT*) aItem;
         m_theLog << " line ";
         m_theLog << s->Width() << " 0 linechain 2 0 " << s->Seg().A.x << " " <<
                     s->Seg().A.y << " " << s->Seg().B.x << " " <<s->Seg().B.y << std::endl;
         break;
     }
 
-    case PNS_ITEM::SOLID:
+    case ITEM::SOLID_T:
     {
-        PNS_SOLID* s = (PNS_SOLID*) aItem;
+        SOLID* s = (SOLID*) aItem;
         m_theLog << " solid 0 0 ";
         dumpShape( s->Shape() );
         m_theLog << std::endl;
@@ -119,7 +122,7 @@ void PNS_LOGGER::Log ( const PNS_ITEM* aItem, int aKind, const std::string aName
 }
 
 
-void PNS_LOGGER::Log( const SHAPE_LINE_CHAIN *aL, int aKind, const std::string aName )
+void LOGGER::Log( const SHAPE_LINE_CHAIN *aL, int aKind, const std::string aName )
 {
     m_theLog << "item " << aKind << " " << aName << " ";
     m_theLog << 0 << " " << 0 << " " << 0 << " " << 0 << " " << 0;
@@ -130,13 +133,13 @@ void PNS_LOGGER::Log( const SHAPE_LINE_CHAIN *aL, int aKind, const std::string a
 }
 
 
-void PNS_LOGGER::Log( const VECTOR2I& aStart, const VECTOR2I& aEnd,
+void LOGGER::Log( const VECTOR2I& aStart, const VECTOR2I& aEnd,
                       int aKind, const std::string aName)
 {
 }
 
 
-void PNS_LOGGER::dumpShape( const SHAPE* aSh )
+void LOGGER::dumpShape( const SHAPE* aSh )
 {
     switch( aSh->Type() )
     {
@@ -191,7 +194,7 @@ void PNS_LOGGER::dumpShape( const SHAPE* aSh )
 }
 
 
-void PNS_LOGGER::Save( const std::string& aFilename )
+void LOGGER::Save( const std::string& aFilename )
 {
     EndGroup();
 
@@ -200,4 +203,6 @@ void PNS_LOGGER::Save( const std::string& aFilename )
     const std::string s = m_theLog.str();
     fwrite( s.c_str(), 1, s.length(), f );
     fclose( f );
+}
+
 }

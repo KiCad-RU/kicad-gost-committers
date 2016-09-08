@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -28,12 +29,15 @@
 
 class BOARD;
 class BOARD_DESIGN_SETTINGS;
-class PNS_ITEM;
 
-class PNS_SIZES_SETTINGS {
+namespace PNS {
+
+class ITEM;
+
+class SIZES_SETTINGS {
 
 public:
-    PNS_SIZES_SETTINGS() :
+    SIZES_SETTINGS() :
         m_trackWidth( 155000 ),
         m_diffPairWidth( 125000 ),
         m_diffPairGap( 180000 ),
@@ -44,9 +48,9 @@ public:
         m_viaType( VIA_THROUGH )
     {};
 
-    ~PNS_SIZES_SETTINGS() {};
+    ~SIZES_SETTINGS() {};
 
-    void Init( BOARD* aBoard, PNS_ITEM* aStartItem = NULL, int aNet = -1 );
+    void Init( BOARD* aBoard, ITEM* aStartItem = NULL, int aNet = -1 );
     void ImportCurrent( BOARD_DESIGN_SETTINGS& aSettings );
 
     void ClearLayerPairs();
@@ -94,7 +98,7 @@ public:
 
 private:
 
-    int inheritTrackWidth( PNS_ITEM* aItem );
+    int inheritTrackWidth( ITEM* aItem );
 
     int m_trackWidth;
     int m_diffPairWidth;
@@ -109,5 +113,7 @@ private:
 
     std::map<int, int> m_layerPairs;
 };
+
+}
 
 #endif // __PNS_SIZES_SETTINGS_H

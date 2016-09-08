@@ -525,10 +525,22 @@ void dialog_about::OnCopyVersionInfo( wxCommandEvent& event )
     msg_version << OFF;
 #endif
 
-    msg_version << "                  USE_FP_LIB_TABLE=HARD_CODED_ON\n";
-
     msg_version << "                  BUILD_GITHUB_PLUGIN=";
 #ifdef BUILD_GITHUB_PLUGIN
+    msg_version << ON;
+#else
+    msg_version << OFF;
+#endif
+
+    msg_version << "                  KICAD_USE_SCH_IO_MANAGER=";
+#ifdef KICAD_USE_SCH_IO_MANAGER
+    msg_version << ON;
+#else
+    msg_version << OFF;
+#endif
+
+    msg_version << "                  KICAD_USE_OCE=";
+#ifdef KICAD_USE_OCE
     msg_version << ON;
 #else
     msg_version << OFF;

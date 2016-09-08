@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2014  CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -31,12 +32,16 @@
 
 #include <router/pns_router.h>
 
-class PNS_MEANDER_SETTINGS;
+namespace PNS {
+
+class MEANDER_SETTINGS;
+
+}
 
 class DIALOG_PNS_LENGTH_TUNING_SETTINGS : public DIALOG_PNS_LENGTH_TUNING_SETTINGS_BASE
 {
 public:
-    DIALOG_PNS_LENGTH_TUNING_SETTINGS( wxWindow* aParent, PNS_MEANDER_SETTINGS& aSettings, PNS_ROUTER_MODE aMode );
+    DIALOG_PNS_LENGTH_TUNING_SETTINGS( wxWindow* aParent, PNS::MEANDER_SETTINGS& aSettings, PNS::ROUTER_MODE aMode );
 
     virtual void OnOkClick( wxCommandEvent& aEvent );
 
@@ -46,8 +51,8 @@ private:
     WX_UNIT_BINDER m_spacing;
     WX_UNIT_BINDER m_targetLength;
 
-    PNS_MEANDER_SETTINGS& m_settings;
-    PNS_ROUTER_MODE m_mode;
+    PNS::MEANDER_SETTINGS& m_settings;
+    PNS::ROUTER_MODE m_mode;
 };
 
 #endif // __dialog_pns_settings__

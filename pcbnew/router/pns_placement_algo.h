@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -27,25 +28,27 @@
 #include "pns_sizes_settings.h"
 #include "pns_itemset.h"
 
-class PNS_ROUTER;
-class PNS_ITEM;
-class PNS_NODE;
+namespace PNS {
+
+class ROUTER;
+class ITEM;
+class NODE;
 
 /**
- * Class PNS_PLACEMENT_ALGO
+ * Class PLACEMENT_ALGO
  *
  * Abstract class for a P&S placement/dragging algorithm.
  * All subtools (drag, single/diff pair routing and meandering)
  * are derived from it.
  */
 
-class PNS_PLACEMENT_ALGO : public PNS_ALGO_BASE
+class PLACEMENT_ALGO : public ALGO_BASE
 {
 public:
-    PNS_PLACEMENT_ALGO( PNS_ROUTER* aRouter ) :
-        PNS_ALGO_BASE( aRouter ) {};
+    PLACEMENT_ALGO( ROUTER* aRouter ) :
+        ALGO_BASE( aRouter ) {};
 
-    virtual ~PNS_PLACEMENT_ALGO () {};
+    virtual ~PLACEMENT_ALGO () {};
 
     /**
      * Function Start()
@@ -53,7 +56,7 @@ public:
      * Starts placement/drag operation at point aP, taking item aStartItem as anchor
      * (unless NULL).
      */
-    virtual bool Start( const VECTOR2I& aP, PNS_ITEM* aStartItem ) = 0;
+    virtual bool Start( const VECTOR2I& aP, ITEM* aStartItem ) = 0;
 
     /**
      * Function Move()
@@ -62,7 +65,7 @@ public:
      * aEndItem as the anchor (if not NULL).
      * (unless NULL).
      */
-    virtual bool Move( const VECTOR2I& aP, PNS_ITEM* aEndItem ) = 0;
+    virtual bool Move( const VECTOR2I& aP, ITEM* aEndItem ) = 0;
 
     /**
      * Function FixRoute()
@@ -73,7 +76,7 @@ public:
      * result is violating design rules - in such case, the track is only committed
      * if Settings.CanViolateDRC() is on.
      */
-    virtual bool FixRoute( const VECTOR2I& aP, PNS_ITEM* aEndItem ) = 0;
+    virtual bool FixRoute( const VECTOR2I& aP, ITEM* aEndItem ) = 0;
 
     /**
      * Function ToggleVia()
@@ -110,7 +113,7 @@ public:
      *
      * Returns all routed/tuned traces.
      */
-    virtual const PNS_ITEMSET Traces() = 0;
+    virtual const ITEM_SET Traces() = 0;
 
     /**
      * Function CurrentEnd()
@@ -139,7 +142,7 @@ public:
      *
      * Returns the most recent board state.
      */
-    virtual PNS_NODE* CurrentNode( bool aLoopsRemoved = false ) const = 0;
+    virtual NODE* CurrentNode( bool aLoopsRemoved = false ) const = 0;
 
     /**
      * Function FlipPosture()
@@ -157,7 +160,7 @@ public:
      * a settings class. Used to dynamically change these parameters as
      * the track is routed.
      */
-    virtual void UpdateSizes( const PNS_SIZES_SETTINGS& aSizes )
+    virtual void UpdateSizes( const SIZES_SETTINGS& aSizes )
     {
     }
 
@@ -181,5 +184,7 @@ public:
     {
     }
 };
+
+}
 
 #endif

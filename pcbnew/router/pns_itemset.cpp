@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -21,35 +22,36 @@
 #include "pns_itemset.h"
 #include "pns_line.h"
 
+namespace PNS {
 
-PNS_ITEMSET::~PNS_ITEMSET()
+ITEM_SET::~ITEM_SET()
 {
 }
 
 
-void PNS_ITEMSET::Add( const PNS_LINE& aLine )
+void ITEM_SET::Add( const LINE& aLine )
 {
-    PNS_LINE* copy = aLine.Clone();
+    LINE* copy = aLine.Clone();
     m_items.push_back( ENTRY( copy, true ) );
 }
 
 
-void PNS_ITEMSET::Prepend( const PNS_LINE& aLine )
+void ITEM_SET::Prepend( const LINE& aLine )
 {
-    PNS_LINE* copy = aLine.Clone();
+    LINE* copy = aLine.Clone();
     m_items.insert( m_items.begin(), ENTRY( copy, true ) );
 }
 
 
-PNS_ITEMSET& PNS_ITEMSET::FilterLayers( int aStart, int aEnd, bool aInvert )
+ITEM_SET& ITEM_SET::FilterLayers( int aStart, int aEnd, bool aInvert )
 {
     ENTRIES newItems;
-    PNS_LAYERSET l;
+    LAYER_RANGE l;
 
     if( aEnd < 0 )
-        l = PNS_LAYERSET( aStart );
+        l = LAYER_RANGE( aStart );
     else
-        l = PNS_LAYERSET( aStart, aEnd );
+        l = LAYER_RANGE( aStart, aEnd );
 
     for( const ENTRY& ent : m_items )
     {
@@ -65,7 +67,7 @@ PNS_ITEMSET& PNS_ITEMSET::FilterLayers( int aStart, int aEnd, bool aInvert )
 }
 
 
-PNS_ITEMSET& PNS_ITEMSET::FilterKinds( int aKindMask, bool aInvert )
+ITEM_SET& ITEM_SET::FilterKinds( int aKindMask, bool aInvert )
 {
     ENTRIES newItems;
 
@@ -83,7 +85,7 @@ PNS_ITEMSET& PNS_ITEMSET::FilterKinds( int aKindMask, bool aInvert )
 }
 
 
-PNS_ITEMSET& PNS_ITEMSET::FilterMarker( int aMarker, bool aInvert )
+ITEM_SET& ITEM_SET::FilterMarker( int aMarker, bool aInvert )
 {
     ENTRIES newItems;
 
@@ -101,7 +103,7 @@ PNS_ITEMSET& PNS_ITEMSET::FilterMarker( int aMarker, bool aInvert )
 }
 
 
-PNS_ITEMSET& PNS_ITEMSET::FilterNet( int aNet, bool aInvert )
+ITEM_SET& ITEM_SET::FilterNet( int aNet, bool aInvert )
 {
     ENTRIES newItems;
 
@@ -119,7 +121,7 @@ PNS_ITEMSET& PNS_ITEMSET::FilterNet( int aNet, bool aInvert )
 }
 
 
-PNS_ITEMSET& PNS_ITEMSET::ExcludeItem( const PNS_ITEM* aItem )
+ITEM_SET& ITEM_SET::ExcludeItem( const ITEM* aItem )
 {
     ENTRIES newItems;
 
@@ -133,4 +135,6 @@ PNS_ITEMSET& PNS_ITEMSET::ExcludeItem( const PNS_ITEM* aItem )
     m_items = newItems;
 
     return *this;
+}
+
 }

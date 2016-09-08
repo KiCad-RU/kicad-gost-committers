@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2015 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -28,31 +29,32 @@
 #include "pns_router.h"
 #include "pns_debug_decorator.h"
 
+namespace PNS {
 
-PNS_MEANDER_SKEW_PLACER::PNS_MEANDER_SKEW_PLACER ( PNS_ROUTER* aRouter ) :
-    PNS_MEANDER_PLACER ( aRouter )
+MEANDER_SKEW_PLACER::MEANDER_SKEW_PLACER ( ROUTER* aRouter ) :
+    MEANDER_PLACER ( aRouter )
 {
     // Init temporary variables (do not leave uninitialized members)
     m_coupledLength = 0;
 }
 
 
-PNS_MEANDER_SKEW_PLACER::~PNS_MEANDER_SKEW_PLACER( )
+MEANDER_SKEW_PLACER::~MEANDER_SKEW_PLACER( )
 {
 }
 
 
-bool PNS_MEANDER_SKEW_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
+bool MEANDER_SKEW_PLACER::Start( const VECTOR2I& aP, ITEM* aStartItem )
 {
     VECTOR2I p;
 
-    if( !aStartItem || !aStartItem->OfKind( PNS_ITEM::SEGMENT ) )
+    if( !aStartItem || !aStartItem->OfKind( ITEM::SEGMENT_T ) )
     {
         Router()->SetFailureReason( _( "Please select a differential pair trace you want to tune." ) );
         return false;
     }
 
-    m_initialSegment = static_cast<PNS_SEGMENT*>( aStartItem );
+    m_initialSegment = static_cast<SEGMENT*>( aStartItem );
 
     p = m_initialSegment->Seg().NearestPoint( aP );
 
@@ -62,7 +64,7 @@ bool PNS_MEANDER_SKEW_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
     m_world = Router()->GetWorld( )->Branch();
     m_originLine = m_world->AssembleLine( m_initialSegment );
 
-    PNS_TOPOLOGY topo( m_world );
+    TOPOLOGY topo( m_world );
     m_tunedPath = topo.AssembleTrivialPath( m_initialSegment );
 
     if( !topo.AssembleDiffPair ( m_initialSegment, m_originPair ) )
@@ -83,7 +85,7 @@ bool PNS_MEANDER_SKEW_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
     m_tunedPathP = topo.AssembleTrivialPath( m_originPair.PLine().GetLink( 0 ) );
     m_tunedPathN = topo.AssembleTrivialPath( m_originPair.NLine().GetLink( 0 ) );
 
-    m_world->Remove( &m_originLine );
+    m_world->Remove( m_originLine );
 
     m_currentWidth = m_originLine.Width();
     m_currentEnd = VECTOR2I( 0, 0 );
@@ -97,18 +99,18 @@ bool PNS_MEANDER_SKEW_PLACER::Start( const VECTOR2I& aP, PNS_ITEM* aStartItem )
 }
 
 
-int PNS_MEANDER_SKEW_PLACER::origPathLength( ) const
+int MEANDER_SKEW_PLACER::origPathLength( ) const
 {
     return itemsetLength ( m_tunedPath );
 }
 
 
-int PNS_MEANDER_SKEW_PLACER::itemsetLength( const PNS_ITEMSET& aSet ) const
+int MEANDER_SKEW_PLACER::itemsetLength( const ITEM_SET& aSet ) const
 {
     int total = 0;
-    for( const PNS_ITEM* item : aSet.CItems() )
+    for( const ITEM* item : aSet.CItems() )
     {
-        if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
+        if( const LINE* l = dyn_cast<const LINE*>( item ) )
         {
             total += l->CLine().Length();
         }
@@ -118,23 +120,23 @@ int PNS_MEANDER_SKEW_PLACER::itemsetLength( const PNS_ITEMSET& aSet ) const
 }
 
 
-int PNS_MEANDER_SKEW_PLACER::currentSkew() const
+int MEANDER_SKEW_PLACER::currentSkew() const
 {
     return m_lastLength - m_coupledLength;
 }
 
 
-bool PNS_MEANDER_SKEW_PLACER::Move( const VECTOR2I& aP, PNS_ITEM* aEndItem )
+bool MEANDER_SKEW_PLACER::Move( const VECTOR2I& aP, ITEM* aEndItem )
 {
-	for( const PNS_ITEM* item : m_tunedPathP.CItems() )
+    for( const ITEM* item : m_tunedPathP.CItems() )
     {
-        if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
+        if( const LINE* l = dyn_cast<const LINE*>( item ) )
             Dbg()->AddLine( l->CLine(), 5, 10000 );
     }
 
-    for( const PNS_ITEM* item : m_tunedPathN.CItems() )
+    for( const ITEM* item : m_tunedPathN.CItems() )
     {
-        if( const PNS_LINE* l = dyn_cast<const PNS_LINE*>( item ) )
+        if( const LINE* l = dyn_cast<const LINE*>( item ) )
             Dbg()->AddLine( l->CLine(), 4, 10000 );
     }
 
@@ -142,7 +144,7 @@ bool PNS_MEANDER_SKEW_PLACER::Move( const VECTOR2I& aP, PNS_ITEM* aEndItem )
 }
 
 
-const wxString PNS_MEANDER_SKEW_PLACER::TuningInfo() const
+const wxString MEANDER_SKEW_PLACER::TuningInfo() const
 {
     wxString status;
 
@@ -166,4 +168,6 @@ const wxString PNS_MEANDER_SKEW_PLACER::TuningInfo() const
     status += LengthDoubleToString( (double) m_settings.m_targetSkew, false );
 
     return status;
+}
+
 }

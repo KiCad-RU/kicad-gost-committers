@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013  CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -29,32 +30,34 @@
 
 #include "pns_item.h"
 
-class PNS_SOLID : public PNS_ITEM
+namespace PNS {
+
+class SOLID : public ITEM
 {
 public:
-    PNS_SOLID() : PNS_ITEM( SOLID ), m_shape( NULL )
+    SOLID() : ITEM( SOLID_T ), m_shape( NULL )
     {
         m_movable = false;
     }
 
-    ~PNS_SOLID()
+    ~SOLID()
     {
         delete m_shape;
     }
 
-    PNS_SOLID( const PNS_SOLID& aSolid ) :
-        PNS_ITEM( aSolid )
+    SOLID( const SOLID& aSolid ) :
+        ITEM( aSolid )
     {
         m_shape = aSolid.m_shape->Clone();
         m_pos = aSolid.m_pos;
     }
 
-    static inline bool ClassOf( const PNS_ITEM* aItem )
+    static inline bool ClassOf( const ITEM* aItem )
     {
-        return aItem && SOLID == aItem->Kind();
+        return aItem && SOLID_T == aItem->Kind();
     }
 
-    PNS_ITEM* Clone() const;
+    ITEM* Clone() const;
 
     const SHAPE* Shape() const { return m_shape; }
 
@@ -103,5 +106,7 @@ private:
     SHAPE*      m_shape;
     VECTOR2I    m_offset;
 };
+
+}
 
 #endif

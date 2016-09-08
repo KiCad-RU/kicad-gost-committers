@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -23,55 +24,59 @@
 
 #include "pns_routing_settings.h"
 
-class PNS_ROUTER;
-class PNS_LOGGER;
-class PNS_DEBUG_DECORATOR;
+namespace PNS {
+
+class ROUTER;
+class LOGGER;
+class DEBUG_DECORATOR;
 
 /**
- * Class PNS_ALGO_BASE
+ * Class ALGO_BASE
  *
  * Base class for all P&S algorithms (shoving, walkaround, line placement, dragging, etc.)
  * Holds a bunch of objects commonly used by all algorithms (P&S settings, parent router instance, logging)
  */
-class PNS_ALGO_BASE
+class ALGO_BASE
 {
 public:
-    PNS_ALGO_BASE( PNS_ROUTER* aRouter ) :
+    ALGO_BASE( ROUTER* aRouter ) :
         m_router( aRouter )
     {}
 
-    virtual ~PNS_ALGO_BASE() {}
+    virtual ~ALGO_BASE() {}
 
     ///> Returns the instance of our router
-    PNS_ROUTER* Router() const
+    ROUTER* Router() const
     {
         return m_router;
     }
 
     ///> Returns current router settings
-    PNS_ROUTING_SETTINGS& Settings() const;
+    ROUTING_SETTINGS& Settings() const;
 
     ///> Returns the logger object, allowing to dump geometry to a file.
-    virtual PNS_LOGGER* Logger();
+    virtual LOGGER* Logger();
 
     /**
     * Function SetDebugDecorator
     *
     * Assign a debug decorator allowing this algo to draw extra graphics for visual debugging
     */
-    void SetDebugDecorator( PNS_DEBUG_DECORATOR* aDecorator )
+    void SetDebugDecorator( DEBUG_DECORATOR* aDecorator )
     {
         m_debugDecorator = aDecorator;
     }
 
-    PNS_DEBUG_DECORATOR* Dbg() const
+    DEBUG_DECORATOR* Dbg() const
     {
         return m_debugDecorator;
     }
 
 private:
-    PNS_DEBUG_DECORATOR *m_debugDecorator;
-    PNS_ROUTER* m_router;
+    DEBUG_DECORATOR *m_debugDecorator;
+    ROUTER* m_router;
 };
+
+}
 
 #endif

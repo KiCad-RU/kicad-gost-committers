@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -28,6 +29,8 @@
 class DIRECTION_45;
 class TOOL_SETTINGS;
 
+namespace PNS {
+
 ///> Routing modes
 enum PNS_MODE
 {
@@ -46,15 +49,15 @@ enum PNS_OPTIMIZATION_EFFORT
 };
 
 /**
- * Class PNS_ROUTING_SETTINGS
+ * Class ROUTING_SETTINGS
  *
  * Contains all persistent settings of the router, such as the mode, optimization effort, etc.
  */
 
-class PNS_ROUTING_SETTINGS
+class ROUTING_SETTINGS
 {
 public:
-    PNS_ROUTING_SETTINGS();
+    ROUTING_SETTINGS();
 
     void Load( const TOOL_SETTINGS& where );
     void Save( TOOL_SETTINGS& where ) const;
@@ -154,5 +157,7 @@ private:
     TIME_LIMIT m_shoveTimeLimit;
     TIME_LIMIT m_walkaroundTimeLimit;
 };
+
+}
 
 #endif

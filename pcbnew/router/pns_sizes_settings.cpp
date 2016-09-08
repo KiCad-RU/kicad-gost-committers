@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -26,7 +27,9 @@
 #include "pns_node.h"
 #include "pns_sizes_settings.h"
 
-int PNS_SIZES_SETTINGS::inheritTrackWidth( PNS_ITEM* aItem )
+namespace PNS {
+
+int SIZES_SETTINGS::inheritTrackWidth( ITEM* aItem )
 {
     VECTOR2I p;
 
@@ -34,34 +37,34 @@ int PNS_SIZES_SETTINGS::inheritTrackWidth( PNS_ITEM* aItem )
 
     switch( aItem->Kind() )
     {
-    case PNS_ITEM::VIA:
-        p = static_cast<PNS_VIA*>( aItem )->Pos();
+    case ITEM::VIA_T:
+        p = static_cast<VIA*>( aItem )->Pos();
         break;
 
-    case PNS_ITEM::SOLID:
-        p = static_cast<PNS_SOLID*>( aItem )->Pos();
+    case ITEM::SOLID_T:
+        p = static_cast<SOLID*>( aItem )->Pos();
         break;
 
-    case PNS_ITEM::SEGMENT:
-        return static_cast<PNS_SEGMENT*>( aItem )->Width();
+    case ITEM::SEGMENT_T:
+        return static_cast<SEGMENT*>( aItem )->Width();
 
     default:
         return 0;
     }
 
-    PNS_JOINT* jt = static_cast<PNS_NODE*>( aItem->Owner() )->FindJoint( p, aItem );
+    JOINT* jt = static_cast<NODE*>( aItem->Owner() )->FindJoint( p, aItem );
 
     assert( jt != NULL );
 
     int mval = INT_MAX;
 
 
-    PNS_ITEMSET linkedSegs = jt->Links();
-    linkedSegs.ExcludeItem( aItem ).FilterKinds( PNS_ITEM::SEGMENT );
+    ITEM_SET linkedSegs = jt->Links();
+    linkedSegs.ExcludeItem( aItem ).FilterKinds( ITEM::SEGMENT_T );
 
-    for( PNS_ITEM* item : linkedSegs.Items() )
+    for( ITEM* item : linkedSegs.Items() )
     {
-        int w = static_cast<PNS_SEGMENT*>( item )->Width();
+        int w = static_cast<SEGMENT*>( item )->Width();
         mval = std::min( w, mval );
     }
 
@@ -69,7 +72,7 @@ int PNS_SIZES_SETTINGS::inheritTrackWidth( PNS_ITEM* aItem )
 }
 
 
-void PNS_SIZES_SETTINGS::Init( BOARD* aBoard, PNS_ITEM* aStartItem, int aNet )
+void SIZES_SETTINGS::Init( BOARD* aBoard, ITEM* aStartItem, int aNet )
 {
     BOARD_DESIGN_SETTINGS &bds = aBoard->GetDesignSettings();
 
@@ -125,13 +128,13 @@ void PNS_SIZES_SETTINGS::Init( BOARD* aBoard, PNS_ITEM* aStartItem, int aNet )
 }
 
 
-void PNS_SIZES_SETTINGS::ClearLayerPairs()
+void SIZES_SETTINGS::ClearLayerPairs()
 {
     m_layerPairs.clear();
 }
 
 
-void PNS_SIZES_SETTINGS::AddLayerPair( int aL1, int aL2 )
+void SIZES_SETTINGS::AddLayerPair( int aL1, int aL2 )
 {
     int top = std::min( aL1, aL2 );
     int bottom = std::max( aL1, aL2 );
@@ -141,7 +144,7 @@ void PNS_SIZES_SETTINGS::AddLayerPair( int aL1, int aL2 )
 }
 
 
-void PNS_SIZES_SETTINGS::ImportCurrent( BOARD_DESIGN_SETTINGS& aSettings )
+void SIZES_SETTINGS::ImportCurrent( BOARD_DESIGN_SETTINGS& aSettings )
 {
     m_trackWidth = aSettings.GetCurrentTrackWidth();
     m_viaDiameter = aSettings.GetCurrentViaSize();
@@ -149,7 +152,7 @@ void PNS_SIZES_SETTINGS::ImportCurrent( BOARD_DESIGN_SETTINGS& aSettings )
 }
 
 
-int PNS_SIZES_SETTINGS::GetLayerTop() const
+int SIZES_SETTINGS::GetLayerTop() const
 {
     if( m_layerPairs.empty() )
         return F_Cu;
@@ -158,10 +161,12 @@ int PNS_SIZES_SETTINGS::GetLayerTop() const
 }
 
 
-int PNS_SIZES_SETTINGS::GetLayerBottom() const
+int SIZES_SETTINGS::GetLayerBottom() const
 {
     if( m_layerPairs.empty() )
         return B_Cu;
     else
         return m_layerPairs.begin()->second;
+}
+
 }

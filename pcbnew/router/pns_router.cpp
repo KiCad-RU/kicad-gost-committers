@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -57,79 +58,71 @@
 #include <layers_id_colors_and_visibility.h>
 #include <geometry/convex_hull.h>
 
+namespace PNS {
 
 // an ugly singleton for drawing debug items within the router context.
 // To be fixed sometime in the future.
-static PNS_ROUTER* theRouter;
+static ROUTER* theRouter;
 
-PNS_ROUTER::PNS_ROUTER()
+ROUTER::ROUTER()
 {
     theRouter = this;
 
 
     m_state = IDLE;
-    m_world = NULL;
-    m_placer = NULL;
-    m_dragger = NULL;
     m_mode = PNS_MODE_ROUTE_SINGLE;
 
     // Initialize all other variables:
-    m_lastNode = NULL;
-    m_shove = NULL;
+    m_lastNode = nullptr;
     m_iterLimit = 0;
     m_showInterSteps = false;
     m_snapshotIter = 0;
-    m_view = NULL;
+    m_view = nullptr;
     m_snappingEnabled  = false;
     m_violation = false;
 }
 
 
-PNS_ROUTER* PNS_ROUTER::GetInstance()
+ROUTER* ROUTER::GetInstance()
 {
     return theRouter;
 }
 
 
-PNS_ROUTER::~PNS_ROUTER()
+ROUTER::~ROUTER()
 {
     ClearWorld();
-    theRouter = NULL;
+    theRouter = nullptr;
 }
 
-void PNS_ROUTER::SyncWorld( )
+void ROUTER::SyncWorld( )
 {
     ClearWorld();
 
-    m_world = new PNS_NODE;
-    m_iface->SyncWorld( m_world );
+    m_world = std::unique_ptr< NODE >( new NODE );
+    m_iface->SyncWorld( m_world.get() );
 
 }
 
-void PNS_ROUTER::ClearWorld()
+void ROUTER::ClearWorld()
 {
     if( m_world )
     {
         m_world->KillChildren();
-        delete m_world;
+        m_world.reset();
     }
 
-    if( m_placer )
-        delete m_placer;
-
-
-    m_world = NULL;
-    m_placer = NULL;
+    m_placer.reset();
 }
 
 
-bool PNS_ROUTER::RoutingInProgress() const
+bool ROUTER::RoutingInProgress() const
 {
     return m_state != IDLE;
 }
 
 
-const PNS_ITEMSET PNS_ROUTER::QueryHoverItems( const VECTOR2I& aP )
+const ITEM_SET ROUTER::QueryHoverItems( const VECTOR2I& aP )
 {
     if( m_state == IDLE )
         return m_world->HitTest( aP );
@@ -139,20 +132,20 @@ const PNS_ITEMSET PNS_ROUTER::QueryHoverItems( const VECTOR2I& aP )
     }
 }
 
-bool PNS_ROUTER::StartDragging( const VECTOR2I& aP, PNS_ITEM* aStartItem )
+bool ROUTER::StartDragging( const VECTOR2I& aP, ITEM* aStartItem )
 {
-    if( !aStartItem || aStartItem->OfKind( PNS_ITEM::SOLID ) )
+    if( !aStartItem || aStartItem->OfKind( ITEM::SOLID_T ) )
         return false;
 
-    m_dragger = new PNS_DRAGGER( this );
-    m_dragger->SetWorld( m_world );
+    m_dragger.reset( new DRAGGER( this ) );
+    m_dragger->SetWorld( m_world.get() );
     m_dragger->SetDebugDecorator ( m_iface->GetDebugDecorator () );
 
     if( m_dragger->Start ( aP, aStartItem ) )
         m_state = DRAG_SEGMENT;
     else
     {
-        delete m_dragger;
+        m_dragger.reset();
         m_state = IDLE;
         return false;
     }
@@ -160,24 +153,24 @@ bool PNS_ROUTER::StartDragging( const VECTOR2I& aP, PNS_ITEM* aStartItem )
     return true;
 }
 
-bool PNS_ROUTER::StartRouting( const VECTOR2I& aP, PNS_ITEM* aStartItem, int aLayer )
+bool ROUTER::StartRouting( const VECTOR2I& aP, ITEM* aStartItem, int aLayer )
 {
     switch( m_mode )
     {
         case PNS_MODE_ROUTE_SINGLE:
-            m_placer = new PNS_LINE_PLACER( this );
+            m_placer.reset( new LINE_PLACER( this ) );
             break;
         case PNS_MODE_ROUTE_DIFF_PAIR:
-            m_placer = new PNS_DIFF_PAIR_PLACER( this );
+            m_placer.reset( new DIFF_PAIR_PLACER( this ) );
             break;
         case PNS_MODE_TUNE_SINGLE:
-            m_placer = new PNS_MEANDER_PLACER( this );
+            m_placer.reset( new MEANDER_PLACER( this ) );
             break;
         case PNS_MODE_TUNE_DIFF_PAIR:
-            m_placer = new PNS_DP_MEANDER_PLACER( this );
+            m_placer.reset( new DP_MEANDER_PLACER( this ) );
             break;
         case PNS_MODE_TUNE_DIFF_PAIR_SKEW:
-            m_placer = new PNS_MEANDER_SKEW_PLACER( this );
+            m_placer.reset( new MEANDER_SKEW_PLACER( this ) );
             break;
 
         default:
@@ -199,13 +192,13 @@ bool PNS_ROUTER::StartRouting( const VECTOR2I& aP, PNS_ITEM* aStartItem, int aLa
 }
 
 
-void PNS_ROUTER::DisplayItems( const PNS_ITEMSET& aItems )
+void ROUTER::DisplayItems( const ITEM_SET& aItems )
 {
-    for( const PNS_ITEM* item : aItems.CItems() )
+    for( const ITEM* item : aItems.CItems() )
         m_iface->DisplayItem( item );
 }
 
-void PNS_ROUTER::Move( const VECTOR2I& aP, PNS_ITEM* endItem )
+void ROUTER::Move( const VECTOR2I& aP, ITEM* endItem )
 {
     m_currentEnd = aP;
 
@@ -225,41 +218,41 @@ void PNS_ROUTER::Move( const VECTOR2I& aP, PNS_ITEM* endItem )
 }
 
 
-void PNS_ROUTER::moveDragging( const VECTOR2I& aP, PNS_ITEM* aEndItem )
+void ROUTER::moveDragging( const VECTOR2I& aP, ITEM* aEndItem )
 {
     m_iface->EraseView();
 
     m_dragger->Drag( aP );
-    PNS_ITEMSET dragged = m_dragger->Traces();
+    ITEM_SET dragged = m_dragger->Traces();
 
     updateView( m_dragger->CurrentNode(), dragged );
 }
 
 
-void PNS_ROUTER::markViolations( PNS_NODE* aNode, PNS_ITEMSET& aCurrent,
-                                 PNS_NODE::ITEM_VECTOR& aRemoved )
+void ROUTER::markViolations( NODE* aNode, ITEM_SET& aCurrent,
+                                 NODE::ITEM_VECTOR& aRemoved )
 {
-    for( PNS_ITEM* item : aCurrent.Items() )
+    for( ITEM* item : aCurrent.Items() )
     {
-        PNS_NODE::OBSTACLES obstacles;
+        NODE::OBSTACLES obstacles;
 
-        aNode->QueryColliding( item, obstacles, PNS_ITEM::ANY );
+        aNode->QueryColliding( item, obstacles, ITEM::ANY_T );
 
-        if( item->OfKind( PNS_ITEM::LINE ) )
+        if( item->OfKind( ITEM::LINE_T ) )
         {
-            PNS_LINE* l = static_cast<PNS_LINE*>( item );
+            LINE* l = static_cast<LINE*>( item );
 
             if( l->EndsWithVia() )
             {
-                PNS_VIA v( l->Via() );
-                aNode->QueryColliding( &v, obstacles, PNS_ITEM::ANY );
+                VIA v( l->Via() );
+                aNode->QueryColliding( &v, obstacles, ITEM::ANY_T );
             }
         }
 
-        for( PNS_OBSTACLE& obs : obstacles )
+        for( OBSTACLE& obs : obstacles )
         {
             int clearance = aNode->GetClearance( item, obs.m_item );
-            std::unique_ptr<PNS_ITEM> tmp( obs.m_item->Clone() );
+            std::unique_ptr<ITEM> tmp( obs.m_item->Clone() );
             tmp->Mark( MK_VIOLATION );
             m_iface->DisplayItem( tmp.get(), -1, clearance );
             aRemoved.push_back( obs.m_item );
@@ -268,10 +261,10 @@ void PNS_ROUTER::markViolations( PNS_NODE* aNode, PNS_ITEMSET& aCurrent,
 }
 
 
-void PNS_ROUTER::updateView( PNS_NODE* aNode, PNS_ITEMSET& aCurrent )
+void ROUTER::updateView( NODE* aNode, ITEM_SET& aCurrent )
 {
-    PNS_NODE::ITEM_VECTOR removed, added;
-    PNS_NODE::OBSTACLES obstacles;
+    NODE::ITEM_VECTOR removed, added;
+    NODE::OBSTACLES obstacles;
 
     if( !aNode )
         return;
@@ -281,7 +274,7 @@ void PNS_ROUTER::updateView( PNS_NODE* aNode, PNS_ITEMSET& aCurrent )
 
     aNode->GetUpdatedItems( removed, added );
 
-	for ( auto item : added )
+    for ( auto item : added )
         m_iface->DisplayItem( item );
 
     for ( auto item : removed )
@@ -289,7 +282,7 @@ void PNS_ROUTER::updateView( PNS_NODE* aNode, PNS_ITEMSET& aCurrent )
 }
 
 
-void PNS_ROUTER::UpdateSizes ( const PNS_SIZES_SETTINGS& aSizes )
+void ROUTER::UpdateSizes ( const SIZES_SETTINGS& aSizes )
 {
     m_sizes = aSizes;
 
@@ -301,34 +294,34 @@ void PNS_ROUTER::UpdateSizes ( const PNS_SIZES_SETTINGS& aSizes )
 }
 
 
-void PNS_ROUTER::movePlacing( const VECTOR2I& aP, PNS_ITEM* aEndItem )
+void ROUTER::movePlacing( const VECTOR2I& aP, ITEM* aEndItem )
 {
     m_iface->EraseView();
 
     m_placer->Move( aP, aEndItem );
-    PNS_ITEMSET current = m_placer->Traces();
+    ITEM_SET current = m_placer->Traces();
 
-    for( const PNS_ITEM* item : current.CItems() )
+    for( const ITEM* item : current.CItems() )
     {
-        if( !item->OfKind( PNS_ITEM::LINE ) )
+        if( !item->OfKind( ITEM::LINE_T ) )
             continue;
 
-        const PNS_LINE* l = static_cast<const PNS_LINE*>( item );
+        const LINE* l = static_cast<const LINE*>( item );
         m_iface->DisplayItem( l );
 
         if( l->EndsWithVia() )
             m_iface->DisplayItem( &l->Via() );
     }
 
-    //PNS_ITEMSET tmp( &current );
+    //ITEM_SET tmp( &current );
 
     updateView( m_placer->CurrentNode( true ), current );
 }
 
 
-void PNS_ROUTER::CommitRouting( PNS_NODE* aNode )
+void ROUTER::CommitRouting( NODE* aNode )
 {
-    PNS_NODE::ITEM_VECTOR removed, added;
+    NODE::ITEM_VECTOR removed, added;
 
     aNode->GetUpdatedItems( removed, added );
 
@@ -343,7 +336,7 @@ void PNS_ROUTER::CommitRouting( PNS_NODE* aNode )
 }
 
 
-bool PNS_ROUTER::FixRoute( const VECTOR2I& aP, PNS_ITEM* aEndItem )
+bool ROUTER::FixRoute( const VECTOR2I& aP, ITEM* aEndItem )
 {
     bool rv = false;
 
@@ -368,7 +361,7 @@ bool PNS_ROUTER::FixRoute( const VECTOR2I& aP, PNS_ITEM* aEndItem )
 }
 
 
-void PNS_ROUTER::StopRouting()
+void ROUTER::StopRouting()
 {
     // Update the ratsnest with new changes
 
@@ -378,21 +371,15 @@ void PNS_ROUTER::StopRouting()
         m_placer->GetModifiedNets( nets );
 
         // Update the ratsnest with new changes
-		for ( auto n : nets )
+        for ( auto n : nets )
             m_iface->UpdateNet( n );
     }
 
     if( !RoutingInProgress() )
         return;
 
-    if( m_placer )
-        delete m_placer;
-
-    if( m_dragger )
-        delete m_dragger;
-
-    m_placer = NULL;
-    m_dragger = NULL;
+    m_placer.reset();
+    m_dragger.reset();
 
     m_iface->EraseView();
 
@@ -402,7 +389,7 @@ void PNS_ROUTER::StopRouting()
 }
 
 
-void PNS_ROUTER::FlipPosture()
+void ROUTER::FlipPosture()
 {
     if( m_state == ROUTE_TRACK )
     {
@@ -411,7 +398,7 @@ void PNS_ROUTER::FlipPosture()
 }
 
 
-void PNS_ROUTER::SwitchLayer( int aLayer )
+void ROUTER::SwitchLayer( int aLayer )
 {
     switch( m_state )
     {
@@ -424,7 +411,7 @@ void PNS_ROUTER::SwitchLayer( int aLayer )
 }
 
 
-void PNS_ROUTER::ToggleViaPlacement()
+void ROUTER::ToggleViaPlacement()
 {
     if( m_state == ROUTE_TRACK )
     {
@@ -434,7 +421,7 @@ void PNS_ROUTER::ToggleViaPlacement()
 }
 
 
-const std::vector<int> PNS_ROUTER::GetCurrentNets() const
+const std::vector<int> ROUTER::GetCurrentNets() const
 {
     if( m_placer )
         return m_placer->CurrentNets();
@@ -443,7 +430,7 @@ const std::vector<int> PNS_ROUTER::GetCurrentNets() const
 }
 
 
-int PNS_ROUTER::GetCurrentLayer() const
+int ROUTER::GetCurrentLayer() const
 {
     if( m_placer )
         return m_placer->CurrentLayer();
@@ -451,9 +438,9 @@ int PNS_ROUTER::GetCurrentLayer() const
 }
 
 
-void PNS_ROUTER::DumpLog()
+void ROUTER::DumpLog()
 {
-    PNS_LOGGER* logger = NULL;
+    LOGGER* logger = nullptr;
 
     switch( m_state )
     {
@@ -474,7 +461,7 @@ void PNS_ROUTER::DumpLog()
 }
 
 
-bool PNS_ROUTER::IsPlacingVia() const
+bool ROUTER::IsPlacingVia() const
 {
     if( !m_placer )
         return false;
@@ -483,7 +470,7 @@ bool PNS_ROUTER::IsPlacingVia() const
 }
 
 
-void PNS_ROUTER::SetOrthoMode( bool aEnable )
+void ROUTER::SetOrthoMode( bool aEnable )
 {
     if( !m_placer )
         return;
@@ -492,13 +479,15 @@ void PNS_ROUTER::SetOrthoMode( bool aEnable )
 }
 
 
-void PNS_ROUTER::SetMode( PNS_ROUTER_MODE aMode )
+void ROUTER::SetMode( ROUTER_MODE aMode )
 {
     m_mode = aMode;
 }
 
-void PNS_ROUTER::SetInterface( PNS_ROUTER_IFACE *aIface )
+void ROUTER::SetInterface( ROUTER_IFACE *aIface )
 {
     m_iface = aIface;
     m_iface->SetRouter( this );
+}
+
 }

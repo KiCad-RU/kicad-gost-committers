@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -28,15 +29,18 @@
 
 #include <math/vector2d.h>
 
-class PNS_ITEM;
 class SHAPE_LINE_CHAIN;
 class SHAPE;
 
-class PNS_LOGGER
+namespace PNS {
+
+class ITEM;
+
+class LOGGER
 {
 public:
-    PNS_LOGGER();
-    ~PNS_LOGGER();
+    LOGGER();
+    ~LOGGER();
 
     void Save( const std::string& aFilename );
     void Clear();
@@ -44,7 +48,7 @@ public:
     void NewGroup( const std::string& aName, int aIter = 0 );
     void EndGroup();
 
-    void Log( const PNS_ITEM* aItem, int aKind = 0, const std::string aName = std::string() );
+    void Log( const ITEM* aItem, int aKind = 0, const std::string aName = std::string() );
     void Log( const SHAPE_LINE_CHAIN *aL, int aKind = 0, const std::string aName = std::string() );
     void Log( const VECTOR2I& aStart, const VECTOR2I& aEnd, int aKind = 0,
               const std::string aName = std::string() );
@@ -55,5 +59,7 @@ private:
     bool m_groupOpened;
     std::stringstream m_theLog;
 };
+
+}
 
 #endif
