@@ -39,8 +39,6 @@
 #include <class_track.h>
 #include <class_zone.h>
 
-#include <boost/range/adaptor/map.hpp>
-#include <boost/scoped_ptr.hpp>
 #include <functional>
 using namespace std::placeholders;
 
@@ -129,6 +127,7 @@ static std::vector<RN_EDGE_MST_PTR>* kruskalMST( RN_LINKS::RN_EDGE_LIST& aEdges,
     // Set tags for marking cycles
     boost::unordered_map<RN_NODE_PTR, int> tags;
     unsigned int tag = 0;
+
     for( RN_NODE_PTR& node : aNodes )
     {
         node->SetTag( tag );
@@ -160,40 +159,41 @@ static std::vector<RN_EDGE_MST_PTR>* kruskalMST( RN_LINKS::RN_EDGE_LIST& aEdges,
                 ratsnestLines = true;
 
             // Update tags
-            std::list<int>::iterator it, itEnd;
-
             if( ratsnestLines )
             {
-                for( it = cycles[trgTag].begin(), itEnd = cycles[trgTag].end(); it != itEnd; ++it )
+                for( auto it = cycles[trgTag].begin(); it != cycles[trgTag].end(); ++it )
+                {
                     tags[aNodes[*it]] = srcTag;
-            }
-            else
-            {
-                for( it = cycles[trgTag].begin(), itEnd = cycles[trgTag].end(); it != itEnd; ++it ) {
-                    tags[aNodes[*it]] = srcTag;
-                    aNodes[*it]->SetTag( srcTag );
                 }
-            }
-
-            // Move nodes that were marked with old tag to the list marked with the new tag
-            cycles[srcTag].splice( cycles[srcTag].end(), cycles[trgTag] );
-
-            if( ratsnestLines )
-            {
                 // Do a copy of edge, but make it RN_EDGE_MST. In contrary to RN_EDGE,
                 // RN_EDGE_MST saves both source and target node and does not require any other
                 // edges to exist for getting source/target nodes
                 RN_EDGE_MST_PTR newEdge = std::make_shared<RN_EDGE_MST>( dt->GetSourceNode(),
                                                                          dt->GetTargetNode(),
                                                                          dt->GetWeight() );
+
+                assert( newEdge->GetSourceNode()->GetTag() != newEdge->GetTargetNode()->GetTag() );
+                assert( newEdge->GetWeight() > 0 );
+
                 mst->push_back( newEdge );
                 ++mstSize;
             }
             else
             {
+                //for( it = cycles[trgTag].begin(), itEnd = cycles[trgTag].end(); it != itEnd; ++it )
+                //for( auto it : cycles[trgTag] )
+                for( auto it = cycles[trgTag].begin(); it != cycles[trgTag].end(); ++it )
+                {
+                    tags[aNodes[*it]] = srcTag;
+                    aNodes[*it]->SetTag( srcTag );
+                }
+
                 // Processing a connection, decrease the expected size of the ratsnest MST
                 --mstExpectedSize;
             }
+
+            // Move nodes that were marked with old tag to the list marked with the new tag
+            cycles[srcTag].splice( cycles[srcTag].end(), cycles[trgTag] );
         }
 
         // Remove the edge that was just processed
@@ -211,42 +211,60 @@ void RN_NET::validateEdge( RN_EDGE_MST_PTR& aEdge )
 {
     RN_NODE_PTR source = aEdge->GetSourceNode();
     RN_NODE_PTR target = aEdge->GetTargetNode();
-    bool valid = true;
+    bool update = false, changed = false;
 
     // If any of nodes belonging to the edge has the flag set,
     // change it to the closest node that has flag cleared
-    if( source->GetFlag() )
+    // note: finding the right nodes can be done iteratively to get the best results,
+    // but it is not likely to be worth the time cost
+    do
     {
-        valid = false;
-
-        std::list<RN_NODE_PTR> closest = GetClosestNodes( source, WITHOUT_FLAG() );
-        for( RN_NODE_PTR& node : closest )
+        if( changed || source->GetNoLine() )
         {
-            if( node && node != target )
+            changed = false;
+            std::list<RN_NODE_PTR> closest = GetClosestNodes( target,
+                    LINE_TARGET_SAME_TAG( source->GetTag() ) );
+
+            if( !closest.empty() )
             {
-                source = node;
-                break;
+                RN_NODE_PTR& node = closest.front();
+
+                if( node != source )
+                {
+                    changed = true;
+                    update = true;
+                    source = node;
+                }
+            }
+        }
+
+        if( changed || target->GetNoLine() )
+        {
+            changed = false;
+            std::list<RN_NODE_PTR> closest = GetClosestNodes( source,
+                    LINE_TARGET_SAME_TAG( target->GetTag() ) );
+
+            if( !closest.empty() )
+            {
+                RN_NODE_PTR& node = closest.front();
+
+                if( node != target )
+                {
+                    changed = true;
+                    update = true;
+                    target = node;
+                }
             }
         }
     }
+    while( changed );
 
-    if( target->GetFlag() )
-    {
-        valid = false;
-
-        std::list<RN_NODE_PTR> closest = GetClosestNodes( target, WITHOUT_FLAG() );
-        for( RN_NODE_PTR& node : closest )
-        {
-            if( node && node != source )
-            {
-                target = node;
-                break;
-            }
-        }
-    }
+    assert( source->GetTag() >= 0 && target->GetTag() >= 0 );
+    assert( source->GetTag() != target->GetTag() );
+    assert( source != target );
 
     // Replace an invalid edge with new, valid one
-    if( !valid )
+    if( update )
         aEdge.reset( new RN_EDGE_MST( source, target ) );
 }
 
@@ -328,7 +346,8 @@ void RN_NET::compute()
     const RN_LINKS::RN_NODE_SET& boardNodes = m_links.GetNodes();
     const RN_LINKS::RN_EDGE_LIST& boardEdges = m_links.GetConnections();
 
-    // Special cases do not need complicated algorithms
+    // Special cases do not need complicated algorithms (actually, it does not work well with
+    // the Delaunay triangulator)
     if( boardNodes.size() <= 2 )
     {
         m_rnEdges.reset( new std::vector<RN_EDGE_MST_PTR>( 0 ) );
@@ -339,12 +358,18 @@ void RN_NET::compute()
             RN_LINKS::RN_NODE_SET::iterator last = ++boardNodes.begin();
 
             // There can be only one possible connection, but it is missing
-            m_rnEdges->push_back( std::make_shared<RN_EDGE_MST>( *boardNodes.begin(), *last ) );
+            RN_EDGE_MST_PTR edge = std::make_shared<RN_EDGE_MST>( *boardNodes.begin(), *last );
+            edge->GetSourceNode()->SetTag( 0 );
+            edge->GetTargetNode()->SetTag( 1 );
+            m_rnEdges->push_back( edge );
+        }
+        else
+        {
+            // Set tags to nodes as connected
+            for( RN_NODE_PTR node : boardNodes )
+                node->SetTag( 0 );
         }
 
-        // Set tags to nodes as connected
-        for( RN_NODE_PTR node : boardNodes )
-            node->SetTag( 0 );
 
         return;
     }
@@ -355,7 +380,7 @@ void RN_NET::compute()
 
     TRIANGULATOR triangulator;
     triangulator.CreateDelaunay( nodes.begin(), nodes.end() );
-    boost::scoped_ptr<RN_LINKS::RN_EDGE_LIST> triangEdges( triangulator.GetEdges() );
+    std::unique_ptr<RN_LINKS::RN_EDGE_LIST> triangEdges( triangulator.GetEdges() );
 
     // Compute weight/distance for edges resulting from triangulation
     RN_LINKS::RN_EDGE_LIST::iterator eit, eitEnd;
@@ -398,7 +423,7 @@ RN_POLY::RN_POLY( const SHAPE_POLY_SET* aParent,
 
     // Mark it as not appropriate as a destination of ratsnest edges
     // (edges coming out from a polygon vertex look weird)
-    m_node->SetFlag( true );
+    m_node->SetNoLine( true );
 }
 
 
@@ -614,8 +639,7 @@ std::list<RN_NODE_PTR> RN_NET::GetClosestNodes( const RN_NODE_PTR& aNode, int aN
     const RN_LINKS::RN_NODE_SET& nodes = m_links.GetNodes();
 
     // Copy nodes
-    for( const RN_NODE_PTR& node : nodes )
-        closest.push_back( node );
+    std::copy( nodes.begin(), nodes.end(), std::back_inserter( closest ) );
 
     // Sort by the distance from aNode
     closest.sort( std::bind( sortDistance, std::cref( aNode ), _1, _2 ) );
@@ -637,18 +661,14 @@ std::list<RN_NODE_PTR> RN_NET::GetClosestNodes( const RN_NODE_PTR& aNode,
     std::list<RN_NODE_PTR> closest;
     const RN_LINKS::RN_NODE_SET& nodes = m_links.GetNodes();
 
-    // Copy nodes
-    for( const RN_NODE_PTR& node : nodes )
-        closest.push_back( node );
+    // Copy filtered nodes
+    std::copy_if( nodes.begin(), nodes.end(), std::back_inserter( closest ), std::cref( aFilter ) );
 
     // Sort by the distance from aNode
     closest.sort( std::bind( sortDistance, std::cref( aNode ), _1, _2 ) );
 
     // aNode should not be returned in the results
     closest.remove( aNode );
-
-    // Filter out by condition
-    std::remove_if( closest.begin(), closest.end(), aFilter );
 
     // Trim the result to the asked size
     if( aNumber > 0 )
@@ -734,26 +754,26 @@ void RN_NET::GetAllItems( std::list<BOARD_CONNECTED_ITEM*>& aOutput, RN_ITEM_TYP
 {
     if( aType & RN_PADS )
     {
-        for( const BOARD_CONNECTED_ITEM* item : m_pads | boost::adaptors::map_keys )
-            aOutput.push_back( const_cast<BOARD_CONNECTED_ITEM*>( item ) );
+        for( auto it : m_pads )
+            aOutput.push_back( const_cast<D_PAD*>( it.first ) );
     }
 
     if( aType & RN_VIAS )
     {
-        for( const BOARD_CONNECTED_ITEM* item : m_vias | boost::adaptors::map_keys )
-            aOutput.push_back( const_cast<BOARD_CONNECTED_ITEM*>( item ) );
+        for( auto it : m_vias )
+            aOutput.push_back( const_cast<VIA*>( it.first ) );
     }
 
     if( aType & RN_TRACKS )
     {
-        for( const BOARD_CONNECTED_ITEM* item : m_tracks | boost::adaptors::map_keys )
-            aOutput.push_back( const_cast<BOARD_CONNECTED_ITEM*>( item ) );
+        for( auto it : m_tracks )
+            aOutput.push_back( const_cast<TRACK*>( it.first ) );
     }
 
     if( aType & RN_ZONES )
     {
-        for( const BOARD_CONNECTED_ITEM* item : m_zones | boost::adaptors::map_keys )
-            aOutput.push_back( const_cast<BOARD_CONNECTED_ITEM*>( item ) );
+        for( auto it : m_zones )
+            aOutput.push_back( const_cast<ZONE_CONTAINER*>( it.first ) );
     }
 }
 
@@ -761,7 +781,7 @@ void RN_NET::GetAllItems( std::list<BOARD_CONNECTED_ITEM*>& aOutput, RN_ITEM_TYP
 void RN_NET::ClearSimple()
 {
     for( const RN_NODE_PTR& node : m_blockedNodes )
-        node->SetFlag( false );
+        node->SetNoLine( false );
 
     m_blockedNodes.clear();
     m_simpleNodes.clear();
@@ -1033,22 +1053,25 @@ void RN_NET::processPads()
 }
 
 
-void RN_DATA::Add( const BOARD_ITEM* aItem )
+bool RN_DATA::Add( const BOARD_ITEM* aItem )
 {
     int net;
 
     if( aItem->IsConnected() )
     {
         net = static_cast<const BOARD_CONNECTED_ITEM*>( aItem )->GetNetCode();
-        if( net < 1 )           // do not process unconnected items
-            return;
 
-        if( net >= (int) m_nets.size() )            // Autoresize
+        if( net < 1 )           // do not process unconnected items
+            return false;
+
+        // Autoresize is necessary e.g. for module editor
+        if( net >= (int) m_nets.size() )
             m_nets.resize( net + 1 );
     }
     else if( aItem->Type() == PCB_MODULE_T )
     {
         const MODULE* module = static_cast<const MODULE*>( aItem );
+
         for( const D_PAD* pad = module->Pads().GetFirst(); pad; pad = pad->Next() )
         {
             net = pad->GetNetCode();
@@ -1056,16 +1079,24 @@ void RN_DATA::Add( const BOARD_ITEM* aItem )
             if( net < 1 )       // do not process unconnected items
                 continue;
 
-            if( net >= (int) m_nets.size() )        // Autoresize
+            // Autoresize is necessary e.g. for module editor
+            if( net >= (int) m_nets.size() )
                 m_nets.resize( net + 1 );
 
             m_nets[net].AddItem( pad );
         }
 
-        return;
+        return true;
     }
-    else
-        return;
+    else if( aItem->Type() == PCB_NETINFO_T )
+    {
+        int netCount = m_board->GetNetCount();
+
+        if( (unsigned) netCount > m_nets.size() )
+            m_nets.resize( netCount );
+
+        return true;
+    }
 
     switch( aItem->Type() )
     {
@@ -1086,12 +1117,15 @@ void RN_DATA::Add( const BOARD_ITEM* aItem )
         break;
 
     default:
+        return false;
         break;
     }
+
+    return true;
 }
 
 
-void RN_DATA::Remove( const BOARD_ITEM* aItem )
+bool RN_DATA::Remove( const BOARD_ITEM* aItem )
 {
     int net;
 
@@ -1100,21 +1134,19 @@ void RN_DATA::Remove( const BOARD_ITEM* aItem )
         net = static_cast<const BOARD_CONNECTED_ITEM*>( aItem )->GetNetCode();
 
         if( net < 1 )           // do not process unconnected items
-            return;
+            return false;
 
-#ifdef NDEBUG
-        if( net >= (int) m_nets.size() )        // Autoresize
+        // Autoresize is necessary e.g. for module editor
+        if( net >= (int) m_nets.size() )
         {
             m_nets.resize( net + 1 );
-
-            return;     // if it was resized, then surely the item had not been added before
+            return false;     // if it was resized, then surely the item had not been added before
         }
-#endif
-        assert( net < (int) m_nets.size() );
     }
     else if( aItem->Type() == PCB_MODULE_T )
     {
         const MODULE* module = static_cast<const MODULE*>( aItem );
+
         for( const D_PAD* pad = module->Pads().GetFirst(); pad; pad = pad->Next() )
         {
             net = pad->GetNetCode();
@@ -1122,23 +1154,22 @@ void RN_DATA::Remove( const BOARD_ITEM* aItem )
             if( net < 1 )       // do not process unconnected items
                 continue;
 
-#ifdef NDEBUG
-            if( net >= (int) m_nets.size() )    // Autoresize
+            // Autoresize is necessary e.g. for module editor
+            if( net >= (int) m_nets.size() )
             {
                 m_nets.resize( net + 1 );
-
-                return;     // if it was resized, then surely the item had not been added before
+                return false;     // if it was resized, then surely the item had not been added before
             }
-#endif
-            assert( net < (int) m_nets.size() );
 
             m_nets[net].RemoveItem( pad );
         }
 
-        return;
+        return true;
     }
     else
-        return;
+    {
+        return false;
+    }
 
     switch( aItem->Type() )
     {
@@ -1159,15 +1190,24 @@ void RN_DATA::Remove( const BOARD_ITEM* aItem )
         break;
 
     default:
+        return false;
         break;
     }
+
+    return true;
 }
 
 
-void RN_DATA::Update( const BOARD_ITEM* aItem )
+bool RN_DATA::Update( const BOARD_ITEM* aItem )
 {
-    Remove( aItem );
-    Add( aItem );
+    if( Remove( aItem ) )
+    {
+        bool res = Add( aItem );
+        assert( res );
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -1226,9 +1266,6 @@ void RN_DATA::ProcessBoard()
 void RN_DATA::Recalculate( int aNet )
 {
     unsigned int netCount = m_board->GetNetCount();
-
-    if( netCount > m_nets.size() )
-        m_nets.resize( netCount );
 
     if( aNet < 0 && netCount > 1 )              // Recompute everything
     {
