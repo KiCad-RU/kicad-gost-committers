@@ -33,6 +33,7 @@
 #include <wx/filename.h>
 #include <wx/xml/xml.h>
 #include <common.h>
+#include <richio.h>
 
 #include <pcad2kicad.h>
 #include <bitmaps.h>
@@ -77,7 +78,7 @@ void PCAD2KICAD_FRAME::OnLib( wxCommandEvent& event )
     catch( IO_ERROR ioe )
     {
         wxString msg = wxString::Format( _( "Error loading library.\n%s" ),
-                                         ioe.errorText.GetData() );
+                                         GetChars( ioe.What() ));
         wxMessageBox( msg, _( "Open Library File" ), wxOK | wxICON_ERROR );
 
         return;
@@ -121,7 +122,7 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     catch( IO_ERROR ioe )
     {
         wxString msg = wxString::Format( _( "Error loading scheme.\n%s" ),
-                                         ioe.errorText.GetData() );
+                                         GetChars( ioe.What() ) );
         wxMessageBox( msg, _( "Open Schematic File" ), wxOK | wxICON_ERROR );
 
         return;
