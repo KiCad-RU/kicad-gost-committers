@@ -200,7 +200,7 @@ LIB_EDIT_FRAME::LIB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_LastGridSizeId = ID_POPUP_GRID_LEVEL_50 - ID_POPUP_GRID_LEVEL_1000;
 
     wxIcon icon;
-    icon.CopyFromBitmap( KiBitmap( libedit_icon_xpm ) );
+    icon.CopyFromBitmap( KiBitmap( icon_libedit_xpm ) );
     SetIcon( icon );
 
     LoadSettings( config() );
@@ -369,7 +369,7 @@ double LIB_EDIT_FRAME::BestZoom()
 
     if( part )
     {
-        EDA_RECT boundingBox = part->GetBoundingBox( m_unit, m_convert );
+        EDA_RECT boundingBox = part->GetUnitBoundingBox( m_unit, m_convert );
 
         dx = boundingBox.GetWidth();
         dy = boundingBox.GetHeight();

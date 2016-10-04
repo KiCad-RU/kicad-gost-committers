@@ -487,7 +487,6 @@ bool ROUTER_TOOL::prepareInteractive()
 {
     int routingLayer = getStartLayer( m_startItem );
     m_frame->SetActiveLayer( ToLAYER_ID( routingLayer ) );
-    m_frame->UndoRedoBlock( true );
 
     // fixme: switch on invisible layer
 
@@ -524,7 +523,7 @@ bool ROUTER_TOOL::prepareInteractive()
     m_endItem = NULL;
     m_endSnapPoint = m_startSnapPoint;
 
-    m_frame->UndoRedoBlock( false );
+    m_frame->UndoRedoBlock( true );
 
     return true;
 }
@@ -536,6 +535,7 @@ bool ROUTER_TOOL::finishInteractive()
 
     m_ctls->SetAutoPan( false );
     m_ctls->ForceCursorPosition( false );
+    m_frame->UndoRedoBlock( false );
     highlightNet( false );
 
     return true;
@@ -549,9 +549,7 @@ void ROUTER_TOOL::performRouting()
 
     while( OPT_TOOL_EVENT evt = Wait() )
     {
-        if( evt->IsCancel() || evt->IsActivate() )
-            break;
-        else if( evt->IsMotion() )
+        if( evt->IsMotion() )
         {
             m_router->SetOrthoMode( evt->Modifier( MD_CTRL ) );
             updateEndItem( *evt );
@@ -605,6 +603,8 @@ void ROUTER_TOOL::performRouting()
                 still_routing = m_router->FixRoute( m_endSnapPoint, m_endItem );
             break;
         }
+        else if( evt->IsCancel() || evt->IsActivate() || evt->IsUndoRedo() )
+            break;
 
         handleCommonEvents( *evt );
     }
@@ -670,7 +670,6 @@ int ROUTER_TOOL::mainLoop( PNS::ROUTER_MODE aMode )
 
     m_router->SetMode( aMode );
 
-    m_ctls->SetSnapping( true );
     m_ctls->ShowCursor( true );
 
     m_startSnapPoint = getViewControls()->GetCursorPosition();
@@ -685,7 +684,11 @@ int ROUTER_TOOL::mainLoop( PNS::ROUTER_MODE aMode )
         {
             break; // Finish
         }
-        else if( evt->Action() == TA_UNDO_REDO )
+        else if( evt->Action() == TA_UNDO_REDO_PRE )
+        {
+            m_router->ClearWorld();
+        }
+        else if( evt->Action() == TA_UNDO_REDO_POST )
         {
             m_router->SyncWorld();
         }
@@ -756,13 +759,13 @@ void ROUTER_TOOL::performDragging()
 
     ctls->SetAutoPan( true );
 
+    m_frame->UndoRedoBlock( true );
+
     while( OPT_TOOL_EVENT evt = Wait() )
     {
         ctls->ForceCursorPosition( false );
 
-        if( evt->IsCancel() || evt->IsActivate() )
-            break;
-        else if( evt->IsMotion() )
+        if( evt->IsMotion() )
         {
             updateEndItem( *evt );
             m_router->Move( m_endSnapPoint, m_endItem );
@@ -772,6 +775,8 @@ void ROUTER_TOOL::performDragging()
             if( m_router->FixRoute( m_endSnapPoint, m_endItem ) )
                 break;
         }
+        else if( evt->IsCancel() || evt->IsActivate() || evt->IsUndoRedo() )
+            break;
 
         handleCommonEvents( *evt );
     }
@@ -781,6 +786,7 @@ void ROUTER_TOOL::performDragging()
 
     m_startItem = NULL;
 
+    m_frame->UndoRedoBlock( false );
     ctls->SetAutoPan( false );
     ctls->ForceCursorPosition( false );
     highlightNet( false );
@@ -820,7 +826,6 @@ int ROUTER_TOOL::InlineDrag( const TOOL_EVENT& aEvent )
 
     while( OPT_TOOL_EVENT evt = Wait() )
     {
-        p0 = ctls->GetCursorPosition();
 
         if( evt->IsCancel() )
         {
@@ -828,11 +833,13 @@ int ROUTER_TOOL::InlineDrag( const TOOL_EVENT& aEvent )
         }
         else if( evt->IsMotion() || evt->IsDrag( BUT_LEFT ) )
         {
-            m_router->Move( p0, NULL );
+            updateEndItem( *evt );
+            m_router->Move( m_endSnapPoint, m_endItem );
         }
         else if( evt->IsMouseUp( BUT_LEFT ) || evt->IsClick( BUT_LEFT ) )
         {
-            m_router->FixRoute( p0, NULL );
+            updateEndItem( *evt );
+            m_router->FixRoute( m_endSnapPoint, m_endItem );
             break;
         }
     }

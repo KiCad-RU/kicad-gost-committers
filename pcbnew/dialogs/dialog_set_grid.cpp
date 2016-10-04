@@ -58,12 +58,12 @@ public:
     /// This has no dependencies on calling wxFrame derivative, such as PCB_BASE_FRAME.
     DIALOG_SET_GRID( PCB_BASE_FRAME* aParent, const wxArrayString& aGridChoices );
 
-    bool TransferDataFromWindow();
-    bool TransferDataToWindow();
+    bool TransferDataFromWindow() override;
+    bool TransferDataToWindow() override;
 
 private:
-    void OnResetGridOrgClick( wxCommandEvent& event );
-    void OnInitDlg( wxInitDialogEvent& event )
+    void OnResetGridOrgClick( wxCommandEvent& event ) override;
+    void OnInitDlg( wxInitDialogEvent& event ) override
     {
         // Call the default wxDialog handler of a wxInitDialogEvent
         TransferDataToWindow();

@@ -54,7 +54,7 @@ public:
 
     SCH_FIELD_VALIDATOR( const SCH_FIELD_VALIDATOR& aValidator );
 
-    virtual wxObject* Clone() const { return new SCH_FIELD_VALIDATOR( *this ); }
+    virtual wxObject* Clone() const override { return new SCH_FIELD_VALIDATOR( *this ); }
 
     /**
      * Function Validate
@@ -65,7 +65,7 @@ public:
      * @param aParent - a pointer to the parent window of the error message dialog.
      * @return true if the text in the control is valid otherwise false.
      */
-    virtual bool Validate( wxWindow *aParent );
+    virtual bool Validate( wxWindow *aParent ) override;
 };
 
 

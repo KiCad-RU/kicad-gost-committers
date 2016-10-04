@@ -52,20 +52,20 @@ protected:
     BOARD*  m_brd;
 
     // Returns true if the layer id is enabled (i.e. is it should be displayed)
-    bool IsLayerEnabled( LAYER_NUM aLayer ) const
+    bool IsLayerEnabled( LAYER_NUM aLayer ) const override
     {
         return m_brd->IsLayerEnabled( LAYER_ID( aLayer ) );
     }
 
     // Returns a color index from the layer id
     // Virtual function
-    EDA_COLOR_T GetLayerColor( LAYER_NUM aLayer ) const
+    EDA_COLOR_T GetLayerColor( LAYER_NUM aLayer ) const override
     {
         return m_brd->GetLayerColor( ToLAYER_ID( aLayer ) );
     }
 
     // Returns the name of the layer id
-    wxString GetLayerName( LAYER_NUM aLayer ) const      // overrides LAYER_SELECTOR
+    wxString GetLayerName( LAYER_NUM aLayer ) const override
     {
         return m_brd->GetLayerName( ToLAYER_ID( aLayer ) );
     }
@@ -94,8 +94,8 @@ public:
 
 private:
     // Event handlers
-    void OnLeftGridCellClick( wxGridEvent& event );
-    void OnRightGridCellClick( wxGridEvent& event );
+    void OnLeftGridCellClick( wxGridEvent& event ) override;
+    void OnRightGridCellClick( wxGridEvent& event ) override;
 
     void buildList();
 };
@@ -264,15 +264,15 @@ public:
     }
 
 private:
-    void OnLeftGridCellClick( wxGridEvent& event );
-    void OnRightGridCellClick( wxGridEvent& event );
+    void OnLeftGridCellClick( wxGridEvent& event ) override;
+    void OnRightGridCellClick( wxGridEvent& event ) override;
 
     void OnOkClick( wxCommandEvent& event )
     {
         EndModal( wxID_OK );
     }
 
-    void OnCancelClick( wxCommandEvent& event )
+    void OnCancelClick( wxCommandEvent& event ) override
     {
         EndModal( wxID_CANCEL );
     }

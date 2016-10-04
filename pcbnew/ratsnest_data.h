@@ -35,10 +35,9 @@
 
 #include <math/box2.h>
 
-#include <boost/unordered_set.hpp>
-#include <boost/unordered_map.hpp>
-
 #include <deque>
+#include <unordered_set>
+#include <unordered_map>
 
 class BOARD;
 class BOARD_ITEM;
@@ -95,7 +94,7 @@ RN_NODE_OR_FILTER operator||( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILT
 ///> Leaves nodes that can be a ratsnest line target
 struct LINE_TARGET : public RN_NODE_FILTER
 {
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
         return !aNode->GetNoLine();
     }
@@ -108,7 +107,7 @@ struct LINE_TARGET_SAME_TAG : public RN_NODE_FILTER
         m_tag( aTag )
     {}
 
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
         return !aNode->GetNoLine() && aNode->GetTag() == m_tag;
     }
@@ -123,7 +122,7 @@ struct LINE_TARGET_DIFF_TAG : public RN_NODE_FILTER
         m_tag( aTag )
     {}
 
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
         return !aNode->GetNoLine() && aNode->GetTag() == m_tag;
     }
@@ -138,7 +137,7 @@ struct RN_NODE_AND_FILTER : public RN_NODE_FILTER
         m_filter1( aFilter1 ), m_filter2( aFilter2 )
     {}
 
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
         return m_filter1( aNode ) && m_filter2( aNode );
     }
@@ -154,7 +153,7 @@ struct RN_NODE_OR_FILTER : public RN_NODE_FILTER
         m_filter1( aFilter1 ), m_filter2( aFilter2 )
     {}
 
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
         return m_filter1( aNode ) || m_filter2( aNode );
     }
@@ -200,7 +199,7 @@ class RN_LINKS
 {
 public:
     // Helper typedefs
-    typedef boost::unordered_set<RN_NODE_PTR, RN_NODE_HASH, RN_NODE_COMPARE> RN_NODE_SET;
+    typedef std::unordered_set<RN_NODE_PTR, RN_NODE_HASH, RN_NODE_COMPARE> RN_NODE_SET;
     typedef std::list<RN_EDGE_PTR> RN_EDGE_LIST;
 
     /**
@@ -401,7 +400,7 @@ public:
      * taken into account during ratsnest computations.
      * @param aPad is a pad for which node is added.
      */
-    void AddItem( const D_PAD* aPad );
+    bool AddItem( const D_PAD* aPad );
 
     /**
      * Function AddItem()
@@ -409,7 +408,7 @@ public:
      * taken into account during ratsnest computations.
      * @param aVia is a via for which node is added.
      */
-    void AddItem( const VIA* aVia );
+    bool AddItem( const VIA* aVia );
 
     /**
      * Function AddItem()
@@ -417,7 +416,7 @@ public:
      * taken into account during ratsnest computations.
      * @param aTrack is a track for which nodes and edges are added.
      */
-    void AddItem( const TRACK* aTrack );
+    bool AddItem( const TRACK* aTrack );
 
     /**
      * Function AddItem()
@@ -425,7 +424,7 @@ public:
      * taken into account during ratsnest computations.
      * @param aZone is a zone to be processed.
      */
-    void AddItem( const ZONE_CONTAINER* aZone );
+    bool AddItem( const ZONE_CONTAINER* aZone );
 
     /**
      * Function RemoveItem()
@@ -433,7 +432,7 @@ public:
      * taken into account during ratsnest computations anymore.
      * @param aPad is a pad for which nodes and edges are removed.
      */
-    void RemoveItem( const D_PAD* aPad );
+    bool RemoveItem( const D_PAD* aPad );
 
     /**
      * Function RemoveItem()
@@ -441,7 +440,7 @@ public:
      * taken into account during ratsnest computations anymore.
      * @param aVia is a via for which nodes and edges are removed.
      */
-    void RemoveItem( const VIA* aVia );
+    bool RemoveItem( const VIA* aVia );
 
     /**
      * Function RemoveItem()
@@ -449,7 +448,7 @@ public:
      * taken into account during ratsnest computations anymore.
      * @param aTrack is a track for which nodes and edges are removed.
      */
-    void RemoveItem( const TRACK* aTrack );
+    bool RemoveItem( const TRACK* aTrack );
 
     /**
      * Function RemoveItem()
@@ -457,7 +456,7 @@ public:
      * taken into account during ratsnest computations anymore.
      * @param aZone is a zone for which nodes and edges are removed.
      */
-    void RemoveItem( const ZONE_CONTAINER* aZone );
+    bool RemoveItem( const ZONE_CONTAINER* aZone );
 
     /**
      * Function GetNodes()
@@ -539,7 +538,7 @@ public:
      * ratsnest line per node).
      * @return list of nodes for which ratsnest is drawn in simple mode.
      */
-    inline const boost::unordered_set<RN_NODE_PTR>& GetSimpleNodes() const
+    inline const std::unordered_set<RN_NODE_PTR>& GetSimpleNodes() const
     {
         return m_simpleNodes;
     }
@@ -593,10 +592,10 @@ protected:
     std::shared_ptr< std::vector<RN_EDGE_MST_PTR> > m_rnEdges;
 
     ///> List of nodes which will not be used as ratsnest target nodes.
-    boost::unordered_set<RN_NODE_PTR> m_blockedNodes;
+    std::unordered_set<RN_NODE_PTR> m_blockedNodes;
 
     ///> Nodes to be displayed using the simplified ratsnest algorithm.
-    boost::unordered_set<RN_NODE_PTR> m_simpleNodes;
+    std::unordered_set<RN_NODE_PTR> m_simpleNodes;
 
     ///> Flag indicating necessity of recalculation of ratsnest for a net.
     bool m_dirty;
@@ -622,10 +621,10 @@ protected:
     } RN_PAD_DATA;
 
     ///> Helper typedefs
-    typedef boost::unordered_map<const D_PAD*, RN_PAD_DATA> PAD_NODE_MAP;
-    typedef boost::unordered_map<const VIA*, RN_NODE_PTR> VIA_NODE_MAP;
-    typedef boost::unordered_map<const TRACK*, RN_EDGE_MST_PTR> TRACK_EDGE_MAP;
-    typedef boost::unordered_map<const ZONE_CONTAINER*, RN_ZONE_DATA> ZONE_DATA_MAP;
+    typedef std::unordered_map<const D_PAD*, RN_PAD_DATA> PAD_NODE_MAP;
+    typedef std::unordered_map<const VIA*, RN_NODE_PTR> VIA_NODE_MAP;
+    typedef std::unordered_map<const TRACK*, RN_EDGE_MST_PTR> TRACK_EDGE_MAP;
+    typedef std::unordered_map<const ZONE_CONTAINER*, RN_ZONE_DATA> ZONE_DATA_MAP;
 
     ///> Map that associates nodes in the ratsnest model to respective nodes.
     PAD_NODE_MAP m_pads;

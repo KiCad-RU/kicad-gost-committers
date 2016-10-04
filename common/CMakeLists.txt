@@ -225,8 +225,10 @@ set( COMMON_SRCS
     eda_dde.cpp
     eda_doc.cpp
     eda_pattern_match.cpp
+    exceptions.cpp
     filter_reader.cpp
 #    findkicadhelppath.cpp.notused      deprecated, use searchhelpfilefullpath.cpp
+    gbr_metadata.cpp
     gestfich.cpp
     getrunningmicrosecs.cpp
     grid_tricks.cpp
@@ -506,3 +508,63 @@ target_link_libraries( dsntest common ${wxWidgets_LIBRARIES} rt )
 add_dependencies( dsntest lib-dependencies )
 
 target_link_libraries( pcbcommon 3d-viewer )
+
+
+# _kiway.so
+if( false ) # future
+#if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES )
+
+    set( SWIG_FLAGS
+        -I${CMAKE_CURRENT_SOURCE_DIR}/../include
+        )
+
+    if( DEBUG )
+        set( SWIG_FLAGS ${SWIG_FLAGS} -DDEBUG )
+    endif()
+
+    # call SWIG in C++ mode: https://cmake.org/cmake/help/v3.2/module/UseSWIG.html
+    set_source_files_properties( swig/kiway.i PROPERTIES CPLUSPLUS ON )
+
+    # collect CFLAGS , and pass them to swig later
+    get_directory_property( DirDefs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMPILE_DEFINITIONS )
+    foreach( d ${DirDefs} )
+        set( SWIG_FLAGS ${SWIG_FLAGS} -D${d} )
+    endforeach()
+
+    set( CMAKE_SWIG_FLAGS ${SWIG_FLAGS} )
+
+    include_directories( BEFORE ${INC_BEFORE} )
+    include_directories(
+        ../common
+        ${INC_AFTER}
+        )
+
+    set( SWIG_MODULE_kiway_EXTRA_DEPS
+        ../common/swig/ki_exception.i
+        ../common/swig/kicad.i
+        )
+
+    swig_add_module( kiway python
+        swig/kiway.i
+        )
+
+    swig_link_libraries( kiway
+        common
+        bitmaps
+        ${wxWidgets_LIBRARIES}
+        ${PYTHON_LIBRARIES}
+        )
+
+    set_source_files_properties( ${swig_generated_file_fullname} PROPERTIES
+        # See section 16.3 "The SWIG runtime code"
+        # http://www.swig.org/Doc3.0/SWIGDocumentation.html#Modules_nn2
+        COMPILE_FLAGS "-DSWIG_TYPE_TABLE=WXPYTHON_TYPE_TABLE -Wno-delete-non-virtual-dtor"
+        )
+
+    if( MAKE_LINK_MAPS )
+        set_target_properties( _kiway PROPERTIES
+            LINK_FLAGS "${TO_LINKER},-cref ${TO_LINKER},-Map=_kiway.so.map"
+            )
+    endif()
+
+endif()

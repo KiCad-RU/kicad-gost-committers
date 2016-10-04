@@ -106,7 +106,7 @@ public:
 
     ~SCH_SCREEN();
 
-    virtual wxString GetClass() const
+    virtual wxString GetClass() const override
     {
         return wxT( "SCH_SCREEN" );
     }
@@ -342,7 +342,7 @@ public:
      * items are removed from the beginning of the list.
      * So this function can be called to remove old commands
      */
-    virtual void ClearUndoORRedoList( UNDO_REDO_CONTAINER& aList, int aItemCount = -1 );
+    virtual void ClearUndoORRedoList( UNDO_REDO_CONTAINER& aList, int aItemCount = -1 ) override;
 
     /**
      * Function Save
@@ -521,7 +521,7 @@ public:
     int UpdatePickList();
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const;     // overload
+    void Show( int nestLevel, std::ostream& os ) const override;
 #endif
 };
 

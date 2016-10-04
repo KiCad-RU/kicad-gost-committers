@@ -169,22 +169,24 @@ public:
         return aItem && PCB_T == aItem->Type();
     }
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "NETINFO_ITEM" );
     }
 
-    void Show( int nestLevel, std::ostream& os ) const
+#if defined(DEBUG)
+    void Show( int nestLevel, std::ostream& os ) const override
     {
     }
+#endif
 
-    const wxPoint& GetPosition() const
+    const wxPoint& GetPosition() const override
     {
         static wxPoint dummy(0, 0);
         return dummy;
     }
 
-    void SetPosition( const wxPoint& aPos )
+    void SetPosition( const wxPoint& aPos ) override
     {
     }
 
@@ -301,7 +303,7 @@ public:
      *       a pads or net name on pad and vias
      */
     void Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE aDrawMode,
-               const wxPoint& offset );
+               const wxPoint& offset ) override;
 
     /**
      * Function GetNet
@@ -330,7 +332,7 @@ public:
      *
      * @param aList is the list in which to place the  status information.
      */
-    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList );
+    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList ) override;
 
     /**
      * Function Clear
@@ -353,8 +355,6 @@ public:
     }
 };
 
-
-#ifndef SWIG
 
 class NETINFO_MAPPING
 {
@@ -391,7 +391,6 @@ public:
      */
     int Translate( int aNetCode ) const;
 
-#ifndef SWIG
     ///> Wrapper class, so you can iterate through NETINFO_ITEM*s, not
     ///> std::pair<int/wxString, NETINFO_ITEM*>
     class iterator
@@ -459,7 +458,6 @@ public:
     {
         return iterator( m_netMapping.end(), this );
     }
-#endif
 
     /**
      * Function GetSize
@@ -477,8 +475,6 @@ private:
     ///> Map that allows saving net codes with consecutive numbers (for compatibility reasons)
     std::map<int, int> m_netMapping;
 };
-
-#endif  // SWIG
 
 
 #if 0
@@ -711,6 +707,5 @@ enum StatusPcbFlags {
     DO_NOT_SHOW_GENERAL_RASTNEST = 0x20  /* Do not display the general
                                           * ratsnest (used in module moves) */
 };
-
 
 #endif  // CLASS_NETINFO_

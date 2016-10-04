@@ -55,10 +55,10 @@ private:
     static LAYER_NUM     m_layer;
 
     // Virtual event handlers
-    void OnCancelClick( wxCommandEvent& event ) { event.Skip(); }
-    void OnOKClick( wxCommandEvent& event );
-    void OnBrowseDxfFiles( wxCommandEvent& event );
-    void OriginOptionOnUpdateUI( wxUpdateUIEvent& event );
+    void OnCancelClick( wxCommandEvent& event ) override { event.Skip(); }
+    void OnOKClick( wxCommandEvent& event ) override;
+    void OnBrowseDxfFiles( wxCommandEvent& event ) override;
+    void OriginOptionOnUpdateUI( wxUpdateUIEvent& event ) override;
     int  GetPCBGridUnits( void );
     void GetPCBGridOffsets( double &aXOffset, double &aYOffset );
 };

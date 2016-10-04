@@ -2,7 +2,7 @@
  * This program source code file is part of KICAD, a free EDA CAD application.
  *
  * Copyright (C) 2012 Torsten Hueter, torstenhtr <at> gmx.de
- * Copyright (C) 2012-2016 Kicad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2012-2016 Kicad Developers, see AUTHORS.txt for contributors.
  * Copyright (C) 2013-2016 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -589,7 +589,7 @@ void OPENGL_GAL::DrawRectangle( const VECTOR2D& aStartPoint, const VECTOR2D& aEn
 
 void OPENGL_GAL::DrawPolyline( const std::deque<VECTOR2D>& aPointList )
 {
-    if( aPointList.empty() )
+    if( aPointList.size() < 2 )
         return;
 
     currentManager->Color( strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a );
@@ -617,6 +617,9 @@ void OPENGL_GAL::DrawPolyline( const std::deque<VECTOR2D>& aPointList )
 
 void OPENGL_GAL::DrawPolyline( const VECTOR2D aPointList[], int aListSize )
 {
+    if( aListSize < 2 )
+        return;
+
     currentManager->Color( strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a );
 
     // Start from the second point
@@ -1352,7 +1355,7 @@ int OPENGL_GAL::drawBitmapChar( unsigned long aChar )
 void OPENGL_GAL::drawBitmapOverbar( double aLength, double aHeight )
 {
     // To draw an overbar, simply draw an overbar
-    const bitmap_glyph& GLYPH = bitmap_chars['_'];
+    const bitmap_glyph& GLYPH = bitmap_chars[(unsigned char) '_'];
     const float H = GLYPH.maxy - GLYPH.miny;
 
     Save();

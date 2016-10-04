@@ -49,7 +49,7 @@ public:
     TOOL_BASE( const std::string& aToolName );
     virtual ~TOOL_BASE();
 
-    virtual void Reset( RESET_REASON aReason );
+    virtual void Reset( RESET_REASON aReason ) override;
 
     const ROUTING_SETTINGS& PNSSettings() const
     {
@@ -59,8 +59,7 @@ public:
     ROUTER* Router() const;
 
 protected:
-
-    const VECTOR2I snapToItem( ITEM* aItem, VECTOR2I aP, bool& aSplitsSegment );
+    const VECTOR2I snapToItem( bool aEnabled, ITEM* aItem, VECTOR2I aP);
     virtual ITEM* pickSingleItem( const VECTOR2I& aWhere, int aNet = -1, int aLayer = -1 );
     virtual void highlightNet( bool aEnabled, int aNetcode = -1 );
     virtual void updateStartItem( TOOL_EVENT& aEvent );

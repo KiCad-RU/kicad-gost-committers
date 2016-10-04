@@ -63,11 +63,11 @@ private:
     wxFloatingPointValidator<double>    m_OrientValidator;
     double              m_OrientValue;
 
-    bool TransferDataToWindow();
-    bool TransferDataFromWindow();
+    bool TransferDataToWindow() override;
+    bool TransferDataFromWindow() override;
 
     // Virtual event handler
-    virtual void OnInitDlg( wxInitDialogEvent& event )
+    virtual void OnInitDlg( wxInitDialogEvent& event ) override
     {
         // Call the default wxDialog handler of a wxInitDialogEvent
         TransferDataToWindow();

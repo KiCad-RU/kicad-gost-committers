@@ -242,7 +242,7 @@ bool PART_LIB::AddPart( LIB_PART* aPart )
     }
 
     // add a clone, not the caller's copy
-    LIB_PART* my_part = new LIB_PART( *aPart, this );
+    LIB_PART* my_part = new LIB_PART( *aPart );
 
     for( size_t i = 0; i < my_part->m_aliases.size(); i++ )
     {
@@ -1056,10 +1056,10 @@ void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::ba
                     "Part library '%s' failed to load. Error:\n"
                     "%s" ),
                     GetChars( filename ),
-                    GetChars( ioe.errorText )
+                    GetChars( ioe.What() )
                     );
 
-            THROW_IO_ERROR( msg );
+            wxLogError( msg );
         }
     }
 
@@ -1081,7 +1081,7 @@ void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::ba
             wxString msg = wxString::Format( _(
                     "Part library '%s' failed to load.\nError: %s" ),
                     GetChars( cache_name ),
-                    GetChars( ioe.errorText )
+                    GetChars( ioe.What() )
                     );
 
             THROW_IO_ERROR( msg );

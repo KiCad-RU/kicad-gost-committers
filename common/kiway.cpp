@@ -93,22 +93,22 @@ void KIWAY::SetTop( wxFrame* aTop )
 }
 
 
-const wxString KIWAY::dso_full_path( FACE_T aFaceId )
+const wxString KIWAY::dso_search_path( FACE_T aFaceId )
 {
-    const wxChar*   name;
+    const char*   name;
 
     switch( aFaceId )
     {
-    case FACE_SCH:              name = KIFACE_PREFIX wxT( "eeschema" );         break;
-    case FACE_PCB:              name = KIFACE_PREFIX wxT( "pcbnew" );           break;
-    case FACE_CVPCB:            name = KIFACE_PREFIX wxT( "cvpcb" );            break;
-    case FACE_GERBVIEW:         name = KIFACE_PREFIX wxT( "gerbview" );         break;
-    case FACE_PL_EDITOR:        name = KIFACE_PREFIX wxT( "pl_editor" );        break;
+    case FACE_SCH:              name = KIFACE_PREFIX "eeschema";            break;
+    case FACE_PCB:              name = KIFACE_PREFIX "pcbnew";              break;
+    case FACE_CVPCB:            name = KIFACE_PREFIX "cvpcb";               break;
+    case FACE_GERBVIEW:         name = KIFACE_PREFIX "gerbview";            break;
+    case FACE_PL_EDITOR:        name = KIFACE_PREFIX "pl_editor";           break;
 #if defined( KICAD_GOST )
-    case FACE_PCAD2KICADSCH:    name = KIFACE_PREFIX wxT( "pcad2kicadsch" );    break;
+    case FACE_PCAD2KICADSCH:    name = KIFACE_PREFIX "pcad2kicadsch";       break;
 #endif
-    case FACE_PCB_CALCULATOR:   name = KIFACE_PREFIX wxT( "pcb_calculator" );   break;
-    case FACE_BMP2CMP:          name = KIFACE_PREFIX wxT( "bitmap2component" ); break;
+    case FACE_PCB_CALCULATOR:   name = KIFACE_PREFIX "pcb_calculator";      break;
+    case FACE_BMP2CMP:          name = KIFACE_PREFIX "bitmap2component";    break;
 
     default:
         wxASSERT_MSG( 0, wxT( "caller has a bug, passed a bad aFaceId" ) );
@@ -116,7 +116,17 @@ const wxString KIWAY::dso_full_path( FACE_T aFaceId )
     }
 
 #ifndef __WXMAC__
-    wxFileName fn = wxStandardPaths::Get().GetExecutablePath();
+    wxString path;
+
+    if( m_ctl & (KFCTL_STANDALONE | KFCTL_CPP_PROJECT_SUITE) )
+    {
+        // The 2 *.cpp program launchers: single_top.cpp and kicad.cpp expect
+        // the *.kiface's to reside in same diretory as their binaries do.
+        // Not so for python launcher, identified by KFCTL_PY_PROJECT_SUITE
+        path = wxStandardPaths::Get().GetExecutablePath();
+    }
+
+    wxFileName fn = path;
 #else
     // we have the dso's in main OSX bundle kicad.app/Contents/PlugIns
     wxFileName fn = Pgm().GetExecutablePath();
@@ -162,7 +172,7 @@ KIFACE*  KIWAY::KiFACE( FACE_T aFaceId, bool doLoad )
     // DSO with KIFACE has not been loaded yet, does caller want to load it?
     if( doLoad  )
     {
-        wxString dname = dso_full_path( aFaceId );
+        wxString dname = dso_search_path( aFaceId );
 
         wxDynamicLibrary dso;
 

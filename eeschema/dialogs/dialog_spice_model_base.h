@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jul 31 2016)
+// C++ code generated with wxFormBuilder (version May  6 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -23,6 +23,7 @@ class DIALOG_SHIM;
 #include <wx/combobox.h>
 #include <wx/textctrl.h>
 #include <wx/sizer.h>
+#include <wx/statline.h>
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
@@ -44,14 +45,46 @@ class DIALOG_SHIM;
 class DIALOG_SPICE_MODEL_BASE : public DIALOG_SHIM
 {
 	private:
-	
+
 	protected:
 		wxNotebook* m_notebook;
 		wxPanel* m_passive;
 		wxStaticText* m_staticText2;
 		wxComboBox* m_pasType;
+		wxStaticText* m_staticText62;
 		wxStaticText* m_staticText3;
 		wxTextCtrl* m_pasValue;
+		wxStaticText* m_staticText63;
+		wxStaticLine* m_staticline1;
+		wxStaticText* m_staticText32;
+		wxStaticText* m_staticText321;
+		wxStaticText* m_staticText341;
+		wxStaticText* m_staticText351;
+		wxStaticText* m_staticText36;
+		wxStaticText* m_staticText37;
+		wxStaticText* m_staticText38;
+		wxStaticText* m_staticText39;
+		wxStaticText* m_staticText40;
+		wxStaticText* m_staticText41;
+		wxStaticText* m_staticText42;
+		wxStaticText* m_staticText43;
+		wxStaticText* m_staticText44;
+		wxStaticText* m_staticText46;
+		wxStaticText* m_staticText47;
+		wxStaticText* m_staticText48;
+		wxStaticText* m_staticText45;
+		wxStaticText* m_staticText49;
+		wxStaticText* m_staticText50;
+		wxStaticText* m_staticText51;
+		wxStaticText* m_staticText52;
+		wxStaticText* m_staticText53;
+		wxStaticText* m_staticText54;
+		wxStaticText* m_staticText55;
+		wxStaticText* m_staticText56;
+		wxStaticText* m_staticText57;
+		wxStaticText* m_staticText58;
+		wxStaticText* m_staticText59;
+		wxStaticText* m_staticText60;
 		wxPanel* m_semiconductor;
 		wxStaticText* m_staticText4;
 		wxComboBox* m_semiType;
@@ -127,26 +160,28 @@ class DIALOG_SPICE_MODEL_BASE : public DIALOG_SHIM
 		wxPanel* m_pwrRandom;
 		wxPanel* m_pwrExtData;
 		wxRadioBox* m_pwrType;
+		wxStaticLine* m_staticline2;
 		wxCheckBox* m_disabled;
 		wxCheckBox* m_nodeSeqCheck;
 		wxTextCtrl* m_nodeSeqVal;
+		wxStaticLine* m_staticline3;
 		wxStdDialogButtonSizer* m_sdbSizer;
 		wxButton* m_sdbSizerOK;
 		wxButton* m_sdbSizerCancel;
-		
+
 		// Virtual event handlers, overide them in your derived class
 		virtual void onInitDlg( wxInitDialogEvent& event ) { event.Skip(); }
 		virtual void onSemiSelectLib( wxCommandEvent& event ) { event.Skip(); }
 		virtual void onSelectIcLib( wxCommandEvent& event ) { event.Skip(); }
 		virtual void onPwlAdd( wxCommandEvent& event ) { event.Skip(); }
 		virtual void onPwlRemove( wxCommandEvent& event ) { event.Skip(); }
-		
-	
+
+
 	public:
-		
-		DIALOG_SPICE_MODEL_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 640,582 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+
+		DIALOG_SPICE_MODEL_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 640,582 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER );
 		~DIALOG_SPICE_MODEL_BASE();
-	
+
 };
 
 #endif //__DIALOG_SPICE_MODEL_BASE_H__

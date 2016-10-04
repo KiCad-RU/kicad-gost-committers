@@ -78,6 +78,7 @@
 #include <pcb_draw_panel_gal.h>
 #include <gal/graphics_abstraction_layer.h>
 #include <functional>
+
 using namespace std::placeholders;
 
 ///@{
@@ -127,6 +128,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_GEN_EXPORT_FILE_MODULE_REPORT, PCB_EDIT_FRAME::GenFootprintsReport )
     EVT_MENU( ID_GEN_EXPORT_FILE_VRML, PCB_EDIT_FRAME::OnExportVRML )
     EVT_MENU( ID_GEN_EXPORT_FILE_IDF3, PCB_EDIT_FRAME::OnExportIDF3 )
+    EVT_MENU( ID_GEN_EXPORT_FILE_STEP, PCB_EDIT_FRAME::OnExportSTEP )
 
     EVT_MENU( ID_GEN_IMPORT_SPECCTRA_SESSION,PCB_EDIT_FRAME::ImportSpecctraSession )
     EVT_MENU( ID_GEN_IMPORT_SPECCTRA_DESIGN, PCB_EDIT_FRAME::ImportSpecctraDesign )
@@ -471,6 +473,21 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     }
 
     enableGALSpecificMenus();
+
+    // disable Export STEP item if kicad2step does not exist
+    wxString strK2S = Pgm().GetExecutablePath();
+    #ifdef __WXMAC__
+        strK2S += "Contents/MacOS/";
+    #endif
+    wxFileName appK2S( strK2S, "kicad2step" );
+
+    #ifdef _WIN32
+    appK2S.SetExt( "exe" );
+    #endif
+
+    if( !appK2S.FileExists() )
+        GetMenuBar()->FindItem( ID_GEN_EXPORT_FILE_STEP )->Enable( false );
+
 }
 
 
@@ -987,20 +1004,24 @@ void PCB_EDIT_FRAME::SVG_Print( wxCommandEvent& event )
 
 void PCB_EDIT_FRAME::UpdateTitle()
 {
-    wxFileName  fileName = GetBoard()->GetFileName();
-    wxString    title = wxString::Format( wxT( "Pcbnew %s " ), GetChars( GetBuildVersion() ) );
+    wxFileName fileName = GetBoard()->GetFileName();
+    wxString fileinfo;
 
     if( fileName.IsOk() && fileName.FileExists() )
     {
-        title << fileName.GetFullPath();
-
-        if( !fileName.IsFileWritable() )
-            title << _( " [Read Only]" );
+        fileinfo = fileName.IsFileWritable()
+            ? wxString( wxEmptyString )
+            : _( " [Read Only]" );
     }
     else
     {
-        title << _( " [new file]" ) << wxT(" ") << fileName.GetFullPath();
+        fileinfo = _( " [new file]" );
     }
+
+    wxString title;
+    title.Printf( L"Pcbnew \u2014 %s%s",
+            fileName.GetFullPath(),
+            fileinfo );
 
     SetTitle( title );
 }

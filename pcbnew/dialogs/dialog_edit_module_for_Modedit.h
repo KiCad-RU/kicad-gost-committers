@@ -58,24 +58,24 @@ private:
     void Edit3DShapeFileName();
 
     // virtual event functions
-    void OnEditValue( wxCommandEvent& event );
-    void OnEditReference( wxCommandEvent& event );
+    void OnEditValue( wxCommandEvent& event ) override;
+    void OnEditReference( wxCommandEvent& event ) override;
     void On3DShapeSelection( wxCommandEvent& event );
-    void On3DShapeNameSelected( wxCommandEvent& event );
-    void Add3DShape( wxCommandEvent& event )
+    void On3DShapeNameSelected( wxCommandEvent& event ) override;
+    void Add3DShape( wxCommandEvent& event ) override
     {
         BrowseAndAdd3DShapeFile();
     }
-    void Remove3DShape( wxCommandEvent& event );
-    void Edit3DShapeFilename( wxCommandEvent& event )
+    void Remove3DShape( wxCommandEvent& event ) override;
+    void Edit3DShapeFilename( wxCommandEvent& event ) override
     {
         Edit3DShapeFileName();
     }
-    void OnCancelClick( wxCommandEvent& event );
-    void OnOkClick( wxCommandEvent& event );
-    void Cfg3DPath( wxCommandEvent& event );
+    void OnCancelClick( wxCommandEvent& event ) override;
+    void OnOkClick( wxCommandEvent& event ) override;
+    void Cfg3DPath( wxCommandEvent& event ) override;
 
-    void OnInitDlg( wxInitDialogEvent& event )
+    void OnInitDlg( wxInitDialogEvent& event ) override
     {
         // Call the default wxDialog handler of a wxInitDialogEvent
         TransferDataToWindow();

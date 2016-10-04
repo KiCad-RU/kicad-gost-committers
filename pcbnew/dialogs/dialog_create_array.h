@@ -284,9 +284,9 @@ public:
         int     m_numberingOffsetX, m_numberingOffsetY;
         ARRAY_NUMBERING_TYPE_T m_priAxisNumType, m_secAxisNumType;
 
-        void        TransformItem( int n, BOARD_ITEM* item, const wxPoint& rotPoint ) const;    // override virtual
-        int         GetArraySize() const;                                                       // override virtual
-        wxString    GetItemNumber( int n ) const;                                               // override virtual
+        void        TransformItem( int n, BOARD_ITEM* item, const wxPoint& rotPoint ) const override;
+        int         GetArraySize() const override;
+        wxString    GetItemNumber( int n ) const override;
 
 private:
         wxPoint getGridCoords( int n ) const;
@@ -310,9 +310,9 @@ private:
         ARRAY_NUMBERING_TYPE_T m_numberingType;
         long m_numberingOffset;
 
-        void        TransformItem( int n, BOARD_ITEM* item, const wxPoint& rotPoint ) const;    // override virtual
-        int         GetArraySize() const;                                                       // override virtual
-        wxString    GetItemNumber( int n ) const;                                               // override virtual
+        void        TransformItem( int n, BOARD_ITEM* item, const wxPoint& rotPoint ) const override;
+        int         GetArraySize() const override;
+        wxString    GetItemNumber( int n ) const override;
     };
 
     // Constructor and destructor
@@ -344,8 +344,8 @@ private:
     const wxPoint m_originalItemPosition;
 
     // Event callbacks
-    void    OnParameterChanged( wxCommandEvent& event );
-    void    OnOkClick( wxCommandEvent& event );
+    void    OnParameterChanged( wxCommandEvent& event ) override;
+    void    OnOkClick( wxCommandEvent& event ) override;
 
     // Internal callback handlers
     void setControlEnablement();

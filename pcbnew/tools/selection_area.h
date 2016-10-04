@@ -47,11 +47,11 @@ public:
     SELECTION_AREA();
     ~SELECTION_AREA() {};
 
-    virtual const BOX2I ViewBBox() const;
+    virtual const BOX2I ViewBBox() const override;
 
-    void ViewDraw( int aLayer, KIGFX::GAL* aGal ) const;
+    void ViewDraw( int aLayer, KIGFX::GAL* aGal ) const override;
 
-    void ViewGetLayers( int aLayers[], int& aCount ) const;
+    void ViewGetLayers( int aLayers[], int& aCount ) const override;
 
     void SetOrigin( VECTOR2I aOrigin )
     {
@@ -64,7 +64,7 @@ public:
     }
 
 #if defined(DEBUG)
-    void Show( int x, std::ostream& st ) const
+    void Show( int x, std::ostream& st ) const override
     {
     }
 #endif
@@ -72,7 +72,7 @@ public:
     /** Get class name
      * @return  string "SELECTION_AREA"
      */
-    virtual wxString GetClass() const
+    virtual wxString GetClass() const override
     {
         return wxT( "SELECTION_AREA" );
     }

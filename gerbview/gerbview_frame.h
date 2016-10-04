@@ -104,21 +104,21 @@ public:
      */
     EDA_RECT            GetGerberLayoutBoundingBox();
 
-    void                SetPageSettings( const PAGE_INFO& aPageSettings );  // overload
-    const PAGE_INFO&    GetPageSettings() const;                            // overload
-    const wxSize        GetPageSizeIU() const;                              // overload
+    void                SetPageSettings( const PAGE_INFO& aPageSettings ) override;
+    const PAGE_INFO&    GetPageSettings() const override;
+    const wxSize        GetPageSizeIU() const override;
 
-    const wxPoint&      GetAuxOrigin() const;                               // overload
-    void                SetAuxOrigin( const wxPoint& aPoint );              // overload
+    const wxPoint&      GetAuxOrigin() const override;
+    void                SetAuxOrigin( const wxPoint& aPoint ) override;
 
-    const wxPoint&      GetGridOrigin() const  { return m_grid_origin; }    // overload
-    void                SetGridOrigin( const wxPoint& aPoint )              // overload
+    const wxPoint&      GetGridOrigin() const override { return m_grid_origin; }
+    void                SetGridOrigin( const wxPoint& aPoint ) override
     {
         m_grid_origin = aPoint;
     }
 
-    const TITLE_BLOCK&  GetTitleBlock() const;                              // overload
-    void                SetTitleBlock( const TITLE_BLOCK& aTitleBlock );    // overload
+    const TITLE_BLOCK&  GetTitleBlock() const override;
+    void                SetTitleBlock( const TITLE_BLOCK& aTitleBlock ) override;
 
     /**
      * Function SetCurItem
@@ -203,12 +203,12 @@ public:
 
     void    OnCloseWindow( wxCloseEvent& Event );
 
-    bool    OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl );   // overload KIWAY_PLAYER
+    bool    OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl ) override;
 
     // Virtual basic functions:
-    void    RedrawActiveWindow( wxDC* DC, bool EraseBg );
-    void    ReCreateHToolbar();
-    void    ReCreateAuxiliaryToolbar();
+    void    RedrawActiveWindow( wxDC* DC, bool EraseBg ) override;
+    void    ReCreateHToolbar() override;
+    void    ReCreateAuxiliaryToolbar() override;
 
     /**
      * Function ReCreateVToolbar
@@ -216,20 +216,20 @@ public:
      *
      * @note This is currently not used.
      */
-    void    ReCreateVToolbar();
+    void    ReCreateVToolbar() override;
 
     /**
      * Create or update the left vertical toolbar (option toolbar
      */
     void    ReCreateOptToolbar();
 
-    void    ReCreateMenuBar();
-    void    OnLeftClick( wxDC* aDC, const wxPoint& aMousePos );
-    void    OnLeftDClick( wxDC* aDC, const wxPoint& aMousePos );
-    bool    OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu );
+    void    ReCreateMenuBar() override;
+    void    OnLeftClick( wxDC* aDC, const wxPoint& aMousePos ) override;
+    void    OnLeftDClick( wxDC* aDC, const wxPoint& aMousePos ) override;
+    bool    OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu ) override;
     void    OnUpdateSelectTool( wxUpdateUIEvent& aEvent );
-    double  BestZoom();
-    void    UpdateStatusBar();
+    double  BestZoom() override;
+    void    UpdateStatusBar() override;
 
     /**
      * Function GetZoomLevelIndicator
@@ -237,7 +237,7 @@ public:
      * level indicator in dialogs.
      * Virtual from the base class
      */
-    const wxString GetZoomLevelIndicator() const;
+    const wxString GetZoomLevelIndicator() const override;
 
     /**
      * Function ReportMessage
@@ -299,7 +299,7 @@ public:
      * It may be overloaded by derived classes
      * @param aVisible = true if the grid must be shown
      */
-    void    SetGridVisibility( bool aVisible );
+    void    SetGridVisibility( bool aVisible ) override;
 
     /**
      * Function GetVisibleLayers
@@ -459,11 +459,11 @@ public:
      */
     PARAM_CFG_ARRAY&    GetConfigurationSettings( void );
 
-    void LoadSettings( wxConfigBase* aCfg );    // override virtual
+    void LoadSettings( wxConfigBase* aCfg ) override;
 
-    void SaveSettings( wxConfigBase* aCfg );    // override virtual
+    void SaveSettings( wxConfigBase* aCfg ) override;
 
-    void                ShowChangedLanguage();  // override EDA_BASE_FRAME virtual
+    void                ShowChangedLanguage() override;
 
     void                Process_Special_Functions( wxCommandEvent& event );
     void                OnSelectOptionToolbar( wxCommandEvent& event );
@@ -505,7 +505,7 @@ public:
     void                OnQuit( wxCommandEvent& event );
 
     ///> @copydoc EDA_DRAW_FRAME::GetHotKeyDescription()
-    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const;
+    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const override;
 
     /**
      * Function OnHotKey.
@@ -516,7 +516,7 @@ public:
      * @param aPosition The cursor position in logical (drawing) units.
      * @param aItem = NULL or pointer on a EDA_ITEM under the mouse cursor
      */
-    bool OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosition, EDA_ITEM* aItem = NULL );
+    bool OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosition, EDA_ITEM* aItem = NULL ) override;
 
     GERBER_DRAW_ITEM*   Locate( const wxPoint& aPosition, int typeloc );
 
@@ -539,13 +539,13 @@ public:
      * returns the block command (BLOCK_MOVE, BLOCK_COPY...) corresponding to
      * the \a aKey (ALT, SHIFT ALT ..)
      */
-    virtual int         BlockCommand( EDA_KEY key );
+    virtual int         BlockCommand( EDA_KEY key ) override;
 
     /**
      * Function HandleBlockPlace
      * handles the block place command.
      */
-    virtual void        HandleBlockPlace( wxDC* DC );
+    virtual void        HandleBlockPlace( wxDC* DC ) override;
 
     /**
      * Function HandleBlockEnd( )
@@ -558,7 +558,7 @@ public:
      * @return false if no item selected, or command finished,
      *         true if some items found and HandleBlockPlace must be called later.
      */
-    virtual bool        HandleBlockEnd( wxDC* DC );
+    virtual bool        HandleBlockEnd( wxDC* DC ) override;
 
     /**
      * Function Block_Move
@@ -612,7 +612,7 @@ public:
     bool                LoadExcellonFiles( const wxString& aFileName );
     bool                Read_EXCELLON_File( const wxString& aFullFileName );
 
-    bool                GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
+    bool                GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 ) override;
 
     /**
      * Set Size Items (Lines, Flashes) from DCodes List
@@ -657,7 +657,7 @@ public:
      * @param aData = a pointer on an auxiliary data (not always used, NULL if not used)
      */
     virtual void    PrintPage( wxDC* aDC, LSET aPrintMasklayer, bool aPrintMirrorMode,
-                               void* aData = NULL );
+                               void* aData = NULL ) override;
 
     DECLARE_EVENT_TABLE()
 };

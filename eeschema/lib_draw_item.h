@@ -243,7 +243,7 @@ public:
         return (LIB_PART *)m_Parent;
     }
 
-    virtual bool HitTest( const wxPoint& aPosition ) const
+    virtual bool HitTest( const wxPoint& aPosition ) const override
     {
         return EDA_ITEM::HitTest( aPosition );
     }
@@ -261,7 +261,7 @@ public:
    /**
      * @return the boundary box for this, in library coordinates
      */
-    virtual const EDA_RECT GetBoundingBox() const { return EDA_ITEM::GetBoundingBox(); }
+    virtual const EDA_RECT GetBoundingBox() const override { return EDA_ITEM::GetBoundingBox(); }
 
     /**
      * Function GetMsgPanelInfo
@@ -274,7 +274,7 @@ public:
      * </p>
      * @param aList is the list to populate.
      */
-    virtual void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList );
+    virtual void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList ) override;
 
     /**
      * Test LIB_ITEM objects for equivalence.
@@ -420,7 +420,7 @@ public:
     FILL_T GetFillMode() const { return m_Fill; }
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 
 private:

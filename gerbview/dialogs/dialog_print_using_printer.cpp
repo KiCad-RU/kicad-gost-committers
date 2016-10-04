@@ -79,14 +79,14 @@ public:
     ~DIALOG_PRINT_USING_PRINTER() {};
 
 private:
-    void OnCloseWindow( wxCloseEvent& event );
+    void OnCloseWindow( wxCloseEvent& event ) override;
     void OnInitDialog( wxInitDialogEvent& event );
-    void OnPageSetup( wxCommandEvent& event );
-    void OnPrintPreview( wxCommandEvent& event );
-    void OnPrintButtonClick( wxCommandEvent& event );
-    void OnScaleSelectionClick( wxCommandEvent& event );
+    void OnPageSetup( wxCommandEvent& event ) override;
+    void OnPrintPreview( wxCommandEvent& event ) override;
+    void OnPrintButtonClick( wxCommandEvent& event ) override;
+    void OnScaleSelectionClick( wxCommandEvent& event ) override;
 
-    void OnButtonCloseClick( wxCommandEvent& event ) { Close(); }
+    void OnButtonCloseClick( wxCommandEvent& event ) override { Close(); }
     void SetPrintParameters();
     void InitValues();
 
@@ -162,17 +162,16 @@ void DIALOG_PRINT_USING_PRINTER::InitValues( )
     {
         msg = _( "Layer" );
         msg << wxT( " " ) << ii + 1;
-        m_BoxSelectLayer[ii] = new wxCheckBox( this, -1, msg );
+
+        wxStaticBoxSizer* boxSizer = ( ii < 16 ) ? m_leftLayersBoxSizer
+                                                 : m_rightLayersBoxSizer;
+
+        m_BoxSelectLayer[ii] = new wxCheckBox( boxSizer->GetStaticBox(),
+                                               wxID_ANY, msg );
+        boxSizer->Add( m_BoxSelectLayer[ii], wxGROW | wxLEFT | wxRIGHT | wxTOP );
 
         if( images->GetGbrImage( ii ) == NULL )     // Nothing loaded on this draw layer
             m_BoxSelectLayer[ii]->Enable( false );
-
-        if( ii < 16 )
-            m_leftLayersBoxSizer->Add( m_BoxSelectLayer[ii],
-                                         wxGROW | wxLEFT | wxRIGHT | wxTOP );
-        else
-            m_rightLayersBoxSizer->Add( m_BoxSelectLayer[ii],
-                                            wxGROW | wxLEFT | wxRIGHT | wxTOP );
     }
 
     // Read the scale adjust option

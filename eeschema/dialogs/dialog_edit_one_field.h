@@ -52,9 +52,9 @@ public:
 
     ~DIALOG_EDIT_ONE_FIELD() {}
 
-    virtual bool TransferDataToWindow();
+    virtual bool TransferDataToWindow() override;
 
-    virtual bool TransferDataFromWindow();
+    virtual bool TransferDataFromWindow() override;
 
     SCH_BASE_FRAME* GetParent() { return dynamic_cast< SCH_BASE_FRAME* >( wxDialog::GetParent() ); }
 
@@ -75,11 +75,11 @@ protected:
      *
      * @param aEvent is the the wX event thrown when the button is clicked, this isn't used
      */
-    void OnTextValueSelectButtonClick( wxCommandEvent& aEvent );
+    void OnTextValueSelectButtonClick( wxCommandEvent& aEvent ) override;
 
     /// @todo Update DIALOG_SHIM to handle this transparently so no matter what mode the
     ///       dialogs is shown, everything is handled without this ugliness.
-    void OnOkClick( wxCommandEvent& aEvent )
+    void OnOkClick( wxCommandEvent& aEvent ) override
     {
         if( IsQuasiModal() )
             EndQuasiModal( wxID_OK );
@@ -87,7 +87,7 @@ protected:
             EndDialog( wxID_OK );
     }
 
-    void OnCancelClick( wxCommandEvent& event )
+    void OnCancelClick( wxCommandEvent& event ) override
     {
         if( IsQuasiModal() )
             EndQuasiModal( wxID_CANCEL );
@@ -95,7 +95,7 @@ protected:
             EndDialog( wxID_CANCEL );
     }
 
-    void OnCloseDialog( wxCloseEvent& aEvent )
+    void OnCloseDialog( wxCloseEvent& aEvent ) override
     {
         if( IsQuasiModal() )
             EndQuasiModal( wxID_CANCEL );

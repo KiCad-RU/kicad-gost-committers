@@ -60,7 +60,7 @@ public:
      *  and false for items moved with no reference to anchor
      * @return false for a bus entry
      */
-    bool IsMovableFromAnchorPoint() { return false; }
+    bool IsMovableFromAnchorPoint() override { return false; }
 
     wxPoint m_End() const;
 
@@ -80,53 +80,53 @@ public:
 
     void SetSize( const wxSize& aSize ) { m_size = aSize; }
 
-    void SwapData( SCH_ITEM* aItem );
+    void SwapData( SCH_ITEM* aItem ) override;
 
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR );
+               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
 
     static bool Load( LINE_READER& aLine, wxString& aErrorMsg, SCH_ITEM **out );
 
-    const EDA_RECT GetBoundingBox() const;    // Virtual
+    const EDA_RECT GetBoundingBox() const override;
 
-    void Move( const wxPoint& aMoveVector )
+    void Move( const wxPoint& aMoveVector ) override
     {
         m_pos += aMoveVector;
     }
 
 
-    void MirrorY( int aYaxis_position );
+    void MirrorY( int aYaxis_position ) override;
 
-    void MirrorX( int aXaxis_position );
+    void MirrorX( int aXaxis_position ) override;
 
-    void Rotate( wxPoint aPosition );
+    void Rotate( wxPoint aPosition ) override;
 
-    void GetEndPoints( std::vector <DANGLING_END_ITEM>& aItemList );
+    void GetEndPoints( std::vector <DANGLING_END_ITEM>& aItemList ) override;
 
-    bool IsDanglingStateChanged( std::vector<DANGLING_END_ITEM>& aItemList );
+    bool IsDanglingStateChanged( std::vector<DANGLING_END_ITEM>& aItemList ) override;
 
-    bool IsDangling() const;
+    bool IsDangling() const override;
 
-    bool IsSelectStateChanged( const wxRect& aRect );
+    bool IsSelectStateChanged( const wxRect& aRect ) override;
 
-    bool IsConnectable() const { return true; }
+    bool IsConnectable() const override { return true; }
 
-    void GetConnectionPoints( std::vector< wxPoint >& aPoints ) const;
+    void GetConnectionPoints( std::vector< wxPoint >& aPoints ) const override;
 
-    BITMAP_DEF GetMenuImage() const { return  add_entry_xpm; }
+    BITMAP_DEF GetMenuImage() const override { return  add_entry_xpm; }
 
-    wxPoint GetPosition() const { return m_pos; }
+    wxPoint GetPosition() const override { return m_pos; }
 
-    void SetPosition( const wxPoint& aPosition ) { m_pos = aPosition; }
+    void SetPosition( const wxPoint& aPosition ) override { m_pos = aPosition; }
 
-    bool HitTest( const wxPoint& aPosition, int aAccuracy ) const;
+    bool HitTest( const wxPoint& aPosition, int aAccuracy ) const override;
 
-    bool HitTest( const EDA_RECT& aRect, bool aContained = false, int aAccuracy = 0 ) const;
+    bool HitTest( const EDA_RECT& aRect, bool aContained = false, int aAccuracy = 0 ) const override;
 
-    void Plot( PLOTTER* aPlotter );
+    void Plot( PLOTTER* aPlotter ) override;
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 };
 
@@ -142,18 +142,18 @@ public:
 
     ~SCH_BUS_WIRE_ENTRY() { }
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "SCH_BUS_WIRE_ENTRY" );
     }
 
-    bool Save( FILE* aFile ) const;
+    bool Save( FILE* aFile ) const override;
 
-    int GetPenSize() const;
+    int GetPenSize() const override;
 
-    wxString GetSelectMenuText() const;
+    wxString GetSelectMenuText() const override;
 
-    EDA_ITEM* Clone() const;
+    EDA_ITEM* Clone() const override;
 };
 
 /**
@@ -168,18 +168,18 @@ public:
 
     ~SCH_BUS_BUS_ENTRY() { }
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "SCH_BUS_BUS_ENTRY" );
     }
 
-    bool Save( FILE* aFile ) const;
+    bool Save( FILE* aFile ) const override;
 
-    int GetPenSize() const;
+    int GetPenSize() const override;
 
-    wxString GetSelectMenuText() const;
+    wxString GetSelectMenuText() const override;
 
-    EDA_ITEM* Clone() const;
+    EDA_ITEM* Clone() const override;
 };
 
 #endif    // _SCH_BUS_ENTRY_H_

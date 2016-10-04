@@ -88,11 +88,11 @@ public:
     void SetLayersManagerTabsText();
 
     //-----<implement LAYER_WIDGET abstract callback functions>-----------
-    void OnLayerColorChange( int aLayer, EDA_COLOR_T aColor );
-    bool OnLayerSelect( int aLayer );
-    void OnLayerVisible( int aLayer, bool isVisible, bool isFinal );
-    void OnRenderColorChange( int aId, EDA_COLOR_T aColor );
-    void OnRenderEnable( int aId, bool isEnabled );
+    void OnLayerColorChange( int aLayer, EDA_COLOR_T aColor ) override;
+    bool OnLayerSelect( int aLayer ) override;
+    void OnLayerVisible( int aLayer, bool isVisible, bool isFinal ) override;
+    void OnRenderColorChange( int aId, EDA_COLOR_T aColor ) override;
+    void OnRenderEnable( int aId, bool isEnabled ) override;
     //-----</implement LAYER_WIDGET abstract callback functions>----------
 
     /**
@@ -118,10 +118,13 @@ protected:
     PCB_BASE_FRAME* myframe;
 
     // popup menu ids.
-#define ID_SHOW_ALL_COPPERS                     wxID_HIGHEST
-#define ID_SHOW_NO_COPPERS                      (wxID_HIGHEST+1)
-#define ID_SHOW_NO_COPPERS_BUT_ACTIVE           (wxID_HIGHEST+2)
-#define ID_ALWAYS_SHOW_NO_COPPERS_BUT_ACTIVE    (wxID_HIGHEST+3)
+#define ID_SHOW_ALL_COPPER_LAYERS                   wxID_HIGHEST
+#define ID_SHOW_NO_COPPER_LAYERS                    (wxID_HIGHEST+1)
+#define ID_SHOW_NO_COPPER_LAYERS_BUT_ACTIVE         (wxID_HIGHEST+2)
+#define ID_ALWAYS_SHOW_NO_COPPER_LAYERS_BUT_ACTIVE  (wxID_HIGHEST+3)
+#define ID_SHOW_NO_LAYERS                           (wxID_HIGHEST+4)
+#define ID_SHOW_ALL_LAYERS                          (wxID_HIGHEST+5)
+
 
     /**
      * Function isAllowedInFpMode

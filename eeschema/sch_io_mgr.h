@@ -283,7 +283,7 @@ public:
      * indirectly using the #LIB_ALIAS it is associated with.
      *
      * @param aLibraryPath is a locator for the "library", usually a directory, file,
-     *                     or URL containing several footprints.
+     *                     or URL containing several symbols.
      *
      * @param aAliasName is the alias name of the #LIB_PART to load.
      *
@@ -303,45 +303,74 @@ public:
                                    const PROPERTIES* aProperties = NULL );
 
     /**
-     * Function SymbolSave
-     * will write @a aModule to an existing library located at @a aLibraryPath.
-     * If a footprint by the same name already exists, it is replaced.
+     * Function SaveSymbol
+     * will write @a aSymbol to an existing library located at @a aLibraryPath.
+     * If a #LIB_PART by the same name already exists or there are any conflicting
+     * alias names, an exception is thrown.  Symbol libraries cannot have duplicate
+     * alias names.
      *
      * @param aLibraryPath is a locator for the "library", usually a directory, file,
-     *   or URL containing several footprints.
+     *                     or URL containing several symbols.
      *
-     * @param aSymbol is what to store in the library. The caller continues
-     *    to own the footprint after this call.
+     * @param aSymbol is what to store in the library.  The library is refreshed and the
+     *                caller must update any #LIB_PART pointers that may have changed.
      *
      * @param aProperties is an associative array that can be used to tell the
-     *  saver how to save the footprint, because it can take any number of
-     *  additional named tuning arguments that the plugin is known to support.
-     *  The caller continues to own this object (plugin may not delete it), and
-     *  plugins should expect it to be optionally NULL.
+     *                    saver how to save the symbol, because it can take any number of
+     *                    additional named tuning arguments that the plugin is known to support.
+     *                    The caller continues to own this object (plugin may not delete it), and
+     *                    plugins should expect it to be optionally NULL.
      *
-     * @throw IO_ERROR if there is a problem saving.
+     * @throw IO_ERROR if there is a problem saving or duplicate alias names.
      */
-    virtual void SymbolSave( const wxString& aLibraryPath, const LIB_PART* aSymbol,
+    virtual void SaveSymbol( const wxString& aLibraryPath, const LIB_PART* aSymbol,
                              const PROPERTIES* aProperties = NULL );
 
     /**
-     * Function SymbolDelete
-     * deletes @a aSymbolName from the library at @a aLibraryPath.
+     * Function DeleteAlias
+     * deletes @a aAliasName from the library at @a aLibraryPath.
+     *
+     * If @a aAliasName refers the the root #LIB_PART object, the part is renamed to
+     * the next or previous #LIB_ALIAS in the #LIB_PART if one exists.  If the #LIB_ALIAS
+     * is the last alias referring to the root #LIB_PART, the #LIB_PART is also removed
+     * from the library.
      *
      * @param aLibraryPath is a locator for the "library", usually a directory, file,
-     *   or URL containing several footprints.
+     *                     or URL containing several symbols.
      *
-     * @param aSymbolName is the name of a footprint to delete from the specified library.
+     * @param aAliasName is the name of a #LIB_ALIAS to delete from the specified library.
      *
-     * @param aProperties is an associative array that can be used to tell the
-     *  library delete function anything special, because it can take any number of
-     *  additional named tuning arguments that the plugin is known to support.
-     *  The caller continues to own this object (plugin may not delete it), and
-     *  plugins should expect it to be optionally NULL.
+     * @param aProperties is an associative array that can be used to tell the library
+     *                    delete function anything special, because it can take any number
+     *                    of additional named tuning arguments that the plugin is known to
+     *                    support.  The caller continues to own this object (plugin may not
+     *                    delete it), and plugins should expect it to be optionally NULL.
      *
-     * @throw IO_ERROR if there is a problem finding the footprint or the library, or deleting it.
+     * @throw IO_ERROR if there is a problem finding the alias or the library or deleting it.
      */
-    virtual void SymbolDelete( const wxString& aLibraryPath, const wxString& aSymbolName,
+    virtual void DeleteAlias( const wxString& aLibraryPath, const wxString& aAliasName,
+                              const PROPERTIES* aProperties = NULL );
+
+    /**
+     * Function DeleteSymbol
+     * deletes the entire #LIB_PART associated with @a aAliasName from the library
+     * @a aLibraryPath.
+     *
+     * @param aLibraryPath is a locator for the "library", usually a directory, file,
+     *                     or URL containing several symbols.
+     *
+     * @param aAliasName is the name of a #LIB_ALIAS associated with it's root #LIB_PART
+     *                   object to delete from the specified library.
+     *
+     * @param aProperties is an associative array that can be used to tell the library
+     *                    delete function anything special, because it can take any number
+     *                    of additional named tuning arguments that the plugin is known to
+     *                    support.  The caller continues to own this object (plugin may not
+     *                    delete it), and plugins should expect it to be optionally NULL.
+     *
+     * @throw IO_ERROR if there is a problem finding the alias or the library or deleting it.
+     */
+    virtual void DeleteSymbol( const wxString& aLibraryPath, const wxString& aAliasName,
                                const PROPERTIES* aProperties = NULL );
 
     /**

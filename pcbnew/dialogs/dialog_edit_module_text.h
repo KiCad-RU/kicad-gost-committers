@@ -49,13 +49,13 @@ public:
     ~DialogEditModuleText() {};
 
 protected:
-    bool TransferDataToWindow();
-    bool TransferDataFromWindow();
+    bool TransferDataToWindow() override;
+    bool TransferDataFromWindow() override;
 
 private:
-    void ModuleOrientEvent( wxCommandEvent& event );
+    void ModuleOrientEvent( wxCommandEvent& event ) override;
 
-    void OnInitDlg( wxInitDialogEvent& event )
+    void OnInitDlg( wxInitDialogEvent& event ) override
     {
         // Call the default wxDialog handler of a wxInitDialogEvent
         TransferDataToWindow();

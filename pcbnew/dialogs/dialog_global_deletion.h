@@ -36,20 +36,20 @@ private:
     PCB_EDIT_FRAME* m_Parent;
     LAYER_NUM m_currentLayer;
 
-    void OnOkClick( wxCommandEvent& event )
+    void OnOkClick( wxCommandEvent& event ) override
     {
         AcceptPcbDelete();
         EndModal(wxID_OK);
     }
 
-    void OnCancelClick( wxCommandEvent& event )
+    void OnCancelClick( wxCommandEvent& event ) override
     {
         EndModal(wxID_CANCEL);
     }
 
     void AcceptPcbDelete();
-    void OnCheckDeleteTracks( wxCommandEvent& event );
-    void OnCheckDeleteModules( wxCommandEvent& event );
+    void OnCheckDeleteTracks( wxCommandEvent& event ) override;
+    void OnCheckDeleteModules( wxCommandEvent& event ) override;
 };
 
 #endif  // _DIALOG_GLOBAL_DELETION_H_

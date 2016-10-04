@@ -84,7 +84,7 @@ option( KICAD_SCRIPTING
     )
 
 option( KICAD_SCRIPTING_MODULES
-    "Build KiCad Python modules that can be used from scripting languages (default OFF)."
+    "Build native portion of the pcbnew Python module: _pcbnew.{pyd,so} for OS command line use of Python."
     )
 
 option( KICAD_SCRIPTING_WXPYTHON
@@ -98,6 +98,10 @@ option( KICAD_USE_SCH_IO_MANAGER
 option( KICAD_USE_OCE
     "Build tools and plugins related to OpenCascade Community Edition (default OFF)"
     )
+
+option( KICAD_INSTALL_DEMOS
+    "Install kicad demos and examples (default ON)"
+    ON )
 
 # when option KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES is enabled:
 # PYTHON_EXECUTABLE can be defined when invoking cmake
@@ -194,6 +198,20 @@ if( CMAKE_VERSION VERSION_LESS 3.1 AND ( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_C
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     else()
         message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+    endif()
+endif()
+
+
+# Warn about missing override specifiers, if supported
+if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+    include(CheckCXXCompilerFlag)
+
+    CHECK_CXX_COMPILER_FLAG("-Wsuggest-override" COMPILER_SUPPORTS_WSUGGEST_OVERRIDE)
+
+    # Swig generated files do not use override specifier and create a lot of warnings
+    # So do not use -Wsuggest-override with KICAD_SCRIPTING ON, untill a best way is found
+    if(COMPILER_SUPPORTS_WSUGGEST_OVERRIDE AND NOT KICAD_SCRIPTING)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
     endif()
 endif()
 
@@ -388,7 +406,7 @@ set( KIFACE_PREFIX  "_" )
 #================================================
 if( NOT APPLE )
     # Everything without leading / is relative to CMAKE_INSTALL_PREFIX.
-    set( KICAD_BIN ${CMAKE_INSTALL_PREFIX}/bin
+    set( KICAD_BIN bin
         CACHE PATH "Location of KiCad binaries." )
 
     if( WIN32 )
@@ -404,10 +422,10 @@ if( NOT APPLE )
         set( KICAD_PLUGINS lib/kicad/plugins
             CACHE PATH "Location of KiCad plugins." )
 
-        set( KICAD_LIB ${CMAKE_INSTALL_PREFIX}/lib
+        set( KICAD_LIB lib
             CACHE PATH "Location of KiCad shared objects" )
 
-        set( KICAD_USER_PLUGIN ${CMAKE_INSTALL_PREFIX}/lib/kicad/plugins
+        set( KICAD_USER_PLUGIN lib/kicad/plugins
             CACHE PATH "Location of KiCad user-loaded plugins" )
     endif()
 
@@ -636,10 +654,13 @@ set( INC_AFTER
     ${CMAKE_BINARY_DIR}
     )
 
-
 # Find Python and other scripting resources
 if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES OR USE_PYTHON_GOSTDOCGEN OR
    ( KICAD_GOST AND NOT USE_RPC_DOC_SERVER AND NOT USE_OPENOFFICE_SDK ) )
+
+    find_package( SWIG 3.0 REQUIRED )
+    include( ${SWIG_USE_FILE} )
+
     # force a python version < 3.0
     set( PythonInterp_FIND_VERSION 2.6 )
     set( PythonLibs_FIND_VERSION 2.6 )

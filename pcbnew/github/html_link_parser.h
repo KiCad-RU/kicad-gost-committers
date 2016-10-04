@@ -60,12 +60,12 @@ public:
     {
     }
 
-    wxString GetSupportedTags()
+    wxString GetSupportedTags() override
     {
         return "A";
     }
 
-    bool HandleTag(const wxHtmlTag& tag);
+    bool HandleTag(const wxHtmlTag& tag) override;
 };
 
 /**
@@ -95,12 +95,12 @@ public:
     }
 
     // virtual pure from wxHtmlParser, do nothing here, but needed.
-    void AddText( const wxString& aText ){}
+    void AddText( const wxString& aText ) override {}
 
     // Our "AddText" used to store selected text (the url link)
     void AddString( const wxString& aText );
 
-    wxObject* GetProduct()
+    wxObject* GetProduct() override
     {
         return NULL;
     }

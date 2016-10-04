@@ -64,13 +64,13 @@ public:
         m_h( aOther.m_h )
     {};
 
-    SHAPE* Clone() const
+    SHAPE* Clone() const override
     {
         return new SHAPE_RECT( *this );
     }
 
     /// @copydoc SHAPE::BBox()
-    const BOX2I BBox( int aClearance = 0 ) const
+    const BOX2I BBox( int aClearance = 0 ) const override
     {
         BOX2I bbox( VECTOR2I( m_p0.x - aClearance,  m_p0.y - aClearance ),
                     VECTOR2I( m_w + 2 * aClearance, m_h + 2 * aClearance ) );
@@ -90,7 +90,7 @@ public:
     }
 
     /// @copydoc SHAPE::Collide()
-    bool Collide( const SEG& aSeg, int aClearance = 0 ) const;
+    bool Collide( const SEG& aSeg, int aClearance = 0 ) const override;
 
     /**
      * Function GetPosition()
@@ -132,12 +132,12 @@ public:
         return m_h;
     }
 
-    void Move( const VECTOR2I& aVector )
+    void Move( const VECTOR2I& aVector ) override
     {
         m_p0 += aVector;
     }
 
-    bool IsSolid() const
+    bool IsSolid() const override
     {
         return true;
     }

@@ -27,6 +27,7 @@
 # 1) PNG files are created from SVG files
 # 2) CPP files are created from PNG files.
 # 3) Object files are created from CPP files.
+# 4) A static library is created from the object files
 
 # Step 3) is universal and is done for any builder, whereas steps 1) and 2) are
 # optional and depend on MAINTAIN_PNGS being defined in CMake.  The reason we
@@ -47,23 +48,6 @@
 
 # lower case is used for local variables, uppercase for global variables
 
-
-# If this file is used as part of the Kicad build, disable the stand alone build mode.
-if( NOT DEFINED CMAKE_PROJECT_NAME )
-
-    # stand alone debugging
-    project( kicad_for_bitmaps )
-
-    cmake_minimum_required( VERSION 2.8.0 FATAL_ERROR )
-
-    include_directories( /svn/kicad/work/include )
-
-    set( CMAKE_MODULE_PATH /svn/kicad/work/CMakeModules )
-
-    add_definitions( -I/usr/lib/wx/include/gtk2-unicode-release-2.8 -I/usr/include/wx-2.8 -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES -D__WXGTK__ -pthread )
-
-endif( NOT DEFINED CMAKE_PROJECT_NAME )
-
 option( MAINTAIN_PNGS
         "Set to true if you are a PNG maintainer and have the required tools given in the bitmaps_png/CMakeLists.txt file (default OFF)."
         OFF)
@@ -80,9 +64,9 @@ include_directories(
 
 
 # Plan for three sizes of bitmaps:
-# SMALL - for menus
-# MID   - for toolbars  26 x 26
-# BIG   - for program icons  48 x 48
+# SMALL - for menus         - 16 x 16
+# MID   - for toolbars      - 26 x 26
+# BIG   - for program icons - 48 x 48
 # which are given on three basename lists: BMAPS_SMALL, BMAPS_MID,a nd BMAPS_BIG
 # respectively.  The basename is without file extension and without path.
 # A corresponding ${basename}.svg file must exist in 'sources' dir below here.
@@ -534,6 +518,10 @@ set( BMAPS_MID
     show_zone
     show_zone_disable
     show_zone_outline_only
+    show_all_layers
+    show_no_layers
+    show_no_copper_layers
+    show_all_copper_layers
     svg_file
     swap_layer
     text_sketch
@@ -589,11 +577,11 @@ set( BMAPS_BIG
     icon_eeschema
     icon_gerbview
     icon_kicad
+    icon_libedit
     icon_modedit
     icon_pcbnew
     icon_bitmap2component
     icon_pcbcalculator
-    libedit_icon
     viewlibs_icon
     icon_pagelayout_editor
     wizard_add_fplib_icon
@@ -607,17 +595,28 @@ set( BMAPS_OTHER
 
 
 # @todo keep these in sync with .bzrignore
-set( TMP_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/tmp" )
+set( TMP_DIR   "${CMAKE_CURRENT_BINARY_DIR}/tmp" )
+
+# true to generate log files, false to build icon files only
+# generate logs is useful only if you have problems
+set( CREATE_LOG_FILES false )
+
 
 function( svg2png inputFile outFile pngWidth pngHeight )
     #message( "svg2png( inputFile: ${inputFile} outFile: ${outFile} pngWidth: ${pngWidth} pngHeight: ${pngHeight})")
+
+    if( CREATE_LOG_FILES )
+        set( logfile "${TMP_DIR}/${bmn}.inkscape.log" )
+    else()
+        set( logfile "null" )
+    endif()
 
     get_filename_component( bmn ${inputFile} NAME_WE )
 
     add_custom_command(
         OUTPUT ${outFile}
         COMMAND ${Inkscape_EXECUTABLE} --export-area-snap -f ${inputFile} -e ${outFile}
-            -w ${pngWidth} -h ${pngHeight} > ${TMP_DIR}/${bmn}.inkscape.log
+            -w ${pngWidth} -h ${pngHeight} > ${logfile}
         DEPENDS ${inputFile}
         COMMENT "Creating ${pngHeight} pixel tall ${outFile}"
         )
@@ -628,17 +627,23 @@ endfunction()
 # converts a basic PNG to one
 function( png2png inputFile outFile )
 
+    if( CREATE_LOG_FILES )
+        set( logfile "${TMP_DIR}/${bmn}.pngcrush.log" )
+    else()
+        set( logfile "null" )
+    endif()
+
     get_filename_component( bmn ${inputFile} NAME_WE )
 
     add_custom_command(
         OUTPUT  ${outFile}
 
-        # pngcrush all icons without background to remove any extraneous tEXt records.
-        COMMAND ${pngcrush_EXECUTABLE} -rem alla ${inputFile} ${outFile} > ${TMP_DIR}/${bmn}.pngcrush.log
+        # pngcrush all icons without background to remove any extraneous text records.
+        COMMAND ${pngcrush_EXECUTABLE} -rem alla ${inputFile} ${outFile} > ${logfile}
 
         DEPENDS ${inputFile}
 
-        COMMENT "Creating ${outFile}"
+        COMMENT "Creating cleaned file ${outFile}"
         )
 endfunction()
 
@@ -734,32 +739,12 @@ if( MAINTAIN_PNGS )
 
     bitmap_dir( 48 48 "${BMAPS_BIG}" )
 
-if(CONVERT_EOL)
-    # dos2unix is required to convert EOL format (CRLF) to unix EOL format (LF)
-    set( eol2unix_FOUND FALSE )
-
-    if( NOT eol2unix_FOUND )
-        find_program( eol2unix_EXECUTABLE ${eol2unix_converter} DOC "The EOL to LF converter program." )
-
-        if( NOT eol2unix_EXECUTABLE )
-            message( FATAL_ERROR "Could not find the ${eol2unix_converter} EOL to LF converter program." )
-        else( NOT eol2unix_EXECUTABLE )
-            set( eol2unix_FOUND TRUE )
-            set( eol2unix_EXECUTABLE ${eol2unix_EXECUTABLE}
-                 CACHE FILEPATH "Path and file name of the end of line converter program." )
-            message( STATUS "The ${eol2unix_converter} EOL to LF converter program found." )
-        endif( NOT eol2unix_EXECUTABLE )
-    endif( NOT eol2unix_FOUND )
-elseif(APPLE)
-        #TODO: see if a EOL converted is needed # OSX
-endif(CONVERT_EOL)
+endif( MAINTAIN_PNGS )
 
     #message( "CPP_LIST: ${CPP_LIST}" )
 
     # a target with no output, just so changes get built
     #add_custom_target( make_cpp_files ALL DEPENDS ${CPP_LIST} )
-
-endif( MAINTAIN_PNGS )
 
 set( CPP_LIST "" )
 

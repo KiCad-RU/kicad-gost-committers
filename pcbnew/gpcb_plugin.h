@@ -52,28 +52,28 @@ public:
 
     //-----<PLUGIN API>---------------------------------------------------------
 
-    const wxString PluginName() const
+    const wxString PluginName() const override
     {
         return wxT( "Geda PCB" );
     }
 
-    const wxString GetFileExtension() const
+    const wxString GetFileExtension() const override
     {
         return wxT( "fp" );
     }
 
     wxArrayString FootprintEnumerate( const wxString& aLibraryPath,
-                                      const PROPERTIES* aProperties = NULL);
+                                      const PROPERTIES* aProperties = NULL) override;
 
     MODULE* FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName,
-            const PROPERTIES* aProperties = NULL );
+            const PROPERTIES* aProperties = NULL ) override;
 
     void FootprintDelete( const wxString& aLibraryPath, const wxString& aFootprintName,
-            const PROPERTIES* aProperties = NULL );
+            const PROPERTIES* aProperties = NULL ) override;
 
-    bool FootprintLibDelete( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL );
+    bool FootprintLibDelete( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL ) override;
 
-    bool IsFootprintLibWritable( const wxString& aLibraryPath );
+    bool IsFootprintLibWritable( const wxString& aLibraryPath ) override;
 
     //-----</PLUGIN API>--------------------------------------------------------
 

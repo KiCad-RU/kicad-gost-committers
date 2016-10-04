@@ -67,12 +67,12 @@ public:
     PNS_PCBNEW_RULE_RESOLVER( BOARD* aBoard, PNS::ROUTER* aRouter );
     virtual ~PNS_PCBNEW_RULE_RESOLVER();
 
-    virtual int Clearance( const PNS::ITEM* aA, const PNS::ITEM* aB );
-    virtual void OverrideClearance( bool aEnable, int aNetA = 0, int aNetB = 0, int aClearance = 0 );
-    virtual void UseDpGap( bool aUseDpGap ) { m_useDpGap = aUseDpGap; }
-    virtual int DpCoupledNet( int aNet );
-    virtual int DpNetPolarity( int aNet );
-    virtual bool DpNetPair( PNS::ITEM* aItem, int& aNetP, int& aNetN );
+    virtual int Clearance( const PNS::ITEM* aA, const PNS::ITEM* aB ) override;
+    virtual void OverrideClearance( bool aEnable, int aNetA = 0, int aNetB = 0, int aClearance = 0 ) override;
+    virtual void UseDpGap( bool aUseDpGap ) override { m_useDpGap = aUseDpGap; }
+    virtual int DpCoupledNet( int aNet ) override;
+    virtual int DpNetPolarity( int aNet ) override;
+    virtual bool DpNetPair( PNS::ITEM* aItem, int& aNetP, int& aNetN ) override;
 
 private:
     struct CLEARANCE_ENT
@@ -414,13 +414,11 @@ PNS_KICAD_IFACE::PNS_KICAD_IFACE()
     m_world = nullptr;
     m_router = nullptr;
     m_debugDecorator = nullptr;
-    m_commit = nullptr;
 }
 
 
 PNS_KICAD_IFACE::~PNS_KICAD_IFACE()
 {
-    delete m_commit;
     delete m_ruleResolver;
     delete m_debugDecorator;
 
@@ -823,7 +821,6 @@ void PNS_KICAD_IFACE::RemoveItem( PNS::ITEM* aItem )
 
     if( parent )
     {
-        assert( m_commit );
         m_commit->Remove( parent );
     }
 }
@@ -873,7 +870,6 @@ void PNS_KICAD_IFACE::AddItem( PNS::ITEM* aItem )
         aItem->SetParent( newBI );
         newBI->ClearFlags();
 
-        assert( m_commit );
         m_commit->Add( newBI );
     }
 }
@@ -882,6 +878,7 @@ void PNS_KICAD_IFACE::AddItem( PNS::ITEM* aItem )
 void PNS_KICAD_IFACE::Commit()
 {
     m_commit->Push( wxT( "Added a track" ) );
+    m_commit.reset( new BOARD_COMMIT ( m_frame ) );
 }
 
 
@@ -927,6 +924,5 @@ void PNS_KICAD_IFACE::SetHostFrame( PCB_EDIT_FRAME* aFrame )
 {
     m_frame = aFrame;
 
-    delete m_commit;
-    m_commit = new BOARD_COMMIT( aFrame );
+    m_commit.reset( new BOARD_COMMIT ( m_frame ) );
 }

@@ -188,7 +188,7 @@ public:
 
     void Process_Config( wxCommandEvent& event );
 
-    void ReCreateMenuBar();
+    void ReCreateMenuBar() override;
     void RecreateBaseHToolbar();
 
     /**
@@ -221,9 +221,9 @@ public:
 
     void CreateNewProject( const wxString& aPrjFullFileName, bool aTemplateSelector );
 
-    void LoadSettings( wxConfigBase* aCfg );
+    void LoadSettings( wxConfigBase* aCfg ) override;
 
-    void SaveSettings( wxConfigBase* aCfg );
+    void SaveSettings( wxConfigBase* aCfg ) override;
 
     /**
      * Function Execute
@@ -246,7 +246,7 @@ public:
         {
         }
 
-        void OnTerminate( int pid, int status );
+        void OnTerminate( int pid, int status ) override;
     };
 
     /**
@@ -278,11 +278,11 @@ public:
 
 private:
 
-    wxConfigBase*       config();       // override EDA_BASE_FRAME virtual
+    wxConfigBase*       config() override;
 
-    const SEARCH_STACK& sys_search();   // override EDA_BASE_FRAME virtual
+    const SEARCH_STACK& sys_search() override;
 
-    wxString help_name();               // override EDA_BASE_FRAME virtual
+    wxString help_name() override;
 
     TREE_PROJECT_FRAME* m_LeftWin;
     LAUNCHER_PANEL*     m_Launcher;

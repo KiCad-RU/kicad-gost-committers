@@ -74,7 +74,7 @@ public:
 
 private:
 
-    void                OnSize( wxSizeEvent& event );
+    void                OnSize( wxSizeEvent& event ) override;
 
     /**
      * Function ExportSelectedFootprint();
@@ -143,28 +143,28 @@ private:
     void                DisplayWizardInfos();
 
 
-    void                RedrawActiveWindow( wxDC* DC, bool EraseBg );
-    void                OnCloseWindow( wxCloseEvent& Event );
-    void                ReCreateHToolbar();
-    void                ReCreateVToolbar();
-    void                OnLeftClick( wxDC* DC, const wxPoint& MousePos );
+    void                RedrawActiveWindow( wxDC* DC, bool EraseBg ) override;
+    void                OnCloseWindow( wxCloseEvent& Event ) override;
+    void                ReCreateHToolbar() override;
+    void                ReCreateVToolbar() override;
+    void                OnLeftClick( wxDC* DC, const wxPoint& MousePos ) override;
     void                ClickOnPageList( wxCommandEvent& event );
     void                OnSetRelativeOffset( wxCommandEvent& event );
 
-    bool                GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
+    bool                GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 ) override;
 
-    void                LoadSettings( wxConfigBase* aCfg ); // override virtual
-    void                SaveSettings( wxConfigBase* aCfg ); // override virtual
+    void                LoadSettings( wxConfigBase* aCfg ) override;
+    void                SaveSettings( wxConfigBase* aCfg ) override;
 
     ///> @copydoc EDA_DRAW_FRAME::GetHotKeyDescription()
-    EDA_HOTKEY* GetHotKeyDescription( int ) const { return NULL; }
+    EDA_HOTKEY* GetHotKeyDescription( int ) const override { return NULL; }
 
     /**
      * Function OnActivate
      * is called when the frame frame is activate to reload the libraries and component lists
      * that can be changed by the schematic editor or the library editor.
      */
-    virtual void        OnActivate( wxActivateEvent& event );
+    virtual void        OnActivate( wxActivateEvent& event ) override;
 
     void                SelectCurrentWizard( wxCommandEvent& event );
 
@@ -174,13 +174,13 @@ private:
      */
     void                ParametersUpdated( wxGridEvent& event );
 
-    bool                OnRightClick( const wxPoint& MousePos, wxMenu* PopMenu );
+    bool                OnRightClick( const wxPoint& MousePos, wxMenu* PopMenu ) override;
 
     /**
      * Function Show3D_Frame (virtual)
      * displays 3D view of the footprint (module) being edited.
      */
-    void                Show3D_Frame( wxCommandEvent& event );
+    void                Show3D_Frame( wxCommandEvent& event ) override;
 
     /**
      * Function Update3D_Frame
@@ -195,9 +195,9 @@ private:
      * Virtual functions, not used here, but needed by PCB_BASE_FRAME
      * (virtual pure functions )
      */
-    void OnLeftDClick( wxDC*, const wxPoint& ) {}
-    void SaveCopyInUndoList( BOARD_ITEM*, UNDO_REDO_T, const wxPoint& ) {}
-    void SaveCopyInUndoList( const PICKED_ITEMS_LIST&, UNDO_REDO_T, const wxPoint& ) {}
+    void OnLeftDClick( wxDC*, const wxPoint& ) override {}
+    void SaveCopyInUndoList( BOARD_ITEM*, UNDO_REDO_T, const wxPoint& ) override {}
+    void SaveCopyInUndoList( const PICKED_ITEMS_LIST&, UNDO_REDO_T, const wxPoint& ) override {}
 
 
     DECLARE_EVENT_TABLE()

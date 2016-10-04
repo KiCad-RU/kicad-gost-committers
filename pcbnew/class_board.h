@@ -257,9 +257,9 @@ public:
     BOARD();
     ~BOARD();
 
-    virtual const wxPoint& GetPosition() const;
+    virtual const wxPoint& GetPosition() const override;
 
-    virtual void SetPosition( const wxPoint& aPos );
+    virtual void SetPosition( const wxPoint& aPos ) override;
 
     bool IsEmpty() const
     {
@@ -267,7 +267,7 @@ public:
                m_Track.GetCount() == 0 && m_Zone.GetCount() == 0;
     }
 
-    void Move( const wxPoint& aMoveVector );        // overload
+    void Move( const wxPoint& aMoveVector ) override;
 
     void SetFileFormatVersionAtLoad( int aVersion ) { m_fileFormatVersionAtLoad = aVersion; }
     int GetFileFormatVersionAtLoad()  const { return m_fileFormatVersionAtLoad; }
@@ -833,11 +833,11 @@ public:
      * as long as the BOARD has not changed.  Remember, ComputeBoundingBox()'s
      * aBoardEdgesOnly argument is considered in this return value also.
      */
-    const EDA_RECT GetBoundingBox() const { return m_BoundingBox; }   // override
+    const EDA_RECT GetBoundingBox() const override { return m_BoundingBox; }
 
     void SetBoundingBox( const EDA_RECT& aBox ) { m_BoundingBox = aBox; }
 
-    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList );
+    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList ) override;
 
     /**
      * Function Draw.
@@ -848,7 +848,7 @@ public:
      * @param aOffset = an draw offset value (default = 0,0)
      */
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
-               GR_DRAWMODE aDrawMode, const wxPoint& aOffset = ZeroOffset );
+               GR_DRAWMODE aDrawMode, const wxPoint& aOffset = ZeroOffset ) override;
 
     /**
      * Function DrawHighLight
@@ -951,13 +951,13 @@ public:
 
     /***************************************************************************/
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "BOARD" );
     }
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 
 
@@ -1309,8 +1309,6 @@ public:
      * Function TrackInNet
      * collects all the TRACKs and VIAs that are members of a net given by aNetCode.
      * Used from python.
-     * @param aList is a non-owning container that is appended to with the TRACKs and VIAs,
-     *  and is not initiallly cleared.
      * @param aNetCode gives the id of the net.
      * @return TRACKS - which are in the net identified by @a aNetCode.
      */
@@ -1321,17 +1319,19 @@ public:
      * collects all the TRACKs and VIAs that are members of a net given by aNetCode and that
      * make up a path between two end points.  The end points must be carefully chosen,
      * and are typically the locations of two neighboring pads.  The function fails if there
-     * is an intervening pad or a 3 way intersection at a track or via.
+     * is an intervening pad or a 3 way intersection at a track or via.  The seeking starts
+     * at @a aStartPos and strives to travel to @a aGoalPos.
      * Used from python.
      * @param aStartPos must correspond to a point on the BOARD which has a TRACK end or start,
      *  typically the location of either a via or pad.
-     * @param aEndPos must correspond to a point on the BOARD which has a TRACK end or start,
+     * @param aGoalPos must correspond to a point on the BOARD which has a TRACK end or start,
      *  typically the location of either a via or pad.
      * @param aNetCode gives the id of the net.
      * @return TRACKS - non empty if success, empty if your aStartPos or aEndPos are bad or
      *  the net is interrupted along the way by an intervening D_PAD or a 3 way path.
+     * @throw IO_ERROR in order to convey detailed error reason upon failure.
      */
-    TRACKS TracksInNetBetweenPoints( const wxPoint& aStartPos, const wxPoint& aEndPos, int aNetCode );
+    TRACKS TracksInNetBetweenPoints( const wxPoint& aStartPos, const wxPoint& aGoalPos, int aNetCode );
 
     /**
      * Function GetFootprint

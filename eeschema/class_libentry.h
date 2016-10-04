@@ -95,7 +95,7 @@ public:
 
     virtual ~LIB_ALIAS();
 
-    virtual wxString GetClass() const
+    virtual wxString GetClass() const override
     {
         return wxT( "LIB_ALIAS" );
     }
@@ -164,7 +164,7 @@ public:
     bool operator==( const LIB_ALIAS* aAlias ) const { return this == aAlias; }
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 };
 
@@ -228,7 +228,7 @@ public:
         return m_me;
     }
 
-    virtual wxString GetClass() const
+    virtual wxString GetClass() const override
     {
         return wxT( "LIB_PART" );
     }
@@ -291,7 +291,7 @@ public:
      *  if aConvert == 0 Convert is non used
      *  Invisible fields are not taken in account
      **/
-    const EDA_RECT GetBoundingBox( int aUnit, int aConvert ) const;
+    const EDA_RECT GetUnitBoundingBox( int aUnit, int aConvert ) const;
 
     /**
      * Function GetBodyBoundingBox
@@ -303,6 +303,11 @@ public:
      *  Fields are not taken in account
      **/
     const EDA_RECT GetBodyBoundingBox( int aUnit, int aConvert ) const;
+
+    const EDA_RECT GetBoundingBox() const override
+    {
+        return GetUnitBoundingBox( 0, 0 );
+    }
 
     /**
      * Function SaveDateAndTime
@@ -755,7 +760,7 @@ public:
     bool operator==( const LIB_PART*  aPart ) const { return this == aPart; }
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 };
 

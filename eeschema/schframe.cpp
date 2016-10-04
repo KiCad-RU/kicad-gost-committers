@@ -121,7 +121,7 @@ SEARCH_STACK* PROJECT::SchSearchS()
         }
         catch( const IO_ERROR& ioe )
         {
-            DBG(printf( "%s: %s\n", __func__, TO_UTF8( ioe.errorText ) );)
+            DBG(printf( "%s: %s\n", __func__, TO_UTF8( ioe.What() ) );)
         }
 
         if( !!libDir )
@@ -186,7 +186,7 @@ PART_LIBS* PROJECT::SchLibs()
         }
         catch( const IO_ERROR& ioe )
         {
-            DisplayError( NULL, ioe.errorText );
+            DisplayError( NULL, ioe.What() );
         }
     }
 
@@ -367,8 +367,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     m_hasAutoSave = true;
 
     SetForceHVLines( true );
-    SetSpiceAddReferencePrefix( false );
-    SetSpiceUseNetcodeAsNetname( false );
+    SetSpiceAjustPassiveValues( false );
 
     // Give an icon
     wxIcon icon;
@@ -1391,15 +1390,14 @@ void SCH_EDIT_FRAME::UpdateTitle()
 
     if( GetScreen()->GetFileName() == m_DefaultSchematicFileName )
     {
-        title.Printf( wxT( "Eeschema %s [%s]" ), GetChars( GetBuildVersion() ),
-                            GetChars( GetScreen()->GetFileName() ) );
+        title.Printf( L"Eeschema \u2014 %s", GetChars( GetScreen()->GetFileName() ) );
     }
     else
     {
         wxString    fileName = Prj().AbsolutePath( GetScreen()->GetFileName() );
         wxFileName  fn = fileName;
 
-        title.Printf( wxT( "[ %s %s] (%s)" ),
+        title.Printf( L"Eeschema \u2014 %s [%s] \u2014 %s",
                       GetChars( fn.GetName() ),
                       GetChars( m_CurrentSheet->PathHumanReadable() ),
                       GetChars( fn.GetPath() ) );

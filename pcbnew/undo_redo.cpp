@@ -188,7 +188,7 @@ void PCB_BASE_EDIT_FRAME::SaveCopyInUndoList( const PICKED_ITEMS_LIST& aItemsLis
     // is changed).
     for( unsigned ii = 0; ii < aItemsList.GetCount(); ii++ )
     {
-        ITEM_PICKER picker = aItemsList.GetItemWrapper(ii);
+        ITEM_PICKER curr_picker = aItemsList.GetItemWrapper(ii);
         BOARD_ITEM* item    = (BOARD_ITEM*) aItemsList.GetPickedItem( ii );
 
         // For items belonging to modules, we need to save state of the parent module
@@ -222,8 +222,9 @@ void PCB_BASE_EDIT_FRAME::SaveCopyInUndoList( const PICKED_ITEMS_LIST& aItemsLis
                 clone->SetParent( GetBoard() );
 
                 // Clear current flags (which can be temporary set by a current edit command)
-                for( EDA_ITEM* item = clone->GraphicalItems(); item; item = item->Next() )
-                    item->ClearFlags();
+                for( EDA_ITEM* loc_item = clone->GraphicalItems(); loc_item;
+                        loc_item = loc_item->Next() )
+                    loc_item->ClearFlags();
 
                 for( D_PAD* pad = clone->Pads(); pad; pad = pad->Next() )
                     pad->ClearFlags();
@@ -241,10 +242,11 @@ void PCB_BASE_EDIT_FRAME::SaveCopyInUndoList( const PICKED_ITEMS_LIST& aItemsLis
             {
                 continue;
             }
-
-        } else {
+        }
+        else
+        {
             // Normal case: all other BOARD_ITEMs, are simply copied to the new list
-            commandToUndo->PushItem( picker );
+            commandToUndo->PushItem( curr_picker );
         }
     }
 
@@ -321,8 +323,7 @@ void PCB_BASE_EDIT_FRAME::RestoreCopyFromUndoList( wxCommandEvent& aEvent )
         return;
 
     // Inform tools that undo command was issued
-    TOOL_EVENT event( TC_MESSAGE, TA_UNDO_REDO, AS_GLOBAL );
-    m_toolManager->ProcessEvent( event );
+    m_toolManager->ProcessEvent( { TC_MESSAGE, TA_UNDO_REDO_PRE, AS_GLOBAL } );
 
     // Get the old list
     PICKED_ITEMS_LIST* List = GetScreen()->PopCommandFromUndoList();
@@ -335,6 +336,9 @@ void PCB_BASE_EDIT_FRAME::RestoreCopyFromUndoList( wxCommandEvent& aEvent )
     GetScreen()->PushCommandToRedoList( List );
 
     OnModify();
+
+    m_toolManager->ProcessEvent( { TC_MESSAGE, TA_UNDO_REDO_POST, AS_GLOBAL } );
+
     m_canvas->Refresh();
 }
 
@@ -348,8 +352,7 @@ void PCB_BASE_EDIT_FRAME::RestoreCopyFromRedoList( wxCommandEvent& aEvent )
         return;
 
     // Inform tools that redo command was issued
-    TOOL_EVENT event( TC_MESSAGE, TA_UNDO_REDO, AS_GLOBAL );
-    m_toolManager->ProcessEvent( event );
+    m_toolManager->ProcessEvent( { TC_MESSAGE, TA_UNDO_REDO_PRE, AS_GLOBAL } );
 
     // Get the old list
     PICKED_ITEMS_LIST* List = GetScreen()->PopCommandFromRedoList();
@@ -362,6 +365,9 @@ void PCB_BASE_EDIT_FRAME::RestoreCopyFromRedoList( wxCommandEvent& aEvent )
     GetScreen()->PushCommandToUndoList( List );
 
     OnModify();
+
+    m_toolManager->ProcessEvent( { TC_MESSAGE, TA_UNDO_REDO_POST, AS_GLOBAL } );
+
     m_canvas->Refresh();
 }
 
@@ -372,7 +378,7 @@ void PCB_BASE_EDIT_FRAME::PutDataInPreviousState( PICKED_ITEMS_LIST* aList, bool
     BOARD_ITEM* item;
     bool        not_found = false;
     bool        reBuild_ratsnest = false;
-    bool        deep_reBuild_ratsnest = false;
+    bool        deep_reBuild_ratsnest = false;  // true later if pointers must be rebuilt
 
     KIGFX::VIEW* view = GetGalCanvas()->GetView();
     RN_DATA* ratsnest = GetBoard()->GetRatsnest();
@@ -425,6 +431,8 @@ void PCB_BASE_EDIT_FRAME::PutDataInPreviousState( PICKED_ITEMS_LIST* aList, bool
         switch( item->Type() )
         {
         case PCB_MODULE_T:
+            deep_reBuild_ratsnest = true;   // Pointers on pads can be invalid
+            // Fall through
         case PCB_ZONE_AREA_T:
         case PCB_TRACE_T:
         case PCB_VIA_T:
