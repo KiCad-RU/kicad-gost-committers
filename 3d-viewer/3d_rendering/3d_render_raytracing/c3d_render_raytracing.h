@@ -81,6 +81,7 @@ private:
     void rt_render_post_process_shade( GLubyte *ptrPBO , REPORTER *aStatusTextReporter );
     void rt_render_post_process_blur_finish( GLubyte *ptrPBO , REPORTER *aStatusTextReporter );
     void rt_render_trace_block( GLubyte *ptrPBO , signed int iBlock );
+    void rt_final_color( GLubyte *ptrPBO, const SFVEC3F &rgbColor, bool applyColorSpaceConversion );
 
     // Materials
     void setupMaterials();
@@ -94,6 +95,13 @@ private:
         CBLINN_PHONG_MATERIAL m_Copper;
         CBLINN_PHONG_MATERIAL m_Floor;
     }m_materials;
+
+    CBOARDNORMAL        m_board_normal_perturbator;
+    CCOPPERNORMAL       m_copper_normal_perturbator;
+    CSOLDERMASKNORMAL   m_solder_mask_normal_perturbator;
+    CPLASTICNORMAL      m_plastic_normal_perturbator;
+    CPLASTICSHINENORMAL m_plastic_shine_normal_perturbator;
+    CMETALBRUSHEDNORMAL m_brushed_metal_normal_perturbator;
 
     bool m_isPreview;
 

@@ -65,7 +65,7 @@ void LIB_EDIT_FRAME::ReCreateMenuBar()
     // Select current library
     AddMenuItem( fileMenu,
                  ID_LIBEDIT_SELECT_CURRENT_LIB,
-                 _( "&Current Library" ),
+                 _( "Select &Current Library" ),
                  _( "Select working library" ),
                  KiBitmap( library_xpm ) );
     fileMenu->AppendSeparator();
@@ -265,6 +265,12 @@ void LIB_EDIT_FRAME::ReCreateMenuBar()
                  _( "&List Hotkeys" ),
                  _( "Displays the current hotkeys list and corresponding commands" ),
                  KiBitmap( hotkeys_xpm ) );
+
+    helpMenu->AppendSeparator();
+    AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED,
+                 _( "Get &Involved" ),
+                 _( "Contribute to KiCad (opens a web browser)" ),
+                 KiBitmap( info_xpm ) );
 
     // About Eeschema
     helpMenu->AppendSeparator();

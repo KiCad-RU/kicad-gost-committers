@@ -2662,7 +2662,7 @@ void SCH_LEGACY_PLUGIN_CACHE::loadDrawEntries( std::unique_ptr< LIB_PART >& aPar
         case '\n':   // Empty line
         case '\r':
         case 0:
-            continue;
+            break;
 
         default:
             SCH_PARSE_ERROR( _( "undefined DRAW entry" ), aReader, line );
@@ -3372,4 +3372,51 @@ void SCH_LEGACY_PLUGIN::DeleteSymbol( const wxString& aLibraryPath, const wxStri
     cacheLib( aLibraryPath );
 
     m_cache->DeleteSymbol( aAliasName );
+}
+
+
+void SCH_LEGACY_PLUGIN::CreateSymbolLib( const wxString& aLibraryPath,
+                                         const PROPERTIES* aProperties )
+{
+    if( wxFileExists( aLibraryPath ) )
+    {
+        THROW_IO_ERROR( wxString::Format(
+            _( "symbol library '%s' already exists, cannot create a new library" ),
+            aLibraryPath.GetData() ) );
+    }
+
+    LOCALE_IO toggle;
+
+    m_props = aProperties;
+
+    delete m_cache;
+    m_cache = new SCH_LEGACY_PLUGIN_CACHE( aLibraryPath );
+    m_cache->Save();
+    m_cache->Load();    // update m_writable and m_mod_time
+}
+
+
+bool SCH_LEGACY_PLUGIN::DeleteSymbolLib( const wxString& aLibraryPath,
+                                         const PROPERTIES* aProperties )
+{
+    wxFileName fn = aLibraryPath;
+
+    if( !fn.FileExists() )
+        return false;
+
+    // Some of the more elaborate wxRemoveFile() crap puts up its own wxLog dialog
+    // we don't want that.  we want bare metal portability with no UI here.
+    if( wxRemove( aLibraryPath ) )
+    {
+        THROW_IO_ERROR( wxString::Format( _( "library '%s' cannot be deleted" ),
+                                          aLibraryPath.GetData() ) );
+    }
+
+    if( m_cache && m_cache->IsFile( aLibraryPath ) )
+    {
+        delete m_cache;
+        m_cache = 0;
+    }
+
+    return true;
 }

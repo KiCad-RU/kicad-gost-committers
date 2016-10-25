@@ -171,6 +171,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
 
     // menu Miscellaneous
     EVT_MENU( ID_MENU_LIST_NETS, PCB_EDIT_FRAME::ListNetsAndSelect )
+    EVT_MENU( ID_PCB_EDIT_ALL_VIAS_AND_TRACK_SIZE, PCB_EDIT_FRAME::Process_Special_Functions )
     EVT_MENU( ID_PCB_GLOBAL_DELETE, PCB_EDIT_FRAME::Process_Special_Functions )
     EVT_MENU( ID_MENU_PCB_CLEAN, PCB_EDIT_FRAME::Process_Special_Functions )
     EVT_MENU( ID_MENU_PCB_SWAP_LAYERS, PCB_EDIT_FRAME::Process_Special_Functions )
@@ -180,6 +181,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     // Menu Help
     EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( ID_HELP_GET_INVOLVED, EDA_DRAW_FRAME::GetKicadContribute )
     EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
 
     // Menu 3D Frame
@@ -1122,7 +1124,9 @@ void PCB_EDIT_FRAME::OnUpdatePCBFromSch( wxCommandEvent& event )
                                  " PCBs from schematics, you need to launch Kicad shell"
                                  " and create a PCB project." ) );
         return;
-    } else {
+    }
+    else
+    {
         KIWAY_PLAYER* frame = Kiway().Player( FRAME_SCH, true );
         wxFileName schfn = Prj().AbsolutePath( Prj().GetProjectName() );
 
@@ -1135,6 +1139,5 @@ void PCB_EDIT_FRAME::OnUpdatePCBFromSch( wxCommandEvent& event )
         }
 
         Kiway().ExpressMail( FRAME_SCH, MAIL_SCH_PCB_UPDATE_REQUEST, "", this );
-
     }
 }

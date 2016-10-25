@@ -163,6 +163,7 @@ BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
     // Menu Help
     EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( ID_HELP_GET_INVOLVED, EDA_DRAW_FRAME::GetKicadContribute )
     EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
 
     // Menu 3D Frame
@@ -366,7 +367,7 @@ const wxString FOOTPRINT_EDIT_FRAME::getLibPath()
 
         return row->GetFullURI( true );
     }
-    catch( const IO_ERROR& ioe )
+    catch( const IO_ERROR& )
     {
         return wxEmptyString;
     }
@@ -409,12 +410,12 @@ void FOOTPRINT_EDIT_FRAME::restoreLastFootprint()
         {
             module = (MODULE*) pcb_io.Parse( pretty );
         }
-        catch( const PARSE_ERROR& pe )
+        catch( const PARSE_ERROR& )
         {
             // unlikely to be a problem, since we produced the pretty string.
             wxLogError( wxT( "PARSE_ERROR" ) );
         }
-        catch( const IO_ERROR& ioe )
+        catch( const IO_ERROR& )
         {
             // unlikely to be a problem, since we produced the pretty string.
             wxLogError( wxT( "IO_ERROR" ) );
@@ -767,7 +768,7 @@ void FOOTPRINT_EDIT_FRAME::updateTitle()
 
             nickname_display = nickname;
         }
-        catch( const IO_ERROR& ioe )
+        catch( const IO_ERROR& )
         {
             // user may be bewildered as to why after selecting a library it is not showing up
             // in the title, we could show an error message, but that should have been done at time

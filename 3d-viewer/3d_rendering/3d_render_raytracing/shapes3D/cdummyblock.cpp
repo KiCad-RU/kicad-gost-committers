@@ -48,11 +48,15 @@ bool CDUMMYBLOCK::Intersect( const RAY &aRay, HITINFO &aHitInfo ) const
     if( t < aHitInfo.m_tHit )
     {
         aHitInfo.m_tHit = t;
-        //aHitInfo.m_HitPoint = aRay.at( t );
+        aHitInfo.m_HitPoint = aRay.at( t );
+
         if( aRay.m_dirIsNeg[2] )
             aHitInfo.m_HitNormal = SFVEC3F( 0.0f, 0.0f, 1.0f );
         else
             aHitInfo.m_HitNormal = SFVEC3F( 0.0f, 0.0f,-1.0f );
+
+        m_material->PerturbeNormal( aHitInfo.m_HitNormal, aRay, aHitInfo );
+
         aHitInfo.pHitObject = this;
 
         return true;

@@ -66,7 +66,7 @@ void LIB_EDIT_FRAME::OnImportPart( wxCommandEvent& event )
         std::unique_ptr<PART_LIB> new_lib( PART_LIB::LoadLibrary( fn.GetFullPath() ) );
         lib = std::move( new_lib );
     }
-    catch( const IO_ERROR& ioe )
+    catch( const IO_ERROR& )
     {
         wxString msg = wxString::Format( _(
             "Unable to import library '%s'.  Error:\n"
@@ -78,17 +78,19 @@ void LIB_EDIT_FRAME::OnImportPart( wxCommandEvent& event )
         return;
     }
 
-    LIB_ALIAS* entry = lib->GetFirstEntry();
+    wxArrayString aliasNames;
 
-    if( !entry )
+    lib->GetAliasNames( aliasNames );
+
+    if( aliasNames.IsEmpty() )
     {
-        wxString msg = wxString::Format( _(
-            "Part library file '%s' is empty." ),
-            GetChars( fn.GetFullPath() )
-            );
+        wxString msg = wxString::Format( _( "Part library file '%s' is empty." ),
+                                         GetChars( fn.GetFullPath() ) );
         DisplayError( this,  msg );
         return;
     }
+
+    LIB_ALIAS* entry = lib->FindAlias( aliasNames[0] );
 
     if( LoadOneLibraryPartAux( entry, lib.get() ) )
     {

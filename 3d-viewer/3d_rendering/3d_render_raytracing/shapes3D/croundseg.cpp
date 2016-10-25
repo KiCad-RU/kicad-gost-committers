@@ -81,13 +81,15 @@ bool CROUNDSEG::Intersect( const RAY &aRay, HITINFO &aHitInfo ) const
         if( tPlane < aHitInfo.m_tHit )
         {
             aHitInfo.m_tHit = tPlane;
-            //aHitInfo.m_HitPoint = SFVEC3F( planeHitPoint2d.x,
-            //                               planeHitPoint2d.y,
-            //                               aRay.m_Origin.z + aRay.m_Dir.z * tPlane );
+            aHitInfo.m_HitPoint = SFVEC3F( planeHitPoint2d.x,
+                                           planeHitPoint2d.y,
+                                           aRay.m_Origin.z + aRay.m_Dir.z * tPlane );
             aHitInfo.m_HitNormal = SFVEC3F( 0.0f,
                                             0.0f,
                                             aRay.m_dirIsNeg[2]? 1.0f: -1.0f );
             aHitInfo.pHitObject = this;
+
+            m_material->PerturbeNormal( aHitInfo.m_HitNormal, aRay, aHitInfo );
 
             return true;
         }
@@ -119,11 +121,13 @@ bool CROUNDSEG::Intersect( const RAY &aRay, HITINFO &aHitInfo ) const
                 if( t < aHitInfo.m_tHit )
                 {
                     aHitInfo.m_tHit = t;
-                    //aHitInfo.m_HitPoint = hitP;
+                    aHitInfo.m_HitPoint = hitP;
                     aHitInfo.m_HitNormal = SFVEC3F( m_plane_dir_right.x,
                                                     m_plane_dir_right.y,
                                                     0.0f );
                     aHitInfo.pHitObject = this;
+
+                    m_material->PerturbeNormal( aHitInfo.m_HitNormal, aRay, aHitInfo );
 
                     return true;
                 }
@@ -156,11 +160,13 @@ bool CROUNDSEG::Intersect( const RAY &aRay, HITINFO &aHitInfo ) const
                     if( t < aHitInfo.m_tHit )
                     {
                         aHitInfo.m_tHit = t;
-                        //aHitInfo.m_HitPoint = hitP;
+                        aHitInfo.m_HitPoint = hitP;
                         aHitInfo.m_HitNormal = SFVEC3F( m_plane_dir_left.x,
                                                         m_plane_dir_left.y,
                                                         0.0f );
                         aHitInfo.pHitObject = this;
+
+                        m_material->PerturbeNormal( aHitInfo.m_HitNormal, aRay, aHitInfo );
 
                         return true;
                     }
@@ -204,13 +210,19 @@ bool CROUNDSEG::Intersect( const RAY &aRay, HITINFO &aHitInfo ) const
             if( t < aHitInfo.m_tHit )
             {
                 aHitInfo.m_tHit = t;
-                SFVEC2F hitPoint2D = aRay.at2D( t );
-                //aHitInfo.m_HitPoint = aRay.at( t );
+                aHitInfo.m_HitPoint = aRay.at( t );
+
+                const SFVEC2F hitPoint2D = SFVEC2F( aHitInfo.m_HitPoint.x,
+                                                    aHitInfo.m_HitPoint.y );
+
                 aHitInfo.m_HitNormal = SFVEC3F(
                             (hitPoint2D.x - m_segment.m_Start.x) * m_inv_radius,
                             (hitPoint2D.y - m_segment.m_Start.y) * m_inv_radius,
                             0.0f );
+
                 aHitInfo.pHitObject = this;
+
+                m_material->PerturbeNormal( aHitInfo.m_HitNormal, aRay, aHitInfo );
 
                 return true;
             }
@@ -243,14 +255,18 @@ bool CROUNDSEG::Intersect( const RAY &aRay, HITINFO &aHitInfo ) const
             if( t < aHitInfo.m_tHit )
             {
                 aHitInfo.m_tHit = t;
-                //aHitInfo.m_HitPoint = aRay.at( t );
-                const SFVEC2F hitPoint2D = aRay.at2D( t );
+                aHitInfo.m_HitPoint = aRay.at( t );
+
+                const SFVEC2F hitPoint2D = SFVEC2F( aHitInfo.m_HitPoint.x,
+                                                    aHitInfo.m_HitPoint.y );
 
                 aHitInfo.m_HitNormal = SFVEC3F(
                                 (hitPoint2D.x - m_segment.m_End.x) * m_inv_radius,
                                 (hitPoint2D.y - m_segment.m_End.y) * m_inv_radius,
                                 0.0f );
                 aHitInfo.pHitObject = this;
+
+                m_material->PerturbeNormal( aHitInfo.m_HitNormal, aRay, aHitInfo );
 
                 return true;
             }

@@ -281,7 +281,6 @@ void MODULE::Add( BOARD_ITEM* aBoardItem, ADD_MODE aMode )
     }
 
     aBoardItem->SetParent( this );
-    SetLastEditTime();
 
     // Update relative coordinates, it can be done only after there is a parent object assigned
     switch( aBoardItem->Type() )
@@ -820,7 +819,7 @@ void MODULE::RunOnChildren( std::function<void (BOARD_ITEM*)> aFunction )
         aFunction( static_cast<BOARD_ITEM*>( m_Reference ) );
         aFunction( static_cast<BOARD_ITEM*>( m_Value ) );
     }
-    catch( std::bad_function_call& e )
+    catch( std::bad_function_call& )
     {
         DisplayError( NULL, wxT( "Error running MODULE::RunOnChildren" ) );
     }

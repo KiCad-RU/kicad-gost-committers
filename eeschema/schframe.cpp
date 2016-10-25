@@ -119,7 +119,7 @@ SEARCH_STACK* PROJECT::SchSearchS()
         {
             PART_LIBS::LibNamesAndPaths( this, false, &libDir );
         }
-        catch( const IO_ERROR& ioe )
+        catch( const IO_ERROR& DBG( ioe ) )
         {
             DBG(printf( "%s: %s\n", __func__, TO_UTF8( ioe.What() ) );)
         }
@@ -282,6 +282,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( ID_AUTOPLACE_FIELDS, SCH_EDIT_FRAME::OnAutoplaceFields )
     EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( ID_HELP_GET_INVOLVED, EDA_DRAW_FRAME::GetKicadContribute )
     EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
 
     // Tools and buttons for vertical toolbar.
@@ -860,7 +861,9 @@ void SCH_EDIT_FRAME::OnUpdatePCB( wxCommandEvent& event )
                                 " PCBs from schematics, you need to launch Kicad shell"
                                 " and create a PCB project." ) );
         return;
-    } else {
+    }
+    else
+    {
         KIWAY_PLAYER* frame = Kiway().Player( FRAME_PCB, true );
 
         // a pcb frame can be already existing, but not yet used.
@@ -879,17 +882,22 @@ void SCH_EDIT_FRAME::OnUpdatePCB( wxCommandEvent& event )
         frame->Raise();
     }
 
+    // Ensure the schematic is OK for a netlist creation
+    // (especially all components are annotated):
+    bool success = prepareForNetlist();
+
+    if( !success )
+        return;
+
     NETLIST_OBJECT_LIST* net_atoms = BuildNetListBase();
     NETLIST_EXPORTER_KICAD exporter( net_atoms, Prj().SchLibs() );
     STRING_FORMATTER formatter;
 
     exporter.Format( &formatter, GNL_ALL );
 
-    Kiway().ExpressMail( FRAME_PCB,
-        MAIL_SCH_PCB_UPDATE,
-        formatter.GetString(),  // an abbreviated "kicad" (s-expr) netlist
-        this
-    );
+    // Now, send the "kicad" (s-expr) netlist to Pcbnew
+    Kiway().ExpressMail( FRAME_PCB, MAIL_SCH_PCB_UPDATE,
+                         formatter.GetString(), this );
 }
 
 void SCH_EDIT_FRAME::OnCreateNetlist( wxCommandEvent& event )
@@ -1203,7 +1211,7 @@ void SCH_EDIT_FRAME::OnOpenLibraryEditor( wxCommandEvent& event )
     {
         if( PART_LIBS* libs = Prj().SchLibs() )
         {
-            LIB_ALIAS* entry = libs->FindLibraryEntry( component->GetPartName() );
+            LIB_ALIAS* entry = libs->FindLibraryAlias( component->GetPartName() );
 
             if( !entry )     // Should not occur
                 return;

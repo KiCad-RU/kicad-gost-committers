@@ -272,31 +272,8 @@ public:
         if( aWorldScale < 0.001 || aWorldScale > 10.0 )
             throw( std::runtime_error( "WorldScale out of range (valid range is 0.001 to 10.0)" ) );
 
-        // note: the KiCad SceneGraph library uses mm internally
-        // and scales output to VRML UNIT = 0.1 inch so that by
-        // default the output models are compatible with KiCad's
-        // expectations. This requires us to divide aWorldScale
-        // by 2.54 in order to generate the scaling which the
-        // user specified in the Export VRML GUI.
-        OutputPCB.SetScale( aWorldScale / 2.54 );
-
+        OutputPCB.SetScale( aWorldScale * 2.54 );
         WORLD_SCALE = aWorldScale * 2.54;
-
-        // XXX - Delete if no longer necessary
-        /*
-        double smin = arcMinLen * aWorldScale;
-        double smax = arcMaxLen * aWorldScale;
-
-        holes.SetArcParams( iMaxSeg, smin, smax );
-        board.SetArcParams( iMaxSeg, smin, smax );
-        top_copper.SetArcParams( iMaxSeg, smin, smax);
-        bot_copper.SetArcParams( iMaxSeg, smin, smax);
-        top_silk.SetArcParams( iMaxSeg, smin, smax );
-        bot_silk.SetArcParams( iMaxSeg, smin, smax );
-        top_tin.SetArcParams( iMaxSeg, smin, smax );
-        bot_tin.SetArcParams( iMaxSeg, smin, smax );
-        plated_holes.SetArcParams( iMaxSeg, smin, smax );
-         */
 
         return true;
     }
@@ -343,9 +320,9 @@ static void create_vrml_shell( IFSG_TRANSFORM& PcbOutput, VRML_COLOR_INDEX color
 static void create_vrml_plane( IFSG_TRANSFORM& PcbOutput, VRML_COLOR_INDEX colorID,
     VRML_LAYER* layer, double aHeight, bool aTopPlane );
 
-static void write_triangle_bag( std::ofstream& output_file, VRML_COLOR& color,
-                                VRML_LAYER* layer, bool plane, bool top,
-                                double top_z, double bottom_z )
+static void write_triangle_bag( std::ofstream& aOut_file, VRML_COLOR& aColor,
+                                VRML_LAYER* aLayer, bool aPlane, bool aTop,
+                                double aTop_z, double aBottom_z )
 {
     /* A lot of nodes are not required, but blender sometimes chokes
      * without them */
@@ -385,7 +362,7 @@ static void write_triangle_bag( std::ofstream& output_file, VRML_COLOR& color,
     while( marker_found < 4 )
     {
         if( shape_boiler[lineno] )
-            output_file << shape_boiler[lineno];
+            aOut_file << shape_boiler[lineno];
         else
         {
             marker_found++;
@@ -393,44 +370,44 @@ static void write_triangle_bag( std::ofstream& output_file, VRML_COLOR& color,
             switch( marker_found )
             {
             case 1:    // Material marker
-                output_file << "              diffuseColor " << std::setprecision(3);
-                output_file << color.diffuse_red << " ";
-                output_file << color.diffuse_grn << " ";
-                output_file << color.diffuse_blu << "\n";
+                aOut_file << "              diffuseColor " << std::setprecision(3);
+                aOut_file << aColor.diffuse_red << " ";
+                aOut_file << aColor.diffuse_grn << " ";
+                aOut_file << aColor.diffuse_blu << "\n";
 
-                output_file << "              specularColor ";
-                output_file << color.spec_red << " ";
-                output_file << color.spec_grn << " ";
-                output_file << color.spec_blu << "\n";
+                aOut_file << "              specularColor ";
+                aOut_file << aColor.spec_red << " ";
+                aOut_file << aColor.spec_grn << " ";
+                aOut_file << aColor.spec_blu << "\n";
 
-                output_file << "              emissiveColor ";
-                output_file << color.emit_red << " ";
-                output_file << color.emit_grn << " ";
-                output_file << color.emit_blu << "\n";
+                aOut_file << "              emissiveColor ";
+                aOut_file << aColor.emit_red << " ";
+                aOut_file << aColor.emit_grn << " ";
+                aOut_file << aColor.emit_blu << "\n";
 
-                output_file << "              ambientIntensity " << color.ambient << "\n";
-                output_file << "              transparency " << color.transp << "\n";
-                output_file << "              shininess " << color.shiny << "\n";
+                aOut_file << "              ambientIntensity " << aColor.ambient << "\n";
+                aOut_file << "              transparency " << aColor.transp << "\n";
+                aOut_file << "              shininess " << aColor.shiny << "\n";
                 break;
 
             case 2:
 
-                if( plane )
-                    layer->WriteVertices( top_z, output_file, PRECISION );
+                if( aPlane )
+                    aLayer->WriteVertices( aTop_z, aOut_file, PRECISION );
                 else
-                    layer->Write3DVertices( top_z, bottom_z, output_file, PRECISION );
+                    aLayer->Write3DVertices( aTop_z, aBottom_z, aOut_file, PRECISION );
 
-                output_file << "\n";
+                aOut_file << "\n";
                 break;
 
             case 3:
 
-                if( plane )
-                    layer->WriteIndices( top, output_file );
+                if( aPlane )
+                    aLayer->WriteIndices( aTop, aOut_file );
                 else
-                    layer->Write3DIndices( output_file );
+                    aLayer->Write3DIndices( aOut_file );
 
-                output_file << "\n";
+                aOut_file << "\n";
                 break;
 
             default:
@@ -1515,19 +1492,21 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString& aFullFileName, double aMMt
     SUBDIR_3D = a3D_Subdir;
     MODEL_VRML model3d;
     model_vrml = &model3d;
+    model3d.SetScale( aMMtoWRMLunit );
 
     if( USE_INLINES )
+    {
         BOARD_SCALE = MM_PER_IU / 2.54;
+        model3d.SetOffset( -aXRef / 2.54, aYRef / 2.54 );
+    }
     else
+    {
         BOARD_SCALE = MM_PER_IU;
-
-    // Set the VRML world scale factor
-    model3d.SetScale( aMMtoWRMLunit );
+        model3d.SetOffset( -aXRef, aYRef );
+    }
 
     // plain PCB or else PCB with copper and silkscreen
     model3d.plainPCB = aUsePlainPCB;
-    // board reference point
-    model3d.SetOffset( -aXRef, aYRef );
 
     // locale switch for C numeric output
     LOCALE_IO* toggle = NULL;
@@ -1578,12 +1557,7 @@ bool PCB_EDIT_FRAME::ExportVRML_File( const wxString& aFullFileName, double aMMt
             output_file << WORLD_SCALE << " ";
             output_file << WORLD_SCALE << " ";
             output_file << WORLD_SCALE << "\n";
-
-            // board reference point
-            model3d.SetOffset( -aXRef, aYRef );
-
             output_file << "  children [\n";
-
         }
 
         // Export footprints

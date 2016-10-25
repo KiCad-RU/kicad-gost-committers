@@ -250,12 +250,13 @@ void PCB_EDIT_FRAME::KiwayMailIn( KIWAY_EXPRESS& mail )
     {
         NETLIST netlist;
 
-        try {
+        try
+        {
             STRING_LINE_READER* lineReader = new STRING_LINE_READER( payload, _( "EEschema netlist" ) );
             KICAD_NETLIST_READER netlistReader( lineReader, &netlist );
             netlistReader.LoadNetlist();
         }
-        catch( const IO_ERROR& ioe )
+        catch( const IO_ERROR& )
         {
             assert( false ); // should never happen
         }

@@ -54,27 +54,41 @@
 
 void C3D_RENDER_RAYTRACING::setupMaterials()
 {
+
+    if( m_settings.GetFlag( FL_RENDER_RAYTRACING_PROCEDURAL_TEXTURES ) )
+    {
+        m_board_normal_perturbator  = CBOARDNORMAL( 0.5f * IU_PER_MM * m_settings.BiuTo3Dunits() );
+
+        m_copper_normal_perturbator = CCOPPERNORMAL( 4.0f * IU_PER_MM * m_settings.BiuTo3Dunits(),
+                                                     &m_board_normal_perturbator );
+
+        m_solder_mask_normal_perturbator = CSOLDERMASKNORMAL( &m_board_normal_perturbator );
+
+        m_plastic_normal_perturbator = CPLASTICNORMAL( 0.15f * IU_PER_MM * m_settings.BiuTo3Dunits() );
+
+        m_plastic_shine_normal_perturbator = CPLASTICSHINENORMAL( 1.0f * IU_PER_MM * m_settings.BiuTo3Dunits() );
+
+        m_brushed_metal_normal_perturbator = CMETALBRUSHEDNORMAL( 1.0f * IU_PER_MM * m_settings.BiuTo3Dunits() );
+    }
+
     // http://devernay.free.fr/cours/opengl/materials.html
 
     // Copper
-
-    // This guess the material type(ex: copper vs gold) to determine the
-    // shininess factor between 0.1 and 0.4
-    float shininessfactor = 0.40f - mapf( fabs( m_settings.m_CopperColor.r -
-                                                m_settings.m_CopperColor.g ),
-                                          0.15f, 1.00f,
-                                          0.00f, 0.30f );
-
     m_materials.m_Copper = CBLINN_PHONG_MATERIAL(
-                (SFVEC3F)m_settings.m_CopperColor * (SFVEC3F)(0.28f),   // ambient
+                (SFVEC3F)m_settings.m_CopperColor * (SFVEC3F)(0.18f),   // ambient
                 SFVEC3F( 0.0f, 0.0f, 0.0f ),                            // emissive
                 glm::clamp( ((SFVEC3F)(1.0f) -
                              (SFVEC3F)m_settings.m_CopperColor),
                             SFVEC3F( 0.0f ),
-                            SFVEC3F( 0.40f ) ),                         // specular
-                shininessfactor * 128.0f,                               // shiness
+                            SFVEC3F( 0.35f ) ),                         // specular
+                0.4f * 128.0f,                                          // shiness
                 0.0f,                                                   // transparency
                 0.0f );
+
+    if( m_settings.GetFlag( FL_RENDER_RAYTRACING_PROCEDURAL_TEXTURES ) )
+        m_materials.m_Copper.SetNormalPerturbator( &m_copper_normal_perturbator );
+
+
 
     m_materials.m_Paste = CBLINN_PHONG_MATERIAL(
                 (SFVEC3F)m_settings.m_SolderPasteColor *
@@ -92,7 +106,7 @@ void C3D_RENDER_RAYTRACING::setupMaterials()
                 glm::clamp( ((SFVEC3F)(1.0f) -
                              (SFVEC3F)m_settings.m_SilkScreenColor),
                             SFVEC3F( 0.0f ),
-                            SFVEC3F( 0.1f ) ),          // specular
+                            SFVEC3F( 0.10f ) ),         // specular
                 0.078125f * 128.0f,                     // shiness
                 0.0f,                                   // transparency
                 0.0f );
@@ -105,11 +119,14 @@ void C3D_RENDER_RAYTRACING::setupMaterials()
                               (SFVEC3F)m_settings.m_SolderMaskColor ),
                             SFVEC3F( 0.0f ),
                             SFVEC3F( 0.35f ) ),         // specular
-                0.85f * 128.0f,                         // shiness
+                0.95f * 128.0f,                         // shiness
                 0.12f,                                  // transparency
                 0.16f );                                // reflection
 
     m_materials.m_SolderMask.SetCastShadows( true );
+
+    if( m_settings.GetFlag( FL_RENDER_RAYTRACING_PROCEDURAL_TEXTURES ) )
+        m_materials.m_SolderMask.SetNormalPerturbator( &m_solder_mask_normal_perturbator );
 
     m_materials.m_EpoxyBoard = CBLINN_PHONG_MATERIAL(
                 SFVEC3F( 16.0f / 255.0f,
@@ -122,6 +139,9 @@ void C3D_RENDER_RAYTRACING::setupMaterials()
                 0.1f * 128.0f,                          // shiness
                 0.10f,                                  // transparency
                 0.0f );                                 // reflection
+
+    if( m_settings.GetFlag( FL_RENDER_RAYTRACING_PROCEDURAL_TEXTURES ) )
+        m_materials.m_EpoxyBoard.SetNormalPerturbator( &m_board_normal_perturbator );
 
     SFVEC3F bgTop = (SFVEC3F)m_settings.m_BgColorTop;
     //SFVEC3F bgBot = (SFVEC3F)m_settings.m_BgColorBot;
@@ -239,58 +259,6 @@ void C3D_RENDER_RAYTRACING::reload( REPORTER *aStatusTextReporter )
 
     SFVEC3F camera_pos = m_settings.GetBoardCenter3DU();
     m_settings.CameraGet().SetBoardLookAtPos( camera_pos );
-
-    // Init initial lights
-    m_lights.Clear();
-
-    // This will work as the front camera light.
-    const float light_camera_intensity = 0.15f;
-    const float light_directional_intensity_top = 0.20f;
-    const float light_directional_intensity = ( 1.0f - ( light_camera_intensity +
-                                                         light_directional_intensity_top ) ) / 4.0f;
-
-    m_camera_light = new CDIRECTIONALLIGHT( SFVEC3F( 0.0f, 0.0f, 0.0f ),
-                                            SFVEC3F( light_camera_intensity ) );
-    m_camera_light->SetCastShadows( false );
-    m_lights.Add( m_camera_light );
-
-    // http://www.flashandmath.com/mathlets/multicalc/coords/shilmay23fin.html
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 0.03f,
-                                                               glm::pi<float>() * 0.25f ),
-                                         SFVEC3F( light_directional_intensity_top ) ) );
-
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 0.97f,
-                                                               glm::pi<float>() * 1.25f ),
-                                         SFVEC3F( light_directional_intensity_top ) ) );
-
-
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 1.0f / 8.0f,
-                                                               glm::pi<float>() * 1 / 4.0f ),
-                                         SFVEC3F( light_directional_intensity ) ) );
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 1.0f / 8.0f,
-                                                               glm::pi<float>() * 3 / 4.0f ),
-                                         SFVEC3F( light_directional_intensity ) ) );
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 1.0f / 8.0f,
-                                                               glm::pi<float>() * 5 / 4.0f ),
-                                         SFVEC3F( light_directional_intensity ) ) );
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 1.0f / 8.0f,
-                                                               glm::pi<float>() * 7 / 4.0f ),
-                                         SFVEC3F( light_directional_intensity ) ) );
-
-
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 7.0f / 8.0f,
-                                                               glm::pi<float>() * 1 / 4.0f ),
-                                         SFVEC3F( light_directional_intensity ) ) );
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 7.0f / 8.0f,
-                                                               glm::pi<float>() * 3 / 4.0f ),
-                                         SFVEC3F( light_directional_intensity ) ) );
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 7.0f / 8.0f,
-                                                               glm::pi<float>() * 5 / 4.0f ),
-                                         SFVEC3F( light_directional_intensity ) ) );
-    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 7.0f / 8.0f,
-                                                               glm::pi<float>() * 7 / 4.0f ),
-                                         SFVEC3F( light_directional_intensity ) ) );
-
 
     m_object_container.Clear();
     m_containerWithObjectsToDelete.Clear();
@@ -859,6 +827,73 @@ void C3D_RENDER_RAYTRACING::reload( REPORTER *aStatusTextReporter )
     }
 
 
+    // Init initial lights
+    // /////////////////////////////////////////////////////////////////////////
+    m_lights.Clear();
+
+    // This will work as the front camera light.
+    const float light_camera_intensity = 0.15;
+    const float light_top_bottom = 0.70;
+    const float light_directional_intensity = ( 1.0f - ( light_camera_intensity +
+                                                         light_top_bottom * 0.5f ) ) / 4.0f;
+
+    m_camera_light = new CDIRECTIONALLIGHT( SFVEC3F( 0.0f, 0.0f, 0.0f ),
+                                            SFVEC3F( light_camera_intensity ) );
+    m_camera_light->SetCastShadows( false );
+    m_lights.Add( m_camera_light );
+
+    // Option 1 - using Point Lights
+
+    const SFVEC3F &boarCenter = m_settings.GetBBox3DU().GetCenter();
+
+    m_lights.Add( new CPOINTLIGHT( SFVEC3F( boarCenter.x, boarCenter.y, +RANGE_SCALE_3D * 2.0f ),
+                                   SFVEC3F( light_top_bottom ) ) );
+
+    m_lights.Add( new CPOINTLIGHT( SFVEC3F( boarCenter.x, boarCenter.y, -RANGE_SCALE_3D * 2.0f ),
+                                   SFVEC3F( light_top_bottom ) ) );
+
+
+    // http://www.flashandmath.com/mathlets/multicalc/coords/shilmay23fin.html
+
+    // Option 2 - Top/Bottom direction lights
+    /*
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 0.03f,
+                                                               glm::pi<float>() * 0.25f ),
+                                         SFVEC3F( light_top_bottom ) ) );
+
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 0.97f,
+                                                               glm::pi<float>() * 1.25f ),
+                                         SFVEC3F( light_top_bottom ) ) );
+    */
+
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 1.0f / 8.0f,
+                                                               glm::pi<float>() * 1 / 4.0f ),
+                                         SFVEC3F( light_directional_intensity ) ) );
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 1.0f / 8.0f,
+                                                               glm::pi<float>() * 3 / 4.0f ),
+                                         SFVEC3F( light_directional_intensity ) ) );
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 1.0f / 8.0f,
+                                                               glm::pi<float>() * 5 / 4.0f ),
+                                         SFVEC3F( light_directional_intensity ) ) );
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 1.0f / 8.0f,
+                                                               glm::pi<float>() * 7 / 4.0f ),
+                                         SFVEC3F( light_directional_intensity ) ) );
+
+
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 7.0f / 8.0f,
+                                                               glm::pi<float>() * 1 / 4.0f ),
+                                         SFVEC3F( light_directional_intensity ) ) );
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 7.0f / 8.0f,
+                                                               glm::pi<float>() * 3 / 4.0f ),
+                                         SFVEC3F( light_directional_intensity ) ) );
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 7.0f / 8.0f,
+                                                               glm::pi<float>() * 5 / 4.0f ),
+                                         SFVEC3F( light_directional_intensity ) ) );
+    m_lights.Add( new CDIRECTIONALLIGHT( SphericalToCartesian( glm::pi<float>() * 7.0f / 8.0f,
+                                                               glm::pi<float>() * 7 / 4.0f ),
+                                         SFVEC3F( light_directional_intensity ) ) );
+
+
     // Create an accelerator
     // /////////////////////////////////////////////////////////////////////////
 
@@ -1296,18 +1331,73 @@ void C3D_RENDER_RAYTRACING::add_3D_models( const S3DMODEL *a3DModel,
                 {
                     const SMATERIAL &material = a3DModel->m_Materials[imat];
 
-                    float reflectionFactor = glm::clamp( material.m_Shininess *
-                                                         0.75f - 0.125f,
-                                                         0.0f,
-                                                         1.0f );
+                    // http://www.fooplot.com/#W3sidHlwZSI6MCwiZXEiOiJtaW4oc3FydCh4LTAuMzUpKjAuNDAtMC4wNSwxLjApIiwiY29sb3IiOiIjMDAwMDAwIn0seyJ0eXBlIjoxMDAwLCJ3aW5kb3ciOlsiMC4wNzA3NzM2NzMyMzY1OTAxMiIsIjEuNTY5NTcxNjI5MjI1NDY5OCIsIi0wLjI3NDYzNTMyMTc1OTkyOTMiLCIwLjY0NzcwMTg4MTkyNTUzNjIiXSwic2l6ZSI6WzY0NCwzOTRdfV0-
 
-                    (*materialVector)[imat] = CBLINN_PHONG_MATERIAL(
+                    float reflectionFactor = 0.0f;
+
+                    if( (material.m_Shininess - 0.35f) > FLT_EPSILON )
+                    {
+                        reflectionFactor = glm::clamp( glm::sqrt( (material.m_Shininess - 0.35f) ) *
+                                                       0.40f - 0.05f,
+                                                       0.0f,
+                                                       0.5f );
+                    }
+
+                    CBLINN_PHONG_MATERIAL &blinnMaterial = (*materialVector)[imat];
+
+                    blinnMaterial = CBLINN_PHONG_MATERIAL(
                                               material.m_Ambient,
                                               material.m_Emissive,
                                               material.m_Specular,
                                               material.m_Shininess * 180.0f,
                                               material.m_Transparency,
                                               reflectionFactor );
+
+                    if( m_settings.GetFlag( FL_RENDER_RAYTRACING_PROCEDURAL_TEXTURES ) )
+                    {
+                        // Guess material type and apply a normal perturbator
+
+                        if( ( RGBtoGray(material.m_Diffuse) < 0.3f ) &&
+                            ( material.m_Shininess < 0.36f ) &&
+                            ( material.m_Transparency == 0.0f ) &&
+                            ( (glm::abs( material.m_Diffuse.r - material.m_Diffuse.g ) < 0.15f) &&
+                              (glm::abs( material.m_Diffuse.b - material.m_Diffuse.g ) < 0.15f) &&
+                              (glm::abs( material.m_Diffuse.r - material.m_Diffuse.b ) < 0.15f) ) )
+                        {
+                            // This may be a black plastic..
+
+                            if( material.m_Shininess < 0.26f )
+                                blinnMaterial.SetNormalPerturbator( &m_plastic_normal_perturbator );
+                            else
+                                blinnMaterial.SetNormalPerturbator( &m_plastic_shine_normal_perturbator );
+                        }
+                        else
+                        {
+                            if( ( RGBtoGray(material.m_Diffuse) > 0.3f ) &&
+                                ( material.m_Shininess < 0.30f ) &&
+                                ( material.m_Transparency == 0.0f ) &&
+                                ( (glm::abs( material.m_Diffuse.r - material.m_Diffuse.g ) > 0.25f) ||
+                                  (glm::abs( material.m_Diffuse.b - material.m_Diffuse.g ) > 0.25f) ||
+                                  (glm::abs( material.m_Diffuse.r - material.m_Diffuse.b ) > 0.25f) ) )
+                            {
+                                // This may be a color plastic ...
+                                blinnMaterial.SetNormalPerturbator( &m_plastic_shine_normal_perturbator );
+                            }
+                            else
+                            {
+                                if( ( RGBtoGray(material.m_Diffuse) > 0.6f ) &&
+                                    ( material.m_Shininess > 0.35f ) &&
+                                    ( material.m_Transparency == 0.0f ) &&
+                                    ( (glm::abs( material.m_Diffuse.r - material.m_Diffuse.g ) < 0.40f) &&
+                                      (glm::abs( material.m_Diffuse.b - material.m_Diffuse.g ) < 0.40f) &&
+                                      (glm::abs( material.m_Diffuse.r - material.m_Diffuse.b ) < 0.40f) ) )
+                                {
+                                    // This may be a brushed metal
+                                    blinnMaterial.SetNormalPerturbator( &m_brushed_metal_normal_perturbator );
+                                }
+                            }
+                        }
+                    }
                 }
                 else
                 {

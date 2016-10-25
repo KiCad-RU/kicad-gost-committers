@@ -119,10 +119,6 @@ option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." ON )
 
 option( KICAD_SPICE "Build Kicad with internal Spice simulator." OFF )
 
-# This can be set to a custom name to brag about a particular branch in the "About" dialog:
-set( KICAD_REPO_NAME "unknown" CACHE STRING "Name of the tree from which this build came." )
-
-
 # Global setting: exports are explicit
 set( CMAKE_CXX_VISIBILITY_PRESET "hidden" )
 set( CMAKE_VISIBILITY_INLINES_HIDDEN ON )
@@ -208,9 +204,7 @@ if( CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 
     CHECK_CXX_COMPILER_FLAG("-Wsuggest-override" COMPILER_SUPPORTS_WSUGGEST_OVERRIDE)
 
-    # Swig generated files do not use override specifier and create a lot of warnings
-    # So do not use -Wsuggest-override with KICAD_SCRIPTING ON, untill a best way is found
-    if(COMPILER_SUPPORTS_WSUGGEST_OVERRIDE AND NOT KICAD_SCRIPTING)
+    if(COMPILER_SUPPORTS_WSUGGEST_OVERRIDE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
     endif()
 endif()
@@ -612,7 +606,7 @@ find_package( Cairo 1.8.8 REQUIRED )
 #
 # Note: Prior to Boost 1.59, the Boost context library is not built when compiling on windows
 #       with GCC.  You must patch the Boost sources.
-find_package( Boost 1.54.0 REQUIRED COMPONENTS context system thread )
+find_package( Boost 1.54.0 REQUIRED COMPONENTS context system )
 
 # Include MinGW resource compiler.
 include( MinGWResourceCompiler )

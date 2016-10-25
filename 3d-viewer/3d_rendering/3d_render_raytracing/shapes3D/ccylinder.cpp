@@ -109,11 +109,17 @@ bool CVCYLINDER::Intersect( const RAY &aRay, HITINFO &aHitInfo ) const
 
     if( hitResult )
     {
-        const SFVEC2F hitPoint2D = aRay.at2D( aHitInfo.m_tHit );
-        //aHitInfo.m_HitPoint =
+        aHitInfo.m_HitPoint = aRay.at( aHitInfo.m_tHit );
+
+        const SFVEC2F hitPoint2D = SFVEC2F( aHitInfo.m_HitPoint.x,
+                                            aHitInfo.m_HitPoint.y );
+
         aHitInfo.m_HitNormal = SFVEC3F( -(hitPoint2D.x - m_center.x) * m_inv_radius,
                                         -(hitPoint2D.y - m_center.y) * m_inv_radius,
                                         0.0f );
+
+        m_material->PerturbeNormal( aHitInfo.m_HitNormal, aRay, aHitInfo );
+
         aHitInfo.pHitObject = this;
     }
 
