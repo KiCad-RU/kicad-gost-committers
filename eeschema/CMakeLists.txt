@@ -128,6 +128,7 @@ set( EESCHEMA_SRCS
     getpart.cpp
     component_tree_search_container.cpp
     hierarch.cpp
+    highlight_connection.cpp
     hotkeys.cpp
     libarch.cpp
     libedit.cpp

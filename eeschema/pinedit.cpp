@@ -387,20 +387,27 @@ static void DrawMovePin( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
         return;
 
     wxPoint pinpos = cur_pin->GetPosition();
-    bool    showPinText = true;
+    int show_opts = PIN_DRAW_TEXTS | PIN_DRAW_DANGLING | PIN_DANGLING_HIDDEN;
+
+    if( parent->GetShowElectricalType() )
+        show_opts |= PIN_DRAW_ELECTRICAL_TYPE_NAME;
+
+    // In LIB_PIN::Draw() a void* parameter used as flag to pass show_opts.
+    // Build it:
+    void* showOptions = reinterpret_cast<void*>( show_opts );
 
     // Erase pin in old position
     if( aErase )
     {
         cur_pin->Move( PinPreviousPos );
         cur_pin->Draw( aPanel, aDC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode,
-                          &showPinText, DefaultTransform );
+                          showOptions, DefaultTransform );
     }
 
     // Redraw pin in new position
     cur_pin->Move( aPanel->GetParent()->GetCrossHairPosition( true ) );
     cur_pin->Draw( aPanel, aDC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode,
-                      &showPinText, DefaultTransform );
+                   showOptions, DefaultTransform );
 
     PinPreviousPos = cur_pin->GetPosition();
 
@@ -416,8 +423,6 @@ static void DrawMovePin( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
  */
 void LIB_EDIT_FRAME::CreatePin( wxDC* DC )
 {
-    bool     showPinText = true;
-
     LIB_PART*      part = GetCurPart();
 
     if( !part )
@@ -465,8 +470,19 @@ void LIB_EDIT_FRAME::CreatePin( wxDC* DC )
         m_canvas->SetMouseCapture( DrawMovePin, AbortPinMove );
 
         if( DC )
-            pin->Draw( m_canvas, DC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, GR_COPY, &showPinText,
-                       DefaultTransform );
+        {
+            int show_opts = PIN_DRAW_TEXTS | PIN_DRAW_DANGLING | PIN_DANGLING_HIDDEN;
+
+            if( GetShowElectricalType() )
+                show_opts |= PIN_DRAW_ELECTRICAL_TYPE_NAME;
+
+            // In LIB_PIN::Draw() a void* parameter used as flag to pass show_opts.
+            // Build it:
+            void* showOptions = reinterpret_cast<void*>( show_opts );
+
+            pin->Draw( m_canvas, DC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, GR_COPY,
+                       showOptions, DefaultTransform );
+        }
 
     }
 }

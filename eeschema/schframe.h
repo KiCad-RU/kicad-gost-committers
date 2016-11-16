@@ -122,6 +122,7 @@ class SCH_EDIT_FRAME : public SCH_BASE_FRAME
 private:
     SCH_SHEET_PATH*         m_CurrentSheet;    ///< which sheet we are presently working on.
     wxString                m_DefaultSchematicFileName;
+    wxString                m_SelectedNetName;
 
     PARAM_CFG_ARRAY         m_projectFileParams;
     PARAM_CFG_ARRAY         m_configSettings;
@@ -463,6 +464,18 @@ public:
      */
     bool DeleteItemAtCrossHair( wxDC* aDC );
 
+
+    /**
+     * Function HighlightConnectionAtPosition
+     * Highlight the connection found at aPosition.
+     * If no connection to highlight is found, clear the current highlighted connect (if any).
+     *
+     * @param aPosition is the location of the test point (usually cross hair position).
+     * @return true if ok, false if there was an issue to build the netlist
+     * needed to highlight a connection.
+     */
+    bool HighlightConnectionAtPosition( wxPoint aPosition );
+
     /**
      * Function FindComponentAndItem
      * finds a component in the schematic and an item in this component.
@@ -497,9 +510,10 @@ public:
      * netlist generation:
      * Creates a flat list which stores all connected objects, and mainly
      * pins and labels.
+     * @param updateStatusText = decides if window StatusText should be modified
      * @return NETLIST_OBJECT_LIST* - caller owns the object.
      */
-    NETLIST_OBJECT_LIST* BuildNetListBase();
+    NETLIST_OBJECT_LIST* BuildNetListBase( bool updateStatusText = true );
 
     /**
      * Function CreateNetlist
@@ -623,6 +637,15 @@ public:
      * draws the current sheet on the display.
      */
     void DisplayCurrentSheet();
+
+    /**
+     * Function SetCurrentSheetHighlightFlags
+     * Set/reset the BRIGHTENED of connected objects inside the current sheet,
+     * according to the highligthed net name.
+     * @return true if the flags are correctly set, and false if something goes wrong
+     * (duplicate sheet names)
+     */
+    bool SetCurrentSheetHighlightFlags();
 
     /**
      * Function GetUniqueFilenameForCurrentSheet

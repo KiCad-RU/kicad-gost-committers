@@ -76,6 +76,11 @@ class LIB_EDIT_FRAME : public SCH_BASE_FRAME
      */
     bool m_editPinsPerPartOrConvert;
 
+    /**
+     * the option to show the pin electrical name in the component editor
+     */
+    bool m_showPinElectricalTypeName;
+
     /** The current draw or edit graphic item fill style. */
     static FILL_T m_drawFillStyle;
 
@@ -227,6 +232,11 @@ public:
     void OnSelectPart( wxCommandEvent& event );
 
     /**
+     * From Option toolbar: option to show the electrical pin type name
+     */
+    void OnShowElectricalType( wxCommandEvent& event );
+
+    /**
      * Function DeleteOnePart
      * is the command event handler to delete an entry from the current library.
      *
@@ -284,6 +294,7 @@ public:
     void OnUpdateDeMorganNormal( wxUpdateUIEvent& event );
     void OnUpdateDeMorganConvert( wxUpdateUIEvent& event );
     void OnUpdateSelectAlias( wxUpdateUIEvent& event );
+    void OnUpdateElectricalType( wxUpdateUIEvent& aEvent );
 
     void UpdateAliasSelectList();
     void UpdatePartSelectList();
@@ -390,6 +401,10 @@ public:
     bool GetShowDeMorgan() { return m_showDeMorgan; }
 
     void SetShowDeMorgan( bool show ) { m_showDeMorgan = show; }
+
+    bool GetShowElectricalType() { return m_showPinElectricalTypeName; }
+
+    void SetShowElectricalType( bool aShow ) { m_showPinElectricalTypeName = aShow; }
 
     FILL_T GetFillStyle() { return m_drawFillStyle; }
 

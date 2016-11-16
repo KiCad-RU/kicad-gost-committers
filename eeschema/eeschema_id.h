@@ -74,6 +74,7 @@ enum id_eeschema_frm
 
     /* Schematic editor veritcal toolbar IDs */
     ID_SCHEMATIC_VERTICAL_TOOLBAR_START,
+    ID_HIGHLIGHT,
     ID_HIERARCHY_PUSH_POP_BUTT,
     ID_SCH_PLACE_COMPONENT,
     ID_PLACE_POWER_BUTT,
@@ -174,6 +175,8 @@ enum id_eeschema_frm
     // events (menus, toolbar, context menu, etc.) that result in the same event handler.
     ID_CANCEL_CURRENT_COMMAND,
 
+    ID_HOTKEY_HIGHLIGHT,
+
     /* Library editor main menubar IDs. */
     ID_LIBEDIT_DIMENSIONS,
 
@@ -230,6 +233,9 @@ enum id_eeschema_frm
     ID_POPUP_LIBEDIT_FIELD_EDIT_ITEM,
     ID_POPUP_LIBEDIT_DELETE_CURRENT_POLY_SEGMENT,
 
+    /* Library editor toolbar options IDs */
+    ID_LIBEDIT_SHOW_ELECTRICAL_TYPE,
+
     /* Library editor menubar IDs */
     ID_LIBEDIT_SAVE_CURRENT_LIB_AS,
     ID_LIBEDIT_GEN_PNG_FILE,
@@ -249,6 +255,7 @@ enum id_eeschema_frm
     ID_LIBVIEW_CMPWINDOW,
     ID_LIBVIEW_CMP_EXPORT_TO_SCHEMATIC,
     ID_SET_RELATIVE_OFFSET,
+    ID_LIBVIEW_SHOW_ELECTRICAL_TYPE,
 
     ID_UPDATE_PCB_FROM_SCH,
     ID_UPDATE_SCH_FROM_PCB,

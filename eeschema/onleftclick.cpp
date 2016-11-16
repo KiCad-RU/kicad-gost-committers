@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2015 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
  * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
  *
@@ -31,6 +31,7 @@
 #include <kiway.h>
 #include <eeschema_id.h>
 #include <class_drawpanel.h>
+#include <confirm.h>
 #include <schframe.h>
 #include <sim/sim_plot_frame.h>
 #include <menus_helpers.h>
@@ -108,6 +109,10 @@ void SCH_EDIT_FRAME::OnLeftClick( wxDC* aDC, const wxPoint& aPosition )
     switch( GetToolId() )
     {
     case ID_NO_TOOL_SELECTED:
+        break;
+
+    case ID_HIGHLIGHT:
+        HighlightConnectionAtPosition( aPosition );
         break;
 
     case ID_HIERARCHY_PUSH_POP_BUTT:
