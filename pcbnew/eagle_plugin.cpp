@@ -2128,7 +2128,7 @@ MODULE* EAGLE_PLUGIN::makeModule( CPTREE& aPackage, const string& aPkgName ) con
 {
     std::unique_ptr<MODULE>   m( new MODULE( m_board ) );
 
-    m->SetFPID( FPID( aPkgName ) );
+    m->SetFPID( LIB_ID( aPkgName ) );
 
     opt_string description = aPackage.get_optional<string>( "description" );
     if( description )
@@ -2956,6 +2956,7 @@ LAYER_ID EAGLE_PLUGIN::kicad_layer( int aEagleLayer ) const
         case 34:    kiLayer = B_Mask;       break;
         case 35:    kiLayer = F_Adhes;      break;
         case 36:    kiLayer = B_Adhes;      break;
+        case 48:    kiLayer = Cmts_User;    break;
         case 49:    kiLayer = Cmts_User;    break;
         case 50:    kiLayer = Cmts_User;    break;
 

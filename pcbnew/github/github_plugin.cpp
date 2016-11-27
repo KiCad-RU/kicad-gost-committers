@@ -181,7 +181,7 @@ MODULE* GITHUB_PLUGIN::FootprintLoad( const wxString& aLibraryPath,
         if( local )
         {
             // It has worked, see <src>/scripts/test_kicad_plugin.py.  So this was not firing:
-            // wxASSERT( aFootprintName == FROM_UTF8( local->GetFPID().GetFootprintName().c_str() ) );
+            // wxASSERT( aFootprintName == FROM_UTF8( local->GetFPID().GetLibItemName().c_str() ) );
             // Moving it to higher API layer FP_LIB_TABLE::FootprintLoad().
 
             return local;
@@ -381,7 +381,7 @@ void GITHUB_PLUGIN::cacheLib( const wxString& aLibraryPath, const PROPERTIES* aP
             {
                 wxString    wx_pretty_dir = pretty_dir;
 
-                wx_pretty_dir = FP_LIB_TABLE::ExpandSubstitutions( wx_pretty_dir );
+                wx_pretty_dir = LIB_TABLE::ExpandSubstitutions( wx_pretty_dir );
 
                 wxFileName wx_pretty_fn = wx_pretty_dir;
 

@@ -84,7 +84,7 @@
 #endif
 
 #define HELP_IMPORT_FOOTPRINTS \
-    _( "Back-import component footprint fields via CvPcb .cmp file" )
+    _( "Back-import component footprint association fields from the .cmp back import file created by Pcbnew" )
 
 // Component editor:
 #define HELP_ADD_PIN _( "Add pins to component" )
