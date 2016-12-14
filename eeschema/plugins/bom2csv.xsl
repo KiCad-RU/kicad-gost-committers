@@ -87,6 +87,8 @@
                     Every non-blank entry is assigned to its proper column.
                 -->
             </xsl:for-each>
+
+            <xsl:text>"</xsl:text>
         </xsl:for-each>
     </xsl:template>
 
