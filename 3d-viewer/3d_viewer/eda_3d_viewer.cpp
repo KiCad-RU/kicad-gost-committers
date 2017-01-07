@@ -447,7 +447,7 @@ void EDA_3D_VIEWER::Process_Special_Functions( wxCommandEvent &event )
 
     case ID_MENU3D_FL_RAYTRACING_POST_PROCESSING:
         m_settings.SetFlag( FL_RENDER_RAYTRACING_POST_PROCESSING, isChecked );
-        m_canvas->Request_refresh();
+        ReloadRequest( );
         return;
 
     case ID_MENU3D_FL_RAYTRACING_ANTI_ALIASING:
@@ -1198,9 +1198,9 @@ static EDA_HOTKEY Hk3D_ViewBot( _HKI( "View Bot" ), 0, 'Z' );
 static EDA_HOTKEY Hk3D_Rotate45axisZ( _HKI( "Rotate 45 degrees over Z axis" ), 0, WXK_TAB );
 static EDA_HOTKEY Hk3D_ZoomIn( _HKI( "Zoom in " ), 0, WXK_F1 );
 static EDA_HOTKEY Hk3D_ZoomOut( _HKI( "Zoom out" ), 0, WXK_F2 );
-static EDA_HOTKEY Hk3D_AttributesTHT( _HKI( "Toggle 3D models with attributes Normal (eg: THT)" ), 0, 'T' );
-static EDA_HOTKEY Hk3D_AttributesSMD( _HKI( "Toggle 3D models with attributes Normal+Insert (eg: SMD)" ), 0, 'S' );
-static EDA_HOTKEY Hk3D_AttributesVirtual( _HKI( "Toggle 3D models with attributes Virtual" ), 0, 'V' );
+static EDA_HOTKEY Hk3D_AttributesTHT( _HKI( "Toggle 3D models with type Through Hole" ), 0, 'T' );
+static EDA_HOTKEY Hk3D_AttributesSMD( _HKI( "Toggle 3D models with type Surface Mount" ), 0, 'S' );
+static EDA_HOTKEY Hk3D_AttributesVirtual( _HKI( "Toggle 3D models with type Virtual" ), 0, 'V' );
 
 static wxString viewer3DSectionTitle( _HKI( "Viewer 3D" ) );
 

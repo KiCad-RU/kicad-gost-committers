@@ -237,8 +237,8 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     filesMenu->AppendSeparator();
 
     AddMenuItem( filesMenu, ID_SHEET_SET,
-                 _( "Page s&ettings" ),
-                 _( "Page settings for paper size and texts" ),
+                 _( "Page S&ettings" ),
+                 _( "Settings for sheet size and frame references" ),
                  KiBitmap( sheetset_xpm ) );
 
     AddMenuItem( filesMenu, wxID_PRINT,
@@ -366,9 +366,13 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "&List Nets" ), _( "View a list of nets with names and id's" ),
                  KiBitmap( list_nets_xpm ) );
 
+    viewMenu->AppendSeparator();
+
     AddMenuItem( viewMenu, ID_MENU_PCB_FLIP_VIEW,
-                 _( "&Flip View" ), _( "Flips (mirrors) the board view." ),
-                 KiBitmap( three_d_xpm ), wxITEM_CHECK );
+                 _( "&Flip Board View" ),
+                 _( "Flips (mirrors) the board view" ),
+                 KiBitmap( flip_board_xpm ), wxITEM_CHECK );
+
 
     viewMenu->AppendSeparator();
 

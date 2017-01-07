@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,7 +40,6 @@
 #include <class_drawpanel.h>
 #include <wxPcbStruct.h>
 #include <eda_dde.h>
-#include <pcbcommon.h>
 #include <colors_selection.h>
 #include <wx/stdpaths.h>
 
@@ -201,7 +200,6 @@ PGM_BASE& Pgm()
 #if defined( KICAD_SCRIPTING )
 static bool scriptingSetup()
 {
-    wxString path_frag;
 
 #if defined( __WINDOWS__ )
     // If our python.exe (in kicad/bin) exists, force our kicad python environment
@@ -228,20 +226,7 @@ static bool scriptingSetup()
         wxSetEnv( wxT( "PATH" ), kipython );
     }
 
-    // wizard plugins are stored in ../share/kicad/scripting/plugins.
-    // so add the base scripting path to python scripting default search paths
-    // which are ( [KICAD_PATH] is an environment variable to define)
-    // [KICAD_PATH]/scripting
-    // [KICAD_PATH]/scripting/plugins
-    // Add this default search path:
-    path_frag = Pgm().GetExecutablePath() + wxT( "../share/kicad/scripting" );
-
 #elif defined( __WXMAC__ )
-
-    // This path is given to LoadPlugins() from kicadplugins.i, which
-    // only supports one path, the bundle scripting path for now.
-    // All other paths are determined by the pcbnew.py initialisation code
-    path_frag = GetOSXKicadDataDir() + wxT( "/scripting" );
 
     // Add default paths to PYTHONPATH
     wxString pypath;
@@ -279,13 +264,9 @@ static bool scriptingSetup()
 
     wxSetEnv( wxT( "PYTHONPATH" ), pypath );
 
-    // Add this default search path:
-    path_frag = Pgm().GetExecutablePath() + wxT( "../share/kicad/scripting" );
 #endif
 
-    // path_frag is the path to the bundled scripts and plugins, all other paths are
-    // determined by the python pcbnew.py initialisation code.
-    if( !pcbnewInitPythonScripting( TO_UTF8( path_frag ) ) )
+    if( !pcbnewInitPythonScripting( TO_UTF8( PyScriptingPath() ) ) )
     {
         wxLogError( "pcbnewInitPythonScripting() failed." );
         return false;

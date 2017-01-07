@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012-2014 Miguel Angel Ajo <miguelangel@nbee.es>
- * Copyright (C) 1992-2014 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,9 +33,15 @@
 #include <kiface_i.h>
 #include <dialog_footprint_wizard_list.h>
 #include <class_footprint_wizard.h>
+#include <python_scripting.h>
 
-#define ROW_NAME 0
-#define ROW_DESCR 1
+enum FPGeneratorRowNames
+{
+    FP_GEN_ROW_NUMBER = 0,
+    FP_GEN_ROW_NAME,
+    FP_GEN_ROW_DESCR,
+};
+
 #define FPWIZARTDLIST_HEIGHT_KEY wxT( "FpWizardListHeight" )
 #define FPWIZARTDLIST_WIDTH_KEY  wxT( "FpWizardListWidth" )
 
@@ -57,17 +63,30 @@ DIALOG_FOOTPRINT_WIZARD_LIST::DIALOG_FOOTPRINT_WIZARD_LIST( wxWindow* aParent )
     m_footprintGeneratorsGrid->InsertRows( 0, n_wizards, true );
 
     // Put all wizards in the list
-    for( int i=0; i<n_wizards; i++ )
+    for( int ii = 0; ii < n_wizards; ii++ )
     {
-        FOOTPRINT_WIZARD *wizard = FOOTPRINT_WIZARDS::GetWizard( i );
+        wxString num = wxString::Format( "%d", ii+1 );
+        FOOTPRINT_WIZARD *wizard = FOOTPRINT_WIZARDS::GetWizard( ii );
         wxString name = wizard->GetName();
         wxString description = wizard->GetDescription();
         wxString image = wizard->GetImage();
 
-        m_footprintGeneratorsGrid->SetCellValue( i, ROW_NAME, name );
-        m_footprintGeneratorsGrid->SetCellValue( i, ROW_DESCR, description );
+        m_footprintGeneratorsGrid->SetCellValue( ii, FP_GEN_ROW_NUMBER, num );
+        m_footprintGeneratorsGrid->SetCellValue( ii, FP_GEN_ROW_NAME, name );
+        m_footprintGeneratorsGrid->SetCellValue( ii, FP_GEN_ROW_DESCR, description );
 
     }
+    //wxLogMessage( KICAD_FAILED_PLUGINS );
+
+    m_footprintGeneratorsGrid->AutoSizeColumns();
+
+    // Auto-expand the description column
+    int width = m_footprintGeneratorsGrid->GetClientSize().GetWidth() -
+                m_footprintGeneratorsGrid->GetRowLabelSize() -
+                m_footprintGeneratorsGrid->GetColSize( FP_GEN_ROW_NAME );
+
+    if ( width > m_footprintGeneratorsGrid->GetColMinimalAcceptableWidth() )
+        m_footprintGeneratorsGrid->SetColSize( FP_GEN_ROW_DESCR, width );
 
     // Select the first row
     m_footprintGeneratorsGrid->ClearSelection();
@@ -80,6 +99,18 @@ DIALOG_FOOTPRINT_WIZARD_LIST::DIALOG_FOOTPRINT_WIZARD_LIST( wxWindow* aParent )
         m_config->Read( FPWIZARTDLIST_HEIGHT_KEY, &size.y, -1 );
         SetSize( size );
     }
+
+
+    // Display info about scripts: Search paths
+    wxString message;
+    pcbnewGetScriptsSearchPaths( message );
+    m_tcSearchPaths->SetValue( message );
+    // Display info about scripts: unloadable scripts (due to syntax errors is python source)
+    pcbnewGetUnloadableScriptNames( message );
+    if( message.IsEmpty() )
+        m_tcNotLoaded->SetValue( _( "All footprint generator scripts were loaded" ) );
+    else
+        m_tcNotLoaded->SetValue( message );
 
     Center();
 }
@@ -101,6 +132,14 @@ void DIALOG_FOOTPRINT_WIZARD_LIST::OnCellFpGeneratorClick( wxGridEvent& event )
     int click_row = event.GetRow();
     m_footprintWizard = FOOTPRINT_WIZARDS::GetWizard( click_row );
     m_footprintGeneratorsGrid->SelectRow( event.GetRow(), false );
+    // Move the grid cursor, mainly for aesthetic reasons:
+    m_footprintGeneratorsGrid->GoToCell( event.GetRow(), FP_GEN_ROW_NUMBER );
+}
+
+
+void DIALOG_FOOTPRINT_WIZARD_LIST::OnCellFpGeneratorDoubleClick( wxGridEvent& event )
+{
+    EndModal( wxID_OK );
 }
 
 

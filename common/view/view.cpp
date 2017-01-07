@@ -47,6 +47,7 @@ class VIEW_ITEM_DATA
 {
 public:
     VIEW_ITEM_DATA() :
+        m_view( nullptr ),
         m_flags( KIGFX::VISIBLE ),
         m_requiredUpdate( KIGFX::NONE ),
         m_groups( nullptr ),
@@ -999,8 +1000,7 @@ void VIEW::ClearTargets()
 void VIEW::Redraw()
 {
 #ifdef __WXDEBUG__
-    prof_counter totalRealTime;
-    prof_start( &totalRealTime );
+    PROF_COUNTER totalRealTime;
 #endif /* __WXDEBUG__ */
 
     VECTOR2D screenSize = m_gal->GetScreenPixelSize();
@@ -1016,7 +1016,7 @@ void VIEW::Redraw()
     markTargetClean( TARGET_OVERLAY );
 
 #ifdef __WXDEBUG__
-    prof_end( &totalRealTime );
+    totalRealTime.Stop();
     wxLogTrace( "GAL_PROFILE", wxT( "VIEW::Redraw(): %.1f ms" ), totalRealTime.msecs() );
 #endif /* __WXDEBUG__ */
 }
