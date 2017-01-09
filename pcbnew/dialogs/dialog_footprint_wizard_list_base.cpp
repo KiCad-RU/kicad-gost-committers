@@ -11,13 +11,15 @@
 
 DIALOG_FOOTPRINT_WIZARD_LIST_BASE::DIALOG_FOOTPRINT_WIZARD_LIST_BASE( wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style ) : DIALOG_SHIM( parent, id, title, pos, size, style )
 {
-	this->SetSizeHints( wxSize( 400,300 ), wxDefaultSize );
+	this->SetSizeHints( wxSize( -1,-1 ), wxDefaultSize );
 	
 	wxBoxSizer* bSizerMain;
 	bSizerMain = new wxBoxSizer( wxVERTICAL );
 	
 	m_notebook = new wxNotebook( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0 );
 	m_panelGenerators = new wxPanel( m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
+	m_panelGenerators->SetMinSize( wxSize( 550,300 ) );
+	
 	wxBoxSizer* bSizerpanelGen;
 	bSizerpanelGen = new wxBoxSizer( wxVERTICAL );
 	
@@ -70,8 +72,6 @@ DIALOG_FOOTPRINT_WIZARD_LIST_BASE::DIALOG_FOOTPRINT_WIZARD_LIST_BASE( wxWindow* 
 	m_bsizerPanelInfo->Add( m_staticText1, 0, wxTOP|wxRIGHT|wxLEFT, 5 );
 	
 	m_tcSearchPaths = new wxTextCtrl( m_panelInfo, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
-	m_tcSearchPaths->SetMinSize( wxSize( -1,60 ) );
-	
 	m_bsizerPanelInfo->Add( m_tcSearchPaths, 1, wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT, 5 );
 	
 	m_staticText11 = new wxStaticText( m_panelInfo, wxID_ANY, _("Not loadable python scripts:"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -79,9 +79,10 @@ DIALOG_FOOTPRINT_WIZARD_LIST_BASE::DIALOG_FOOTPRINT_WIZARD_LIST_BASE( wxWindow* 
 	m_bsizerPanelInfo->Add( m_staticText11, 0, wxTOP|wxRIGHT|wxLEFT, 5 );
 	
 	m_tcNotLoaded = new wxTextCtrl( m_panelInfo, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
-	m_tcNotLoaded->SetMinSize( wxSize( -1,60 ) );
-	
 	m_bsizerPanelInfo->Add( m_tcNotLoaded, 1, wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT, 5 );
+	
+	m_buttonShowTrace = new wxButton( m_panelInfo, wxID_ANY, _("Show Trace"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_bsizerPanelInfo->Add( m_buttonShowTrace, 0, wxBOTTOM|wxRIGHT|wxLEFT, 5 );
 	
 	
 	m_panelInfo->SetSizer( m_bsizerPanelInfo );
@@ -91,9 +92,6 @@ DIALOG_FOOTPRINT_WIZARD_LIST_BASE::DIALOG_FOOTPRINT_WIZARD_LIST_BASE( wxWindow* 
 	
 	bSizerMain->Add( m_notebook, 1, wxEXPAND | wxALL, 5 );
 	
-	m_staticline = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
-	bSizerMain->Add( m_staticline, 0, wxEXPAND | wxALL, 5 );
-	
 	m_sdbSizer = new wxStdDialogButtonSizer();
 	m_sdbSizerOK = new wxButton( this, wxID_OK );
 	m_sdbSizer->AddButton( m_sdbSizerOK );
@@ -101,7 +99,7 @@ DIALOG_FOOTPRINT_WIZARD_LIST_BASE::DIALOG_FOOTPRINT_WIZARD_LIST_BASE( wxWindow* 
 	m_sdbSizer->AddButton( m_sdbSizerCancel );
 	m_sdbSizer->Realize();
 	
-	bSizerMain->Add( m_sdbSizer, 0, wxEXPAND|wxALL, 5 );
+	bSizerMain->Add( m_sdbSizer, 0, wxALL|wxALIGN_RIGHT, 5 );
 	
 	
 	this->SetSizer( bSizerMain );
@@ -112,6 +110,7 @@ DIALOG_FOOTPRINT_WIZARD_LIST_BASE::DIALOG_FOOTPRINT_WIZARD_LIST_BASE( wxWindow* 
 	// Connect Events
 	m_footprintGeneratorsGrid->Connect( wxEVT_GRID_CELL_LEFT_CLICK, wxGridEventHandler( DIALOG_FOOTPRINT_WIZARD_LIST_BASE::OnCellFpGeneratorClick ), NULL, this );
 	m_footprintGeneratorsGrid->Connect( wxEVT_GRID_CELL_LEFT_DCLICK, wxGridEventHandler( DIALOG_FOOTPRINT_WIZARD_LIST_BASE::OnCellFpGeneratorDoubleClick ), NULL, this );
+	m_buttonShowTrace->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_FOOTPRINT_WIZARD_LIST_BASE::onShowTrace ), NULL, this );
 }
 
 DIALOG_FOOTPRINT_WIZARD_LIST_BASE::~DIALOG_FOOTPRINT_WIZARD_LIST_BASE()
@@ -119,5 +118,36 @@ DIALOG_FOOTPRINT_WIZARD_LIST_BASE::~DIALOG_FOOTPRINT_WIZARD_LIST_BASE()
 	// Disconnect Events
 	m_footprintGeneratorsGrid->Disconnect( wxEVT_GRID_CELL_LEFT_CLICK, wxGridEventHandler( DIALOG_FOOTPRINT_WIZARD_LIST_BASE::OnCellFpGeneratorClick ), NULL, this );
 	m_footprintGeneratorsGrid->Disconnect( wxEVT_GRID_CELL_LEFT_DCLICK, wxGridEventHandler( DIALOG_FOOTPRINT_WIZARD_LIST_BASE::OnCellFpGeneratorDoubleClick ), NULL, this );
+	m_buttonShowTrace->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_FOOTPRINT_WIZARD_LIST_BASE::onShowTrace ), NULL, this );
 	
+}
+
+DIALOG_FOOTPRINT_WIZARD_LOG::DIALOG_FOOTPRINT_WIZARD_LOG( wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style ) : DIALOG_SHIM( parent, id, title, pos, size, style )
+{
+	this->SetSizeHints( wxSize( -1,-1 ), wxDefaultSize );
+	
+	wxBoxSizer* bSizerMain;
+	bSizerMain = new wxBoxSizer( wxVERTICAL );
+	
+	m_Message = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
+	m_Message->SetMinSize( wxSize( 550,300 ) );
+	
+	bSizerMain->Add( m_Message, 1, wxALL|wxEXPAND, 5 );
+	
+	m_sdbSizer = new wxStdDialogButtonSizer();
+	m_sdbSizerOK = new wxButton( this, wxID_OK );
+	m_sdbSizer->AddButton( m_sdbSizerOK );
+	m_sdbSizer->Realize();
+	
+	bSizerMain->Add( m_sdbSizer, 0, wxALIGN_RIGHT|wxALL, 5 );
+	
+	
+	this->SetSizer( bSizerMain );
+	this->Layout();
+	
+	this->Centre( wxBOTH );
+}
+
+DIALOG_FOOTPRINT_WIZARD_LOG::~DIALOG_FOOTPRINT_WIZARD_LOG()
+{
 }
