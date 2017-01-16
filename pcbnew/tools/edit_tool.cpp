@@ -87,7 +87,7 @@ bool EDIT_TOOL::Init()
     }
 
     // Add context menu entries that are displayed when selection tool is active
-    CONDITIONAL_MENU& menu = m_selectionTool->GetMenu();
+    CONDITIONAL_MENU& menu = m_selectionTool->GetToolMenu().GetMenu();
     menu.AddItem( COMMON_ACTIONS::editActivate, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( COMMON_ACTIONS::rotate, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( COMMON_ACTIONS::flip, SELECTION_CONDITIONS::NotEmpty );
@@ -449,7 +449,7 @@ int EDIT_TOOL::Remove( const TOOL_EVENT& aEvent )
         return 0;
 
     // Get a copy instead of a reference, as we are going to clear current selection
-    SELECTION selection = m_selectionTool->GetSelection();
+    auto selection = m_selectionTool->GetSelection().GetItems();
 
     // As we are about to remove items, they have to be removed from the selection first
     m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );

@@ -28,6 +28,7 @@
 #include <tool/tool_manager.h>
 
 #include "selection_tool.h"
+#include "drawing_tool.h"
 #include "picker_tool.h"
 
 #include <painter.h>
@@ -72,6 +73,12 @@ private:
     {
         SELECTION_TOOL* selTool = getToolManager()->GetTool<SELECTION_TOOL>();
 
+        // enable zone actions that ably to a specific set of zones (as opposed to all of them)
+        bool nonGlobalActionsEnabled = ( SELECTION_CONDITIONS::MoreThan( 0 ) )( selTool->GetSelection() );
+
+        Enable( getMenuId( COMMON_ACTIONS::zoneFill ), nonGlobalActionsEnabled );
+        Enable( getMenuId( COMMON_ACTIONS::zoneUnfill ), nonGlobalActionsEnabled );
+
         // lines like this make me really think about a better name for SELECTION_CONDITIONS class
         bool mergeEnabled = ( SELECTION_CONDITIONS::MoreThan( 1 ) &&
                               /*SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) &&*/
@@ -98,7 +105,7 @@ public:
 
 PCB_EDITOR_CONTROL::PCB_EDITOR_CONTROL() :
     TOOL_INTERACTIVE( "pcbnew.EditorControl" ),
-    m_frame( NULL ), m_zoneMenu( NULL ), m_lockMenu( NULL )
+    m_frame( nullptr )
 {
     m_placeOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D( 0.8, 0.0, 0.0, 1.0 ),
                                                 KIGFX::ORIGIN_VIEWITEM::CIRCLE_CROSS );
@@ -111,8 +118,6 @@ PCB_EDITOR_CONTROL::~PCB_EDITOR_CONTROL()
     getView()->Remove( m_placeOrigin );
 
     delete m_placeOrigin;
-    delete m_zoneMenu;
-    delete m_lockMenu;
 }
 
 
@@ -131,19 +136,52 @@ void PCB_EDITOR_CONTROL::Reset( RESET_REASON aReason )
 
 bool PCB_EDITOR_CONTROL::Init()
 {
+    auto zoneMenu = std::make_shared<ZONE_CONTEXT_MENU>();
+    zoneMenu->SetTool( this );
+
+    auto lockMenu = std::make_shared<LOCK_CONTEXT_MENU>();
+    lockMenu->SetTool( this );
+
+    // Add the PCB control menus to relevant other tools
+
     SELECTION_TOOL* selTool = m_toolMgr->GetTool<SELECTION_TOOL>();
 
     if( selTool )
     {
-        m_zoneMenu = new ZONE_CONTEXT_MENU;
-        m_zoneMenu->SetTool( this );
-        selTool->GetMenu().AddMenu( m_zoneMenu, _( "Zones" ), false,
-                                    SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) );
+        auto& toolMenu = selTool->GetToolMenu();
+        auto& menu = toolMenu.GetMenu();
 
-        m_lockMenu = new LOCK_CONTEXT_MENU;
-        m_lockMenu->SetTool( this );
-        selTool->GetMenu().AddMenu( m_lockMenu, _( "Locking" ), false,
-                                    SELECTION_CONDITIONS::OnlyTypes( GENERAL_COLLECTOR::Tracks ) );
+        toolMenu.AddSubMenu( zoneMenu );
+        toolMenu.AddSubMenu( lockMenu );
+
+        menu.AddMenu( zoneMenu.get(), _( "Zones" ), false,
+                      SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) );
+
+        menu.AddMenu( lockMenu.get(), _( "Locking" ), false,
+                      SELECTION_CONDITIONS::OnlyTypes( GENERAL_COLLECTOR::Tracks ) );
+    }
+
+    DRAWING_TOOL* drawingTool = m_toolMgr->GetTool<DRAWING_TOOL>();
+
+    if( drawingTool )
+    {
+        auto& toolMenu = drawingTool->GetToolMenu();
+        auto& menu = toolMenu.GetMenu();
+
+        toolMenu.AddSubMenu( zoneMenu );
+
+        // Functor to say if the PCB_EDIT_FRAME is in a given mode
+        // Capture the tool pointer and tool mode by value
+        auto toolActiveFunctor = [=]( DRAWING_TOOL::MODE aMode )
+        {
+            return [=]( const SELECTION& sel )
+            {
+                return drawingTool->GetDrawingMode() == aMode;
+            };
+        };
+
+        menu.AddMenu( zoneMenu.get(), _( "Zones" ), false,
+                      toolActiveFunctor( DRAWING_TOOL::MODE::ZONE ) );
     }
 
     return true;

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2012 Torsten Hueter, torstenhtr <at> gmx.de
  * Copyright (C) 2012-2016 Kicad Developers, see AUTHORS.txt for contributors.
- * Copyright (C) 2013-2016 CERN
+ * Copyright (C) 2013-2017 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * Graphics Abstraction Layer (GAL) for OpenGL
@@ -45,11 +45,12 @@ using namespace std::placeholders;
 
 using namespace KIGFX;
 
+
 // The current font is "Ubuntu Mono" available under Ubuntu Font Licence 1.0
 // (see ubuntu-font-licence-1.0.txt for details)
-#define BITMAP_FONT_USE_SPANS
-#include "bitmap_font_img.c"
-#include "bitmap_font_desc.c"
+#include "gl_resources.h"
+#include "gl_builtin_shaders.h"
+using namespace KIGFX::BUILTIN_FONT;
 
 static void InitTesselatorCallbacks( GLUtesselator* aTesselator );
 static const int glAttributes[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 8, 0 };
@@ -61,12 +62,12 @@ bool OPENGL_GAL::isBitmapFontLoaded = false;
 SHADER* OPENGL_GAL::shader = NULL;
 
 
-OPENGL_GAL::OPENGL_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener,
-                        wxEvtHandler* aPaintListener, const wxString& aName ) :
+OPENGL_GAL::OPENGL_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions, wxWindow* aParent,
+                        wxEvtHandler* aMouseListener, wxEvtHandler* aPaintListener,
+                        const wxString& aName ) :
     wxGLCanvas( aParent, wxID_ANY, (int*) glAttributes, wxDefaultPosition, wxDefaultSize,
                 wxEXPAND, aName ),
-    mouseListener( aMouseListener ),
-    paintListener( aPaintListener )
+    options( aDisplayOptions ), mouseListener( aMouseListener ), paintListener( aPaintListener )
 {
     if( glMainContext == NULL )
     {
@@ -81,28 +82,25 @@ OPENGL_GAL::OPENGL_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener,
 
     ++instanceCounter;
 
-    // Check if OpenGL requirements are met
-    runTest();
-
-    // Make VBOs use shaders
-    cachedManager = new VERTEX_MANAGER( true );
-    cachedManager->SetShader( *shader );
-    nonCachedManager = new VERTEX_MANAGER( false );
-    nonCachedManager->SetShader( *shader );
-    overlayManager = new VERTEX_MANAGER( false );
-    overlayManager->SetShader( *shader );
-
     compositor = new OPENGL_COMPOSITOR;
+    compositor->SetAntialiasingMode( options.gl_antialiasing_mode );
+
+    cachedManager = new VERTEX_MANAGER( true );
+    nonCachedManager = new VERTEX_MANAGER( false );
+    overlayManager = new VERTEX_MANAGER( false );
 
     // Initialize the flags
     isFramebufferInitialized = false;
     isBitmapFontInitialized  = false;
+    isInitialized            = false;
     isGrouping               = false;
     groupCounter             = 0;
 
 #ifdef RETINA_OPENGL_PATCH
     SetViewWantsBestResolution( true );
 #endif
+
+    observerLink = options.Subscribe( this );
 
     // Connecting the event handlers
     Connect( wxEVT_PAINT,           wxPaintEventHandler( OPENGL_GAL::onPaint ) );
@@ -187,6 +185,17 @@ OPENGL_GAL::~OPENGL_GAL()
 }
 
 
+void OPENGL_GAL::OnGalDisplayOptionsChanged( const GAL_DISPLAY_OPTIONS& aDisplayOptions )
+{
+    if( options.gl_antialiasing_mode != compositor->GetAntialiasingMode() )
+    {
+        compositor->SetAntialiasingMode( options.gl_antialiasing_mode );
+        isFramebufferInitialized = false;
+        Refresh();
+    }
+}
+
+
 void OPENGL_GAL::BeginDrawing()
 {
     if( !IsShownOnScreen() )
@@ -196,31 +205,37 @@ void OPENGL_GAL::BeginDrawing()
     PROF_COUNTER totalRealTime( "OPENGL_GAL::BeginDrawing()", true );
 #endif /* __WXDEBUG__ */
 
-    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext, this );
+    if( !isInitialized )
+        init();
 
-#ifdef RETINA_OPENGL_PATCH
-    const float scaleFactor = GetBackingScaleFactor();
-#else
-    const float scaleFactor = 1.0f;
-#endif
+    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext, this );
 
     // Set up the view port
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
-    glViewport( 0, 0, (GLsizei) screenSize.x * scaleFactor, (GLsizei) screenSize.y * scaleFactor );
 
-    // Create the screen transformation
-    glOrtho( 0, (GLint) screenSize.x, 0, (GLsizei) screenSize.y, -depthRange.x, -depthRange.y );
+    // Create the screen transformation (Do the RH-LH conversion here)
+    glOrtho( 0, (GLint) screenSize.x, (GLsizei) screenSize.y, 0, -depthRange.x, -depthRange.y );
 
     if( !isFramebufferInitialized )
     {
-        // Prepare rendering target buffers
-        compositor->Initialize();
-        mainBuffer = compositor->CreateBuffer();
-        overlayBuffer = compositor->CreateBuffer();
+        try
+        {
+            // Prepare rendering target buffers
+            compositor->Initialize();
+            mainBuffer = compositor->CreateBuffer();
+            overlayBuffer = compositor->CreateBuffer();
+        }
+        catch( std::runtime_error& e )
+        {
+            GL_CONTEXT_MANAGER::Get().UnlockCtx( glPrivContext );
+            throw;      // DRAW_PANEL_GAL will handle it
+        }
 
         isFramebufferInitialized = true;
     }
+
+    compositor->Begin();
 
     // Disable 2D Textures
     glDisable( GL_TEXTURE_2D );
@@ -303,6 +318,10 @@ void OPENGL_GAL::BeginDrawing()
         isBitmapFontInitialized = true;
     }
 
+    // Something betreen BeginDrawing and EndDrawing seems to depend on
+    // this texture unit being active, but it does not assure it itself.
+    glActiveTexture( GL_TEXTURE0 );
+
     // Unbind buffers - set compositor for direct drawing
     compositor->SetBuffer( OPENGL_COMPOSITOR::DIRECT_RENDERING );
 
@@ -335,6 +354,7 @@ void OPENGL_GAL::EndDrawing()
     // Draw the remaining contents, blit the rendering targets to the screen, swap the buffers
     compositor->DrawBuffer( mainBuffer );
     compositor->DrawBuffer( overlayBuffer );
+    compositor->Present();
     blitCursor();
 
     SwapBuffers();
@@ -349,6 +369,12 @@ void OPENGL_GAL::EndDrawing()
 
 void OPENGL_GAL::BeginUpdate()
 {
+    if( !IsShownOnScreen() )
+        return;
+
+    if( !isInitialized )
+        init();
+
     GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext, this );
     cachedManager->Map();
 }
@@ -356,6 +382,9 @@ void OPENGL_GAL::BeginUpdate()
 
 void OPENGL_GAL::EndUpdate()
 {
+    if( !isInitialized )
+        return;
+
     cachedManager->Unmap();
     GL_CONTEXT_MANAGER::Get().UnlockCtx( glPrivContext );
 }
@@ -808,7 +837,7 @@ void OPENGL_GAL::BitmapText( const wxString& aText, const VECTOR2D& aPosition,
     {
         const unsigned int c = aText[ii];
 
-        wxASSERT_MSG( lookupGlyph(c) != nullptr, wxT( "Missing character in bitmap font atlas." ) );
+        wxASSERT_MSG( LookupGlyph(c) != nullptr, wxT( "Missing character in bitmap font atlas." ) );
         wxASSERT_MSG( c != '\n' && c != '\r', wxT( "No support for multiline bitmap text yet" ) );
 
         // Handle overbar
@@ -1173,9 +1202,9 @@ void OPENGL_GAL::DrawCursor( const VECTOR2D& aCursorPosition )
 {
     // Now we should only store the position of the mouse cursor
     // The real drawing routines are in blitCursor()
-    VECTOR2D screenCursor = worldScreenMatrix * aCursorPosition;
-
-    cursorPosition = screenWorldMatrix * VECTOR2D( screenCursor.x, screenSize.y - screenCursor.y );
+    //VECTOR2D screenCursor = worldScreenMatrix * aCursorPosition;
+    //cursorPosition = screenWorldMatrix * VECTOR2D( screenCursor.x, screenCursor.y );
+    cursorPosition = aCursorPosition;
 }
 
 
@@ -1317,7 +1346,7 @@ int OPENGL_GAL::drawBitmapChar( unsigned long aChar )
     const float TEX_X = font_image.width;
     const float TEX_Y = font_image.height;
 
-    const bitmap_glyph* glyph = lookupGlyph(aChar);
+    const FONT_GLYPH_TYPE* glyph = LookupGlyph(aChar);
     if( !glyph ) return 0;
 
     const float X = glyph->atlas_x + font_information.smooth_pixels;
@@ -1371,7 +1400,7 @@ int OPENGL_GAL::drawBitmapChar( unsigned long aChar )
 void OPENGL_GAL::drawBitmapOverbar( double aLength, double aHeight )
 {
     // To draw an overbar, simply draw an overbar
-    const bitmap_glyph* glyph = lookupGlyph( '_' );
+    const FONT_GLYPH_TYPE* glyph = LookupGlyph( '_' );
     const float H = glyph->maxy - glyph->miny;
 
     Save();
@@ -1392,31 +1421,6 @@ void OPENGL_GAL::drawBitmapOverbar( double aLength, double aHeight )
     currentManager->Vertex( aLength, H, 0 );    // v3
 
     Restore();
-}
-
-const bitmap_glyph* OPENGL_GAL::lookupGlyph( unsigned int aCodepoint ) const
-{
-#ifdef BITMAP_FONT_USE_SPANS
-        auto *end = font_codepoint_spans + sizeof( font_codepoint_spans ) / sizeof( bitmap_span );
-        auto ptr = std::upper_bound( font_codepoint_spans, end, aCodepoint,
-            []( unsigned int codepoint, const bitmap_span& span )
-            {
-                return codepoint < span.end;
-            }
-        );
-
-        if( ptr != end && ptr->start <= aCodepoint )
-        {
-            unsigned int index = aCodepoint - ptr->start + ptr->cumulative;
-            return &font_codepoint_infos[index];
-        }
-        else
-        {
-            return nullptr;
-        }
-#else
-        return &bitmap_chars[codepoint];
-#endif
 }
 
 std::pair<VECTOR2D, float> OPENGL_GAL::computeBitmapTextSize( const wxString& aText ) const
@@ -1444,7 +1448,7 @@ std::pair<VECTOR2D, float> OPENGL_GAL::computeBitmapTextSize( const wxString& aT
             }
         }
 
-        const bitmap_glyph* glyph = lookupGlyph(aText[i]);
+        const FONT_GLYPH_TYPE* glyph = LookupGlyph(aText[i]);
         if( glyph ) {
             textSize.x  += glyph->advance;
             textSize.y   = std::max<float>( textSize.y, font_information.max_y - glyph->miny );
@@ -1511,88 +1515,42 @@ unsigned int OPENGL_GAL::getNewGroupNumber()
 }
 
 
-bool OPENGL_GAL::runTest()
+void OPENGL_GAL::init()
 {
-    static bool tested = false;
-    static bool testResult = false;
-    std::string errorMessage = "OpenGL test failed";
+    wxASSERT( IsShownOnScreen() );
 
-    if( !tested )
+    GL_CONTEXT_MANAGER::Get().LockCtx( glPrivContext, this );
+
+    GLenum err = glewInit();
+
+    try
     {
-        wxDialog dlgtest( GetParent(), -1, wxT( "opengl test" ), wxPoint( 50, 50 ),
-                        wxDLG_UNIT( GetParent(), wxSize( 50, 50 ) ) );
-        OPENGL_TEST* test = new OPENGL_TEST( &dlgtest, this, glPrivContext );
-
-        dlgtest.Raise();         // on Linux, on some windows managers (Unity for instance) this is needed to actually show the dialog
-        dlgtest.ShowModal();
-        testResult = test->IsOk();
-
-        if( !testResult )
-            errorMessage = test->GetError();
-    }
-
-    if( !testResult )
-        throw std::runtime_error( errorMessage );
-
-    return testResult;
-}
-
-
-OPENGL_GAL::OPENGL_TEST::OPENGL_TEST( wxDialog* aParent, OPENGL_GAL* aGal, wxGLContext* aContext ) :
-    wxGLCanvas( aParent, wxID_ANY, glAttributes, wxDefaultPosition,
-                wxDefaultSize, 0, wxT( "GLCanvas" ) ),
-    m_parent( aParent ), m_gal( aGal ), m_context( aContext ), m_tested( false ), m_result( false )
-{
-    m_timeoutTimer.SetOwner( this );
-    Connect( wxEVT_PAINT, wxPaintEventHandler( OPENGL_GAL::OPENGL_TEST::Render ) );
-    Connect( wxEVT_TIMER, wxTimerEventHandler( OPENGL_GAL::OPENGL_TEST::OnTimeout ) );
-    m_parent->Connect( wxEVT_PAINT, wxPaintEventHandler( OPENGL_GAL::OPENGL_TEST::OnDialogPaint ), NULL, this );
-}
-
-
-void OPENGL_GAL::OPENGL_TEST::Render( wxPaintEvent& WXUNUSED( aEvent ) )
-{
-    if( !m_tested )
-    {
-        if( !IsShownOnScreen() )
-            return;
-
-        m_timeoutTimer.Stop();
-        m_result = true;    // Assume everything is fine, until proven otherwise
-
-        // One test is enough - close the testing dialog when the test is finished
-        Disconnect( wxEVT_PAINT, wxPaintEventHandler( OPENGL_GAL::OPENGL_TEST::Render ) );
-        CallAfter( std::bind( &wxDialog::EndModal, m_parent, wxID_NONE ) );
-
-        GL_CONTEXT_MANAGER::Get().LockCtx( m_context, this );
-        GLenum err = glewInit();
-
         if( GLEW_OK != err )
-            error( (const char*) glewGetErrorString( err ) );
+            throw std::runtime_error( (const char*) glewGetErrorString( err ) );
 
         // Check the OpenGL version (minimum 2.1 is required)
-        else if( !GLEW_VERSION_2_1 )
-            error( "OpenGL 2.1 or higher is required!" );
+        if( !GLEW_VERSION_2_1 )
+            throw std::runtime_error( "OpenGL 2.1 or higher is required!" );
 
         // Framebuffers have to be supported
-        else if( !GLEW_EXT_framebuffer_object )
-            error( "Framebuffer objects are not supported!" );
+        if( !GLEW_EXT_framebuffer_object )
+            throw std::runtime_error( "Framebuffer objects are not supported!" );
 
         // Vertex buffer has to be supported
-        else if( !GLEW_ARB_vertex_buffer_object )
-            error( "Vertex buffer objects are not supported!" );
+        if( !GLEW_ARB_vertex_buffer_object )
+            throw std::runtime_error( "Vertex buffer objects are not supported!" );
 
         // Prepare shaders
-        else if( !m_gal->shader->IsLinked() && !m_gal->shader->LoadBuiltinShader( 0, SHADER_TYPE_VERTEX ) )
-            error( "Cannot compile vertex shader!" );
+        if( !shader->IsLinked() && !shader->LoadShaderFromStrings( SHADER_TYPE_VERTEX, BUILTIN_SHADERS::kicad_vertex_shader ) )
+            throw std::runtime_error( "Cannot compile vertex shader!" );
 
-        else if( !m_gal->shader->IsLinked() && !m_gal->shader->LoadBuiltinShader( 1, SHADER_TYPE_FRAGMENT ) )
-            error( "Cannot compile fragment shader!" );
+        if( !shader->IsLinked() && !shader->LoadShaderFromStrings( SHADER_TYPE_FRAGMENT, BUILTIN_SHADERS::kicad_fragment_shader ) )
+            throw std::runtime_error( "Cannot compile fragment shader!" );
 
-        else if( !m_gal->shader->IsLinked() && !m_gal->shader->Link() )
-            error( "Cannot link the shaders!" );
+        if( !shader->IsLinked() && !shader->Link() )
+            throw std::runtime_error( "Cannot link the shaders!" );
 
-        // Check if video card supports textures big enough to fit font atlas
+        // Check if video card supports textures big enough to fit the font atlas
         int maxTextureSize;
         glGetIntegerv( GL_MAX_TEXTURE_SIZE, &maxTextureSize );
 
@@ -1600,40 +1558,24 @@ void OPENGL_GAL::OPENGL_TEST::Render( wxPaintEvent& WXUNUSED( aEvent ) )
         {
             // TODO implement software texture scaling
             // for bitmap fonts and use a higher resolution texture?
-            error( "Requested texture size is not supported" );
+            throw std::runtime_error( "Requested texture size is not supported" );
         }
-
-        GL_CONTEXT_MANAGER::Get().UnlockCtx( m_context );
-        m_tested = true;
     }
+    catch( std::runtime_error& e )
+    {
+        GL_CONTEXT_MANAGER::Get().UnlockCtx( glPrivContext );
+        throw;
+    }
+
+    // Make VBOs use shaders
+    cachedManager->SetShader( *shader );
+    nonCachedManager->SetShader( *shader );
+    overlayManager->SetShader( *shader );
+
+    GL_CONTEXT_MANAGER::Get().UnlockCtx( glPrivContext );
+    isInitialized = true;
 }
 
-
-void OPENGL_GAL::OPENGL_TEST::OnTimeout( wxTimerEvent& aEvent )
-{
-    error( "Could not create OpenGL canvas" );
-    m_parent->EndModal( wxID_NONE );
-}
-
-
-void OPENGL_GAL::OPENGL_TEST::OnDialogPaint( wxPaintEvent& aEvent )
-{
-    // GL canvas may never appear on the screen (e.g. due to missing GL extensions), and the test
-    // will not be run. Therefore give at most a second to perform the test, otherwise we conclude
-    // it has failed.
-    // Also, wxWidgets OnShow event is triggered before a window is shown, therefore here we use
-    // OnPaint event, which is executed when a window is actually visible.
-    m_timeoutTimer.StartOnce( 1000 );
-}
-
-
-void OPENGL_GAL::OPENGL_TEST::error( const std::string& aError )
-{
-    m_timeoutTimer.Stop();
-    m_result = false;
-    m_tested = true;
-    m_error = aError;
-}
 
 // ------------------------------------- // Callback functions for the tesselator // ------------------------------------- // Compare Redbook Chapter 11
 void CALLBACK VertexCallback( GLvoid* aVertexPtr, void* aData )

@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2016 CERN
+ * Copyright (C) 2013-2017 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -39,6 +39,7 @@
 #include <tool/tool_dispatcher.h>
 #include <tool/tool_manager.h>
 
+#include <pcbstruct.h>  // display options definition
 
 #ifdef PROFILE
 #include <profile.h>
@@ -47,8 +48,8 @@
 
 EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWindowId,
                                         const wxPoint& aPosition, const wxSize& aSize,
-                                        GAL_TYPE aGalType ) :
-    wxScrolledCanvas( aParentWindow, aWindowId, aPosition, aSize )
+                                        KIGFX::GAL_DISPLAY_OPTIONS& aOptions, GAL_TYPE aGalType ) :
+    wxScrolledCanvas( aParentWindow, aWindowId, aPosition, aSize ), m_options( aOptions )
 {
     m_parent     = aParentWindow;
     m_edaFrame   = dynamic_cast<EDA_DRAW_FRAME*>( aParentWindow );
@@ -174,25 +175,40 @@ void EDA_DRAW_PANEL_GAL::onPaint( wxPaintEvent& WXUNUSED( aEvent ) )
 
     m_view->UpdateItems();
 
-    m_gal->BeginDrawing();
-    m_gal->ClearScreen( settings->GetBackgroundColor() );
-
-    KIGFX::COLOR4D gridColor = settings->GetLayerColor( ITEM_GAL_LAYER( GRID_VISIBLE ) );
-    m_gal->SetGridColor( gridColor );
-
-    if( m_view->IsDirty() )
+    try
     {
-        m_view->ClearTargets();
+        m_gal->BeginDrawing();
+        m_gal->ClearScreen( settings->GetBackgroundColor() );
 
-        // Grid has to be redrawn only when the NONCACHED target is redrawn
-        if( m_view->IsTargetDirty( KIGFX::TARGET_NONCACHED ) )
-            m_gal->DrawGrid();
+        KIGFX::COLOR4D gridColor = settings->GetLayerColor( ITEM_GAL_LAYER( GRID_VISIBLE ) );
+        m_gal->SetGridColor( gridColor );
 
-        m_view->Redraw();
+        if( m_view->IsDirty() )
+        {
+            m_view->ClearTargets();
+
+            // Grid has to be redrawn only when the NONCACHED target is redrawn
+            if( m_view->IsTargetDirty( KIGFX::TARGET_NONCACHED ) )
+                m_gal->DrawGrid();
+
+            m_view->Redraw();
+        }
+
+        m_gal->DrawCursor( m_viewControls->GetCursorPosition() );
+        m_gal->EndDrawing();
     }
+    catch( std::runtime_error& err )
+    {
+        assert( GetBackend() != GAL_TYPE_CAIRO );
 
-    m_gal->DrawCursor( m_viewControls->GetCursorPosition() );
-    m_gal->EndDrawing();
+        // Cairo is supposed to be the safe backend, there is not a single "throw" in its code
+        SwitchBackend( GAL_TYPE_CAIRO );
+
+        if( m_edaFrame )
+            m_edaFrame->UseGalCanvas( true );
+
+        DisplayError( m_parent, wxString( err.what() ) );
+    }
 
 #ifdef PROFILE
     totalRealTime.Stop();
@@ -337,7 +353,7 @@ bool EDA_DRAW_PANEL_GAL::SwitchBackend( GAL_TYPE aGalType )
         switch( aGalType )
         {
         case GAL_TYPE_OPENGL:
-            new_gal = new KIGFX::OPENGL_GAL( this, this, this );
+            new_gal = new KIGFX::OPENGL_GAL( m_options, this, this, this );
             break;
 
         case GAL_TYPE_CAIRO:

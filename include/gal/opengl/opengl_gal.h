@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2012 Torsten Hueter, torstenhtr <at> gmx.de
  * Copyright (C) 2012 Kicad Developers, see change_log.txt for contributors.
- * Copyright (C) 2013-2016 CERN
+ * Copyright (C) 2013-2017 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * Graphics Abstraction Layer (GAL) for OpenGL
@@ -31,6 +31,7 @@
 
 // GAL imports
 #include <gal/graphics_abstraction_layer.h>
+#include <gal/gal_display_options.h>
 #include <gal/opengl/shader.h>
 #include <gal/opengl/vertex_manager.h>
 #include <gal/opengl/vertex_item.h>
@@ -61,7 +62,7 @@ class SHADER;
  * and quads. The purpose is to provide a fast graphics interface, that takes advantage of modern
  * graphics card GPUs. All methods here benefit thus from the hardware acceleration.
  */
-class OPENGL_GAL : public GAL, public wxGLCanvas
+class OPENGL_GAL : public GAL, public wxGLCanvas, GAL_DISPLAY_OPTIONS_OBSERVER
 {
 public:
     /**
@@ -79,18 +80,26 @@ public:
      *
      * @param aName is the name of this window for use by wxWindow::FindWindowByName()
      */
-    OPENGL_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener = NULL,
-                wxEvtHandler* aPaintListener = NULL, const wxString& aName = wxT( "GLCanvas" ) );
+    OPENGL_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions, wxWindow* aParent,
+                wxEvtHandler* aMouseListener = nullptr, wxEvtHandler* aPaintListener = nullptr,
+                const wxString& aName = wxT( "GLCanvas" ) );
 
     virtual ~OPENGL_GAL();
 
     /// @copydoc GAL::IsInitialized()
-    virtual bool IsInitialized() const override { return IsShownOnScreen(); }
-
-    ///> @copydoc GAL::IsVisible()
-    bool IsVisible() const override {
+    virtual bool IsInitialized() const override
+    {
+        // is*Initialized flags, but it is enough for OpenGL to show up
         return IsShownOnScreen();
     }
+
+    ///> @copydoc GAL::IsVisible()
+    bool IsVisible() const override
+    {
+        return IsShownOnScreen();
+    }
+
+    void OnGalDisplayOptionsChanged( const GAL_DISPLAY_OPTIONS& ) override;
 
     // ---------------
     // Drawing methods
@@ -271,6 +280,9 @@ private:
     /// Super class definition
     typedef GAL super;
 
+    GAL_DISPLAY_OPTIONS&    options;
+    UTIL::LINK              observerLink;
+
     static const int    CIRCLE_POINTS   = 64;   ///< The number of points for circle approximation
     static const int    CURVE_POINTS    = 32;   ///< The number of points for curve approximation
 
@@ -304,6 +316,8 @@ private:
     bool                    isFramebufferInitialized;   ///< Are the framebuffers initialized?
     static bool             isBitmapFontLoaded;         ///< Is the bitmap font texture loaded?
     bool                    isBitmapFontInitialized;    ///< Is the shader set to use bitmap fonts?
+    bool                    isInitialized;              ///< Basic initialization flag, has to be done
+                                                        ///< when the window is visible
     bool                    isGrouping;                 ///< Was a group started?
 
     // Polygon tesselation
@@ -380,8 +394,6 @@ private:
      */
     std::pair<VECTOR2D, float> computeBitmapTextSize( const wxString& aText ) const;
 
-    const bitmap_glyph* lookupGlyph( unsigned int aCodepoint ) const;
-
     // Event handling
     /**
      * @brief This is the OnPaint event handler.
@@ -410,38 +422,9 @@ private:
     unsigned int getNewGroupNumber();
 
     /**
-     * @brief Checks if the required OpenGL version and extensions are supported.
-     * @return true in case of success.
+     * @brief Basic OpenGL initialization.
      */
-    bool runTest();
-
-    // Helper class to determine OpenGL capabilities
-    class OPENGL_TEST: public wxGLCanvas
-    {
-    public:
-        OPENGL_TEST( wxDialog* aParent, OPENGL_GAL* aGal, wxGLContext* aContext );
-
-        void Render( wxPaintEvent& aEvent );
-        void OnTimeout( wxTimerEvent& aEvent );
-        void OnDialogPaint( wxPaintEvent& aEvent );
-
-        inline bool IsTested() const { return m_tested; }
-        inline bool IsOk() const { return m_result && m_tested; }
-        inline std::string GetError() const { return m_error; }
-
-    private:
-        void error( const std::string& aError );
-
-        wxDialog* m_parent;
-        OPENGL_GAL* m_gal;
-        wxGLContext* m_context;
-        bool m_tested;
-        bool m_result;
-        std::string m_error;
-        wxTimer m_timeoutTimer;
-    };
-
-    friend class OPENGL_TEST;
+    void init();
 };
 } // namespace KIGFX
 

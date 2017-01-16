@@ -28,6 +28,8 @@
 #include <tools/pcb_tool.h>
 #include <boost/optional.hpp>
 
+#include "tool_menu.h"
+
 namespace KIGFX
 {
     class VIEW;
@@ -49,8 +51,40 @@ public:
     DRAWING_TOOL();
     ~DRAWING_TOOL();
 
+    /// @copydoc TOOL_INTERACTIVE::Init()
+    bool Init() override;
+
     /// @copydoc TOOL_INTERACTIVE::Reset()
     void Reset( RESET_REASON aReason ) override;
+
+    ///> Get the DRAWING_TOOL top-level context menu
+    inline TOOL_MENU& GetToolMenu()
+    {
+        return m_menu;
+    }
+
+    ///> The possible drawing modes of DRAWING_TOOL
+    enum class MODE
+    {
+        NONE,
+        LINE,
+        CIRCLE,
+        ARC,
+        TEXT,
+        ANCHOR,
+        DXF,
+        DIMENSION,
+        KEEPOUT,
+        ZONE,
+    };
+
+    /**
+     * Function GetDrawingMode
+     *
+     * Returns the current drawing mode of the DRAWING_TOOL, or
+     * MODE::NONE if not currently in any drawing mode
+     */
+    MODE GetDrawingMode() const;
 
     /**
      * Function DrawLine()
@@ -125,6 +159,11 @@ public:
     void SetTransitions() override;
 
 private:
+    ///> Shows the context menu for the drawing tool
+    ///> This menu consists of normal UI functions (zoom, grid, etc)
+    ///> And any suitable global functions for the active drawing type.
+    void showContextMenu();
+
     ///> Starts drawing a selected shape (i.e. DRAWSEGMENT).
     ///> @param aShape is the type of created shape (@see STROKE_T).
     ///> @param aGraphic is an object that is going to be used by the tool for drawing. It has to
@@ -161,9 +200,13 @@ private:
     KIGFX::VIEW_CONTROLS* m_controls;
     BOARD* m_board;
     PCB_BASE_EDIT_FRAME* m_frame;
+    MODE m_mode;
 
     /// Stores the current line width for multisegment drawing.
     unsigned int m_lineWidth;
+
+    /// Menu model displayed by the tool.
+    TOOL_MENU m_menu;
 
     // How does line width change after one -/+ key press.
     static const int WIDTH_STEP;

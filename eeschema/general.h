@@ -64,7 +64,7 @@ class SCH_SHEET;
 #endif
 
 ///< The default pin len value when creating pins(can be changed in preference menu)
-#define DEFAULTPINLENGTH 200
+#define DEFAULTPINLENGTH 100
 
 ///< The default pin len value when creating pins(can be changed in preference menu)
 #if defined(KICAD_GOST)
