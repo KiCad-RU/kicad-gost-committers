@@ -219,6 +219,11 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_TRACKS, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_FREEROUTE_ACCESS, PCB_EDIT_FRAME::Access_to_External_Tool )
 
+
+#if defined(KICAD_SCRIPTING) && defined(KICAD_SCRIPTING_ACTION_MENU)
+    EVT_TOOL( ID_TOOLBARH_PCB_ACTION_PLUGIN_REFRESH, PCB_EDIT_FRAME::OnActionPluginRefresh )
+#endif
+
 #if defined( KICAD_SCRIPTING_WXPYTHON )
     // has meaning only with KICAD_SCRIPTING_WXPYTHON enabled
     EVT_TOOL( ID_TOOLBARH_PCB_SCRIPTING_CONSOLE, PCB_EDIT_FRAME::ScriptingConsoleEnableDisable )
@@ -635,6 +640,17 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
             Files_io_from_id( ID_SAVE_BOARD );
             break;
         }
+    }
+
+    if( IsGalCanvasActive() )
+    {
+        // On Windows 7 / 32 bits, on OpenGL mode only, Pcbnew crashes
+        // when closing this frame if a footprint was selected, and the footprint editor called
+        // to edit this footprint, and when closing pcbnew if this footprint is still selected
+        // See https://bugs.launchpad.net/kicad/+bug/1655858
+        // I think this is certainly a OpenGL event fired after frame deletion, so this workaround
+        // avoid the crash (JPC)
+        GetGalCanvas()->SetEvtHandlerEnabled( false );
     }
 
     GetGalCanvas()->StopDrawing();

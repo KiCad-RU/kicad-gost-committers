@@ -44,6 +44,8 @@
 
 #include <atomic>
 
+// C++11 "polyfill" for the C++14 std::make_unique function
+#include "make_unique.h"
 
 class wxAboutDialogInfo;
 class SEARCH_STACK;
@@ -115,11 +117,10 @@ enum pseudokeys {
 #endif
 
 
-// Graphic Texts Orientation in 0.1 degree
-#define TEXT_ORIENT_HORIZ 0
-#define TEXT_ORIENT_VERT  900
-
-
+/// Frequent text rotations, used with {Set,Get}TextAngle(),
+/// in 0.1 degrees for now, hoping to migrate to degrees eventually.
+#define TEXT_ANGLE_HORIZ    0
+#define TEXT_ANGLE_VERT     900
 
 //-----<KiROUND KIT>------------------------------------------------------------
 

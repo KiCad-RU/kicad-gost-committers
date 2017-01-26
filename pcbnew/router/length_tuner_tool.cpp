@@ -1,7 +1,7 @@
 /*
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
- * Copyright (C) 2013-2015  CERN
+ * Copyright (C) 2013-2017 CERN
  * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
@@ -73,12 +73,13 @@ LENGTH_TUNER_TOOL::LENGTH_TUNER_TOOL() :
 }
 
 
-class TUNER_TOOL_MENU: public CONTEXT_MENU
+class TUNER_TOOL_MENU : public CONTEXT_MENU
 {
 public:
-    TUNER_TOOL_MENU( BOARD* aBoard )
+    TUNER_TOOL_MENU()
     {
         SetTitle( _( "Length Tuner" ) );
+        DisplayTitle( true );
 
         //Add( ACT_StartTuning );
         //Add( ACT_EndTuning );
@@ -90,6 +91,12 @@ public:
         Add( ACT_AmplIncrease );
         Add( ACT_AmplDecrease );
         Add( ACT_Settings );
+    }
+
+private:
+    CONTEXT_MENU* create() const override
+    {
+        return new TUNER_TOOL_MENU();
     }
 };
 
@@ -109,37 +116,6 @@ void LENGTH_TUNER_TOOL::Reset( RESET_REASON aReason )
 }
 
 
-void LENGTH_TUNER_TOOL::handleCommonEvents( const TOOL_EVENT& aEvent )
-{
-    if( aEvent.IsAction( &ACT_RouterOptions ) )
-    {
-        DIALOG_PNS_SETTINGS settingsDlg( m_frame, m_router->Settings() );
-
-        if( settingsDlg.ShowModal() == wxID_OK )
-        {
-            // FIXME: do we need an explicit update?
-        }
-    }
-
-    PNS::MEANDER_PLACER_BASE* placer = static_cast<PNS::MEANDER_PLACER_BASE*>( m_router->Placer() );
-
-    if( !placer )
-        return;
-
-    if( aEvent.IsAction( &ACT_Settings ) )
-    {
-        PNS::MEANDER_SETTINGS settings = placer->MeanderSettings();
-        DIALOG_PNS_LENGTH_TUNING_SETTINGS settingsDlg( m_frame, settings, m_router->Mode() );
-
-        if( settingsDlg.ShowModal() )
-        {
-            placer->UpdateSettings( settings );
-        }
-
-        m_savedMeanderSettings = placer->MeanderSettings();
-    }
-}
-
 void LENGTH_TUNER_TOOL::updateStatusPopup( PNS_TUNE_STATUS_POPUP& aPopup )
 {
     wxPoint p = wxGetMousePosition();
@@ -150,6 +126,7 @@ void LENGTH_TUNER_TOOL::updateStatusPopup( PNS_TUNE_STATUS_POPUP& aPopup )
     aPopup.UpdateStatus( m_router );
     aPopup.Move( p );
 }
+
 
 void LENGTH_TUNER_TOOL::performTuning()
 {
@@ -171,7 +148,7 @@ void LENGTH_TUNER_TOOL::performTuning()
         return;
     }
 
-    PNS::MEANDER_PLACER_BASE* placer = static_cast<PNS::MEANDER_PLACER_BASE*>( 
+    PNS::MEANDER_PLACER_BASE* placer = static_cast<PNS::MEANDER_PLACER_BASE*>(
         m_router->Placer() );
 
     placer->UpdateSettings( m_savedMeanderSettings );
@@ -224,8 +201,6 @@ void LENGTH_TUNER_TOOL::performTuning()
             placer->SpacingStep( 1 );
             m_router->Move( end, NULL );
         }
-
-        handleCommonEvents( *evt );
     }
 
     m_router->StopRouting();
@@ -254,6 +229,13 @@ int LENGTH_TUNER_TOOL::TuneDiffPairSkew( const TOOL_EVENT& aEvent )
 }
 
 
+void LENGTH_TUNER_TOOL::SetTransitions()
+{
+    Go( &LENGTH_TUNER_TOOL::routerOptionsDialog, ACT_RouterOptions.MakeEvent() );
+    Go( &LENGTH_TUNER_TOOL::meanderSettingsDialog, ACT_Settings.MakeEvent() );
+}
+
+
 int LENGTH_TUNER_TOOL::mainLoop( PNS::ROUTER_MODE aMode )
 {
     // Deselect all items
@@ -267,7 +249,7 @@ int LENGTH_TUNER_TOOL::mainLoop( PNS::ROUTER_MODE aMode )
     m_ctls->ShowCursor( true );
     m_frame->UndoRedoBlock( true );
 
-    std::unique_ptr<TUNER_TOOL_MENU> ctxMenu( new TUNER_TOOL_MENU( m_board ) );
+    std::unique_ptr<TUNER_TOOL_MENU> ctxMenu( new TUNER_TOOL_MENU );
     SetContextMenu( ctxMenu.get() );
 
     // Main loop: keep receiving events
@@ -286,8 +268,6 @@ int LENGTH_TUNER_TOOL::mainLoop( PNS::ROUTER_MODE aMode )
             updateStartItem( *evt );
             performTuning();
         }
-
-        handleCommonEvents( *evt );
     }
 
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
@@ -296,6 +276,38 @@ int LENGTH_TUNER_TOOL::mainLoop( PNS::ROUTER_MODE aMode )
     // Store routing settings till the next invocation
     m_savedSettings = m_router->Settings();
     m_savedSizes = m_router->Sizes();
+
+    return 0;
+}
+
+
+int LENGTH_TUNER_TOOL::routerOptionsDialog( const TOOL_EVENT& aEvent )
+{
+    DIALOG_PNS_SETTINGS settingsDlg( m_frame, m_router->Settings() );
+
+    if( settingsDlg.ShowModal() == wxID_OK )
+    {
+        // FIXME: do we need an explicit update?
+    }
+
+    return 0;
+}
+
+
+int LENGTH_TUNER_TOOL::meanderSettingsDialog( const TOOL_EVENT& aEvent )
+{
+    PNS::MEANDER_PLACER_BASE* placer = static_cast<PNS::MEANDER_PLACER_BASE*>( m_router->Placer() );
+
+    if( !placer )
+        return 0;
+
+    PNS::MEANDER_SETTINGS settings = placer->MeanderSettings();
+    DIALOG_PNS_LENGTH_TUNING_SETTINGS settingsDlg( m_frame, settings, m_router->Mode() );
+
+    if( settingsDlg.ShowModal() )
+        placer->UpdateSettings( settings );
+
+    m_savedMeanderSettings = placer->MeanderSettings();
 
     return 0;
 }

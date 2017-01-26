@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2016 CERN
+ * Copyright (C) 2013-2017 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -58,9 +58,16 @@ class SELECT_MENU: public CONTEXT_MENU
 public:
     SELECT_MENU()
     {
+        SetTitle( _( "Select..." ) );
         Add( COMMON_ACTIONS::selectConnection );
         Add( COMMON_ACTIONS::selectCopper );
         Add( COMMON_ACTIONS::selectNet );
+    }
+
+private:
+    CONTEXT_MENU* create() const override
+    {
+        return new SELECT_MENU();
     }
 };
 
@@ -94,7 +101,7 @@ bool SELECTION_TOOL::Init()
 
     auto& menu = m_menu.GetMenu();
 
-    menu.AddMenu( selectMenu.get(), _( "Select..." ), false, showSelectMenuFunctor );
+    menu.AddMenu( selectMenu.get(), false, showSelectMenuFunctor );
     // only show separator if there is a Select menu to show above it
     menu.AddSeparator( showSelectMenuFunctor, 1000 );
 
@@ -217,50 +224,9 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
             }
         }
 
-        else if( evt->IsAction( &COMMON_ACTIONS::selectionCursor ) )
-        {
-            selectCursor( true );
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::find ) )
-        {
-            find( *evt );
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::findMove ) )
-        {
-            findMove( *evt );
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::selectItem ) )
-        {
-            SelectItem( *evt );
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::unselectItem ) )
-        {
-            UnselectItem( *evt );
-        }
-
-        else if( evt->IsCancel() || evt->Action() == TA_UNDO_REDO_PRE ||
-                 evt->IsAction( &COMMON_ACTIONS::selectionClear ) )
+        else if( evt->IsCancel() || evt->Action() == TA_UNDO_REDO_PRE )
         {
             clearSelection();
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::selectConnection ) )
-        {
-            selectConnection( *evt );
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::selectCopper ) )
-        {
-            selectCopper( *evt );
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::selectNet ) )
-        {
-            selectNet( *evt );
         }
 
         else if( evt->Action() == TA_CONTEXT_MENU_CLOSED )
@@ -757,6 +723,7 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
     }
 
     menu.SetTitle( _( "Clarify selection" ) );
+    menu.DisplayTitle( true );
     SetContextMenu( &menu, CMENU_NOW );
 
     while( OPT_TOOL_EVENT evt = Wait() )
@@ -908,12 +875,23 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
     case PCB_MODULE_EDGE_T:
     case PCB_PAD_T:
     {
+        // Multiple selection is only allowed in modedit mode
+        // In pcbnew, you have to select subparts of modules
+        // one-by-one, rather than with a drag selection.
+        // This is so you can pick up items under an (unlocked)
+        // module without also moving the module's sub-parts.
         if( m_multiple && !m_editModules )
             return false;
 
-        MODULE* mod = static_cast<const D_PAD*>( aItem )->GetParent();
-        if( mod && mod->IsLocked() )
-            return false;
+        // When editing modules, it's allowed to select them, even when
+        // locked, since you already have to explicitly activate the
+        // module editor to get to this stage
+        if ( !m_editModules )
+        {
+            MODULE* mod = static_cast<const D_PAD*>( aItem )->GetParent();
+            if( mod && mod->IsLocked() )
+                return false;
+        }
 
         break;
     }
@@ -1396,17 +1374,6 @@ bool SELECTION_TOOL::SanitizeSelection()
     }
 
     return true;
-}
-
-
-SELECTION::SELECTION( KIGFX::VIEW* aView ) :
-    KIGFX::VIEW_GROUP( aView )
-{}
-
-
-void SELECTION::clear()
-{
-    m_items.clear();
 }
 
 

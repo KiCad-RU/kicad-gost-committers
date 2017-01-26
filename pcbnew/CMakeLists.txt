@@ -87,6 +87,7 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_global_modules_fields_edition.cpp
     dialogs/dialog_global_modules_fields_edition_base.cpp
     dialogs/dialog_global_pads_edition_base.cpp
+    dialogs/dialog_global_pads_edition.cpp
     dialogs/dialog_graphic_items_options.cpp
     dialogs/dialog_graphic_items_options_base.cpp
     dialogs/dialog_graphic_item_properties.cpp
@@ -274,6 +275,7 @@ set( PCBNEW_CLASS_SRCS
     zones_polygons_test_connections.cpp
     zones_test_and_combine_areas.cpp
     class_footprint_wizard.cpp
+    class_action_plugin.cpp
 
     tools/selection_tool.cpp
     tools/selection_area.cpp
@@ -291,6 +293,7 @@ set( PCBNEW_CLASS_SRCS
     tools/placement_tool.cpp
     tools/common_actions.cpp
     tools/grid_helper.cpp
+    tools/pad_tool.cpp
     tools/picker_tool.cpp
     tools/zoom_tool.cpp
     tools/tools_common.cpp
@@ -320,6 +323,7 @@ set( PCBNEW_SCRIPTING_PYTHON_HELPERS
     swig/python_scripting.cpp
     swig/pcbnew_scripting_helpers.cpp
     swig/pcbnew_footprint_wizards.cpp
+    swig/pcbnew_action_plugins.cpp
     )
 
 if( KICAD_SCRIPTING )

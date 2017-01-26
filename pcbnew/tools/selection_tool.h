@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2016 CERN
+ * Copyright (C) 2013-2017 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -47,15 +47,9 @@ namespace KIGFX
 
 struct SELECTION : public KIGFX::VIEW_GROUP
 {
-private:
-    /// Set of selected items
-    std::set<BOARD_ITEM*> m_items;
-
 public:
     using ITER = std::set<BOARD_ITEM*>::iterator;
     using CITER = std::set<BOARD_ITEM*>::const_iterator;
-
-    SELECTION( KIGFX::VIEW* aView = nullptr );
 
     ITER begin() { return m_items.begin(); }
     ITER end() { return m_items.end(); }
@@ -142,11 +136,12 @@ public:
     virtual const VIEW_GROUP::ITEMS updateDrawList() const override;
 
 private:
+    /// Set of selected items
+    std::set<BOARD_ITEM*> m_items;
 
-
-    /// Clears both the VIEW_GROUP and set of selected items. Please note that it does not
-    /// change properties of selected items (e.g. selection flag).
-    void clear();
+    // mute hidden overloaded virtual function warnings
+    using VIEW_GROUP::Add;
+    using VIEW_GROUP::Remove;
 };
 
 enum SELECTION_LOCK_FLAGS

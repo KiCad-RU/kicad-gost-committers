@@ -125,6 +125,10 @@ TOOL_ACTION COMMON_ACTIONS::flip( "pcbnew.InteractiveEdit.flip",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_FLIP_ITEM ),
         _( "Flip" ), _( "Flips selected item(s)" ), swap_layer_xpm );
 
+TOOL_ACTION COMMON_ACTIONS::mirror( "pcbnew.InteractiveEdit.mirror",
+        AS_GLOBAL, 0,
+        _( "Mirror" ), _( "Mirrors selected item" ), mirror_h_xpm );
+
 TOOL_ACTION COMMON_ACTIONS::remove( "pcbnew.InteractiveEdit.remove",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_DELETE ),
         _( "Remove" ), _( "Deletes selected item(s)" ), delete_xpm );
@@ -459,6 +463,24 @@ TOOL_ACTION COMMON_ACTIONS::moduleTextOutlines( "pcbnew.ModuleEditor.textOutline
        AS_GLOBAL, 0,
        "", "" );
 
+// Pad tools
+TOOL_ACTION COMMON_ACTIONS::exportPadSettings(
+        "pcbnew.PadTool.ExportPadSettings",
+        AS_GLOBAL, 0,
+        _( "Export pad settings" ), _( "Copy current pad's settings to the board design settings" ),
+        export_options_pad_xpm );
+
+TOOL_ACTION COMMON_ACTIONS::importPadSettings(
+        "pcbnew.PadTool.ImportPadSettings",
+        AS_GLOBAL, 0,
+        _( "Import pad settings" ), _( "Copy the board design settings pad properties to the current pad" ),
+        options_new_pad_xpm );
+
+TOOL_ACTION COMMON_ACTIONS::pushPadSettings(
+        "pcbnew.PadTool.PushPadSettings",
+        AS_GLOBAL, 0,
+        _( "Push pad settings" ), _( "Copy the current pad settings to other pads" ),
+        global_options_pad_xpm );
 
 // Cursor control
 TOOL_ACTION COMMON_ACTIONS::cursorUp( "pcbnew.Control.cursorUp",
@@ -580,32 +602,32 @@ TOOL_ACTION COMMON_ACTIONS::pointEditorRemoveCorner( "pcbnew.PointEditor.removeC
 TOOL_ACTION COMMON_ACTIONS::alignTop( "pcbnew.Place.alignTop",
         AS_GLOBAL, 0,
         _( "Align items to the top" ),
-        _( "Aligns selected items to the top edge" ) );
+        _( "Aligns selected items to the top edge" ), up_xpm );
 
 TOOL_ACTION COMMON_ACTIONS::alignBottom( "pcbnew.Place.alignBottom",
         AS_GLOBAL, 0,
         _( "Align items to the bottom" ),
-        _( "Aligns selected items to the bottom edge" ) );
+        _( "Aligns selected items to the bottom edge" ), down_xpm );
 
 TOOL_ACTION COMMON_ACTIONS::alignLeft( "pcbnew.Place.alignLeft",
         AS_GLOBAL, 0,
         _( "Align items to the left" ),
-        _( "Aligns selected items to the left edge" ) );
+        _( "Aligns selected items to the left edge" ), left_xpm );
 
 TOOL_ACTION COMMON_ACTIONS::alignRight( "pcbnew.Place.alignRight",
         AS_GLOBAL, 0,
         _( "Align items to the right" ),
-        _( "Aligns selected items to the right edge" ) );
+        _( "Aligns selected items to the right edge" ), right_xpm );
 
 TOOL_ACTION COMMON_ACTIONS::distributeHorizontally( "pcbnew.Place.distributeHorizontally",
         AS_GLOBAL, 0,
         _( "Distribute horizontally" ),
-        _( "Distributes selected items along the horizontal axis" ) );
+        _( "Distributes selected items along the horizontal axis" ), distribute_horizontal_xpm );
 
 TOOL_ACTION COMMON_ACTIONS::distributeVertically( "pcbnew.Place.distributeVertically",
         AS_GLOBAL, 0,
         _( "Distribute vertically" ),
-        _( "Distributes selected items along the vertical axis" ) );
+        _( "Distributes selected items along the vertical axis" ), distribute_vertical_xpm );
 
 
 boost::optional<TOOL_EVENT> COMMON_ACTIONS::TranslateLegacyId( int aId )
