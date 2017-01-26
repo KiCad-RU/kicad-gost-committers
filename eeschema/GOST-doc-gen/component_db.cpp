@@ -359,12 +359,12 @@ void COMPONENT_DB::ValidateKiCadAttrs()
 
             if( copyValueAttrPosition )
             {
-                field.SetTextPosition( component->GetField( VALUE )->GetTextPosition() );
-                field.SetOrientation( component->GetField( VALUE )->GetOrientation() );
+                field.SetTextPos( component->GetField( VALUE )->GetTextPos() );
+                field.SetTextAngle( component->GetField( VALUE )->GetTextAngle() );
                 field.SetVisible( component->GetField( VALUE )->IsVisible() );
             }
             else
-                field.SetTextPosition( component->GetPosition() );
+                field.SetTextPos( component->GetPosition() );
 
             component->AddField( field );
         }
@@ -375,12 +375,12 @@ void COMPONENT_DB::ValidateKiCadAttrs()
 
             if( copyValueAttrPosition )
             {
-                pSch_field->SetTextPosition( component->GetField( VALUE )->GetTextPosition() );
-                pSch_field->SetOrientation( component->GetField( VALUE )->GetOrientation() );
+                pSch_field->SetTextPos( component->GetField( VALUE )->GetTextPos() );
+                pSch_field->SetTextAngle( component->GetField( VALUE )->GetTextAngle() );
                 pSch_field->SetVisible( component->GetField( VALUE )->IsVisible() );
             }
             else
-                pSch_field->SetTextPosition( component->GetPosition() );
+                pSch_field->SetTextPos( component->GetPosition() );
         }
 
         index++;
@@ -586,7 +586,7 @@ void COMPONENT_DB::WriteAttributeBackToKiCad( COMPONENT* aComp,
                              aAttrName );
 
             field.SetText( str );
-            field.SetTextPosition( aComp->m_KiCadComponentPtr->GetPosition() );
+            field.SetTextPos( aComp->m_KiCadComponentPtr->GetPosition() );
             aComp->m_KiCadComponentPtr->AddField( field );
         }
     }
