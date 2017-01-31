@@ -72,8 +72,8 @@ bool        g_TwoSegmentTrackBuild = true;
 
 LAYER_ID    g_Route_Layer_TOP;
 LAYER_ID    g_Route_Layer_BOTTOM;
-int         g_MagneticPadOption   = capture_cursor_in_track_tool;
-int         g_MagneticTrackOption = capture_cursor_in_track_tool;
+int         g_MagneticPadOption   = CAPTURE_CURSOR_IN_TRACK_TOOL;
+int         g_MagneticTrackOption = CAPTURE_CURSOR_IN_TRACK_TOOL;
 
 wxPoint     g_Offset_Module;     // module offset used when moving a footprint
 
@@ -275,6 +275,25 @@ static bool scriptingSetup()
     return true;
 }
 #endif  // KICAD_SCRIPTING
+
+
+void PythonPluginsReloadBase()
+{
+#if defined(KICAD_SCRIPTING)
+    //Reload plugin list: reload Python plugins if they are newer than
+    // the already loaded, and load new plugins
+    char cmd[1024];
+
+    snprintf( cmd, sizeof(cmd),
+            "pcbnew.LoadPlugins(\"%s\")", TO_UTF8( PyScriptingPath() ) );
+
+    PyLOCK lock;
+
+    // ReRun the Python method pcbnew.LoadPlugins
+    // (already called when starting Pcbnew)
+    PyRun_SimpleString( cmd );
+#endif
+}
 
 
 /// The global footprint library table.  This is not dynamically allocated because

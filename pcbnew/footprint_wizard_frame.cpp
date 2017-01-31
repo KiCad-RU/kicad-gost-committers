@@ -32,6 +32,7 @@
 #include <kiface_i.h>
 #include <class_drawpanel.h>
 #include <wxPcbStruct.h>
+#include <pcbnew.h>
 #include <3d_viewer/eda_3d_viewer.h>
 #include <msgpanel.h>
 #include <macros.h>
@@ -720,6 +721,22 @@ void FOOTPRINT_WIZARD_FRAME::ReCreateVToolbar()
     // Currently, there is no vertical toolbar
 }
 
+#if defined(KICAD_SCRIPTING)
+void FOOTPRINT_WIZARD_FRAME::PythonPluginsReload()
+{
+    // Reload the Python plugins
+    // Because the board editor has also a plugin python menu,
+    // call PCB_EDIT_FRAME::PythonPluginsReload() if the board editor
+    // is running
+    PCB_EDIT_FRAME* brd_frame =
+        static_cast<PCB_EDIT_FRAME*>( Kiway().Player( FRAME_PCB, false ) );
+
+    if( brd_frame )
+        brd_frame->PythonPluginsReload();
+    else
+        PythonPluginsReloadBase();
+}
+#endif
 
 // frame to display messages from footprint builder scripts
 FOOTPRINT_WIZARD_MESSAGES::FOOTPRINT_WIZARD_MESSAGES( FOOTPRINT_WIZARD_FRAME* aParent, wxConfigBase* aCfg ) :

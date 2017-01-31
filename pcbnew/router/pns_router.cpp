@@ -26,6 +26,7 @@
 #include <view/view_item.h>
 #include <view/view_group.h>
 #include <gal/graphics_abstraction_layer.h>
+#include <gal/color4d.h>
 
 #include <pcb_painter.h>
 
@@ -68,7 +69,6 @@ ROUTER::ROUTER()
 {
     theRouter = this;
 
-
     m_state = IDLE;
     m_mode = PNS_MODE_ROUTE_SINGLE;
 
@@ -94,11 +94,12 @@ ROUTER::~ROUTER()
     theRouter = nullptr;
 }
 
-void ROUTER::SyncWorld( )
+
+void ROUTER::SyncWorld()
 {
     ClearWorld();
 
-    m_world = std::unique_ptr< NODE >( new NODE );
+    m_world = std::unique_ptr<NODE>( new NODE );
     m_iface->SyncWorld( m_world.get() );
 
 }
@@ -126,10 +127,9 @@ const ITEM_SET ROUTER::QueryHoverItems( const VECTOR2I& aP )
     if( m_state == IDLE )
         return m_world->HitTest( aP );
     else
-    {
         return m_placer->CurrentNode()->HitTest( aP );
-    }
 }
+
 
 bool ROUTER::StartDragging( const VECTOR2I& aP, ITEM* aStartItem )
 {
@@ -151,6 +151,7 @@ bool ROUTER::StartDragging( const VECTOR2I& aP, ITEM* aStartItem )
 
     return true;
 }
+
 
 bool ROUTER::StartRouting( const VECTOR2I& aP, ITEM* aStartItem, int aLayer )
 {
@@ -197,6 +198,7 @@ void ROUTER::DisplayItems( const ITEM_SET& aItems )
         m_iface->DisplayItem( item );
 }
 
+
 void ROUTER::Move( const VECTOR2I& aP, ITEM* endItem )
 {
     m_currentEnd = aP;
@@ -228,8 +230,7 @@ void ROUTER::moveDragging( const VECTOR2I& aP, ITEM* aEndItem )
 }
 
 
-void ROUTER::markViolations( NODE* aNode, ITEM_SET& aCurrent,
-                                 NODE::ITEM_VECTOR& aRemoved )
+void ROUTER::markViolations( NODE* aNode, ITEM_SET& aCurrent, NODE::ITEM_VECTOR& aRemoved )
 {
     for( ITEM* item : aCurrent.Items() )
     {
@@ -273,7 +274,7 @@ void ROUTER::updateView( NODE* aNode, ITEM_SET& aCurrent )
 
     aNode->GetUpdatedItems( removed, added );
 
-    for ( auto item : added )
+    for( auto item : added )
         m_iface->DisplayItem( item );
 
     for( auto item : removed )
@@ -281,7 +282,7 @@ void ROUTER::updateView( NODE* aNode, ITEM_SET& aCurrent )
 }
 
 
-void ROUTER::UpdateSizes ( const SIZES_SETTINGS& aSizes )
+void ROUTER::UpdateSizes( const SIZES_SETTINGS& aSizes )
 {
     m_sizes = aSizes;
 
@@ -306,10 +307,12 @@ void ROUTER::movePlacing( const VECTOR2I& aP, ITEM* aEndItem )
             continue;
 
         const LINE* l = static_cast<const LINE*>( item );
-        m_iface->DisplayItem( l );
+        int clearance = GetRuleResolver()->Clearance( item->Net() );
+
+        m_iface->DisplayItem( l, -1, clearance );
 
         if( l->EndsWithVia() )
-            m_iface->DisplayItem( &l->Via() );
+            m_iface->DisplayItem( &l->Via(), -1, clearance );
     }
 
     //ITEM_SET tmp( &current );
@@ -324,10 +327,10 @@ void ROUTER::CommitRouting( NODE* aNode )
 
     aNode->GetUpdatedItems( removed, added );
 
-    for ( auto item : removed )
-        m_iface->RemoveItem ( item );
+    for( auto item : removed )
+        m_iface->RemoveItem( item );
 
-    for ( auto item : added )
+    for( auto item : added )
         m_iface->AddItem( item );
 
     m_iface->Commit();
@@ -482,6 +485,7 @@ void ROUTER::SetMode( ROUTER_MODE aMode )
 {
     m_mode = aMode;
 }
+
 
 void ROUTER::SetInterface( ROUTER_IFACE *aIface )
 {

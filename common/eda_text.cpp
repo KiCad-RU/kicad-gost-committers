@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2004-2016 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2017 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -425,6 +425,7 @@ bool EDA_TEXT::IsDefaultFormatting() const
            );
 }
 
+
 void EDA_TEXT::Format( OUTPUTFORMATTER* aFormatter, int aNestLevel, int aControlBits ) const
     throw( IO_ERROR )
 {
@@ -481,8 +482,7 @@ void EDA_TEXT::Format( OUTPUTFORMATTER* aFormatter, int aNestLevel, int aControl
             aFormatter->Print( 0, ")" );
         }
 
-        // As of now the only place this is used is in Eeschema to hide or show the text.
-        if( !IsVisible() )
+        if( !(aControlBits & CTL_OMIT_HIDE) && !IsVisible() )
             aFormatter->Print( 0, " hide" );
 
         aFormatter->Print( 0, ")\n" );

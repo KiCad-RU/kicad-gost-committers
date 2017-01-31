@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 CERN.
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,7 +41,8 @@ class NETINFO_MAPPING;
 //#define SEXPR_BOARD_FILE_VERSION    3         // first s-expression format, used legacy cu stack
 //#define SEXPR_BOARD_FILE_VERSION    4         // reversed cu stack, changed Inner* to In* in reverse order
 //                                              // went to 32 Cu layers from 16.
-#define SEXPR_BOARD_FILE_VERSION    20160815    // differential pair settings per net class
+//#define SEXPR_BOARD_FILE_VERSION    20160815  // differential pair settings per net class
+#define SEXPR_BOARD_FILE_VERSION    20170123    // EDA_TEXT refactor, moved 'hide'
 
 #define CTL_STD_LAYER_NAMES         (1 << 0)    ///< Use English Standard layer names
 #define CTL_OMIT_NETS               (1 << 1)    ///< Omit pads net names (useless in library)
@@ -50,6 +51,7 @@ class NETINFO_MAPPING;
 #define CTL_OMIT_PATH               (1 << 4)    ///< Omit component sheet time stamp (useless in library)
 #define CTL_OMIT_AT                 (1 << 5)    ///< Omit position and rotation
                                                 // (always saved with potion 0,0 and rotation = 0 in library)
+//#define CTL_OMIT_HIDE             (1 << 6)    // found and defined in eda_text.h
 
 
 // common combinations of the above:

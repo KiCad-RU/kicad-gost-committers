@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 CERN
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -1427,7 +1427,7 @@ void PCB_IO::format( TEXTE_MODULE* aText, int aNestLevel ) const
 
     m_out->Print( 0, "\n" );
 
-    aText->EDA_TEXT::Format( m_out, aNestLevel, m_ctl );
+    aText->EDA_TEXT::Format( m_out, aNestLevel, m_ctl | CTL_OMIT_HIDE );
 
     m_out->Print( aNestLevel, ")\n" );
 }
