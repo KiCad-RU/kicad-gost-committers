@@ -94,6 +94,9 @@ public:
     /// Activation of the duplication tool with incrementing (e.g. pad number)
     static TOOL_ACTION duplicateIncrement;
 
+    /// Exchange footprints of modules
+    static TOOL_ACTION exchangeFootprints;
+
     /// Deleting a BOARD_ITEM
     static TOOL_ACTION remove;
     static TOOL_ACTION removeAlt;
@@ -277,10 +280,10 @@ public:
 
     // Pad tools
     /// Copy the selected pad's settings to the board design settings
-    static TOOL_ACTION exportPadSettings;
+    static TOOL_ACTION copyPadSettings;
 
     /// Copy the pad settings in the board design settings to the selected pad
-    static TOOL_ACTION importPadSettings;
+    static TOOL_ACTION applyPadSettings;
 
     /// Copy the current pad's settings to other pads in the module or on the board
     static TOOL_ACTION pushPadSettings;

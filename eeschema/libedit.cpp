@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2004-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,6 +44,9 @@
 #include <class_library.h>
 #include <template_fieldnames.h>
 #include <wildcards_and_files_ext.h>
+
+#include <dialog_choose_component.h>
+#include <component_tree_search_container.h>
 
 #include <dialogs/dialog_lib_new_component.h>
 
@@ -122,12 +125,16 @@ void LIB_EDIT_FRAME::LoadOneLibraryPart( wxCommandEvent& event )
             return;
     }
 
+    // Get the name of the current part to preselect it
+    LIB_PART* current_part = GetCurPart();
+    wxString part_name = current_part ? current_part->GetName() : wxString( wxEmptyString );
+
     wxArrayString dummyHistoryList;
     int dummyLastUnit;
     SCHLIB_FILTER filter;
     filter.LoadFrom( lib->GetName() );
     cmp_name = SelectComponentFromLibrary( &filter, dummyHistoryList, dummyLastUnit,
-                                          true, NULL, NULL );
+                                          true, NULL, NULL, part_name );
 
     if( cmp_name.IsEmpty() )
         return;
@@ -519,6 +526,7 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
     m_lastDrawItem = NULL;
     m_drawItem = NULL;
 
+    LIB_PART *part = GetCurPart();
     PART_LIB* lib = GetCurLib();
 
     if( !lib )
@@ -533,30 +541,29 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
         }
     }
 
-    lib->GetAliasNames( nameList );
+    COMPONENT_TREE_SEARCH_CONTAINER search_container( Prj().SchLibs() );
 
-    if( nameList.IsEmpty() )
+    wxString name = part ? part->GetName() : wxString( wxEmptyString );
+    search_container.SetPreselectNode( name, /* aUnit */ 0 );
+    search_container.ShowUnits( false );
+    search_container.AddLibrary( *lib );
+
+    wxString dialogTitle;
+    dialogTitle.Printf( _( "Delete Component (%u items loaded)" ), search_container.GetComponentsCount() );
+
+    DIALOG_CHOOSE_COMPONENT dlg( this, dialogTitle, &search_container, m_convert );
+
+    if( dlg.ShowModal() == wxID_CANCEL )
     {
-        msg.Printf( _( "Part library '%s' is empty." ), GetChars( lib->GetName() ) );
-        wxMessageBox( msg, _( "Delete Entry Error" ), wxID_OK | wxICON_EXCLAMATION, this );
         return;
     }
 
-    msg.Printf( _( "Select one of %d components to delete\nfrom library '%s'." ),
-                int( nameList.GetCount() ),
-                GetChars( lib->GetName() ) );
-
-    wxSingleChoiceDialog dlg( this, msg, _( "Delete Part" ), nameList );
-
-    if( dlg.ShowModal() == wxID_CANCEL || dlg.GetStringSelection().IsEmpty() )
-        return;
-
-    libEntry = lib->FindAlias( dlg.GetStringSelection() );
+    libEntry = dlg.GetSelectedAlias( NULL );
 
     if( !libEntry )
     {
         msg.Printf( _( "Entry '%s' not found in library '%s'." ),
-                    GetChars( dlg.GetStringSelection() ),
+                    GetChars( libEntry->GetName() ),
                     GetChars( lib->GetName() ) );
         DisplayError( this, msg );
         return;
@@ -569,11 +576,12 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
     if( !IsOK( this, msg ) )
         return;
 
-    LIB_PART* part = GetCurPart();
+    part = GetCurPart();
 
     if( !part || !part->HasAlias( libEntry->GetName() ) )
     {
         lib->RemoveAlias( libEntry );
+        m_canvas->Refresh();
         return;
     }
 

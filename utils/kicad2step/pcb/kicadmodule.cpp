@@ -81,20 +81,20 @@ bool KICADMODULE::Read( SEXPR::SEXPR* aEntry )
 
         bool result = true;
 
-        for( size_t i = 1; i < nc && result; ++i )
+        for( size_t i = 2; i < nc && result; ++i )
         {
             child = aEntry->GetChild( i );
 
-            // skip the module name and the optional 'locked' attribute;
-            // due to the vagaries of the kicad version of sexpr, the
-            // name may be a Symbol or a String
+            // skip the optional 'locked' attribute; due to the vagaries of the
+            // kicad version of sexpr, the attribute may be a Symbol or a String
             if( i <= 2 && ( child->IsSymbol() || child->IsString() ) )
                 continue;
 
             if( !child->IsList() )
             {
                 std::ostringstream ostr;
-                ostr << "* corrupt module in PCB file\n";
+                ostr << "* corrupt module in PCB file at line ";
+                ostr << child->GetLineNumber() << "\n";
                 wxLogMessage( "%s\n", ostr.str().c_str() );
                 return false;
             }
@@ -181,7 +181,8 @@ bool KICADMODULE::parseLayer( SEXPR::SEXPR* data )
     else
     {
         std::ostringstream ostr;
-        ostr << "* corrupt module in PCB file; layer cannot be parsed\n";
+        ostr << "* corrupt module in PCB file (line ";
+        ostr << val->GetLineNumber() << "); layer cannot be parsed\n";
         wxLogMessage( "%s\n", ostr.str().c_str() );
         return false;
     }
@@ -206,7 +207,8 @@ bool KICADMODULE::parseAttribute( SEXPR::SEXPR* data )
     if( data->GetNumberOfChildren() < 2 )
     {
         std::ostringstream ostr;
-        ostr << "* corrupt module in PCB file; attribute cannot be parsed\n";
+        ostr << "* corrupt module in PCB file (line ";
+        ostr << data->GetLineNumber() << "); attribute cannot be parsed\n";
         wxLogMessage( "%s\n", ostr.str().c_str() );
         return false;
     }

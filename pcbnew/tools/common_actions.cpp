@@ -94,7 +94,7 @@ TOOL_ACTION COMMON_ACTIONS::copySettingsToPads( "pcbnew.InteractiveEdit.copySett
 TOOL_ACTION COMMON_ACTIONS::globalEditPads( "pcbnew.InteractiveEdit.globalPadEdit",
         AS_GLOBAL, 0,
         _( "Global Pad Edition" ),
-        _( "Changes pad properties globally." ), global_options_pad_xpm );
+        _( "Changes pad properties globally." ), push_pad_settings_xpm );
 
 TOOL_ACTION COMMON_ACTIONS::editActivate( "pcbnew.InteractiveEdit",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_MOVE_ITEM ),
@@ -136,6 +136,11 @@ TOOL_ACTION COMMON_ACTIONS::remove( "pcbnew.InteractiveEdit.remove",
 TOOL_ACTION COMMON_ACTIONS::removeAlt( "pcbnew.InteractiveEdit.removeAlt",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_BACK_SPACE ),
         _( "Remove (alterative)" ), _( "Deletes selected item(s)" ), delete_xpm );
+
+TOOL_ACTION COMMON_ACTIONS::exchangeFootprints( "pcbnew.InteractiveEdit.ExchangeFootprints",
+        AS_GLOBAL, 0,
+        _( "Exchange Footprint(s)" ), _( "Change the footprint used for modules" ),
+        import_module_xpm );
 
 
 TOOL_ACTION COMMON_ACTIONS::properties( "pcbnew.InteractiveEdit.properties",
@@ -464,23 +469,23 @@ TOOL_ACTION COMMON_ACTIONS::moduleTextOutlines( "pcbnew.ModuleEditor.textOutline
        "", "" );
 
 // Pad tools
-TOOL_ACTION COMMON_ACTIONS::exportPadSettings(
-        "pcbnew.PadTool.ExportPadSettings",
+TOOL_ACTION COMMON_ACTIONS::copyPadSettings(
+        "pcbnew.PadTool.CopyPadSettings",
         AS_GLOBAL, 0,
-        _( "Export pad settings" ), _( "Copy current pad's settings to the board design settings" ),
-        export_options_pad_xpm );
+        _( "Copy Pad Settings" ), _( "Copy current pad's settings to the board design settings" ),
+        copy_pad_settings_xpm );
 
-TOOL_ACTION COMMON_ACTIONS::importPadSettings(
-        "pcbnew.PadTool.ImportPadSettings",
+TOOL_ACTION COMMON_ACTIONS::applyPadSettings(
+        "pcbnew.PadTool.ApplyPadSettings",
         AS_GLOBAL, 0,
-        _( "Import pad settings" ), _( "Copy the board design settings pad properties to the current pad" ),
-        options_new_pad_xpm );
+        _( "Apply Pad Settings" ), _( "Copy the board design settings pad properties to the current pad" ),
+        apply_pad_settings_xpm );
 
 TOOL_ACTION COMMON_ACTIONS::pushPadSettings(
         "pcbnew.PadTool.PushPadSettings",
         AS_GLOBAL, 0,
-        _( "Push pad settings" ), _( "Copy the current pad settings to other pads" ),
-        global_options_pad_xpm );
+        _( "Push Pad Settings" ), _( "Copy the current pad settings to other pads" ),
+        push_pad_settings_xpm );
 
 // Cursor control
 TOOL_ACTION COMMON_ACTIONS::cursorUp( "pcbnew.Control.cursorUp",

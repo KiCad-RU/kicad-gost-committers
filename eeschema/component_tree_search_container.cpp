@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2014 Henner Zeller <h.zeller@acm.org>
- * Copyright (C) 2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2015-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -104,6 +104,7 @@ COMPONENT_TREE_SEARCH_CONTAINER::COMPONENT_TREE_SEARCH_CONTAINER( PART_LIBS* aLi
       m_libraries_added( 0 ),
       m_components_added( 0 ),
       m_preselect_unit_number( -1 ),
+      m_show_units( true ),
       m_libs( aLibs ),
       m_filter( CMP_FILTER_NONE )
 {
@@ -124,6 +125,12 @@ void COMPONENT_TREE_SEARCH_CONTAINER::SetPreselectNode( const wxString& aCompone
 {
     m_preselect_node_name = aComponentName.Lower();
     m_preselect_unit_number = aUnit;
+}
+
+
+void COMPONENT_TREE_SEARCH_CONTAINER::ShowUnits( bool aShowUnits )
+{
+    m_show_units = aShowUnits;
 }
 
 
@@ -198,7 +205,7 @@ void COMPONENT_TREE_SEARCH_CONTAINER::AddAliasList( const wxString& aNodeName,
                                                a, a->GetName(), display_info, search_text );
         m_nodes.push_back( alias_node );
 
-        if( a->GetPart()->IsMulti() )    // Add all units as sub-nodes.
+        if( m_show_units && a->GetPart()->IsMulti() )    // Add all units as sub-nodes.
         {
             for( int u = 1; u <= a->GetPart()->GetUnitCount(); ++u )
             {
@@ -445,6 +452,7 @@ void COMPONENT_TREE_SEARCH_CONTAINER::UpdateSearchTerm( const wxString& aSearch 
     const wxTreeItemId root_id = m_tree->AddRoot( wxEmptyString );
     const TREE_NODE* first_match = NULL;
     const TREE_NODE* preselected_node = NULL;
+    bool override_preselect = false;
 
     for( TREE_NODE* node : m_nodes )
     {
@@ -470,16 +478,26 @@ void COMPONENT_TREE_SEARCH_CONTAINER::UpdateSearchTerm( const wxString& aSearch 
         node->TreeId = m_tree->AppendItem( node->Parent ? node->Parent->TreeId : root_id,
                                            node_text );
 
-        // If we are a nicely scored alias, we want to have it visible. Also, if there
-        // is only a single library in this container, we want to have it unfolded
-        // (example: power library).
-        if( node->Type == TREE_NODE::TYPE_ALIAS
-             && ( node->MatchScore > kLowestDefaultScore || m_libraries_added == 1 ) )
+        // If there is only a single library in this container, we want to have it
+        // unfolded (example: power library, libedit)
+        if( node->Type == TREE_NODE::TYPE_ALIAS && m_libraries_added == 1 )
+        {
+            m_tree->Expand( node->TreeId );
+
+            if( first_match == NULL )
+                first_match = node;
+        }
+
+        // If we are a nicely scored alias, we want to have it visible.
+        if( node->Type == TREE_NODE::TYPE_ALIAS && ( node->MatchScore > kLowestDefaultScore ) )
         {
             m_tree->Expand( node->TreeId );
 
             if( first_match == NULL )
                 first_match = node;   // First, highest scoring: the "I am feeling lucky" element.
+
+            // The user is searching, don't preselect!
+            override_preselect = true;
         }
 
         // The first node that matches our pre-select criteria is choosen. 'First node'
@@ -497,12 +515,12 @@ void COMPONENT_TREE_SEARCH_CONTAINER::UpdateSearchTerm( const wxString& aSearch 
             preselected_node = node;
     }
 
-    if( first_match )                      // Highest score search match pre-selected.
+    if( first_match && ( !preselected_node || override_preselect ) )
     {
         m_tree->SelectItem( first_match->TreeId );
         m_tree->EnsureVisible( first_match->TreeId );
     }
-    else if( preselected_node )            // No search, so history item preselected.
+    else if( preselected_node )
     {
         m_tree->SelectItem( preselected_node->TreeId );
         m_tree->EnsureVisible( preselected_node->TreeId );
