@@ -377,7 +377,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceHumanReadable( FILE* aFile )
 
         bool            isMulti = false;
 
-        LIB_PART*       entry = m_libs->FindLibPart( comp->GetPartName() );
+        LIB_PART*       entry = m_libs->FindLibPart( comp->GetLibId().GetLibItemName() );
 
         if( entry )
             isMulti = entry->IsMulti();
@@ -517,7 +517,7 @@ bool BOM_LISTER::PrintComponentsListByReferenceCsvForm( FILE* aFile )
 
         SCH_COMPONENT*  comp = (SCH_COMPONENT*) item;
 
-        LIB_PART*       entry = m_libs->FindLibPart( comp->GetPartName() );
+        LIB_PART*       entry = m_libs->FindLibPart( comp->GetLibId().GetLibItemName() );
 
         bool            isMulti = false;
 
@@ -689,7 +689,7 @@ int BOM_LISTER::PrintComponentsListByValue( FILE* aFile )
         SCH_COMPONENT*  drawLibItem = (SCH_COMPONENT*) schItem;
 
         bool            isMulti = false;
-        LIB_PART*       entry   = m_libs->FindLibPart( drawLibItem->GetPartName() );
+        LIB_PART*       entry   = m_libs->FindLibPart( drawLibItem->GetLibId().GetLibItemName() );
 
         if( entry )
             isMulti = entry->IsMulti();

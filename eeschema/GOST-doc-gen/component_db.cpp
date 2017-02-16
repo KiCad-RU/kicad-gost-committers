@@ -304,7 +304,7 @@ void COMPONENT_DB::ValidateKiCadAttrs()
 
         copyValueAttrPosition = false;
 
-        if( component->GetField( VALUE )->GetText() == component->GetPartName()
+        if( UTF8( component->GetField( VALUE )->GetText() ) == component->GetLibId().GetLibItemName()
             && !warnAttrValueDuplication_flag )
         {
             int res = wxMessageBox( _( "Some components have equal 'Chip Name' and 'Value' attributes!\n"
@@ -320,7 +320,7 @@ void COMPONENT_DB::ValidateKiCadAttrs()
             warnAttrValueDuplication_flag = true;
         }
 
-        if( component->GetField( VALUE )->GetText() == component->GetPartName() )
+        if( UTF8( component->GetField( VALUE )->GetText() ) == component->GetLibId().GetLibItemName() )
         {
             // workaround for eeschema bug (Value field is assigned to Chip Name field by default
             // on the component adding from a library)
@@ -355,7 +355,7 @@ void COMPONENT_DB::ValidateKiCadAttrs()
                              component,
                              wxT( "Type" ) );
 
-            field.SetText( component->GetPartName() );
+            field.SetText( component->GetLibId().GetLibItemName() );
 
             if( copyValueAttrPosition )
             {
@@ -371,7 +371,7 @@ void COMPONENT_DB::ValidateKiCadAttrs()
         else if( pSch_field->GetText() == wxEmptyString )
         {
             m_modified = true;
-            pSch_field->SetText( component->GetPartName() );
+            pSch_field->SetText( component->GetLibId().GetLibItemName() );
 
             if( copyValueAttrPosition )
             {
