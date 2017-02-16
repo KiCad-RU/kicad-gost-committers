@@ -58,6 +58,8 @@ using namespace std::placeholders;
 #include <dialogs/dialog_track_via_properties.h>
 #include <dialogs/dialog_exchange_modules.h>
 
+#include <tools/tool_event_utils.h>
+
 #include <board_commit.h>
 
 EDIT_TOOL::EDIT_TOOL() :
@@ -97,7 +99,8 @@ bool EDIT_TOOL::Init()
     // Add context menu entries that are displayed when selection tool is active
     CONDITIONAL_MENU& menu = m_selectionTool->GetToolMenu().GetMenu();
     menu.AddItem( COMMON_ACTIONS::editActivate, SELECTION_CONDITIONS::NotEmpty );
-    menu.AddItem( COMMON_ACTIONS::rotate, SELECTION_CONDITIONS::NotEmpty );
+    menu.AddItem( COMMON_ACTIONS::rotateCw, SELECTION_CONDITIONS::NotEmpty );
+    menu.AddItem( COMMON_ACTIONS::rotateCcw, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( COMMON_ACTIONS::flip, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( COMMON_ACTIONS::remove, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( COMMON_ACTIONS::properties, SELECTION_CONDITIONS::Count( 1 )
@@ -135,7 +138,7 @@ bool EDIT_TOOL::invokeInlineRouter()
         if( !theRouter->PNSSettings().InlineDragEnabled() )
             return false;
 
-        m_toolMgr->RunAction( COMMON_ACTIONS::routerInlineDrag, true, track ? track : via );
+        m_toolMgr->RunAction( COMMON_ACTIONS::routerInlineDrag, true );
         return true;
     }
 
@@ -399,15 +402,18 @@ int EDIT_TOOL::Rotate( const TOOL_EVENT& aEvent )
         return 0;
 
     wxPoint rotatePoint = getModificationPoint( selection );
+    const int rotateAngle = TOOL_EVT_UTILS::GetEventRotationAngle( *editFrame, aEvent );
 
     for( auto item : selection )
     {
         m_commit->Modify( item );
-        item->Rotate( rotatePoint, editFrame->GetRotationAngle() );
+        item->Rotate( rotatePoint, rotateAngle );
     }
 
     if( !m_dragging )
         m_commit->Push( _( "Rotate" ) );
+    else
+        updateRatsnest( true );
 
     if( unselect )
         m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
@@ -517,6 +523,8 @@ int EDIT_TOOL::Mirror( const TOOL_EVENT& aEvent )
 
     if( !m_dragging )
         m_commit->Push( _( "Mirror" ) );
+    else
+        updateRatsnest( true );
 
     if( unselect )
         m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
@@ -549,6 +557,8 @@ int EDIT_TOOL::Flip( const TOOL_EVENT& aEvent )
 
     if( !m_dragging )
         m_commit->Push( _( "Flip" ) );
+    else
+        updateRatsnest( true );
 
     if( unselect )
         m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
@@ -564,6 +574,18 @@ int EDIT_TOOL::Remove( const TOOL_EVENT& aEvent )
 {
     if( !hoverSelection() || m_selectionTool->CheckLock() == SELECTION_LOCKED )
         return 0;
+
+    // is this "alternative" remove?
+    const bool isAlt = aEvent.Parameter<intptr_t>() ==
+            (int) COMMON_ACTIONS::REMOVE_FLAGS::ALT;
+
+    // in "alternative" mode, deletion is not just a simple list
+    // of selected items, it is:
+    //   - whole tracks, not just segments
+    if( isAlt )
+    {
+        m_toolMgr->RunAction( COMMON_ACTIONS::selectConnection, true );
+    }
 
     // Get a copy instead of a reference, as we are going to clear current selection
     auto selection = m_selectionTool->GetSelection().GetItems();
@@ -816,9 +838,11 @@ int EDIT_TOOL::ExchangeFootprints( const TOOL_EVENT& aEvent )
 void EDIT_TOOL::SetTransitions()
 {
     Go( &EDIT_TOOL::Main,       COMMON_ACTIONS::editActivate.MakeEvent() );
-    Go( &EDIT_TOOL::Rotate,     COMMON_ACTIONS::rotate.MakeEvent() );
+    Go( &EDIT_TOOL::Rotate,     COMMON_ACTIONS::rotateCw.MakeEvent() );
+    Go( &EDIT_TOOL::Rotate,     COMMON_ACTIONS::rotateCcw.MakeEvent() );
     Go( &EDIT_TOOL::Flip,       COMMON_ACTIONS::flip.MakeEvent() );
     Go( &EDIT_TOOL::Remove,     COMMON_ACTIONS::remove.MakeEvent() );
+    Go( &EDIT_TOOL::Remove,     COMMON_ACTIONS::removeAlt.MakeEvent() );
     Go( &EDIT_TOOL::Properties, COMMON_ACTIONS::properties.MakeEvent() );
     Go( &EDIT_TOOL::MoveExact,  COMMON_ACTIONS::moveExact.MakeEvent() );
     Go( &EDIT_TOOL::Duplicate,  COMMON_ACTIONS::duplicate.MakeEvent() );
@@ -867,26 +891,8 @@ wxPoint EDIT_TOOL::getModificationPoint( const SELECTION& aSelection )
 
 bool EDIT_TOOL::hoverSelection( bool aSanitize )
 {
-    const SELECTION& selection = m_selectionTool->GetSelection();
-
-    if( selection.Empty() )                        // Try to find an item that could be modified
-    {
-        m_toolMgr->RunAction( COMMON_ACTIONS::selectionCursor, true );
-
-        if( m_selectionTool->CheckLock() == SELECTION_LOCKED )
-        {
-            m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
-            return false;
-        }
-    }
-
-    if( aSanitize )
-        m_selectionTool->SanitizeSelection();
-
-    if( selection.Empty() )        // TODO is it necessary?
-        m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
-
-    return !selection.Empty();
+    m_toolMgr->RunAction( COMMON_ACTIONS::selectionCursor, true, aSanitize );
+    return !m_selectionTool->GetSelection().Empty();
 }
 
 

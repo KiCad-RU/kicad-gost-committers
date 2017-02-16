@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2016 CERN
- * Copyright (C) 2016 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016-2017 KiCad Developers, see change_log.txt for contributors.
  *
  * @author Wayne Stambaugh <stambaughw@gmail.com>
  *
@@ -32,6 +32,7 @@
 #include <kicad_string.h>
 #include <richio.h>
 #include <core/typeinfo.h>
+#include <properties.h>
 
 #include <general.h>
 #include <lib_field.h>
@@ -57,6 +58,9 @@
 #include <lib_rectangle.h>
 #include <lib_text.h>
 
+
+// Must be the first line of part library document (.dcm) files.
+#define DOCFILE_IDENT     "EESchema-DOCLIB  Version 2.0"
 
 #define SCH_PARSE_ERROR( text, reader, pos )                         \
     THROW_PARSE_ERROR( text, reader.GetSource(), reader.Line(),      \
@@ -460,9 +464,96 @@ static void parseQuotedString( wxString& aString, FILE_LINE_READER& aReader,
 }
 
 
+/**
+ * Class SCH_LEGACY_PLUGIN_CACHE
+ * is a cache assistant for the part library portion of the #SCH_PLUGIN API, and only for the
+ * #SCH_LEGACY_PLUGIN, so therefore is private to this implementation file, i.e. not placed
+ * into a header.
+ */
+class SCH_LEGACY_PLUGIN_CACHE
+{
+    wxFileName      m_libFileName;  // Absolute path and file name is required here.
+    wxDateTime      m_fileModTime;
+    LIB_ALIAS_MAP   m_aliases;      // Map of names of LIB_ALIAS pointers.
+    bool            m_isWritable;
+    bool            m_isModified;
+    int             m_modHash;      // Keep track of the modification status of the library.
+    int             m_versionMajor;
+    int             m_versionMinor;
+    int             m_libType;      // Is this cache a component or symbol library.
+
+    LIB_PART*       loadPart( FILE_LINE_READER& aReader );
+    void            loadHeader( FILE_LINE_READER& aReader );
+    void            loadAliases( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+    void            loadField( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+    void            loadDrawEntries( std::unique_ptr< LIB_PART >& aPart,
+                                     FILE_LINE_READER&            aReader );
+    void            loadFootprintFilters( std::unique_ptr< LIB_PART >& aPart,
+                                          FILE_LINE_READER&            aReader );
+    void            loadDocs();
+    LIB_ARC*        loadArc( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+    LIB_CIRCLE*     loadCircle( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+    LIB_TEXT*       loadText( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+    LIB_RECTANGLE*  loadRectangle( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+    LIB_PIN*        loadPin( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+    LIB_POLYLINE*   loadPolyLine( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+    LIB_BEZIER*     loadBezier( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
+
+    FILL_T          parseFillMode( FILE_LINE_READER& aReader, const char* aLine,
+                                   const char** aOutput );
+    bool            checkForDuplicates( wxString& aAliasName );
+    LIB_ALIAS*      removeAlias( LIB_ALIAS* aAlias );
+
+    void            saveDocFile();
+
+    friend SCH_LEGACY_PLUGIN;
+
+public:
+    SCH_LEGACY_PLUGIN_CACHE( const wxString& aLibraryPath );
+    ~SCH_LEGACY_PLUGIN_CACHE();
+
+    int GetModifyHash() const { return m_modHash; }
+
+    // Most all functions in this class throw IO_ERROR exceptions.  There are no
+    // error codes nor user interface calls from here, nor in any SCH_PLUGIN objects.
+    // Catch these exceptions higher up please.
+
+    /// Save the entire library to file m_libFileName;
+    void Save( bool aSaveDocFile = true );
+
+    void Load();
+
+    void AddSymbol( const LIB_PART* aPart );
+
+    void DeleteAlias( const wxString& aAliasName );
+
+    void DeleteSymbol( const wxString& aAliasName );
+
+    wxDateTime GetLibModificationTime();
+
+    bool IsFile( const wxString& aFullPathAndFileName ) const;
+
+    bool IsFileChanged() const;
+
+    void SetModified( bool aModified = true ) { m_isModified = aModified; }
+
+    wxString GetLogicalName() const { return m_libFileName.GetName(); }
+
+    void SetFileName( const wxString& aFileName ) { m_libFileName = aFileName; }
+
+    wxString GetFileName() const { return m_libFileName.GetFullPath(); }
+};
+
+
 SCH_LEGACY_PLUGIN::SCH_LEGACY_PLUGIN()
 {
     init( NULL );
+}
+
+
+SCH_LEGACY_PLUGIN::~SCH_LEGACY_PLUGIN()
+{
+    delete m_cache;
 }
 
 
@@ -1214,7 +1305,10 @@ SCH_COMPONENT* SCH_LEGACY_PLUGIN::loadComponent( FILE_LINE_READER& aReader )
 
             parseUnquotedString( libName, aReader, line, &line );
             libName.Replace( "~", " " );
-            component->SetPartName( libName );
+
+            LIB_ID libId( wxEmptyString, libName );
+
+            component->SetLibId( libId );
 
             wxString refDesignator;
 
@@ -1574,7 +1668,7 @@ void SCH_LEGACY_PLUGIN::saveComponent( SCH_COMPONENT* aComponent )
             name1 = toUTFTildaText( aComponent->GetField( REFERENCE )->GetText() );
     }
 
-    wxString part_name = aComponent->GetPartName();
+    wxString part_name = aComponent->GetLibId().GetLibItemName();
 
     if( part_name.size() )
     {
@@ -1915,79 +2009,6 @@ void SCH_LEGACY_PLUGIN::saveText( SCH_TEXT* aText )
 }
 
 
-/**
- * Class SCH_LEGACY_PLUGIN_CACHE
- * is a cache assistant for the part library portion of the #SCH_PLUGIN API, and only for the
- * #SCH_LEGACY_PLUGIN, so therefore is private to this implementation file, i.e. not placed
- * into a header.
- */
-class SCH_LEGACY_PLUGIN_CACHE
-{
-    wxFileName      m_libFileName;  // Absolute path and file name is required here.
-    wxDateTime      m_fileModTime;
-    LIB_ALIAS_MAP   m_aliases;      // Map of names of LIB_ALIAS pointers.
-    bool            m_isWritable;
-    bool            m_isModified;
-    int             m_modHash;      // Keep track of the modification status of the library.
-    int             m_versionMajor;
-    int             m_versionMinor;
-    int             m_libType;      // Is this cache a component or symbol library.
-
-    LIB_PART*       loadPart( FILE_LINE_READER& aReader );
-    void            loadHeader( FILE_LINE_READER& aReader );
-    void            loadAliases( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-    void            loadField( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-    void            loadDrawEntries( std::unique_ptr< LIB_PART >& aPart,
-                                     FILE_LINE_READER&            aReader );
-    void            loadFootprintFilters( std::unique_ptr< LIB_PART >& aPart,
-                                          FILE_LINE_READER&            aReader );
-    void            loadDocs();
-    LIB_ARC*        loadArc( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-    LIB_CIRCLE*     loadCircle( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-    LIB_TEXT*       loadText( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-    LIB_RECTANGLE*  loadRectangle( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-    LIB_PIN*        loadPin( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-    LIB_POLYLINE*   loadPolyLine( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-    LIB_BEZIER*     loadBezier( std::unique_ptr< LIB_PART >& aPart, FILE_LINE_READER& aReader );
-
-    FILL_T          parseFillMode( FILE_LINE_READER& aReader, const char* aLine,
-                                   const char** aOutput );
-    bool            checkForDuplicates( wxString& aAliasName );
-    LIB_ALIAS*      removeAlias( LIB_ALIAS* aAlias );
-
-    friend SCH_LEGACY_PLUGIN;
-
-public:
-    SCH_LEGACY_PLUGIN_CACHE( const wxString& aLibraryPath );
-    ~SCH_LEGACY_PLUGIN_CACHE();
-
-    int GetModifyHash() const { return m_modHash; }
-
-    // Most all functions in this class throw IO_ERROR exceptions.  There are no
-    // error codes nor user interface calls from here, nor in any SCH_PLUGIN objects.
-    // Catch these exceptions higher up please.
-
-    /// Save the entire library to file m_libFileName;
-    void Save();
-
-    void Load();
-
-    void AddSymbol( const LIB_PART* aPart );
-
-    void DeleteAlias( const wxString& aAliasName );
-
-    void DeleteSymbol( const wxString& aAliasName );
-
-    wxDateTime GetLibModificationTime();
-
-    bool IsFile( const wxString& aFullPathAndFileName ) const;
-
-    bool IsFileChanged() const;
-
-    wxString GetLogicalName() const { return m_libFileName.GetName(); }
-};
-
-
 SCH_LEGACY_PLUGIN_CACHE::SCH_LEGACY_PLUGIN_CACHE( const wxString& aFullPathAndFileName ) :
     m_libFileName( aFullPathAndFileName ),
     m_isWritable( true ),
@@ -2039,7 +2060,10 @@ bool SCH_LEGACY_PLUGIN_CACHE::IsFile( const wxString& aFullPathAndFileName ) con
 
 bool SCH_LEGACY_PLUGIN_CACHE::IsFileChanged() const
 {
-    return m_libFileName.GetModificationTime() != m_fileModTime;
+    if( m_fileModTime.IsValid() && m_libFileName.IsOk() && m_libFileName.FileExists() )
+        return m_libFileName.GetModificationTime() != m_fileModTime;
+
+    return false;
 }
 
 
@@ -2088,11 +2112,7 @@ LIB_ALIAS* SCH_LEGACY_PLUGIN_CACHE::removeAlias( LIB_ALIAS* aAlias )
 
 void SCH_LEGACY_PLUGIN_CACHE::AddSymbol( const LIB_PART* aPart )
 {
-    // Ugly hack to fix the fact that the LIB_PART copy constructor doesn't take a const
-    // reference.  I feel all dirty inside doing this.
-    // @todo: fix LIB_PART copy ctor so it can take a const reference.
-    LIB_PART* part = new LIB_PART( *const_cast< LIB_PART* >( aPart ) );
-
+    // aPart is cloned in PART_LIB::AddPart().  The cache takes ownership of aPart.
     wxArrayString aliasNames = aPart->GetAliasNames();
 
     for( size_t i = 0; i < aliasNames.size(); i++ )
@@ -2102,10 +2122,10 @@ void SCH_LEGACY_PLUGIN_CACHE::AddSymbol( const LIB_PART* aPart )
         if( it != m_aliases.end() )
             removeAlias( it->second );
 
-        LIB_ALIAS* alias = part->GetAlias( aliasNames[i] );
+        LIB_ALIAS* alias = const_cast< LIB_PART* >( aPart )->GetAlias( aliasNames[i] );
 
         wxASSERT_MSG( alias != NULL, "No alias <" + aliasNames[i] + "> found in symbol <" +
-                      part->GetName() +">." );
+                      aPart->GetName() +">." );
 
         m_aliases[ aliasNames[i] ] = alias;
     }
@@ -2117,9 +2137,14 @@ void SCH_LEGACY_PLUGIN_CACHE::AddSymbol( const LIB_PART* aPart )
 
 void SCH_LEGACY_PLUGIN_CACHE::Load()
 {
-    FILE_LINE_READER reader( m_libFileName.GetFullPath() );
+    wxCHECK_RET( m_libFileName.IsAbsolute(),
+                 wxString::Format( "Cannot use relative file paths in legacy plugin to "
+                                   "open library '%s'.", m_libFileName.GetFullPath() ) );
 
-    wxCHECK_RET( m_libFileName.IsAbsolute(), "Cannot use relative file paths in legacy plugin." );
+    wxLogTrace( traceSchLegacyPlugin, "Loading legacy symbol file '%s'",
+                m_libFileName.GetFullPath() );
+
+    FILE_LINE_READER reader( m_libFileName.GetFullPath() );
 
     if( !reader.ReadLine() )
         THROW_IO_ERROR( _( "unexpected end of file" ) );
@@ -2363,9 +2388,13 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
         value.SetVisible( false );
     }
 
-    // Add the root alias to the alias list.
-    part->m_aliases.push_back( new LIB_ALIAS( name, part.get() ) );
-    m_aliases[ part->GetName() ] = part->GetAlias( name );
+    // There are some code paths in SetText() that do not set the root alias to the
+    // alias list so add it here if it didn't get added by SetText().
+    if( !part->HasAlias( part->GetName() ) )
+        part->AddAlias( part->GetName() );
+
+    // Add the root alias to the cache alias list.
+    m_aliases[ part->GetName() ] = part->GetAlias( part->GetName() );
 
     LIB_FIELD& reference = part->GetReferenceField();
 
@@ -2393,10 +2422,10 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
 
         if( locked == 'L' )
             part->LockUnits( true );
-        else if( locked == 'F' )
+        else if( locked == 'F' || locked == '0' )
             part->LockUnits( false );
         else
-            SCH_PARSE_ERROR( "expected L or F", aReader, line );
+            SCH_PARSE_ERROR( "expected L, F, or 0", aReader, line );
     }
 
 
@@ -2431,7 +2460,9 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
         else if( strCompare( "$FPLIST", line, &line ) )  // Footprint filter list
             loadFootprintFilters( part, aReader );
         else if( strCompare( "ENDDEF", line, &line ) )   // End of part description
+        {
             return part.release();
+        }
 
         line = aReader.ReadLine();
     }
@@ -3222,26 +3253,49 @@ void SCH_LEGACY_PLUGIN_CACHE::loadFootprintFilters( std::unique_ptr< LIB_PART >&
 }
 
 
-void SCH_LEGACY_PLUGIN_CACHE::Save()
+void SCH_LEGACY_PLUGIN_CACHE::Save( bool aSaveDocFile )
 {
     if( !m_isModified )
         return;
 
-    FILE_OUTPUTFORMATTER formatter( m_libFileName.GetFullPath() );
-    formatter.Print( 0, "%s %d.%d\n", LIBFILE_IDENT, LIB_VERSION_MAJOR, LIB_VERSION_MINOR );
-    formatter.Print( 0, "#encoding utf-8\n");
+    std::unique_ptr< FILE_OUTPUTFORMATTER > formatter( new FILE_OUTPUTFORMATTER( m_libFileName.GetFullPath() ) );
+    formatter->Print( 0, "%s %d.%d\n", LIBFILE_IDENT, LIB_VERSION_MAJOR, LIB_VERSION_MINOR );
+    formatter->Print( 0, "#encoding utf-8\n");
 
     for( LIB_ALIAS_MAP::iterator it = m_aliases.begin();  it != m_aliases.end();  it++ )
     {
         if( !it->second->IsRoot() )
             continue;
 
-        it->second->GetPart()->Save( formatter );
+        it->second->GetPart()->Save( *formatter.get() );
     }
 
-    formatter.Print( 0, "#\n#End Library\n" );
+    formatter->Print( 0, "#\n#End Library\n" );
+    formatter.reset();
+
     m_fileModTime = m_libFileName.GetModificationTime();
     m_isModified = false;
+
+    if( aSaveDocFile )
+        saveDocFile();
+}
+
+
+void SCH_LEGACY_PLUGIN_CACHE::saveDocFile()
+{
+    wxFileName docFileName = m_libFileName;
+
+    docFileName.SetExt( DOC_EXT );
+    FILE_OUTPUTFORMATTER formatter( docFileName.GetFullPath() );
+
+    formatter.Print( 0, "%s\n", DOCFILE_IDENT );
+
+    for( LIB_ALIAS_MAP::iterator it = m_aliases.begin();  it != m_aliases.end();  it++ )
+    {
+        it->second->SaveDoc( formatter );
+    }
+
+    formatter.Print( 0, "#\n#End Doc Library\n" );
 }
 
 
@@ -3306,8 +3360,32 @@ void SCH_LEGACY_PLUGIN::cacheLib( const wxString& aLibraryFileName )
         // a spectacular episode in memory management:
         delete m_cache;
         m_cache = new SCH_LEGACY_PLUGIN_CACHE( aLibraryFileName );
-        m_cache->Load();
+
+        if( !isBuffering( m_props ) )
+            m_cache->Load();
     }
+}
+
+
+bool SCH_LEGACY_PLUGIN::writeDocFile( const PROPERTIES* aProperties )
+{
+    std::string propName( SCH_LEGACY_PLUGIN::PropNoDocFile );
+
+    if( aProperties && aProperties->find( propName ) != aProperties->end() )
+        return false;
+
+    return true;
+}
+
+
+bool SCH_LEGACY_PLUGIN::isBuffering( const PROPERTIES* aProperties )
+{
+    std::string propName( SCH_LEGACY_PLUGIN::PropBuffering );
+
+    if( aProperties && aProperties->find( propName ) != aProperties->end() )
+        return true;
+
+    return false;
 }
 
 
@@ -3321,13 +3399,26 @@ int SCH_LEGACY_PLUGIN::GetModifyHash() const
 }
 
 
+size_t SCH_LEGACY_PLUGIN::GetSymbolLibCount( const wxString&   aLibraryPath,
+                                             const PROPERTIES* aProperties )
+{
+    LOCALE_IO toggle;
+
+    m_props = aProperties;
+
+    cacheLib( aLibraryPath );
+
+    return m_cache->m_aliases.size();
+}
+
+
 void SCH_LEGACY_PLUGIN::EnumerateSymbolLib( wxArrayString&    aAliasNameList,
                                             const wxString&   aLibraryPath,
                                             const PROPERTIES* aProperties )
 {
     LOCALE_IO   toggle;     // toggles on, then off, the C locale.
 
-    init( NULL, aProperties );
+    m_props = aProperties;
 
     cacheLib( aLibraryPath );
 
@@ -3335,24 +3426,6 @@ void SCH_LEGACY_PLUGIN::EnumerateSymbolLib( wxArrayString&    aAliasNameList,
 
     for( LIB_ALIAS_MAP::const_iterator it = aliases.begin();  it != aliases.end();  ++it )
         aAliasNameList.Add( FROM_UTF8( it->first.c_str() ) );
-}
-
-
-void SCH_LEGACY_PLUGIN::TransferCache( PART_LIB& aTarget )
-{
-    aTarget.m_amap = m_cache->m_aliases;
-
-    for( LIB_ALIAS_MAP::iterator it = aTarget.m_amap.begin();  it != aTarget.m_amap.end();  ++it )
-        it->second->GetPart()->SetLib( &aTarget );
-
-    aTarget.type = m_cache->m_libType;
-    aTarget.fileName = m_cache->m_libFileName;
-    aTarget.versionMajor = m_cache->m_versionMajor;
-    aTarget.versionMinor = m_cache->m_versionMinor;
-
-    m_cache->m_aliases.clear();
-    delete m_cache;
-    m_cache = NULL;
 }
 
 
@@ -3382,7 +3455,9 @@ void SCH_LEGACY_PLUGIN::SaveSymbol( const wxString& aLibraryPath, const LIB_PART
     cacheLib( aLibraryPath );
 
     m_cache->AddSymbol( aSymbol );
-    m_cache->Save();
+
+    if( !isBuffering( aProperties ) )
+        m_cache->Save( writeDocFile( aProperties ) );
 }
 
 
@@ -3394,6 +3469,9 @@ void SCH_LEGACY_PLUGIN::DeleteAlias( const wxString& aLibraryPath, const wxStrin
     cacheLib( aLibraryPath );
 
     m_cache->DeleteAlias( aAliasName );
+
+    if( !isBuffering( aProperties ) )
+        m_cache->Save( writeDocFile( aProperties ) );
 }
 
 
@@ -3405,6 +3483,9 @@ void SCH_LEGACY_PLUGIN::DeleteSymbol( const wxString& aLibraryPath, const wxStri
     cacheLib( aLibraryPath );
 
     m_cache->DeleteSymbol( aAliasName );
+
+    if( !isBuffering( aProperties ) )
+        m_cache->Save( writeDocFile( aProperties ) );
 }
 
 
@@ -3424,7 +3505,8 @@ void SCH_LEGACY_PLUGIN::CreateSymbolLib( const wxString& aLibraryPath,
 
     delete m_cache;
     m_cache = new SCH_LEGACY_PLUGIN_CACHE( aLibraryPath );
-    m_cache->Save();
+    m_cache->SetModified();
+    m_cache->Save( writeDocFile( aProperties ) );
     m_cache->Load();    // update m_writable and m_mod_time
 }
 
@@ -3453,3 +3535,26 @@ bool SCH_LEGACY_PLUGIN::DeleteSymbolLib( const wxString& aLibraryPath,
 
     return true;
 }
+
+
+void SCH_LEGACY_PLUGIN::SaveLibrary( const wxString& aLibraryPath, const PROPERTIES* aProperties )
+{
+    if( !m_cache )
+        m_cache = new SCH_LEGACY_PLUGIN_CACHE( aLibraryPath );
+
+    wxString oldFileName = m_cache->GetFileName();
+
+    if( !m_cache->IsFile( aLibraryPath ) )
+    {
+        m_cache->SetFileName( aLibraryPath );
+    }
+
+    // This is a forced save.
+    m_cache->SetModified();
+    m_cache->Save( writeDocFile( aProperties ) );
+    m_cache->SetFileName( oldFileName );
+}
+
+
+const char* SCH_LEGACY_PLUGIN::PropBuffering = "buffering";
+const char* SCH_LEGACY_PLUGIN::PropNoDocFile = "no_doc_file";

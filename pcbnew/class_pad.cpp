@@ -972,12 +972,14 @@ unsigned int D_PAD::ViewGetLOD( int aLayer, KIGFX::VIEW* aView ) const
     // Netnames will be shown only if zoom is appropriate
     if( IsNetnameLayer( aLayer ) )
     {
-        // Pad sizes can be zero briefly when someone is typing a number like "0.5" in the pad properties dialog.
-        // Fail gracefully if this happens.
-        if( ( m_Size.x == 0 ) && ( m_Size.y == 0 ) )
+        int divisor = std::max( m_Size.x, m_Size.y );
+
+        // Pad sizes can be zero briefly when someone is typing a number like "0.5"
+        // in the pad properties dialog
+        if( divisor == 0 )
             return UINT_MAX;
 
-        return ( Millimeter2iu( 100 ) / std::max( m_Size.x, m_Size.y ) );
+        return ( Millimeter2iu( 100 ) / divisor );
     }
 
     // Other layers are shown without any conditions
@@ -1035,4 +1037,60 @@ wxString LayerMaskDescribe( const BOARD *aBoard, LSET aMask )
         AccumulateDescription( layerInfo, _("Non-copper" ) );
 
     return layerInfo;
+}
+
+
+void D_PAD::ImportSettingsFromMaster( const D_PAD& aMasterPad )
+{
+    SetShape( aMasterPad.GetShape() );
+    SetLayerSet( aMasterPad.GetLayerSet() );
+    SetAttribute( aMasterPad.GetAttribute() );
+
+    // The pad orientation, for historical reasons is the
+    // pad rotation + parent rotation.
+    // So we have to manage this parent rotation
+    double pad_rot = aMasterPad.GetOrientation();
+
+    if( aMasterPad.GetParent() )
+        pad_rot -= aMasterPad.GetParent()->GetOrientation();
+
+    if( GetParent() )
+        pad_rot += GetParent()->GetOrientation();
+
+    SetOrientation( pad_rot );
+
+    SetSize( aMasterPad.GetSize() );
+    SetDelta( wxSize( 0, 0 ) );
+    SetOffset( aMasterPad.GetOffset() );
+    SetDrillSize( aMasterPad.GetDrillSize() );
+    SetDrillShape( aMasterPad.GetDrillShape() );
+    SetRoundRectRadiusRatio( aMasterPad.GetRoundRectRadiusRatio() );
+
+    switch( aMasterPad.GetShape() )
+    {
+    case PAD_SHAPE_TRAPEZOID:
+        SetDelta( aMasterPad.GetDelta() );
+        break;
+
+    case PAD_SHAPE_CIRCLE:
+        // ensure size.y == size.x
+        SetSize( wxSize( GetSize().x, GetSize().x ) );
+        break;
+
+    default:
+        ;
+    }
+
+    switch( aMasterPad.GetAttribute() )
+    {
+    case PAD_ATTRIB_SMD:
+    case PAD_ATTRIB_CONN:
+        // These pads do not have hole (they are expected to be only on one
+        // external copper layer)
+        SetDrillSize( wxSize( 0, 0 ) );
+        break;
+
+    default:
+        ;
+    }
 }

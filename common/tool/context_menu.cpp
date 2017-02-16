@@ -61,8 +61,8 @@ void CONTEXT_MENU::setupEvents()
 
 void CONTEXT_MENU::SetTitle( const wxString& aTitle )
 {
-    // Unfortunately wxMenu::SetTitle() does nothing, but saves the title.. (at least wxGTK)
-    wxMenu::SetTitle( aTitle );
+    // Unfortunately wxMenu::SetTitle() does not work very well, so this is an alternative version
+    m_title = aTitle;
 
     // Update the menu title
     if( m_titleDisplayed )
@@ -72,29 +72,31 @@ void CONTEXT_MENU::SetTitle( const wxString& aTitle )
 
 void CONTEXT_MENU::DisplayTitle( bool aDisplay )
 {
-    const wxString& title = wxMenu::GetTitle();
-
-    if( ( !aDisplay || title.IsEmpty() ) && m_titleDisplayed )
+    if( ( !aDisplay || m_title.IsEmpty() ) && m_titleDisplayed )
     {
         // Destroy the menu entry keeping the title..
-        Destroy( FindItemByPosition( 0 ) );
+        wxMenuItem* item = FindItemByPosition( 0 );
+        wxASSERT( item->GetItemLabelText() == GetTitle() );
+        Destroy( item );
         // ..and separator
-        Destroy( FindItemByPosition( 0 ) );
+        item = FindItemByPosition( 0 );
+        wxASSERT( item->IsSeparator() );
+        Destroy( item );
         m_titleDisplayed = false;
     }
 
-    else if( aDisplay && !title.IsEmpty() )
+    else if( aDisplay && !m_title.IsEmpty() )
     {
         if( m_titleDisplayed )
         {
             // Simply update the title
-            FindItemByPosition( 0 )->SetItemLabel( title );
+            FindItemByPosition( 0 )->SetItemLabel( m_title );
         }
         else
         {
             // Add a separator and a menu entry to display the title
             InsertSeparator( 0 );
-            Insert( 0, new wxMenuItem( this, wxID_NONE, title, wxEmptyString, wxITEM_NORMAL ) );
+            Insert( 0, new wxMenuItem( this, wxID_NONE, m_title, wxEmptyString, wxITEM_NORMAL ) );
             m_titleDisplayed = true;
         }
     }
@@ -152,18 +154,18 @@ std::list<wxMenuItem*> CONTEXT_MENU::Add( CONTEXT_MENU* aMenu, bool aExpand )
     }
     else
     {
-        wxASSERT_MSG( !menuCopy->GetTitle().IsEmpty(), "Set a title for CONTEXT_MENU using SetTitle()" );
+        wxASSERT_MSG( !menuCopy->m_title.IsEmpty(), "Set a title for CONTEXT_MENU using SetTitle()" );
 
         if( aMenu->m_icon )
         {
-            wxMenuItem* newItem = new wxMenuItem( this, -1, menuCopy->GetTitle() );
+            wxMenuItem* newItem = new wxMenuItem( this, -1, menuCopy->m_title );
             newItem->SetBitmap( KiBitmap( aMenu->m_icon ) );
             newItem->SetSubMenu( menuCopy );
             items.push_back( Append( newItem ) );
         }
         else
         {
-            items.push_back( AppendSubMenu( menuCopy, menuCopy->GetTitle() ) );
+            items.push_back( AppendSubMenu( menuCopy, menuCopy->m_title ) );
         }
     }
 
@@ -286,15 +288,14 @@ void CONTEXT_MENU::onMenuEvent( wxMenuEvent& aEvent )
     // One of menu entries was selected..
     else if( type == wxEVT_COMMAND_MENU_SELECTED )
     {
-        // Store the selected position
+        // Store the selected position, so it can be checked by the tools
         m_selected = aEvent.GetId();
 
         // Check if there is a TOOL_ACTION for the given ID
-        if( m_toolActions.count( aEvent.GetId() ) == 1 )
-        {
-            evt = m_toolActions[aEvent.GetId()]->MakeEvent();
-        }
-        else
+        if( m_selected >= ACTION_ID )
+            evt = findToolAction( m_selected );
+
+        if( !evt )
         {
 #ifdef __WINDOWS__
             if( !evt )
@@ -344,7 +345,10 @@ void CONTEXT_MENU::runOnSubmenus( std::function<void(CONTEXT_MENU*)> aFunction )
 {
     try
     {
-        std::for_each( m_submenus.begin(), m_submenus.end(), aFunction );
+        std::for_each( m_submenus.begin(), m_submenus.end(), [&]( CONTEXT_MENU* m ) {
+            aFunction( m );
+            m->runOnSubmenus( aFunction );
+        } );
     }
     catch( std::exception& e )
     {
@@ -353,16 +357,39 @@ void CONTEXT_MENU::runOnSubmenus( std::function<void(CONTEXT_MENU*)> aFunction )
 }
 
 
+OPT_TOOL_EVENT CONTEXT_MENU::findToolAction( int aId )
+{
+    OPT_TOOL_EVENT evt;
+
+    auto findFunc = [&]( CONTEXT_MENU* m ) {
+        if( evt )
+            return;
+
+        const auto it = m->m_toolActions.find( aId );
+
+        if( it != m->m_toolActions.end() )
+            evt = it->second->MakeEvent();
+    };
+
+    findFunc( this );
+
+    if( !evt )
+        runOnSubmenus( findFunc );
+
+    return evt;
+}
+
+
 void CONTEXT_MENU::copyFrom( const CONTEXT_MENU& aMenu )
 {
-    SetTitle( aMenu.GetTitle() );
     m_icon = aMenu.m_icon;
+    m_title = aMenu.m_title;
     m_titleDisplayed = aMenu.m_titleDisplayed;
     m_selected = -1; // aMenu.m_selected;
     m_tool = aMenu.m_tool;
     m_toolActions = aMenu.m_toolActions;
 
-    // Copy all the menu entries
+    // Copy all menu entries
     for( int i = 0; i < (int) aMenu.GetMenuItemCount(); ++i )
     {
         wxMenuItem* item = aMenu.FindItemByPosition( i );

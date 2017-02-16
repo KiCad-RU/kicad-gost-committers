@@ -62,9 +62,28 @@ public:
         Add( COMMON_ACTIONS::selectConnection );
         Add( COMMON_ACTIONS::selectCopper );
         Add( COMMON_ACTIONS::selectNet );
+        Add( COMMON_ACTIONS::selectSameSheet );
     }
 
 private:
+
+    void update() override
+    {
+        SELECTION_TOOL* selTool = getToolManager()->GetTool<SELECTION_TOOL>();
+
+        // lines like this make me really think about a better name for SELECTION_CONDITIONS class
+        bool selEnabled =  ( SELECTION_CONDITIONS::OnlyType( PCB_VIA_T )
+                || SELECTION_CONDITIONS::OnlyType( PCB_TRACE_T ) )
+                              ( selTool->GetSelection() );
+
+        bool sheetSelEnabled = ( SELECTION_CONDITIONS::OnlyType( PCB_MODULE_T ) )
+                              ( selTool->GetSelection() );
+
+        Enable( getMenuId( COMMON_ACTIONS::selectNet ), selEnabled );
+        Enable( getMenuId( COMMON_ACTIONS::selectCopper ), selEnabled );
+        Enable( getMenuId( COMMON_ACTIONS::selectConnection ), selEnabled );
+        Enable( getMenuId( COMMON_ACTIONS::selectSameSheet ), sheetSelEnabled );
+    }
     CONTEXT_MENU* create() const override
     {
         return new SELECT_MENU();
@@ -92,8 +111,10 @@ bool SELECTION_TOOL::Init()
 {
     using S_C = SELECTION_CONDITIONS;
 
-    auto showSelectMenuFunctor = ( S_C::OnlyType( PCB_VIA_T ) || S_C::OnlyType( PCB_TRACE_T ) )
-                                    && S_C::Count( 1 );
+    auto showSelectMenuFunctor = ( S_C::OnlyType( PCB_VIA_T ) ||
+            S_C::OnlyType( PCB_TRACE_T ) ||
+            S_C::OnlyType( PCB_MODULE_T ) ) &&
+            S_C::Count( 1 );
 
     auto selectMenu = std::make_shared<SELECT_MENU>();
     selectMenu->SetTool( this );
@@ -457,6 +478,7 @@ void SELECTION_TOOL::SetTransitions()
     Go( &SELECTION_TOOL::selectConnection, COMMON_ACTIONS::selectConnection.MakeEvent() );
     Go( &SELECTION_TOOL::selectCopper, COMMON_ACTIONS::selectCopper.MakeEvent() );
     Go( &SELECTION_TOOL::selectNet, COMMON_ACTIONS::selectNet.MakeEvent() );
+    Go( &SELECTION_TOOL::selectSameSheet, COMMON_ACTIONS::selectSameSheet.MakeEvent() );
 }
 
 
@@ -507,7 +529,21 @@ SELECTION_LOCK_FLAGS SELECTION_TOOL::CheckLock()
 
 int SELECTION_TOOL::CursorSelection( const TOOL_EVENT& aEvent )
 {
-    selectCursor( true );
+    bool sanitize = (bool) aEvent.Parameter<intptr_t>();
+
+    if( m_selection.Empty() )                        // Try to find an item that could be modified
+    {
+        selectCursor( true );
+
+        if( CheckLock() == SELECTION_LOCKED )
+        {
+            clearSelection();
+            return 0;
+        }
+    }
+
+    if( sanitize )
+        SanitizeSelection();
 
     return 0;
 }
@@ -557,30 +593,25 @@ int SELECTION_TOOL::UnselectItem( const TOOL_EVENT& aEvent )
 
 int SELECTION_TOOL::selectConnection( const TOOL_EVENT& aEvent )
 {
-    if( !selectCursor( true ) )
+    if( !selectCursor() )
         return 0;
 
-    auto item = m_selection.Front();
-    clearSelection();
+    // copy the selection, since we're going to iterate and modify
+    auto selection = m_selection.GetItems();
 
-    if( item->Type() != PCB_TRACE_T && item->Type() != PCB_VIA_T )
-        return 0;
-
-    int segmentCount;
-    TRACK* trackList = board()->MarkTrace( static_cast<TRACK*>( item ), &segmentCount,
-                                                     NULL, NULL, true );
-
-    if( segmentCount == 0 )
-        return 0;
-
-    for( int i = 0; i < segmentCount; ++i )
+    for( auto item : selection )
     {
-        select( trackList );
-        trackList = trackList->Next();
+        // only TRACK items can be checked for trivial connections
+        if( item->Type() == PCB_TRACE_T || item->Type() == PCB_VIA_T )
+        {
+            TRACK& trackItem = static_cast<TRACK&>( *item );
+            selectAllItemsConnectedToTrack( trackItem );
+        }
     }
 
     // Inform other potentially interested tools
-    m_toolMgr->ProcessEvent( SelectedEvent );
+    if( m_selection.Size() > 0 )
+        m_toolMgr->ProcessEvent( SelectedEvent );
 
     return 0;
 }
@@ -588,53 +619,195 @@ int SELECTION_TOOL::selectConnection( const TOOL_EVENT& aEvent )
 
 int SELECTION_TOOL::selectCopper( const TOOL_EVENT& aEvent )
 {
-    if( !selectCursor( true ) )
+    if( !selectCursor( ) )
         return 0;
 
-    auto item = static_cast<BOARD_CONNECTED_ITEM*> ( m_selection.Front() );
-    clearSelection();
+    // copy the selection, since we're going to iterate and modify
+    auto selection = m_selection.GetItems();
 
-    if( item->Type() != PCB_TRACE_T && item->Type() != PCB_VIA_T )
-        return 0;
+    for( auto item : selection )
+    {
+        // only connected items can be traversed in the ratsnest
+        if ( item->IsConnected() )
+        {
+            auto& connItem = static_cast<BOARD_CONNECTED_ITEM&>( *item );
 
-    std::list<BOARD_CONNECTED_ITEM*> itemsList;
-    RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
-
-    ratsnest->GetConnectedItems( item, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
-
-    for( BOARD_CONNECTED_ITEM* i : itemsList )
-        select( i );
+            selectAllItemsConnectedToItem( connItem );
+        }
+    }
 
     // Inform other potentially interested tools
-    if( itemsList.size() > 0 )
+    if( m_selection.Size() > 0 )
         m_toolMgr->ProcessEvent( SelectedEvent );
 
     return 0;
 }
 
 
+void SELECTION_TOOL::selectAllItemsConnectedToTrack( TRACK& aSourceTrack )
+{
+    int segmentCount;
+    TRACK* trackList = board()->MarkTrace( &aSourceTrack, &segmentCount,
+                                           nullptr, nullptr, true );
+
+    for( int i = 0; i < segmentCount; ++i )
+    {
+        select( trackList );
+        trackList = trackList->Next();
+    }
+}
+
+
+void SELECTION_TOOL::selectAllItemsConnectedToItem( BOARD_CONNECTED_ITEM& aSourceItem )
+{
+    RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
+    std::list<BOARD_CONNECTED_ITEM*> itemsList;
+    ratsnest->GetConnectedItems( &aSourceItem, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
+
+    for( BOARD_CONNECTED_ITEM* i : itemsList )
+        select( i );
+}
+
+
+void SELECTION_TOOL::selectAllItemsOnNet( int aNetCode )
+{
+    RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
+    std::list<BOARD_CONNECTED_ITEM*> itemsList;
+
+    ratsnest->GetNetItems( aNetCode, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
+
+    for( BOARD_CONNECTED_ITEM* i : itemsList )
+        select( i );
+}
+
+
 int SELECTION_TOOL::selectNet( const TOOL_EVENT& aEvent )
+{
+    if( !selectCursor() )
+        return 0;
+
+    // copy the selection, since we're going to iterate and modify
+    auto selection = m_selection.GetItems();
+
+    for( auto item : selection )
+    {
+        // only connected items get a net code
+        if( item->IsConnected() )
+        {
+            auto& connItem = static_cast<BOARD_CONNECTED_ITEM&>( *item );
+
+            selectAllItemsOnNet( connItem.GetNetCode() );
+        }
+    }
+
+    // Inform other potentially interested tools
+    if( m_selection.Size() > 0 )
+        m_toolMgr->ProcessEvent( SelectedEvent );
+
+    return 0;
+}
+
+int SELECTION_TOOL::selectSameSheet( const TOOL_EVENT& aEvent )
 {
     if( !selectCursor( true ) )
         return 0;
 
-    auto item = dynamic_cast<BOARD_CONNECTED_ITEM*> ( m_selection.Front() );
-
+    // this function currently only supports modules since they are only
+    // on one sheet.
+    auto item = m_selection.Front();
+    if( item->Type() != PCB_MODULE_T )
+        return 0;
     if( !item )
         return 0;
-
-    std::list<BOARD_CONNECTED_ITEM*> itemsList;
-    RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
-    int netCode = item->GetNetCode();
+    auto mod = dynamic_cast<MODULE*>( item );
 
     clearSelection();
-    ratsnest->GetNetItems( netCode, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
 
-    for( BOARD_CONNECTED_ITEM* i : itemsList )
-        select( i );
+    // get the lowest subsheet name for this.
+    wxString sheetPath = mod->GetPath();
+    sheetPath = sheetPath.BeforeLast( '/' );
+    sheetPath = sheetPath.AfterLast( '/' );
+
+    auto modules = board()->m_Modules.GetFirst();
+    std::list<MODULE*> modList;
+
+    // store all modules that are on that sheet
+    for( MODULE* item = modules; item; item = item->Next() )
+    {
+        if ( item != NULL && item->GetPath().Contains( sheetPath ) )
+        {
+            modList.push_back( item );
+        }
+    }
+
+    //Generate a list of all pads, and of all nets they belong to.
+    std::list<int> netcodeList;
+    for( MODULE* mod : modList )
+    {
+        for( D_PAD* pad = mod->Pads().GetFirst(); pad; pad = pad->Next() )
+        {
+            if( pad->IsConnected() )
+            {
+                netcodeList.push_back( pad->GetNetCode() );
+            }
+        }
+    }
+
+    // remove all duplicates
+    netcodeList.sort();
+    netcodeList.unique();
+
+    // now we need to find all modules that are connected to each of these nets
+    // then we need to determine if these modules are in the list of modules
+    // belonging to this sheet ( modList )
+    RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
+    std::list<int> removeCodeList;
+    for( int netCode : netcodeList )
+    {
+        std::list<BOARD_CONNECTED_ITEM*> netPads;
+        ratsnest->GetNetItems( netCode, netPads, (RN_ITEM_TYPE)( RN_PADS ) );
+        for( BOARD_CONNECTED_ITEM* item : netPads )
+        {
+            bool found = ( std::find( modList.begin(), modList.end(), item->GetParent() ) != modList.end() );
+            if( !found )
+            {
+                // if we cannot find the module of the pad in the modList
+                // then we can assume that that module is not located in the same
+                // schematic, therefore invalidate this netcode.
+                removeCodeList.push_back( netCode );
+                break;
+            }
+        }
+    }
+
+    // remove all duplicates
+    removeCodeList.sort();
+    removeCodeList.unique();
+
+    for( int removeCode : removeCodeList )
+    {
+        netcodeList.remove( removeCode );
+    }
+
+    std::list<BOARD_CONNECTED_ITEM*> localConnectionList;
+    for( int netCode : netcodeList )
+    {
+        ratsnest->GetNetItems( netCode, localConnectionList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
+    }
+
+    for( BOARD_ITEM* i : modList )
+    {
+        if( i != NULL )
+            select( i );
+    }
+    for( BOARD_CONNECTED_ITEM* i : localConnectionList )
+    {
+        if( i != NULL )
+            select( i );
+    }
 
     // Inform other potentially interested tools
-    if( itemsList.size() > 0 )
+    if( m_selection.Size() > 0 )
         m_toolMgr->ProcessEvent( SelectedEvent );
 
     return 0;
