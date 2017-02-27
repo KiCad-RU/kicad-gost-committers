@@ -43,6 +43,7 @@
 #include <macros.h>
 #include <schframe.h>
 #include <plot_common.h>
+#include <bitmaps.h>
 
 #include <general.h>
 #include <class_library.h>
@@ -115,10 +116,10 @@ int SCH_FIELD::GetPenSize() const
 
 
 void SCH_FIELD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                      GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+                      GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
     int            orient;
-    EDA_COLOR_T    color;
+    COLOR4D        color;
     wxPoint        textpos;
     SCH_COMPONENT* parentComponent = (SCH_COMPONENT*) m_Parent;
     int            lineWidth = GetThickness();
@@ -166,7 +167,7 @@ void SCH_FIELD::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
 
     if( m_forceVisible )
     {
-        color = DARKGRAY;
+        color = COLOR4D( DARKGRAY );
     }
     else
     {
@@ -533,7 +534,7 @@ void SCH_FIELD::Plot( PLOTTER* aPlotter )
     wxCHECK_RET( parent != NULL && parent->Type() == SCH_COMPONENT_T,
                  wxT( "Cannot plot field with invalid parent." ) );
 
-    EDA_COLOR_T color = GetLayerColor( GetLayer() );
+    COLOR4D color = GetLayerColor( GetLayer() );
 
     if( !IsVisible() )
         return;

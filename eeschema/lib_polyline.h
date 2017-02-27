@@ -40,7 +40,7 @@ class LIB_POLYLINE : public LIB_ITEM
     int m_ModifyIndex;                        // Index of the polyline point to modify
 
     void drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                      EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
+                      COLOR4D aColor, GR_DRAWMODE aDrawMode, void* aData,
                       const TRANSFORM& aTransform ) override;
 
     void calcEdit( const wxPoint& aPosition ) override;
@@ -113,7 +113,7 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return  add_polygon_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     EDA_ITEM* Clone() const override;
 

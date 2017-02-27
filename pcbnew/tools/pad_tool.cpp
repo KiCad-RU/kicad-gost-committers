@@ -29,6 +29,7 @@
 #include <view/view_controls.h>
 #include <view/view.h>
 #include <tool/tool_manager.h>
+#include <bitmaps.h>
 
 #include <class_board_item.h>
 #include <class_module.h>
@@ -36,63 +37,115 @@
 
 #include <dialogs/dialog_global_pads_edition.h>
 
-#include "common_actions.h"
+#include "pcb_actions.h"
 #include "selection_tool.h"
 #include "selection_conditions.h"
 #include "edit_tool.h"
 
+// Pad tools
+TOOL_ACTION PCB_ACTIONS::copyPadSettings(
+        "pcbnew.PadTool.CopyPadSettings",
+        AS_GLOBAL, 0,
+        _( "Copy Pad Settings" ), _( "Copy current pad's settings to the board design settings" ),
+        copy_pad_settings_xpm );
+
+TOOL_ACTION PCB_ACTIONS::applyPadSettings(
+        "pcbnew.PadTool.ApplyPadSettings",
+        AS_GLOBAL, 0,
+        _( "Apply Pad Settings" ), _( "Copy the board design settings pad properties to the current pad" ),
+        apply_pad_settings_xpm );
+
+TOOL_ACTION PCB_ACTIONS::pushPadSettings(
+        "pcbnew.PadTool.PushPadSettings",
+        AS_GLOBAL, 0,
+        _( "Push Pad Settings" ), _( "Copy the current pad settings to other pads" ),
+        push_pad_settings_xpm );
+
+
 class PAD_CONTEXT_MENU : public CONTEXT_MENU
 {
 public:
-    PAD_CONTEXT_MENU()
+
+    using SHOW_FUNCTOR = std::function<bool()>;
+
+    PAD_CONTEXT_MENU( bool aEditingFootprint,
+                      SHOW_FUNCTOR aHaveGlobalPadSetting ):
+        m_editingFootprint( aEditingFootprint ),
+        m_haveGlobalPadSettings( aHaveGlobalPadSetting )
     {
         SetIcon( pad_xpm );
         SetTitle( _( "Pads" ) );
 
-        Add( COMMON_ACTIONS::copyPadSettings );
-        Add( COMMON_ACTIONS::applyPadSettings );
-        Add( COMMON_ACTIONS::pushPadSettings );
+        Add( PCB_ACTIONS::copyPadSettings );
+        Add( PCB_ACTIONS::applyPadSettings );
+        Add( PCB_ACTIONS::pushPadSettings );
+
+        // show modedit-specific items
+        if( m_editingFootprint )
+        {
+            AppendSeparator();
+
+            Add( PCB_ACTIONS::enumeratePads );
+        }
     }
 
 protected:
 
     CONTEXT_MENU* create() const override
     {
-        return new PAD_CONTEXT_MENU();
+        return new PAD_CONTEXT_MENU( m_editingFootprint, m_haveGlobalPadSettings );
     }
 
 private:
+
+    struct ENABLEMENTS
+    {
+        bool canImport;
+        bool canExport;
+        bool canPush;
+    };
+
+    ENABLEMENTS getEnablements( const SELECTION& aSelection )
+    {
+        using S_C = SELECTION_CONDITIONS;
+        ENABLEMENTS enablements;
+
+        auto anyPadSel = S_C::HasType( PCB_PAD_T );
+        auto singlePadSel = S_C::Count( 1 ) && S_C::OnlyType( PCB_PAD_T );
+
+        // Apply pads enabled when any pads selected (it applies to each one
+        // individually), plus need a valid global pad setting
+        enablements.canImport = m_haveGlobalPadSettings() && ( anyPadSel )( aSelection );
+
+        // Copy pads item enabled only when there is a single pad selected
+        // (otherwise how would we know which one to copy?)
+        enablements.canExport = ( singlePadSel )( aSelection );
+
+        // Push pads available when there is a single pad to push from
+        enablements.canPush = ( singlePadSel )( aSelection );
+
+        return enablements;
+    }
 
     void update() override
     {
         auto selTool = getToolManager()->GetTool<SELECTION_TOOL>();
         const SELECTION& selection = selTool->GetSelection();
 
-        auto anyPadSel = SELECTION_CONDITIONS::HasType( PCB_PAD_T );
+        auto enablements = getEnablements( selection );
 
-        auto singlePadSel = SELECTION_CONDITIONS::Count( 1 )
-                                && SELECTION_CONDITIONS::OnlyType( PCB_PAD_T );
-        auto emptySel = SELECTION_CONDITIONS::Count( 0 );
-
-        // Apply pads enabled when any pads selected (it applies to each one
-        // individually)
-        const bool canImport = ( anyPadSel )( selection );
-        Enable( getMenuId( COMMON_ACTIONS::applyPadSettings ), canImport );
-
-        // Copy pads item enabled only when there is a single pad selected
-        // (otherwise how would we know which one to copy?)
-        const bool canExport = ( singlePadSel )( selection );
-        Enable( getMenuId( COMMON_ACTIONS::copyPadSettings ), canExport );
-
-        // Push pads available when nothing selected, or a single pad
-        const bool canPush = ( singlePadSel || emptySel ) ( selection );
-        Enable( getMenuId( COMMON_ACTIONS::pushPadSettings ), canPush );
+        Enable( getMenuId( PCB_ACTIONS::applyPadSettings ), enablements.canImport );
+        Enable( getMenuId( PCB_ACTIONS::copyPadSettings ), enablements.canExport );
+        Enable( getMenuId( PCB_ACTIONS::pushPadSettings ), enablements.canPush );
     }
+
+    bool m_editingFootprint;
+    SHOW_FUNCTOR m_haveGlobalPadSettings;
 };
 
 
 PAD_TOOL::PAD_TOOL() :
-        PCB_TOOL( "pcbnew.PadTool" )
+        PCB_TOOL( "pcbnew.PadTool" ), m_padCopied( false )
 {
 }
 
@@ -103,12 +156,21 @@ PAD_TOOL::~PAD_TOOL()
 
 void PAD_TOOL::Reset( RESET_REASON aReason )
 {
+    m_padCopied = false;
+}
+
+
+bool PAD_TOOL::haveFootprints()
+{
+    auto& board = *getModel<BOARD>();
+    return board.m_Modules.GetCount() > 0;
 }
 
 
 bool PAD_TOOL::Init()
 {
-    auto contextMenu = std::make_shared<PAD_CONTEXT_MENU>();
+    auto contextMenu = std::make_shared<PAD_CONTEXT_MENU>( EditingModules(),
+            [this]() { return m_padCopied; } );
     contextMenu->SetTool( this );
 
     SELECTION_TOOL* selTool = m_toolMgr->GetTool<SELECTION_TOOL>();
@@ -120,10 +182,15 @@ bool PAD_TOOL::Init()
 
         toolMenu.AddSubMenu( contextMenu );
 
-        // show menu when any pads selected, or nothing selected
-        // (push settings works on no selection)
-        auto showCond = SELECTION_CONDITIONS::HasType( PCB_PAD_T )
-                        || SELECTION_CONDITIONS::Count( 0 );
+        SELECTION_CONDITION canShowMenuCond = [this, contextMenu] ( const SELECTION& aSel ) {
+            contextMenu->UpdateAll();
+            return haveFootprints() && contextMenu->HasEnabledItems();
+        };
+
+        // show menu when there is a footprint, and the menu has any items
+        auto showCond = canShowMenuCond &&
+                        ( SELECTION_CONDITIONS::HasType( PCB_PAD_T )
+                            || SELECTION_CONDITIONS::Count( 0 ) );
 
         menu.AddMenu( contextMenu.get(), false, showCond );
     }
@@ -157,7 +224,7 @@ int PAD_TOOL::applyPadSettings( const TOOL_EVENT& aEvent )
 
     commit.Push( _( "Apply Pad Settings" ) );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::editModifiedSelection, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
     frame.Refresh();
 
     return 0;
@@ -182,6 +249,7 @@ int PAD_TOOL::copyPadSettings( const TOOL_EVENT& aEvent )
         {
             const auto& selPad = static_cast<const D_PAD&>( *item );
             masterPad.ImportSettingsFromMaster( selPad );
+            m_padCopied = true;
         }
     }
 
@@ -241,7 +309,6 @@ static void globalChangePadSettings( BOARD& board,
         }
     }
 }
-
 
 
 int PAD_TOOL::pushPadSettings( const TOOL_EVENT& aEvent )
@@ -310,15 +377,16 @@ int PAD_TOOL::pushPadSettings( const TOOL_EVENT& aEvent )
 
     commit.Push( _( "Apply Pad Settings" ) );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::editModifiedSelection, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
     frame.Refresh();
 
     return 0;
 }
 
+
 void PAD_TOOL::SetTransitions()
 {
-    Go( &PAD_TOOL::applyPadSettings, COMMON_ACTIONS::applyPadSettings.MakeEvent() );
-    Go( &PAD_TOOL::copyPadSettings,  COMMON_ACTIONS::copyPadSettings.MakeEvent() );
-    Go( &PAD_TOOL::pushPadSettings,  COMMON_ACTIONS::pushPadSettings.MakeEvent() );
+    Go( &PAD_TOOL::applyPadSettings, PCB_ACTIONS::applyPadSettings.MakeEvent() );
+    Go( &PAD_TOOL::copyPadSettings,  PCB_ACTIONS::copyPadSettings.MakeEvent() );
+    Go( &PAD_TOOL::pushPadSettings,  PCB_ACTIONS::pushPadSettings.MakeEvent() );
 }

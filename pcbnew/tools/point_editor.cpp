@@ -31,10 +31,11 @@ using namespace std::placeholders;
 #include <geometry/seg.h>
 #include <confirm.h>
 
-#include "common_actions.h"
+#include "pcb_actions.h"
 #include "selection_tool.h"
 #include "point_editor.h"
 #include <board_commit.h>
+#include <bitmaps.h>
 
 #include <wxPcbStruct.h>
 #include <class_edge_mod.h>
@@ -43,6 +44,16 @@ using namespace std::placeholders;
 #include <class_board.h>
 #include <class_module.h>
 #include <ratsnest_data.h>
+
+// Point editor
+TOOL_ACTION PCB_ACTIONS::pointEditorAddCorner( "pcbnew.PointEditor.addCorner",
+        AS_GLOBAL, 0,
+        _( "Create Corner" ), _( "Create a corner" ), add_corner_xpm );
+
+TOOL_ACTION PCB_ACTIONS::pointEditorRemoveCorner( "pcbnew.PointEditor.removeCorner",
+        AS_GLOBAL, 0,
+        _( "Remove Corner" ), _( "Remove corner" ), delete_xpm );
+
 
 // Few constants to avoid using bare numbers for point indices
 enum SEG_POINTS
@@ -213,8 +224,8 @@ bool POINT_EDITOR::Init()
     }
 
     auto& menu = m_selectionTool->GetToolMenu().GetMenu();
-    menu.AddItem( COMMON_ACTIONS::pointEditorAddCorner, POINT_EDITOR::addCornerCondition );
-    menu.AddItem( COMMON_ACTIONS::pointEditorRemoveCorner,
+    menu.AddItem( PCB_ACTIONS::pointEditorAddCorner, POINT_EDITOR::addCornerCondition );
+    menu.AddItem( PCB_ACTIONS::pointEditorRemoveCorner,
                   std::bind( &POINT_EDITOR::removeCornerCondition, this, _1 ) );
 
     return true;
@@ -457,6 +468,8 @@ void POINT_EDITOR::updateItem() const
             outline->SetX( i, point.x );
             outline->SetY( i, point.y );
         }
+
+        outline->Hatch();
 
         break;
     }
@@ -711,9 +724,9 @@ EDIT_POINT POINT_EDITOR::get45DegConstrainer() const
 
 void POINT_EDITOR::SetTransitions()
 {
-    Go( &POINT_EDITOR::addCorner, COMMON_ACTIONS::pointEditorAddCorner.MakeEvent() );
-    Go( &POINT_EDITOR::removeCorner, COMMON_ACTIONS::pointEditorRemoveCorner.MakeEvent() );
-    Go( &POINT_EDITOR::modifiedSelection, COMMON_ACTIONS::editModifiedSelection.MakeEvent() );
+    Go( &POINT_EDITOR::addCorner, PCB_ACTIONS::pointEditorAddCorner.MakeEvent() );
+    Go( &POINT_EDITOR::removeCorner, PCB_ACTIONS::pointEditorRemoveCorner.MakeEvent() );
+    Go( &POINT_EDITOR::modifiedSelection, PCB_ACTIONS::editModifiedSelection.MakeEvent() );
     Go( &POINT_EDITOR::OnSelectionChange, SELECTION_TOOL::SelectedEvent );
     Go( &POINT_EDITOR::OnSelectionChange, SELECTION_TOOL::UnselectedEvent );
 }

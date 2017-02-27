@@ -23,11 +23,14 @@
  */
 
 #include "picker_tool.h"
-#include "common_actions.h"
+#include "pcb_actions.h"
 
 #include <wxPcbStruct.h>
 #include <view/view_controls.h>
 #include <tool/tool_manager.h>
+
+TOOL_ACTION PCB_ACTIONS::pickerTool( "pcbnew.Picker", AS_GLOBAL, 0, "", "", NULL, AF_ACTIVATE );
+
 
 PICKER_TOOL::PICKER_TOOL()
     : TOOL_INTERACTIVE( "pcbnew.Picker" )
@@ -88,7 +91,7 @@ int PICKER_TOOL::Main( const TOOL_EVENT& aEvent )
 
 void PICKER_TOOL::SetTransitions()
 {
-    Go( &PICKER_TOOL::Main, COMMON_ACTIONS::pickerTool.MakeEvent() );
+    Go( &PICKER_TOOL::Main, PCB_ACTIONS::pickerTool.MakeEvent() );
 }
 
 

@@ -56,7 +56,7 @@ public:
     void SwapData( SCH_ITEM* aItem ) override;
 
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
+               GR_DRAWMODE aDrawMode, COLOR4D aColor = COLOR4D::UNSPECIFIED ) override;
 
     bool Save( FILE* aFile ) const override;
 
@@ -87,7 +87,7 @@ public:
 
     wxString GetSelectMenuText() const override { return wxString( _( "No Connect" ) ); }
 
-    BITMAP_DEF GetMenuImage() const override { return noconn_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     void GetNetListItem( NETLIST_OBJECT_LIST& aNetListItems, SCH_SHEET_PATH* aSheetPath ) override;
 

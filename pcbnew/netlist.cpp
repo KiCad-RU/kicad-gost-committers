@@ -51,7 +51,7 @@ using namespace std::placeholders;
 #include <io_mgr.h>
 
 #include <tool/tool_manager.h>
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
 #include <view/view.h>
 
 
@@ -117,7 +117,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     }
 
     // Clear selection, just in case a selected item has to be removed
-    m_toolManager->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolManager->RunAction( PCB_ACTIONS::selectionClear, true );
 
     netlist.SortByReference();
     board->ReplaceNetlist( netlist, aDeleteSinglePadNets, &newFootprints, aReporter );
@@ -134,7 +134,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
         {
             for( MODULE* footprint : newFootprints )
             {
-                m_toolManager->RunAction( COMMON_ACTIONS::selectItem, true, footprint );
+                m_toolManager->RunAction( PCB_ACTIONS::selectItem, true, footprint );
             }
             m_toolManager->InvokeTool( "pcbnew.InteractiveEdit" );
         }
@@ -273,11 +273,11 @@ void PCB_EDIT_FRAME::LoadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
         {
             if( aReporter )
             {
-                msg.Printf( _( "* Warning: component '%s': board footprint '%s', netlist footprint '%s'\n" ),
+                msg.Printf( _( "Footprint of component '%s' changed: board footprint '%s', netlist footprint '%s'\n" ),
                             GetChars( component->GetReference() ),
                             GetChars( fpOnBoard->GetFPID().Format() ),
                             GetChars( component->GetFPID().Format() ) );
-                aReporter->Report( msg );
+                aReporter->Report( msg, REPORTER::RPT_WARNING );
             }
 
             continue;

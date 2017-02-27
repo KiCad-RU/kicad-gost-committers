@@ -30,6 +30,8 @@
 #include <class_drawpanel.h>
 #include <trigo.h>
 #include <macros.h>
+#include <bitmaps.h>
+
 #include <sch_bitmap.h>
 
 #include <wx/mstream.h>
@@ -189,11 +191,11 @@ const EDA_RECT SCH_BITMAP::GetBoundingBox() const
 
 
 void SCH_BITMAP::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                       GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+                       GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
     wxPoint pos = m_pos + aOffset;
 
-    if( aColor < 0 )    // Use normal drawing function
+    if( aColor == COLOR4D::UNSPECIFIED )    // Use normal drawing function
     {
         // https://bugs.launchpad.net/kicad/+bug/1529163
         // "Moving images in eeschema on OS X uses
@@ -308,4 +310,10 @@ bool SCH_BITMAP::HitTest( const EDA_RECT& aRect, bool aContained, int aAccuracy 
 void SCH_BITMAP::Plot( PLOTTER* aPlotter )
 {
     m_image->PlotImage( aPlotter, m_pos, GetLayerColor( GetLayer() ), GetPenSize() );
+}
+
+
+BITMAP_DEF SCH_BITMAP::GetMenuImage() const
+{
+    return image_xpm;
 }

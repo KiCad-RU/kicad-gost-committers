@@ -32,6 +32,7 @@
 
 class SCH_COMPONENT;
 
+#include <class_eda_rect.h>
 #include <lib_draw_item.h>
 
 #include "pin_shape.h"
@@ -85,7 +86,7 @@ class LIB_PIN : public LIB_ITEM
      * @param aPanel DrawPanel to use (can be null) mainly used for clipping purposes.
      * @param aDC Device Context (can be null)
      * @param aOffset Offset to draw
-     * @param aColor -1 to use the normal body item color, or use this color if >= 0
+     * @param aColor COLOR4D::UNSPECIFIED to use the normal body item color, or else use this color
      * @param aDrawMode GR_OR, GR_XOR, ...
      * @param aData = used here as uintptr_t containing bitwise OR'd flags:
      *      PIN_DRAW_TEXTS,     -- false to draw only pin shape, useful for fast mode
@@ -95,7 +96,7 @@ class LIB_PIN : public LIB_ITEM
      * @param aTransform Transform Matrix (rotation, mirror ..)
      */
     void drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                      EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
+                      COLOR4D aColor, GR_DRAWMODE aDrawMode, void* aData,
                       const TRANSFORM& aTransform ) override;
 
 public:
@@ -385,7 +386,7 @@ public:
      */
     void DrawPinSymbol( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosition,
                         int aOrientation, GR_DRAWMODE aDrawMode,
-                        EDA_COLOR_T aColor = UNSPECIFIED_COLOR,
+                        COLOR4D aColor = COLOR4D::UNSPECIFIED,
                         bool aDrawDangling = true,
                         bool aOnlyTarget = false );
 
@@ -401,7 +402,7 @@ public:
      */
     void DrawPinTexts( EDA_DRAW_PANEL* aPanel, wxDC* aDC, wxPoint& aPosition,
                        int aOrientation, int TextInside, bool DrawPinNum, bool DrawPinName,
-                       EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode );
+                       COLOR4D aColor, GR_DRAWMODE aDrawMode );
 
     /**
      * Function DrawPinElectricalTypeName
@@ -409,7 +410,7 @@ public:
      * aDrawMode = GR_OR, XOR ...
      */
     void DrawPinElectricalTypeName( EDA_DRAW_PANEL* aPanel, wxDC* aDC, wxPoint& aPosition,
-                       int aOrientation, EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode );
+                       int aOrientation, COLOR4D aColor, GR_DRAWMODE aDrawMode );
 
     /**
      * Function PlotPinTexts

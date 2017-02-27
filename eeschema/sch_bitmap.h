@@ -99,7 +99,7 @@ public:
     void SwapData( SCH_ITEM* aItem ) override;
 
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
+               GR_DRAWMODE aDrawMode, COLOR4D aColor = COLOR4D::UNSPECIFIED ) override;
 
     /**
      * Function ReadImageFile
@@ -130,7 +130,7 @@ public:
 
     wxString GetSelectMenuText() const override { return wxString( _( "Image" ) ); }
 
-    BITMAP_DEF GetMenuImage() const override { return image_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     wxPoint GetPosition() const override { return m_pos; }
 

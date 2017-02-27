@@ -33,6 +33,7 @@
 #include <class_drawpanel.h>
 #include <common.h>
 #include <plot_common.h>
+#include <bitmaps.h>
 
 #include <general.h>
 #include <sch_no_connect.h>
@@ -127,7 +128,7 @@ int SCH_NO_CONNECT::GetPenSize() const
 
 
 void SCH_NO_CONNECT::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                           GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+                           GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
     int pX, pY;
     int delta = m_size.x / 2;
@@ -136,8 +137,9 @@ void SCH_NO_CONNECT::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOf
     pX = m_pos.x + aOffset.x;
     pY = m_pos.y + aOffset.y;
 
-    EDA_COLOR_T color;
-    if( aColor >= 0 )
+    COLOR4D color;
+
+    if( aColor != COLOR4D::UNSPECIFIED )
         color = aColor;
     else
         color = GetLayerColor( LAYER_NOCONNECT );
@@ -248,5 +250,11 @@ void SCH_NO_CONNECT::Plot( PLOTTER* aPlotter )
     aPlotter->FinishTo( wxPoint( pX + delta, pY + delta ) );
     aPlotter->MoveTo( wxPoint( pX + delta, pY - delta ) );
     aPlotter->FinishTo( wxPoint( pX - delta, pY + delta ) );
+}
+
+
+BITMAP_DEF SCH_NO_CONNECT::GetMenuImage() const
+{
+    return noconn_xpm;
 }
 

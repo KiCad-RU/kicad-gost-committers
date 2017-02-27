@@ -42,6 +42,7 @@
 #include <wxBasePcbFrame.h>
 #include <msgpanel.h>
 #include <base_units.h>
+#include <bitmaps.h>
 
 #include <class_board.h>
 #include <class_pcb_text.h>
@@ -74,7 +75,7 @@ void TEXTE_PCB::Draw( EDA_DRAW_PANEL* panel, wxDC* DC,
     if( brd->IsLayerVisible( m_Layer ) == false )
         return;
 
-    EDA_COLOR_T color = brd->GetLayerColor( m_Layer );
+    COLOR4D color = brd->GetLayerColor( m_Layer );
 
     EDA_DRAW_MODE_T fillmode = FILLED;
     DISPLAY_OPTIONS* displ_opts =
@@ -89,10 +90,10 @@ void TEXTE_PCB::Draw( EDA_DRAW_PANEL* panel, wxDC* DC,
         LAYER_ID curr_layer = ( (PCB_SCREEN*) panel->GetScreen() )->m_Active_Layer;
 
         if( !IsOnLayer( curr_layer ) )
-            ColorTurnToDarkDarkGray( &color );
+            color = COLOR4D( DARKDARKGRAY );
     }
 
-    EDA_COLOR_T anchor_color = UNSPECIFIED_COLOR;
+    COLOR4D anchor_color = COLOR4D::UNSPECIFIED;
 
     if( brd->IsElementVisible( ANCHOR_VISIBLE ) )
         anchor_color = brd->GetVisibleElementColor( ANCHOR_VISIBLE );
@@ -183,6 +184,12 @@ wxString TEXTE_PCB::GetSelectMenuText() const
                  GetChars ( ShortenedShownText() ), GetChars( GetLayerName() ) );
 
     return text;
+}
+
+
+BITMAP_DEF TEXTE_PCB::GetMenuImage() const
+{
+    return add_text_xpm;
 }
 
 

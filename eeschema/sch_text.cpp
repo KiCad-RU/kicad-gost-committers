@@ -38,6 +38,7 @@
 #include <plot_common.h>
 #include <msgpanel.h>
 #include <gal/stroke_font.h>
+#include <bitmaps.h>
 
 #include <protos.h>
 #include <sch_text.h>
@@ -341,15 +342,15 @@ int SCH_TEXT::GetPenSize() const
 
 
 void SCH_TEXT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& aOffset,
-                     GR_DRAWMODE DrawMode, EDA_COLOR_T Color )
+                     GR_DRAWMODE DrawMode, COLOR4D Color )
 {
-    EDA_COLOR_T color;
+    COLOR4D     color;
     int         linewidth = GetThickness() == 0 ? GetDefaultLineThickness() : GetThickness();
     EDA_RECT*   clipbox = panel? panel->GetClipBox() : NULL;
 
     linewidth = Clamp_Text_PenSize( linewidth, GetTextSize(), IsBold() );
 
-    if( Color >= 0 )
+    if( Color != COLOR4D::UNSPECIFIED )
         color = Color;
     else
         color = GetLayerColor( GetState( BRIGHTENED ) ? LAYER_BRIGHTENED : m_Layer );
@@ -361,7 +362,7 @@ void SCH_TEXT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& aOffset,
     int savedWidth = GetThickness();
     SetThickness( linewidth );              // Set the minimum width
 
-    EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
+    EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, COLOR4D::UNSPECIFIED );
 
     SetThickness( savedWidth );
 
@@ -618,6 +619,12 @@ wxString SCH_TEXT::GetSelectMenuText() const
 }
 
 
+BITMAP_DEF SCH_TEXT::GetMenuImage() const
+{
+    return add_text_xpm;
+}
+
+
 void SCH_TEXT::GetNetListItem( NETLIST_OBJECT_LIST& aNetListItems,
                                SCH_SHEET_PATH*      aSheetPath )
 {
@@ -669,8 +676,8 @@ bool SCH_TEXT::HitTest( const EDA_RECT& aRect, bool aContained, int aAccuracy ) 
 void SCH_TEXT::Plot( PLOTTER* aPlotter )
 {
     static std::vector <wxPoint> Poly;
-    EDA_COLOR_T color = GetLayerColor( GetLayer() );
-    int         thickness = GetPenSize();
+    COLOR4D  color = GetLayerColor( GetLayer() );
+    int      thickness = GetPenSize();
 
     aPlotter->SetCurrentLineWidth( thickness );
 
@@ -972,7 +979,7 @@ bool SCH_LABEL::Load( LINE_READER& aLine, wxString& aErrorMsg )
 
 
 void SCH_LABEL::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
-                      GR_DRAWMODE DrawMode, EDA_COLOR_T Color )
+                      GR_DRAWMODE DrawMode, COLOR4D Color )
 {
     SCH_TEXT::Draw( panel, DC, offset, DrawMode, Color );
 }
@@ -1007,6 +1014,12 @@ wxString SCH_LABEL::GetSelectMenuText() const
     wxString msg;
     msg.Printf( _( "Label %s" ), GetChars( ShortenedShownText() ) );
     return msg;
+}
+
+
+BITMAP_DEF SCH_LABEL::GetMenuImage() const
+{
+    return add_line_label_xpm;
 }
 
 
@@ -1256,13 +1269,13 @@ void SCH_GLOBALLABEL::Draw( EDA_DRAW_PANEL* panel,
                             wxDC*           DC,
                             const wxPoint&  aOffset,
                             GR_DRAWMODE     DrawMode,
-                            EDA_COLOR_T     Color )
+                            COLOR4D        Color )
 {
     static std::vector <wxPoint> Poly;
-    EDA_COLOR_T color;
+    COLOR4D color;
     wxPoint     text_offset = aOffset + GetSchematicTextOffset();
 
-    if( Color >= 0 )
+    if( Color != COLOR4D::UNSPECIFIED )
         color = Color;
     else
         color = GetLayerColor( GetState( BRIGHTENED ) ? LAYER_BRIGHTENED : m_Layer );
@@ -1277,7 +1290,7 @@ void SCH_GLOBALLABEL::Draw( EDA_DRAW_PANEL* panel,
     SetThickness( linewidth );
 
     EDA_RECT* clipbox = panel? panel->GetClipBox() : NULL;
-    EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
+    EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, COLOR4D::UNSPECIFIED );
 
     SetThickness( save_width );   // restore initial value
 
@@ -1467,6 +1480,12 @@ wxString SCH_GLOBALLABEL::GetSelectMenuText() const
 }
 
 
+BITMAP_DEF SCH_GLOBALLABEL::GetMenuImage() const
+{
+    return add_glabel_xpm;
+}
+
+
 
 SCH_HIERLABEL::SCH_HIERLABEL( const wxPoint& pos, const wxString& text, KICAD_T aType ) :
     SCH_TEXT( pos, text, aType )
@@ -1617,16 +1636,16 @@ void SCH_HIERLABEL::Draw( EDA_DRAW_PANEL* panel,
                           wxDC*           DC,
                           const wxPoint&  offset,
                           GR_DRAWMODE     DrawMode,
-                          EDA_COLOR_T     Color )
+                          COLOR4D         Color )
 {
     static std::vector <wxPoint> Poly;
-    EDA_COLOR_T color;
+    COLOR4D color;
     int         linewidth = GetThickness() == 0 ? GetDefaultLineThickness() : GetThickness();
     EDA_RECT*   clipbox = panel? panel->GetClipBox() : NULL;
 
     linewidth = Clamp_Text_PenSize( linewidth, GetTextSize(), IsBold() );
 
-    if( Color >= 0 )
+    if( Color != COLOR4D::UNSPECIFIED )
         color = Color;
     else
         color = GetLayerColor( GetState( BRIGHTENED ) ? LAYER_BRIGHTENED : m_Layer );
@@ -1637,7 +1656,7 @@ void SCH_HIERLABEL::Draw( EDA_DRAW_PANEL* panel,
     SetThickness( linewidth );
 
     wxPoint text_offset = offset + GetSchematicTextOffset();
-    EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, UNSPECIFIED_COLOR );
+    EDA_TEXT::Draw( clipbox, DC, text_offset, color, DrawMode, FILLED, COLOR4D::UNSPECIFIED );
 
     SetThickness( save_width );         // restore initial value
 
@@ -1816,4 +1835,10 @@ wxString SCH_HIERLABEL::GetSelectMenuText() const
     wxString msg;
     msg.Printf( _( "Hierarchical Label %s" ), GetChars( ShortenedShownText() ) );
     return msg;
+}
+
+
+BITMAP_DEF SCH_HIERLABEL::GetMenuImage() const
+{
+    return add_hierarchical_label_xpm;
 }

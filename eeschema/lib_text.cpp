@@ -36,6 +36,7 @@
 #include <richio.h>
 #include <base_units.h>
 #include <msgpanel.h>
+#include <bitmaps.h>
 
 #include <lib_draw_item.h>
 #include <general.h>
@@ -333,12 +334,12 @@ void LIB_TEXT::Plot( PLOTTER* plotter, const wxPoint& offset, bool fill,
     wxPoint pos = aTransform.TransformCoordinate( txtpos ) + offset;
 
     // Get color
-    EDA_COLOR_T     color;
+    COLOR4D color;
 
     if( plotter->GetColorMode() )       // Used normal color or selected color
         color = IsSelected() ? GetItemSelectedColor() : GetDefaultColor();
     else
-        color = BLACK;
+        color = COLOR4D::BLACK;
 
     plotter->Text( pos, color, GetShownText(),
                    t1 ? TEXT_ANGLE_HORIZ : TEXT_ANGLE_VERT,
@@ -366,12 +367,12 @@ int LIB_TEXT::GetPenSize() const
 
 
 void LIB_TEXT::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                            EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
+                            COLOR4D aColor, GR_DRAWMODE aDrawMode, void* aData,
                             const TRANSFORM& aTransform )
 {
-    EDA_COLOR_T color = GetDefaultColor();
+    COLOR4D color = GetDefaultColor();
 
-    if( aColor < 0 )       // Used normal color or selected color
+    if( aColor == COLOR4D::UNSPECIFIED )       // Used normal color or selected color
     {
         if( IsSelected() )
             color = GetItemSelectedColor();
@@ -506,6 +507,12 @@ wxString LIB_TEXT::GetSelectMenuText() const
     wxString msg;
     msg.Printf( _( "Graphic Text %s" ), GetChars( ShortenedShownText() ) );
     return msg;
+}
+
+
+BITMAP_DEF LIB_TEXT::GetMenuImage() const
+{
+    return add_text_xpm;
 }
 
 

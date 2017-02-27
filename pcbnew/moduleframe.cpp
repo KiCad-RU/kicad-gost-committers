@@ -42,6 +42,7 @@
 #include <3d_viewer/eda_3d_viewer.h>
 #include <msgpanel.h>
 #include <fp_lib_table.h>
+#include <bitmaps.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -57,7 +58,9 @@
 #include <invoke_pcb_dialog.h>
 
 #include <tool/tool_manager.h>
+#include <tool/common_tools.h>
 #include <tool/tool_dispatcher.h>
+
 #include "tools/selection_tool.h"
 #include "tools/zoom_tool.h"
 #include "tools/edit_tool.h"
@@ -68,7 +71,7 @@
 #include "tools/placement_tool.h"
 #include "tools/picker_tool.h"
 #include "tools/pad_tool.h"
-#include "tools/common_actions.h"
+#include "tools/pcb_actions.h"
 
 
 BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
@@ -807,7 +810,7 @@ void FOOTPRINT_EDIT_FRAME::updateView()
 {
     static_cast<PCB_DRAW_PANEL_GAL*>( GetGalCanvas() )->DisplayBoard( GetBoard() );
     m_toolManager->ResetTools( TOOL_BASE::MODEL_RELOAD );
-    m_toolManager->RunAction( COMMON_ACTIONS::zoomFitScreen, true );
+    m_toolManager->RunAction( ACTIONS::zoomFitScreen, true );
 }
 
 
@@ -944,10 +947,12 @@ void FOOTPRINT_EDIT_FRAME::setupTools()
     m_toolManager = new TOOL_MANAGER;
     m_toolManager->SetEnvironment( GetBoard(), drawPanel->GetView(),
                                    drawPanel->GetViewControls(), this );
-    m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager );
+    m_actions = new PCB_ACTIONS();
+    m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager, m_actions );
 
     drawPanel->SetEventDispatcher( m_toolDispatcher );
 
+    m_toolManager->RegisterTool( new COMMON_TOOLS );
     m_toolManager->RegisterTool( new SELECTION_TOOL );
     m_toolManager->RegisterTool( new ZOOM_TOOL );
     m_toolManager->RegisterTool( new EDIT_TOOL );
@@ -958,11 +963,13 @@ void FOOTPRINT_EDIT_FRAME::setupTools()
     m_toolManager->RegisterTool( new MODULE_EDITOR_TOOLS );
     m_toolManager->RegisterTool( new PLACEMENT_TOOL );
     m_toolManager->RegisterTool( new PICKER_TOOL );
-    m_toolManager->InitTools();
 
+    m_toolManager->GetTool<PAD_TOOL>()->SetEditModules( true );
     m_toolManager->GetTool<SELECTION_TOOL>()->SetEditModules( true );
     m_toolManager->GetTool<EDIT_TOOL>()->SetEditModules( true );
     m_toolManager->GetTool<DRAWING_TOOL>()->SetEditModules( true );
+
+    m_toolManager->InitTools();
 
     m_toolManager->InvokeTool( "pcbnew.InteractiveSelection" );
 }

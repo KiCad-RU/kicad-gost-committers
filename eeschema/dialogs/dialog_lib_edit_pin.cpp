@@ -26,6 +26,7 @@
 #include <macros.h>
 #include <gr_basic.h>
 #include <base_units.h>
+#include <bitmaps.h>
 
 #include <libeditframe.h>
 #include <class_libentry.h>
@@ -44,7 +45,7 @@ DIALOG_LIB_EDIT_PIN::DIALOG_LIB_EDIT_PIN( EDA_DRAW_FRAME* parent, LIB_PIN* aPin 
     m_dummyPin->SetParent( NULL );
     m_dummyPin->ClearFlags();
 
-    m_panelShowPin->SetBackgroundColour( MakeColour( parent->GetDrawBgColor() ) );
+    m_panelShowPin->SetBackgroundColour( parent->GetDrawBgColor().ToColour() );
 
     // Set tab order
     m_textPadName->MoveAfterInTabOrder(m_textPinName);
@@ -103,7 +104,7 @@ void DIALOG_LIB_EDIT_PIN::OnPaintShowPanel( wxPaintEvent& event )
     // This is a flag for m_dummyPin->Draw
     uintptr_t flags = uintptr_t( PIN_DRAW_TEXTS | PIN_DRAW_DANGLING );
 
-    m_dummyPin->Draw( NULL, &dc, offset, UNSPECIFIED_COLOR, GR_COPY,
+    m_dummyPin->Draw( NULL, &dc, offset, COLOR4D::UNSPECIFIED, GR_COPY,
                       (void*)flags, DefaultTransform );
 
     m_dummyPin->SetParent(NULL);

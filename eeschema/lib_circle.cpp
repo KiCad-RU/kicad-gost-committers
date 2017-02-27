@@ -37,6 +37,7 @@
 #include <richio.h>
 #include <base_units.h>
 #include <msgpanel.h>
+#include <bitmaps.h>
 
 #include <general.h>
 #include <lib_circle.h>
@@ -207,14 +208,14 @@ int LIB_CIRCLE::GetPenSize() const
 
 
 void LIB_CIRCLE::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                              EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
+                              COLOR4D aColor, GR_DRAWMODE aDrawMode, void* aData,
                               const TRANSFORM& aTransform )
 {
     wxPoint pos1;
 
-    EDA_COLOR_T color = GetLayerColor( LAYER_DEVICE );
+    COLOR4D color = GetLayerColor( LAYER_DEVICE );
 
-    if( aColor < 0 )       // Used normal color or selected color
+    if( aColor == COLOR4D::UNSPECIFIED )       // Used normal color or selected color
     {
         if( IsSelected() )
             color = GetItemSelectedColor();
@@ -228,7 +229,7 @@ void LIB_CIRCLE::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& 
     GRSetDrawMode( aDC, aDrawMode );
 
     FILL_T fill = aData ? NO_FILL : m_Fill;
-    if( aColor >= 0 )
+    if( aColor != COLOR4D::UNSPECIFIED )
         fill = NO_FILL;
 
     EDA_RECT* const clipbox  = aPanel? aPanel->GetClipBox() : NULL;
@@ -294,6 +295,12 @@ wxString LIB_CIRCLE::GetSelectMenuText() const
                              GetChars( CoordinateToString( m_Pos.x ) ),
                              GetChars( CoordinateToString( m_Pos.y ) ),
                              GetChars( CoordinateToString( m_Radius ) ) );
+}
+
+
+BITMAP_DEF LIB_CIRCLE::GetMenuImage() const
+{
+    return add_circle_xpm;
 }
 
 

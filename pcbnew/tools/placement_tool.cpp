@@ -23,7 +23,7 @@
  */
 
 #include "placement_tool.h"
-#include "common_actions.h"
+#include "pcb_actions.h"
 #include "selection_tool.h"
 #include <tool/tool_manager.h>
 
@@ -31,9 +31,42 @@
 #include <class_board.h>
 #include <ratsnest_data.h>
 #include <board_commit.h>
+#include <bitmaps.h>
 
 #include <confirm.h>
 #include <menus_helpers.h>
+
+// Placement tool
+TOOL_ACTION PCB_ACTIONS::alignTop( "pcbnew.Place.alignTop",
+        AS_GLOBAL, 0,
+        _( "Align to Top" ),
+        _( "Aligns selected items to the top edge" ), up_xpm );
+
+TOOL_ACTION PCB_ACTIONS::alignBottom( "pcbnew.Place.alignBottom",
+        AS_GLOBAL, 0,
+        _( "Align to Bottom" ),
+        _( "Aligns selected items to the bottom edge" ), down_xpm );
+
+TOOL_ACTION PCB_ACTIONS::alignLeft( "pcbnew.Place.alignLeft",
+        AS_GLOBAL, 0,
+        _( "Align to Left" ),
+        _( "Aligns selected items to the left edge" ), left_xpm );
+
+TOOL_ACTION PCB_ACTIONS::alignRight( "pcbnew.Place.alignRight",
+        AS_GLOBAL, 0,
+        _( "Align to Right" ),
+        _( "Aligns selected items to the right edge" ), right_xpm );
+
+TOOL_ACTION PCB_ACTIONS::distributeHorizontally( "pcbnew.Place.distributeHorizontally",
+        AS_GLOBAL, 0,
+        _( "Distribute Horizontally" ),
+        _( "Distributes selected items along the horizontal axis" ), distribute_horizontal_xpm );
+
+TOOL_ACTION PCB_ACTIONS::distributeVertically( "pcbnew.Place.distributeVertically",
+        AS_GLOBAL, 0,
+        _( "Distribute Vertically" ),
+        _( "Distributes selected items along the vertical axis" ), distribute_vertical_xpm );
+
 
 PLACEMENT_TOOL::PLACEMENT_TOOL() :
     TOOL_INTERACTIVE( "pcbnew.Placement" ), m_selectionTool( NULL ), m_placementMenu( NULL )
@@ -63,13 +96,13 @@ bool PLACEMENT_TOOL::Init()
     m_placementMenu->SetTitle( _( "Align/distribute" ) );
 
     // Add all align/distribute commands
-    m_placementMenu->Add( COMMON_ACTIONS::alignTop );
-    m_placementMenu->Add( COMMON_ACTIONS::alignBottom );
-    m_placementMenu->Add( COMMON_ACTIONS::alignLeft );
-    m_placementMenu->Add( COMMON_ACTIONS::alignRight );
+    m_placementMenu->Add( PCB_ACTIONS::alignTop );
+    m_placementMenu->Add( PCB_ACTIONS::alignBottom );
+    m_placementMenu->Add( PCB_ACTIONS::alignLeft );
+    m_placementMenu->Add( PCB_ACTIONS::alignRight );
     m_placementMenu->AppendSeparator();
-    m_placementMenu->Add( COMMON_ACTIONS::distributeHorizontally );
-    m_placementMenu->Add( COMMON_ACTIONS::distributeVertically );
+    m_placementMenu->Add( PCB_ACTIONS::distributeHorizontally );
+    m_placementMenu->Add( PCB_ACTIONS::distributeVertically );
 
     m_selectionTool->GetToolMenu().GetMenu().AddMenu( m_placementMenu, false,
             SELECTION_CONDITIONS::MoreThan( 1 ) );
@@ -318,11 +351,11 @@ int PLACEMENT_TOOL::DistributeVertically( const TOOL_EVENT& aEvent )
 
 void PLACEMENT_TOOL::SetTransitions()
 {
-    Go( &PLACEMENT_TOOL::AlignTop,    COMMON_ACTIONS::alignTop.MakeEvent() );
-    Go( &PLACEMENT_TOOL::AlignBottom, COMMON_ACTIONS::alignBottom.MakeEvent() );
-    Go( &PLACEMENT_TOOL::AlignLeft,   COMMON_ACTIONS::alignLeft.MakeEvent() );
-    Go( &PLACEMENT_TOOL::AlignRight,  COMMON_ACTIONS::alignRight.MakeEvent() );
+    Go( &PLACEMENT_TOOL::AlignTop,    PCB_ACTIONS::alignTop.MakeEvent() );
+    Go( &PLACEMENT_TOOL::AlignBottom, PCB_ACTIONS::alignBottom.MakeEvent() );
+    Go( &PLACEMENT_TOOL::AlignLeft,   PCB_ACTIONS::alignLeft.MakeEvent() );
+    Go( &PLACEMENT_TOOL::AlignRight,  PCB_ACTIONS::alignRight.MakeEvent() );
 
-    Go( &PLACEMENT_TOOL::DistributeHorizontally,  COMMON_ACTIONS::distributeHorizontally.MakeEvent() );
-    Go( &PLACEMENT_TOOL::DistributeVertically,    COMMON_ACTIONS::distributeVertically.MakeEvent() );
+    Go( &PLACEMENT_TOOL::DistributeHorizontally,  PCB_ACTIONS::distributeHorizontally.MakeEvent() );
+    Go( &PLACEMENT_TOOL::DistributeVertically,    PCB_ACTIONS::distributeVertically.MakeEvent() );
 }

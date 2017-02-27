@@ -64,10 +64,10 @@ PCB_RENDER_SETTINGS::PCB_RENDER_SETTINGS()
 void PCB_RENDER_SETTINGS::ImportLegacyColors( const COLORS_DESIGN_SETTINGS* aSettings )
 {
     for( int i = 0; i < LAYER_ID_COUNT; i++ )
-        m_layerColors[i] = m_legacyColorMap[aSettings->GetLayerColor( i )];
+        m_layerColors[i] = aSettings->GetLayerColor( i );
 
     for( int i = 0; i < END_PCB_VISIBLE_LIST; i++ )
-        m_layerColors[ITEM_GAL_LAYER( i )] = m_legacyColorMap[aSettings->GetItemColor( i )];
+        m_layerColors[ITEM_GAL_LAYER( i )] = aSettings->GetItemColor( i );
 
     m_layerColors[ITEM_GAL_LAYER( MOD_TEXT_FR_VISIBLE )]            = m_layerColors[F_SilkS];
     m_layerColors[ITEM_GAL_LAYER( MOD_TEXT_BK_VISIBLE )]            = m_layerColors[B_SilkS];
@@ -222,20 +222,6 @@ const COLOR4D& PCB_RENDER_SETTINGS::GetColor( const VIEW_ITEM* aItem, int aLayer
 
     // No special modificators enabled
     return m_layerColors[aLayer];
-}
-
-
-void PCB_RENDER_SETTINGS::update()
-{
-    RENDER_SETTINGS::update();
-
-    // Calculate darkened/highlighted variants of layer colors
-    for( int i = 0; i < TOTAL_LAYER_COUNT; i++ )
-    {
-        m_layerColorsHi[i]   = m_layerColors[i].Brightened( m_highlightFactor );
-        m_layerColorsDark[i] = m_layerColors[i].Darkened( 1.0 - m_highlightFactor );
-        m_layerColorsSel[i]  = m_layerColors[i].Brightened( m_selectFactor );
-    }
 }
 
 
@@ -979,6 +965,12 @@ void PCB_PAINTER::draw( const ZONE_CONTAINER* aZone )
             corners.push_back( corners[0] );
             m_gal->DrawPolyline( corners );
             corners.clear();
+        }
+
+        for( unsigned ic = 0; ic < polygon->m_HatchLines.size(); ic++ )
+        {
+            auto& hatchLine = polygon->m_HatchLines[ic];
+            m_gal->DrawLine( hatchLine.m_Start, hatchLine.m_End );
         }
     }
 

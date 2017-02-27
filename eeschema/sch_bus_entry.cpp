@@ -35,6 +35,7 @@
 #include <common.h>
 #include <richio.h>
 #include <plot_common.h>
+#include <bitmaps.h>
 
 #include <eeschema_config.h>
 #include <general.h>
@@ -181,12 +182,12 @@ int SCH_BUS_BUS_ENTRY::GetPenSize() const
 
 
 void SCH_BUS_ENTRY_BASE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                          GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+                          GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
-    EDA_COLOR_T color;
+    COLOR4D color;
     EDA_RECT* clipbox = aPanel->GetClipBox();
 
-    if( aColor >= 0 )
+    if( aColor != COLOR4D::UNSPECIFIED )
         color = aColor;
     else
         color = GetLayerColor( GetState( BRIGHTENED ) ? LAYER_BRIGHTENED : m_Layer );
@@ -338,6 +339,11 @@ wxString SCH_BUS_WIRE_ENTRY::GetSelectMenuText() const
 wxString SCH_BUS_BUS_ENTRY::GetSelectMenuText() const
 {
     return wxString( _( "Bus to Bus Entry" ) );
+}
+
+BITMAP_DEF SCH_BUS_ENTRY_BASE::GetMenuImage() const
+{
+    return add_entry_xpm;
 }
 
 

@@ -45,7 +45,6 @@
 #include <tool/action_manager.h>
 
 #include <wxPcbStruct.h>
-#include <confirm.h>
 #include <class_draw_panel_gal.h>
 
 using boost::optional;
@@ -71,6 +70,7 @@ struct TOOL_MANAGER::TOOL_STATE
         wakeupEvent = aState.wakeupEvent;
         waitEvents = aState.waitEvents;
         transitions = aState.transitions;
+        vcSettings = aState.vcSettings;
         // do not copy stateStack
     }
 
@@ -111,6 +111,9 @@ struct TOOL_MANAGER::TOOL_STATE
     /// upon the event reception
     std::vector<TRANSITION> transitions;
 
+    /// VIEW_CONTROLS settings to preserve settings when the tools are switched
+    KIGFX::VIEW_CONTROLS::SETTINGS vcSettings;
+
     void operator=( const TOOL_STATE& aState )
     {
         theTool = aState.theTool;
@@ -123,6 +126,7 @@ struct TOOL_MANAGER::TOOL_STATE
         wakeupEvent = aState.wakeupEvent;
         waitEvents = aState.waitEvents;
         transitions = aState.transitions;
+        vcSettings = aState.vcSettings;
         // do not copy stateStack
     }
 
@@ -143,8 +147,9 @@ struct TOOL_MANAGER::TOOL_STATE
      */
     void Push()
     {
-        stateStack.push( new TOOL_STATE( *this ) );
-
+        auto state = std::make_unique<TOOL_STATE>( *this );
+        //state->vcSettings = theTool->getViewControls()->GetSettings();
+        stateStack.push( std::move( state ) );
         clear();
     }
 
@@ -160,8 +165,7 @@ struct TOOL_MANAGER::TOOL_STATE
 
         if( !stateStack.empty() )
         {
-            *this = *stateStack.top();
-            delete stateStack.top();
+            *this = *stateStack.top().get();
             stateStack.pop();
             return true;
         }
@@ -174,7 +178,7 @@ struct TOOL_MANAGER::TOOL_STATE
 
 private:
     ///> Stack preserving previous states of a TOOL.
-    std::stack<TOOL_STATE*> stateStack;
+    std::stack<std::unique_ptr<TOOL_STATE>> stateStack;
 
     ///> Restores the initial state.
     void clear()
@@ -185,6 +189,7 @@ private:
         cofunc = NULL;
         contextMenu = NULL;
         contextMenuTrigger = CMENU_OFF;
+        vcSettings.Reset();
         transitions.clear();
     }
 };
@@ -366,13 +371,13 @@ bool TOOL_MANAGER::runTool( TOOL_BASE* aTool )
         return false;
     }
 
+    TOOL_ID id = aTool->GetId();
+
     // If the tool is already active, bring it to the top of the active tools stack
     if( isActive( aTool ) )
     {
-        m_activeTools.erase( std::find( m_activeTools.begin(), m_activeTools.end(),
-                                        aTool->GetId() ) );
-        m_activeTools.push_front( aTool->GetId() );
-
+        m_activeTools.erase( std::find( m_activeTools.begin(), m_activeTools.end(), id ) );
+        m_activeTools.push_front( id );
         return false;
     }
 
@@ -380,7 +385,7 @@ bool TOOL_MANAGER::runTool( TOOL_BASE* aTool )
     aTool->SetTransitions();
 
     // Add the tool on the front of the processing queue (it gets events first)
-    m_activeTools.push_front( aTool->GetId() );
+    m_activeTools.push_front( id );
 
     return true;
 }
@@ -410,7 +415,8 @@ TOOL_BASE* TOOL_MANAGER::FindTool( const std::string& aName ) const
 
 void TOOL_MANAGER::DeactivateTool()
 {
-    TOOL_EVENT evt( TC_COMMAND, TA_ACTIVATE, "" );      // deactivate the active tool
+    // Deactivate the active tool, but do not run anything new
+    TOOL_EVENT evt( TC_COMMAND, TA_CANCEL_TOOL );
     ProcessEvent( evt );
 }
 
@@ -437,7 +443,7 @@ void TOOL_MANAGER::InitTools()
 
         if( !tool->Init() )
         {
-            DisplayError( nullptr,
+            wxMessageBox(
                     wxString::Format( "Initialization of tool '%s' failed", tool->GetName() ) );
 
             // Unregister the tool
@@ -492,7 +498,7 @@ optional<TOOL_EVENT> TOOL_MANAGER::ScheduleWait( TOOL_BASE* aTool,
 {
     TOOL_STATE* st = m_toolState[aTool];
 
-    assert( !st->pendingWait ); // everything collapses on two Yield() in a row
+    assert( !st->pendingWait ); // everything collapses on two KiYield() in a row
 
     // indicate to the manager that we are going to sleep and we shall be
     // woken up when an event matching aConditions arrive
@@ -500,7 +506,7 @@ optional<TOOL_EVENT> TOOL_MANAGER::ScheduleWait( TOOL_BASE* aTool,
     st->waitEvents = aConditions;
 
     // switch context back to event dispatcher loop
-    st->cofunc->Yield();
+    st->cofunc->KiYield();
 
     return st->wakeupEvent;
 }
@@ -509,11 +515,9 @@ optional<TOOL_EVENT> TOOL_MANAGER::ScheduleWait( TOOL_BASE* aTool,
 void TOOL_MANAGER::dispatchInternal( const TOOL_EVENT& aEvent )
 {
     // iterate over all registered tools
-    for( auto it = m_activeTools.begin(); it != m_activeTools.end(); /* iteration is done inside */)
+    for( auto it = m_activeTools.begin(); it != m_activeTools.end(); ++it )
     {
-        auto curIt = it;
         TOOL_STATE* st = m_toolIdIndex[*it];
-        ++it;       // it might be overwritten, if the tool is removed the m_activeTools deque
 
         // the tool state handler is waiting for events (i.e. called Wait() method)
         if( st->pendingWait )
@@ -529,10 +533,7 @@ void TOOL_MANAGER::dispatchInternal( const TOOL_EVENT& aEvent )
                 st->waitEvents.clear();
 
                 if( st->cofunc && !st->cofunc->Resume() )
-                {
-                    if( finishTool( st, false ) ) // The couroutine has finished
-                        it = m_activeTools.erase( curIt );
-                }
+                    it = finishTool( st );
 
                 // If the tool did not request to propagate
                 // the event to other tools, we should stop it now
@@ -558,7 +559,13 @@ void TOOL_MANAGER::dispatchInternal( const TOOL_EVENT& aEvent )
 
                     // if there is already a context, then store it
                     if( st->cofunc )
+                    {
+                        // store the VIEW_CONTROLS settings if we launch a subtool
+                        if( GetCurrentToolState() == st )
+                            st->vcSettings = m_viewControls->GetSettings();
+
                         st->Push();
+                    }
 
                     st->cofunc = new COROUTINE<int, const TOOL_EVENT&>( std::move( func_copy ) );
 
@@ -618,83 +625,105 @@ bool TOOL_MANAGER::dispatchActivation( const TOOL_EVENT& aEvent )
 
 void TOOL_MANAGER::dispatchContextMenu( const TOOL_EVENT& aEvent )
 {
+    // Store the current tool ID to decide whether to restore the cursor position
+    TOOL_ID activeTool = GetCurrentToolId();
+
     for( TOOL_ID toolId : m_activeTools )
     {
         TOOL_STATE* st = m_toolIdIndex[toolId];
 
         // the tool requested a context menu. The menu is activated on RMB click (CMENU_BUTTON mode)
         // or immediately (CMENU_NOW) mode. The latter is used for clarification lists.
-        if( st->contextMenuTrigger != CMENU_OFF )
+        if( st->contextMenuTrigger == CMENU_OFF )
+            continue;
+
+        if( st->contextMenuTrigger == CMENU_BUTTON && !aEvent.IsClick( BUT_RIGHT ) )
+            break;
+
+        st->pendingWait = true;
+        st->waitEvents = TOOL_EVENT( TC_ANY, TA_ANY );
+
+        // Store the menu pointer in case it is changed by the TOOL when handling menu events
+        CONTEXT_MENU* m = st->contextMenu;
+
+        if( st->contextMenuTrigger == CMENU_NOW )
+            st->contextMenuTrigger = CMENU_OFF;
+
+        VECTOR2D cursor = m_viewControls->GetCursorPosition();
+
+        // Temporarily store the cursor position, so the tools could execute actions
+        // using the point where the user has invoked a context menu
+        if( m_viewControls->ForcedCursorPosition() )
+            m_origCursor = cursor;
+
+        m_viewControls->ForceCursorPosition( true, cursor );
+
+        // Display a copy of menu
+        std::unique_ptr<CONTEXT_MENU> menu( m->Clone() );
+
+        // Run update handlers on the created copy
+        menu->UpdateAll();
+        GetEditFrame()->PopupMenu( menu.get() );
+
+        // If nothing was chosen from the context menu, we must notify the tool as well
+        if( menu->GetSelected() < 0 )
         {
-            if( st->contextMenuTrigger == CMENU_BUTTON && !aEvent.IsClick( BUT_RIGHT ) )
-                break;
-
-            st->pendingWait = true;
-            st->waitEvents = TOOL_EVENT( TC_ANY, TA_ANY );
-
-            // Store the menu pointer in case it is changed by the TOOL when handling menu events
-            CONTEXT_MENU* m = st->contextMenu;
-
-            if( st->contextMenuTrigger == CMENU_NOW )
-                st->contextMenuTrigger = CMENU_OFF;
-
-            // Temporarily store the cursor position, so the tools could execute actions
-            // using the point where the user has invoked a context menu
-            bool forcedCursor = m_viewControls->IsCursorPositionForced();
-            VECTOR2D cursorPos = m_viewControls->GetCursorPosition();
-            m_viewControls->ForceCursorPosition( true, m_viewControls->GetCursorPosition() );
-
-            // Display a copy of menu
-            std::unique_ptr<CONTEXT_MENU> menu( m->Clone() );
-
-            // Run update handlers on the created copy
-            menu->UpdateAll();
-            GetEditFrame()->PopupMenu( menu.get() );
-
-            // If nothing was chosen from the context menu, we must notify the tool as well
-            if( menu->GetSelected() < 0 )
-            {
-                TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CHOICE, -1 );
-                evt.SetParameter( m );
-                dispatchInternal( evt );
-            }
-
-            // Notify the tools that menu has been closed
-            TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CLOSED );
+            TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CHOICE, -1 );
             evt.SetParameter( m );
             dispatchInternal( evt );
-
-            m_viewControls->ForceCursorPosition( forcedCursor, cursorPos );
-            break;
         }
+
+        // Notify the tools that menu has been closed
+        TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CLOSED );
+        evt.SetParameter( m );
+        dispatchInternal( evt );
+
+        // Restore the cursor settings if the tool is still active
+        if( activeTool == GetCurrentToolId() )
+        {
+            m_viewControls->ForceCursorPosition( (bool) m_origCursor,
+                    m_origCursor.get_value_or( VECTOR2D( 0, 0 ) ) );
+        }
+
+        m_origCursor = boost::none;
+        break;
     }
 }
 
 
-bool TOOL_MANAGER::finishTool( TOOL_STATE* aState, bool aDeactivate )
+TOOL_MANAGER::ID_LIST::iterator TOOL_MANAGER::finishTool( TOOL_STATE* aState )
 {
-    bool shouldDeactivate = false;
+    auto it = std::find( m_activeTools.begin(), m_activeTools.end(), aState->theTool->GetId() );
 
-    if( !aState->Pop() )        // if there are no other contexts saved on the stack
+    // Store the current VIEW_CONTROLS settings
+    if( TOOL_STATE* state = GetCurrentToolState() )
     {
-        // find the tool and deactivate it
-        auto tool = std::find( m_activeTools.begin(), m_activeTools.end(),
-                                                        aState->theTool->GetId() );
+        state->vcSettings = m_viewControls->GetSettings();
 
-        if( tool != m_activeTools.end() )
+        // If context menu has overridden the cursor position, restore the original one
+        // (see dispatchContextMenu())
+        if( m_origCursor )
         {
-            shouldDeactivate = true;
-            m_viewControls->Reset();
-
-            if( aDeactivate )
-                m_activeTools.erase( tool );
+            state->vcSettings.m_forceCursorPosition = true;
+            state->vcSettings.m_forcedPosition = *m_origCursor;
         }
     }
+
+    if( !aState->Pop() )
+    {
+        // Deactivate the tool if there are no other contexts saved on the stack
+        if( it != m_activeTools.end() )
+            it = m_activeTools.erase( it );
+    }
+
+    // Restore VIEW_CONTROLS settings stored by the previous tool
+    if( TOOL_STATE* state = GetCurrentToolState() )
+        m_viewControls->ApplySettings( state->vcSettings );
 
     // Set transitions to be ready for future TOOL_EVENTs
     aState->theTool->SetTransitions();
 
-    return shouldDeactivate;
+    return it;
 }
 
 

@@ -31,8 +31,8 @@
 #include <set>
 
 #include <gal/color4d.h>
-#include <colors.h>
 #include <worksheet_shape_builder.h>
+#include <layers_id_colors_and_visibility.h>
 #include <memory>
 
 class EDA_ITEM;
@@ -178,16 +178,6 @@ public:
     }
 
     /**
-     * Function TranslateColor
-     * Returns the color responding to the one of EDA_COLOR_T enum values.
-     * @param aColor equivalent.
-     */
-    inline const COLOR4D& TranslateColor( EDA_COLOR_T aColor )
-    {
-        return m_legacyColorMap[aColor];
-    }
-
-    /**
      * Function GetBackgroundColor
      * Returns current background color settings.
      * @return Background color.
@@ -207,6 +197,29 @@ public:
         m_backgroundColor = aColor;
     }
 
+    /**
+     * Function GetLayerColor
+     * Returns the color used to draw a layer.
+     * @param aLayer is the layer number.
+     */
+    inline const COLOR4D& GetLayerColor( int aLayer ) const
+    {
+        return m_layerColors[aLayer];
+    }
+
+    /**
+     * Function SetLayerColor
+     * Changes the color used to draw a layer.
+     * @param aLayer is the layer number.
+     * @param aColor is the new color.
+     */
+    inline void SetLayerColor( int aLayer, const COLOR4D& aColor )
+    {
+        m_layerColors[aLayer] = aColor;
+
+        update();       // recompute other shades of the color
+    }
+
 protected:
     /**
      * Function update
@@ -216,6 +229,18 @@ protected:
     virtual void update();
 
     std::set<unsigned int> m_activeLayers; ///< Stores active layers number
+
+    ///> Colors for all layers (normal)
+    COLOR4D m_layerColors[TOTAL_LAYER_COUNT];
+
+    ///> Colors for all layers (highlighted)
+    COLOR4D m_layerColorsHi[TOTAL_LAYER_COUNT];
+
+    ///> Colors for all layers (selected)
+    COLOR4D m_layerColorsSel[TOTAL_LAYER_COUNT];
+
+    ///> Colors for all layers (darkened)
+    COLOR4D m_layerColorsDark[TOTAL_LAYER_COUNT];
 
     /// Parameters for display modes
     bool    m_hiContrastEnabled;    ///< High contrast display mode on/off
@@ -234,9 +259,6 @@ protected:
     float   m_worksheetLineWidth;   ///< Line width used when drawing worksheet
 
     COLOR4D m_backgroundColor;      ///< The background color
-
-    /// Map of colors that were usually used for display
-    std::map<EDA_COLOR_T, COLOR4D> m_legacyColorMap;
 };
 
 

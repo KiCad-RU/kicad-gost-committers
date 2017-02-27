@@ -132,7 +132,7 @@ public:
     virtual wxPoint GetSchematicTextOffset() const;
 
     virtual void Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
-                       GR_DRAWMODE draw_mode, EDA_COLOR_T Color = UNSPECIFIED_COLOR ) override;
+                       GR_DRAWMODE draw_mode, COLOR4D Color = COLOR4D::UNSPECIFIED ) override;
 
     /**
      * Function CreateGraphicShape
@@ -192,7 +192,7 @@ public:
 
     virtual wxString GetSelectMenuText() const override;
 
-    virtual BITMAP_DEF GetMenuImage() const override { return  add_text_xpm; }
+    virtual BITMAP_DEF GetMenuImage() const override;
 
     virtual void GetNetListItem( NETLIST_OBJECT_LIST& aNetListItems,
                                  SCH_SHEET_PATH*      aSheetPath ) override;
@@ -228,7 +228,7 @@ public:
     ~SCH_LABEL() { }
 
     void Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
-               GR_DRAWMODE draw_mode, EDA_COLOR_T Color = UNSPECIFIED_COLOR ) override;
+               GR_DRAWMODE draw_mode, COLOR4D Color = COLOR4D::UNSPECIFIED ) override;
 
     wxString GetClass() const override
     {
@@ -253,7 +253,7 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return  add_line_label_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     bool IsReplaceable() const override { return true; }
 
@@ -274,7 +274,7 @@ public:
     ~SCH_GLOBALLABEL() { }
 
     void Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
-               GR_DRAWMODE draw_mode, EDA_COLOR_T Color = UNSPECIFIED_COLOR ) override;
+               GR_DRAWMODE draw_mode, COLOR4D Color = COLOR4D::UNSPECIFIED ) override;
 
     wxString GetClass() const override
     {
@@ -303,7 +303,7 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return  add_glabel_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     EDA_ITEM* Clone() const override;
 
@@ -324,7 +324,7 @@ public:
     ~SCH_HIERLABEL() { }
 
     void Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
-               GR_DRAWMODE draw_mode, EDA_COLOR_T Color = UNSPECIFIED_COLOR ) override;
+               GR_DRAWMODE draw_mode, COLOR4D Color = COLOR4D::UNSPECIFIED ) override;
 
     wxString GetClass() const override
     {
@@ -353,7 +353,7 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return  add_hierarchical_label_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     EDA_ITEM* Clone() const override;
 

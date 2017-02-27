@@ -24,7 +24,7 @@
 
 #include "module_editor_tools.h"
 #include "selection_tool.h"
-#include "common_actions.h"
+#include "pcb_actions.h"
 #include <tool/tool_manager.h>
 
 #include <class_draw_panel_gal.h>
@@ -38,6 +38,8 @@
 #include <collectors.h>
 #include <confirm.h>
 #include <dialogs/dialog_enum_pads.h>
+#include <hotkeys.h>
+#include <bitmaps.h>
 
 #include <wxPcbStruct.h>
 #include <class_board.h>
@@ -50,6 +52,32 @@
 #include <functional>
 using namespace std::placeholders;
 #include <wx/defs.h>
+
+// Module editor tools
+TOOL_ACTION PCB_ACTIONS::placePad( "pcbnew.ModuleEditor.placePad",
+        AS_GLOBAL, 0,
+        _( "Add Pad" ), _( "Add a pad" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::enumeratePads( "pcbnew.ModuleEditor.enumeratePads",
+        AS_GLOBAL, 0,
+        _( "Enumerate Pads" ), _( "Enumerate pads" ), pad_enumerate_xpm, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::copyItems( "pcbnew.ModuleEditor.copyItems",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_COPY_ITEM ),
+        _( "Copy" ), _( "Copy items" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::pasteItems( "pcbnew.ModuleEditor.pasteItems",
+        AS_GLOBAL, MD_CTRL + int( 'V' ),
+        _( "Paste" ), _( "Paste items" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::moduleEdgeOutlines( "pcbnew.ModuleEditor.graphicOutlines",
+        AS_GLOBAL, 0,
+        "", "" );
+
+TOOL_ACTION PCB_ACTIONS::moduleTextOutlines( "pcbnew.ModuleEditor.textOutlines",
+       AS_GLOBAL, 0,
+       "", "" );
+
 
 MODULE_EDITOR_TOOLS::MODULE_EDITOR_TOOLS() :
     TOOL_INTERACTIVE( "pcbnew.ModuleEditor" ), m_view( NULL ), m_controls( NULL ),
@@ -87,23 +115,6 @@ void MODULE_EDITOR_TOOLS::Reset( RESET_REASON aReason )
 }
 
 
-bool MODULE_EDITOR_TOOLS::Init()
-{
-    // Find the selection tool, so they can cooperate
-    SELECTION_TOOL* selectionTool = m_toolMgr->GetTool<SELECTION_TOOL>();
-
-    if( !selectionTool )
-    {
-        DisplayError( NULL, wxT( "pcbnew.InteractiveSelection tool is not available" ) );
-        return false;
-    }
-
-    selectionTool->GetToolMenu().GetMenu().AddItem( COMMON_ACTIONS::enumeratePads );
-
-    return true;
-}
-
-
 int MODULE_EDITOR_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
 {
     m_frame->SetToolID( ID_MODEDIT_PAD_TOOL, wxCURSOR_PENCIL, _( "Add pads" ) );
@@ -121,7 +132,7 @@ int MODULE_EDITOR_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
     preview.Add( pad );
     m_view->Add( &preview );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
 
@@ -147,7 +158,7 @@ int MODULE_EDITOR_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
                 pad->Rotate( pad->GetPosition(), rotationAngle );
                 m_view->Update( &preview );
             }
-            else if( evt->IsAction( &COMMON_ACTIONS::flip ) )
+            else if( evt->IsAction( &PCB_ACTIONS::flip ) )
             {
                 pad->Flip( pad->GetPosition() );
                 m_view->Update( &preview );
@@ -227,7 +238,7 @@ int MODULE_EDITOR_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
 
     Activate();
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     VECTOR2I oldCursorPos = m_controls->GetCursorPosition();
     std::list<D_PAD*> selectedPads;
@@ -435,7 +446,7 @@ int MODULE_EDITOR_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
     preview.Add( pastedModule );
     m_view->Add( &preview );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
     m_controls->SetAutoPan( true );
@@ -462,7 +473,7 @@ int MODULE_EDITOR_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
                 pastedModule->Rotate( pastedModule->GetPosition(), rotationAngle );
                 m_view->Update( &preview );
             }
-            else if( evt->IsAction( &COMMON_ACTIONS::flip ) )
+            else if( evt->IsAction( &PCB_ACTIONS::flip ) )
             {
                 pastedModule->Flip( pastedModule->GetPosition() );
                 m_view->Update( &preview );
@@ -592,10 +603,10 @@ int MODULE_EDITOR_TOOLS::ModuleEdgeOutlines( const TOOL_EVENT& aEvent )
 
 void MODULE_EDITOR_TOOLS::SetTransitions()
 {
-    Go( &MODULE_EDITOR_TOOLS::PlacePad,            COMMON_ACTIONS::placePad.MakeEvent() );
-    Go( &MODULE_EDITOR_TOOLS::EnumeratePads,       COMMON_ACTIONS::enumeratePads.MakeEvent() );
-    Go( &MODULE_EDITOR_TOOLS::CopyItems,           COMMON_ACTIONS::copyItems.MakeEvent() );
-    Go( &MODULE_EDITOR_TOOLS::PasteItems,          COMMON_ACTIONS::pasteItems.MakeEvent() );
-    Go( &MODULE_EDITOR_TOOLS::ModuleTextOutlines,  COMMON_ACTIONS::moduleTextOutlines.MakeEvent() );
-    Go( &MODULE_EDITOR_TOOLS::ModuleEdgeOutlines,  COMMON_ACTIONS::moduleEdgeOutlines.MakeEvent() );
+    Go( &MODULE_EDITOR_TOOLS::PlacePad,            PCB_ACTIONS::placePad.MakeEvent() );
+    Go( &MODULE_EDITOR_TOOLS::EnumeratePads,       PCB_ACTIONS::enumeratePads.MakeEvent() );
+    Go( &MODULE_EDITOR_TOOLS::CopyItems,           PCB_ACTIONS::copyItems.MakeEvent() );
+    Go( &MODULE_EDITOR_TOOLS::PasteItems,          PCB_ACTIONS::pasteItems.MakeEvent() );
+    Go( &MODULE_EDITOR_TOOLS::ModuleTextOutlines,  PCB_ACTIONS::moduleTextOutlines.MakeEvent() );
+    Go( &MODULE_EDITOR_TOOLS::ModuleEdgeOutlines,  PCB_ACTIONS::moduleEdgeOutlines.MakeEvent() );
 }

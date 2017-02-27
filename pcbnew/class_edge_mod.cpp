@@ -44,6 +44,7 @@
 #include <wxBasePcbFrame.h>
 #include <msgpanel.h>
 #include <base_units.h>
+#include <bitmaps.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -118,13 +119,13 @@ void EDGE_MODULE::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE draw_mode,
     if( brd->IsLayerVisible( m_Layer ) == false )
         return;
 
-    EDA_COLOR_T color = brd->GetLayerColor( m_Layer );
+    COLOR4D color = brd->GetLayerColor( m_Layer );
     DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)panel->GetDisplayOptions();
 
     if(( draw_mode & GR_ALLOW_HIGHCONTRAST ) && displ_opts && displ_opts->m_ContrastModeDisplay )
     {
         if( !IsOnLayer( curr_layer ) )
-            ColorTurnToDarkDarkGray( &color );
+            color = COLOR4D( DARKDARKGRAY );
     }
 
     ux0 = m_Start.x - offset.x;
@@ -255,6 +256,12 @@ wxString EDGE_MODULE::GetSelectMenuText() const
             GetChars( ((MODULE*) GetParent())->GetReference() ) );
 
     return text;
+}
+
+
+BITMAP_DEF EDGE_MODULE::GetMenuImage() const
+{
+    return show_mod_edge_xpm;
 }
 
 

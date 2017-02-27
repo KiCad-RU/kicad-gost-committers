@@ -32,6 +32,7 @@
 #include <class_drawpanel.h>
 #include <trigo.h>
 #include <msgpanel.h>
+#include <bitmaps.h>
 
 #include <general.h>
 #include <sch_marker.h>
@@ -84,10 +85,10 @@ bool SCH_MARKER::Save( FILE* aFile ) const
 
 
 void SCH_MARKER::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
-                       const wxPoint& aOffset, GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+                       const wxPoint& aOffset, GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
-    EDA_COLOR_T color = m_Color;
-    EDA_COLOR_T tmp   = color;
+    COLOR4D color = m_Color;
+    COLOR4D tmp   = color;
 
     if( GetMarkerType() == MARKER_BASE::MARKER_ERC )
     {
@@ -95,7 +96,7 @@ void SCH_MARKER::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
                   GetLayerColor( LAYER_ERC_ERR ) : GetLayerColor( LAYER_ERC_WARN );
     }
 
-    if( aColor < 0 )
+    if( aColor == COLOR4D::UNSPECIFIED )
         m_Color = color;
     else
         m_Color = aColor;
@@ -141,6 +142,12 @@ void SCH_MARKER::GetMsgPanelInfo( MSG_PANEL_ITEMS& aList )
 
     aList.push_back( MSG_PANEL_ITEM( _( "Electronics Rule Check Error" ),
                                      GetReporter().GetErrorText(), DARKRED ) );
+}
+
+
+BITMAP_DEF SCH_MARKER::GetMenuImage() const
+{
+    return erc_xpm;
 }
 
 

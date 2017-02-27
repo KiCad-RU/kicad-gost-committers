@@ -50,6 +50,9 @@ public:
     void SetTransitions() override;
 
 private:
+    ///> Determine if there are any footprints on the board
+    bool haveFootprints();
+
     ///> Apply pad settings from board design settings to a pad
     int applyPadSettings( const TOOL_EVENT& aEvent );
 
@@ -58,7 +61,9 @@ private:
 
     ///> Push pad settings from a pad to other pads on board or module
     int pushPadSettings( const TOOL_EVENT& aEvent );
-};
 
+    ///> Flag to indicate there are valid settings stored in the Master Pad object
+    bool m_padCopied;
+};
 
 #endif // __PAD_TOOL_H

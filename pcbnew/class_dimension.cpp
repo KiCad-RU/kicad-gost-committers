@@ -37,6 +37,7 @@
 #include <colors_selection.h>
 #include <kicad_string.h>
 #include <richio.h>
+#include <bitmaps.h>
 
 #include <class_board.h>
 #include <class_pcb_text.h>
@@ -315,7 +316,7 @@ void DIMENSION::AdjustDimensionDetails( bool aDoNotChangeText )
 void DIMENSION::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE mode_color,
                       const wxPoint& offset )
 {
-    EDA_COLOR_T gcolor;
+    COLOR4D     gcolor;
     BOARD*      brd = GetBoard();
 
     if( brd->IsLayerVisible( m_Layer ) == false )
@@ -481,6 +482,12 @@ wxString DIMENSION::GetSelectMenuText() const
                 GetChars( GetText() ), GetChars( GetLayerName() ) );
 
     return text;
+}
+
+
+BITMAP_DEF DIMENSION::GetMenuImage() const
+{
+    return add_dimension_xpm;
 }
 
 

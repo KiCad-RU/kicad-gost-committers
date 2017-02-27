@@ -27,6 +27,7 @@
 #include <tool/tool_manager.h>
 #include <tool/tool_interactive.h>
 #include <tool/context_menu.h>
+#include <wx/log.h>
 
 #include <functional>
 using namespace std::placeholders;
@@ -184,6 +185,25 @@ void CONTEXT_MENU::Clear()
     m_submenus.clear();
 
     wxASSERT( GetMenuItemCount() == 0 );
+}
+
+
+bool CONTEXT_MENU::HasEnabledItems() const
+{
+    bool hasEnabled = false;
+
+    auto& items = GetMenuItems();
+
+    for( auto item : items )
+    {
+        if( item->IsEnabled() && !item->IsSeparator() )
+        {
+            hasEnabled = true;
+            break;
+        }
+    }
+
+    return hasEnabled;
 }
 
 

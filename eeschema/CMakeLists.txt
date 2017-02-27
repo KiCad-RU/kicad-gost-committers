@@ -1,3 +1,8 @@
+# .cpp files are compiled with extra ${WSHADOW_FLAGS}
+if( COMPILER_SUPPORTS_WSHADOW )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WSHADOW_FLAGS}")
+endif()
+
 add_definitions( -DEESCHEMA )
 
 if(KICAD_GOST AND USE_OPENOFFICE_SDK)
@@ -127,6 +132,7 @@ set( EESCHEMA_SRCS
     find.cpp
     getpart.cpp
     component_tree_search_container.cpp
+    generate_alias_info.cpp
     hierarch.cpp
     highlight_connection.cpp
     hotkeys.cpp
@@ -325,6 +331,7 @@ target_link_libraries( eeschema
     # There's way too much crap coming in from common yet.
     common
     bitmaps
+    gal
     ${wxWidgets_LIBRARIES}
     )
 

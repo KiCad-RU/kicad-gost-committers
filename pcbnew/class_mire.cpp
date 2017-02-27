@@ -38,6 +38,7 @@
 #include <trigo.h>
 #include <macros.h>
 #include <richio.h>
+#include <bitmaps.h>
 
 #include <class_board.h>
 #include <class_mire.h>
@@ -88,7 +89,7 @@ void PCB_TARGET::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, GR_DRAWMODE mode_color,
     if( brd->IsLayerVisible( m_Layer ) == false )
         return;
 
-    EDA_COLOR_T gcolor = brd->GetLayerColor( m_Layer );
+    COLOR4D gcolor = brd->GetLayerColor( m_Layer );
 
     GRSetDrawMode( DC, mode_color );
     DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*)panel->GetDisplayOptions();
@@ -194,6 +195,11 @@ wxString PCB_TARGET::GetSelectMenuText() const
     return text;
 }
 
+
+BITMAP_DEF PCB_TARGET::GetMenuImage() const
+{
+    return  add_mires_xpm;
+}
 
 EDA_ITEM* PCB_TARGET::Clone() const
 {

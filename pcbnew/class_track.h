@@ -294,7 +294,7 @@ public:
 
     virtual wxString GetSelectMenuText() const override;
 
-    virtual BITMAP_DEF GetMenuImage() const override { return  showtrack_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     virtual EDA_ITEM* Clone() const override;
 
@@ -332,7 +332,7 @@ protected:
     /**
      * Helper for drawing the short netname in tracks */
     void DrawShortNetname( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode,
-            EDA_COLOR_T aBgColor );
+            COLOR4D aBgColor );
 
     int         m_Width;            ///< Thickness of track, or via diameter
     wxPoint     m_Start;            ///< Line start point
@@ -366,7 +366,7 @@ public:
     void Draw( EDA_DRAW_PANEL* panel, wxDC* DC,
                GR_DRAWMODE aDrawMode, const wxPoint& aOffset = ZeroOffset ) override;
 
-    BITMAP_DEF GetMenuImage() const override { return  add_zone_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     EDA_ITEM* Clone() const override;
 
@@ -426,7 +426,7 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return  via_sketch_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     EDA_ITEM* Clone() const override;
 

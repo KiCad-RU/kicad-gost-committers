@@ -53,6 +53,7 @@
  */
 
 #include <fctsys.h>
+#include <class_eda_rect.h>
 #include <drawtxt.h>
 #include <worksheet.h>
 #include <class_title_block.h>
@@ -175,7 +176,7 @@ void WS_DRAW_ITEM_LIST::Draw( EDA_RECT* aClipBox, wxDC* aDC )
 
 WS_DRAW_ITEM_TEXT::WS_DRAW_ITEM_TEXT( WORKSHEET_DATAITEM* aParent,
                    wxString& aText, wxPoint aPos, wxSize aSize,
-                   int aPenWidth, EDA_COLOR_T aColor,
+                   int aPenWidth, COLOR4D aColor,
                    bool aItalic, bool aBold ) :
     WS_DRAW_ITEM_BASE( aParent, wsg_text, aColor ), EDA_TEXT( aText )
 {
@@ -188,12 +189,12 @@ WS_DRAW_ITEM_TEXT::WS_DRAW_ITEM_TEXT( WORKSHEET_DATAITEM* aParent,
 
 
 void WS_DRAW_ITEM_TEXT::DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
-       GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+       GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
     Draw( aClipBox, aDC, aOffset,
-            aColor == UNSPECIFIED_COLOR ? GetColor() : aColor,
+            aColor == COLOR4D::UNSPECIFIED ? GetColor() : aColor,
             aDrawMode == UNSPECIFIED_DRAWMODE ? GR_COPY : aDrawMode,
-            FILLED, UNSPECIFIED_COLOR );
+            FILLED, COLOR4D::UNSPECIFIED );
 }
 
 
@@ -222,7 +223,7 @@ bool WS_DRAW_ITEM_TEXT::HitTestStartPoint( const wxPoint& aPosition)
 
 
 void WS_DRAW_ITEM_POLYGON::DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
-        GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+        GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
     std::vector<wxPoint> points_moved;
     wxPoint *points;
@@ -238,7 +239,7 @@ void WS_DRAW_ITEM_POLYGON::DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPo
         points = &m_Corners[0];
     }
 
-    auto color = ( aColor == UNSPECIFIED_COLOR ) ? GetColor() : aColor;
+    auto color = ( aColor == COLOR4D::UNSPECIFIED ) ? GetColor() : aColor;
 
     GRSetDrawMode( aDC, ( aDrawMode == UNSPECIFIED_DRAWMODE ? GR_COPY : aDrawMode ) );
     GRPoly( aClipBox, aDC,
@@ -288,14 +289,14 @@ bool WS_DRAW_ITEM_POLYGON::HitTestStartPoint( const wxPoint& aPosition)
 
 
 void WS_DRAW_ITEM_RECT::DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
-       GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+       GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
     GRSetDrawMode( aDC, ( aDrawMode == UNSPECIFIED_DRAWMODE ? GR_COPY : aDrawMode ) );
     GRRect( aClipBox, aDC,
             GetStart().x + aOffset.x, GetStart().y + aOffset.y,
             GetEnd().x + aOffset.x, GetEnd().y + aOffset.y,
             GetPenWidth(),
-            ( aColor == UNSPECIFIED_COLOR ) ? GetColor() : aColor );
+            ( aColor == COLOR4D::UNSPECIFIED ) ? GetColor() : aColor );
     GRSetDrawMode( aDC, GR_COPY );
 }
 
@@ -393,12 +394,12 @@ bool WS_DRAW_ITEM_RECT::HitTestEndPoint( const wxPoint& aPosition)
 
 
 void WS_DRAW_ITEM_LINE::DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
-        GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+        GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
     GRSetDrawMode( aDC, ( aDrawMode == UNSPECIFIED_DRAWMODE ) ? GR_COPY : aDrawMode );
     GRLine( aClipBox, aDC, GetStart() + aOffset, GetEnd() + aOffset,
             GetPenWidth(),
-            ( aColor == UNSPECIFIED_COLOR ) ? GetColor() : aColor );
+            ( aColor == COLOR4D::UNSPECIFIED ) ? GetColor() : aColor );
     GRSetDrawMode( aDC, GR_COPY );
 }
 
@@ -468,7 +469,7 @@ void WS_DRAW_ITEM_LIST::Locate( std::vector <WS_DRAW_ITEM_BASE*>& aList,
 
 
 void WS_DRAW_ITEM_BITMAP::DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
-        GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor )
+        GR_DRAWMODE aDrawMode, COLOR4D aColor )
 {
     WORKSHEET_DATAITEM_BITMAP* parent = (WORKSHEET_DATAITEM_BITMAP*)GetParent();
 

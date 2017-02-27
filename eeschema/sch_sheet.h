@@ -113,7 +113,7 @@ public:
     bool IsMovableFromAnchorPoint() override { return true; }
 
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
+               GR_DRAWMODE aDrawMode, COLOR4D aColor = COLOR4D::UNSPECIFIED ) override;
 
     /**
      * Function CreateGraphicShape (virtual)
@@ -196,7 +196,7 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return  add_hierar_pin_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     void SetPosition( const wxPoint& aPosition ) override { ConstrainOnEdge( aPosition ); }
 
@@ -429,7 +429,7 @@ public:
     int GetPenSize() const override;
 
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
+               GR_DRAWMODE aDrawMode, COLOR4D aColor = COLOR4D::UNSPECIFIED ) override;
 
     EDA_RECT const GetBoundingBox() const override;
 
@@ -572,7 +572,7 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return add_hierarchical_subsheet_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     void GetNetListItem( NETLIST_OBJECT_LIST& aNetListItems,
                          SCH_SHEET_PATH*      aSheetPath ) override;

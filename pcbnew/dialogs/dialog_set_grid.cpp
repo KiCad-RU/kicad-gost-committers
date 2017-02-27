@@ -37,7 +37,7 @@
 #include <class_draw_panel_gal.h>
 
 #include <gal/graphics_abstraction_layer.h>
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
 #include <tool/tool_manager.h>
 
 #include <limits.h>
@@ -83,9 +83,6 @@ private:
 
     void            setGridForFastSwitching( const wxArrayString& aGrids, int aGrid1, int aGrid2 );
     void            getGridForFastSwitching( int& aGrid1, int& aGrid2 );
-
-    void            setGridStyle( KIGFX::GRID_STYLE aStyle );
-    KIGFX::GRID_STYLE getGridStyle() const;
 };
 
 
@@ -157,13 +154,10 @@ bool DIALOG_SET_GRID::TransferDataFromWindow()
         mgr->RunAction( "common.Control.gridPreset", true,
                 screen->GetGridCmdId() - ID_POPUP_GRID_LEVEL_1000 );
 
-        TOOL_EVENT gridOriginUpdate = COMMON_ACTIONS::gridSetOrigin.MakeEvent();
+        TOOL_EVENT gridOriginUpdate = ACTIONS::gridSetOrigin.MakeEvent();
         gridOriginUpdate.SetParameter( new VECTOR2D( gridOrigin ) );
         mgr->ProcessEvent( gridOriginUpdate );
     }
-
-    m_parent->GetGalCanvas()->GetGAL()->SetGridStyle( getGridStyle() );
-    m_parent->GetCanvas()->Refresh();
 
     return wxDialog::TransferDataFromWindow();
 }
@@ -175,7 +169,6 @@ bool DIALOG_SET_GRID::TransferDataToWindow()
     setGridSize( m_parent->m_UserGridSize );
     setGridOrigin( m_parent->GetGridOrigin() );
     setGridForFastSwitching( m_fast_grid_opts, m_parent->m_FastGrid1, m_parent->m_FastGrid2 );
-    setGridStyle( m_parent->GetGalCanvas()->GetGAL()->GetGridStyle() );
 
     return wxDialog::TransferDataToWindow();
 }
@@ -289,18 +282,6 @@ void DIALOG_SET_GRID::getGridForFastSwitching( int& aGrid1, int& aGrid2 )
 {
     aGrid1 = m_comboBoxGrid1->GetSelection();
     aGrid2 = m_comboBoxGrid2->GetSelection();
-}
-
-
-void DIALOG_SET_GRID::setGridStyle( KIGFX::GRID_STYLE aStyle )
-{
-    m_Style->SetSelection( aStyle != KIGFX::GRID_STYLE_DOTS );
-}
-
-
-KIGFX::GRID_STYLE DIALOG_SET_GRID::getGridStyle() const
-{
-    return m_Style->GetSelection() == 0 ? KIGFX::GRID_STYLE_DOTS : KIGFX::GRID_STYLE_LINES;
 }
 
 

@@ -27,7 +27,8 @@
 #include <id.h>
 #include <draw_frame.h>
 #include <class_base_screen.h>
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
+#include <bitmaps.h>
 
 #include <functional>
 using namespace std::placeholders;
@@ -52,7 +53,7 @@ GRID_MENU::GRID_MENU( EDA_DRAW_FRAME* aParent ) : m_parent( aParent )
 
 OPT_TOOL_EVENT GRID_MENU::eventHandler( const wxMenuEvent& aEvent )
 {
-    OPT_TOOL_EVENT event( COMMON_ACTIONS::gridPreset.MakeEvent() );
+    OPT_TOOL_EVENT event( ACTIONS::gridPreset.MakeEvent() );
     intptr_t idx = aEvent.GetId() - ID_POPUP_GRID_SELECT - 1;
     event->SetParameter( idx );
 

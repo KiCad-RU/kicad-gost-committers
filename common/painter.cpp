@@ -41,15 +41,6 @@ RENDER_SETTINGS::RENDER_SETTINGS()
     m_highlightNetcode      = -1;
     m_outlineWidth          = 1;
     m_worksheetLineWidth    = 100000;
-
-    // Store the predefined colors used in KiCad in format used by GAL
-    for( int i = 0; i < NBCOLORS; i++ )
-    {
-        m_legacyColorMap[g_ColorRefs[i].m_Numcolor] = COLOR4D( (double) g_ColorRefs[i].m_Red / 255.0,
-                                                               (double) g_ColorRefs[i].m_Green / 255.0,
-                                                               (double) g_ColorRefs[i].m_Blue / 255.0,
-                                                               m_layerOpacity );
-    }
 }
 
 
@@ -62,6 +53,14 @@ void RENDER_SETTINGS::update()
 {
     m_hiContrastColor = COLOR4D( m_hiContrastFactor, m_hiContrastFactor, m_hiContrastFactor,
                                  m_layerOpacity );
+
+    // Calculate darkened/highlighted variants of layer colors
+    for( int i = 0; i < TOTAL_LAYER_COUNT; i++ )
+    {
+        m_layerColorsHi[i]   = m_layerColors[i].Brightened( m_highlightFactor );
+        m_layerColorsDark[i] = m_layerColors[i].Darkened( 1.0 - m_highlightFactor );
+        m_layerColorsSel[i]  = m_layerColors[i].Brightened( m_selectFactor );
+    }
 }
 
 

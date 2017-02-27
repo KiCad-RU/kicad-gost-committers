@@ -40,6 +40,7 @@
 #include <3d_viewer/eda_3d_viewer.h>
 #include <msgpanel.h>
 #include <fp_lib_table.h>
+#include <bitmaps.h>
 
 #include <pcbnew.h>
 #include <pcbnew_id.h>
@@ -68,7 +69,7 @@
 
 #include <tool/tool_manager.h>
 #include <tool/tool_dispatcher.h>
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
 
 #include <wildcards_and_files_ext.h>
 
@@ -151,7 +152,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_CONFIG_READ, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU_RANGE( ID_PREFERENCES_HOTKEY_START, ID_PREFERENCES_HOTKEY_END,
                     PCB_EDIT_FRAME::Process_Config )
-    EVT_MENU( ID_MENU_PCB_SHOW_HIDE_LAYERS_MANAGER_DIALOG, PCB_EDIT_FRAME::Process_Config )
+    EVT_MENU( ID_MENU_PCB_SHOW_HIDE_LAYERS_MANAGER, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU( ID_MENU_PCB_SHOW_HIDE_MUWAVE_TOOLBAR, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU( wxID_PREFERENCES, PCB_EDIT_FRAME::Process_Config )
     EVT_MENU( ID_PCB_LAYERS_SETUP, PCB_EDIT_FRAME::Process_Config )
@@ -575,10 +576,11 @@ void PCB_EDIT_FRAME::setupTools()
     m_toolManager = new TOOL_MANAGER;
     m_toolManager->SetEnvironment( m_Pcb, GetGalCanvas()->GetView(),
                                    GetGalCanvas()->GetViewControls(), this );
-    m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager );
+    m_actions = new PCB_ACTIONS();
+    m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager, m_actions );
 
     // Register tools
-    registerAllTools( m_toolManager );
+    m_actions->RegisterAllTools( m_toolManager );
     m_toolManager->InitTools();
 
     // Run the selection tool, it is supposed to be always active
@@ -726,6 +728,37 @@ void PCB_EDIT_FRAME::UseGalCanvas( bool aEnable )
     PCB_BASE_EDIT_FRAME::UseGalCanvas( aEnable );
 
     enableGALSpecificMenus();
+
+    // Force colors to be legacy-compatible in case they were changed in GAL
+    if( !aEnable )
+    {
+        forceColorsToLegacy();
+        Refresh();
+    }
+
+    // Re-create the layer manager to allow arbitrary colors when GAL is enabled
+    ReFillLayerWidget();
+    m_Layers->ReFillRender();
+}
+
+
+void PCB_EDIT_FRAME::forceColorsToLegacy()
+{
+    COLORS_DESIGN_SETTINGS *cds = GetBoard()->GetColorsSettings();
+
+    for( int i = 0; i < LAYER_ID_COUNT; i++ )
+    {
+        COLOR4D c = cds->GetLayerColor( i );
+        c.SetToNearestLegacyColor();
+        cds->SetLayerColor( i, c );
+    }
+
+    for( unsigned int i = 0; i < DIM( cds->m_ItemsColors ); i++ )
+    {
+        COLOR4D c = cds->GetItemColor( i );
+        c.SetToNearestLegacyColor();
+        cds->SetItemColor( i, c );
+    }
 }
 
 
@@ -826,26 +859,20 @@ void PCB_EDIT_FRAME::SetGridVisibility(bool aVisible)
 }
 
 
-EDA_COLOR_T PCB_EDIT_FRAME::GetGridColor() const
+COLOR4D PCB_EDIT_FRAME::GetGridColor() const
 {
     return GetBoard()->GetVisibleElementColor( GRID_VISIBLE );
 }
 
 
-void PCB_EDIT_FRAME::SetGridColor( EDA_COLOR_T aColor )
+void PCB_EDIT_FRAME::SetGridColor( COLOR4D aColor )
 {
 
     GetBoard()->SetVisibleElementColor( GRID_VISIBLE, aColor );
 
     if( IsGalCanvasActive() )
     {
-        StructColors c = g_ColorRefs[ aColor ];
-        KIGFX::COLOR4D color(  (double) c.m_Red / 255.0,
-                        (double) c.m_Green / 255.0,
-                        (double) c.m_Blue / 255.0,
-                        0.7 );
-
-         GetGalCanvas()->GetGAL()->SetGridColor( color );
+        GetGalCanvas()->GetGAL()->SetGridColor( aColor );
     }
 }
 
@@ -892,7 +919,7 @@ void PCB_EDIT_FRAME::SetActiveLayer( LAYER_ID aLayer )
 
     if( IsGalCanvasActive() )
     {
-        m_toolManager->RunAction( COMMON_ACTIONS::layerChanged );       // notify other tools
+        m_toolManager->RunAction( PCB_ACTIONS::layerChanged );       // notify other tools
         GetGalCanvas()->SetFocus();                 // otherwise hotkeys are stuck somewhere
 
         GetGalCanvas()->SetHighContrastLayer( aLayer );

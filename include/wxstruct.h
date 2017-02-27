@@ -42,7 +42,6 @@
 #include <wx/aui/aui.h>
 #include <wx/docview.h>
 
-#include <colors.h>
 #include <fctsys.h>
 #include <common.h>
 #include <layers_id_colors_and_visibility.h>
@@ -84,6 +83,7 @@ class TITLE_BLOCK;
 class MSG_PANEL_ITEM;
 class TOOL_MANAGER;
 class TOOL_DISPATCHER;
+class ACTIONS;
 
 
 enum id_librarytype {

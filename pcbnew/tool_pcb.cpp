@@ -38,6 +38,7 @@
 #include <wxPcbStruct.h>
 #include <class_drawpanel.h>
 #include <confirm.h>
+#include <bitmaps.h>
 
 #include <class_board.h>
 
@@ -92,13 +93,13 @@ static const char s_BitmapLayerIcon[BM_LAYERICON_SIZE][BM_LAYERICON_SIZE] =
 void PCB_EDIT_FRAME::PrepareLayerIndicator()
 {
     int        ii, jj;
-    EDA_COLOR_T active_layer_color, Route_Layer_TOP_color,
+    COLOR4D    active_layer_color, Route_Layer_TOP_color,
                Route_Layer_BOTTOM_color, via_color;
     bool       change = false;
     bool first_call = LayerPairBitmap == NULL;
 
-    static int previous_active_layer_color, previous_Route_Layer_TOP_color,
-               previous_Route_Layer_BOTTOM_color, previous_via_color;
+    static COLOR4D previous_active_layer_color, previous_Route_Layer_TOP_color,
+                   previous_Route_Layer_BOTTOM_color, previous_via_color;
 
     /* get colors, and redraw bitmap button only on changes */
     active_layer_color = GetBoard()->GetLayerColor(GetActiveLayer());
@@ -163,19 +164,19 @@ void PCB_EDIT_FRAME::PrepareLayerIndicator()
                 {
                 default:
                 case 0:
-                    pen.SetColour( MakeColour( active_layer_color ) );
+                    pen.SetColour( active_layer_color.ToColour() );
                     break;
 
                 case 1:
-                    pen.SetColour( MakeColour( Route_Layer_TOP_color) );
+                    pen.SetColour( Route_Layer_TOP_color.ToColour() );
                     break;
 
                 case 2:
-                    pen.SetColour( MakeColour( Route_Layer_BOTTOM_color ) );
+                    pen.SetColour( Route_Layer_BOTTOM_color.ToColour() );
                     break;
 
                 case 3:
-                    pen.SetColour( MakeColour( via_color ) );
+                    pen.SetColour( via_color.ToColour() );
                     break;
                 }
 
@@ -791,7 +792,7 @@ void PCB_EDIT_FRAME::OnSelectOptionToolbar( wxCommandEvent& event )
 
         GetMenuBar()->SetLabel( ID_MENU_PCB_SHOW_HIDE_MUWAVE_TOOLBAR,
                                 m_show_microwave_tools ?
-                                _( "Hide Microwave Toolbar" ): _( "Show Microwave Toolbar" ));
+                                _( "Hide Microwa&ve Toolbar" ): _( "Show Microwa&ve Toolbar" ));
         break;
 
     case ID_TB_OPTIONS_SHOW_MANAGE_LAYERS_VERTICAL_TOOLBAR:
@@ -800,7 +801,7 @@ void PCB_EDIT_FRAME::OnSelectOptionToolbar( wxCommandEvent& event )
         m_auimgr.GetPane( wxT( "m_LayersManagerToolBar" ) ).Show( m_show_layer_manager_tools );
         m_auimgr.Update();
 
-        GetMenuBar()->SetLabel( ID_MENU_PCB_SHOW_HIDE_LAYERS_MANAGER_DIALOG,
+        GetMenuBar()->SetLabel( ID_MENU_PCB_SHOW_HIDE_LAYERS_MANAGER,
                                 m_show_layer_manager_tools ?
                                 _( "Hide &Layers Manager" ) : _( "Show &Layers Manager" ) );
         break;

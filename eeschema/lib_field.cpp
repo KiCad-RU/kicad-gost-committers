@@ -38,6 +38,7 @@
 #include <trigo.h>
 #include <base_units.h>
 #include <msgpanel.h>
+#include <bitmaps.h>
 
 #include <general.h>
 #include <class_libentry.h>
@@ -286,11 +287,11 @@ int LIB_FIELD::GetPenSize() const
 
 
 void LIB_FIELD::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                             EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
+                             COLOR4D aColor, GR_DRAWMODE aDrawMode, void* aData,
                              const TRANSFORM& aTransform )
 {
     wxPoint  text_pos;
-    int      color;
+    COLOR4D color = COLOR4D::UNSPECIFIED;
     int      linewidth = GetPenSize();
 
     if( IsBold() )
@@ -298,11 +299,11 @@ void LIB_FIELD::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& a
     else
         linewidth = Clamp_Text_PenSize( linewidth, GetTextSize(), IsBold() );
 
-    if( !IsVisible() &&  aColor < 0 )
+    if( !IsVisible() && ( aColor == COLOR4D::UNSPECIFIED ) )
     {
         color = GetInvisibleItemColor();
     }
-    else if( IsSelected() &&  aColor < 0 )
+    else if( IsSelected() && ( aColor == COLOR4D::UNSPECIFIED ) )
     {
         color = GetItemSelectedColor();
     }
@@ -311,7 +312,7 @@ void LIB_FIELD::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& a
         color = aColor;
     }
 
-    if( color < 0 )
+    if( color == COLOR4D::UNSPECIFIED )
         color = GetDefaultColor();
 
     text_pos = aTransform.TransformCoordinate( GetTextPos() ) + aOffset;
@@ -325,7 +326,8 @@ void LIB_FIELD::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& a
 
     GRSetDrawMode( aDC, aDrawMode );
     EDA_RECT* clipbox = aPanel? aPanel->GetClipBox() : NULL;
-    DrawGraphicText( clipbox, aDC, text_pos, (EDA_COLOR_T) color, text,
+
+    DrawGraphicText( clipbox, aDC, text_pos, color, text,
                      GetTextAngle(), GetTextSize(),
                      GetHorizJustify(), GetVertJustify(),
                      linewidth, IsItalic(), IsBold() );
@@ -568,9 +570,9 @@ const EDA_RECT LIB_FIELD::GetBoundingBox() const
 }
 
 
-EDA_COLOR_T LIB_FIELD::GetDefaultColor()
+COLOR4D LIB_FIELD::GetDefaultColor()
 {
-    EDA_COLOR_T color;
+    COLOR4D color;
 
     switch( m_id )
     {
@@ -799,4 +801,10 @@ void LIB_FIELD::GetMsgPanelInfo( MSG_PANEL_ITEMS& aList )
 
     // Display field text:
     aList.push_back( MSG_PANEL_ITEM( _( "Value" ), GetShownText(), BROWN ) );
+}
+
+
+BITMAP_DEF LIB_FIELD::GetMenuImage() const
+{
+    return move_field_xpm;
 }

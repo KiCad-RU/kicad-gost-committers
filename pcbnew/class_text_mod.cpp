@@ -41,6 +41,7 @@
 #include <wxBasePcbFrame.h>
 #include <msgpanel.h>
 #include <base_units.h>
+#include <bitmaps.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -222,7 +223,7 @@ void TEXTE_MODULE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMod
     wxASSERT( m_Parent );
 
     BOARD* brd = GetBoard( );
-    EDA_COLOR_T color = brd->GetLayerColor( GetLayer() );
+    COLOR4D color = brd->GetLayerColor( GetLayer() );
     LAYER_ID text_layer = GetLayer();
 
     if( !brd->IsLayerVisible( m_Layer )
@@ -248,7 +249,7 @@ void TEXTE_MODULE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMod
         LAYER_ID curr_layer = ( (PCB_SCREEN*) aPanel->GetScreen() )->m_Active_Layer;
 
         if( !IsOnLayer( curr_layer ) )
-            ColorTurnToDarkDarkGray( &color );
+            color = COLOR4D( DARKDARKGRAY );
     }
 
     // Draw mode compensation for the width
@@ -263,7 +264,7 @@ void TEXTE_MODULE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMod
     // Draw the text anchor point
     if( brd->IsElementVisible( ANCHOR_VISIBLE ) )
     {
-        EDA_COLOR_T anchor_color = brd->GetVisibleElementColor(ANCHOR_VISIBLE);
+        COLOR4D anchor_color = brd->GetVisibleElementColor(ANCHOR_VISIBLE);
         GRDrawAnchor( aPanel->GetClipBox(), aDC, pos.x, pos.y, DIM_ANCRE_TEXTE, anchor_color );
     }
 
@@ -402,6 +403,12 @@ wxString TEXTE_MODULE::GetSelectMenuText() const
     }
 
     return text;
+}
+
+
+BITMAP_DEF TEXTE_MODULE::GetMenuImage() const
+{
+    return footprint_text_xpm;
 }
 
 

@@ -33,7 +33,6 @@
 
 #include <wx/window.h>
 #include <wx/timer.h>
-#include <layers_id_colors_and_visibility.h>
 #include <math/vector2d.h>
 #include <msgpanel.h>
 
@@ -150,13 +149,13 @@ public:
      * Function SetHighContrastLayer
      * Takes care of display settings for the given layer to be displayed in high contrast mode.
      */
-    virtual void SetHighContrastLayer( LAYER_ID aLayer );
+    virtual void SetHighContrastLayer( int aLayer );
 
     /**
      * Function SetTopLayer
      * Moves the selected layer to the top, so it is displayed above all others.
      */
-    virtual void SetTopLayer( LAYER_ID aLayer );
+    virtual void SetTopLayer( int aLayer );
 
     virtual void GetMsgPanelInfo( std::vector<MSG_PANEL_ITEM>& aList )
     {
@@ -177,18 +176,6 @@ public:
     {
         return m_edaFrame;
     }
-
-    /**
-     * Function SaveGalSettings()
-     * Stores GAL related settings in the configuration storage.
-     */
-    virtual bool SaveGalSettings();
-
-    /**
-     * Function LoadGalSettings()
-     * Loads GAL related settings from the configuration storage.
-     */
-    virtual bool LoadGalSettings();
 
     /**
      * Function OnShow()
@@ -253,9 +240,6 @@ protected:
     /// Flag to indicate that focus should be regained on the next mouse event. It is a workaround
     /// for cases when the panel loses keyboard focus, so it does not react to hotkeys anymore.
     bool                     m_lostFocus;
-
-    /// Grid style setting string
-    static const wxChar GRID_STYLE_CFG[];
 };
 
 #endif

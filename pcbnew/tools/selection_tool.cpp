@@ -38,11 +38,14 @@ using namespace std::placeholders;
 #include <collectors.h>
 #include <confirm.h>
 #include <dialog_find.h>
+#include <dialog_block_options.h>
 
 #include <class_draw_panel_gal.h>
 #include <view/view_controls.h>
 #include <view/view_group.h>
 #include <painter.h>
+#include <bitmaps.h>
+#include <hotkeys.h>
 
 #include <tool/tool_event.h>
 #include <tool/tool_manager.h>
@@ -51,7 +54,58 @@ using namespace std::placeholders;
 #include "selection_tool.h"
 #include "selection_area.h"
 #include "bright_box.h"
-#include "common_actions.h"
+#include "pcb_actions.h"
+
+// Selection tool actions
+TOOL_ACTION PCB_ACTIONS::selectionActivate( "pcbnew.InteractiveSelection",
+        AS_GLOBAL, 0,
+        "", "", NULL, AF_ACTIVATE ); // No description, it is not supposed to be shown anywhere
+
+TOOL_ACTION PCB_ACTIONS::selectionCursor( "pcbnew.InteractiveSelection.Cursor",
+        AS_GLOBAL, 0,
+        "", "" );    // No description, it is not supposed to be shown anywhere
+
+TOOL_ACTION PCB_ACTIONS::selectItem( "pcbnew.InteractiveSelection.SelectItem",
+        AS_GLOBAL, 0,
+        "", "" );    // No description, it is not supposed to be shown anywhere
+
+TOOL_ACTION PCB_ACTIONS::unselectItem( "pcbnew.InteractiveSelection.UnselectItem",
+        AS_GLOBAL, 0,
+        "", "" );    // No description, it is not supposed to be shown anywhere
+
+TOOL_ACTION PCB_ACTIONS::selectionClear( "pcbnew.InteractiveSelection.Clear",
+        AS_GLOBAL, 0,
+        "", "" );    // No description, it is not supposed to be shown anywhere
+
+TOOL_ACTION PCB_ACTIONS::selectConnection( "pcbnew.InteractiveSelection.SelectConnection",
+        AS_GLOBAL, 'U',
+        _( "Trivial Connection" ), _( "Selects a connection between two junctions." ) );
+
+TOOL_ACTION PCB_ACTIONS::selectCopper( "pcbnew.InteractiveSelection.SelectCopper",
+        AS_GLOBAL, 'I',
+        _( "Copper Connection" ), _( "Selects whole copper connection." ) );
+
+TOOL_ACTION PCB_ACTIONS::selectNet( "pcbnew.InteractiveSelection.SelectNet",
+        AS_GLOBAL, 0,
+        _( "Whole Net" ), _( "Selects all tracks & vias belonging to the same net." ) );
+
+TOOL_ACTION PCB_ACTIONS::selectSameSheet( "pcbnew.InteractiveSelection.SelectSameSheet",
+        AS_GLOBAL,  'P',
+        _( "Same Sheet" ), _( "Selects all modules and tracks in the same schematic sheet" ) );
+
+TOOL_ACTION PCB_ACTIONS::find( "pcbnew.InteractiveSelection.Find",
+        AS_GLOBAL, 0, //TOOL_ACTION::LegacyHotKey( HK_FIND_ITEM ), // handled by wxWidgets
+        _( "Find Item" ), _( "Searches the document for an item" ), find_xpm );
+
+TOOL_ACTION PCB_ACTIONS::findMove( "pcbnew.InteractiveSelection.FindMove",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_GET_AND_MOVE_FOOTPRINT ) );
+
+TOOL_ACTION PCB_ACTIONS::filterSelection( "pcbnew.InteractiveSelection.FilterSelection",
+        AS_GLOBAL, MD_SHIFT + 'F',
+        _( "Filter selection" ), _( "Filter the types of items in the selection" ),
+        nullptr );
+
+
 
 class SELECT_MENU: public CONTEXT_MENU
 {
@@ -59,31 +113,34 @@ public:
     SELECT_MENU()
     {
         SetTitle( _( "Select..." ) );
-        Add( COMMON_ACTIONS::selectConnection );
-        Add( COMMON_ACTIONS::selectCopper );
-        Add( COMMON_ACTIONS::selectNet );
-        Add( COMMON_ACTIONS::selectSameSheet );
+
+        Add( PCB_ACTIONS::filterSelection );
+
+        AppendSeparator();
+
+        Add( PCB_ACTIONS::selectConnection );
+        Add( PCB_ACTIONS::selectCopper );
+        Add( PCB_ACTIONS::selectNet );
+        Add( PCB_ACTIONS::selectSameSheet );
     }
 
 private:
 
     void update() override
     {
-        SELECTION_TOOL* selTool = getToolManager()->GetTool<SELECTION_TOOL>();
+        using S_C = SELECTION_CONDITIONS;
 
-        // lines like this make me really think about a better name for SELECTION_CONDITIONS class
-        bool selEnabled =  ( SELECTION_CONDITIONS::OnlyType( PCB_VIA_T )
-                || SELECTION_CONDITIONS::OnlyType( PCB_TRACE_T ) )
-                              ( selTool->GetSelection() );
+        const auto& selection = getToolManager()->GetTool<SELECTION_TOOL>()->GetSelection();
 
-        bool sheetSelEnabled = ( SELECTION_CONDITIONS::OnlyType( PCB_MODULE_T ) )
-                              ( selTool->GetSelection() );
+        bool connItem = ( S_C::OnlyType( PCB_VIA_T ) || S_C::OnlyType( PCB_TRACE_T ) )( selection );
+        bool sheetSelEnabled = ( S_C::OnlyType( PCB_MODULE_T ) )( selection );
 
-        Enable( getMenuId( COMMON_ACTIONS::selectNet ), selEnabled );
-        Enable( getMenuId( COMMON_ACTIONS::selectCopper ), selEnabled );
-        Enable( getMenuId( COMMON_ACTIONS::selectConnection ), selEnabled );
-        Enable( getMenuId( COMMON_ACTIONS::selectSameSheet ), sheetSelEnabled );
+        Enable( getMenuId( PCB_ACTIONS::selectNet ), connItem );
+        Enable( getMenuId( PCB_ACTIONS::selectCopper ), connItem );
+        Enable( getMenuId( PCB_ACTIONS::selectConnection ), connItem );
+        Enable( getMenuId( PCB_ACTIONS::selectSameSheet ), sheetSelEnabled );
     }
+
     CONTEXT_MENU* create() const override
     {
         return new SELECT_MENU();
@@ -91,10 +148,21 @@ private:
 };
 
 
+/**
+ * Private implementation of firewalled private data
+ */
+class SELECTION_TOOL::PRIV
+{
+public:
+    DIALOG_BLOCK_OPTIONS::OPTIONS m_filterOpts;
+};
+
+
 SELECTION_TOOL::SELECTION_TOOL() :
         PCB_TOOL( "pcbnew.InteractiveSelection" ),
         m_frame( NULL ), m_additive( false ), m_multiple( false ),
-        m_locked( true ), m_menu( *this )
+        m_locked( true ), m_menu( *this ),
+        m_priv( std::make_unique<PRIV>() )
 {
     // Do not leave uninitialized members:
     m_preliminary = false;
@@ -109,22 +177,15 @@ SELECTION_TOOL::~SELECTION_TOOL()
 
 bool SELECTION_TOOL::Init()
 {
-    using S_C = SELECTION_CONDITIONS;
-
-    auto showSelectMenuFunctor = ( S_C::OnlyType( PCB_VIA_T ) ||
-            S_C::OnlyType( PCB_TRACE_T ) ||
-            S_C::OnlyType( PCB_MODULE_T ) ) &&
-            S_C::Count( 1 );
-
     auto selectMenu = std::make_shared<SELECT_MENU>();
     selectMenu->SetTool( this );
     m_menu.AddSubMenu( selectMenu );
 
     auto& menu = m_menu.GetMenu();
 
-    menu.AddMenu( selectMenu.get(), false, showSelectMenuFunctor );
+    menu.AddMenu( selectMenu.get(), false, SELECTION_CONDITIONS::NotEmpty );
     // only show separator if there is a Select menu to show above it
-    menu.AddSeparator( showSelectMenuFunctor, 1000 );
+    menu.AddSeparator( SELECTION_CONDITIONS::NotEmpty, 1000 );
 
     m_menu.AddStandardSubMenus( *getEditFrame<PCB_BASE_FRAME>() );
 
@@ -170,7 +231,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
         {
             if( evt->Modifier( MD_CTRL ) && !m_editModules )
             {
-                m_toolMgr->RunAction( COMMON_ACTIONS::highlightNet, true );
+                m_toolMgr->RunAction( PCB_ACTIONS::highlightNet, true );
             }
             else
             {
@@ -200,7 +261,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
             if( m_selection.Empty() )
                 selectPoint( evt->Position() );
 
-            m_toolMgr->RunAction( COMMON_ACTIONS::properties );
+            m_toolMgr->RunAction( PCB_ACTIONS::properties );
         }
 
         // drag with LMB? Select multiple objects (or at least draw a selection box) or drag them
@@ -468,17 +529,18 @@ bool SELECTION_TOOL::selectMultiple()
 
 void SELECTION_TOOL::SetTransitions()
 {
-    Go( &SELECTION_TOOL::Main, COMMON_ACTIONS::selectionActivate.MakeEvent() );
-    Go( &SELECTION_TOOL::CursorSelection, COMMON_ACTIONS::selectionCursor.MakeEvent() );
-    Go( &SELECTION_TOOL::ClearSelection, COMMON_ACTIONS::selectionClear.MakeEvent() );
-    Go( &SELECTION_TOOL::SelectItem, COMMON_ACTIONS::selectItem.MakeEvent() );
-    Go( &SELECTION_TOOL::UnselectItem, COMMON_ACTIONS::unselectItem.MakeEvent() );
-    Go( &SELECTION_TOOL::find, COMMON_ACTIONS::find.MakeEvent() );
-    Go( &SELECTION_TOOL::findMove, COMMON_ACTIONS::findMove.MakeEvent() );
-    Go( &SELECTION_TOOL::selectConnection, COMMON_ACTIONS::selectConnection.MakeEvent() );
-    Go( &SELECTION_TOOL::selectCopper, COMMON_ACTIONS::selectCopper.MakeEvent() );
-    Go( &SELECTION_TOOL::selectNet, COMMON_ACTIONS::selectNet.MakeEvent() );
-    Go( &SELECTION_TOOL::selectSameSheet, COMMON_ACTIONS::selectSameSheet.MakeEvent() );
+    Go( &SELECTION_TOOL::Main, PCB_ACTIONS::selectionActivate.MakeEvent() );
+    Go( &SELECTION_TOOL::CursorSelection, PCB_ACTIONS::selectionCursor.MakeEvent() );
+    Go( &SELECTION_TOOL::ClearSelection, PCB_ACTIONS::selectionClear.MakeEvent() );
+    Go( &SELECTION_TOOL::SelectItem, PCB_ACTIONS::selectItem.MakeEvent() );
+    Go( &SELECTION_TOOL::UnselectItem, PCB_ACTIONS::unselectItem.MakeEvent() );
+    Go( &SELECTION_TOOL::find, PCB_ACTIONS::find.MakeEvent() );
+    Go( &SELECTION_TOOL::findMove, PCB_ACTIONS::findMove.MakeEvent() );
+    Go( &SELECTION_TOOL::filterSelection, PCB_ACTIONS::filterSelection.MakeEvent() );
+    Go( &SELECTION_TOOL::selectConnection, PCB_ACTIONS::selectConnection.MakeEvent() );
+    Go( &SELECTION_TOOL::selectCopper, PCB_ACTIONS::selectCopper.MakeEvent() );
+    Go( &SELECTION_TOOL::selectNet, PCB_ACTIONS::selectNet.MakeEvent() );
+    Go( &SELECTION_TOOL::selectSameSheet, PCB_ACTIONS::selectSameSheet.MakeEvent() );
 }
 
 
@@ -863,6 +925,134 @@ int SELECTION_TOOL::findMove( const TOOL_EVENT& aEvent )
         m_toolMgr->InvokeTool( "pcbnew.InteractiveEdit" );
     }
 
+    return 0;
+}
+
+
+/**
+ * Function itemIsIncludedByFilter()
+ *
+ * Determine if an item is included by the filter specified
+ *
+ * @return true if the parameter indicate the items should be selected
+ * by this filter (i..e not filtered out)
+ */
+static bool itemIsIncludedByFilter( const BOARD_ITEM& aItem,
+                                    const BOARD& aBoard,
+                                    const LSET& aTechnlLayerMask,
+                                    const DIALOG_BLOCK_OPTIONS::OPTIONS& aBlockOpts )
+{
+    bool include = true;
+    const LAYER_ID layer = aItem.GetLayer();
+
+    // can skip without even checking item type
+    if( !aBlockOpts.includeItemsOnInvisibleLayers
+        && !aBoard.IsLayerVisible( layer ) )
+    {
+        include = false;
+    }
+
+    // if the item needsto be checked agains the options
+    if( include )
+    {
+        switch( aItem.Type() )
+        {
+        case PCB_MODULE_T:
+        {
+            const auto& module = static_cast<const MODULE&>( aItem );
+
+            include = aBlockOpts.includeModules;
+
+            if( include && !aBlockOpts.includeLockedModules )
+            {
+                include = !module.IsLocked();
+            }
+
+            break;
+        }
+        case PCB_TRACE_T:
+        {
+            include = aBlockOpts.includeTracks;
+            break;
+        }
+        case PCB_ZONE_AREA_T:
+        {
+            include = aBlockOpts.includeZones;
+            break;
+        }
+        case PCB_LINE_T:
+        case PCB_TARGET_T:
+        case PCB_DIMENSION_T:
+        {
+            include = aTechnlLayerMask[layer];
+            break;
+        }
+        case PCB_TEXT_T:
+        {
+            include = aBlockOpts.includePcbTexts
+                        && aTechnlLayerMask[layer];
+            break;
+        }
+        default:
+        {
+            // no filterering, just select it
+            break;
+        }
+        }
+    }
+
+    return include;
+}
+
+
+/**
+ * Gets the technical layers that are part of the given selection opts
+ */
+static LSET getFilteredLayerSet(
+        const DIALOG_BLOCK_OPTIONS::OPTIONS& blockOpts )
+{
+    LSET layerMask( Edge_Cuts );
+
+    if( blockOpts.includeItemsOnTechLayers )
+        layerMask.set();
+
+    if( !blockOpts.includeBoardOutlineLayer )
+        layerMask.set( Edge_Cuts, false );
+
+    return layerMask;
+}
+
+
+int SELECTION_TOOL::filterSelection( const TOOL_EVENT& aEvent )
+{
+    auto& opts = m_priv->m_filterOpts;
+    DIALOG_BLOCK_OPTIONS dlg( m_frame, opts, false, _( "Filter selection" ) );
+
+    const int cmd = dlg.ShowModal();
+
+    if( cmd != wxID_OK )
+        return 0;
+
+    const auto& board = *getModel<BOARD>();
+    const auto layerMask = getFilteredLayerSet( opts );
+
+    // copy current selection
+    auto selection = m_selection.GetItems();
+
+    // clear current selection
+    clearSelection();
+
+    // copy selection items from the saved selection
+    // according to the dialog options
+    for( auto item : selection )
+    {
+        bool include = itemIsIncludedByFilter( *item, board, layerMask, opts );
+
+        if( include )
+        {
+            select( item );
+        }
+    }
     return 0;
 }
 

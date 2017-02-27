@@ -207,9 +207,9 @@ void DIALOG_RESCUE_EACH::OnDialogResize( wxSizeEvent& aSizeEvent )
 void DIALOG_RESCUE_EACH::renderPreview( LIB_PART* aComponent, int aUnit, wxPanel* aPanel )
 {
     wxPaintDC dc( aPanel );
-    EDA_COLOR_T bgcolor = m_Parent->GetDrawBgColor();
+    wxColour bgColor = m_Parent->GetDrawBgColor().ToColour();
 
-    dc.SetBackground( bgcolor == BLACK ? *wxBLACK_BRUSH : *wxWHITE_BRUSH );
+    dc.SetBackground( wxBrush( bgColor ) );
     dc.Clear();
 
     if( aComponent == NULL )
@@ -238,8 +238,7 @@ void DIALOG_RESCUE_EACH::renderPreview( LIB_PART* aComponent, int aUnit, wxPanel
     if( !width || !height )
         return;
 
-    aComponent->Draw( NULL, &dc, offset, aUnit, /* deMorganConvert */ 1, GR_COPY,
-                      UNSPECIFIED_COLOR, DefaultTransform, true, true, false );
+    aComponent->Draw( NULL, &dc, offset, aUnit, 1, PART_DRAW_OPTIONS::Default() );
 }
 
 

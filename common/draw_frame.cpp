@@ -51,8 +51,10 @@
 #include <view/view.h>
 #include <view/view_controls.h>
 #include <gal/graphics_abstraction_layer.h>
+#include <gal/gal_display_options.h>
 #include <tool/tool_manager.h>
 #include <tool/tool_dispatcher.h>
+#include <tool/actions.h>
 
 /**
  * Definition for enabling and disabling scroll bar setting trace output.  See the
@@ -127,7 +129,8 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent,
                                 const wxString& aTitle,
                                 const wxPoint& aPos, const wxSize& aSize,
                                 long aStyle, const wxString & aFrameName ) :
-    KIWAY_PLAYER( aKiway, aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName )
+    KIWAY_PLAYER( aKiway, aParent, aFrameType, aTitle, aPos, aSize, aStyle, aFrameName ),
+    m_galDisplayOptions( std::make_unique<KIGFX::GAL_DISPLAY_OPTIONS>() )
 {
     m_file_checker        = NULL;
 
@@ -140,6 +143,7 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent,
     m_canvas              = NULL;
     m_galCanvas           = NULL;
     m_galCanvasActive     = false;
+    m_actions             = NULL;
     m_toolManager         = NULL;
     m_toolDispatcher      = NULL;
     m_messagePanel        = NULL;
@@ -153,10 +157,10 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent,
     m_cursorShape         = 0;
     m_LastGridSizeId      = 0;
     m_drawGrid            = true;       // hide/Show grid. default = show
-    m_gridColor           = DARKGRAY;   // Default grid color
+    m_gridColor           = COLOR4D( DARKGRAY );   // Default grid color
     m_showPageLimits      = false;
-    m_drawBgColor         = BLACK;      // the background color of the draw canvas:
-                                        // BLACK for Pcbnew, BLACK or WHITE for eeschema
+    m_drawBgColor         = COLOR4D( BLACK );   // the background color of the draw canvas:
+                                                // BLACK for Pcbnew, BLACK or WHITE for eeschema
     m_snapToGrid          = true;
     m_MsgFrameHeight      = EDA_MSG_PANEL::GetRequiredHeight();
     m_movingCursorWithKeyboard = false;
@@ -206,12 +210,13 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent,
     m_messagePanel  = new EDA_MSG_PANEL( this, -1, wxPoint( 0, m_FrameSize.y ),
                                          wxSize( m_FrameSize.x, m_MsgFrameHeight ) );
 
-    m_messagePanel->SetBackgroundColour( MakeColour( LIGHTGRAY ) );
+    m_messagePanel->SetBackgroundColour( COLOR4D( LIGHTGRAY ).ToColour() );
 }
 
 
 EDA_DRAW_FRAME::~EDA_DRAW_FRAME()
 {
+    delete m_actions;
     delete m_toolManager;
     delete m_toolDispatcher;
     delete m_galCanvas;
@@ -711,7 +716,7 @@ void EDA_DRAW_FRAME::LoadSettings( wxConfigBase* aCfg )
     m_UndoRedoCountMax = aCfg->Read( baseCfgName + MaxUndoItemsEntry,
             long( DEFAULT_MAX_UNDO_ITEMS ) );
 
-    m_galDisplayOptions.ReadConfig( aCfg, baseCfgName + GalDisplayOptionsKeyword );
+    m_galDisplayOptions->ReadConfig( aCfg, baseCfgName + GalDisplayOptionsKeyword );
 }
 
 
@@ -723,19 +728,20 @@ void EDA_DRAW_FRAME::SaveSettings( wxConfigBase* aCfg )
 
     aCfg->Write( baseCfgName + CursorShapeEntryKeyword, m_cursorShape );
     aCfg->Write( baseCfgName + ShowGridEntryKeyword, IsGridVisible() );
-    aCfg->Write( baseCfgName + GridColorEntryKeyword, ( long ) GetGridColor() );
+    aCfg->Write( baseCfgName + GridColorEntryKeyword,
+                 GetGridColor().ToColour().GetAsString( wxC2S_CSS_SYNTAX ) );
     aCfg->Write( baseCfgName + LastGridSizeIdKeyword, ( long ) m_LastGridSizeId );
 
     if( GetScreen() )
         aCfg->Write( baseCfgName + MaxUndoItemsEntry, long( GetScreen()->GetMaxUndoItems() ) );
 
-    m_galDisplayOptions.WriteConfig( aCfg, baseCfgName + GalDisplayOptionsKeyword );
+    m_galDisplayOptions->WriteConfig( aCfg, baseCfgName + GalDisplayOptionsKeyword );
 }
 
 
 void EDA_DRAW_FRAME::AppendMsgPanel( const wxString& textUpper,
                                      const wxString& textLower,
-                                     EDA_COLOR_T color, int pad )
+                                     COLOR4D color, int pad )
 {
     if( m_messagePanel == NULL )
         return;

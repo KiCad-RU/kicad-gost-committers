@@ -30,7 +30,7 @@
 class LIB_ALIAS;
 class PART_LIB;
 class PART_LIBS;
-class wxTreeCtrl;
+class TWO_COLUMN_TREE_LIST;
 class wxArrayString;
 
 // class COMPONENT_TREE_SEARCH_CONTAINER
@@ -70,7 +70,7 @@ public:
      */
     void AddLibrary( PART_LIB& aLib );
 
-    /** Function AddComponentList
+    /**
      * Add the given list of components, given by name, to be searched.
      * To be called in the setup phase to fill this container.
      *
@@ -79,6 +79,17 @@ public:
      * @param aOptionalLib       Library to look up the component names (if NULL: global lookup)
      */
     void AddAliasList( const wxString& aNodeName, const wxArrayString& aAliasNameList,
+                       PART_LIB* aOptionalLib );
+
+    /**
+     * Add the given list of components, given by alias, to be searched.
+     * To be called in the setup phase to fill this container.
+     *
+     * @param aNodeName          The parent node name the components will show up as leaf.
+     * @param aAliasList         List of aliases.
+     * @param aOptionalLib       Library to look up the component names (if NULL: global lookup)
+     */
+    void AddAliasList( const wxString& aNodeName, const std::vector<LIB_ALIAS*>& aAliasList,
                        PART_LIB* aOptionalLib );
 
     /** Function SetPreselectNode
@@ -102,12 +113,22 @@ public:
      * scoring component at the top and selected. If a preselect node is set, this
      * is displayed. Does not take ownership of the tree.
      *
+     * After calling SetTree(), UpdateSearchTerm( wxEmptyString ) should be
+     * called. Note the warning with respsect to calling UpdateSearchTerm() in
+     * dialog constructors.
+     *
      * @param aTree that is to be modified on search updates.
      */
-    void SetTree( wxTreeCtrl* aTree );
+    void SetTree( TWO_COLUMN_TREE_LIST* aTree );
 
     /** Function UpdateSearchTerm
      * Update the search string provided by the user and narrow down the result list.
+     *
+     * XXX WARNING: Do not call this method in a dialog constructor until the
+     * dialog has been otherwise fully initialized (i.e. this should be the last
+     * thing called in the constructor). Some wx ports pump the event loop inside
+     * this method, which can result in event handlers being called before things
+     * they access are initialized.
      *
      * This string is a space-separated list of terms, each of which
      * is applied to the components list to narrow it down. Results are scored by
@@ -137,7 +158,7 @@ private:
     static bool scoreComparator( const TREE_NODE* a1, const TREE_NODE* a2 );
 
     std::vector<TREE_NODE*> m_nodes;
-    wxTreeCtrl* m_tree;
+    TWO_COLUMN_TREE_LIST* m_tree;
     int m_libraries_added;
     int m_components_added;
 

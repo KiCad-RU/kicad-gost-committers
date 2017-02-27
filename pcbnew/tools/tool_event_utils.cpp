@@ -23,15 +23,21 @@
 
 #include <tools/tool_event_utils.h>
 
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
 
 #include <pcb_base_edit_frame.h>
 
+bool TOOL_EVT_UTILS::IsCancelInteractive( const TOOL_EVENT& aEvt )
+{
+    return aEvt.IsAction( &ACTIONS::cancelInteractive )
+            || aEvt.IsActivate()
+            || aEvt.IsCancel();
+}
 
 bool TOOL_EVT_UTILS::IsRotateToolEvt( const TOOL_EVENT& aEvt )
 {
-    return aEvt.IsAction( &COMMON_ACTIONS::rotateCw )
-            || aEvt.IsAction( &COMMON_ACTIONS::rotateCcw );
+    return aEvt.IsAction( &PCB_ACTIONS::rotateCw )
+            || aEvt.IsAction( &PCB_ACTIONS::rotateCcw );
 }
 
 

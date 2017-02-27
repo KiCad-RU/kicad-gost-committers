@@ -26,7 +26,8 @@
 #include <id.h>
 #include <draw_frame.h>
 #include <class_base_screen.h>
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
+#include <bitmaps.h>
 
 #include <functional>
 using namespace std::placeholders;
@@ -53,7 +54,7 @@ ZOOM_MENU::ZOOM_MENU( EDA_DRAW_FRAME* aParent ) : m_parent( aParent )
 
 OPT_TOOL_EVENT ZOOM_MENU::eventHandler( const wxMenuEvent& aEvent )
 {
-    OPT_TOOL_EVENT event( COMMON_ACTIONS::zoomPreset.MakeEvent() );
+    OPT_TOOL_EVENT event( ACTIONS::zoomPreset.MakeEvent() );
     intptr_t idx = aEvent.GetId() - ID_POPUP_ZOOM_LEVEL_START;
     event->SetParameter( idx );
 

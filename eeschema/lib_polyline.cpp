@@ -36,6 +36,7 @@
 #include <richio.h>
 #include <base_units.h>
 #include <msgpanel.h>
+#include <bitmaps.h>
 
 #include <general.h>
 #include <lib_polyline.h>
@@ -262,14 +263,14 @@ int LIB_POLYLINE::GetPenSize() const
 
 
 void LIB_POLYLINE::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                                EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
+                                COLOR4D aColor, GR_DRAWMODE aDrawMode, void* aData,
                                 const TRANSFORM& aTransform )
 {
     wxPoint  pos1;
-    EDA_COLOR_T color = GetLayerColor( LAYER_DEVICE );
+    COLOR4D color = GetLayerColor( LAYER_DEVICE );
     wxPoint* buffer = NULL;
 
-    if( aColor < 0 )                // Used normal color or selected color
+    if( aColor == COLOR4D::UNSPECIFIED )                // Used normal color or selected color
     {
         if( IsSelected() )
             color = GetItemSelectedColor();
@@ -288,7 +289,7 @@ void LIB_POLYLINE::drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint
 
     FILL_T fill = aData ? NO_FILL : m_Fill;
 
-    if( aColor >= 0 )
+    if( aColor != COLOR4D::UNSPECIFIED )
         fill = NO_FILL;
 
     GRSetDrawMode( aDC, aDrawMode );
@@ -417,6 +418,12 @@ wxString LIB_POLYLINE::GetSelectMenuText() const
                              GetChars( CoordinateToString( m_PolyPoints[0].x ) ),
                              GetChars( CoordinateToString( m_PolyPoints[0].y ) ),
                              int( m_PolyPoints.size() ) );
+}
+
+
+BITMAP_DEF LIB_POLYLINE::GetMenuImage() const
+{
+    return add_polygon_xpm;
 }
 
 

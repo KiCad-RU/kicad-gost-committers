@@ -26,6 +26,7 @@
 #define BASIC_GAL_H
 
 #include <plot_common.h>
+#include <class_eda_rect.h>
 
 #include <gal/stroke_font.h>
 #include <gal/graphics_abstraction_layer.h>
@@ -57,14 +58,15 @@ class BASIC_GAL: public KIGFX::GAL
 {
 public:
     wxDC* m_DC;
-    EDA_COLOR_T m_Color;
+    COLOR4D m_Color;
 
 private:
     TRANSFORM_PRM m_transform;
     std::stack <TRANSFORM_PRM>  m_transformHistory;
 
 public:
-    BASIC_GAL()
+    BASIC_GAL( KIGFX::GAL_DISPLAY_OPTIONS& aDisplayOptions ) :
+        GAL( aDisplayOptions )
     {
         m_DC = NULL;
         m_Color = RED;

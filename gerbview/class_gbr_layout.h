@@ -42,6 +42,7 @@
 #include <class_gbr_display_options.h>
 
 #include <gr_basic.h>
+#include <class_eda_rect.h>
 
 class GERBER_FILE_IMAGE_LIST;
 
@@ -125,7 +126,7 @@ public:
      * @param aDrawColor = the color of dcode texts
      */
     void DrawItemsDCodeID( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
-                           GR_DRAWMODE aDrawMode, EDA_COLOR_T aDrawColor );
+                           GR_DRAWMODE aDrawMode, COLOR4D aDrawColor );
 
 
     /**

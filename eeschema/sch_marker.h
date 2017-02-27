@@ -53,7 +53,7 @@ public:
     }
 
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-               GR_DRAWMODE aDraw_mode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
+               GR_DRAWMODE aDraw_mode, COLOR4D aColor = COLOR4D::UNSPECIFIED ) override;
 
     void Plot( PLOTTER* aPlotter ) override
     {
@@ -99,7 +99,7 @@ public:
 
     wxString GetSelectMenuText() const override { return wxString( _( "ERC Marker" ) ); }
 
-    BITMAP_DEF GetMenuImage() const override { return  erc_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     wxPoint GetPosition() const override { return m_Pos; }
 

@@ -1,3 +1,8 @@
+# .cpp files are compiled with extra ${WSHADOW_FLAGS}
+if( COMPILER_SUPPORTS_WSHADOW )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WSHADOW_FLAGS}")
+endif()
+
 include_directories( BEFORE ${INC_BEFORE} )
 include_directories(
     ./dialogs
@@ -162,6 +167,8 @@ set( COMMON_DLG_SRCS
 set( COMMON_WIDGET_SRCS
     widgets/mathplot.cpp
     widgets/widget_hotkey_list.cpp
+    widgets/two_column_tree_list.cpp
+    widgets/footprint_preview_panel.cpp
     )
 
 set( COMMON_PAGE_LAYOUT_SRCS
@@ -228,6 +235,7 @@ set( COMMON_SRCS
     gr_basic.cpp
     hotkeys_basic.cpp
     html_messagebox.cpp
+    incremental_text_ctrl.cpp
     kiface_i.cpp
     kiway.cpp
     kiway_express.cpp
@@ -291,6 +299,8 @@ set( COMMON_SRCS
     tool/tool_interactive.cpp
     tool/action_manager.cpp
     tool/context_menu.cpp
+    tool/actions.cpp
+    tool/common_tools.cpp
 
     geometry/seg.cpp
     geometry/shape.cpp
@@ -304,6 +314,7 @@ add_library( common STATIC ${COMMON_SRCS} )
 add_dependencies( common lib-dependencies )
 add_dependencies( common version_header )
 target_link_libraries( common
+    gal
     ${Boost_LIBRARIES}
     ${CURL_LIBRARIES}
     ${OPENSSL_LIBRARIES}        # empty on Apple
