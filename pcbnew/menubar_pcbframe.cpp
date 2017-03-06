@@ -227,6 +227,25 @@ void preparePreferencesMenu( wxMenu* aParentMenu )
 
     aParentMenu->AppendSeparator();
 
+    wxMenu* macrosMenu = new wxMenu();
+ 
+    AddMenuItem( macrosMenu, ID_PREFRENCES_MACROS_SAVE,
+                 _( "&Save macros" ),
+                 _( "Save macros to file" ),
+                 KiBitmap( save_setup_xpm ) );
+ 
+    AddMenuItem( macrosMenu, ID_PREFRENCES_MACROS_READ,
+                 _( "&Read macros" ),
+                 _( "Read macros from file" ),
+                 KiBitmap( read_setup_xpm ) );
+ 
+    AddMenuItem( aParentMenu, macrosMenu,
+                 -1, _( "Ma&cros" ),
+                 _( "Macros save/read operations" ),
+                 KiBitmap( macros_record_xpm ) );
+ 
+    aParentMenu->AppendSeparator();
+
     AddMenuItem( aParentMenu, ID_CONFIG_SAVE,
                  _( "&Save Preferences" ),
                  _( "Save application preferences" ),
