@@ -230,7 +230,8 @@ public:
      * loads all of the project's libraries into this container, which should
      * be cleared before calling it.
      */
-    void LoadAllLibraries( PROJECT* aProject, bool aShowProgress=true ) throw( IO_ERROR, boost::bad_pointer );
+    void LoadAllLibraries( PROJECT* aProject, bool aShowProgress=true )
+        throw( IO_ERROR, boost::bad_pointer );
 
     /**
      * Function LibNamesAndPaths
@@ -328,15 +329,13 @@ class PART_LIB
     wxDateTime      timeStamp;      ///< Library save time and date.
     int             versionMajor;   ///< Library major version number.
     int             versionMinor;   ///< Library minor version number.
-    bool            isCache;        /**< False for the "standard" libraries,
-                                         True for the library cache */
     wxString        header;         ///< first line of loaded library.
     bool            isModified;     ///< Library modification status.
     int             m_mod_hash;     ///< incremented each time library is changed.
-    bool            m_buffering;    ///< Set to true to prevent file write on every change.
 
     SCH_IO_MGR::SCH_FILE_T        m_pluginType;
     std::unique_ptr< SCH_PLUGIN > m_plugin;
+    std::unique_ptr< PROPERTIES > m_properties;   ///< Library properties
 
 public:
     PART_LIB( int aType, const wxString& aFileName,
@@ -379,11 +378,13 @@ public:
         return isModified;
     }
 
-    bool IsCache() const { return isCache; }
+    bool IsCache() const;
 
-    void SetCache( void ) { isCache = true; }
+    void SetCache();
 
-    void EnableBuffering( bool aEnable = true ) { m_buffering = aEnable; }
+    bool IsBuffering() const;
+
+    void EnableBuffering( bool aEnable = true );
 
     void Save( bool aSaveDocFile = true );
 

@@ -421,11 +421,6 @@ int DRAWING_TOOL::PlaceText( const TOOL_EVENT& aEvent )
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
-
     m_view->Remove( &preview );
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
@@ -514,6 +509,9 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
                 {
                     LAYER_ID layer = getDrawingLayer();
 
+                    if( layer == Edge_Cuts )    // dimensions are not allowed on EdgeCuts
+                        layer = Dwgs_User;
+
                     // Init the new item attributes
                     dimension = new DIMENSION( m_board );
                     dimension->SetLayer( layer );
@@ -600,12 +598,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
     if( step != SET_ORIGIN )
         delete dimension;
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
-
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
     return 0;
@@ -675,7 +668,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
         preview.Add( item );
     }
 
-    BOARD_ITEM* firstItem = preview.Front();
+    BOARD_ITEM* firstItem = static_cast<BOARD_ITEM*>( preview.Front() );
     m_view->Add( &preview );
 
     m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
@@ -696,7 +689,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
             delta = cursorPos - firstItem->GetPosition();
 
             for( auto item : preview )
-                item->Move( wxPoint( delta.x, delta.y ) );
+                static_cast<BOARD_ITEM*>( item )->Move( wxPoint( delta.x, delta.y ) );
 
             m_view->Update( &preview );
         }
@@ -712,7 +705,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
 
                 for( auto item : preview )
                 {
-                    item->Rotate( rotationPoint, rotationAngle );
+                    static_cast<BOARD_ITEM*>( item )->Rotate( rotationPoint, rotationAngle );
                 }
 
                 m_view->Update( &preview );
@@ -720,7 +713,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
             else if( evt->IsAction( &PCB_ACTIONS::flip ) )
             {
                 for( auto item : preview )
-                    item->Flip( wxPoint( cursorPos.x, cursorPos.y ) );
+                    static_cast<BOARD_ITEM*>( item )->Flip( wxPoint( cursorPos.x, cursorPos.y ) );
 
                 m_view->Update( &preview );
             }
@@ -807,7 +800,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
                     }
 
                     if( converted )
-                        converted->SetLayer( item->GetLayer() );
+                        converted->SetLayer( static_cast<BOARD_ITEM*>( item )->GetLayer() );
 
                     delete item;
                     item = converted;
@@ -823,11 +816,6 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
     }
 
     preview.Clear();
-
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     return 0;
@@ -875,11 +863,6 @@ int DRAWING_TOOL::SetAnchor( const TOOL_EVENT& aEvent )
         else if( TOOL_EVT_UTILS::IsCancelInteractive( *evt )  )
             break;
     }
-
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->ShowCursor( false );
 
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
@@ -1050,10 +1033,6 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     return started;
@@ -1114,9 +1093,6 @@ bool DRAWING_TOOL::drawArc( DRAWSEGMENT*& aGraphic )
             case SET_ORIGIN:
             {
                 LAYER_ID layer = getDrawingLayer();
-
-                if( layer == Edge_Cuts )    // dimensions are not allowed on EdgeCuts
-                    layer = Dwgs_User;
 
                 // Init the new item attributes
                 aGraphic->SetShape( S_ARC );
@@ -1223,18 +1199,13 @@ bool DRAWING_TOOL::drawArc( DRAWSEGMENT*& aGraphic )
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     return ( step > SET_ORIGIN );
 }
 
 
-std::unique_ptr<ZONE_CONTAINER> DRAWING_TOOL::createNewZone(
-        bool aKeepout )
+std::unique_ptr<ZONE_CONTAINER> DRAWING_TOOL::createNewZone( bool aKeepout )
 {
     const auto& board = *getModel<BOARD>();
 
@@ -1541,12 +1512,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout, ZONE_MODE aMode )
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
-
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
     return 0;

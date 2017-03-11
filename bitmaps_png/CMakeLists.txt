@@ -340,6 +340,7 @@ set( BMAPS_MID
     local_ratsnest
     locked
     macros_record
+    measurement
     mirepcb
     mirror_h
     mirror_v

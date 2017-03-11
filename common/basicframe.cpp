@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2017 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013-2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,6 +38,8 @@
 #include <kiface_i.h>
 #include <pgm_base.h>
 #include <wxstruct.h>
+#include <menus_helpers.h>
+#include <bitmaps.h>
 
 #include <wx/display.h>
 #include <wx/utils.h>
@@ -238,6 +240,13 @@ void EDA_BASE_FRAME::ReCreateMenuBar()
 
 
 void EDA_BASE_FRAME::ShowChangedLanguage()
+{
+    ReCreateMenuBar();
+    GetMenuBar()->Refresh();
+}
+
+
+void EDA_BASE_FRAME::ShowChangedIcons()
 {
     ReCreateMenuBar();
     GetMenuBar()->Refresh();
@@ -645,4 +654,38 @@ bool EDA_BASE_FRAME::PostCommandMenuEvent( int evt_type )
     }
 
     return false;
+}
+
+
+void EDA_BASE_FRAME::OnChangeIconsOptions( wxCommandEvent& event )
+{
+    if( event.GetId() == ID_KICAD_SELECT_ICONS_IN_MENUS )
+    {
+        Pgm().SetUseIconsInMenus( event.IsChecked() );
+    }
+
+    ReCreateMenuBar();
+}
+
+
+void EDA_BASE_FRAME::AddMenuIconsOptions( wxMenu* MasterMenu )
+{
+    wxMenu*      menu = NULL;
+    wxMenuItem*  item = MasterMenu->FindItem( ID_KICAD_SELECT_ICONS_OPTIONS );
+
+    if( item )     // This menu exists, do nothing
+        return;
+
+    menu = new wxMenu;
+
+    menu->Append( new wxMenuItem( menu, ID_KICAD_SELECT_ICONS_IN_MENUS,
+                  _( "Icons in Menus" ), wxEmptyString,
+                  wxITEM_CHECK ) );
+    menu->Check( ID_KICAD_SELECT_ICONS_IN_MENUS, Pgm().GetUseIconsInMenus() );
+
+    AddMenuItem( MasterMenu, menu,
+                 ID_KICAD_SELECT_ICONS_OPTIONS,
+                 _( "Icons Options" ),
+                 _( "Select show icons in menus and icons sizes" ),
+                 KiBitmap( hammer_xpm ) );
 }

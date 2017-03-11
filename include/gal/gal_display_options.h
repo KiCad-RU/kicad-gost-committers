@@ -36,8 +36,9 @@ namespace KIGFX
      */
     enum class GRID_STYLE
     {
-        LINES,   ///< Use lines for the grid
-        DOTS     ///< Use dots for the grid
+        LINES,      ///< Use lines for the grid
+        DOTS,       ///< Use dots for the grid
+        SMALL_CROSS ///< Use small cross instead of dots for the grid
     };
 
     enum class OPENGL_ANTIALIASING_MODE
@@ -80,6 +81,9 @@ namespace KIGFX
 
         ///> Minimum pixel distance between displayed grid lines
         double m_gridMinSpacing;
+
+        ///> Whether or not to draw the coordinate system axes
+        bool m_axesEnabled;
     };
 
 }

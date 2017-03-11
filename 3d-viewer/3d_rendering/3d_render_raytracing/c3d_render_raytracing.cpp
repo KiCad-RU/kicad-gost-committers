@@ -83,7 +83,7 @@ C3D_RENDER_RAYTRACING::~C3D_RENDER_RAYTRACING()
     delete m_outlineBoard2dObjects;
     m_outlineBoard2dObjects = NULL;
 
-    delete m_shaderBuffer;
+    delete[] m_shaderBuffer;
     m_shaderBuffer = NULL;
 
     opengl_delete_pbo();
@@ -1861,8 +1861,8 @@ SFVEC3F C3D_RENDER_RAYTRACING::shadeHit( const SFVEC3F &aBgColor,
     // Improvement: this is not taking in account the lightcolor
     if( nr_lights_that_can_cast_shadows > 0 )
     {
-        aHitInfo.m_ShadowFactor = shadow_att_factor_sum /
-                                  (float)(nr_lights_that_can_cast_shadows * 1.0f);
+        aHitInfo.m_ShadowFactor = glm::max( shadow_att_factor_sum /
+                                  (float)(nr_lights_that_can_cast_shadows * 1.0f), 0.0f );
     }
     else
     {
@@ -2132,7 +2132,7 @@ void C3D_RENDER_RAYTRACING::initialize_block_positions()
     }
 
     // Create m_shader buffer
-    delete m_shaderBuffer;
+    delete[] m_shaderBuffer;
     m_shaderBuffer = new SFVEC3F[m_realBufferSize.x * m_realBufferSize.y];
 
     opengl_init_pbo();

@@ -64,11 +64,9 @@ PART_LIB::PART_LIB( int aType, const wxString& aFileName, SCH_IO_MGR::SCH_FILE_T
     type = aType;
     isModified = false;
     timeStamp = 0;
-    isCache = false;
     timeStamp = wxDateTime::Now();
     versionMajor = 0;       // Will be updated after reading the lib file
     versionMinor = 0;       // Will be updated after reading the lib file
-    m_buffering = false;
 
     fileName = aFileName;
 
@@ -76,6 +74,7 @@ PART_LIB::PART_LIB( int aType, const wxString& aFileName, SCH_IO_MGR::SCH_FILE_T
         fileName = "unnamed.lib";
 
     m_plugin.reset( SCH_IO_MGR::FindPlugin( m_pluginType ) );
+    m_properties = std::make_unique<PROPERTIES>();
 }
 
 
@@ -89,35 +88,24 @@ void PART_LIB::Save( bool aSaveDocFile )
     wxCHECK_RET( m_plugin != NULL, wxString::Format( "no plugin defined for library `%s`.",
                                                      fileName.GetFullPath() ) );
 
-    std::unique_ptr< PROPERTIES > props;
+    PROPERTIES props;
 
     if( !aSaveDocFile )
-    {
-        props.reset( new PROPERTIES );
-        (*props.get())[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
-    }
+        props[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
 
-    m_plugin->SaveLibrary( fileName.GetFullPath(), props.get() );
+    m_plugin->SaveLibrary( fileName.GetFullPath(), &props );
     isModified = false;
 }
 
 
 void PART_LIB::Create( const wxString& aFileName )
 {
-    std::unique_ptr< PROPERTIES > props;
-
-    if( isCache )
-    {
-        props.reset( new PROPERTIES );
-        (*props.get())[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
-    }
-
     wxString tmpFileName = fileName.GetFullPath();
 
     if( !aFileName.IsEmpty() )
         tmpFileName = aFileName;
 
-    m_plugin->CreateSymbolLib( tmpFileName, props.get() );
+    m_plugin->CreateSymbolLib( tmpFileName, m_properties.get() );
 }
 
 
@@ -131,9 +119,36 @@ void PART_LIB::SetPluginType( SCH_IO_MGR::SCH_FILE_T aPluginType )
 }
 
 
+bool PART_LIB::IsCache() const
+{
+    return m_properties->Exists( SCH_LEGACY_PLUGIN::PropNoDocFile );
+}
+
+
+void PART_LIB::SetCache()
+{
+    (*m_properties)[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
+}
+
+
+bool PART_LIB::IsBuffering() const
+{
+    return m_properties->Exists( SCH_LEGACY_PLUGIN::PropBuffering );
+}
+
+
+void PART_LIB::EnableBuffering( bool aEnable )
+{
+    if( aEnable )
+        (*m_properties)[ SCH_LEGACY_PLUGIN::PropBuffering ] = "";
+    else
+        m_properties->Clear( SCH_LEGACY_PLUGIN::PropBuffering );
+}
+
+
 void PART_LIB::GetAliasNames( wxArrayString& aNames )
 {
-    m_plugin->EnumerateSymbolLib( aNames, fileName.GetFullPath() );
+    m_plugin->EnumerateSymbolLib( aNames, fileName.GetFullPath(), m_properties.get() );
 
     aNames.Sort();
 }
@@ -141,7 +156,7 @@ void PART_LIB::GetAliasNames( wxArrayString& aNames )
 
 void PART_LIB::GetAliases( std::vector<LIB_ALIAS*>& aAliases )
 {
-    m_plugin->EnumerateSymbolLib( aAliases, fileName.GetFullPath() );
+    m_plugin->EnumerateSymbolLib( aAliases, fileName.GetFullPath(), m_properties.get() );
 
     std::sort( aAliases.begin(), aAliases.end(),
             [](LIB_ALIAS *lhs, LIB_ALIAS *rhs) -> bool
@@ -157,7 +172,7 @@ void PART_LIB::GetEntryTypePowerNames( wxArrayString& aNames )
 
     for( size_t i = 0;  i < aliases.GetCount();  i++ )
     {
-        LIB_ALIAS* alias = m_plugin->LoadSymbol( fileName.GetFullPath(), aliases[i] );
+        LIB_ALIAS* alias = m_plugin->LoadSymbol( fileName.GetFullPath(), aliases[i], m_properties.get() );
 
         wxCHECK2_MSG( alias != NULL, continue,
                       wxString::Format( "alias '%s' not found in symbol  library '%s'",
@@ -177,20 +192,7 @@ void PART_LIB::GetEntryTypePowerNames( wxArrayString& aNames )
 
 LIB_ALIAS* PART_LIB::FindAlias( const wxString& aName )
 {
-    std::unique_ptr< PROPERTIES > props;
-
-    if( isCache || m_buffering )
-    {
-        props.reset( new PROPERTIES );
-
-        if( isCache )
-            (*props.get())[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
-
-        if( m_buffering )
-            (*props.get())[ SCH_LEGACY_PLUGIN::PropBuffering ] = "";
-    }
-
-    return m_plugin->LoadSymbol( fileName.GetFullPath(), aName, props.get() );
+    return m_plugin->LoadSymbol( fileName.GetFullPath(), aName, m_properties.get() );
 }
 
 
@@ -210,11 +212,11 @@ bool PART_LIB::HasPowerParts()
     // return true if at least one power part is found in lib
     wxArrayString aliases;
 
-    m_plugin->EnumerateSymbolLib( aliases, fileName.GetFullPath() );
+    m_plugin->EnumerateSymbolLib( aliases, fileName.GetFullPath(), m_properties.get() );
 
     for( size_t i = 0;  i < aliases.GetCount();  i++ )
     {
-        LIB_ALIAS* alias = m_plugin->LoadSymbol( fileName.GetFullPath(), aliases[i] );
+        LIB_ALIAS* alias = m_plugin->LoadSymbol( fileName.GetFullPath(), aliases[i], m_properties.get() );
 
         wxCHECK2_MSG( alias != NULL, continue,
                       wxString::Format( "alias '%s' not found in symbol  library '%s'",
@@ -232,25 +234,12 @@ bool PART_LIB::HasPowerParts()
 
 void PART_LIB::AddPart( LIB_PART* aPart )
 {
-    std::unique_ptr< PROPERTIES > props;
-
-    if( isCache || m_buffering )
-    {
-        props.reset( new PROPERTIES );
-
-        if( isCache )
-            (*props.get())[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
-
-        if( m_buffering )
-            (*props.get())[ SCH_LEGACY_PLUGIN::PropBuffering ] = "";
-    }
-
     // add a clone, not the caller's copy, the plugin take ownership of the new symbol.
-    m_plugin->SaveSymbol( fileName.GetFullPath(), new LIB_PART( *aPart, this ), props.get() );
+    m_plugin->SaveSymbol( fileName.GetFullPath(), new LIB_PART( *aPart, this ), m_properties.get() );
 
     // If we are not buffering, the library file is updated immediately when the plugin
     // SaveSymbol() function is called.
-    if( m_buffering )
+    if( IsBuffering() )
         isModified = true;
 
     ++m_mod_hash;
@@ -261,24 +250,11 @@ LIB_ALIAS* PART_LIB::RemoveAlias( LIB_ALIAS* aEntry )
 {
     wxCHECK_MSG( aEntry != NULL, NULL, "NULL pointer cannot be removed from library." );
 
-    std::unique_ptr< PROPERTIES > props;
-
-    if( isCache || m_buffering )
-    {
-        props.reset( new PROPERTIES );
-
-        if( isCache )
-            (*props.get())[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
-
-        if( m_buffering )
-            (*props.get())[ SCH_LEGACY_PLUGIN::PropBuffering ] = "";
-    }
-
-    m_plugin->DeleteAlias( fileName.GetFullPath(), aEntry->GetName(), props.get() );
+    m_plugin->DeleteAlias( fileName.GetFullPath(), aEntry->GetName(), m_properties.get() );
 
     // If we are not buffering, the library file is updated immediately when the plugin
     // SaveSymbol() function is called.
-    if( m_buffering )
+    if( IsBuffering() )
         isModified = true;
 
     ++m_mod_hash;
@@ -291,28 +267,15 @@ LIB_PART* PART_LIB::ReplacePart( LIB_PART* aOldPart, LIB_PART* aNewPart )
     wxASSERT( aOldPart != NULL );
     wxASSERT( aNewPart != NULL );
 
-    std::unique_ptr< PROPERTIES > props;
-
-    if( isCache || m_buffering )
-    {
-        props.reset( new PROPERTIES );
-
-        if( isCache )
-            (*props.get())[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
-
-        if( m_buffering )
-            (*props.get())[ SCH_LEGACY_PLUGIN::PropBuffering ] = "";
-    }
-
-    m_plugin->DeleteSymbol( fileName.GetFullPath(), aOldPart->GetName(), props.get() );
+    m_plugin->DeleteSymbol( fileName.GetFullPath(), aOldPart->GetName(), m_properties.get() );
 
     LIB_PART* my_part = new LIB_PART( *aNewPart, this );
 
-    m_plugin->SaveSymbol( fileName.GetFullPath(), my_part, props.get() );
+    m_plugin->SaveSymbol( fileName.GetFullPath(), my_part, m_properties.get() );
 
     // If we are not buffering, the library file is updated immediately when the plugin
     // SaveSymbol() function is called.
-    if( m_buffering )
+    if( IsBuffering() )
         isModified = true;
 
     ++m_mod_hash;
@@ -324,19 +287,18 @@ PART_LIB* PART_LIB::LoadLibrary( const wxString& aFileName ) throw( IO_ERROR, bo
 {
     std::unique_ptr<PART_LIB> lib( new PART_LIB( LIBRARY_TYPE_EESCHEMA, aFileName ) );
 
-    wxArrayString tmp;
+    std::vector<LIB_ALIAS*> aliases;
+    // This loads the library.
+    lib->GetAliases( aliases );
 
-    // This loads the library although we could probably do lazy loading.
-    lib->GetAliasNames( tmp );
-
-    // This not them most efficient way to set the LIB_PART m_library member but it will
-    // only be used when loading legacy libraries in the future.  Once the symbols in the
+    // Now, set the LIB_PART m_library member but it will only be used
+    // when loading legacy libraries in the future. Once the symbols in the
     // schematic have a full #LIB_ID, this will not get called.
-    for( size_t i = 0; i < tmp.GetCount();  i++ )
+    for( size_t ii = 0; ii < aliases.size(); ii++ )
     {
-        LIB_ALIAS* alias = lib->FindAlias( tmp[i] );
+        LIB_ALIAS* alias = aliases[ii];
 
-        if( alias && alias->GetPart() )
+        if( alias->GetPart() )
             alias->GetPart()->SetLib( lib.get() );
     }
 

@@ -48,7 +48,6 @@ set( EESCHEMA_DLGS
     dialogs/dialog_bom_base.cpp
     dialogs/dialog_bom_cfg_keywords.cpp
     dialogs/dialog_choose_component.cpp
-    dialogs/dialog_choose_component_base.cpp
     dialogs/dialog_lib_edit_text.cpp
     dialogs/dialog_lib_edit_text_base.cpp
     ${GOST_EESCHEMA_DLGS}
@@ -131,7 +130,8 @@ set( EESCHEMA_SRCS
     files-io.cpp
     find.cpp
     getpart.cpp
-    component_tree_search_container.cpp
+    cmp_tree_model.cpp
+    cmp_tree_model_adapter.cpp
     generate_alias_info.cpp
     hierarch.cpp
     highlight_connection.cpp

@@ -87,6 +87,10 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateAndShowItem( const wxPoint& aPosition, const KIC
         SendMessageToPCBNEW( item, component );
         break;
 
+    case SCH_SHEET_T:
+        SendMessageToPCBNEW( item, nullptr );
+        break;
+
     case SCH_COMPONENT_T:
         component = (SCH_COMPONENT*) item;
         SendMessageToPCBNEW( item, component );

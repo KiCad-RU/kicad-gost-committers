@@ -550,9 +550,6 @@ void SCH_SCREEN::CheckComponentsToPartsLinks()
             SCH_COMPONENT::ResolveAll( c, libs );
 
             m_modification_sync = mod_hash;     // note the last mod_hash
-
-            // guard against unneeded runs through this code path by printing trace
-            DBG(printf("%s: resync-ing %s\n", __func__, TO_UTF8( GetFileName() ) );)
         }
     }
 }
@@ -564,8 +561,6 @@ void SCH_SCREEN::Draw( EDA_DRAW_PANEL* aCanvas, wxDC* aDC, GR_DRAWMODE aDrawMode
      * library editor and library viewer do not use m_drawList, and therefore
      * their SCH_SCREEN::Draw() draws nothing
      */
-
-    CheckComponentsToPartsLinks();
 
     for( SCH_ITEM* item = m_drawList.begin(); item; item = item->Next() )
     {
@@ -587,8 +582,6 @@ void SCH_SCREEN::Draw( EDA_DRAW_PANEL* aCanvas, wxDC* aDC, GR_DRAWMODE aDrawMode
  */
 void SCH_SCREEN::Plot( PLOTTER* aPlotter )
 {
-    CheckComponentsToPartsLinks();
-
     for( SCH_ITEM* item = m_drawList.begin();  item;  item = item->Next() )
     {
         aPlotter->SetCurrentLineWidth( item->GetPenSize() );
@@ -646,7 +639,7 @@ LIB_PIN* SCH_SCREEN::GetPin( const wxPoint& aPosition, SCH_COMPONENT** aComponen
         {
             pin = NULL;
 
-            LIB_PART* part = Prj().SchLibs()->FindLibPart( component->GetLibId() );
+            auto part = component->GetPartRef().lock();
 
             if( !part )
                 continue;
@@ -1389,12 +1382,6 @@ void SCH_SCREENS::BuildScreenList( EDA_ITEM* aItem )
     {
         SCH_SCREEN*     screen = (SCH_SCREEN*) aItem;
 
-        // Ensure each component has its pointer to its part lib LIB_PART
-        // up to date (the cost is low if this is the case)
-        // We do this update here, because most of time this function is called
-        // to create a netlist, or an ERC, which need this update
-        screen->CheckComponentsToPartsLinks();
-
         AddScreenToList( screen );
         EDA_ITEM* strct = screen->GetDrawItems();
 
@@ -1526,6 +1513,21 @@ int SCH_SCREENS::GetMarkerCount( enum MARKER_BASE::TYPEMARKER aMarkerType,
 
     return count;
 }
+
+
+void SCH_SCREENS::UpdateSymbolLinks()
+{
+    for( SCH_SCREEN* screen = GetFirst(); screen; screen = GetNext() )
+        screen->CheckComponentsToPartsLinks();
+}
+
+
+void SCH_SCREENS::TestDanglingEnds()
+{
+    for( SCH_SCREEN* screen = GetFirst(); screen; screen = GetNext() )
+        screen->TestDanglingEnds();
+}
+
 
 #if defined(DEBUG)
 void SCH_SCREEN::Show( int nestLevel, std::ostream& os ) const

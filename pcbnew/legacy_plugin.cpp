@@ -660,14 +660,10 @@ void LEGACY_PLUGIN::loadGENERAL()
 
         else if( TESTLINE( "Di" ) )
         {
-            BIU x1 = biuParse( line + SZ( "Di" ), &data );
-            BIU y1 = biuParse( data, &data );
-            BIU x2 = biuParse( data, &data );
-            BIU y2 = biuParse( data );
-
-            EDA_RECT bbbox( wxPoint( x1, y1 ), wxSize( x2-x1, y2-y1 ) );
-
-            m_board->SetBoundingBox( bbbox );
+            biuParse( line + SZ( "Di" ), &data );
+            biuParse( data, &data );
+            biuParse( data, &data );
+            biuParse( data );
         }
 
         /* This is no more usefull, so this info is no more parsed
@@ -1800,14 +1796,6 @@ void LEGACY_PLUGIN::loadMODULE_TEXT( TEXTE_MODULE* aText )
     // convert the "quoted, escaped, UTF8, text" to a wxString, find it by skipping
     // as far forward as needed until the first double quote.
     txt_end = data + ReadDelimitedText( &m_field, data );
-
-#if 1 && defined(DEBUG)
-    if( m_field == wxT( "ARM_C8" ) )
-    {
-        int breakhere = 1;
-        (void) breakhere;
-    }
-#endif
 
     aText->SetText( m_field );
 
@@ -3323,15 +3311,6 @@ void LP_CACHE::LoadModules( LINE_READER* aReader )
 
             // set the footprint name first thing, so exceptions can use name.
             module->SetFPID( LIB_ID( footprintName ) );
-
-#if 0 && defined( DEBUG )
-            printf( "%s\n", footprintName.c_str() );
-            if( footprintName == "QFN40" )
-            {
-                int breakhere = 1;
-                (void) breakhere;
-            }
-#endif
 
             m_owner->loadMODULE( module.get() );
 

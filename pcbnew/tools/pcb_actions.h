@@ -67,7 +67,10 @@ public:
     /// Selects all connections belonging to a single net.
     static TOOL_ACTION selectNet;
 
-    /// Selects all components on the same sheet.
+    /// Selects all components on sheet from Eeschema crossprobing.
+    static TOOL_ACTION selectOnSheetFromEeschema;
+
+    /// Selects all components on the same sheet as the selected footprint.
     static TOOL_ACTION selectSameSheet;
 
     /// Filters the items in the current selection (invokes dialog)
@@ -321,6 +324,7 @@ public:
     static TOOL_ACTION zoomTool;
     static TOOL_ACTION pickerTool;
     static TOOL_ACTION resetCoords;
+    static TOOL_ACTION measureTool;
     static TOOL_ACTION switchCursor;
     static TOOL_ACTION switchUnits;
     static TOOL_ACTION deleteItemCursor;

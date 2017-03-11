@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2017 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 CERN (www.cern.ch)
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2017 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,7 +54,7 @@ KICAD_MANAGER_FRAME::KICAD_MANAGER_FRAME( wxWindow* parent,
     m_leftWinWidth = 60;
     m_manager_Hokeys_Descr = NULL;
 
-    // Create the status line (bottom of the frame
+    // Create the status line (bottom of the frame)
     static const int dims[3] = { -1, -1, 100 };
 
     CreateStatusBar( 3 );
@@ -439,6 +439,13 @@ void KICAD_MANAGER_FRAME::OnRunPcbFpEditor( wxCommandEvent& event )
 }
 
 
+void KICAD_MANAGER_FRAME::OnChangeIconsOptions( wxCommandEvent& event )
+{
+    EDA_BASE_FRAME::OnChangeIconsOptions( event );
+    Kiway.ShowChangedIcons();
+}
+
+
 void KICAD_MANAGER_FRAME::OnRunBitmapConverter( wxCommandEvent& event )
 {
     Execute( this, BITMAPCONVERTER_EXE );
@@ -544,6 +551,7 @@ void KICAD_MANAGER_FRAME::PrintPrjInfo()
                         GetChars( GetProjectFileName() ) );
     PrintMsg( msg );
 }
+
 
 void KICAD_MANAGER_FRAME::Process_Config( wxCommandEvent& event )
 {

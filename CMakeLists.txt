@@ -401,14 +401,6 @@ if( USE_WX_GRAPHICS_CONTEXT OR APPLE )
 endif()
 
 
-# By default images in menu items are enabled on all platforms except OSX.
-if( NOT APPLE )
-    set( USE_IMAGES_IN_MENUS ON CACHE BOOL "Enable images in menus" )
-else()
-    set( USE_IMAGES_IN_MENUS OFF CACHE BOOL "Enable images in menus" )
-endif()
-
-
 # KIFACE_SUFFIX is the file extension used for top level program modules which
 # implement the KIFACE interface.  A valid suffix starts with a period '.'.
 
@@ -639,7 +631,7 @@ find_package( Pixman 0.30 REQUIRED )
 #
 # Note: Prior to Boost 1.59, the Boost context library is not built when compiling on windows
 #       with GCC.  You must patch the Boost sources.
-find_package( Boost 1.54.0 REQUIRED COMPONENTS context system )
+find_package( Boost 1.54.0 REQUIRED COMPONENTS system )
 
 # Include MinGW resource compiler.
 include( MinGWResourceCompiler )

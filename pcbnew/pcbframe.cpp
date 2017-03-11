@@ -260,7 +260,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     // Vertical main toolbar:
     EVT_TOOL( ID_NO_TOOL_SELECTED, PCB_EDIT_FRAME::OnSelectTool )
     EVT_TOOL( ID_ZOOM_SELECTION, PCB_EDIT_FRAME::OnSelectTool )
-    EVT_TOOL_RANGE( ID_PCB_HIGHLIGHT_BUTT, ID_PCB_PLACE_GRID_COORD_BUTT,
+    EVT_TOOL_RANGE( ID_PCB_HIGHLIGHT_BUTT, ID_PCB_MEASUREMENT_TOOL,
                     PCB_EDIT_FRAME::OnSelectTool )
 
     EVT_TOOL_RANGE( ID_PCB_MUWAVE_START_CMD, ID_PCB_MUWAVE_END_CMD,
@@ -312,7 +312,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
                          PCB_EDIT_FRAME::OnUpdateSelectTrackWidth )
     EVT_UPDATE_UI_RANGE( ID_POPUP_PCB_SELECT_VIASIZE1, ID_POPUP_PCB_SELECT_VIASIZE8,
                          PCB_EDIT_FRAME::OnUpdateSelectViaSize )
-    EVT_UPDATE_UI_RANGE( ID_PCB_HIGHLIGHT_BUTT, ID_PCB_PLACE_GRID_COORD_BUTT,
+    EVT_UPDATE_UI_RANGE( ID_PCB_HIGHLIGHT_BUTT, ID_PCB_MEASUREMENT_TOOL,
                          PCB_EDIT_FRAME::OnUpdateVerticalToolbar )
     EVT_UPDATE_UI_RANGE( ID_TB_OPTIONS_SHOW_ZONES, ID_TB_OPTIONS_SHOW_ZONES_OUTLINES_ONLY,
                          PCB_EDIT_FRAME::OnUpdateZoneDisplayStyle )
@@ -744,12 +744,13 @@ void PCB_EDIT_FRAME::UseGalCanvas( bool aEnable )
 
 void PCB_EDIT_FRAME::forceColorsToLegacy()
 {
-    COLORS_DESIGN_SETTINGS *cds = GetBoard()->GetColorsSettings();
+    COLORS_DESIGN_SETTINGS* cds = GetBoard()->GetColorsSettings();
 
     for( int i = 0; i < LAYER_ID_COUNT; i++ )
     {
         COLOR4D c = cds->GetLayerColor( i );
         c.SetToNearestLegacyColor();
+        c.a = 0.8;
         cds->SetLayerColor( i, c );
     }
 
@@ -757,6 +758,7 @@ void PCB_EDIT_FRAME::forceColorsToLegacy()
     {
         COLOR4D c = cds->GetItemColor( i );
         c.SetToNearestLegacyColor();
+        c.a = 0.8;
         cds->SetItemColor( i, c );
     }
 }

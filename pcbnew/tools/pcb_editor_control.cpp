@@ -2,6 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2014 CERN
+ * Copyright (C) 2014-2017 KiCad Developers, see AUTHORS.txt for contributors.
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -199,8 +200,8 @@ private:
         // lines like this make me really think about a better name for SELECTION_CONDITIONS class
         bool mergeEnabled = ( SELECTION_CONDITIONS::MoreThan( 1 ) &&
                               /*SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) &&*/
-                              SELECTION_CONDITIONS::SameNet( true ) &&
-                              SELECTION_CONDITIONS::SameLayer() )( selTool->GetSelection() );
+                              PCB_SELECTION_CONDITIONS::SameNet( true ) &&
+                              PCB_SELECTION_CONDITIONS::SameLayer() )( selTool->GetSelection() );
 
         Enable( getMenuId( PCB_ACTIONS::zoneMerge ), mergeEnabled );
     }
@@ -231,17 +232,14 @@ PCB_EDITOR_CONTROL::PCB_EDITOR_CONTROL() :
     PCB_TOOL( "pcbnew.EditorControl" ),
     m_frame( nullptr )
 {
-    m_placeOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D( 0.8, 0.0, 0.0, 1.0 ),
-                                                KIGFX::ORIGIN_VIEWITEM::CIRCLE_CROSS );
+    m_placeOrigin.reset( new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D( 0.8, 0.0, 0.0, 1.0 ),
+                                                KIGFX::ORIGIN_VIEWITEM::CIRCLE_CROSS ) );
     m_probingSchToPcb = false;
 }
 
 
 PCB_EDITOR_CONTROL::~PCB_EDITOR_CONTROL()
 {
-    getView()->Remove( m_placeOrigin );
-
-    delete m_placeOrigin;
 }
 
 
@@ -252,8 +250,8 @@ void PCB_EDITOR_CONTROL::Reset( RESET_REASON aReason )
     if( aReason == MODEL_RELOAD || aReason == GAL_SWITCH )
     {
         m_placeOrigin->SetPosition( getModel<BOARD>()->GetAuxOrigin() );
-        getView()->Remove( m_placeOrigin );
-        getView()->Add( m_placeOrigin );
+        getView()->Remove( m_placeOrigin.get() );
+        getView()->Add( m_placeOrigin.get() );
     }
 }
 
@@ -483,12 +481,7 @@ int PCB_EDITOR_CONTROL::PlaceModule( const TOOL_EVENT& aEvent )
         }
     }
 
-    controls->ShowCursor( false );
-    controls->SetSnapping( false );
-    controls->SetAutoPan( false );
-    controls->CaptureCursor( false );
     view->Remove( &preview );
-
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
     return 0;
@@ -523,8 +516,9 @@ int PCB_EDITOR_CONTROL::modifyLockSelected( MODIFY_MODE aMode )
 
     bool modified = false;
 
-    for( auto item : selection )
+    for( auto i : selection )
     {
+        auto item = static_cast<BOARD_ITEM*>( i );
         bool prevState = item->IsLocked();
 
         switch( aMode )
@@ -794,7 +788,7 @@ static bool mergeZones( BOARD_COMMIT& aCommit, std::vector<ZONE_CONTAINER *>& aO
 
 int PCB_EDITOR_CONTROL::ZoneMerge( const TOOL_EVENT& aEvent )
 {
-    SELECTION& selection = m_toolMgr->GetTool<SELECTION_TOOL>()->GetSelection();
+    const SELECTION& selection = m_toolMgr->GetTool<SELECTION_TOOL>()->GetSelection();
     BOARD* board = getModel<BOARD>();
     BOARD_COMMIT commit( m_frame );
 
@@ -923,7 +917,7 @@ int PCB_EDITOR_CONTROL::CrossProbePcbToSch( const TOOL_EVENT& aEvent )
     const SELECTION& selection = selTool->GetSelection();
 
     if( selection.Size() == 1 )
-        m_frame->SendMessageToEESCHEMA( selection.Front() );
+        m_frame->SendMessageToEESCHEMA( static_cast<BOARD_ITEM*>( selection.Front() ) );
 
     return 0;
 }
@@ -975,7 +969,7 @@ int PCB_EDITOR_CONTROL::DrillOrigin( const TOOL_EVENT& aEvent )
     assert( picker );
 
     m_frame->SetToolID( ID_PCB_PLACE_OFFSET_COORD_BUTT, wxCURSOR_PENCIL, _( "Adjust zero" ) );
-    picker->SetClickHandler( std::bind( setDrillOrigin, getView(), m_frame, m_placeOrigin, _1 ) );
+    picker->SetClickHandler( std::bind( setDrillOrigin, getView(), m_frame, m_placeOrigin.get(), _1 ) );
     picker->Activate();
     Wait();
 
@@ -990,9 +984,9 @@ int PCB_EDITOR_CONTROL::DrillOrigin( const TOOL_EVENT& aEvent )
  */
 static bool highlightNet( TOOL_MANAGER* aToolMgr, const VECTOR2D& aPosition )
 {
-    KIGFX::RENDER_SETTINGS* render = aToolMgr->GetView()->GetPainter()->GetSettings();
-    GENERAL_COLLECTORS_GUIDE guide =
-        static_cast<PCB_BASE_FRAME*>( aToolMgr->GetEditFrame() )->GetCollectorsGuide();
+    auto render = aToolMgr->GetView()->GetPainter()->GetSettings();
+    auto frame = static_cast<PCB_EDIT_FRAME*>( aToolMgr->GetEditFrame() );
+    auto guide = frame->GetCollectorsGuide();
     BOARD* board = static_cast<BOARD*>( aToolMgr->GetModel() );
     GENERAL_COLLECTOR collector;
     int net = -1;
@@ -1000,6 +994,16 @@ static bool highlightNet( TOOL_MANAGER* aToolMgr, const VECTOR2D& aPosition )
     // Find a connected item for which we are going to highlight a net
     collector.Collect( board, GENERAL_COLLECTOR::PadsTracksOrZones,
                        wxPoint( aPosition.x, aPosition.y ), guide );
+
+    for( int i = 0; i < collector.GetCount(); i++ )
+    {
+        if( collector[i]->Type() == PCB_PAD_T )
+        {
+            frame->SendMessageToEESCHEMA( static_cast<BOARD_CONNECTED_ITEM*>( collector[i] ) );
+            break;
+        }
+    }
+
     bool enableHighlight = ( collector.GetCount() > 0 );
 
     // Obtain net code for the clicked item

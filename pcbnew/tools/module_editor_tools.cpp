@@ -83,18 +83,11 @@ MODULE_EDITOR_TOOLS::MODULE_EDITOR_TOOLS() :
     TOOL_INTERACTIVE( "pcbnew.ModuleEditor" ), m_view( NULL ), m_controls( NULL ),
     m_board( NULL ), m_frame( NULL )
 {
-    // Generate an origin marker at 0,0 which is used as an axis origin marker (0,0)
-    m_axisOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D(0.0, 0.0, 0.8, 1.0),
-                                               KIGFX::ORIGIN_VIEWITEM::CROSS,
-                                               20000,
-                                               VECTOR2D(0,0) );
-    m_axisOrigin->SetDrawAtZero( true );
 }
 
 
 MODULE_EDITOR_TOOLS::~MODULE_EDITOR_TOOLS()
 {
-    delete m_axisOrigin;
 }
 
 
@@ -105,13 +98,6 @@ void MODULE_EDITOR_TOOLS::Reset( RESET_REASON aReason )
     m_controls = getViewControls();
     m_board = getModel<BOARD>();
     m_frame = getEditFrame<PCB_EDIT_FRAME>();
-
-    if( aReason == MODEL_RELOAD || aReason == GAL_SWITCH )
-    {
-        // Draw the axis origin if we're editing modules (essentially in the footprint editor)
-        m_view->Remove( m_axisOrigin );
-        m_view->Add( m_axisOrigin );
-    }
 }
 
 
@@ -193,11 +179,7 @@ int MODULE_EDITOR_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
     m_view->Remove( &preview );
-
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
     return 0;
@@ -206,11 +188,10 @@ int MODULE_EDITOR_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
 
 int MODULE_EDITOR_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
 {
-    std::list<D_PAD*> pads;
-    std::set<D_PAD*> allPads;
-
     if( !m_board->m_Modules || !m_board->m_Modules->Pads() )
         return 0;
+
+    Activate();
 
     GENERAL_COLLECTOR collector;
     const KICAD_T types[] = { PCB_PAD_T, EOT };
@@ -222,10 +203,6 @@ int MODULE_EDITOR_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
     guide.SetIgnoreModulesVals( true );
     guide.SetIgnoreModulesRefs( true );
 
-    // Create a set containing all pads (to avoid double adding to the list)
-    for( D_PAD* p = m_board->m_Modules->Pads(); p; p = p->Next() )
-        allPads.insert( p );
-
     DIALOG_ENUM_PADS settingsDlg( m_frame );
 
     if( settingsDlg.ShowModal() == wxID_CANCEL )
@@ -236,12 +213,14 @@ int MODULE_EDITOR_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
 
     m_frame->DisplayToolMsg( _( "Hold left mouse button and move cursor over pads to enumerate them" ) );
 
-    Activate();
-
     m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
+
+    KIGFX::VIEW* view = m_toolMgr->GetView();
     VECTOR2I oldCursorPos = m_controls->GetCursorPosition();
     std::list<D_PAD*> selectedPads;
+    BOARD_COMMIT commit( m_frame );
+    std::map<wxString, wxString> oldNames;
 
     while( OPT_TOOL_EVENT evt = Wait() )
     {
@@ -290,22 +269,33 @@ int MODULE_EDITOR_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
 
             for( D_PAD* pad : selectedPads )
             {
-                std::set<D_PAD*>::iterator it = allPads.find( pad );
-
-                // Add the pad to the list, if it was not selected previously..
-                if( it != allPads.end() )
+                // If pad was not selected, then enumerate it
+                if( !pad->IsSelected() )
                 {
-                    allPads.erase( it );
-                    pads.push_back( pad );
+                    commit.Modify( pad );
+
+                    // Rename pad and store the old name
+                    wxString newName = wxString::Format( wxT( "%s%d" ), padPrefix.c_str(), padNumber++ );
+                    oldNames[newName] = pad->GetPadName();
+                    pad->SetPadName( newName );
                     pad->SetSelected();
+                    getView()->Update( pad );
                 }
 
-                // ..or remove it from the list if it was clicked
-                else if( evt->IsClick( BUT_LEFT ) )
+                // ..or restore the old name if it was enumerated and clicked again
+                else if( pad->IsSelected() && evt->IsClick( BUT_LEFT ) )
                 {
-                    allPads.insert( pad );
-                    pads.remove( pad );
+                    auto it = oldNames.find( pad->GetPadName() );
+                    wxASSERT( it != oldNames.end() );
+
+                    if( it != oldNames.end() )
+                    {
+                        pad->SetPadName( it->second );
+                        oldNames.erase( it );
+                    }
+
                     pad->ClearSelected();
+                    getView()->Update( pad );
                 }
             }
 
@@ -315,32 +305,24 @@ int MODULE_EDITOR_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
         else if( ( evt->IsKeyPressed() && evt->KeyCode() == WXK_RETURN ) ||
                    evt->IsDblClick( BUT_LEFT ) )
         {
-            // Accept changes
-            BOARD_COMMIT commit( m_frame );
-            m_frame->OnModify();
-
-            for( D_PAD* pad : pads )
-            {
-                commit.Modify( pad );
-                pad->SetPadName( wxString::Format( wxT( "%s%d" ), padPrefix.c_str(), padNumber++ ) );
-            }
-
             commit.Push( _( "Enumerate pads" ) );
-
             break;
         }
 
         else if( evt->IsCancel() || evt->IsActivate() )
         {
+            commit.Revert();
             break;
         }
     }
 
-    for( D_PAD* pad : pads )
-        pad->ClearSelected();
+    for( D_PAD* p = m_board->m_Modules->Pads(); p; p = p->Next() )
+    {
+        p->ClearSelected();
+        view->Update( p );
+    }
 
     m_frame->DisplayToolMsg( wxEmptyString );
-    m_controls->ShowCursor( false );
 
     return 0;
 }
@@ -408,9 +390,6 @@ int MODULE_EDITOR_TOOLS::CopyItems( const TOOL_EVENT& aEvent )
     }
 
     m_frame->DisplayToolMsg( wxString::Format( _( "Copied %d item(s)" ), selection.Size() ) );
-    m_controls->SetSnapping( false );
-    m_controls->ShowCursor( false );
-    m_controls->SetAutoPan( false );
 
     return 0;
 }
@@ -527,9 +506,6 @@ int MODULE_EDITOR_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
     }
 
     delete pastedModule;
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
     m_view->Remove( &preview );
 
     return 0;

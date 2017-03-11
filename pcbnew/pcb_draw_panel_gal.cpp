@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2014 CERN
+ * Copyright (C) 2014-2017 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -101,9 +101,6 @@ PCB_DRAW_PANEL_GAL::PCB_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
                                         KIGFX::GAL_DISPLAY_OPTIONS& aOptions, GAL_TYPE aGalType ) :
 EDA_DRAW_PANEL_GAL( aParentWindow, aWindowId, aPosition, aSize, aOptions, aGalType )
 {
-    m_worksheet = NULL;
-    m_ratsnest = NULL;
-
     setDefaultLayerOrder();
     setDefaultLayerDeps();
 
@@ -126,8 +123,6 @@ EDA_DRAW_PANEL_GAL( aParentWindow, aWindowId, aPosition, aSize, aOptions, aGalTy
 PCB_DRAW_PANEL_GAL::~PCB_DRAW_PANEL_GAL()
 {
     delete m_painter;
-    delete m_worksheet;
-    delete m_ratsnest;
 }
 
 
@@ -150,7 +145,7 @@ void PCB_DRAW_PANEL_GAL::DisplayBoard( const BOARD* aBoard )
     // Load modules and its additional elements
     for( MODULE* module = aBoard->m_Modules; module; module = module->Next() )
     {
-        module->RunOnChildren( std::bind( &KIGFX::VIEW::Add, m_view, _1 ) );
+        module->RunOnChildren( std::bind( &KIGFX::VIEW::Add, m_view, _1, -1 ) );
         m_view->Add( module );
     }
 
@@ -159,14 +154,8 @@ void PCB_DRAW_PANEL_GAL::DisplayBoard( const BOARD* aBoard )
         m_view->Add( zone );
 
     // Ratsnest
-    if( m_ratsnest )
-    {
-        m_view->Remove( m_ratsnest );
-        delete m_ratsnest;
-    }
-
-    m_ratsnest = new KIGFX::RATSNEST_VIEWITEM( aBoard->GetRatsnest() );
-    m_view->Add( m_ratsnest );
+    m_ratsnest.reset( new KIGFX::RATSNEST_VIEWITEM( aBoard->GetRatsnest() ) );
+    m_view->Add( m_ratsnest.get() );
 
     // Display settings
     UseColorScheme( aBoard->GetColorsSettings() );
@@ -175,14 +164,8 @@ void PCB_DRAW_PANEL_GAL::DisplayBoard( const BOARD* aBoard )
 
 void PCB_DRAW_PANEL_GAL::SetWorksheet( KIGFX::WORKSHEET_VIEWITEM* aWorksheet )
 {
-    if( m_worksheet )
-    {
-        m_view->Remove( m_worksheet );
-        delete m_worksheet;
-    }
-
-    m_worksheet = aWorksheet;
-    m_view->Add( m_worksheet );
+    m_worksheet.reset( aWorksheet );
+    m_view->Add( m_worksheet.get() );
 }
 
 
@@ -394,6 +377,12 @@ bool PCB_DRAW_PANEL_GAL::SwitchBackend( GAL_TYPE aGalType )
 
 void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
 {
+    // caching makes no sense for Cairo and other software renderers
+    auto target = m_backend == GAL_TYPE_OPENGL ? KIGFX::TARGET_CACHED : KIGFX::TARGET_NONCACHED;
+
+    for( int i = 0; i < KIGFX::VIEW::VIEW_MAX_LAYERS; i++ )
+        m_view->SetLayerTarget( i, target );
+
     for( LAYER_NUM i = 0; (unsigned) i < sizeof( GAL_LAYER_ORDER ) / sizeof( LAYER_NUM ); ++i )
     {
         LAYER_NUM layer = GAL_LAYER_ORDER[i];
@@ -401,22 +390,9 @@ void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
 
         // Set layer display dependencies & targets
         if( IsCopperLayer( layer ) )
-        {
             m_view->SetRequired( GetNetnameLayer( layer ), layer );
-            m_view->SetLayerTarget( layer, KIGFX::TARGET_CACHED );
-        }
         else if( IsNetnameLayer( layer ) )
-        {
             m_view->SetLayerDisplayOnly( layer );
-            m_view->SetLayerTarget( layer, KIGFX::TARGET_CACHED );
-        }
-    }
-
-    // caching makes no sense for Cairo and other software renderers
-    if ( m_backend != GAL_TYPE_OPENGL )
-    {
-        for( int i = 0; i < KIGFX::VIEW::VIEW_MAX_LAYERS; i++ )
-           m_view->SetLayerTarget( i, KIGFX::TARGET_NONCACHED );
     }
 
     m_view->SetLayerTarget( ITEM_GAL_LAYER( ANCHOR_VISIBLE ), KIGFX::TARGET_NONCACHED );

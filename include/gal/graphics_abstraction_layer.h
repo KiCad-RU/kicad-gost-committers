@@ -134,6 +134,23 @@ public:
     DrawArc( const VECTOR2D& aCenterPoint, double aRadius, double aStartAngle, double aEndAngle ) {};
 
     /**
+     * @brief Draw an arc segment.
+     *
+     * This method differs from DrawArc() in what happens when fill/stroke are on or off.
+     * DrawArc() draws a "pie piece" when fill is turned on, and a thick stroke when fill is off.
+     * DrawArcSegment() with fill *on* behaves like DrawArc() with fill *off*.
+     * DrawArcSegment() with fill *off* draws the outline of what it would have drawn with fill on.
+     *
+     * @param aCenterPoint  is the center point of the arc.
+     * @param aRadius       is the arc radius.
+     * @param aStartAngle   is the start angle of the arc.
+     * @param aEndAngle     is the end angle of the arc.
+     */
+    virtual void
+    DrawArcSegment( const VECTOR2D& aCenterPoint, double aRadius, double aStartAngle,
+                   double aEndAngle, double aWidth ) {};
+
+    /**
      * @brief Draw a rectangle.
      *
      * @param aStartPoint   is the start point of the rectangle.
@@ -800,6 +817,24 @@ public:
     }
 
     /**
+     * @brief Set the axes color.
+     *
+     * @param aAxesColor is the color to draw the axes if enabled.
+     */
+    inline void SetAxesColor( const COLOR4D& aAxesColor )
+    {
+        axesColor = aAxesColor;
+    }
+
+    /**
+     * @brief Enables drawing the axes.
+     */
+    inline void SetAxesEnabled( bool aAxesEnabled )
+    {
+        axesEnabled = aAxesEnabled;
+    }
+
+    /**
      * @brief Draw every tick line wider.
      *
      * @param aInterval increase the width of every aInterval line, if 0 do not use this feature.
@@ -975,6 +1010,8 @@ protected:
     VECTOR2D           gridOrigin;             ///< The grid origin
     VECTOR2D           gridOffset;             ///< The grid offset to compensate cursor position
     COLOR4D            gridColor;              ///< Color of the grid
+    COLOR4D            axesColor;              ///< Color of the axes
+    bool               axesEnabled;            ///< Should the axes be drawn
     int                gridTick;               ///< Every tick line gets the double width
     double             gridLineWidth;          ///< Line width of the grid
     int                gridMinSpacing;         ///< Minimum screen size of the grid (pixels)

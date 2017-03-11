@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2014 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2014 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2017 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -234,6 +234,13 @@ protected:
      * is an event handler called on a language menu selection.
      */
     void language_change( wxCommandEvent& event );
+
+    /**
+     * Function OnChangeIconsOptions
+     * is an event handler called on a icons options in menus or toolbars
+     * menu selection.
+     */
+    void OnChangeIconsOptions( wxCommandEvent& event ) override;
 
     // variables for modal behavior support, only used by a few derivatives.
     bool            m_modal;        // true if frame is intended to be modal, not modeless

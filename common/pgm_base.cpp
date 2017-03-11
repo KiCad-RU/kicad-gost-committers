@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004-2015 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2004-2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -63,6 +63,8 @@ static const wxChar languageCfgKey[]   = wxT( "LanguageID" );
 static const wxChar pathEnvVariables[] = wxT( "EnvironmentVariables" );
 static const wxChar showEnvVarWarningDialog[] = wxT( "ShowEnvVarWarningDialog" );
 static const wxChar traceEnvVars[]     = wxT( "KIENVVARS" );
+///< enable/disable icons in menus
+static const wxChar entryUseIconsInMenus[] = wxT( "UseIconsInMenus" );
 
 
 /**
@@ -583,8 +585,11 @@ void PGM_BASE::loadCommonSettings()
 
     m_help_size.x = 500;
     m_help_size.y = 400;
+    m_iconsScale  = 1.0;
+    m_useIconsInMenus = true;
 
     m_common_settings->Read( showEnvVarWarningDialog, &m_show_env_var_dialog );
+    m_common_settings->Read( entryUseIconsInMenus, &m_useIconsInMenus, true );
 
     m_editor_name = m_common_settings->Read( wxT( "Editor" ) );
 
@@ -625,6 +630,7 @@ void PGM_BASE::SaveCommonSettings()
 
         m_common_settings->Write( workingDirKey, cur_dir );
         m_common_settings->Write( showEnvVarWarningDialog, m_show_env_var_dialog );
+        m_common_settings->Write( entryUseIconsInMenus, m_useIconsInMenus);
 
         // Save the local environment variables.
         m_common_settings->SetPath( pathEnvVariables );

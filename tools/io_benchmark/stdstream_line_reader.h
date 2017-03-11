@@ -1,8 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 CERN
- * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
+ * Copyright (C) 2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,45 +21,52 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include "selection_area.h"
-#include <gal/graphics_abstraction_layer.h>
-#include <gal/color4d.h>
+#ifndef FSTREAM_LINE_READER_H
+#define FSTREAM_LINE_READER_H
 
-#include <view/view.h>
+#include <wx/filename.h>
 
-using namespace KIGFX;
+#include <richio.h>
 
-const BOX2I SELECTION_AREA::ViewBBox() const
+#include <istream>
+#include <fstream>
+
+/**
+ * LINE_READER that wraps a given std::istream instance.
+ */
+class STDISTREAM_LINE_READER : public LINE_READER
 {
-    BOX2I tmp;
+public:
 
-    tmp.SetOrigin( m_origin );
-    tmp.SetEnd( m_end );
-    tmp.Normalize();
-    return tmp;
-}
+    STDISTREAM_LINE_READER();
+
+    ~STDISTREAM_LINE_READER();
+
+    char* ReadLine() throw( IO_ERROR ) override;
+
+protected:
+
+    void setStream( std::istream&  aStream );
+
+private:
+    std::string m_buffer;
+    std::istream* m_stream;
+};
 
 
-void SELECTION_AREA::ViewGetLayers( int aLayers[], int& aCount ) const
+/**
+ * LINE_READER interface backed by std::ifstream
+ */
+class IFSTREAM_LINE_READER : public STDISTREAM_LINE_READER
 {
-    aLayers[0] = SelectionLayer;
-    aCount = 1;
-}
+public:
 
+    IFSTREAM_LINE_READER( const wxFileName& aFileName ) throw( IO_ERROR );
 
-void SELECTION_AREA::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
-{
-    auto gal = aView->GetGAL();
-    gal->SetLineWidth( 1.0 );
-    gal->SetStrokeColor( COLOR4D( 1.0, 1.0, 0.4, 1.0 ) );
-    gal->SetFillColor( COLOR4D( 0.3, 0.3, 0.5, 0.3 ) );
-    gal->SetIsStroke( true );
-    gal->SetIsFill( true );
-    gal->DrawRectangle( m_origin, m_end );
-}
+    void Rewind();
 
+private:
+    std::ifstream m_fStream;
+};
 
-SELECTION_AREA::SELECTION_AREA() :
-    EDA_ITEM( NOT_USED )    // this item is never added to a BOARD so it needs no type.
-{
-}
+#endif // FSTREAM_LINE_READER_H

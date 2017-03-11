@@ -165,10 +165,12 @@ set( COMMON_DLG_SRCS
     )
 
 set( COMMON_WIDGET_SRCS
+    widgets/color_swatch.cpp
     widgets/mathplot.cpp
     widgets/widget_hotkey_list.cpp
     widgets/two_column_tree_list.cpp
-    widgets/footprint_preview_panel.cpp
+    widgets/footprint_preview_widget.cpp
+    widgets/indicator_icon.cpp
     )
 
 set( COMMON_PAGE_LAYOUT_SRCS
@@ -181,12 +183,20 @@ set( COMMON_PAGE_LAYOUT_SRCS
     page_layout/page_layout_reader.cpp
     )
 
+set( COMMON_PREVIEW_ITEMS_SRCS
+    preview_items/preview_utils.cpp
+    preview_items/ruler_item.cpp
+    preview_items/simple_overlay_item.cpp
+    preview_items/selection_area.cpp
+    )
+
 set( COMMON_SRCS
     ${LIB_KICAD_SRCS}
     ${COMMON_ABOUT_DLG_SRCS}
     ${COMMON_DLG_SRCS}
     ${COMMON_WIDGET_SRCS}
     ${COMMON_PAGE_LAYOUT_SRCS}
+    ${COMMON_PREVIEW_ITEMS_SRCS}
     base_struct.cpp
     basicframe.cpp
     bezier_curves.cpp
@@ -282,6 +292,8 @@ endif()
 
 set( COMMON_SRCS
     ${COMMON_SRCS}
+    system/libcontext.cpp
+
     kicad_curl/kicad_curl.cpp
     kicad_curl/kicad_curl_easy.cpp
 
@@ -301,6 +313,11 @@ set( COMMON_SRCS
     tool/context_menu.cpp
     tool/actions.cpp
     tool/common_tools.cpp
+    tool/grid_menu.cpp
+    tool/zoom_menu.cpp
+    tool/tool_menu.cpp
+    tool/conditional_menu.cpp
+    tool/selection_conditions.cpp
 
     geometry/seg.cpp
     geometry/shape.cpp

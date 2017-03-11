@@ -320,6 +320,11 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
         }
         catch( const IO_ERROR& ioe )
         {
+            // Do not leave g_RootSheet == NULL because it is expected to be
+            // a valid sheet. Therefore create a dummy empty root sheet and screen.
+            CreateScreens();
+            Zoom_Automatique( false );
+
             wxString msg;
             msg.Printf( _( "Error loading schematic file '%s'.\n%s" ),
                         GetChars( fullFileName ), GetChars( ioe.What() ) );
@@ -327,10 +332,6 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 
             msg.Printf( _( "Failed to load '%s'" ), GetChars( fullFileName ) );
             AppendMsgPanel( wxEmptyString, msg, CYAN );
-
-            // When g_RootSheet is NULL, create a dummy root sheet and screen.
-            CreateScreens();
-            Zoom_Automatique( false );
 
             return false;
         }
@@ -349,12 +350,13 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 
         if( !rescueNeverShow )
         {
-            if( RescueProject( false ) )
-            {
-                GetScreen()->CheckComponentsToPartsLinks();
-                GetScreen()->TestDanglingEnds();
-            }
+            RescueProject( false );
         }
+
+        SCH_SCREENS schematic;
+
+        schematic.UpdateSymbolLinks();      // Update all symbol library links for all sheets.
+        GetScreen()->TestDanglingEnds();    // Only perform the dangling end test on root sheet.
     }
 
     GetScreen()->SetGrid( ID_POPUP_GRID_LEVEL_1000 + m_LastGridSizeId );

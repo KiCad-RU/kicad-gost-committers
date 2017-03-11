@@ -35,6 +35,7 @@
 #include <class_draw_panel_gal.h>
 #include <module_editor_frame.h>
 #include <array_creator.h>
+#include <pcbnew_id.h>
 
 #include <tool/tool_manager.h>
 #include <view/view_controls.h>
@@ -61,6 +62,8 @@ using namespace std::placeholders;
 #include <dialogs/dialog_exchange_modules.h>
 
 #include <tools/tool_event_utils.h>
+
+#include <preview_items/ruler_item.h>
 
 #include <board_commit.h>
 
@@ -148,6 +151,11 @@ TOOL_ACTION PCB_ACTIONS::properties( "pcbnew.InteractiveEdit.properties",
 TOOL_ACTION PCB_ACTIONS::editModifiedSelection( "pcbnew.InteractiveEdit.ModifiedSelection",
         AS_GLOBAL, 0,
         "", "" );
+
+TOOL_ACTION PCB_ACTIONS::measureTool( "pcbnew.InteractiveEdit.measureTool",
+        AS_GLOBAL, MD_CTRL + MD_SHIFT + 'M',
+        _( "Measure tool" ), _( "Interactively measure distance between points" ),
+        nullptr, AF_ACTIVATE );
 
 
 EDIT_TOOL::EDIT_TOOL() :
@@ -240,15 +248,15 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
     PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
 
     VECTOR2I originalCursorPos = controls->GetCursorPosition();
-    SELECTION& selection = m_selectionTool->GetSelection();
-
-    // Shall the selection be cleared at the end?
-    bool unselect = selection.Empty();
 
     // Be sure that there is at least one item that we can modify. If nothing was selected before,
     // try looking for the stuff under mouse cursor (i.e. Kicad old-style hover selection)
-    if( !hoverSelection() )
+    auto& selection = m_selectionTool->RequestSelection( SELECTION_DELETABLE );
+
+    if( selection.Empty() )
         return 0;
+
+    bool unselect = selection.IsHover();
 
     Activate();
 
@@ -257,6 +265,8 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
     bool lockOverride = false;
 
     controls->ShowCursor( true );
+    controls->SetSnapping( true );
+    controls->SetAutoPan( true );
 
     // cumulative translation
     wxPoint totalMovement( 0, 0 );
@@ -273,7 +283,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
             if( selection.Empty() )
                 break;
 
-            BOARD_ITEM* curr_item = selection.Front();
+            BOARD_ITEM* curr_item = static_cast<BOARD_ITEM*>( selection.Front() );
 
             if( m_dragging && evt->Category() == TC_MOUSE )
             {
@@ -285,7 +295,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
 
                 // Drag items to the current cursor position
                 for( auto item : selection )
-                    item->Move( movement + m_offset );
+                    static_cast<BOARD_ITEM*>( item )->Move( movement + m_offset );
 
                 updateRatsnest( true );
             }
@@ -293,7 +303,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
             {
                 if( !invokeInlineRouter() )
                 {
-                    m_selectionTool->SanitizeSelection();
+                    selection = m_selectionTool->RequestSelection( SELECTION_DEFAULT );
 
                     if( selection.Empty() )
                         break;
@@ -378,7 +388,8 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
                 // So, instead, reset the position manually
                 for( auto item : selection )
                 {
-                    item->SetPosition( item->GetPosition() - totalMovement );
+                    BOARD_ITEM* i = static_cast<BOARD_ITEM*>( item );
+                    i->SetPosition( i->GetPosition() - totalMovement );
 
                     // And what about flipping and rotation?
                     // for now, they won't be undone, but maybe that is how
@@ -395,7 +406,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
             if( m_dragging )
             {
                 // Update dragging offset (distance between cursor and the first dragged item)
-                m_offset = selection.Front()->GetPosition() - modPoint;
+                m_offset = static_cast<BOARD_ITEM*>( selection.Front() )->GetPosition() - modPoint;
                 getView()->Update( &selection );
                 updateRatsnest( true );
             }
@@ -422,22 +433,17 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
     else
         m_commit->Push( _( "Drag" ) );
 
-    controls->ShowCursor( false );
-    controls->SetAutoPan( false );
-
     return 0;
 }
 
 
 int EDIT_TOOL::Properties( const TOOL_EVENT& aEvent )
 {
-    SELECTION& selection = m_selectionTool->GetSelection();
     PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
 
-    // Shall the selection be cleared at the end?
-    bool unselect = selection.Empty();
+    const auto& selection = m_selectionTool->RequestSelection ( SELECTION_EDITABLE | SELECTION_DELETABLE );
 
-    if( !hoverSelection( false ) )
+    if( selection.Empty() )
         return 0;
 
     // Tracks & vias are treated in a special way:
@@ -454,7 +460,7 @@ int EDIT_TOOL::Properties( const TOOL_EVENT& aEvent )
     else if( selection.Size() == 1 ) // Properties are displayed when there is only one item selected
     {
         // Display properties dialog
-        BOARD_ITEM* item = selection.Front();
+        BOARD_ITEM* item = static_cast<BOARD_ITEM*>( selection.Front() );
 
         // Some of properties dialogs alter pointers, so we should deselect them
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
@@ -471,7 +477,7 @@ int EDIT_TOOL::Properties( const TOOL_EVENT& aEvent )
         item->SetFlags( flags );
     }
 
-    if( unselect )
+    if( selection.IsHover() )
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
     return 0;
@@ -480,22 +486,24 @@ int EDIT_TOOL::Properties( const TOOL_EVENT& aEvent )
 
 int EDIT_TOOL::Rotate( const TOOL_EVENT& aEvent )
 {
-    const SELECTION& selection = m_selectionTool->GetSelection();
     PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
 
-    // Shall the selection be cleared at the end?
-    bool unselect = selection.Empty();
+    const auto& selection = m_selectionTool->RequestSelection();
 
-    if( !hoverSelection() || m_selectionTool->CheckLock() == SELECTION_LOCKED )
+    if( selection.Empty() )
         return 0;
 
+    if( m_selectionTool->CheckLock() == SELECTION_LOCKED )
+        return 0;
+
+    // Shall the selection be cleared at the end?
     wxPoint rotatePoint = getModificationPoint( selection );
     const int rotateAngle = TOOL_EVT_UTILS::GetEventRotationAngle( *editFrame, aEvent );
 
     for( auto item : selection )
     {
         m_commit->Modify( item );
-        item->Rotate( rotatePoint, rotateAngle );
+        static_cast<BOARD_ITEM*>( item )->Rotate( rotatePoint, rotateAngle );
     }
 
     if( !m_dragging )
@@ -503,7 +511,7 @@ int EDIT_TOOL::Rotate( const TOOL_EVENT& aEvent )
     else
         updateRatsnest( true );
 
-    if( unselect )
+    if( selection.IsHover() )
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
     // TODO selectionModified
@@ -553,13 +561,14 @@ static void mirrorPadX( D_PAD& aPad, const wxPoint& aMirrorPoint )
 
 int EDIT_TOOL::Mirror( const TOOL_EVENT& aEvent )
 {
-    const SELECTION& selection = m_selectionTool->GetSelection();
     PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
 
-    // Shall the selection be cleared at the end?
-    bool unselect = selection.Empty();
+    const auto& selection = m_selectionTool->RequestSelection();
 
-    if( !hoverSelection() || m_selectionTool->CheckLock() == SELECTION_LOCKED )
+    if( m_selectionTool->CheckLock() == SELECTION_LOCKED )
+        return 0;
+
+    if( selection.Empty() )
         return 0;
 
     wxPoint mirrorPoint = getModificationPoint( selection );
@@ -614,7 +623,7 @@ int EDIT_TOOL::Mirror( const TOOL_EVENT& aEvent )
     else
         updateRatsnest( true );
 
-    if( unselect )
+    if( selection.IsHover() )
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
     // TODO selectionModified
@@ -627,12 +636,12 @@ int EDIT_TOOL::Mirror( const TOOL_EVENT& aEvent )
 
 int EDIT_TOOL::Flip( const TOOL_EVENT& aEvent )
 {
-    const SELECTION& selection = m_selectionTool->GetSelection();
+    const auto& selection = m_selectionTool->RequestSelection();
 
-    // Shall the selection be cleared at the end?
-    bool unselect = selection.Empty();
+    if( m_selectionTool->CheckLock() == SELECTION_LOCKED )
+        return 0;
 
-    if( !hoverSelection() || m_selectionTool->CheckLock() == SELECTION_LOCKED )
+    if( selection.Empty() )
         return 0;
 
     wxPoint flipPoint = getModificationPoint( selection );
@@ -640,7 +649,7 @@ int EDIT_TOOL::Flip( const TOOL_EVENT& aEvent )
     for( auto item : selection )
     {
         m_commit->Modify( item );
-        item->Flip( flipPoint );
+        static_cast<BOARD_ITEM*>( item )->Flip( flipPoint );
     }
 
     if( !m_dragging )
@@ -648,7 +657,7 @@ int EDIT_TOOL::Flip( const TOOL_EVENT& aEvent )
     else
         updateRatsnest( true );
 
-    if( unselect )
+    if( selection.IsHover() )
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
     m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
@@ -660,7 +669,13 @@ int EDIT_TOOL::Flip( const TOOL_EVENT& aEvent )
 
 int EDIT_TOOL::Remove( const TOOL_EVENT& aEvent )
 {
-    if( !hoverSelection() || m_selectionTool->CheckLock() == SELECTION_LOCKED )
+    // get a copy instead of reference (as we're going to clear the selectio before removing items)
+    auto selection = m_selectionTool->RequestSelection( SELECTION_DELETABLE | SELECTION_SANITIZE_PADS );
+
+    if( m_selectionTool->CheckLock() == SELECTION_LOCKED )
+        return 0;
+
+    if( selection.Empty() )
         return 0;
 
     // is this "alternative" remove?
@@ -670,13 +685,11 @@ int EDIT_TOOL::Remove( const TOOL_EVENT& aEvent )
     // in "alternative" mode, deletion is not just a simple list
     // of selected items, it is:
     //   - whole tracks, not just segments
-    if( isAlt )
+    if( isAlt && selection.IsHover() )
     {
         m_toolMgr->RunAction( PCB_ACTIONS::selectConnection, true );
+        selection = m_selectionTool->RequestSelection( SELECTION_DELETABLE | SELECTION_SANITIZE_PADS );
     }
-
-    // Get a copy instead of a reference, as we are going to clear current selection
-    auto selection = m_selectionTool->GetSelection().GetItems();
 
     // As we are about to remove items, they have to be removed from the selection first
     m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
@@ -694,13 +707,14 @@ int EDIT_TOOL::Remove( const TOOL_EVENT& aEvent )
 
 int EDIT_TOOL::MoveExact( const TOOL_EVENT& aEvent )
 {
-    const SELECTION& selection = m_selectionTool->GetSelection();
+    const auto& selection = m_selectionTool->RequestSelection();
 
-    // Shall the selection be cleared at the end?
-    bool unselect = selection.Empty();
-
-    if( !hoverSelection() || m_selectionTool->CheckLock() == SELECTION_LOCKED )
+    if( m_selectionTool->CheckLock() == SELECTION_LOCKED )
         return 0;
+
+    if( selection.Empty() )
+        return 0;
+
 
     wxPoint translation;
     double rotation = 0;
@@ -719,16 +733,16 @@ int EDIT_TOOL::MoveExact( const TOOL_EVENT& aEvent )
         {
 
             m_commit->Modify( item );
-            item->Move( translation );
-            item->Rotate( rotPoint, rotation );
+            static_cast<BOARD_ITEM*>( item )->Move( translation );
+            static_cast<BOARD_ITEM*>( item )->Rotate( rotPoint, rotation );
 
             if( !m_dragging )
-                getView()->Update( item, KIGFX::GEOMETRY );
+                getView()->Update( item );
         }
 
         m_commit->Push( _( "Move exact" ) );
 
-        if( unselect )
+        if( selection.IsHover() )
             m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
         m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
@@ -744,12 +758,10 @@ int EDIT_TOOL::Duplicate( const TOOL_EVENT& aEvent )
 
     bool increment = aEvent.IsAction( &PCB_ACTIONS::duplicateIncrement );
 
-    // first, check if we have a selection, or try to get one
-    SELECTION_TOOL* selTool = m_toolMgr->GetTool<SELECTION_TOOL>();
-    SELECTION& selection = selTool->GetSelection();
-
     // Be sure that there is at least one item that we can modify
-    if( !hoverSelection() )
+    const auto& selection = m_selectionTool->RequestSelection( SELECTION_DELETABLE | SELECTION_SANITIZE_PADS );
+
+    if( selection.Empty() )
         return 0;
 
     // we have a selection to work on now, so start the tool process
@@ -760,7 +772,7 @@ int EDIT_TOOL::Duplicate( const TOOL_EVENT& aEvent )
     for( auto item : selection )
     {
         if( item )
-            old_items.push_back( item );
+            old_items.push_back( static_cast<BOARD_ITEM*>( item ) );
     }
 
     for( unsigned i = 0; i < old_items.size(); ++i )
@@ -835,7 +847,7 @@ private:
 
     BOARD_ITEM* getNthItemToArray( int n ) const override
     {
-        return m_selection[n];
+        return static_cast<BOARD_ITEM*>( m_selection[n] );
     }
 
     BOARD* getBoard() const override
@@ -877,12 +889,9 @@ private:
 
 int EDIT_TOOL::CreateArray( const TOOL_EVENT& aEvent )
 {
-    // first, check if we have a selection, or try to get one
-    SELECTION_TOOL* selTool = m_toolMgr->GetTool<SELECTION_TOOL>();
-    SELECTION& selection = selTool->GetSelection();
+    const auto& selection = m_selectionTool->RequestSelection();
 
-    // pick up items under the cursor if needed
-    if( !hoverSelection() )
+    if( selection.Empty() )
         return 0;
 
     // we have a selection to work on now, so start the tool process
@@ -896,14 +905,17 @@ int EDIT_TOOL::CreateArray( const TOOL_EVENT& aEvent )
 
 int EDIT_TOOL::ExchangeFootprints( const TOOL_EVENT& aEvent )
 {
-    MODULE* mod = uniqueHoverSelection<MODULE>();
+    const auto& selection = m_selectionTool->RequestSelection();
+
+    if( selection.Empty() )
+        return 0;
+
+    MODULE* mod = selection.FirstOfKind<MODULE> ();
 
     if( !mod )
         return 0;
 
-    auto& editFrame = *getEditFrame<PCB_EDIT_FRAME>();
-
-    editFrame.SetCurItem( mod );
+    frame()->SetCurItem( mod );
 
     // Footprint exchange could remove modules, so they have to be
     // removed from the selection first
@@ -911,13 +923,102 @@ int EDIT_TOOL::ExchangeFootprints( const TOOL_EVENT& aEvent )
 
     // invoke the exchange dialog process
     {
-        DIALOG_EXCHANGE_MODULE dialog( &editFrame, mod );
+        DIALOG_EXCHANGE_MODULE dialog( frame(), mod );
         dialog.ShowQuasiModal();
     }
 
     // The current item can be deleted by exchange module, and the
     // selection is emptied, so remove current item from frame info area
-    editFrame.SetCurItem( nullptr );
+    frame()->SetCurItem( nullptr );
+
+    return 0;
+}
+
+
+int EDIT_TOOL::MeasureTool( const TOOL_EVENT& aEvent )
+{
+    auto& view = *getView();
+    auto& controls = *getViewControls();
+
+    Activate();
+    frame()->SetToolID( EditingModules() ? ID_MODEDIT_MEASUREMENT_TOOL
+                                         : ID_PCB_MEASUREMENT_TOOL,
+                        wxCURSOR_PENCIL, _( "Measure distance between two points" ) );
+
+    KIGFX::PREVIEW::RULER_ITEM ruler;
+    view.Add( &ruler );
+    view.SetVisible( &ruler, false );
+
+    bool originSet = false;
+
+    controls.ShowCursor( true );
+    controls.SetSnapping( true );
+
+    while( auto evt = Wait() )
+    {
+        const VECTOR2I cursorPos = controls.GetCursorPosition();
+
+        if( evt->IsCancel() || evt->IsActivate() )
+        {
+            break;
+        }
+
+        // click or drag starts
+        else if( !originSet &&
+                ( evt->IsDrag( BUT_LEFT ) || evt->IsClick( BUT_LEFT ) ) )
+        {
+            if( !evt->IsDrag( BUT_LEFT ) )
+            {
+                ruler.SetOrigin( cursorPos );
+                ruler.SetEnd( cursorPos );
+            }
+
+            controls.CaptureCursor( true );
+            controls.SetAutoPan( true );
+
+            originSet = true;
+        }
+
+        else if( !originSet && evt->IsMotion() )
+        {
+            // make sure the origin is set before a drag starts
+            // otherwise you can miss a step
+            ruler.SetOrigin( cursorPos );
+            ruler.SetEnd( cursorPos );
+        }
+
+        // second click or mouse up after drag ends
+        else if( originSet &&
+                ( evt->IsClick( BUT_LEFT ) || evt->IsMouseUp( BUT_LEFT ) ) )
+        {
+            originSet = false;
+
+            controls.SetAutoPan( false );
+            controls.CaptureCursor( false );
+
+            view.SetVisible( &ruler, false );
+        }
+
+        // move or drag when origin set updates rules
+        else if( originSet &&
+                ( evt->IsMotion() || evt->IsDrag( BUT_LEFT ) ) )
+        {
+            ruler.SetEnd( cursorPos );
+
+            view.SetVisible( &ruler, true );
+            view.Update( &ruler, KIGFX::GEOMETRY );
+        }
+
+        else if( evt->IsClick( BUT_RIGHT ) )
+        {
+            GetManager()->PassEvent();
+        }
+    }
+
+    view.SetVisible( &ruler, false );
+    view.Remove( &ruler );
+
+    frame()->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
     return 0;
 }
@@ -939,22 +1040,23 @@ void EDIT_TOOL::SetTransitions()
     Go( &EDIT_TOOL::Mirror,     PCB_ACTIONS::mirror.MakeEvent() );
     Go( &EDIT_TOOL::editFootprintInFpEditor, PCB_ACTIONS::editFootprintInFpEditor.MakeEvent() );
     Go( &EDIT_TOOL::ExchangeFootprints,      PCB_ACTIONS::exchangeFootprints.MakeEvent() );
+    Go( &EDIT_TOOL::MeasureTool,             PCB_ACTIONS::measureTool.MakeEvent() );
 }
 
 
 void EDIT_TOOL::updateRatsnest( bool aRedraw )
 {
-    SELECTION& selection = m_selectionTool->GetSelection();
+    const SELECTION& selection = m_selectionTool->GetSelection();
     RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
 
     ratsnest->ClearSimple();
 
     for( auto item : selection )
     {
-        ratsnest->Update( item );
+        ratsnest->Update( static_cast<BOARD_ITEM*>( item ) );
 
         if( aRedraw )
-            ratsnest->AddSimple( item );
+            ratsnest->AddSimple( static_cast<BOARD_ITEM*>( item ) );
     }
 }
 
@@ -963,7 +1065,7 @@ wxPoint EDIT_TOOL::getModificationPoint( const SELECTION& aSelection )
 {
     if( aSelection.Size() == 1 )
     {
-        return aSelection.Front()->GetPosition() - m_offset;
+        return static_cast<BOARD_ITEM*>( aSelection.Front() )->GetPosition() - m_offset;
     }
     else
     {
@@ -976,20 +1078,14 @@ wxPoint EDIT_TOOL::getModificationPoint( const SELECTION& aSelection )
     }
 }
 
-
-bool EDIT_TOOL::hoverSelection( bool aSanitize )
-{
-    m_toolMgr->RunAction( PCB_ACTIONS::selectionCursor, true, aSanitize );
-    return !m_selectionTool->GetSelection().Empty();
-}
-
-
 int EDIT_TOOL::editFootprintInFpEditor( const TOOL_EVENT& aEvent )
 {
-    SELECTION& selection = m_selectionTool->GetSelection();
-    bool unselect = selection.Empty();
+    const auto& selection = m_selectionTool->RequestSelection();
 
-    MODULE* mod = uniqueHoverSelection<MODULE>();
+    if( selection.Empty() )
+        return 0;
+
+    MODULE* mod = selection.FirstOfKind<MODULE>();
 
     if( !mod )
         return 0;
@@ -1012,8 +1108,20 @@ int EDIT_TOOL::editFootprintInFpEditor( const TOOL_EVENT& aEvent )
     editor->Show( true );
     editor->Raise();        // Iconize( false );
 
-    if( unselect )
+    if( selection.IsHover() )
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
     return 0;
+}
+
+template<class T>
+T* EDIT_TOOL::uniqueSelected()
+{
+    const auto selection = m_selectionTool->GetSelection();
+
+    if( selection.Size() != 1 )
+        return nullptr;
+
+    auto item = selection[0];
+    return dyn_cast<T*>( item );
 }

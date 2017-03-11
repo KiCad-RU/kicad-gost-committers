@@ -129,6 +129,10 @@ public:
     virtual void DrawArc( const VECTOR2D& aCenterPoint, double aRadius,
                           double aStartAngle, double aEndAngle ) override;
 
+    /// @copydoc GAL::DrawArcSegment()
+    virtual void DrawArcSegment( const VECTOR2D& aCenterPoint, double aRadius,
+                                 double aStartAngle, double aEndAngle, double aWidth ) override;
+
     /// @copydoc GAL::DrawRectangle()
     virtual void DrawRectangle( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint ) override;
 
@@ -435,6 +439,15 @@ private:
      * @return An unique group number that is not used by any other group.
      */
     unsigned int getNewGroupNumber();
+
+    /**
+     * @brief Compute the angle step when drawing arcs/circles approximated with lines.
+     */
+    double calcAngleStep( double aRadius ) const
+    {
+        // Bigger arcs need smaller alpha increment to make them look smooth
+        return std::min( 1e6 / aRadius, 2.0 * M_PI / CIRCLE_POINTS );
+    }
 
     /**
      * @brief Basic OpenGL initialization.

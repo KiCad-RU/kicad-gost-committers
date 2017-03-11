@@ -31,12 +31,12 @@
 #include <math/vector2d.h>
 #include <tools/pcb_tool.h>
 #include <tool/context_menu.h>
+#include <tool/selection.h>
 
-#include "selection_conditions.h"
-#include "tool_menu.h"
+#include <tools/pcb_selection_conditions.h>
+#include <tool/tool_menu.h>
 
 class PCB_BASE_FRAME;
-class SELECTION_AREA;
 class BOARD_ITEM;
 class GENERAL_COLLECTOR;
 
@@ -45,111 +45,6 @@ namespace KIGFX
     class GAL;
 }
 
-struct SELECTION : public KIGFX::VIEW_GROUP
-{
-public:
-    using ITER = std::set<BOARD_ITEM*>::iterator;
-    using CITER = std::set<BOARD_ITEM*>::const_iterator;
-
-    ITER begin() { return m_items.begin(); }
-    ITER end() { return m_items.end(); }
-    CITER begin() const { return m_items.cbegin(); }
-    CITER end() const { return m_items.cend(); }
-
-    virtual void Add( BOARD_ITEM* aItem )
-    {
-        m_items.insert( aItem );
-    }
-
-    virtual void Remove( BOARD_ITEM *aItem )
-    {
-        m_items.erase( aItem );
-    }
-
-    virtual void Clear() override
-    {
-        m_items.clear();
-    }
-
-    virtual unsigned int GetSize() const override
-    {
-        return m_items.size();
-    }
-
-    virtual KIGFX::VIEW_ITEM* GetItem( unsigned int idx ) const override
-    {
-        auto iter = m_items.begin();
-
-        std::advance( iter, idx );
-
-        return *iter;
-    }
-
-    bool Contains( BOARD_ITEM* aItem ) const
-    {
-        return m_items.find( aItem ) != m_items.end();
-    }
-
-    /// Checks if there is anything selected
-    bool Empty() const
-    {
-        return ( m_items.size() == 0 );
-    }
-
-    /// Returns the number of selected parts
-    int Size() const
-    {
-        return m_items.size();
-    }
-
-    const std::set<BOARD_ITEM*> GetItems() const
-    {
-        return m_items;
-    }
-
-    /// Returns the center point of the selection area bounding box.
-    VECTOR2I GetCenter() const;
-
-    BOARD_ITEM* operator[]( const int index ) const
-    {
-        if( index < 0 || (unsigned int) index >= m_items.size() )
-            return nullptr;
-
-        auto iter = m_items.begin();
-        std::advance( iter, index );
-        return *iter;
-    }
-
-    BOARD_ITEM* Front() const
-    {
-        if ( !m_items.size() )
-            return nullptr;
-
-        return *m_items.begin();
-    }
-
-    std::set<BOARD_ITEM*>& Items()
-    {
-        return m_items;
-    }
-
-    virtual const VIEW_GROUP::ITEMS updateDrawList() const override;
-
-private:
-    /// Set of selected items
-    std::set<BOARD_ITEM*> m_items;
-
-    // mute hidden overloaded virtual function warnings
-    using VIEW_GROUP::Add;
-    using VIEW_GROUP::Remove;
-};
-
-enum SELECTION_LOCK_FLAGS
-{
-    SELECTION_UNLOCKED = 0,
-    SELECTION_LOCK_OVERRIDE = 1,
-    SELECTION_LOCKED = 2
-};
 
 /**
  * Class SELECTION_TOOL
@@ -188,6 +83,15 @@ public:
      */
     SELECTION& GetSelection();
 
+    /**
+     * Function RequestSelection()
+     *
+     * Returns the current selection set, filtered according to aFlags.
+     * If the set is empty, performs the legacy-style hover selection.
+     */
+    SELECTION& RequestSelection( int aFlags = SELECTION_DEFAULT );
+
+
     inline TOOL_MENU& GetToolMenu()
     {
         return m_menu;
@@ -223,6 +127,9 @@ public:
 
     ///> Sets up handlers for various events.
     void SetTransitions() override;
+
+    ///> Zooms the screen to center and fit the current selection.
+    void zoomFitSelection( void );
 
 private:
     /**
@@ -281,7 +188,18 @@ private:
      */
     void selectAllItemsOnNet( int aNetCode );
 
-    ///> Selects all modules belonging to same sheet.
+    /**
+     * Selects all items with the given sheet timestamp name
+     * (the sheet path)
+     */
+    void selectAllItemsOnSheet( wxString& aSheetpath );
+
+    ///> Selects all modules belonging to same sheet, from Eeschema,
+    ///> using crossprobing
+    int selectOnSheetFromEeschema( const TOOL_EVENT& aEvent );
+
+    ///> Selects all modules belonging to same hierarchical sheet
+    ///> as the selected footprint.
     int selectSameSheet( const TOOL_EVENT& aEvent );
 
     ///> Find dialog callback.
@@ -365,14 +283,14 @@ private:
      * Marks item as selected, but does not add it to the ITEMS_PICKED_LIST.
      * @param aItem is an item to be be marked.
      */
-    void selectVisually( BOARD_ITEM* aItem ) const;
+    void selectVisually( BOARD_ITEM* aItem );
 
     /**
      * Function unselectVisually()
      * Marks item as selected, but does not add it to the ITEMS_PICKED_LIST.
      * @param aItem is an item to be be marked.
      */
-    void unselectVisually( BOARD_ITEM* aItem ) const;
+    void unselectVisually( BOARD_ITEM* aItem );
 
     /**
      * Function selectionContains()
@@ -404,9 +322,6 @@ private:
 
     /// Can other tools modify locked items.
     bool m_locked;
-
-    /// Determines if the selection is preliminary or final.
-    bool m_preliminary;
 
     /// Menu model displayed by the tool.
     TOOL_MENU m_menu;

@@ -72,7 +72,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     std::vector<MODULE*> newFootprints;
     // keep trace of the initial baord area, if we want to place new footprints
     // outside the existinag board
-    EDA_RECT bbox = board->ComputeBoundingBox( false );
+    EDA_RECT bbox = board->GetBoundingBox();
 
     netlist.SetIsDryRun( aIsDryRun );
     netlist.SetFindByTimeStamp( aSelectByTimeStamp );
@@ -158,7 +158,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     // Reload modules
     for( MODULE* module = board->m_Modules; module; module = module->Next() )
     {
-        module->RunOnChildren( std::bind( &KIGFX::VIEW::Add, view, _1 ) );
+        module->RunOnChildren( std::bind( &KIGFX::VIEW::Add, view, _1, -1 ) );
         view->Add( module );
     }
 

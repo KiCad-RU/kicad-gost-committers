@@ -57,7 +57,7 @@
 #include <module_editor_frame.h>
 #include <modview_frame.h>
 #include <footprint_wizard_frame.h>
-#include <widgets/footprint_preview_panel.h>
+#include <footprint_preview_panel.h>
 #include <gl_context_mgr.h>
 extern bool IsWxPythonLoaded();
 
@@ -335,7 +335,7 @@ bool IFACE::OnKifaceStart( PGM_BASE* aProgram, int aCtlBits )
                 "table or created an empty table in the kicad configuration folder.\n"
                 "You must first configure the library "
                 "table to include all footprint libraries you want to use.\n"
-                "See the \"Footprint Library  Table\" section of "
+                "See the \"Footprint Library Table\" section of "
                 "the CvPcb or Pcbnew documentation for more information." ) );
         }
     }

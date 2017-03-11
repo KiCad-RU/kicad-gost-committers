@@ -124,6 +124,9 @@ public:
      */
     int ExchangeFootprints( const TOOL_EVENT& aEvent );
 
+    ///> Launches a tool to measure between points
+    int MeasureTool( const TOOL_EVENT& aEvent );
+
     ///> Sets up handlers for various events.
     void SetTransitions() override;
 
@@ -176,17 +179,7 @@ private:
      * @return pointer to the item (of type T), or nullptr if there isn't
      * a single selected item, or it's not of the right type.
      */
-    template<class T>
-    T* uniqueSelected()
-    {
-        const SELECTION& selection = m_selectionTool->GetSelection();
-
-        if( selection.Size() != 1 )
-            return nullptr;
-
-        auto item = selection[0];
-        return dyn_cast<T*>( item );
-    }
+    template<class T> T* uniqueSelected();
 
     /**
      * Function uniqueHoverSelection()

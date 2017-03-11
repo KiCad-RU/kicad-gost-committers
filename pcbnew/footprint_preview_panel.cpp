@@ -19,7 +19,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <widgets/footprint_preview_panel.h>
+#include <footprint_preview_panel.h>
 #include <pcb_draw_panel_gal.h>
 
 #include <kiway.h>
@@ -36,132 +36,183 @@
 #include <wx/stattext.h>
 
 
-FOOTPRINT_PREVIEW_PANEL::LOADER_THREAD::LOADER_THREAD ( FOOTPRINT_PREVIEW_PANEL* aParent ) :
-    wxThread ( wxTHREAD_JOINABLE ),
-    m_parent( aParent )
+
+
+/**
+ * Threadsafe interface class between loader thread and panel class.
+ */
+class FP_THREAD_IFACE
 {
+    using CACHE_ENTRY = FOOTPRINT_PREVIEW_PANEL::CACHE_ENTRY;
 
-}
-
-
-FOOTPRINT_PREVIEW_PANEL::LOADER_THREAD::~LOADER_THREAD ()
-{
-
-}
-
-
-boost::optional<FOOTPRINT_PREVIEW_PANEL::CACHE_ENTRY>
-FOOTPRINT_PREVIEW_PANEL::LOADER_THREAD::PopFromQueue()
-{
-    wxMutexLocker lock( m_loaderLock );
-
-    if( m_loaderQueue.empty() )
-    {
-        return boost::none;
-    }
-    else
-    {
-        auto ent = m_loaderQueue.front();
-        m_loaderQueue.pop_front();
-        return ent;
-    }
-}
-
-
-FOOTPRINT_PREVIEW_PANEL::CACHE_ENTRY
-FOOTPRINT_PREVIEW_PANEL::LOADER_THREAD::AddToQueue( LIB_ID const & aEntry )
-{
-    wxMutexLocker lock( m_loaderLock );
-
-    CACHE_ENTRY ent = { aEntry, NULL, FPS_LOADING };
-    m_cachedFootprints[aEntry] = ent;
-    m_loaderQueue.push_back( ent );
-
-    return ent;
-}
-
-
-void FOOTPRINT_PREVIEW_PANEL::LOADER_THREAD::AddToCache(
-        FOOTPRINT_PREVIEW_PANEL::CACHE_ENTRY const & aEntry )
-{
-    wxMutexLocker lock( m_loaderLock );
-
-    m_cachedFootprints[aEntry.fpid] = aEntry;
-}
-
-
-boost::optional<FOOTPRINT_PREVIEW_PANEL::CACHE_ENTRY>
-FOOTPRINT_PREVIEW_PANEL::LOADER_THREAD::GetFromCache( LIB_ID const & aFPID )
-{
-    wxMutexLocker lock( m_loaderLock );
-    auto it = m_cachedFootprints.find( aFPID );
-
-    if( it != m_cachedFootprints.end() )
-        return it->second;
-    else
-        return boost::none;
-}
-
-
-void* FOOTPRINT_PREVIEW_PANEL::LOADER_THREAD::Entry()
-{
-    while(!TestDestroy())
-    {
-        auto ent = PopFromQueue();
-
-        if( ent )
+    public:
+        /// Retrieve a cache entry by LIB_ID
+        boost::optional<CACHE_ENTRY> GetFromCache( LIB_ID const & aFPID )
         {
-            FP_LIB_TABLE*   fptbl = m_parent->Prj().PcbFootprintLibs();
+            wxMutexLocker lock( m_lock );
+            auto it = m_cachedFootprints.find( aFPID );
 
-            if(!fptbl)
-                continue;
+            if( it != m_cachedFootprints.end() )
+                return it->second;
+            else
+                return boost::none;
+        }
 
-            ent->module = NULL;
+        /**
+         * Push an entry to the loading queue and a placeholder to the cache;
+         * return the placeholder.
+         */
+        CACHE_ENTRY AddToQueue( LIB_ID const & aEntry )
+        {
+            wxMutexLocker lock( m_lock );
 
-            try {
-                ent->module = fptbl->FootprintLoadWithOptionalNickname( ent->fpid );
+            CACHE_ENTRY ent = { aEntry, NULL, FPS_LOADING };
+            m_cachedFootprints[aEntry] = ent;
+            m_loaderQueue.push_back( ent );
 
-                if(ent->module == NULL)
-                    ent->status = FPS_NOT_FOUND;
+            return ent;
+        }
 
-            } catch( const IO_ERROR& ioe )
+        /// Pop an entry from the queue, or empty option if none is available.
+        boost::optional<CACHE_ENTRY> PopFromQueue()
+        {
+            wxMutexLocker lock( m_lock );
+
+            if( m_loaderQueue.empty() )
             {
-                ent->status = FPS_NOT_FOUND;
+                return boost::none;
             }
-
-
-            if(ent->status != FPS_NOT_FOUND )
-                ent->status = FPS_READY;
-
-            AddToCache( *ent );
-
-            if( ent->fpid == m_parent->m_currentFPID )
+            else
             {
-                wxCommandEvent event( wxEVT_COMMAND_TEXT_UPDATED, 1 );
-                m_parent->GetEventHandler()->AddPendingEvent ( event );
+                auto ent = m_loaderQueue.front();
+                m_loaderQueue.pop_front();
+                return ent;
             }
+        }
 
-        } else {
-            wxMilliSleep(100);
+        /// Add an entry to the cache.
+        void AddToCache( CACHE_ENTRY const & aEntry )
+        {
+            wxMutexLocker lock( m_lock );
+
+            m_cachedFootprints[aEntry.fpid] = aEntry;
+        }
+
+        /**
+         * Threadsafe accessor to set the current footprint.
+         */
+        void SetCurrentFootprint( LIB_ID aFp )
+        {
+            wxMutexLocker lock( m_lock );
+            m_current_fp = aFp;
+        }
+
+        /**
+         * Threadsafe accessor to get the current footprint.
+         */
+        LIB_ID GetCurrentFootprint()
+        {
+            wxMutexLocker lock( m_lock );
+            return m_current_fp;
+        }
+
+    private:
+        std::deque<CACHE_ENTRY> m_loaderQueue;
+        std::map<LIB_ID, CACHE_ENTRY> m_cachedFootprints;
+        LIB_ID m_current_fp;
+        wxMutex m_lock;
+};
+
+
+/**
+ * Footprint loader thread to prevent footprint loading from locking the UI.
+ * Interface is via a FP_THREAD_IFACE.
+ */
+class FP_LOADER_THREAD: public wxThread
+{
+    using CACHE_ENTRY = FOOTPRINT_PREVIEW_PANEL::CACHE_ENTRY;
+
+    FOOTPRINT_PREVIEW_PANEL* m_parent;
+    std::shared_ptr<FP_THREAD_IFACE> m_iface;
+
+public:
+    FP_LOADER_THREAD( FOOTPRINT_PREVIEW_PANEL* aParent,
+                      std::shared_ptr<FP_THREAD_IFACE> const& aIface ):
+        wxThread( wxTHREAD_DETACHED ),
+        m_parent( aParent ),
+        m_iface( aIface )
+    {}
+
+
+    ~FP_LOADER_THREAD()
+    {}
+
+
+    void ProcessEntry( CACHE_ENTRY& aEntry )
+    {
+        FP_LIB_TABLE* fptbl = m_parent->Prj().PcbFootprintLibs();
+
+        if( !fptbl )
+            return;
+
+        aEntry.module = NULL;
+
+        try {
+            aEntry.module = fptbl->FootprintLoadWithOptionalNickname( aEntry.fpid );
+
+            if( !aEntry.module )
+                aEntry.status = FPS_NOT_FOUND;
+
+        } catch( const IO_ERROR& ioe )
+        {
+            aEntry.status = FPS_NOT_FOUND;
+        }
+
+
+        if( aEntry.status != FPS_NOT_FOUND )
+            aEntry.status = FPS_READY;
+
+        m_iface->AddToCache( aEntry );
+
+        if( aEntry.fpid == m_iface->GetCurrentFootprint() )
+        {
+            auto handler = m_parent->GetEventHandler();
+
+            if( handler )
+                handler->QueueEvent( new wxCommandEvent( wxEVT_COMMAND_TEXT_UPDATED, 1 ) );
         }
     }
 
-    return NULL;
-}
+
+    virtual void* Entry() override
+    {
+        while( !TestDestroy() )
+        {
+            auto ent = m_iface->PopFromQueue();
+
+            if( ent )
+                ProcessEntry( *ent );
+            else
+                wxMilliSleep( 100 );
+        }
+
+        return NULL;
+    }
+};
 
 
 FOOTPRINT_PREVIEW_PANEL::FOOTPRINT_PREVIEW_PANEL(
         KIWAY* aKiway, wxWindow* aParent, KIGFX::GAL_DISPLAY_OPTIONS& aOpts, GAL_TYPE aGalType )
     : PCB_DRAW_PANEL_GAL ( aParent, -1, wxPoint( 0, 0 ), wxSize(200, 200), aOpts, aGalType  ),
       KIWAY_HOLDER( aKiway ),
-      m_footprintDisplayed( true ),
-      m_label( NULL ),
-      m_hidesizer( NULL )
+      m_footprintDisplayed( true )
 {
 
-    m_loader = std::make_unique<LOADER_THREAD>( this );
+    m_iface = std::make_shared<FP_THREAD_IFACE>();
+    m_loader = new FP_LOADER_THREAD( this, m_iface );
     m_loader->Run();
 
+    SetStealsFocus( false );
     ShowScrollbars( wxSHOW_SB_NEVER, wxSHOW_SB_NEVER );
     EnableScrolling( false, false );    // otherwise Zoom Auto disables GAL canvas
 
@@ -175,7 +226,6 @@ FOOTPRINT_PREVIEW_PANEL::FOOTPRINT_PREVIEW_PANEL(
     StartDrawing();
 
     Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( FOOTPRINT_PREVIEW_PANEL::OnLoaderThreadUpdate ), NULL, this );
-
 }
 
 
@@ -185,24 +235,29 @@ FOOTPRINT_PREVIEW_PANEL::~FOOTPRINT_PREVIEW_PANEL( )
 }
 
 
-FOOTPRINT_PREVIEW_PANEL::CACHE_ENTRY
-FOOTPRINT_PREVIEW_PANEL::CacheFootprint ( const LIB_ID& aFPID )
+FOOTPRINT_PREVIEW_PANEL::CACHE_ENTRY FOOTPRINT_PREVIEW_PANEL::CacheAndReturn( const LIB_ID& aFPID )
 {
-    auto opt_ent = m_loader->GetFromCache( aFPID );
+    auto opt_ent = m_iface->GetFromCache( aFPID );
 
     if( opt_ent )
         return *opt_ent;
     else
-        return m_loader->AddToQueue( aFPID );
+        return m_iface->AddToQueue( aFPID );
+}
+
+
+// This is separate to avoid having to export CACHE_ENTRY to the global namespace
+void FOOTPRINT_PREVIEW_PANEL::CacheFootprint( LIB_ID const& aFPID )
+{
+    (void) CacheAndReturn( aFPID );
 }
 
 
 void FOOTPRINT_PREVIEW_PANEL::renderFootprint(  MODULE *module )
 {
-    Freeze();
     GetView()->Clear();
     module->SetParent ( &*m_dummyBoard );
-    module->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, GetView(), _1 ) );
+    module->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, GetView(), _1, -1 ) );
 
     GetView()->Add ( module );
 
@@ -223,49 +278,29 @@ void FOOTPRINT_PREVIEW_PANEL::renderFootprint(  MODULE *module )
 
         Refresh();
     }
-
-    Thaw();
 }
 
 
 void FOOTPRINT_PREVIEW_PANEL::DisplayFootprint ( const LIB_ID& aFPID )
 {
     m_currentFPID = aFPID;
+    m_iface->SetCurrentFootprint( aFPID );
     m_footprintDisplayed = false;
 
-    CACHE_ENTRY fpe = CacheFootprint ( m_currentFPID );
+    CACHE_ENTRY fpe = CacheAndReturn ( m_currentFPID );
 
-    switch( fpe.status )
+    if( m_handler )
+        m_handler( fpe.status );
+
+    if( fpe.status == FPS_READY )
     {
-    case FPS_NOT_FOUND:
-        SetStatusText( _( "Footprint not found" ) );
-        break;
-
-    case FPS_LOADING:
-        SetStatusText( _( "Loading..." ) );
-        break;
-
-    case FPS_READY:
         if ( !m_footprintDisplayed )
         {
-            ClearStatus();
             renderFootprint( fpe.module );
             m_footprintDisplayed = true;
             Refresh();
         }
     }
-}
-
-
-void FOOTPRINT_PREVIEW_PANEL::LinkErrorLabel( wxStaticText* aLabel )
-{
-    m_label = aLabel;
-}
-
-
-void FOOTPRINT_PREVIEW_PANEL::SetHideSizer( wxSizer* aSizer )
-{
-    m_hidesizer = aSizer;
 }
 
 
@@ -275,41 +310,15 @@ void FOOTPRINT_PREVIEW_PANEL::OnLoaderThreadUpdate( wxCommandEvent& event )
 }
 
 
-void FOOTPRINT_PREVIEW_PANEL::SetStatusText( wxString const & aText )
+void FOOTPRINT_PREVIEW_PANEL::SetStatusHandler( FOOTPRINT_STATUS_HANDLER aHandler )
 {
-    Freeze();
-    if( m_label )
-    {
-        m_label->SetLabel( aText );
-    }
-
-    if( m_hidesizer )
-    {
-        m_hidesizer->ShowItems( true );
-        Hide();
-    }
-
-    GetParent()->Layout();
-    Thaw();
+    m_handler = aHandler;
 }
 
 
-void FOOTPRINT_PREVIEW_PANEL::ClearStatus()
+wxWindow* FOOTPRINT_PREVIEW_PANEL::GetWindow()
 {
-    Freeze();
-    if( m_label )
-    {
-        m_label->SetLabel( wxEmptyString );
-    }
-
-    if( m_hidesizer )
-    {
-        Show();
-        m_hidesizer->ShowItems( false );
-    }
-
-    GetParent()->Layout();
-    Thaw();
+    return static_cast<wxWindow*>( this );
 }
 
 

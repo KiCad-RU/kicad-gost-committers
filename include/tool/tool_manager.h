@@ -26,12 +26,13 @@
 #ifndef __TOOL_MANAGER_H
 #define __TOOL_MANAGER_H
 
-#include <deque>
 #include <typeinfo>
 #include <map>
 #include <list>
+#include <stack>
 
 #include <tool/tool_base.h>
+#include <view/view_controls.h>
 
 class TOOL_BASE;
 class ACTION_MANAGER;
@@ -219,7 +220,7 @@ public:
      * Propagates an event to tools that requested events of matching type(s).
      * @param aEvent is the event to be processed.
      */
-    bool ProcessEvent( const TOOL_EVENT& aEvent );
+    void ProcessEvent( const TOOL_EVENT& aEvent );
 
     /**
      * Puts an event to the event queue to be processed at the end of event processing cycle.
@@ -450,6 +451,34 @@ private:
      */
     bool isActive( TOOL_BASE* aTool );
 
+    /**
+     * Function saveViewControls()
+     * Saves the VIEW_CONTROLS settings to the tool state object. If VIEW_CONTROLS
+     * settings are affected by TOOL_MANAGER, the original settings are saved.
+     */
+    void saveViewControls( TOOL_STATE* aState );
+
+    /**
+     * Function applyViewControls()
+     * Applies VIEW_CONTROLS settings stored in a TOOL_STATE object.
+     */
+    void applyViewControls( TOOL_STATE* aState );
+
+    /**
+     * Function pushViewControls()
+     * Stores the current VIEW_CONTROLS settings on the stack.
+     */
+    void pushViewControls();
+
+    /**
+     * Function pushViewControls()
+     * Restores VIEW_CONTROLS settings from the stack.
+     */
+    void popViewControls();
+
+    ///> Main function for event processing.
+    void processEvent( const TOOL_EVENT& aEvent );
+
     /// Index of registered tools current states, associated by tools' objects.
     TOOL_STATE_MAP m_toolState;
 
@@ -479,8 +508,14 @@ private:
     /// Queue that stores events to be processed at the end of the event processing cycle.
     std::list<TOOL_EVENT> m_eventQueue;
 
+    ///> VIEW_CONTROLS settings stack
+    std::stack<KIGFX::VC_SETTINGS> m_vcStack;
+
     /// Flag saying if the currently processed event should be passed to other tools.
     bool m_passEvent;
+
+    /// Flag indicating whether a context menu is currently displayed
+    bool m_menuActive;
 };
 
 #endif

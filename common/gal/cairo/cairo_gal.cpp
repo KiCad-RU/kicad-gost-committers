@@ -87,6 +87,7 @@ CAIRO_GAL::CAIRO_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions,
 
     // Grid color settings are different in Cairo and OpenGL
     SetGridColor( COLOR4D( 0.1, 0.1, 0.1, 0.8 ) );
+    SetAxesColor( COLOR4D( BLUE ) );
 
     // Allocate memory for pixel storage
     allocateBitmaps();
@@ -198,6 +199,8 @@ void CAIRO_GAL::DrawSegment( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPo
 
         cairo_save( currentContext );
 
+        cairo_set_source_rgba( currentContext, strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a );
+
         cairo_translate( currentContext, aStartPoint.x, aStartPoint.y );
         cairo_rotate( currentContext, lineAngle );
 
@@ -249,6 +252,51 @@ void CAIRO_GAL::DrawArc( const VECTOR2D& aCenterPoint, double aRadius, double aS
     }
 
     flushPath();
+
+    isElementAdded = true;
+}
+
+
+void CAIRO_GAL::DrawArcSegment( const VECTOR2D& aCenterPoint, double aRadius, double aStartAngle,
+                                double aEndAngle, double aWidth )
+{
+    SWAP( aStartAngle, >, aEndAngle );
+
+    if( isFillEnabled )
+    {
+        cairo_arc( currentContext, aCenterPoint.x, aCenterPoint.y, aRadius, aStartAngle, aEndAngle );
+        cairo_set_source_rgba( currentContext, fillColor.r, fillColor.g, fillColor.b, fillColor.a );
+        cairo_stroke( currentContext );
+    }
+    else
+    {
+        double width = aWidth / 2.0;
+        VECTOR2D startPoint( cos( aStartAngle ) * aRadius,
+                             sin( aStartAngle ) * aRadius );
+        VECTOR2D endPoint( cos( aEndAngle ) * aRadius,
+                           sin( aEndAngle ) * aRadius );
+
+        cairo_save( currentContext );
+
+        cairo_set_source_rgba( currentContext, strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a );
+
+        cairo_translate( currentContext, aCenterPoint.x, aCenterPoint.y );
+
+        cairo_new_sub_path( currentContext );
+        cairo_arc( currentContext, 0, 0, aRadius - width, aStartAngle, aEndAngle );
+
+        cairo_new_sub_path( currentContext );
+        cairo_arc( currentContext, 0, 0, aRadius + width, aStartAngle, aEndAngle );
+
+        cairo_new_sub_path( currentContext );
+        cairo_arc_negative( currentContext, startPoint.x, startPoint.y, width, aStartAngle, aStartAngle + M_PI );
+
+        cairo_new_sub_path( currentContext );
+        cairo_arc( currentContext, endPoint.x, endPoint.y, width, aEndAngle, aEndAngle + M_PI );
+
+        cairo_restore( currentContext );
+        flushPath();
+    }
 
     isElementAdded = true;
 }
@@ -819,7 +867,7 @@ void CAIRO_GAL::drawGridLine( const VECTOR2D& aStartPoint, const VECTOR2D& aEndP
 {
     cairo_move_to( currentContext, aStartPoint.x, aStartPoint.y );
     cairo_line_to( currentContext, aEndPoint.x, aEndPoint.y );
-    cairo_set_source_rgba( currentContext, gridColor.r, gridColor.g, gridColor.b, strokeColor.a );
+    cairo_set_source_rgba( currentContext, strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a );
     cairo_stroke( currentContext );
 }
 
@@ -1081,10 +1129,15 @@ void CAIRO_GAL::drawPoly( const SHAPE_LINE_CHAIN& aLineChain )
     if( aLineChain.PointCount() < 2 )
         return;
 
+    auto numPoints = aLineChain.PointCount();
+
+    if( aLineChain.IsClosed() )
+        numPoints += 1;
+
     const VECTOR2I start = aLineChain.CPoint( 0 );
     cairo_move_to( currentContext, start.x, start.y );
 
-    for( int i = 1; i < aLineChain.PointCount(); ++i )
+    for( int i = 1; i < numPoints; ++i )
     {
         const VECTOR2I& p = aLineChain.CPoint( i );
         cairo_line_to( currentContext, p.x, p.y );

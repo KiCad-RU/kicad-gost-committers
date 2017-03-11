@@ -1,9 +1,9 @@
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/3d-viewer
-  )
+)
 
-add_library( kicad_3dsg SHARED
+set( SG_FILES
     sg_base.cpp
     sg_node.cpp
     sg_helpers.cpp
@@ -29,6 +29,12 @@ add_library( kicad_3dsg SHARED
     ifsg_api.cpp
 )
 
+if( MINGW )
+    list( APPEND SG_FILES ${CMAKE_SOURCE_DIR}/common/streamwrapper.cpp )
+endif( MINGW )
+
+add_library( kicad_3dsg SHARED ${SG_FILES} )
+
 if( APPLE )
     # puts library into the main kicad.app bundle in build tree
     set_target_properties( kicad_3dsg PROPERTIES
@@ -51,7 +57,6 @@ if( NOT ${S3DSG_VERSION_FILE} STREQUAL "S3DSG_VERSION_FILE-NOTFOUND" )
         string( REGEX MATCH [0-9]+ _VALUE ${SVAR} )
 
         if( NOT ${_VARNAME} STREQUAL "" )
-            message( "INFO: " ${_VARNAME} " = " ${_VALUE} )
             if( NOT ${_VALUE} STREQUAL "" )
                 set( ${_VARNAME} ${_VALUE} )
             else()
@@ -78,6 +83,7 @@ if( NOT ${S3DSG_VERSION_FILE} STREQUAL "S3DSG_VERSION_FILE-NOTFOUND" )
             PROPERTIES SOVERSION
             ${KICADSG_VERSION_MAJOR}.${KICADSG_VERSION_MINOR}.${KICADSG_VERSION_PATCH} )
 
+    message( STATUS "S3DSG version: ${KICADSG_VERSION_MAJOR}.${KICADSG_VERSION_MINOR}.${KICADSG_VERSION_PATCH}" )
 else()
     message( FATAL_ERROR "Cannot determine the S3DSG library version" )
 endif()

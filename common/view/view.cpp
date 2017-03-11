@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2016 CERN
+ * Copyright (C) 2013-2017 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -89,6 +89,7 @@ private:
     VIEW*   m_view;             ///< Current dynamic view the item is assigned to.
     int     m_flags;            ///< Visibility flags
     int     m_requiredUpdate;   ///< Flag required for updating
+    int     m_drawPriority;     ///< Order to draw this item in a layer, lowest first
 
     ///> Helper for storing cached items group ids
     typedef std::pair<int, int> GroupPair;
@@ -249,7 +250,10 @@ void VIEW::OnDestroy( VIEW_ITEM* aItem )
     if( !data )
         return;
 
-    data->m_view->Remove( aItem );
+    if( data->m_view )
+        data->m_view->Remove( aItem );
+
+    delete data;
 }
 
 
@@ -260,7 +264,9 @@ VIEW::VIEW( bool aIsDynamic ) :
     m_mirrorX( false ), m_mirrorY( false ),
     m_painter( NULL ),
     m_gal( NULL ),
-    m_dynamic( aIsDynamic )
+    m_dynamic( aIsDynamic ),
+    m_useDrawPriority( false ),
+    m_nextDrawPriority( 0 )
 {
     m_boundary.SetMaximum();
     m_allItems.reserve( 32768 );
@@ -301,12 +307,18 @@ void VIEW::AddLayer( int aLayer, bool aDisplayOnly )
 }
 
 
-void VIEW::Add( VIEW_ITEM* aItem )
+void VIEW::Add( VIEW_ITEM* aItem, int aDrawPriority )
 {
     int layers[VIEW_MAX_LAYERS], layers_count;
 
-    aItem->m_viewPrivData = new VIEW_ITEM_DATA;
+    if( aDrawPriority < 0 )
+        aDrawPriority = m_nextDrawPriority++;
+
+    if( !aItem->m_viewPrivData )
+        aItem->m_viewPrivData = new VIEW_ITEM_DATA;
+
     aItem->m_viewPrivData->m_view = this;
+    aItem->m_viewPrivData->m_drawPriority = aDrawPriority;
 
     aItem->ViewGetLayers( layers, layers_count );
     aItem->viewPrivData()->saveLayers( layers, layers_count );
@@ -335,6 +347,7 @@ void VIEW::Remove( VIEW_ITEM* aItem )
     if( !viewData )
         return;
 
+    wxASSERT( viewData->m_view == this );
     auto item = std::find( m_allItems.begin(), m_allItems.end(), aItem );
 
     if( item != m_allItems.end() )
@@ -360,6 +373,7 @@ void VIEW::Remove( VIEW_ITEM* aItem )
     }
 
     viewData->deleteGroups();
+    viewData->m_view = nullptr;
 }
 
 
@@ -812,28 +826,44 @@ void VIEW::UpdateAllLayersOrder()
 
 struct VIEW::drawItem
 {
-    drawItem( VIEW* aView, int aLayer ) :
-        view( aView ), layer( aLayer )
+    drawItem( VIEW* aView, int aLayer, bool aUseDrawPriority ) :
+        view( aView ), layer( aLayer ), useDrawPriority( aUseDrawPriority )
     {
     }
 
     bool operator()( VIEW_ITEM* aItem )
     {
+        wxASSERT( aItem->viewPrivData() );
 
-        assert( aItem->viewPrivData() );
         // Conditions that have te be fulfilled for an item to be drawn
         bool drawCondition = aItem->viewPrivData()->isRenderable() &&
                              aItem->ViewGetLOD( layer, view ) < view->m_scale;
         if( !drawCondition )
             return true;
 
-        view->draw( aItem, layer );
+        if( useDrawPriority )
+            drawItems.push_back( aItem );
+        else
+            view->draw( aItem, layer );
 
         return true;
     }
 
+    void deferredDraw()
+    {
+        std::sort( drawItems.begin(), drawItems.end(),
+                   []( VIEW_ITEM* a, VIEW_ITEM* b ) -> bool {
+                       return b->viewPrivData()->m_drawPriority < a->viewPrivData()->m_drawPriority;
+                   });
+
+        for( auto item : drawItems )
+            view->draw( item, layer );
+    }
+
     VIEW* view;
     int layer, layers[VIEW_MAX_LAYERS];
+    bool useDrawPriority;
+    std::vector<VIEW_ITEM*> drawItems;
 };
 
 
@@ -843,11 +873,14 @@ void VIEW::redrawRect( const BOX2I& aRect )
     {
         if( l->visible && IsTargetDirty( l->target ) && areRequiredLayersEnabled( l->id ) )
         {
-            drawItem drawFunc( this, l->id );
+            drawItem drawFunc( this, l->id, m_useDrawPriority );
 
             m_gal->SetTarget( l->target );
             m_gal->SetLayerDepth( l->renderingOrder );
             l->items->Query( aRect, drawFunc );
+
+            if( m_useDrawPriority )
+                drawFunc.deferredDraw();
         }
     }
 }
@@ -948,12 +981,13 @@ struct VIEW::recacheItem
 void VIEW::Clear()
 {
     BOX2I r;
-
     r.SetMaximum();
     m_allItems.clear();
 
     for( LAYER_MAP_ITER i = m_layers.begin(); i != m_layers.end(); ++i )
         i->second.items->RemoveAll();
+
+    m_nextDrawPriority = 0;
 
     m_gal->ClearCache();
 }
