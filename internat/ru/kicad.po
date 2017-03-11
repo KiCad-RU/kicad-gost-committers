@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: KiCad\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2017-01-07 19:02+0300\n"
-"PO-Revision-Date: 2017-01-07 19:12+0300\n"
+"PO-Revision-Date: 2017-03-11 20:34+0300\n"
 "Last-Translator: Andrey Fedorushkov <andrf@mail.ru>\n"
 "Language-Team: Russian\n"
 "Language: ru_RU\n"
@@ -773,17 +773,17 @@ msgstr "Сквозное отверстие"
 
 #: 3d-viewer/3d_viewer/3d_toolbar.cpp:354
 msgid "Footprint Properties -> Placement type -> Through hole"
-msgstr ""
+msgstr "Свойства посад.места -> Тип монтажа -> Выводной"
 
 #: 3d-viewer/3d_viewer/3d_toolbar.cpp:357
 #: pcbnew/dialogs/dialog_edit_module_for_BoardEditor_base.cpp:135
 #: pcbnew/dialogs/dialog_edit_module_for_Modedit_base.cpp:93
 msgid "Surface mount"
-msgstr ""
+msgstr "Поверхностный монтаж"
 
 #: 3d-viewer/3d_viewer/3d_toolbar.cpp:358
 msgid "Footprint Properties -> Placement type -> Surface mount"
-msgstr ""
+msgstr "Свойства посад.места -> Тип монтажа -> Поверхностный"
 
 #: 3d-viewer/3d_viewer/3d_toolbar.cpp:361 pcbnew/class_module.cpp:574
 #: pcbnew/dialogs/dialog_edit_module_for_BoardEditor_base.cpp:135
@@ -796,6 +796,8 @@ msgid ""
 "Footprint Properties -> Placement type -> Virtual (eg: edge connectors, test points, "
 "mechanical parts)"
 msgstr ""
+"Свойства посад.места -> Тип монтажа -> Виртуальный (например: ножевые разъёмы, "
+"тестовые точки, механические части)"
 
 #: 3d-viewer/3d_viewer/3d_toolbar.cpp:370
 msgid "Show &Layers"
@@ -984,15 +986,15 @@ msgstr "Увеличить"
 
 #: 3d-viewer/3d_viewer/eda_3d_viewer.cpp:1201
 msgid "Toggle 3D models with type Through Hole"
-msgstr ""
+msgstr "Переключить 3D модели с выводным монтажом"
 
 #: 3d-viewer/3d_viewer/eda_3d_viewer.cpp:1202
 msgid "Toggle 3D models with type Surface Mount"
-msgstr ""
+msgstr "Переключить 3D модели с поверхностным монтажом"
 
 #: 3d-viewer/3d_viewer/eda_3d_viewer.cpp:1203
 msgid "Toggle 3D models with type Virtual"
-msgstr ""
+msgstr "Переключить 3D модели с виртуальным монтажом"
 
 #: 3d-viewer/3d_viewer/eda_3d_viewer.cpp:1205
 msgid "Viewer 3D"
@@ -1597,7 +1599,7 @@ msgstr "Наш официальный репозиторий для библио
 
 #: common/dialog_about/AboutDialog_main.cpp:162
 msgid "Footprint wizards info on our official repository "
-msgstr ""
+msgstr "Информация о мастере посад.мест в нашем официальном репозитории "
 
 #: common/dialog_about/AboutDialog_main.cpp:166
 msgid "Non official repositories"
@@ -2426,7 +2428,7 @@ msgstr "'%s' дублирует уникальное имя библиотеки
 #: common/fp_lib_table.cpp:216
 #, c-format
 msgid "fp-lib-table files contain no library with nickname '%s'"
-msgstr ""
+msgstr "файлы fp-lib-table не содержат библиотек с именем '%s'"
 
 #: common/fp_lib_table.cpp:372 eeschema/symbol_lib_table.cpp:384
 #, c-format
@@ -2772,7 +2774,7 @@ msgstr "Цвета"
 
 #: common/view/view.cpp:516
 msgid "Mirroring for Y axis is not supported yet"
-msgstr ""
+msgstr "Отражение по оси Y пока не поддерживается"
 
 #: common/widgets/mathplot.cpp:1765 common/zoom.cpp:246
 #: eeschema/dialogs/dialog_edit_component_in_schematic_fbp.cpp:149
@@ -3523,6 +3525,10 @@ msgid ""
 "answer no, then these assignments will be cleared out and you will have to re-assign "
 "these footprints yourself.)"
 msgstr ""
+"Некоторые из назначенных посад.мест являются устаревшими записями (отсутствует "
+"уникальное имя библиотеки). Хотите ли вы, чтобы CvPcb попыталась преобразовать их в "
+"новый требуемый формат LIB_ID? (Если ответите нет, то эти назначения будут убраны и "
+"их будет можно самостоятельно переназначить)."
 
 #: cvpcb/readwrite_dlgs.cpp:258
 #, c-format
@@ -5567,6 +5573,8 @@ msgid ""
 "Delay after the first change to create a backup file of the board on disk.\n"
 "If set to 0, auto backup is disabled"
 msgstr ""
+"Задержка после первого изменения перед созданием резервного файла платы на диске.\n"
+"Если 0, то автосохранение выключено"
 
 #: eeschema/dialogs/dialog_eeschema_options_base.cpp:196
 msgid "minutes"
@@ -7099,6 +7107,17 @@ msgid ""
 "See the \"Symbol Library Table\" section of Eeschema documentation for more "
 "information."
 msgstr ""
+"Вы запустили Eeschema впервые используя новый метод таблицы библиотек символов для "
+"поиска символов.\n"
+"\n"
+"Eeschema или скопировала таблицу по умолчанию или создала пустую таблицу в каталоге "
+"настроек kicad.\n"
+"\n"
+"Для начала вы должны настроить таблицу библиотек, включив все библиотеки символов, "
+"которые вы хотите использовать.\n"
+"\n"
+"Смотрите раздел \"Таблица библиотек символов\" документации Eeschema для получения "
+"более подробной информации."
 
 #: eeschema/eeschema.cpp:265
 #, c-format
@@ -10567,12 +10586,12 @@ msgstr "При сохранении файла символа '%s' произо�
 #: eeschema/symbol_lib_table.cpp:182
 #, c-format
 msgid "'%s' is a duplicate symbol library nickname"
-msgstr ""
+msgstr "'%s' дубликат уникального имени библиотеки символов"
 
 #: eeschema/symbol_lib_table.cpp:218
 #, c-format
 msgid "sym-lib-table files contain no library with nickname '%s'"
-msgstr ""
+msgstr "файлы sym-lib-table не содержат библиотек с уникальным именем '%s'"
 
 #: eeschema/tool_lib.cpp:62
 msgid "Deselect current tool"
@@ -15899,47 +15918,60 @@ msgstr "Класс цепей Default не может быть удалён"
 #, c-format
 msgid " - <b>Track Size</b> (%f %s) &lt; <b>Min Track Size</b> (%f %s)<br>"
 msgstr ""
+" - <b>Ширина дорожки</b> (%f %s) &lt; <b>минимальной ширины дорожки</b> (%f %s)<br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1014
 #, c-format
 msgid " - <b>Differential Pair Size</b> (%f %s) &lt; <b>Min Track Size</b> (%f %s)<br>"
 msgstr ""
+" - <b>Ширина дорожки дифф.пары</b> (%f %s) &lt; <b>минимальной ширины дорожки</b> (%f "
+"%s)<br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1028
 #, c-format
 msgid " - <b>Via Diameter</b> (%f %s) &lt; <b>Minimum Via Diameter</b> (%f %s)<br>"
 msgstr ""
+" - <b>Диаметр перех.отв.</b> (%f %s) &lt; <b>минимального диаметра перех.отв.</b> (%f "
+"%s)<br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1040
 #, c-format
 msgid " - <b>Via Drill</b> (%f %s) &ge; <b>Via Dia</b> (%f %s)<br>"
-msgstr ""
+msgstr " - <b>Сверло перех.отв.</b> (%f %s) &ge; <b>диаметра перех.отв.</b> (%f %s)<br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1049
 #, c-format
 msgid " - <b>Via Drill</b> (%f %s) &lt; <b>Min Via Drill</b> (%f %s)<br>"
 msgstr ""
+" - <b>Сверло перех.отв.</b> (%f %s) &lt; <b>минимального сверла перех.отв.</b> (%f "
+"%s)<br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1062
 #, c-format
 msgid ""
 " - <b>MicroVia Diameter</b> (%f %s) &lt; <b>MicroVia Min Diameter</b> (%f %s)<br>"
 msgstr ""
+" - <b>Диаметр перех.микроотв.</b> (%f %s) &lt; <b>минимального диаметра перех."
+"микроотв.</b> (%f %s)<br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1074
 #, c-format
 msgid " - <b>MicroVia Drill</b> (%f %s) &ge; <b>MicroVia Dia</b> (%f %s)<br>"
 msgstr ""
+" - <b>Сверло перех.микроотв.</b> (%f %s) &ge; <b>диаметра перех.микроотв.</b> (%f "
+"%s)<br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1083
 #, c-format
 msgid " - <b>MicroVia Drill</b> (%f %s) &lt; <b>MicroVia Min Drill</b> (%f %s)<br>"
 msgstr ""
+" - <b>Сверло перех.микроотв.</b> (%f %s) &lt; <b>Мин. сверло перех.микроотв.</b> (%f "
+"%s)<br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1092
 #, c-format
 msgid "Netclass: <b>%s</b><br>"
-msgstr ""
+msgstr "Класс цепи: <b>%s</b><br>"
 
 #: pcbnew/dialogs/dialog_design_rules.cpp:1095
 msgid "<br>"
@@ -16101,6 +16133,9 @@ msgid ""
 "Netclass values on demand,\n"
 "for arbitrary vias or track segments."
 msgstr ""
+"Особые диаметры перех.отв. и ширины дорожек, которые при необходимости \n"
+"могут быть использованы для замены значений по умолчанию из класса цепи \n"
+"для произвольных перех.отв. и сегментов дорожек."
 
 #: pcbnew/dialogs/dialog_design_rules_base.cpp:267
 msgid "Custom Via Sizes:"
@@ -16583,7 +16618,7 @@ msgstr "Изменить посад.места"
 #: pcbnew/dialogs/dialog_edit_module_for_BoardEditor_base.cpp:137
 #: pcbnew/dialogs/dialog_edit_module_for_Modedit_base.cpp:95
 msgid "Placement type"
-msgstr ""
+msgstr "Тип монтажа"
 
 #: pcbnew/dialogs/dialog_edit_module_for_BoardEditor_base.cpp:141
 #: pcbnew/dialogs/dialog_edit_module_for_Modedit_base.cpp:99
@@ -16999,7 +17034,7 @@ msgstr "Не удалось создать STEP файл; проверьте, ч
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:19
 msgid "STEP File name:"
-msgstr ""
+msgstr "Имя файла STEP:"
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:23
 msgid "Select a STEP export filename"
@@ -17007,17 +17042,19 @@ msgstr "Выбор имени файла экспорта в STEP"
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:35
 msgid "STEP coordinates origin options:"
-msgstr ""
+msgstr "Опции начала координат STEP:"
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:49
 msgid "Drill and plot axis origin"
-msgstr ""
+msgstr "Начало координат сверловки и черчения"
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:50
 msgid ""
 "Use the auxiliary axis origin (used in plot and drill geneation) as STEP coordinates "
 "origin."
 msgstr ""
+"Использовать вспомогательное начало координат (используемое при черчении и генерации "
+"сверловки) как начало координат STEP."
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:57
 msgid "Grid origin"
@@ -17025,7 +17062,7 @@ msgstr "Начальные координаты сетки"
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:58
 msgid "Use the grid origin as STEP coordinates origin."
-msgstr ""
+msgstr "Использовать начало координат сетки как начало координат STEP."
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:65
 msgid "User defined origin"
@@ -17034,6 +17071,7 @@ msgstr "Начало координат определённое пользов�
 #: pcbnew/dialogs/dialog_export_step_base.cpp:66
 msgid "Use this option if you want to define a specific coordinate origin value."
 msgstr ""
+"Используйте эту опцию, если вы хотите указать конкретные значения начала координат."
 
 #: pcbnew/dialogs/dialog_export_step_base.cpp:79
 msgid "User defined origin:"
@@ -17128,7 +17166,7 @@ msgstr "Искать маркер"
 
 #: pcbnew/dialogs/dialog_footprint_wizard_list.cpp:111
 msgid "All footprint generator scripts were loaded"
-msgstr ""
+msgstr "Все скрипты генератора посад.мест были загружены"
 
 #: pcbnew/dialogs/dialog_footprint_wizard_list_base.cpp:63
 msgid "Available footprint generators"
@@ -17140,7 +17178,7 @@ msgstr "Пути поиска:"
 
 #: pcbnew/dialogs/dialog_footprint_wizard_list_base.cpp:77
 msgid "Not loadable python scripts:"
-msgstr ""
+msgstr "Не загружаемые python скрипты:"
 
 #: pcbnew/dialogs/dialog_footprint_wizard_list_base.cpp:90
 msgid "Messages"
@@ -21032,7 +21070,7 @@ msgstr "Выбрать мастер скрипта для загрузки и з
 
 #: pcbnew/footprint_wizard_frame.cpp:665
 msgid "Reset the wizard parameters to default values "
-msgstr ""
+msgstr "Сбросить параметры мастера в значения по умолчанию "
 
 #: pcbnew/footprint_wizard_frame.cpp:671
 msgid "Select previous parameters page"
@@ -22454,11 +22492,11 @@ msgstr "Просмотр списка цепей (с именами и иден�
 
 #: pcbnew/menubar_pcbframe.cpp:372
 msgid "&Flip Board View"
-msgstr ""
+msgstr "Переключить вид на плату"
 
 #: pcbnew/menubar_pcbframe.cpp:373
 msgid "Flips (mirrors) the board view"
-msgstr ""
+msgstr "Переключает (отражает) вид на плату"
 
 #: pcbnew/menubar_pcbframe.cpp:403
 msgid "&Footprint"
@@ -24080,6 +24118,8 @@ msgid ""
 "Unable to find the next boundary segment with an endpoint of (%s mm, %s mm). Edge."
 "Cuts perimeter graphics must form a contiguous, closed polygon."
 msgstr ""
+"Не удалось найти следующий сегмент границы с конечной точкой (%s мм, %s мм). Контур "
+"платы должен образовывать непрерывный, закрытый полигон."
 
 #: pcbnew/specctra_export.cpp:1295
 #, c-format
@@ -25286,6 +25326,8 @@ msgid ""
 "Back-import component footprint association fields from the .cmp back import file "
 "created by Pcbnew"
 msgstr ""
+"Обратный импорт полей посад.мест компонентов из файла обратного импорта .cmp, "
+"созданного Pcbnew"
 
 #: eeschema/help_common_strings.h:90
 msgid "Add pins to component"
