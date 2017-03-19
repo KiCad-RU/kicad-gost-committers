@@ -166,6 +166,7 @@ set( COMMON_DLG_SRCS
 
 set( COMMON_WIDGET_SRCS
     widgets/color_swatch.cpp
+    widgets/gal_options_panel.cpp
     widgets/mathplot.cpp
     widgets/widget_hotkey_list.cpp
     widgets/two_column_tree_list.cpp
@@ -184,6 +185,8 @@ set( COMMON_PAGE_LAYOUT_SRCS
     )
 
 set( COMMON_PREVIEW_ITEMS_SRCS
+    preview_items/arc_assistant.cpp
+    preview_items/arc_geom_manager.cpp
     preview_items/preview_utils.cpp
     preview_items/ruler_item.cpp
     preview_items/simple_overlay_item.cpp

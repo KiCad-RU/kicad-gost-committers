@@ -1,8 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2010-2014 Jean-Pierre Charras, jean-pierre.charras at wanadoo.fr
- * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,25 +21,25 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-/**
- * @file pcbnew/dialogs/dialog_display_options.h
- */
-#include <dialog_display_options_base.h>
+#include <dialog_shim.h>
 
 class GAL_OPTIONS_PANEL;
+class FOOTPRINT_EDIT_FRAME;
 
-class DIALOG_DISPLAY_OPTIONS : public DIALOG_DISPLAY_OPTIONS_BASE
+class DIALOG_MODEDIT_DISPLAY_OPTIONS : public DIALOG_SHIM
 {
 public:
-   DIALOG_DISPLAY_OPTIONS( PCB_EDIT_FRAME* parent );
-   ~DIALOG_DISPLAY_OPTIONS() {};
+    DIALOG_MODEDIT_DISPLAY_OPTIONS( FOOTPRINT_EDIT_FRAME& aParent );
 
-   bool TransferDataFromWindow() override;
-   bool TransferDataToWindow() override;
+    static bool Invoke( FOOTPRINT_EDIT_FRAME& aCaller );
 
 private:
-   PCB_EDIT_FRAME* m_parent;
 
-   GAL_OPTIONS_PANEL* m_galOptsPanel;
+    bool TransferDataToWindow() override;
+    bool TransferDataFromWindow() override;
+
+    FOOTPRINT_EDIT_FRAME& m_parent;
+
+    // subpanel
+    GAL_OPTIONS_PANEL* m_galOptsPanel;
 };
-

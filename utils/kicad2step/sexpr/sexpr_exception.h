@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 Mark Roszko <mark.roszko@gmail.com>
+ * Copyright (C) 2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,20 +28,20 @@ namespace SEXPR
     {
     public:
         PARSE_EXCEPTION( const std::string aMessage ) : msg( aMessage ) {}
-        const char* what() { return msg.c_str(); }
-        virtual ~PARSE_EXCEPTION() throw() {}
+        const char* what() const noexcept override { return msg.c_str(); }
+        virtual ~PARSE_EXCEPTION() noexcept {}
     private:
         std::string msg;
     };
 
-	class INVALID_TYPE_EXCEPTION : public std::exception
-	{
-	public:
-		INVALID_TYPE_EXCEPTION( const std::string aMessage ) : msg( aMessage ) {}
-		const char* what() { return msg.c_str(); }
-		virtual ~INVALID_TYPE_EXCEPTION() throw() {}
-	private:
-		std::string msg;
-	};
+    class INVALID_TYPE_EXCEPTION : public std::exception
+    {
+    public:
+        INVALID_TYPE_EXCEPTION( const std::string aMessage ) : msg( aMessage ) {}
+        const char* what() const noexcept override { return msg.c_str(); }
+        virtual ~INVALID_TYPE_EXCEPTION() noexcept {}
+    private:
+        std::string msg;
+    };
 }
 #endif
