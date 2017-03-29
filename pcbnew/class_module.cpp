@@ -1,10 +1,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2017 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2015 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -48,6 +48,7 @@
 #include <class_board.h>
 #include <class_edge_mod.h>
 #include <class_module.h>
+#include <convert_basic_shapes_to_polygon.h>
 
 #include <view/view.h>
 
@@ -1218,4 +1219,53 @@ double MODULE::PadCoverageRatio() const
     double ratio = padArea / moduleArea;
 
     return std::min( ratio, 1.0 );
+}
+
+// see convert_drawsegment_list_to_polygon.cpp:
+extern bool ConvertOutlineToPolygon( std::vector< DRAWSEGMENT* >& aSegList,
+                                     SHAPE_POLY_SET& aPolygons, int aSegmentsByCircle,
+                                     wxString* aErrorText);
+
+bool MODULE::BuildPolyCourtyard()
+{
+    m_poly_courtyard_front.RemoveAllContours();
+    m_poly_courtyard_back.RemoveAllContours();
+    // Build the courtyard area from graphic items on the courtyard.
+    // Only PCB_MODULE_EDGE_T have meaning, graphic texts are ignored.
+    // Collect items:
+    std::vector< DRAWSEGMENT* > list_front;
+    std::vector< DRAWSEGMENT* > list_back;
+
+    for( BOARD_ITEM* item = GraphicalItems(); item; item = item->Next() )
+    {
+        if( item->GetLayer() == B_CrtYd && item->Type() == PCB_MODULE_EDGE_T )
+            list_back.push_back( static_cast< DRAWSEGMENT* > ( item ) );
+
+        if( item->GetLayer() == F_CrtYd && item->Type() == PCB_MODULE_EDGE_T )
+            list_front.push_back( static_cast< DRAWSEGMENT* > ( item ) );
+    }
+
+    // Note: if no item found on courtyard layers, return true.
+    // false is returned only when the shape defined on courtyard layers
+    // is not convertible to a polygon
+    if( !list_front.size() && !list_back.size() )
+        return true;
+
+    wxString error_msg;
+
+    const int STEPS = 36;     // for a segmentation of an arc of 360 degrees
+    bool success = ConvertOutlineToPolygon( list_front, m_poly_courtyard_front,
+                                            STEPS, &error_msg );
+
+    if( success )
+        success = ConvertOutlineToPolygon( list_back, m_poly_courtyard_back,
+                                           STEPS, &error_msg );
+
+    if( !error_msg.IsEmpty() )
+    {
+        error_msg.Prepend( GetReference() + ": " );
+        wxLogMessage( error_msg );
+    }
+
+    return success;
 }

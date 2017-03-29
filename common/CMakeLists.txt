@@ -171,6 +171,8 @@ set( COMMON_WIDGET_SRCS
     widgets/widget_hotkey_list.cpp
     widgets/two_column_tree_list.cpp
     widgets/footprint_preview_widget.cpp
+    widgets/footprint_select_widget.cpp
+    widgets/footprint_choice.cpp
     widgets/indicator_icon.cpp
     )
 
@@ -187,11 +189,14 @@ set( COMMON_PAGE_LAYOUT_SRCS
 set( COMMON_PREVIEW_ITEMS_SRCS
     preview_items/arc_assistant.cpp
     preview_items/arc_geom_manager.cpp
+    preview_items/centreline_rect_item.cpp
     preview_items/preview_utils.cpp
     preview_items/ruler_item.cpp
     preview_items/simple_overlay_item.cpp
     preview_items/selection_area.cpp
     preview_items/bright_box.cpp
+    preview_items/polygon_geom_manager.cpp
+    preview_items/polygon_item.cpp
     )
 
 set( COMMON_SRCS
@@ -238,7 +243,10 @@ set( COMMON_SRCS
     eda_doc.cpp
     eda_pattern_match.cpp
     exceptions.cpp
+    executable_names.cpp
     filter_reader.cpp
+    footprint_info.cpp
+    footprint_filter.cpp
     lib_id.cpp
     lib_table_keywords.cpp
 #    findkicadhelppath.cpp.notused      deprecated, use searchhelpfilefullpath.cpp
@@ -347,7 +355,6 @@ set( PCB_COMMON_SRCS
     eda_text.cpp
     class_page_info.cpp
     lset.cpp
-    footprint_info.cpp
     ../pcbnew/basepcbframe.cpp
     ../pcbnew/class_board.cpp
     ../pcbnew/class_board_connected_item.cpp
@@ -371,6 +378,7 @@ set( PCB_COMMON_SRCS
     ../pcbnew/class_zone.cpp
     ../pcbnew/class_zone_settings.cpp
     ../pcbnew/classpcb.cpp
+    ../pcbnew/convert_drawsegment_list_to_polygon.cpp
     ../pcbnew/ratsnest_data.cpp
     ../pcbnew/ratsnest_viewitem.cpp
     ../pcbnew/collectors.cpp
@@ -386,9 +394,6 @@ set( PCB_COMMON_SRCS
     ../pcbnew/kicad_plugin.cpp
     ../pcbnew/gpcb_plugin.cpp
     ../pcbnew/pcb_netlist.cpp
-    ../pcbnew/specctra.cpp
-    ../pcbnew/specctra_export.cpp
-    ../pcbnew/specctra_keywords.cpp
     pcb_plot_params_keywords.cpp
     pcb_keywords.cpp
     ../pcbnew/pcb_parser.cpp
@@ -408,25 +413,6 @@ set_source_files_properties( ${PCB_COMMON_SRCS} PROPERTIES
 add_library( pcbcommon STATIC ${PCB_COMMON_SRCS} )
 add_dependencies( pcbcommon lib-dependencies )
 
-# auto-generate specctra_lexer.h and specctra_keywords.cpp
-make_lexer(
-    ${PROJECT_SOURCE_DIR}/pcbnew/specctra.keywords
-    ${PROJECT_SOURCE_DIR}/pcbnew/specctra_lexer.h
-    ${PROJECT_SOURCE_DIR}/pcbnew/specctra_keywords.cpp
-    DSN
-
-    # Pass header file with dependency on *_lexer.h as extra_arg
-    specctra.h
-    )
-
-add_custom_target(
-    specctra_lexer_source_files ALL
-    DEPENDS
-        ${PROJECT_SOURCE_DIR}/pcbnew/specctra_lexer.h
-        ${PROJECT_SOURCE_DIR}/pcbnew/specctra_keywords.cpp
-    )
-
-add_dependencies( pcbcommon specctra_lexer_source_files )
 
 # auto-generate netlist_lexer.h and netlist_keywords.cpp
 make_lexer(

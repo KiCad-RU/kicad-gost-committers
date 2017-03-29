@@ -49,7 +49,6 @@
 
 class wxAboutDialogInfo;
 class SEARCH_STACK;
-class wxSingleInstanceChecker;
 class REPORTER;
 
 
@@ -86,36 +85,6 @@ enum pseudokeys {
 };
 
 #define ESC 27
-
-// TODO Executable names TODO
-#ifdef __WINDOWS__
-#define CVPCB_EXE           wxT( "cvpcb.exe" )
-#define PCBNEW_EXE          wxT( "pcbnew.exe" )
-#define EESCHEMA_EXE        wxT( "eeschema.exe" )
-#define GERBVIEW_EXE        wxT( "gerbview.exe" )
-#define BITMAPCONVERTER_EXE wxT( "bitmap2component.exe" )
-
-#if defined( KICAD_GOST )
-#define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch.exe" )
-#endif
-
-#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator.exe" )
-#define PL_EDITOR_EXE       wxT( "pl_editor.exe" )
-#else
-#define CVPCB_EXE           wxT( "cvpcb" )
-#define PCBNEW_EXE          wxT( "pcbnew" )
-#define EESCHEMA_EXE        wxT( "eeschema" )
-#define GERBVIEW_EXE        wxT( "gerbview" )
-#define BITMAPCONVERTER_EXE wxT( "bitmap2component" )
-
-#if defined( KICAD_GOST )
-#define PCAD2KICADSCH_EXE   wxT( "pcad2kicadsch" )
-#endif
-
-#define PCB_CALCULATOR_EXE  wxT( "pcb_calculator" )
-#define PL_EDITOR_EXE       wxT( "pl_editor" )
-#endif
-
 
 /// Frequent text rotations, used with {Set,Get}TextAngle(),
 /// in 0.1 degrees for now, hoping to migrate to degrees eventually.
@@ -170,14 +139,6 @@ static inline int kiRound_( double v, int line, const char* filename )
 #endif
 
 //-----</KiROUND KIT>-----------------------------------------------------------
-
-
-
-/// Convert mm to mils.
-inline int Mm2mils( double x ) { return KiROUND( x * 1000./25.4 ); }
-
-/// Convert mils to mm.
-inline int Mils2mm( double x ) { return KiROUND( x * 25.4 / 1000. ); }
 
 
 enum EDA_UNITS_T {
@@ -272,31 +233,6 @@ int GetCommandOptions( const int argc, const char** argv,
                        int* optind );
 
 /**
- * Returns the units symbol.
- *
- * @param aUnits - Units type, default is current units setting.
- * @param aFormatString - A formatting string to embed the units symbol into.  Note:
- *                        the format string must contain the %s format specifier.
- * @return The formatted units symbol.
- */
-wxString ReturnUnitSymbol( EDA_UNITS_T aUnits = g_UserUnit,
-                           const wxString& aFormatString = _( " (%s):" ) );
-
-/**
- * Get a human readable units string.
- *
- * The strings returned are full text name and not abbreviations or symbolic
- * representations of the units.  Use ReturnUnitSymbol() for that.
- *
- * @param aUnits - The units text to return.
- * @return The human readable units string.
- */
-wxString GetUnitsLabel( EDA_UNITS_T aUnits );
-wxString GetAbbreviatedUnitsLabel( EDA_UNITS_T aUnit = g_UserUnit );
-
-void AddUnitSymbol( wxStaticText& Stext, EDA_UNITS_T aUnit = g_UserUnit );
-
-/**
  * Round to the nearest precision.
  *
  * Try to approximate a coordinate using a given precision to prevent
@@ -314,26 +250,6 @@ double RoundTo0( double x, double precision );
  * @param aSplitter is the 'split' character
  */
 void wxStringSplit( const wxString& aText, wxArrayString& aStrings, wxChar aSplitter );
-
-
-/**
- * Function SystemDirsAppend
- * appends system places to aSearchStack in a platform specific way, and pertinent
- * to KiCad programs.  It seems to be a place to collect bad ideas and keep them
- * out of view.
- */
-void SystemDirsAppend( SEARCH_STACK* aSearchStack );
-
-#if defined( KICAD_GOST )
-/**
- * Function FindFileInSearchPaths
- * looks in "this" for \a aFilename, but first modifies every search
- * path by appending a list of path fragments from aSubdirs.  That modification
- * is not rentative.
- */
-wxString FindFileInSearchPaths( const SEARCH_STACK& aStack,
-        const wxString& aFilename, const wxArrayString* aSubdirs );
-#endif
 
 /**
  * Function SearchHelpFileFullPath
@@ -370,14 +286,6 @@ bool EnsureFileDirectoryExists( wxFileName*     aTargetFullFileName,
                                   const wxString& aBaseFilename,
                                   REPORTER*       aReporter = NULL );
 
-/**
- * Function LockFile
- * tests to see if aFileName can be locked (is not already locked) and only then
- * returns a wxSingleInstanceChecker protecting aFileName.  Caller owns the return value.
- */
-wxSingleInstanceChecker* LockFile( const wxString& aFileName );
-
-
 /// Put aPriorityPath in front of all paths in the value of aEnvVar.
 const wxString PrePendPath( const wxString& aEnvVar, const wxString& aPriorityPath );
 
@@ -397,11 +305,6 @@ const wxString PrePendPath( const wxString& aEnvVar, const wxString& aPriorityPa
  */
 wxConfigBase* GetNewConfig( const wxString& aProgName );
 
-/**
- * Function GetKicadLockFilePath
- * @return A wxString containing the path for lockfiles in Kicad
- */
-wxString GetKicadLockFilePath();
 
 /**
  * Function GetKicadConfigPath

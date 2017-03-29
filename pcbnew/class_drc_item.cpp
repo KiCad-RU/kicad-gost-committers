@@ -126,6 +126,15 @@ wxString DRC_ITEM::GetErrorText() const
     case DRCE_PAD_INSIDE_TEXT:
         return wxString( _( "Pad inside a text" ) );
 
+    case DRCE_OVERLAPPING_FOOTPRINTS:
+        return wxString( _( "Courtyards overlap" ) );
+
+    case DRCE_MISSING_COURTYARD_IN_FOOTPRINT:
+        return wxString( _( "Footprint has no courtyard defined" ) );
+
+    case DRCE_MALFORMED_COURTYARD_IN_FOOTPRINT:
+        return wxString( _( "Footprint has incorrect courtyard (not a closed shape)" ) );
+
     default:
         return wxString::Format( wxT( "Unknown DRC error code %d" ), m_ErrorCode );
     }

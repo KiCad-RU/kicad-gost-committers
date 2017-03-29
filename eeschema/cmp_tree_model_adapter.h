@@ -27,6 +27,7 @@
 #include <wx/hashmap.h>
 #include <wx/dataview.h>
 #include <vector>
+#include <functional>
 
 class LIB_ALIAS;
 class PART_LIB;
@@ -86,6 +87,7 @@ class PART_LIBS;
  * - `GetColumnType()` - get the data type shown in each column
  * - `GetValue()` - get the data shown in a cell
  * - `SetValue()` - edit the data in a cell (does nothing)
+ * - `GetAttr()` - get any per-item formatting
  * - `Compare()` - compare two rows, for sorting
  * - `HasDefaultCompare()` - whether sorted by default
  */
@@ -287,6 +289,19 @@ protected:
             wxDataViewItem const&   aItem,
             unsigned int            aCol ) override { return false; }
 
+    /**
+     * Get any formatting for an item.
+     *
+     * @param aItem     item to get formatting for
+     * @param aCol      column number of interest
+     * @param aAttr     receiver for attributes
+     * @return          true iff the item has non-default attributes
+     */
+    virtual bool GetAttr(
+            wxDataViewItem const&   aItem,
+            unsigned int            aCol,
+            wxDataViewItemAttr&     aAttr ) const override;
+
 private:
     CMP_FILTER_TYPE     m_filter;
     bool                m_show_units;
@@ -333,28 +348,9 @@ private:
      *
      * @return whether a node was expanded
      */
-    template<typename Func>
-    bool FindAndExpand( CMP_TREE_NODE& aNode, Func f )
-    {
-        for( auto& node: aNode.Children )
-        {
-            if( f( &*node ) )
-            {
-                auto item = wxDataViewItem(
-                        const_cast<void*>( static_cast<void const*>( &*node ) ) );
-                m_widget->ExpandAncestors( item );
-                m_widget->EnsureVisible( item );
-                m_widget->Select( item );
-                return true;
-            }
-            else if( FindAndExpand( *node, f ) )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    bool FindAndExpand(
+            CMP_TREE_NODE& aNode,
+            std::function<bool( CMP_TREE_NODE const* )> aFunc );
 
     /**
      * Find and expand successful search results

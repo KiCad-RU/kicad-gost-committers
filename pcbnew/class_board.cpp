@@ -10,7 +10,7 @@
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
  *
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -2361,7 +2361,8 @@ ZONE_CONTAINER* BOARD::InsertArea( int netcode, int iarea, LAYER_ID layer, int x
     else
         m_ZoneDescriptorList.push_back( new_area );
 
-    new_area->Outline()->Start( layer, x, y, hatch );
+    new_area->SetHatchStyle( (ZONE_CONTAINER::HATCH_STYLE) hatch );
+    new_area->AppendCorner( wxPoint( x, y ) );
 
     return new_area;
 }
@@ -2369,45 +2370,47 @@ ZONE_CONTAINER* BOARD::InsertArea( int netcode, int iarea, LAYER_ID layer, int x
 
 bool BOARD::NormalizeAreaPolygon( PICKED_ITEMS_LIST * aNewZonesList, ZONE_CONTAINER* aCurrArea )
 {
-    CPolyLine* curr_polygon = aCurrArea->Outline();
-
     // mark all areas as unmodified except this one, if modified
     for( unsigned ia = 0; ia < m_ZoneDescriptorList.size(); ia++ )
         m_ZoneDescriptorList[ia]->SetLocalFlags( 0 );
 
     aCurrArea->SetLocalFlags( 1 );
 
-    if( curr_polygon->IsPolygonSelfIntersecting() )
+    if( aCurrArea->Outline()->IsSelfIntersecting() )
     {
-        std::vector<CPolyLine*>* pa = new std::vector<CPolyLine*>;
-        curr_polygon->UnHatch();
-        int n_poly = aCurrArea->Outline()->NormalizeAreaOutlines( pa );
+        aCurrArea->UnHatch();
+
+        // Normalize copied area and store resulting number of polygons
+        int n_poly = aCurrArea->Outline()->NormalizeAreaOutlines();
 
         // If clipping has created some polygons, we must add these new copper areas.
         if( n_poly > 1 )
         {
             ZONE_CONTAINER* NewArea;
 
+            // Move the newly created polygons to new areas, removing them from the current area
             for( int ip = 1; ip < n_poly; ip++ )
             {
-                // create new copper area and copy poly into it
-                CPolyLine* new_p = (*pa)[ip - 1];
+                // Create new copper area and copy poly into it
+                SHAPE_POLY_SET* new_p = new SHAPE_POLY_SET( aCurrArea->Outline()->UnitSet( ip ) );
                 NewArea = AddArea( aNewZonesList, aCurrArea->GetNetCode(), aCurrArea->GetLayer(),
-                                   wxPoint(0, 0), CPolyLine::NO_HATCH );
+                                   wxPoint(0, 0), aCurrArea->GetHatchStyle() );
 
                 // remove the poly that was automatically created for the new area
                 // and replace it with a poly from NormalizeAreaOutlines
                 delete NewArea->Outline();
                 NewArea->SetOutline( new_p );
-                NewArea->Outline()->Hatch();
+                NewArea->Hatch();
                 NewArea->SetLocalFlags( 1 );
             }
-        }
 
-        delete pa;
+            SHAPE_POLY_SET* new_p = new SHAPE_POLY_SET( aCurrArea->Outline()->UnitSet( 0 ) );
+            delete aCurrArea->Outline();
+            aCurrArea->SetOutline( new_p );
+        }
     }
 
-    curr_polygon->Hatch();
+    aCurrArea->Hatch();
 
     return true;
 }
@@ -2454,7 +2457,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
             msg.Printf( _( "Checking netlist component footprint \"%s:%s:%s\".\n" ),
                         GetChars( component->GetReference() ),
                         GetChars( component->GetTimeStamp() ),
-                        GetChars( component->GetFPID().Format() ) );
+                        GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
             aReporter->Report( msg, REPORTER::RPT_INFO );
         }
 
@@ -2472,7 +2475,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                     msg.Printf( _( "Adding new component \"%s:%s\" footprint \"%s\".\n" ),
                                 GetChars( component->GetReference() ),
                                 GetChars( component->GetTimeStamp() ),
-                                GetChars( component->GetFPID().Format() ) );
+                                GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
 
                     aReporter->Report( msg, REPORTER::RPT_ACTION );
                 }
@@ -2482,7 +2485,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                                    "footprint \"%s\".\n" ),
                                 GetChars( component->GetReference() ),
                                 GetChars( component->GetTimeStamp() ),
-                                GetChars( component->GetFPID().Format() ) );
+                                GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
 
                     aReporter->Report( msg, REPORTER::RPT_ERROR );
                 }
@@ -2515,8 +2518,8 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                                            "\"%s\".\n" ),
                                         GetChars( footprint->GetReference() ),
                                         GetChars( footprint->GetPath() ),
-                                        GetChars( footprint->GetFPID().Format() ),
-                                        GetChars( component->GetFPID().Format() ) );
+                                        GetChars( FROM_UTF8( footprint->GetFPID().Format() ) ),
+                                        GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
 
                             aReporter->Report( msg, REPORTER::RPT_ACTION );
                         }
@@ -2526,7 +2529,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                                            "footprint \"%s\".\n" ),
                                         GetChars( footprint->GetReference() ),
                                         GetChars( footprint->GetPath() ),
-                                        GetChars( component->GetFPID().Format() ) );
+                                        GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
 
                             aReporter->Report( msg, REPORTER::RPT_ERROR );
                         }
@@ -2811,7 +2814,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                 msg.Printf( _( "Component '%s' pad '%s' not found in footprint '%s'\n" ),
                             GetChars( component->GetReference() ),
                             GetChars( padname ),
-                            GetChars( footprint->GetFPID().Format() ) );
+                            GetChars( FROM_UTF8( footprint->GetFPID().Format() ) ) );
                 aReporter->Report( msg, REPORTER::RPT_ERROR );
             }
         }
@@ -2874,13 +2877,18 @@ BOARD_ITEM* BOARD::Duplicate( const BOARD_ITEM* aItem,
  * All contours should be closed, i.e. are valid vertices for a closed polygon
  * return true if success, false if a contour is not valid
  */
-#include <specctra.h>
+extern bool BuildBoardPolygonOutlines( BOARD* aBoard,
+                                SHAPE_POLY_SET& aOutlines,
+                                wxString* aErrorText );
+
 bool BOARD::GetBoardPolygonOutlines( SHAPE_POLY_SET& aOutlines,
-                                     SHAPE_POLY_SET& aHoles,
                                      wxString* aErrorText )
 {
-    // the SPECCTRA_DB function to extract board outlines:
-    DSN::SPECCTRA_DB dummy;
-    return dummy.GetBoardPolygonOutlines( this, aOutlines,
-                                          aHoles, aErrorText );
+    bool success = BuildBoardPolygonOutlines( this, aOutlines, aErrorText );
+
+    // Make polygon strictly simple to avoid issues (especially in 3D viewer)
+    aOutlines.Simplify( SHAPE_POLY_SET::PM_STRICTLY_SIMPLE );
+
+    return success;
+
 }

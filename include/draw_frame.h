@@ -71,7 +71,7 @@ class EDA_DRAW_FRAME : public KIWAY_PLAYER
 
 protected:
 
-    wxSingleInstanceChecker* m_file_checker;    ///< prevents opening same file multiple times.
+    std::unique_ptr<wxSingleInstanceChecker> m_file_checker;    ///< prevents opening same file multiple times.
 
     EDA_HOTKEY_CONFIG* m_hotkeysDescrList;
     int         m_LastGridSizeId;           // the command id offset (>= 0) of the last selected grid
@@ -97,11 +97,6 @@ protected:
 
     /// Tool ID of previously active draw tool bar button.
     int     m_lastDrawToolId;
-
-    /// The shape of the KiCad cursor.  The default value (0) is the normal cross
-    /// hair cursor.  Set to non-zero value to draw the full screen cursor.
-    /// @note This is not the system mouse cursor.
-    int     m_cursorShape;
 
     /// True shows the X and Y axis indicators.
     bool    m_showAxis;
@@ -294,10 +289,6 @@ public:
      * @param aColor: the COLOR4D for the canvas background
      */
     virtual void SetDrawBgColor( COLOR4D aColor) { m_drawBgColor= aColor ; }
-
-    int GetCursorShape() const { return m_cursorShape; }
-
-    virtual void SetCursorShape( int aCursorShape ) { m_cursorShape = aCursorShape; }
 
     bool GetShowBorderAndTitleBlock() const { return m_showBorderAndTitleBlock; }
 

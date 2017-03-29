@@ -310,6 +310,33 @@ void CMP_TREE_MODEL_ADAPTER::GetValue(
 }
 
 
+bool CMP_TREE_MODEL_ADAPTER::GetAttr(
+            wxDataViewItem const&   aItem,
+            unsigned int            aCol,
+            wxDataViewItemAttr&     aAttr ) const
+{
+    auto node = ToNode( aItem );
+    wxASSERT( node );
+
+    if( node->Type != CMP_TREE_NODE::ALIAS )
+    {
+        // Currently only aliases are formatted at all
+        return false;
+    }
+
+    if( node->Alias && !node->Alias->IsRoot() && aCol == 0 )
+    {
+        // Names of non-root aliases are italicized
+        aAttr.SetItalic( true );
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
 int CMP_TREE_MODEL_ADAPTER::ColWidth( CMP_TREE_NODE& aTree, int aCol, wxString const& aHeading )
 {
     const int indent = aCol ? 0 : kDataViewIndent;
@@ -368,6 +395,31 @@ int CMP_TREE_MODEL_ADAPTER::WidthFor( wxString const& aHeading, int aCol )
 }
 
 
+bool CMP_TREE_MODEL_ADAPTER::FindAndExpand(
+        CMP_TREE_NODE& aNode,
+        std::function<bool( CMP_TREE_NODE const* )> aFunc )
+{
+    for( auto& node: aNode.Children )
+    {
+        if( aFunc( &*node ) )
+        {
+            auto item = wxDataViewItem(
+                    const_cast<void*>( static_cast<void const*>( &*node ) ) );
+            m_widget->ExpandAncestors( item );
+            m_widget->EnsureVisible( item );
+            m_widget->Select( item );
+            return true;
+        }
+        else if( FindAndExpand( *node, aFunc ) )
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 bool CMP_TREE_MODEL_ADAPTER::ShowResults()
 {
     return FindAndExpand( m_tree,
@@ -386,7 +438,12 @@ bool CMP_TREE_MODEL_ADAPTER::ShowPreselect()
     return FindAndExpand( m_tree,
             [&]( CMP_TREE_NODE const* n )
             {
-                return m_preselect_name == n->Name && m_preselect_unit == n->Unit;
+                if( n->Type == CMP_TREE_NODE::ALIAS && ( n->Children.empty() || !m_preselect_unit ) )
+                    return m_preselect_name == n->Name;
+                else if( n->Type == CMP_TREE_NODE::UNIT && m_preselect_unit )
+                    return m_preselect_name == n->Parent->Name && m_preselect_unit == n->Unit;
+                else
+                    return false;
             } );
 }
 

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,6 +54,7 @@ using namespace std::placeholders;
 #include <pcbnew.h>
 #include <module_editor_frame.h>
 #include <footprint_info.h>
+#include <footprint_info_impl.h>
 #include <dialog_get_component.h>
 #include <modview_frame.h>
 #include <wildcards_and_files_ext.h>
@@ -62,7 +63,9 @@ using namespace std::placeholders;
 
 static void DisplayCmpDoc( wxString& aName, void* aData );
 
-static FOOTPRINT_LIST MList;
+// Use the _IMPL class directly here because this is static - don't want to yank
+// a static through kiface.
+static FOOTPRINT_LIST_IMPL MList;
 
 static void clearModuleItemFlags( BOARD_ITEM* aItem )
 {
@@ -223,7 +226,7 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
 
     LIB_ID fpid;
 
-    wxCHECK_MSG( fpid.Parse( moduleName ) < 0, NULL,
+    wxCHECK_MSG( fpid.Parse( TO_UTF8( moduleName ) ) < 0, NULL,
                  wxString::Format( wxT( "Could not parse LIB_ID string '%s'." ),
                                    GetChars( moduleName ) ) );
 
@@ -234,7 +237,7 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
     catch( const IO_ERROR& ioe )
     {
         wxLogDebug( wxT( "An error occurred attemping to load footprint '%s'.\n\nError: %s" ),
-                    fpid.Format().c_str(), GetChars( ioe.What() ) );
+                    FROM_UTF8( fpid.Format() ), GetChars( ioe.What() ) );
     }
 
     if( !module && allowWildSeach )                // Search with wild card
@@ -253,7 +256,7 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
         }
         else
         {
-            wxCHECK_MSG( fpid.Parse( moduleName ) < 0, NULL,
+            wxCHECK_MSG( fpid.Parse( TO_UTF8( moduleName ) ) < 0, NULL,
                          wxString::Format( wxT( "Could not parse LIB_ID string '%s'." ),
                                            GetChars( moduleName ) ) );
 
@@ -264,7 +267,7 @@ MODULE* PCB_BASE_FRAME::LoadModuleFromLibrary( const wxString& aLibrary,
             catch( const IO_ERROR& ioe )
             {
                 wxLogDebug( wxT( "An error occurred attemping to load footprint '%s'.\n\nError: %s" ),
-                            fpid.Format().c_str(), GetChars( ioe.What() ) );
+                            FROM_UTF8( fpid.Format() ), GetChars( ioe.What() ) );
             }
         }
     }
@@ -321,7 +324,7 @@ MODULE* PCB_BASE_FRAME::LoadFootprint( const LIB_ID& aFootprintId )
     catch( const IO_ERROR& ioe )
     {
         wxLogDebug( wxT( "An error occurred attemping to load footprint '%s'.\n\nError: %s" ),
-                    aFootprintId.Format().c_str(), GetChars( ioe.What() ) );
+                    FROM_UTF8( aFootprintId.Format() ), GetChars( ioe.What() ) );
     }
 
     return module;

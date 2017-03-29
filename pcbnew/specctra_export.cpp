@@ -71,58 +71,6 @@ using namespace DSN;
 static const double safetyMargin = 0.1;
 
 
-/**
- * Function close_ness
- * is a non-exact distance calculator used to approximate the distance between
- * two points.  The distance is very in-exact, but can be helpful when used
- * to pick between alternative neighboring points.
- * @param aLeft is the first point
- * @param aRight is the second point
- * @return unsigned - a measure of proximity that the caller knows about, in BIU,
- *  but remember it is only an approximation.
- */
-static unsigned close_ness(  const wxPoint& aLeft, const wxPoint& aRight )
-{
-    // Don't need an accurate distance calculation, just something
-    // approximating it, for relative ordering.
-    return unsigned( abs( aLeft.x - aRight.x ) + abs( aLeft.y - aRight.y ) );
-}
-
-
-/**
- * Function close_enough
- * is a local and tunable method of qualifying the proximity of two points.
- *
- * @param aLeft is the first point
- * @param aRight is the second point
- * @param aLimit is a measure of proximity that the caller knows about.
- * @return bool - true if the two points are close enough, else false.
- */
-inline bool close_enough( const wxPoint& aLeft, const wxPoint& aRight, unsigned aLimit )
-{
-    // We don't use an accurate distance calculation, just something
-    // approximating it, since aLimit is non-exact anyway except when zero.
-    return close_ness( aLeft, aRight ) <= aLimit;
-}
-
-
-/**
- * Function close_st
- * is a local method of qualifying if either the start of end point of a segment is closest to a point.
- *
- * @param aReference is the reference point
- * @param aFirst is the first point
- * @param aSecond is the second point
- * @return bool - true if the the first point is closest to the reference, otherwise false.
- */
-inline bool close_st( const wxPoint& aReference, const wxPoint& aFirst, const wxPoint& aSecond )
-{
-    // We don't use an accurate distance calculation, just something
-    // approximating to find the closest to the reference.
-    return close_ness( aReference, aFirst ) <= close_ness( aReference, aSecond );
-}
-
-
 // see wxPcbStruct.h
 void PCB_EDIT_FRAME::ExportToSpecctra( wxCommandEvent& event )
 {
@@ -269,118 +217,6 @@ static POINT mapPt( const wxPoint& pt )
 
 
 /**
- * Function findPoint
- * searches for a DRAWSEGMENT with an end point or start point of aPoint, and
- * if found, removes it from the TYPE_COLLECTOR and returns it, else returns NULL.
- * @param aPoint The starting or ending point to search for.
- * @param items The list to remove from.
- * @param aLimit is the distance from \a aPoint that still constitutes a valid find.
- * @return DRAWSEGMENT* - The first DRAWSEGMENT that has a start or end point matching
- *   aPoint, otherwise NULL if none.
- */
-static DRAWSEGMENT* findPoint( const wxPoint& aPoint, ::PCB_TYPE_COLLECTOR* items, unsigned aLimit )
-{
-    unsigned min_d = INT_MAX;
-    int      ndx_min = 0;
-
-    // find the point closest to aPoint and perhaps exactly matching aPoint.
-    for( int i = 0; i < items->GetCount(); ++i )
-    {
-        DRAWSEGMENT*    graphic = (DRAWSEGMENT*) (*items)[i];
-        unsigned        d;
-
-        wxASSERT( graphic->Type() == PCB_LINE_T || graphic->Type() == PCB_MODULE_EDGE_T );
-
-        switch( graphic->GetShape() )
-        {
-        case S_ARC:
-            if( aPoint == graphic->GetArcStart() || aPoint == graphic->GetArcEnd() )
-            {
-                items->Remove( i );
-                return graphic;
-            }
-
-            d = close_ness( aPoint, graphic->GetArcStart() );
-            if( d < min_d )
-            {
-                min_d = d;
-                ndx_min = i;
-            }
-
-            d = close_ness( aPoint, graphic->GetArcEnd() );
-            if( d < min_d )
-            {
-                min_d = d;
-                ndx_min = i;
-            }
-            break;
-
-        default:
-            if( aPoint == graphic->GetStart() || aPoint == graphic->GetEnd() )
-            {
-                items->Remove( i );
-                return graphic;
-            }
-
-            d = close_ness( aPoint, graphic->GetStart() );
-            if( d < min_d )
-            {
-                min_d = d;
-                ndx_min = i;
-            }
-
-            d = close_ness( aPoint, graphic->GetEnd() );
-            if( d < min_d )
-            {
-                min_d = d;
-                ndx_min = i;
-            }
-        }
-    }
-
-    if( min_d <= aLimit )
-    {
-        DRAWSEGMENT* graphic = (DRAWSEGMENT*) (*items)[ndx_min];
-        items->Remove( ndx_min );
-        return graphic;
-    }
-
-#if defined(DEBUG)
-    if( items->GetCount() )
-    {
-        printf( "Unable to find segment matching point (%.6g;%.6g) (seg count %d)\n",
-                IU2um( aPoint.x )/1000, IU2um( aPoint.y )/1000,
-                items->GetCount());
-
-        for( int i = 0; i< items->GetCount(); ++i )
-        {
-            DRAWSEGMENT* graphic = (DRAWSEGMENT*) (*items)[i];
-
-            if( graphic->GetShape() == S_ARC )
-                printf( "item %d, type=%s, start=%.6g;%.6g  end=%.6g;%.6g\n",
-                        i + 1,
-                        TO_UTF8( BOARD_ITEM::ShowShape( graphic->GetShape() ) ),
-                        IU2um( graphic->GetArcStart().x )/1000,
-                        IU2um( graphic->GetArcStart().y )/1000,
-                        IU2um( graphic->GetArcEnd().x )/1000,
-                        IU2um( graphic->GetArcEnd().y )/1000 );
-            else
-                printf( "item %d, type=%s, start=%.6g;%.6g  end=%.6g;%.6g\n",
-                        i + 1,
-                        TO_UTF8( BOARD_ITEM::ShowShape( graphic->GetShape() ) ),
-                        IU2um( graphic->GetStart().x )/1000,
-                        IU2um( graphic->GetStart().y )/1000,
-                        IU2um( graphic->GetEnd().x )/1000,
-                        IU2um( graphic->GetEnd().y )/1000 );
-        }
-    }
-#endif
-
-    return NULL;
-}
-
-
-/**
  * Function isRoundKeepout
  * decides if the pad is a copper-less through hole which needs to be made into
  * a round keepout.
@@ -438,6 +274,7 @@ PADSTACK* SPECCTRA_DB::makePADSTACK( BOARD* aBoard, D_PAD* aPad )
         uniqifier += 'A'; // A for all layers
 
     const int copperCount = aBoard->GetCopperLayerCount();
+
     for( int layer=0; layer<copperCount; ++layer )
     {
         LAYER_ID kilayer = pcbLayer2kicad[layer];
@@ -671,7 +508,7 @@ IMAGE* SPECCTRA_DB::makeIMAGE( BOARD* aBoard, MODULE* aModule )
     image->image_id = aModule->GetFPID().Format().c_str();
 
     // from the pads, and make an IMAGE using collated padstacks.
-    for( int p=0;  p<moduleItems.GetCount();  ++p )
+    for( int p=0; p < moduleItems.GetCount(); ++p )
     {
         D_PAD* pad = (D_PAD*) moduleItems[p];
 
@@ -682,6 +519,7 @@ IMAGE* SPECCTRA_DB::makeIMAGE( BOARD* aBoard, MODULE* aModule )
             POINT   vertex   = mapPt( pad->GetPos0() );
 
             int layerCount = aBoard->GetCopperLayerCount();
+
             for( int layer=0;  layer<layerCount;  ++layer )
             {
                 KEEPOUT* keepout = new KEEPOUT( image, T_keepout );
@@ -701,6 +539,13 @@ IMAGE* SPECCTRA_DB::makeIMAGE( BOARD* aBoard, MODULE* aModule )
 
         else
         {
+            // Pads not on copper layers (i.e. only on tech layers) are ignored
+            // because they create invalid pads in .dsn file for freeroute
+            LSET mask_copper_layers = pad->GetLayerSet() & LSET::AllCuMask();
+
+            if( !mask_copper_layers.any() )
+                continue;
+
             PADSTACK*               padstack = makePADSTACK( aBoard, pad );
             PADSTACKSET::iterator   iter = padstackset.find( *padstack );
 
@@ -883,298 +728,34 @@ PADSTACK* SPECCTRA_DB::makeVia( const ::VIA* aVia )
 }
 
 
-/**
- * Function makeCircle
- * does a line segmented circle into aPath.
- */
-static void makeCircle( PATH* aPath, DRAWSEGMENT* aGraphic )
-{
-    // do a circle segmentation
-    const int   STEPS = 2 * 36;
-
-    int         radius  = aGraphic->GetRadius();
-
-    if( radius <= 0 )   // Should not occur, but ...
-        return;
-
-    wxPoint     center  = aGraphic->GetCenter();
-    double      angle   = 3600.0;
-    wxPoint     start = center;
-    start.x += radius;
-
-    wxPoint nextPt;
-
-    for( int step = 0; step<STEPS; ++step )
-    {
-        double rotation = ( angle * step ) / STEPS;
-
-        nextPt = start;
-
-        RotatePoint( &nextPt.x, &nextPt.y, center.x, center.y, rotation );
-
-        aPath->AppendPoint( mapPt( nextPt ) );
-    }
-}
-
-
 void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
     throw( IO_ERROR, boost::bad_pointer )
 {
-    PCB_TYPE_COLLECTOR  items;
+    wxString errMessage;
+    SHAPE_POLY_SET outlines;
 
-    unsigned    prox;           // a proximity BIU metric, not an accurate distance
-    const int   STEPS = 36;     // for a segmentation of an arc of 360 degrees
+    aBoard->GetBoardPolygonOutlines( outlines, &errMessage );
 
-    // Get all the DRAWSEGMENTS and module graphics into 'items',
-    // then keep only those on layer == Edge_Cuts.
-
-    static const KICAD_T  scan_graphics[] = { PCB_LINE_T, PCB_MODULE_EDGE_T, EOT };
-
-    items.Collect( aBoard, scan_graphics );
-
-    for( int i = 0; i<items.GetCount(); )
-    {
-        if( items[i]->GetLayer() != Edge_Cuts )
-            items.Remove( i );
-        else    // remove graphics not on Edge_Cuts layer
-            ++i;
-    }
-
-    if( items.GetCount() )
+    for( int cnt = 0; cnt < outlines.OutlineCount(); cnt++ )   // Should be one outline
     {
         PATH*  path = new PATH( boundary );
         boundary->paths.push_back( path );
         path->layer_id = "pcb";
 
-        wxPoint         prevPt;
+        SHAPE_LINE_CHAIN& outline = outlines.Outline( cnt );
 
-        DRAWSEGMENT*    graphic;
-
-        // Find edge point with minimum x, this should be in the outer polygon
-        // which will define the perimeter Edge.Cuts polygon.
-        wxPoint xmin    = wxPoint( INT_MAX, 0 );
-        int     xmini   = 0;
-
-        for( int i = 0; i < items.GetCount(); i++ )
+        for( int ii = 0; ii < outline.PointCount(); ii++ )
         {
-            graphic = (DRAWSEGMENT*) items[i];
-
-            switch( graphic->GetShape() )
-            {
-            case S_SEGMENT:
-                {
-                    if( graphic->GetStart().x < xmin.x )
-                    {
-                        xmin    = graphic->GetStart();
-                        xmini   = i;
-                    }
-
-                    if( graphic->GetEnd().x < xmin.x )
-                    {
-                        xmin    = graphic->GetEnd();
-                        xmini   = i;
-                    }
-                }
-                break;
-
-            case S_ARC:
-                // Freerouter does not yet understand arcs, so approximate
-                // an arc with a series of short lines and put those
-                // line segments into the !same! PATH.
-                {
-                    wxPoint     pstart   = graphic->GetArcStart();
-                    wxPoint     center  = graphic->GetCenter();
-                    double      angle   = -graphic->GetAngle();
-                    int         steps   = STEPS * fabs(angle) /3600.0;
-
-                    if( steps == 0 )
-                        steps = 1;
-
-                    wxPoint     pt;
-
-                    for( int step = 1; step<=steps; ++step )
-                    {
-                        double rotation = ( angle * step ) / steps;
-
-                        pt = pstart;
-
-                        RotatePoint( &pt, center, rotation );
-
-                        if( pt.x < xmin.x )
-                        {
-                            xmin  = pt;
-                            xmini = i;
-                        }
-                    }
-                }
-                break;
-
-            case S_CIRCLE:
-                {
-                    wxPoint pt = graphic->GetCenter();
-
-                    // pt has minimum x point
-                    pt.x -= graphic->GetRadius();
-
-                    // when the radius <= 0, this is a mal-formed circle. Skip it
-                    if( graphic->GetRadius() > 0 && pt.x < xmin.x )
-                    {
-                        xmin  = pt;
-                        xmini = i;
-                    }
-                }
-                break;
-
-            default:
-                {
-                    wxString error = wxString::Format( _( "Unsupported DRAWSEGMENT type %s" ),
-                        GetChars( BOARD_ITEM::ShowShape( graphic->GetShape() ) ) );
-
-                    THROW_IO_ERROR( error );
-                }
-                break;
-            }
+            wxPoint pos( outline.Point( ii ).x, outline.Point( ii ).y );
+            path->AppendPoint( mapPt( pos ) );
         }
 
-        // Grab the left most point, assume its on the board's perimeter, and see if we
-        // can put enough graphics together by matching endpoints to formulate a cohesive
-        // polygon.
+        // Close polygon:
+        wxPoint pos0( outline.Point( 0 ).x, outline.Point( 0 ).y );
+        path->AppendPoint( mapPt( pos0 ) );
 
-        graphic = (DRAWSEGMENT*) items[xmini];
-
-        // The first DRAWSEGMENT is in 'graphic', ok to remove it from 'items'
-        items.Remove( xmini );
-
-        // Set maximum proximity threshold for point to point nearness metric for
-        // board perimeter only, not interior keepouts yet.
-        prox = Millimeter2iu( 0.01 );  // should be enough to fix rounding issues
-                                        // is arc start and end point calculations
-
-        // Output the Edge.Cuts perimeter as circle or polygon.
-        if( graphic->GetShape() == S_CIRCLE )
-        {
-            makeCircle( path, graphic );
-        }
-        else
-        {
-            // Polygon start point. Arbitrarily chosen end of the
-            // segment and build the poly from here.
-
-            wxPoint startPt = wxPoint( graphic->GetEnd() );
-            prevPt = graphic->GetEnd();
-            path->AppendPoint( mapPt( prevPt ) );
-
-            // Do not append the other end point yet of this 'graphic', this first
-            // 'graphic' might be an arc.
-
-            for(;;)
-            {
-                switch( graphic->GetShape() )
-                {
-                case S_SEGMENT:
-                    {
-                        wxPoint  nextPt;
-
-                        // Use the line segment end point furthest away from
-                        // prevPt as we assume the other end to be ON prevPt or
-                        // very close to it.
-
-                        if( close_st( prevPt, graphic->GetStart(), graphic->GetEnd() ) )
-                        {
-                            nextPt = graphic->GetEnd();
-                        }
-                        else
-                        {
-                            nextPt = graphic->GetStart();
-                        }
-
-                        path->AppendPoint( mapPt( nextPt ) );
-                        prevPt = nextPt;
-                    }
-                    break;
-
-                case S_ARC:
-                    // Freerouter does not yet understand arcs, so approximate
-                    // an arc with a series of short lines and put those
-                    // line segments into the !same! PATH.
-                    {
-                        wxPoint pstart  = graphic->GetArcStart();
-                        wxPoint pend    = graphic->GetArcEnd();
-                        wxPoint pcenter = graphic->GetCenter();
-                        double  angle  = -graphic->GetAngle();
-                        int     steps  = STEPS * fabs(angle) /3600.0;
-
-                        if( steps == 0 )
-                            steps = 1;
-
-                        if( !close_enough( prevPt, pstart, prox ) )
-                        {
-                            wxASSERT( close_enough( prevPt, graphic->GetArcEnd(), prox ) );
-
-                            angle = -angle;
-                            std::swap( pstart, pend );
-                        }
-
-                        wxPoint nextPt;
-
-                        for( int step = 1; step<=steps; ++step )
-                        {
-                            double rotation = ( angle * step ) / steps;
-                            nextPt = pstart;
-                            RotatePoint( &nextPt, pcenter, rotation );
-
-                            path->AppendPoint( mapPt( nextPt ) );
-                        }
-
-                        prevPt = nextPt;
-                    }
-                    break;
-
-                default:
-                    {
-                        wxString error = wxString::Format( _( "Unsupported DRAWSEGMENT type %s" ),
-                            GetChars( BOARD_ITEM::ShowShape( graphic->GetShape() ) ) );
-
-                        THROW_IO_ERROR( error );
-                    }
-                    break;
-                }
-
-                // Get next closest segment.
-
-                graphic = findPoint( prevPt, &items, prox );
-
-                // If there are no more close segments, check if the board
-                // outline polygon can be closed.
-
-                if( !graphic )
-                {
-                    if( close_enough( startPt, prevPt, prox ) )
-                    {
-                        // Close the polygon back to start point
-                        path->AppendPoint( mapPt( startPt ) );
-                    }
-                    else
-                    {
-                        wxString error = wxString::Format(
-                            _( "Unable to find the next boundary segment with an endpoint of (%s mm, %s mm). "
-                                "Edge.Cuts perimeter graphics must form a contiguous, closed polygon." ),
-                            GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.x ).c_str() ) ),
-                            GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.y ).c_str() ) )
-                        );
-                        THROW_IO_ERROR( error );
-                    }
-                    break;
-                }
-            }
-        }
-
-        // Output the interior Edge.Cuts graphics as keepouts, using same nearness
-        // metric as the board edge as otherwise we have trouble completing complex
-        // polygons.
-        prox = Millimeter2iu( 0.05 );
-
-        while( items.GetCount() )
+        // Generate holes as keepout:
+        for( int ii = 0; ii < outlines.HoleCount( cnt ); ii++ )
         {
             // emit a signal layers keepout for every interior polygon left...
             KEEPOUT*    keepout = new KEEPOUT( NULL, T_keepout );
@@ -1183,246 +764,23 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
             keepout->SetShape( poly_ko );
             poly_ko->SetLayerId( "signal" );
             pcb->structure->keepouts.push_back( keepout );
-            graphic = (DRAWSEGMENT*) items[0];
-            items.Remove( 0 );
 
-            if( graphic->GetShape() == S_CIRCLE )
+            SHAPE_LINE_CHAIN& hole = outlines.Hole( cnt, ii );
+
+            for( int jj = 0; jj < hole.PointCount(); jj++ )
             {
-                makeCircle( poly_ko, graphic );
+                wxPoint pos( hole.Point( jj ).x, hole.Point( jj ).y );
+                poly_ko->AppendPoint( mapPt( pos ) );
             }
-            else
-            {
-                // Polygon start point. Arbitrarily chosen end of the
-                // segment and build the poly from here.
 
-                wxPoint startPt( graphic->GetEnd() );
-                prevPt = graphic->GetEnd();
-                poly_ko->AppendPoint( mapPt( prevPt ) );
-
-                // do not append the other end point yet, this first 'graphic' might be an arc
-                for(;;)
-                {
-                    switch( graphic->GetShape() )
-                    {
-                    case S_SEGMENT:
-                        {
-                            wxPoint nextPt;
-
-                            // Use the line segment end point furthest away from
-                            // prevPt as we assume the other end to be ON prevPt or
-                            // very close to it.
-
-                            if( close_st( prevPt, graphic->GetStart(), graphic->GetEnd() ) )
-                            {
-                                nextPt = graphic->GetEnd();
-                            }
-                            else
-                            {
-                                nextPt = graphic->GetStart();
-                            }
-
-                            prevPt = nextPt;
-                            poly_ko->AppendPoint( mapPt( prevPt ) );
-                        }
-                        break;
-
-                    case S_ARC:
-                        // Freerouter does not yet understand arcs, so approximate
-                        // an arc with a series of short lines and put those
-                        // line segments into the !same! PATH.
-                        {
-                            wxPoint     pstart   = graphic->GetArcStart();
-                            wxPoint     pend     = graphic->GetArcEnd();
-                            wxPoint     pcenter  = graphic->GetCenter();
-                            double      angle   = -graphic->GetAngle();
-                            int         steps   = STEPS * fabs(angle) /3600.0;
-
-                            if( steps == 0 )
-                                steps = 1;
-
-                            if( !close_enough( prevPt, pstart, prox ) )
-                            {
-                                wxASSERT( close_enough( prevPt, graphic->GetArcEnd(), prox ) );
-
-                                angle = -angle;
-                                std::swap( pstart, pend );
-                            }
-
-                            wxPoint nextPt;
-
-                            for( int step = 1; step<=steps; ++step )
-                            {
-                                double rotation = ( angle * step ) / steps;
-
-                                nextPt = pstart;
-                                RotatePoint( &nextPt, pcenter, rotation );
-
-                                poly_ko->AppendPoint( mapPt( nextPt ) );
-                            }
-
-                            prevPt = nextPt;
-                        }
-                        break;
-
-                    default:
-                        {
-                            wxString error = wxString::Format(
-                                _( "Unsupported DRAWSEGMENT type %s" ),
-                                GetChars( BOARD_ITEM::ShowShape( graphic->GetShape() ) ) );
-
-                            THROW_IO_ERROR( error );
-                        }
-                        break;
-                    }
-
-                    // Get next closest segment.
-
-                    graphic = findPoint( prevPt, &items, prox );
-
-                    // If there are no more close segments, check if polygon
-                    // can be closed.
-
-                    if( !graphic )
-                    {
-                        if( close_enough( startPt, prevPt, prox ) )
-                        {
-                            // Close the polygon back to start point
-                            poly_ko->AppendPoint( mapPt( startPt ) );
-                        }
-                        else
-                        {
-                            wxString error = wxString::Format(
-                                _( "Unable to find the next keepout segment with an endpoint of (%s mm, %s mm).\n"
-                                   "Edit Edge.Cuts interior graphics, making them contiguous polygons each." ),
-                                GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.x ).c_str() ) ),
-                                GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.y ).c_str() ) )
-                            );
-
-                            THROW_IO_ERROR( error );
-                        }
-                        break;
-                    }
-                }
-            }
+            // Close polygon:
+            wxPoint pos( hole.Point( 0 ).x, hole.Point( 0 ).y );
+            poly_ko->AppendPoint( mapPt( pos ) );
         }
     }
-    else
-    {
-        // User has not defined a board perimeter yet...
 
-        EDA_RECT    bbbox = aBoard->ComputeBoundingBox();
-        RECTANGLE*  rect = new RECTANGLE( boundary );
-
-        boundary->rectangle = rect;
-
-        rect->layer_id = "pcb";
-
-        // opposite corners
-        wxPoint bottomRight( bbbox.GetRight(), bbbox.GetBottom() );
-
-        rect->SetCorners( mapPt( bbbox.GetOrigin() ),
-                          mapPt( bottomRight ) );
-    }
-}
-
-/* This function is not used in SPECCTRA export,
- * but uses a lot of functions from it
- * and is used to extract a board outlines (3D view, automatic zones build ...)
- * makes the board perimeter for the DSN file by filling the BOUNDARY element.
- * Any closed outline inside the main outline is a hole
- * All contours should be closed, i.e. valid closed polygon vertices
- */
-bool SPECCTRA_DB::GetBoardPolygonOutlines( BOARD* aBoard,
-                                           SHAPE_POLY_SET& aOutlines,
-                                           SHAPE_POLY_SET& aHoles,
-                                           wxString* aErrorText )
-{
-    bool success = true;
-    double specctra2UIfactor = IU_PER_MM / 1000.0;  // Specctra unite = micron
-
-    if( ! pcb )
-    {
-        pcb = new PCB();
-        pcb->structure = new STRUCTURE( pcb );
-    }
-
-    CPolyPt corner;
-    BOUNDARY* boundary = new BOUNDARY( 0 );
-    pcb->structure->SetBOUNDARY( boundary );
-
-    aOutlines.NewOutline();
-
-    try
-    {
-        fillBOUNDARY( aBoard, boundary );
-        std::vector<double> buffer;
-        boundary->GetCorners( buffer );
-
-        for( unsigned ii = 0; ii < buffer.size(); ii+=2 )
-        {
-            corner.x = buffer[ii] * specctra2UIfactor;
-            corner.y =  - buffer[ii+1] * specctra2UIfactor;
-            aOutlines.Append( corner.x, corner.y );
-        }
-
-        // Export holes, stored as keepouts polygonal shapes.
-        // by fillBOUNDARY()
-        KEEPOUTS& holes = pcb->structure->keepouts;
-
-        for( KEEPOUTS::iterator i=holes.begin();  i!=holes.end();  ++i )
-        {
-            KEEPOUT& keepout = *i;
-            PATH* poly_hole = (PATH*)keepout.shape;
-            POINTS& plist = poly_hole->GetPoints();
-
-            aHoles.NewOutline();
-
-            for( unsigned ii = 0; ii < plist.size(); ii++ )
-            {
-                corner.x = plist[ii].x * specctra2UIfactor;
-                corner.y =  - plist[ii].y * specctra2UIfactor;
-                aHoles.Append( corner.x, corner.y );
-            }
-        }
-    }
-    catch( const IO_ERROR& ioe )
-    {
-        // Creates a valid polygon outline is not possible.
-        // So uses the board edge cuts bounding box to create a
-        // rectangular outline
-        // (when no edge cuts items, fillBOUNDARY build a contour
-        // from global bounding box
-        success = false;
-        if( aErrorText )
-            *aErrorText = ioe.What();
-
-        EDA_RECT bbbox = aBoard->GetBoardEdgesBoundingBox();
-
-        // Ensure non null area. If happen, gives a minimal size.
-        if( ( bbbox.GetWidth() ) == 0 || ( bbbox.GetHeight() == 0 ) )
-            bbbox.Inflate( Millimeter2iu( 1.0 ) );
-
-        aOutlines.RemoveAllContours();
-        aOutlines.NewOutline();
-
-        corner.x = bbbox.GetOrigin().x;
-        corner.y = bbbox.GetOrigin().y;
-        aOutlines.Append( corner.x, corner.y );
-
-        corner.x = bbbox.GetOrigin().x;
-        corner.y = bbbox.GetEnd().y;
-        aOutlines.Append( corner.x, corner.y );
-
-        corner.x = bbbox.GetEnd().x;
-        corner.y = bbbox.GetEnd().y;
-        aOutlines.Append( corner.x, corner.y );
-
-        corner.x = bbbox.GetEnd().x;
-        corner.y = bbbox.GetOrigin().y;
-        aOutlines.Append( corner.x, corner.y );
-    }
-
-    return success;
+    if( !errMessage.IsEmpty() )
+        wxLogMessage( errMessage );
 }
 
 
@@ -1658,26 +1016,27 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
 
             mainPolygon->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
 
-            int count = item->Outline()->m_CornersList.GetCornersCount();
-            int ndx = 0;  // used in 2 for() loops below
-            for( ; ndx<count; ++ndx )
+            // Handle the main outlines
+            SHAPE_POLY_SET::ITERATOR iterator;
+            for( iterator = item->IterateWithHoles(); iterator; iterator++ )
             {
-                wxPoint   point( item->Outline()->m_CornersList[ndx].x,
-                                 item->Outline()->m_CornersList[ndx].y );
+                wxPoint point( iterator->x, iterator->y );
                 mainPolygon->AppendPoint( mapPt(point) );
 
                 // this was the end of the main polygon
-                if( item->Outline()->m_CornersList[ndx].end_contour )
+                if( iterator.IsEndContour() )
                     break;
             }
 
             WINDOW* window  = 0;
             PATH*   cutout  = 0;
 
+            bool isStartContour = true;
+
             // handle the cutouts
-            for( ++ndx; ndx<count; ++ndx )
+            for( iterator++; iterator; iterator++ )
             {
-                if( item->Outline()->m_CornersList[ndx-1].end_contour )
+                if( isStartContour )
                 {
                     window = new WINDOW( plane );
 
@@ -1690,11 +1049,14 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
                     cutout->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
                 }
 
+                // If the point in this iteration is the last of the contour, the next iteration
+                // will start with a new contour.
+                isStartContour = iterator.IsEndContour();
+
                 wxASSERT( window );
                 wxASSERT( cutout );
 
-                wxPoint point(item->Outline()->m_CornersList[ndx].x,
-                              item->Outline()->m_CornersList[ndx].y );
+                wxPoint point(iterator->x, iterator->y );
                 cutout->AppendPoint( mapPt(point) );
             }
         }
@@ -1735,41 +1097,44 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
 
             mainPolygon->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
 
-            int count = item->Outline()->m_CornersList.GetCornersCount();
-            int ndx = 0;  // used in 2 for() loops below
-            for( ; ndx<count; ++ndx )
+            // Handle the main outlines
+            SHAPE_POLY_SET::ITERATOR iterator;
+            for( iterator = item->IterateWithHoles(); iterator; iterator++ )
             {
-                wxPoint   point( item->Outline()->m_CornersList[ndx].x,
-                                 item->Outline()->m_CornersList[ndx].y );
+                wxPoint point( iterator->x, iterator->y );
                 mainPolygon->AppendPoint( mapPt(point) );
 
                 // this was the end of the main polygon
-                if( item->Outline()->m_CornersList[ndx].end_contour )
+                if( iterator.IsEndContour() )
                     break;
             }
 
             WINDOW* window = 0;
             PATH*   cutout = 0;
 
+            bool isStartContour = true;
+
             // handle the cutouts
-            for( ++ndx; ndx<count; ++ndx )
+            for( iterator++; iterator; iterator++ )
             {
-                if( item->Outline()->m_CornersList[ndx-1].end_contour )
+                if( isStartContour )
                 {
                     window = new WINDOW( keepout );
                     keepout->AddWindow( window );
 
                     cutout = new PATH( window, T_polygon );
+
                     window->SetShape( cutout );
 
                     cutout->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
                 }
 
+                isStartContour = iterator.IsEndContour();
+
                 wxASSERT( window );
                 wxASSERT( cutout );
 
-                wxPoint point(item->Outline()->m_CornersList[ndx].x,
-                              item->Outline()->m_CornersList[ndx].y );
+                wxPoint point(iterator->x, iterator->y );
                 cutout->AppendPoint( mapPt(point) );
             }
         }

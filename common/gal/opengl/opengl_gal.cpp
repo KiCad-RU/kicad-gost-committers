@@ -140,7 +140,7 @@ OPENGL_GAL::OPENGL_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions, wxWindow* aParent,
 
     gluTessProperty( tesselator, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_POSITIVE );
 
-    currentManager = nonCachedManager;
+    SetTarget( TARGET_NONCACHED );
 }
 
 
@@ -988,18 +988,10 @@ void OPENGL_GAL::DrawGrid()
 
     // Correct the index, else some lines are not correctly painted
     gridStartY -= std::abs( gridOrigin.y / gridSize.y ) + 1;
-    gridEndY += std::abs( gridOrigin.y / gridSize.y ) + 1;
+    gridEndY -= std::abs( gridOrigin.y / gridSize.y ) - 1;
 
-    if( gridStartX <= gridEndX )
-    {
-        gridStartX -= std::abs( gridOrigin.x / gridSize.x ) + 1;
-        gridEndX += std::abs( gridOrigin.x / gridSize.x ) + 1;
-    }
-    else
-    {
-        gridStartX += std::abs( gridOrigin.x / gridSize.x ) + 1;
-        gridEndX -= std::abs( gridOrigin.x / gridSize.x ) + 1;
-    }
+    gridStartX -= std::abs( gridOrigin.x / gridSize.x ) + 1;
+    gridEndX -= std::abs( gridOrigin.x / gridSize.x ) - 1;
 
     int dirX = gridStartX >= gridEndX ? -1 : 1;
     int dirY = gridStartY >= gridEndY ? -1 : 1;
@@ -1074,8 +1066,8 @@ void OPENGL_GAL::DrawGrid()
                 || gridScreenSizeDense > gridThreshold )
             {
                 glBegin( GL_LINES );
-                glVertex2d( gridStartX * gridSize.x, y );
-                glVertex2d( gridEndX * gridSize.x, y );
+                glVertex2d( gridStartX * gridSize.x + gridOrigin.x, y );
+                glVertex2d( gridEndX * gridSize.x + gridOrigin.x, y );
                 glEnd();
             }
         }
@@ -1104,8 +1096,8 @@ void OPENGL_GAL::DrawGrid()
                 || gridScreenSizeDense > gridThreshold )
             {
                 glBegin( GL_LINES );
-                glVertex2d( i * gridSize.x + gridOrigin.x, gridStartY * gridSize.y );
-                glVertex2d( i * gridSize.x + gridOrigin.x, gridEndY * gridSize.y );
+                glVertex2d( x, gridStartY * gridSize.y + gridOrigin.y );
+                glVertex2d( x, gridEndY * gridSize.y + gridOrigin.y );
                 glEnd();
             }
         }
@@ -1665,18 +1657,24 @@ void OPENGL_GAL::skipMouseEvent( wxMouseEvent& aEvent )
 
 void OPENGL_GAL::blitCursor()
 {
-    if( !isCursorEnabled )
+    if( !IsCursorEnabled() )
         return;
 
     compositor->SetBuffer( OPENGL_COMPOSITOR::DIRECT_RENDERING );
+
+    const int cursorSize = fullscreenCursor ? 8000 : 80;
 
     VECTOR2D cursorBegin  = cursorPosition - cursorSize / ( 2 * worldScale );
     VECTOR2D cursorEnd    = cursorPosition + cursorSize / ( 2 * worldScale );
     VECTOR2D cursorCenter = ( cursorBegin + cursorEnd ) / 2;
 
+    const COLOR4D cColor = getCursorColor();
+    const COLOR4D color( cColor.r * cColor.a, cColor.g * cColor.a,
+                         cColor.b * cColor.a, 1.0 );
+
     glDisable( GL_TEXTURE_2D );
     glLineWidth( 1.0 );
-    glColor4d( cursorColor.r, cursorColor.g, cursorColor.b, cursorColor.a );
+    glColor4d( color.r, color.g, color.b, color.a );
 
     glBegin( GL_LINES );
     glVertex2d( cursorCenter.x, cursorBegin.y );

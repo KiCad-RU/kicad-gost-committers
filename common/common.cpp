@@ -53,7 +53,6 @@ using KIGFX::COLOR4D;
  *       application class.
  */
 
-bool           g_ShowPageLimits = true;
 EDA_UNITS_T    g_UserUnit;
 COLOR4D        g_GhostColor;
 
@@ -135,105 +134,6 @@ bool EnsureTextCtrlWidth( wxTextCtrl* aCtrl, const wxString* aString )
 }
 
 
-wxString ReturnUnitSymbol( EDA_UNITS_T aUnit, const wxString& formatString )
-{
-    wxString tmp;
-    wxString label;
-
-    switch( aUnit )
-    {
-    case INCHES:
-        tmp = _( "\"" );
-        break;
-
-    case MILLIMETRES:
-        tmp = _( "mm" );
-        break;
-
-    case UNSCALED_UNITS:
-        break;
-
-    case DEGREES:
-        wxASSERT( false );
-        break;
-    }
-
-    if( formatString.IsEmpty() )
-        return tmp;
-
-    label.Printf( formatString, GetChars( tmp ) );
-
-    return label;
-}
-
-
-wxString GetUnitsLabel( EDA_UNITS_T aUnit )
-{
-    wxString label;
-
-    switch( aUnit )
-    {
-    case INCHES:
-        label = _( "inches" );
-        break;
-
-    case MILLIMETRES:
-        label = _( "millimeters" );
-        break;
-
-    case UNSCALED_UNITS:
-        label = _( "units" );
-        break;
-
-    case DEGREES:
-        label = _( "degrees" );
-        break;
-    }
-
-    return label;
-}
-
-
-wxString GetAbbreviatedUnitsLabel( EDA_UNITS_T aUnit )
-{
-    wxString label;
-
-    switch( aUnit )
-    {
-    case INCHES:
-        label = _( "in" );
-        break;
-
-    case MILLIMETRES:
-        label = _( "mm" );
-        break;
-
-    case UNSCALED_UNITS:
-        break;
-
-    case DEGREES:
-        label = _( "deg" );
-        break;
-
-    default:
-        label = wxT( "??" );
-        break;
-    }
-
-    return label;
-}
-
-
-void AddUnitSymbol( wxStaticText& Stext, EDA_UNITS_T aUnit )
-{
-    wxString msg = Stext.GetLabel();
-
-    msg += ReturnUnitSymbol( aUnit );
-
-    Stext.SetLabel( msg );
-}
-
-
 void wxStringSplit( const wxString& aText, wxArrayString& aStrings, wxChar aSplitter )
 {
     wxString tmp;
@@ -311,46 +211,6 @@ wxConfigBase* GetNewConfig( const wxString& aProgName )
 
     cfg = new wxFileConfig( wxT( "" ), wxT( "" ), configname.GetFullPath() );
     return cfg;
-}
-
-wxString GetKicadLockFilePath()
-{
-    wxFileName lockpath;
-    lockpath.AssignDir( wxGetHomeDir() ); // Default wx behavior
-
-#if defined( __WXMAC__ )
-    // In OSX use the standard per user cache directory
-    lockpath.AppendDir( wxT( "Library" ) );
-    lockpath.AppendDir( wxT( "Caches" ) );
-    lockpath.AppendDir( wxT( "kicad" ) );
-#elif defined( __UNIX__ )
-    wxString envstr;
-    // Try first the standard XDG_RUNTIME_DIR, falling back to XDG_CACHE_HOME
-    if( wxGetEnv( wxT( "XDG_RUNTIME_DIR" ), &envstr ) && !envstr.IsEmpty() )
-    {
-        lockpath.AssignDir( envstr );
-    }
-    else if( wxGetEnv( wxT( "XDG_CACHE_HOME" ), &envstr ) && !envstr.IsEmpty() )
-    {
-        lockpath.AssignDir( envstr );
-    }
-    else
-    {
-        // If all fails, just use ~/.cache
-        lockpath.AppendDir( wxT( ".cache" ) );
-    }
-
-    lockpath.AppendDir( wxT( "kicad" ) );
-#endif
-
-#if defined( __WXMAC__ ) || defined( __UNIX__ )
-    if( !lockpath.DirExists() )
-    {
-        // Lockfiles should be only readable by the user
-        lockpath.Mkdir( 0700, wxPATH_MKDIR_FULL );
-    }
-#endif
-    return lockpath.GetPath();
 }
 
 

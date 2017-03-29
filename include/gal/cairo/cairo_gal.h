@@ -244,9 +244,6 @@ public:
     // Cursor
     // -------
 
-    /// @copydoc GAL::SetCursorSize()
-    virtual void SetCursorSize( unsigned int aCursorSize ) override;
-
     /// @copydoc GAL::DrawCursor()
     virtual void DrawCursor( const VECTOR2D& aCursorPosition ) override;
 
@@ -294,13 +291,6 @@ private:
     wxEvtHandler*           paintListener;          ///< Paint listener
     unsigned int            bufferSize;             ///< Size of buffers cairoOutput, bitmapBuffers
     unsigned char*          wxOutput;               ///< wxImage comaptible buffer
-
-    // Cursor variables
-    std::deque<wxColour>    savedCursorPixels;      ///< Saved pixels of the cursor
-    bool                    isDeleteSavedPixels;    ///< True, if the saved pixels can be discarded
-    wxPoint                 savedCursorPosition;    ///< The last cursor position
-    wxBitmap*               cursorPixels;           ///< Cursor pixels
-    wxBitmap*               cursorPixelsSaved;      ///< Saved cursor pixels
 
     /// Maximum number of arguments for one command
     static const int MAX_CAIRO_ARGUMENTS = 4;
@@ -378,11 +368,6 @@ private:
      * @param aEvent is the mouse event to be forwarded.
      */
     void skipMouseEvent( wxMouseEvent& aEvent );
-
-    /**
-     * @brief Prepares cursor bitmap.
-     */
-    virtual void initCursor();
 
     /**
      * @brief Blits cursor into the current screen.

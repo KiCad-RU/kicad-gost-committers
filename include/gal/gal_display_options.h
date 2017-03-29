@@ -84,6 +84,12 @@ namespace KIGFX
 
         ///> Whether or not to draw the coordinate system axes
         bool m_axesEnabled;
+
+        ///> Fullscreen crosshair or small cross
+        bool m_fullscreenCursor;
+
+        ///> Force cursor display
+        bool m_forceDisplayCursor;
     };
 
 }

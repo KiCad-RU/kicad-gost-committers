@@ -51,6 +51,8 @@
 #include <menus_helpers.h>
 #include <confirm.h>
 #include <dialog_env_var_config.h>
+#include <lockfile.h>
+#include <systemdirsappend.h>
 
 
 #define KICAD_COMMON                     wxT( "kicad_common" )

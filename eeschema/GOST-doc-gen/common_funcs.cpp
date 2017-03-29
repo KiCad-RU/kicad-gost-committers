@@ -329,6 +329,38 @@ void SortCByteArray( INT_ARRAY* aArr )
     }
 }
 
+/**
+ * Function FindFileInSearchPaths
+ * looks in "this" for \a aFilename, but first modifies every search
+ * path by appending a list of path fragments from aSubdirs.  That modification
+ * is not relative.
+ */
+wxString FindFileInSearchPaths( const SEARCH_STACK& aStack,
+        const wxString& aFilename, const wxArrayString* aSubdirs )
+{
+    wxPathList paths;
+
+    for( unsigned i = 0; i < aStack.GetCount(); ++i )
+    {
+        wxFileName fn( aStack[i], wxEmptyString );
+
+        if( aSubdirs )
+        {
+            for( unsigned j = 0; j < aSubdirs->GetCount(); j++ )
+                fn.AppendDir( (*aSubdirs)[j] );
+        }
+
+        wxLogDebug( wxT( "    %s" ), GetChars( fn.GetFullPath() ) );
+
+        if( fn.DirExists() )
+        {
+            paths.Add( fn.GetPath() );
+        }
+    }
+
+    return paths.FindValidPath( aFilename );
+}
+
 wxString GetResourceFile( wxString aFileName )
 {
     wxArrayString subdirs;

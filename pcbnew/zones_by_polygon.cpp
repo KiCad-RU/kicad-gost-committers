@@ -45,6 +45,7 @@
 #include <protos.h>
 #include <zones_functions_for_undo_redo.h>
 #include <drc_stuff.h>
+#include <ratsnest_data.h>
 
 // Outline creation:
 static void Abort_Zone_Create_Outline( EDA_DRAW_PANEL* Panel, wxDC* DC );
@@ -136,7 +137,7 @@ void PCB_EDIT_FRAME::duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone )
     if( success )
     {
         zoneSettings.ExportSetting( *newZone );
-        newZone->Outline()->Hatch();
+        newZone->Hatch();
 
         s_AuxiliaryList.ClearListAndDeleteItems();
         s_PickedList.ClearListAndDeleteItems();
@@ -186,7 +187,7 @@ int PCB_EDIT_FRAME::Delete_LastCreatedCorner( wxDC* DC )
 
     if( zone->GetNumCorners() > 2 )
     {
-        zone->Outline()->DeleteCorner( zone->GetNumCorners() - 1 );
+        zone->Outline()->RemoveVertex( zone->GetNumCorners() - 1 );
 
         if( m_canvas->IsMouseCaptured() )
             m_canvas->CallMouseCapture( DC, wxDefaultPosition, false );
@@ -255,11 +256,10 @@ void PCB_EDIT_FRAME::Start_Move_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone,
 
     // Prepare copy of old zones, for undo/redo.
     // if the corner is new, remove it from list, save and insert it in list
-    int cx = aZone->Outline()->GetX( corner_id );
-    int cy = aZone->Outline()->GetY( corner_id );
+    VECTOR2I corner = aZone->Outline()->Vertex( corner_id );
 
     if ( IsNewCorner )
-        aZone->Outline()->DeleteCorner( corner_id );
+        aZone->Outline()->RemoveVertex( corner_id );
 
     s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList.ClearListAndDeleteItems();
@@ -267,12 +267,12 @@ void PCB_EDIT_FRAME::Start_Move_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone,
     SaveCopyOfZones( s_PickedList, GetBoard(), aZone->GetNetCode(), aZone->GetLayer() );
 
     if ( IsNewCorner )
-        aZone->Outline()->InsertCorner(corner_id-1, cx, cy );
+        aZone->Outline()->InsertVertex(corner_id-1, corner );
 
     aZone->SetFlags( IN_EDIT );
     m_canvas->SetMouseCapture( Show_Zone_Corner_Or_Outline_While_Move_Mouse,
                                 Abort_Zone_Move_Corner_Or_Outlines );
-    s_CornerInitialPosition = aZone->GetCornerPosition( corner_id );
+    s_CornerInitialPosition = static_cast<wxPoint>( aZone->GetCornerPosition( corner_id ) );
     s_CornerIsNew = IsNewCorner;
     s_AddCutoutToCurrentZone = false;
     s_CurrentZone = NULL;
@@ -369,7 +369,7 @@ void PCB_EDIT_FRAME::Remove_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone )
 {
     OnModify();
 
-    if( aZone->Outline()->GetCornersCount() <= 3 )
+    if( aZone->Outline()->TotalVertices() <= 3 )
     {
         m_canvas->RefreshDrawingRect( aZone->GetBoundingBox() );
 
@@ -394,7 +394,7 @@ void PCB_EDIT_FRAME::Remove_Zone_Corner( wxDC* DC, ZONE_CONTAINER* aZone )
     s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList. ClearListAndDeleteItems();
     SaveCopyOfZones( s_PickedList, GetBoard(), aZone->GetNetCode(), aZone->GetLayer() );
-    aZone->Outline()->DeleteCorner( aZone->GetSelectedCorner() );
+    aZone->Outline()->RemoveVertex( aZone->GetSelectedCorner() );
 
     // modify zones outlines according to the new aZone shape
     GetBoard()->OnAreaPolygonModified( &s_AuxiliaryList, aZone );
@@ -448,12 +448,12 @@ void Abort_Zone_Move_Corner_Or_Outlines( EDA_DRAW_PANEL* Panel, wxDC* DC )
     {
         if( s_CornerIsNew )
         {
-            zone->Outline()->DeleteCorner( zone->GetSelectedCorner() );
+            zone->Outline()->RemoveVertex( zone->GetSelectedCorner() );
         }
         else
         {
             wxPoint pos = s_CornerInitialPosition;
-            zone->Outline()->MoveCorner( zone->GetSelectedCorner(), pos.x, pos.y );
+            zone->Outline()->Vertex( zone->GetSelectedCorner() ) = pos;
         }
     }
 
@@ -499,7 +499,7 @@ void Show_Zone_Corner_Or_Outline_While_Move_Mouse( EDA_DRAW_PANEL* aPanel, wxDC*
     }
     else
     {
-        zone->Outline()->MoveCorner( zone->GetSelectedCorner(), pos.x, pos.y );
+        zone->Outline()->Vertex( zone->GetSelectedCorner() ) = pos;
     }
 
     zone->Draw( aPanel, aDC, GR_XOR );
@@ -666,12 +666,11 @@ int PCB_EDIT_FRAME::Begin_Zone( wxDC* DC )
     {
         zoneInfo.ExportSetting( *zone );
 
-        zone->Outline()->Start( zoneInfo.m_CurrentZone_Layer,
-                                GetCrossHairPosition().x,
-                                GetCrossHairPosition().y,
-                                zone->GetHatchStyle() );
+        zone->SetLayer( zoneInfo.m_CurrentZone_Layer );
 
+        // A duplicated corner is needed; null segments are removed when the zone is finished.
         zone->AppendCorner( GetCrossHairPosition() );
+        zone->AppendCorner( GetCrossHairPosition(), true );
 
         if( g_Drc_On && (m_drc->Drc( zone, 0 ) == BAD_DRC) && zone->IsOnCopperLayer() )
         {
@@ -703,8 +702,14 @@ int PCB_EDIT_FRAME::Begin_Zone( wxDC* DC )
                 // Ok, we can add a new corner
                 if( m_canvas->IsMouseCaptured() )
                     m_canvas->CallMouseCapture( DC, wxPoint(0,0), false );
-                zone->AppendCorner( GetCrossHairPosition() );
+
+                // It is necessary to allow duplication of the points, as we have to handle the
+                // continuous drawing while creating the zone at the same time as we build it. Null
+                // segments are removed when the zone is finished, in End_Zone.
+                zone->AppendCorner( GetCrossHairPosition(), true );
+
                 SetCurItem( zone );     // calls DisplayInfo().
+
                 if( m_canvas->IsMouseCaptured() )
                     m_canvas->CallMouseCapture( DC, wxPoint(0,0), false );
             }
@@ -767,7 +772,6 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
     // Put new zone in list
     if( !s_CurrentZone )
     {
-        zone->Outline()->CloseLastContour(); // Close the current corner list
         GetBoard()->Add( zone );
 
         // Add this zone in picked list, as new item
@@ -776,12 +780,8 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
     }
     else    // Append this outline as a cutout to an existing zone
     {
-        for( int ii = 0; ii < zone->GetNumCorners(); ii++ )
-        {
-            s_CurrentZone->AppendCorner( zone->GetCornerPosition( ii ) );
-        }
+        s_CurrentZone->Outline()->AddHole( zone->Outline()->Outline( 0 ) );
 
-        s_CurrentZone->Outline()->CloseLastContour(); // Close the current corner list
         zone->RemoveAllContours();      // All corners are copied in s_CurrentZone. Free corner list.
         zone = s_CurrentZone;
     }
@@ -846,7 +846,7 @@ static void Show_New_Edge_While_Move_Mouse( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
     if( pcbframe->GetZoneSettings().m_Zone_45_Only )
     {
         // calculate the new position as allowed
-        wxPoint StartPoint = zone->GetCornerPosition( icorner - 1 );
+        wxPoint StartPoint = static_cast<wxPoint>( zone->GetCornerPosition( icorner - 1 ) );
         CalculateSegmentEndPoint( c_pos, StartPoint.x, StartPoint.y, &c_pos.x, &c_pos.y );
     }
 
@@ -934,8 +934,26 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
     // Redraw the real new zone outlines
     GetBoard()->RedrawAreasOutlines( m_canvas, DC, GR_OR, UNDEFINED_LAYER );
 
-
     UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
+
+    // refill zones with the new properties applied
+    for( unsigned i = 0; i < s_PickedList.GetCount(); ++i )
+    {
+        auto zone = dyn_cast<ZONE_CONTAINER*>( s_PickedList.GetPickedItem( i ) );
+
+        if( zone == nullptr )
+        {
+            wxASSERT_MSG( false, "Expected a zone after zone properties edit" );
+            continue;
+        }
+
+        if( zone->IsFilled() )
+        {
+            Fill_Zone( zone );
+            GetBoard()->GetRatsnest()->Recalculate( zone->GetNetCode() );
+        }
+    }
+
     commit.Stage( s_PickedList );
     commit.Push( _( "Modify zone properties" ) );
 
@@ -945,7 +963,12 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
 
 void PCB_EDIT_FRAME::Delete_Zone_Contour( wxDC* DC, ZONE_CONTAINER* aZone )
 {
-    int      ncont = aZone->Outline()->GetContour( aZone->GetSelectedCorner() );
+    // Get contour in which the selected corner is
+    SHAPE_POLY_SET::VERTEX_INDEX indices;
+
+    // If the selected corner does not exist, abort
+    if( !aZone->Outline()->GetRelativeIndices( aZone->GetSelectedCorner(), &indices ) )
+        throw( std::out_of_range( "Zone selected corner does not exist" ) );
 
     EDA_RECT dirty = aZone->GetBoundingBox();
 
@@ -955,7 +978,7 @@ void PCB_EDIT_FRAME::Delete_Zone_Contour( wxDC* DC, ZONE_CONTAINER* aZone )
     // Remove current filling:
     aZone->UnFill();
 
-    if( ncont == 0 )    // This is the main outline: remove all
+    if( indices.m_contour == 0 )    // This is the main outline: remove all
     {
         SaveCopyInUndoList( aZone, UR_DELETED );
         GetBoard()->Remove( aZone );
@@ -964,7 +987,7 @@ void PCB_EDIT_FRAME::Delete_Zone_Contour( wxDC* DC, ZONE_CONTAINER* aZone )
     else
     {
         SaveCopyInUndoList( aZone, UR_CHANGED );
-        aZone->Outline()->RemoveContour( ncont );
+        aZone->Outline()->RemoveContour( indices.m_contour, indices.m_polygon );
     }
 
     m_canvas->RefreshDrawingRect( dirty );

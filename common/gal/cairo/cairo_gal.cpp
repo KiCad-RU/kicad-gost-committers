@@ -55,7 +55,6 @@ CAIRO_GAL::CAIRO_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions,
     // Initialize the flags
     isGrouping          = false;
     isInitialized       = false;
-    isDeleteSavedPixels = false;
     validCompositor     = false;
     groupCounter        = 0;
 
@@ -81,10 +80,6 @@ CAIRO_GAL::CAIRO_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions,
     SetSize( aParent->GetSize() );
     screenSize = VECTOR2I( aParent->GetSize() );
 
-    cursorPixels = NULL;
-    cursorPixelsSaved = NULL;
-    initCursor();
-
     // Grid color settings are different in Cairo and OpenGL
     SetGridColor( COLOR4D( 0.1, 0.1, 0.1, 0.8 ) );
     SetAxesColor( COLOR4D( BLUE ) );
@@ -98,9 +93,6 @@ CAIRO_GAL::~CAIRO_GAL()
 {
     deinitSurface();
     deleteBitmaps();
-
-    delete cursorPixels;
-    delete cursorPixelsSaved;
 
     ClearCache();
 }
@@ -850,13 +842,6 @@ void CAIRO_GAL::ClearTarget( RENDER_TARGET aTarget )
 }
 
 
-void CAIRO_GAL::SetCursorSize( unsigned int aCursorSize )
-{
-    GAL::SetCursorSize( aCursorSize );
-    initCursor();
-}
-
-
 void CAIRO_GAL::DrawCursor( const VECTOR2D& aCursorPosition )
 {
     cursorPosition = aCursorPosition;
@@ -956,42 +941,21 @@ void CAIRO_GAL::skipMouseEvent( wxMouseEvent& aEvent )
 }
 
 
-void CAIRO_GAL::initCursor()
-{
-    if( cursorPixels )
-        delete cursorPixels;
-
-    if( cursorPixelsSaved )
-        delete cursorPixelsSaved;
-
-    cursorPixels      = new wxBitmap( cursorSize, cursorSize );
-    cursorPixelsSaved = new wxBitmap( cursorSize, cursorSize );
-
-    wxMemoryDC cursorShape( *cursorPixels );
-
-    cursorShape.SetBackground( *wxTRANSPARENT_BRUSH );
-    wxColour color( cursorColor.r * cursorColor.a * 255, cursorColor.g * cursorColor.a * 255,
-                    cursorColor.b * cursorColor.a * 255, 255 );
-    wxPen pen = wxPen( color );
-    cursorShape.SetPen( pen );
-    cursorShape.Clear();
-
-    cursorShape.DrawLine( 0, cursorSize / 2, cursorSize, cursorSize / 2 );
-    cursorShape.DrawLine( cursorSize / 2, 0, cursorSize / 2, cursorSize );
-}
-
-
 void CAIRO_GAL::blitCursor( wxMemoryDC& clientDC )
 {
-    if( !isCursorEnabled )
+    if( !IsCursorEnabled() )
         return;
 
     auto p = ToScreen( cursorPosition );
 
-    clientDC.SetPen( *wxWHITE_PEN );
+    const auto cColor = getCursorColor();
+    const int cursorSize = fullscreenCursor ? 8000 : 80;
+
+    wxColour color( cColor.r * cColor.a * 255, cColor.g * cColor.a * 255,
+                    cColor.b * cColor.a * 255, 255 );
+    clientDC.SetPen( wxPen( color ) );
     clientDC.DrawLine( p.x - cursorSize / 2, p.y, p.x + cursorSize / 2, p.y );
     clientDC.DrawLine( p.x, p.y - cursorSize / 2, p.x, p.y + cursorSize / 2 );
-
 }
 
 
@@ -1057,7 +1021,6 @@ void CAIRO_GAL::initSurface()
 
     lineWidth = 0;
 
-    isDeleteSavedPixels = true;
     isInitialized = true;
 }
 
