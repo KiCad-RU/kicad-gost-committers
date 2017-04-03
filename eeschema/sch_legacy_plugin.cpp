@@ -1336,7 +1336,20 @@ SCH_COMPONENT* SCH_LEGACY_PLUGIN::loadComponent( FILE_LINE_READER& aReader )
         }
         else if( strCompare( "U", line, &line ) )
         {
-            component->SetUnit( parseInt( aReader, line, &line ) );
+            // This fixes a potentially buggy files caused by unit being set to zero which
+            // causes netlist issues.  See https://bugs.launchpad.net/kicad/+bug/1677282.
+            int unit = parseInt( aReader, line, &line );
+
+            if( unit == 0 )
+            {
+                unit = 1;
+
+                // Set the file as modified so the user can be warned.
+                if( m_rootSheet && m_rootSheet->GetScreen() )
+                    m_rootSheet->GetScreen()->SetModify();
+            }
+
+            component->SetUnit( unit );
             component->SetConvert( parseInt( aReader, line, &line ) );
             component->SetTimeStamp( parseHex( aReader, line, &line ) );
         }
@@ -1578,7 +1591,7 @@ void SCH_LEGACY_PLUGIN::Format( SCH_SCREEN* aScreen )
         m_out->Print( 0, "LIBS:%s\n", TO_UTF8( lib.GetName() ) );
 
     // This section is not used, but written for file compatibility
-    m_out->Print( 0, "EELAYER %d %d\n", LAYERSCH_ID_COUNT, 0 );
+    m_out->Print( 0, "EELAYER %d %d\n", SCH_LAYER_ID_COUNT, 0 );
     m_out->Print( 0, "EELAYER END\n" );
 
     /* Write page info, ScreenNumber and NumberOfScreen; not very meaningful for
@@ -1959,7 +1972,7 @@ void SCH_LEGACY_PLUGIN::saveText( SCH_TEXT* aText )
 
     wxString text = aText->GetText();
 
-    LAYERSCH_ID layer = aText->GetLayer();
+    SCH_LAYER_ID layer = aText->GetLayer();
 
     if( layer == LAYER_NOTES || layer == LAYER_LOCLABEL )
     {

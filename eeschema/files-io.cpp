@@ -35,6 +35,7 @@
 #include <schframe.h>
 #include <pgm_base.h>
 #include <kiface_i.h>
+#include <richio.h>
 
 #include <eeschema_id.h>
 #include <class_library.h>
@@ -300,6 +301,10 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
         Prj().SchLibs();
     }
 
+    // Load the symbol library table, this will be used forever more.
+    Prj().SetElem( PROJECT::ELEM_SYMBOL_LIB_TABLE, NULL );
+    Prj().SchSymbolLibTable();
+
     if( is_new )
     {
         // mark new, unsaved file as modified.
@@ -338,7 +343,18 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 
         SetScreen( m_CurrentSheet->LastScreen() );
 
-        GetScreen()->ClrModify();
+        // It's possible the schematic parser fixed errors due to bugs so warn the user
+        // that the schematic has been fixed (modified).
+        SCH_SHEET_LIST sheetList( g_RootSheet );
+
+        if( sheetList.IsModified() )
+        {
+            DisplayInfoMessage( this,
+                                _( "An error was found when loading the schematic that has "
+                                   "been automatically fixed.  Please save the schematic to "
+                                   "repair the broken file or it may not be usable with other "
+                                   "versions of KiCad." ) );
+        }
 
         UpdateFileHistory( fullFileName );
 

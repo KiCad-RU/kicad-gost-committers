@@ -222,7 +222,7 @@ const BOX2I RULER_ITEM::ViewBBox() const
 
 void RULER_ITEM::ViewGetLayers( int aLayers[], int& aCount ) const
 {
-    aLayers[0] = ITEM_GAL_LAYER( GP_OVERLAY );
+    aLayers[0] = LAYER_GP_OVERLAY;
     aCount = 1;
 }
 
@@ -238,6 +238,8 @@ void RULER_ITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
     gal.SetIsStroke( true );
     gal.SetIsFill( false );
     gal.SetStrokeColor( PreviewOverlayDefaultColor() );
+
+    gal.ResetTextAttributes();
 
     // draw the main line from the origin to cursor
     gal.DrawLine( origin, end );

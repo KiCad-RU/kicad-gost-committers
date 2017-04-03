@@ -44,6 +44,7 @@
 #include <class_libentry.h>
 #include <worksheet_shape_builder.h>
 #include <class_library.h>
+#include <symbol_lib_table.h>
 
 #include <dialog_hotkeys_editor.h>
 
@@ -595,8 +596,8 @@ void SCH_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )
 
     wxConfigLoadSetups( aCfg, GetConfigurationSettings() );
 
-    SetGridColor( GetLayerColor( LAYER_GRID ) );
-    SetDrawBgColor( GetLayerColor( LAYER_BACKGROUND ) );
+    SetGridColor( GetLayerColor( LAYER_SCHEMATIC_GRID ) );
+    SetDrawBgColor( GetLayerColor( LAYER_SCHEMATIC_BACKGROUND ) );
 
     SetDefaultBusThickness( aCfg->Read( DefaultBusWidthEntry, DEFAULTBUSTHICKNESS ) );
     SetDefaultLineThickness( aCfg->Read( DefaultDrawLineWidthEntry, DEFAULTDRAWLINETHICKNESS ) );
@@ -759,8 +760,8 @@ void LIB_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )
 {
     EDA_DRAW_FRAME::LoadSettings( aCfg );
 
-    SetGridColor( GetLayerColor( LAYER_GRID ) );
-    SetDrawBgColor( GetLayerColor( LAYER_BACKGROUND ) );
+    SetGridColor( GetLayerColor( LAYER_SCHEMATIC_GRID ) );
+    SetDrawBgColor( GetLayerColor( LAYER_SCHEMATIC_BACKGROUND ) );
 
     SetDefaultLineThickness( aCfg->Read( DefaultDrawLineWidthEntry, DEFAULTDRAWLINETHICKNESS ) );
     SetDefaultPinLength( aCfg->Read( DefaultPinLengthEntry, DEFAULTPINLENGTH ) );
@@ -830,3 +831,43 @@ void LIB_EDIT_FRAME::OnPreferencesOptions( wxCommandEvent& event )
     m_canvas->Refresh( true );
 }
 
+
+SYMBOL_LIB_TABLE* PROJECT::SchSymbolLibTable()
+{
+    // This is a lazy loading function, it loads the project specific table when
+    // that table is asked for, not before.
+    SYMBOL_LIB_TABLE* tbl = (SYMBOL_LIB_TABLE*) GetElem( ELEM_SYMBOL_LIB_TABLE );
+
+    // its gotta be NULL or a SYMBOL_LIB_TABLE, or a bug.
+    wxASSERT( !tbl || dynamic_cast<SYMBOL_LIB_TABLE*>( tbl ) );
+
+    if( !tbl )
+    {
+        // Stack the project specific SYMBOL_LIB_TABLE overlay on top of the global table.
+        // ~SYMBOL_LIB_TABLE() will not touch the fallback table, so multiple projects may
+        // stack this way, all using the same global fallback table.
+        tbl = new SYMBOL_LIB_TABLE( &SYMBOL_LIB_TABLE::GetGlobalLibTable() );
+
+        SetElem( ELEM_SYMBOL_LIB_TABLE, tbl );
+
+        wxString prjPath;
+
+        wxASSERT( wxGetEnv( PROJECT_VAR_NAME, &prjPath ) );
+
+        wxFileName fn( prjPath, SYMBOL_LIB_TABLE::GetSymbolLibTableFileName() );
+
+        try
+        {
+            tbl->Load( fn.GetFullPath() );
+        }
+        catch( const IO_ERROR& ioe )
+        {
+            wxString msg;
+            msg.Printf( _( "An error occurred loading the symbol library table.\n\n%s" ),
+                        ioe.What() );
+            DisplayError( NULL, msg );
+        }
+    }
+
+    return tbl;
+}
