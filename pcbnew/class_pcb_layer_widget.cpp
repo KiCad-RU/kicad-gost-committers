@@ -61,7 +61,7 @@ const LAYER_WIDGET::ROW PCB_LAYER_WIDGET::s_render_rows[] = {
     RR( _( "Through Via" ),     LAYER_VIA_THROUGH,    WHITE,      _( "Show through vias" ) ),
     RR( _( "Bl/Buried Via" ),   LAYER_VIA_BBLIND,     WHITE,      _( "Show blind or buried vias" )  ),
     RR( _( "Micro Via" ),       LAYER_VIA_MICROVIA,   WHITE,      _( "Show micro vias") ),
-    RR( _( "Non Plated" ),      LAYER_NON_PLATED,     WHITE,      _( "Show non plated holes") ),
+    RR( _( "Non Plated Holes" ),LAYER_NON_PLATED,     WHITE,      _( "Show non plated holes in specific color") ),
     RR( _( "Ratsnest" ),        LAYER_RATSNEST,       WHITE,      _( "Show unconnected nets as a ratsnest") ),
 
     RR( _( "Pads Front" ),      LAYER_PAD_FR,         WHITE,      _( "Show footprint pads on board's front" ) ),
@@ -518,13 +518,19 @@ void PCB_LAYER_WIDGET::OnLayerVisible( int aLayer, bool isVisible, bool isFinal 
 void PCB_LAYER_WIDGET::OnRenderColorChange( int aId, COLOR4D aColor )
 {
     wxASSERT( aId > GAL_LAYER_ID_START && aId < GAL_LAYER_ID_END );
-    myframe->GetBoard()->SetVisibleElementColor( static_cast<GAL_LAYER_ID>( aId ), aColor );
 
-    if( myframe->GetGalCanvas() )
+    BOARD* brd = myframe->GetBoard();
+    brd->SetVisibleElementColor( static_cast<GAL_LAYER_ID>( aId ), aColor );
+
+    EDA_DRAW_PANEL_GAL* galCanvas = myframe->GetGalCanvas();
+
+    if( galCanvas && myframe->IsGalCanvasActive() )
     {
-        KIGFX::VIEW* view = myframe->GetGalCanvas()->GetView();
-        view->GetPainter()->GetSettings()->ImportLegacyColors( myframe->GetBoard()->GetColorsSettings() );
+        KIGFX::VIEW* view = galCanvas->GetView();
+        view->GetPainter()->GetSettings()->ImportLegacyColors( brd->GetColorsSettings() );
+        view->MarkTargetDirty( KIGFX::TARGET_NONCACHED );   // useful to update rastnest
         view->UpdateLayerColor( aId );
+        galCanvas->Refresh();
     }
 
     myframe->GetCanvas()->Refresh();
@@ -545,7 +551,7 @@ void PCB_LAYER_WIDGET::OnRenderEnable( int aId, bool isEnabled )
 
     EDA_DRAW_PANEL_GAL* galCanvas = myframe->GetGalCanvas();
 
-    if( galCanvas )
+    if( galCanvas && myframe->IsGalCanvasActive() )
     {
         if( aId == LAYER_GRID )
         {
@@ -554,12 +560,11 @@ void PCB_LAYER_WIDGET::OnRenderEnable( int aId, bool isEnabled )
         }
         else
             galCanvas->GetView()->SetLayerVisible( aId, isEnabled );
+
+        galCanvas->Refresh();
     }
 
-    if( galCanvas && myframe->IsGalCanvasActive() )
-        galCanvas->Refresh();
-    else
-        myframe->GetCanvas()->Refresh();
+    myframe->GetCanvas()->Refresh();
 }
 
 //-----</LAYER_WIDGET callbacks>------------------------------------------

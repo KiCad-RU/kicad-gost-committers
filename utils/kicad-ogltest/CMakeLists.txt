@@ -2,6 +2,8 @@ include_directories( BEFORE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/include
     ${OPENGL_INCLUDE_DIR}
+    ${GLEW_INCLUDE_DIR}
+    ${GLM_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
 )
 
@@ -15,7 +17,8 @@ set( OGLTEST_FILES
     kicad-ogltest.cpp
 )
 
-add_executable( kicad-ogltest ${OGLTEST_FILES} )
+add_executable( kicad-ogltest WIN32 MACOSX_BUNDLE
+    ${OGLTEST_FILES} )
 
 target_link_libraries( kicad-ogltest
     gal

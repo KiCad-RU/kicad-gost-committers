@@ -21,8 +21,10 @@
 # or you may write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
-find_package(Boost COMPONENTS system filesystem unit_test_framework REQUIRED)
+find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 find_package( wxWidgets 3.0.0 COMPONENTS gl aui adv html core net base xml stc REQUIRED )
+
+add_definitions(-DBOOST_TEST_DYN_LINK)
 
 add_executable(qa_geometry
     test_module.cpp
@@ -41,10 +43,10 @@ include_directories(
 )
 
 target_link_libraries(qa_geometry
-    ${CMAKE_BINARY_DIR}/polygon/libpolygon.a
-    ${CMAKE_BINARY_DIR}/common/libcommon.a
-    ${CMAKE_BINARY_DIR}/bitmaps_png/libbitmaps.a
-    ${CMAKE_BINARY_DIR}/polygon/libpolygon.a
+    polygon
+    common
+    polygon
+    bitmaps
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
