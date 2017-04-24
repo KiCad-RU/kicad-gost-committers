@@ -5,9 +5,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2010 Jean-Pierre Charras <jean-pierre.charras@gipsa-lab.inpg.fr>
+ * Copyright (C) 1992-2017 Jean-Pierre Charras <jp.charras at wanadoo.fr>
  * Copyright (C) 2010 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2010 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,6 +32,7 @@
 
 extern int    ReadInt( char*& text, bool aSkipSeparator = true );
 extern double ReadDouble( char*& text, bool aSkipSeparator = true );
+extern double Evaluate( AM_PARAM_EVAL_STACK& aExp );
 
 /* Class AM_PARAM
  * holds a parameter value for an "aperture macro" as defined within
@@ -53,24 +54,34 @@ AM_PARAM::AM_PARAM( )
  */
 bool AM_PARAM::IsImmediate() const
 {
-    bool isimmediate = true;
+    bool is_immediate = true;
     for( unsigned ii = 0; ii < m_paramStack.size(); ii++ )
     {
         if( m_paramStack[ii].IsDefered() )
         {   // a defered value is found in operand list,
             // so the parameter is not immediate
-            isimmediate = false;
+            is_immediate = false;
             break;
         }
     }
-    return isimmediate;
+    return is_immediate;
 }
 
 double AM_PARAM::GetValue( const D_CODE* aDcode ) const
 {
-    double paramvalue = 0.0;
+    // In macros, actual values are sometimes given by an expression like:
+    // 0-$2/2-$4
+    // Because arithmetic predence is used, the parameters (values (double) and operators)
+    // are stored in a stack, with all numeric values converted to the actual values
+    // when they are defered parameters
+    // Each item is stored in a AM_PARAM_EVAL (a value or an operator)
+    //
+    // Then the stack with all values resolved is parsed and numeric values
+    // calculated according to the precedence of operators
     double curr_value = 0.0;
-    parm_item_type state = POPVALUE;
+    parm_item_type op_code;
+
+    AM_PARAM_EVAL_STACK ops;
 
     for( unsigned ii = 0; ii < m_paramStack.size(); ii++ )
     {
@@ -81,12 +92,15 @@ double AM_PARAM::GetValue( const D_CODE* aDcode ) const
             case ADD:
             case SUB:
             case MUL:
-            case DIV:   // just an operator for next parameter value: store it
-                state = item.GetType();
+            case DIV:       // just an operator for next parameter value
+            case OPEN_PAR:
+            case CLOSE_PAR: // Priority modifiers: store in stack
+                op_code = item.GetType();
+                ops.push_back( AM_PARAM_EVAL( op_code ) );
                 break;
 
             case PUSHPARM:
-                // get the parameter from the aDcode
+                // a defered value: get the actual parameter from the aDcode
                 if( aDcode )    // should be always true here
                 {
                     if( item.GetIndex() <= aDcode->GetParamCount() )
@@ -103,46 +117,23 @@ double AM_PARAM::GetValue( const D_CODE* aDcode ) const
                 {
                     wxLogDebug( wxT( "AM_PARAM::GetValue(): NULL param aDcode\n" ) );
                 }
-                // Fall through
-            case PUSHVALUE: // a value is on the stack:
-                if( item.GetType() == PUSHVALUE )
-                    curr_value = item.GetValue();
 
-                switch( state )
-                {
-                    case POPVALUE:
-                        paramvalue = curr_value;
-                        break;
-
-                    case ADD:
-                        paramvalue += curr_value;
-                        break;
-
-                    case SUB:
-                        paramvalue -= curr_value;
-                        break;
-
-                    case MUL:
-                        paramvalue *= curr_value;
-                        break;
-
-                    case DIV:
-                        paramvalue /= curr_value;
-                        break;
-
-                    default:
-                        wxLogDebug( wxT( "AM_PARAM::GetValue() : unexpected operator\n" ) );
-                        break;
-                }
+                ops.push_back( AM_PARAM_EVAL( curr_value ) );
                 break;
 
+            case PUSHVALUE: // a value is on the stack:
+                curr_value = item.GetValue();
+                ops.push_back( AM_PARAM_EVAL( curr_value ) );
+
             default:
-                wxLogDebug( wxT( "AM_PARAM::GetValue(): unexpected type\n" ) );
+                wxLogDebug( "AM_PARAM::GetValue(): unexpected type\n" );
                 break;
         }
     }
 
-    return paramvalue;
+    double result = Evaluate( ops );
+
+    return result;
 }
 
 /**
@@ -210,6 +201,16 @@ bool AM_PARAM::ReadParam( char*& aText  )
 
             case '/':
                 PushOperator( DIV );
+                aText++;
+                break;
+
+            case '(':   // Open a block to evaluate an expression between '(' and ')'
+                PushOperator( OPEN_PAR );
+                aText++;
+                break;
+
+            case ')':   // close a block between '(' and ')'
+                PushOperator( CLOSE_PAR );
                 aText++;
                 break;
 

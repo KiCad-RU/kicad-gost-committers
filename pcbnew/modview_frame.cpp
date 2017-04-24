@@ -79,6 +79,12 @@ BEGIN_EVENT_TABLE( FOOTPRINT_VIEWER_FRAME, EDA_DRAW_FRAME )
     EVT_MENU( wxID_EXIT, FOOTPRINT_VIEWER_FRAME::CloseFootprintViewer )
     EVT_MENU( ID_SET_RELATIVE_OFFSET, FOOTPRINT_VIEWER_FRAME::OnSetRelativeOffset )
 
+    // Menu Help
+    EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( ID_HELP_GET_INVOLVED, EDA_DRAW_FRAME::GetKicadContribute )
+    EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
+
     // Toolbar events
     EVT_TOOL( ID_MODVIEW_SELECT_LIB,
               FOOTPRINT_VIEWER_FRAME::SelectCurrentLibrary )
@@ -186,13 +192,22 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
     ReCreateLibraryList();
     UpdateTitle();
 
-    PCB_BASE_FRAME* parentFrame = static_cast<PCB_BASE_FRAME*>( Kiway().Player( FRAME_PCB, true ) );
+    // See for an existing board editor frame opened
+    // (we need it just to know some settings )
+    // TODO: find a better way to retrieve these settings)
+    bool isBordEditorRunning = Kiway().Player( FRAME_PCB, false ) != nullptr;
+    PCB_BASE_FRAME* pcbEditorFrame = static_cast<PCB_BASE_FRAME*>( Kiway().Player( FRAME_PCB, true ) );
 
     // Create GAL canvas
     PCB_DRAW_PANEL_GAL* drawPanel = new PCB_DRAW_PANEL_GAL( this, -1, wxPoint( 0, 0 ), m_FrameSize,
-                                                            parentFrame->GetGalDisplayOptions(),
-                                                            parentFrame->GetGalCanvas()->GetBackend() );
+                                                            pcbEditorFrame->GetGalDisplayOptions(),
+                                                            pcbEditorFrame->GetGalCanvas()->GetBackend() );
     SetGalCanvas( drawPanel );
+    bool switchToGalCanvas = pcbEditorFrame->IsGalCanvasActive();
+
+    // delete pcbEditorFrame if it was not yet in use:
+    if( !isBordEditorRunning )
+        pcbEditorFrame->Destroy();
 
     // Create the manager and dispatcher & route draw panel events to the dispatcher
     m_toolManager = new TOOL_MANAGER;
@@ -285,7 +300,7 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
     Zoom_Automatique( false );
 #endif
 
-    UseGalCanvas( parentFrame->IsGalCanvasActive() );
+    UseGalCanvas( switchToGalCanvas );
 
     if( !IsModal() )        // For modal mode, calling ShowModal() will show this frame
     {

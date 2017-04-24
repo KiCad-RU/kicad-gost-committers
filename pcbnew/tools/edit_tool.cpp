@@ -143,14 +143,13 @@ TOOL_ACTION PCB_ACTIONS::exchangeFootprints( "pcbnew.InteractiveEdit.ExchangeFoo
         _( "Exchange Footprint(s)" ), _( "Change the footprint used for modules" ),
         import_module_xpm );
 
-
 TOOL_ACTION PCB_ACTIONS::properties( "pcbnew.InteractiveEdit.properties",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_EDIT_ITEM ),
         _( "Properties..." ), _( "Displays item properties dialog" ), editor_xpm );
 
-TOOL_ACTION PCB_ACTIONS::editModifiedSelection( "pcbnew.InteractiveEdit.ModifiedSelection",
+TOOL_ACTION PCB_ACTIONS::selectionModified( "pcbnew.InteractiveEdit.ModifiedSelection",
         AS_GLOBAL, 0,
-        "", "" );
+        "", "", nullptr, AF_NOTIFY );
 
 TOOL_ACTION PCB_ACTIONS::measureTool( "pcbnew.InteractiveEdit.measureTool",
         AS_GLOBAL, MD_CTRL + MD_SHIFT + 'M',
@@ -296,8 +295,6 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
                 // Drag items to the current cursor position
                 for( auto item : selection )
                     static_cast<BOARD_ITEM*>( item )->Move( movement + m_offset );
-
-                updateRatsnest( true );
             }
             else if( !m_dragging )    // Prepare to start dragging
             {
@@ -346,8 +343,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
                 }
             }
 
-            getView()->Update( &selection );
-            m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
+            m_toolMgr->RunAction( PCB_ACTIONS::selectionModified, false );
         }
 
         else if( evt->IsCancel() || evt->IsActivate() )
@@ -408,7 +404,6 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
                 // Update dragging offset (distance between cursor and the first dragged item)
                 m_offset = static_cast<BOARD_ITEM*>( selection.Front() )->GetPosition() - modPoint;
                 getView()->Update( &selection );
-                updateRatsnest( true );
             }
         }
 
@@ -478,7 +473,7 @@ int EDIT_TOOL::Properties( const TOOL_EVENT& aEvent )
         // Display properties dialog provided by the legacy canvas frame
         editFrame->OnEditItemRequest( NULL, item );
 
-        m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
+        m_toolMgr->RunAction( PCB_ACTIONS::selectionModified, true );
         item->SetFlags( flags );
     }
 
@@ -501,27 +496,25 @@ int EDIT_TOOL::Rotate( const TOOL_EVENT& aEvent )
     if( m_selectionTool->CheckLock() == SELECTION_LOCKED )
         return 0;
 
-    // Shall the selection be cleared at the end?
-    wxPoint rotatePoint = getModificationPoint( selection );
+    wxPoint modPoint = getModificationPoint( selection );
     const int rotateAngle = TOOL_EVT_UTILS::GetEventRotationAngle( *editFrame, aEvent );
 
     for( auto item : selection )
     {
         m_commit->Modify( item );
-        static_cast<BOARD_ITEM*>( item )->Rotate( rotatePoint, rotateAngle );
+        static_cast<BOARD_ITEM*>( item )->Rotate( modPoint, rotateAngle );
     }
+
+    // Update the dragging point offset
+    m_offset = static_cast<BOARD_ITEM*>( selection.Front() )->GetPosition() - modPoint;
 
     if( !m_dragging )
         m_commit->Push( _( "Rotate" ) );
-    else
-        updateRatsnest( true );
 
     if( selection.IsHover() )
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
-    // TODO selectionModified
-    m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
-    editFrame->Refresh();
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionModified, true );
 
     return 0;
 }
@@ -566,8 +559,6 @@ static void mirrorPadX( D_PAD& aPad, const wxPoint& aMirrorPoint )
 
 int EDIT_TOOL::Mirror( const TOOL_EVENT& aEvent )
 {
-    PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
-
     const auto& selection = m_selectionTool->RequestSelection();
 
     if( m_selectionTool->CheckLock() == SELECTION_LOCKED )
@@ -625,15 +616,11 @@ int EDIT_TOOL::Mirror( const TOOL_EVENT& aEvent )
 
     if( !m_dragging )
         m_commit->Push( _( "Mirror" ) );
-    else
-        updateRatsnest( true );
 
     if( selection.IsHover() )
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
-    // TODO selectionModified
-    m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
-    editFrame->Refresh();
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionModified, true );
 
     return 0;
 }
@@ -649,24 +636,24 @@ int EDIT_TOOL::Flip( const TOOL_EVENT& aEvent )
     if( selection.Empty() )
         return 0;
 
-    wxPoint flipPoint = getModificationPoint( selection );
+    wxPoint modPoint = getModificationPoint( selection );
 
     for( auto item : selection )
     {
         m_commit->Modify( item );
-        static_cast<BOARD_ITEM*>( item )->Flip( flipPoint );
+        static_cast<BOARD_ITEM*>( item )->Flip( modPoint );
     }
+
+    // Update the dragging point offset
+    m_offset = static_cast<BOARD_ITEM*>( selection.Front() )->GetPosition() - modPoint;
 
     if( !m_dragging )
         m_commit->Push( _( "Flip" ) );
-    else
-        updateRatsnest( true );
 
     if( selection.IsHover() )
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
-    m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
-    getEditFrame<PCB_BASE_EDIT_FRAME>()->Refresh();
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionModified, true );
 
     return 0;
 }
@@ -736,13 +723,9 @@ int EDIT_TOOL::MoveExact( const TOOL_EVENT& aEvent )
 
         for( auto item : selection )
         {
-
             m_commit->Modify( item );
             static_cast<BOARD_ITEM*>( item )->Move( translation );
             static_cast<BOARD_ITEM*>( item )->Rotate( rotPoint, rotation );
-
-            if( !m_dragging )
-                getView()->Update( item );
         }
 
         m_commit->Push( _( "Move exact" ) );
@@ -750,7 +733,7 @@ int EDIT_TOOL::MoveExact( const TOOL_EVENT& aEvent )
         if( selection.IsHover() )
             m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
-        m_toolMgr->RunAction( PCB_ACTIONS::editModifiedSelection, true );
+        m_toolMgr->RunAction( PCB_ACTIONS::selectionModified, true );
     }
 
     return 0;
@@ -828,7 +811,7 @@ int EDIT_TOOL::Duplicate( const TOOL_EVENT& aEvent )
     }
 
     return 0;
-};
+}
 
 
 class GAL_ARRAY_CREATOR: public ARRAY_CREATOR
@@ -873,10 +856,20 @@ private:
         return wxPoint( rp.x, rp.y );
     }
 
-    void prePushAction( BOARD_ITEM* new_item ) override
+    void prePushAction( BOARD_ITEM* aItem ) override
     {
-        m_parent.GetToolManager()->RunAction( PCB_ACTIONS::unselectItem,
-                                              true, new_item );
+        // Because aItem is/can be created from a selected item, and inherits from
+        // it this state, reset the selected stated of aItem:
+        aItem->ClearSelected();
+
+        if( aItem->Type() == PCB_MODULE_T )
+        {
+            static_cast<MODULE*>( aItem )->RunOnChildren( [&] ( BOARD_ITEM* item )
+                                    {
+                                        item->ClearSelected();
+                                    }
+                                );
+        }
     }
 
     void postPushAction( BOARD_ITEM* new_item ) override
@@ -1050,23 +1043,6 @@ void EDIT_TOOL::SetTransitions()
     Go( &EDIT_TOOL::editFootprintInFpEditor, PCB_ACTIONS::editFootprintInFpEditor.MakeEvent() );
     Go( &EDIT_TOOL::ExchangeFootprints,      PCB_ACTIONS::exchangeFootprints.MakeEvent() );
     Go( &EDIT_TOOL::MeasureTool,             PCB_ACTIONS::measureTool.MakeEvent() );
-}
-
-
-void EDIT_TOOL::updateRatsnest( bool aRedraw )
-{
-    const SELECTION& selection = m_selectionTool->GetSelection();
-    RN_DATA* ratsnest = getModel<BOARD>()->GetRatsnest();
-
-    ratsnest->ClearSimple();
-
-    for( auto item : selection )
-    {
-        ratsnest->Update( static_cast<BOARD_ITEM*>( item ) );
-
-        if( aRedraw )
-            ratsnest->AddSimple( static_cast<BOARD_ITEM*>( item ) );
-    }
 }
 
 

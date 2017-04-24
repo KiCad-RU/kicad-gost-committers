@@ -5,9 +5,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2015 Jean-Pierre Charras <jean-pierre.charras@gipsa-lab.inpg.fr>
+ * Copyright (C) 1992-2017 Jean-Pierre Charras <jp.charras at wanadoo.fr>
  * Copyright (C) 2010 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -110,12 +110,20 @@ From an idea found in Gerbv, here is the way to evaluate a parameter.
 a AM_PARAM_ITEM holds info about operands and operators in a parameter definition
 ( a AM_PARAM ) like $2+$2-$3-$3/2
 
-There is no precedence defined in gerber RS274X, so actual value is calculated step to step.
+Precedence was recently actually defined in gerber RS274X
+(Previously, there was no actual info about this precedence)
+This is the usual arithmetic precendence between + - x / ( ), the only ones used in Gerber
+
+Before 2015 apr 10, actual value was calculated step to step:
+no precedence, and '(' ')' are ignored.
+
+Since 2015 apr 10 precedence is in use.
+
 Parameter definition is described by a very primitive assembler.
 This "program "should describe how to calculate the parameter.
-The assembler consist of 8 instruction intended for a stackbased machine.
+The assembler consist of 10 instruction intended for a stackbased machine.
 The instructions are:
-NOP, PUSHVALUE, PUSHPARM, ADD, SUB, MUL, DIV, EQUATE
+NOP, PUSHVALUE, PUSHPARM, ADD, SUB, MUL, DIV, OPEN_PAR, CLOSE_PAR, EQUATE
 
 The instructions
 ----------------
@@ -132,13 +140,74 @@ ADD  : The mathematical operation +. Takes the two uppermost values on the
 SUB  : Same as ADD, but with -.
 MUL  : Same as ADD, but with *.
 DIV  : Same as ADD, but with /.
+OPEN_PAR  : Opening parenthesis: modify the precedence of operators by opening a local block.
+CLOSE_PAR : Closing parenthesis: modify the precedence of operators by closing the local block.
 POPVALUE : used when evaluate the expression: store current calculated value
 */
 
 enum parm_item_type
 {
-    NOP, PUSHVALUE, PUSHPARM, ADD, SUB, MUL, DIV, POPVALUE
+    NOP, PUSHVALUE, PUSHPARM, ADD, SUB, MUL, DIV, OPEN_PAR, CLOSE_PAR, POPVALUE
 };
+
+/**
+ * This helper class hold a value or an arithmetic operator to calculate
+ * the final value of a aperture macro parameter, using usual
+ * arithmetic operator precedence
+ * Only operators ADD, SUB, MUL, DIV, OPEN_PAR, CLOSE_PAR have meaning when calculating
+ * a value
+ */
+class AM_PARAM_EVAL
+{
+public:
+    AM_PARAM_EVAL( parm_item_type aType )
+            : m_type( aType), m_dvalue( 0.0 )
+    {}
+
+    AM_PARAM_EVAL( double aValue )
+            : m_type( parm_item_type::NOP ), m_dvalue( aValue )
+    {}
+
+    parm_item_type GetType() const
+    {
+        return m_type;
+    }
+
+    bool IsOperator() const { return m_type != NOP; }
+    double GetValue() const { return m_dvalue; }
+    parm_item_type GetOperator() const { return m_type; }
+    int GetPriority() const { return GetPriority( GetOperator() ); }
+
+    static int GetPriority( parm_item_type aType )
+    {
+        switch( aType )
+        {
+        case ADD:
+        case SUB:
+            return 1;
+
+        case MUL:
+        case DIV:
+            return 2;
+
+        case OPEN_PAR:
+        case CLOSE_PAR:
+            return 3;
+
+        default:
+            break;
+        }
+
+        return 0;
+    }
+
+private:
+    parm_item_type m_type;  // the type of item
+    double m_dvalue;        // the value, for a numerical value
+                            // used only when m_type == NOP
+};
+
+typedef std::vector<AM_PARAM_EVAL> AM_PARAM_EVAL_STACK;
 
 /**
  * Class AM_PARAM

@@ -553,6 +553,7 @@ void SELECTION_TOOL::SetTransitions()
     Go( &SELECTION_TOOL::selectNet, PCB_ACTIONS::selectNet.MakeEvent() );
     Go( &SELECTION_TOOL::selectSameSheet, PCB_ACTIONS::selectSameSheet.MakeEvent() );
     Go( &SELECTION_TOOL::selectOnSheetFromEeschema, PCB_ACTIONS::selectOnSheetFromEeschema.MakeEvent() );
+    Go( &SELECTION_TOOL::updateSelection, PCB_ACTIONS::selectionModified.MakeEvent() );
 }
 
 
@@ -1758,6 +1759,14 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
 }
 
 
+int SELECTION_TOOL::updateSelection( const TOOL_EVENT& aEvent )
+{
+    getView()->Update( &m_selection );
+
+    return 0;
+}
+
+
 bool SELECTION_TOOL::SanitizeSelection()
 {
     std::set<BOARD_ITEM*> rejected;
@@ -1836,6 +1845,7 @@ VECTOR2I SELECTION::GetCenter() const
     return centre;
 }
 
+
 const BOX2I SELECTION::ViewBBox() const
 {
     EDA_RECT eda_bbox;
@@ -1858,6 +1868,7 @@ const BOX2I SELECTION::ViewBBox() const
 
     return BOX2I( eda_bbox.GetOrigin(), eda_bbox.GetSize() );
 }
+
 
 const KIGFX::VIEW_GROUP::ITEMS SELECTION::updateDrawList() const
 {
