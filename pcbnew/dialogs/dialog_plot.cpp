@@ -5,7 +5,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,15 +40,12 @@
 #include <dialog_plot.h>
 #include <wx_html_report_panel.h>
 
-// Uncomment this line to allow experimetal net attributes in Gerber files:
-#define KICAD_USE_GBR_NETATTRIBUTES
-
 DIALOG_PLOT::DIALOG_PLOT( PCB_EDIT_FRAME* aParent ) :
     DIALOG_PLOT_BASE( aParent ), m_parent( aParent ),
-    m_board( aParent->GetBoard() ),
-    m_plotOpts( aParent->GetPlotSettings() )
+    m_board( aParent->GetBoard() )
 {
     m_config = Kiface().KifaceSettings();
+    m_plotOpts = aParent->GetPlotSettings();
     Init_Dialog();
 
     GetSizer()->Fit( this );
@@ -164,15 +161,11 @@ void DIALOG_PLOT::Init_Dialog()
     m_useGerberX2Attributes->SetValue( m_plotOpts.GetUseGerberAttributes() );
 
     // Option for including Gerber netlist info (from Gerber X2 format) in the output
-#ifdef KICAD_USE_GBR_NETATTRIBUTES
     m_useGerberNetAttributes->SetValue( m_plotOpts.GetIncludeGerberNetlistInfo() );
 
     // Grey out if m_useGerberX2Attributes is not checked
     m_useGerberNetAttributes->Enable( m_useGerberX2Attributes->GetValue() );
-#else
-    m_plotOpts.SetIncludeGerberNetlistInfo( false );
-    m_useGerberNetAttributes->SetValue( false );
-#endif
+
     // Gerber precision for coordinates
     m_rbGerberFormat->SetSelection( m_plotOpts.GetGerberPrecision() == 5 ? 0 : 1 );
 
@@ -200,6 +193,12 @@ void DIALOG_PLOT::Init_Dialog()
 
     // Plot mode
     setPlotModeChoiceSelection( m_plotOpts.GetPlotMode() );
+
+    // Plot outline mode
+    m_plotOutlineModeOpt->SetValue( m_plotOpts.GetPlotOutlineMode() );
+
+    // Plot text mode
+    m_plotTextAsLineOpt->SetValue( m_plotOpts.GetTextMode() == PLOTTEXTMODE_DEFAULT );
 
     // Plot mirror option
     m_plotMirrorOpt->SetValue( m_plotOpts.GetMirror() );
@@ -241,7 +240,7 @@ void DIALOG_PLOT::OnRightClick( wxMouseEvent& event )
 #include <layers_id_colors_and_visibility.h>
 void DIALOG_PLOT::OnPopUpLayers( wxCommandEvent& event )
 {
-    unsigned int    i;
+    unsigned int i;
 
     switch( event.GetId() )
     {
@@ -291,7 +290,22 @@ void DIALOG_PLOT::OnPopUpLayers( wxCommandEvent& event )
 
 void DIALOG_PLOT::CreateDrillFile( wxCommandEvent& event )
 {
+    // Be sure drill file use the same settings (axis option, plot directory)
+    // than plot files:
+    applyPlotSettings();
     m_parent->InstallDrillFrame( event );
+
+    // a few plot settings can be modified: take them in account
+    m_plotOpts = m_parent->GetPlotSettings();
+    Init_Dialog();
+}
+
+
+void DIALOG_PLOT::OnChangeOutlineMode( wxCommandEvent& event )
+{
+    m_plotTextAsLineOpt->Enable( !m_plotOutlineModeOpt->GetValue() );
+    if( !m_plotTextAsLineOpt->IsEnabled() )
+        m_plotTextAsLineOpt->SetValue( true );
 }
 
 
@@ -369,6 +383,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_drillShapeOpt->Enable( true );
         m_plotModeOpt->Enable( false );
         setPlotModeChoiceSelection( FILLED );
+        m_plotOutlineModeOpt->Enable( false );
+        m_plotOutlineModeOpt->SetValue( false );
         m_plotMirrorOpt->Enable( true );
         m_useAuxOriginCheckBox->Enable( false );
         m_useAuxOriginCheckBox->SetValue( false );
@@ -383,6 +399,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_plotPSNegativeOpt->Enable( true );
         m_forcePSA4OutputOpt->Enable( false );
         m_forcePSA4OutputOpt->SetValue( false );
+        m_plotTextAsLineOpt->Enable( false );
+        m_plotTextAsLineOpt->SetValue( false );
 
         m_PlotOptionsSizer->Hide( m_GerberOptionsSizer );
         m_PlotOptionsSizer->Hide( m_HPGLOptionsSizer );
@@ -392,6 +410,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
     case PLOT_FORMAT_POST:
         m_drillShapeOpt->Enable( true );
         m_plotModeOpt->Enable( true );
+        m_plotOutlineModeOpt->Enable( false );
+        m_plotOutlineModeOpt->SetValue( false );
         m_plotMirrorOpt->Enable( true );
         m_useAuxOriginCheckBox->Enable( false );
         m_useAuxOriginCheckBox->SetValue( false );
@@ -404,6 +424,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_PSFineAdjustWidthOpt->Enable( true );
         m_plotPSNegativeOpt->Enable( true );
         m_forcePSA4OutputOpt->Enable( true );
+        m_plotTextAsLineOpt->Enable( false );
+        m_plotTextAsLineOpt->SetValue( true );
 
         m_PlotOptionsSizer->Hide( m_GerberOptionsSizer );
         m_PlotOptionsSizer->Hide( m_HPGLOptionsSizer );
@@ -415,6 +437,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_drillShapeOpt->SetSelection( 0 );
         m_plotModeOpt->Enable( false );
         setPlotModeChoiceSelection( FILLED );
+        m_plotOutlineModeOpt->Enable( false );
+        m_plotOutlineModeOpt->SetValue( false );
         m_plotMirrorOpt->Enable( false );
         m_plotMirrorOpt->SetValue( false );
         m_useAuxOriginCheckBox->Enable( true );
@@ -430,18 +454,19 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_plotPSNegativeOpt->SetValue( false );
         m_forcePSA4OutputOpt->Enable( false );
         m_forcePSA4OutputOpt->SetValue( false );
+        m_plotTextAsLineOpt->Enable( false );
+        m_plotTextAsLineOpt->SetValue( true );
 
         m_PlotOptionsSizer->Show( m_GerberOptionsSizer );
         m_PlotOptionsSizer->Hide( m_HPGLOptionsSizer );
         m_PlotOptionsSizer->Hide( m_PSOptionsSizer );
-#ifndef KICAD_USE_GBR_NETATTRIBUTES
-        m_useGerberNetAttributes->Show( false );
-#endif
         break;
 
     case PLOT_FORMAT_HPGL:
         m_drillShapeOpt->Enable( true );
         m_plotModeOpt->Enable( true );
+        m_plotOutlineModeOpt->Enable( false );
+        m_plotOutlineModeOpt->SetValue( false );
         m_plotMirrorOpt->Enable( true );
         m_useAuxOriginCheckBox->Enable( false );
         m_useAuxOriginCheckBox->SetValue( false );
@@ -455,6 +480,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_plotPSNegativeOpt->SetValue( false );
         m_plotPSNegativeOpt->Enable( false );
         m_forcePSA4OutputOpt->Enable( true );
+        m_plotTextAsLineOpt->Enable( false );
+        m_plotTextAsLineOpt->SetValue( true );
 
         m_PlotOptionsSizer->Hide( m_GerberOptionsSizer );
         m_PlotOptionsSizer->Show( m_HPGLOptionsSizer );
@@ -464,6 +491,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
     case PLOT_FORMAT_DXF:
         m_drillShapeOpt->Enable( true );
         m_plotModeOpt->Enable( false );
+        setPlotModeChoiceSelection( FILLED );
+        m_plotOutlineModeOpt->Enable( true );
         m_plotMirrorOpt->Enable( false );
         m_plotMirrorOpt->SetValue( false );
         m_useAuxOriginCheckBox->Enable( true );
@@ -483,6 +512,8 @@ void DIALOG_PLOT::SetPlotFormat( wxCommandEvent& event )
         m_PlotOptionsSizer->Hide( m_GerberOptionsSizer );
         m_PlotOptionsSizer->Hide( m_HPGLOptionsSizer );
         m_PlotOptionsSizer->Hide( m_PSOptionsSizer );
+
+        OnChangeOutlineMode( event );
         break;
 
     default:
@@ -556,7 +587,10 @@ void DIALOG_PLOT::applyPlotSettings()
                                    ( m_drillShapeOpt->GetSelection() ) );
     tempOptions.SetMirror( m_plotMirrorOpt->GetValue() );
     tempOptions.SetPlotMode( m_plotModeOpt->GetSelection() == 1 ? SKETCH : FILLED );
+    tempOptions.SetPlotOutlineMode( m_plotOutlineModeOpt->GetValue() );
     tempOptions.SetPlotViaOnMaskLayer( m_plotNoViaOnMaskOpt->GetValue() );
+    tempOptions.SetTextMode( m_plotTextAsLineOpt->GetValue() ?
+                             PLOTTEXTMODE_DEFAULT : PLOTTEXTMODE_NATIVE );
 
     // Update settings from text fields. Rewrite values back to the fields,
     // since the values may have been constrained by the setters.

@@ -253,6 +253,7 @@ enum main_id
     ID_PAN_RIGHT,
 
     ID_GET_NETLIST,
+    ID_OPEN_CMP_TABLE,
     ID_GET_TOOLS,
 #if defined(KICAD_GOST)
     ID_GEN_OLD_BOM,

@@ -271,6 +271,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( ID_GET_NETLIST, SCH_EDIT_FRAME::OnCreateNetlist )
     EVT_TOOL( ID_UPDATE_PCB_FROM_SCH, SCH_EDIT_FRAME::OnUpdatePCB )
     EVT_TOOL( ID_GET_TOOLS, SCH_EDIT_FRAME::OnCreateBillOfMaterials )
+    EVT_TOOL( ID_OPEN_CMP_TABLE, SCH_EDIT_FRAME::OnLaunchBomManager )
 #if defined(KICAD_GOST)
     EVT_TOOL( ID_GEN_OLD_BOM, SCH_EDIT_FRAME::OnCreateOldBillOfMaterials )
     EVT_TOOL( ID_GOST_TOOLS, SCH_EDIT_FRAME::OnGOSTTools )
@@ -773,6 +774,8 @@ void SCH_EDIT_FRAME::OnModify()
     GetScreen()->SetSave();
 
     m_foundItems.SetForceSearch();
+
+    m_canvas->Refresh();
 }
 
 
@@ -915,6 +918,14 @@ void SCH_EDIT_FRAME::OnCreateNetlist( wxCommandEvent& event )
     } while( result == NET_PLUGIN_CHANGE );
 }
 
+void SCH_EDIT_FRAME::OnLaunchBomManager( wxCommandEvent& event )
+{
+    // First ensure that entire schematic is annotated
+    if( !prepareForNetlist() )
+        return;
+
+    InvokeDialogCreateBOMEditor( this );
+}
 
 void SCH_EDIT_FRAME::OnCreateBillOfMaterials( wxCommandEvent& )
 {

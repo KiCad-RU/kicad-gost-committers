@@ -512,10 +512,17 @@ void prepareToolsMenu( wxMenu* aParentMenu )
 #endif
 
     AddMenuItem( aParentMenu,
+                 ID_OPEN_CMP_TABLE,
+                 _( "Component Table &View" ),
+                 KiBitmap( spreadsheet_xpm ) );
+
+    AddMenuItem( aParentMenu,
                  ID_GET_TOOLS,
                  _( "Generate Bill of &Materials..." ),
                  HELP_GENERATE_BOM,
                  KiBitmap( bom_xpm ) );
+
+
 
     aParentMenu->AppendSeparator();
 

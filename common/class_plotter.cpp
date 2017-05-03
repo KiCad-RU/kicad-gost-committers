@@ -520,6 +520,5 @@ void PLOTTER::ThickCircle( const wxPoint& pos, int diametre, int width, EDA_DRAW
 
 void PLOTTER::SetPageSettings( const PAGE_INFO& aPageSettings )
 {
-    wxASSERT( !outputFile );
     pageInfo = aPageSettings;
 }

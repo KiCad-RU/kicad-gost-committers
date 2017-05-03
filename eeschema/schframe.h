@@ -840,6 +840,7 @@ private:
     void OnUpdatePCB( wxCommandEvent& event );
     void OnSimulate( wxCommandEvent& event );
     void OnCreateBillOfMaterials( wxCommandEvent& event );
+    void OnLaunchBomManager( wxCommandEvent& event );
 #if defined(KICAD_GOST)
     void OnCreateOldBillOfMaterials( wxCommandEvent& event );
     void OnGOSTTools( wxCommandEvent& );
