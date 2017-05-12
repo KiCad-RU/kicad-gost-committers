@@ -90,6 +90,36 @@ void TEXTE_MODULE::SetTextAngle( double aAngle )
 }
 
 
+bool TEXTE_MODULE::TextHitTest( const wxPoint& aPoint, int aAccuracy ) const
+{
+    EDA_RECT rect = GetTextBox( -1 );
+    wxPoint location = aPoint;
+
+    rect.Inflate( aAccuracy );
+
+    RotatePoint( &location, GetTextPos(), -GetDrawRotation() );
+
+    return rect.Contains( location );
+}
+
+
+bool TEXTE_MODULE::TextHitTest( const EDA_RECT& aRect, bool aContains, int aAccuracy ) const
+{
+    EDA_RECT rect = aRect;
+
+    rect.Inflate( aAccuracy );
+
+    if( aContains )
+    {
+        return rect.Contains( GetBoundingBox() );
+    }
+    else
+    {
+        return rect.Intersects( GetTextBox( -1 ), GetDrawRotation() );
+    }
+}
+
+
 void TEXTE_MODULE::Rotate( const wxPoint& aRotCentre, double aAngle )
 {
     // Used in footprint edition
@@ -180,25 +210,6 @@ void TEXTE_MODULE::SetLocalCoord()
         m_Pos0 = GetTextPos();
     }
 }
-
-
-bool TEXTE_MODULE::HitTest( const wxPoint& aPosition ) const
-{
-    wxPoint  rel_pos;
-    EDA_RECT area = GetTextBox( -1, -1 );
-
-    /* Rotate refPos to - angle to test if refPos is within area (which
-     * is relative to an horizontal text)
-     */
-    rel_pos = aPosition;
-    RotatePoint( &rel_pos, GetTextPos(), -GetDrawRotation() );
-
-    if( area.Contains( rel_pos ) )
-        return true;
-
-    return false;
-}
-
 
 const EDA_RECT TEXTE_MODULE::GetBoundingBox() const
 {

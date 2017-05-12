@@ -158,6 +158,15 @@ public:
     bool Intersects( const EDA_RECT& aRect ) const;
 
     /**
+     * Tests for a common area between this rectangle,
+     * and a rectangle with arbitrary rotation
+     *
+     * @param aRect a rectangle to test intersection with
+     * @param aRot rectangle rotation (in 1/10 degrees)
+     */
+    bool Intersects( const EDA_RECT& aRect, double aRot ) const;
+
+    /**
      * Function Intersects
      * tests for a common area between a segment and this rectangle.
      *
@@ -167,6 +176,35 @@ public:
      * (i.e. if the segment and rectangle have at least a common point)
      */
     bool Intersects( const wxPoint& aPoint1, const wxPoint& aPoint2 ) const;
+
+    /**
+     * Return the point in this rect that is closest to the provided point
+     */
+    const wxPoint ClosestPointTo( const wxPoint& aPoint ) const;
+
+    /**
+     * Return the point in this rect that is farthest from the provided point
+     */
+    const wxPoint FarthestPointTo( const wxPoint& aPoint ) const;
+
+    /**
+     * Function IntersectsCircle
+     * tests for a common area between a circle and this rectangle
+     *
+     * @param aCenter center of the circle
+     * @param aRadius radius of the circle
+     */
+    bool IntersectsCircle( const wxPoint& aCenter, const int aRadius ) const;
+
+    /**
+     * IntersectsCircleEdge
+     * Tests for intersection between this rect and the edge (radius) of a circle
+     *
+     * @param aCenter center of the circle
+     * @param aRadius radius of the circle
+     * @param aWidth width of the circle edge
+     */
+    bool IntersectsCircleEdge( const wxPoint& aCenter, const int aRadius, const int aWidth ) const;
 
     /**
      * Function operator(wxRect)

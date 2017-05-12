@@ -182,33 +182,79 @@ const EDA_RECT D_PAD::GetBoundingBox() const
 {
     EDA_RECT area;
     wxPoint quadrant1, quadrant2, quadrant3, quadrant4;
-    int x, y, dx, dy;
+    int x, y, r, dx, dy;
+
+    wxPoint center = ShapePos();
+    wxPoint endPoint;
+
+    EDA_RECT endRect;
 
     switch( GetShape() )
     {
     case PAD_SHAPE_CIRCLE:
-        area.SetOrigin( m_Pos );
+        area.SetOrigin( center );
         area.Inflate( m_Size.x / 2 );
         break;
 
     case PAD_SHAPE_OVAL:
-        // Calculate the position of each rounded ent
-        quadrant1.x =  m_Size.x/2;
-        quadrant1.y =  0;
-        quadrant2.x =  0;
-        quadrant2.y =  m_Size.y/2;
+        /* To get the BoundingBox of an oval pad:
+         * a) If the pad is ROUND, see method for PAD_SHAPE_CIRCLE above
+         * OTHERWISE:
+         * b) Construct EDA_RECT for portion between circular ends
+         * c) Rotate that EDA_RECT
+         * d) Add the circular ends to the EDA_RECT
+         */
 
-        RotatePoint( &quadrant1, m_Orient );
-        RotatePoint( &quadrant2, m_Orient );
+        // Test if the shape is circular
+        if( m_Size.x == m_Size.y )
+        {
+            area.SetOrigin( center );
+            area.Inflate( m_Size.x / 2 );
+            break;
+        }
 
-        // Calculate the max position of each end, relative to the pad position
-        // (the min position is symetrical)
-        dx = std::max( std::abs( quadrant1.x ) , std::abs( quadrant2.x )  );
-        dy = std::max( std::abs( quadrant1.y ) , std::abs( quadrant2.y )  );
+        if( m_Size.x > m_Size.y )
+        {
+            // Pad is horizontal
+            dx = ( m_Size.x - m_Size.y ) / 2;
+            dy = m_Size.y / 2;
 
-        // Set the bbox
-        area.SetOrigin( m_Pos );
+            // Location of end-points
+            x = dx;
+            y = 0;
+            r = dy;
+        }
+        else
+        {
+            // Pad is vertical
+            dx = m_Size.x / 2;
+            dy = ( m_Size.y - m_Size.x ) / 2;
+
+            x = 0;
+            y = dy;
+            r = dx;
+        }
+
+        // Construct the center rectangle and rotate
+        area.SetOrigin( center );
         area.Inflate( dx, dy );
+        area = area.GetBoundingBoxRotated( center, m_Orient );
+
+        endPoint = wxPoint( x, y );
+        RotatePoint( &endPoint, m_Orient );
+
+        // Add points at each quadrant of circular regions
+        endRect.SetOrigin( center + endPoint );
+        endRect.Inflate( r );
+
+        area.Merge( endRect );
+
+        endRect.SetSize( 0, 0 );
+        endRect.SetOrigin( center - endPoint );
+        endRect.Inflate( r );
+
+        area.Merge( endRect );
+
         break;
 
     case PAD_SHAPE_RECT:
@@ -226,19 +272,23 @@ const EDA_RECT D_PAD::GetBoundingBox() const
         dy = std::max( std::abs( quadrant1.y ) , std::abs( quadrant2.y )  );
 
         // Set the bbox
-        area.SetOrigin( m_Pos );
+        area.SetOrigin( ShapePos() );
         area.Inflate( dx, dy );
         break;
 
     case PAD_SHAPE_TRAPEZOID:
-        //Use the four corners and track their rotation
+        // Use the four corners and track their rotation
         // (Trapezoids will not be symmetric)
+
         quadrant1.x =  (m_Size.x + m_DeltaSize.y)/2;
         quadrant1.y =  (m_Size.y - m_DeltaSize.x)/2;
+
         quadrant2.x = -(m_Size.x + m_DeltaSize.y)/2;
         quadrant2.y =  (m_Size.y + m_DeltaSize.x)/2;
+
         quadrant3.x = -(m_Size.x - m_DeltaSize.y)/2;
         quadrant3.y = -(m_Size.y + m_DeltaSize.x)/2;
+
         quadrant4.x =  (m_Size.x - m_DeltaSize.y)/2;
         quadrant4.y = -(m_Size.y - m_DeltaSize.x)/2;
 
@@ -251,7 +301,8 @@ const EDA_RECT D_PAD::GetBoundingBox() const
         y  = std::min( quadrant1.y, std::min( quadrant2.y, std::min( quadrant3.y, quadrant4.y) ) );
         dx = std::max( quadrant1.x, std::max( quadrant2.x, std::max( quadrant3.x, quadrant4.x) ) );
         dy = std::max( quadrant1.y, std::max( quadrant2.y, std::max( quadrant3.y, quadrant4.y) ) );
-        area.SetOrigin( m_Pos.x+x, m_Pos.y+y );
+
+        area.SetOrigin( ShapePos().x + x, ShapePos().y + y );
         area.SetSize( dx-x, dy-y );
         break;
 
@@ -697,9 +748,10 @@ void D_PAD::GetOblongDrillGeometry( wxPoint& aStartPoint,
     aEndPoint.y = - delta_cy;
 }
 
+
 bool D_PAD::HitTest( const wxPoint& aPosition ) const
 {
-    int     dx, dy;
+    int dx, dy;
 
     wxPoint shape_pos = ShapePos();
 
@@ -727,6 +779,7 @@ bool D_PAD::HitTest( const wxPoint& aPosition ) const
         wxPoint poly[4];
         BuildPadPolygon( poly, wxSize(0,0), 0 );
         RotatePoint( &delta, -m_Orient );
+
         return TestPointInsidePolygon( poly, 4, delta );
     }
 
@@ -776,6 +829,194 @@ bool D_PAD::HitTest( const wxPoint& aPosition ) const
     return false;
 }
 
+
+bool D_PAD::HitTest( const EDA_RECT& aRect, bool aContained, int aAccuracy ) const
+{
+    EDA_RECT arect = aRect;
+    arect.Normalize();
+    arect.Inflate( aAccuracy );
+
+    wxPoint shapePos = ShapePos();
+
+    EDA_RECT shapeRect;
+
+    int r;
+
+    EDA_RECT bb = GetBoundingBox();
+
+    wxPoint endCenter;
+    int radius;
+
+    if( !arect.Intersects( bb ) )
+        return false;
+
+    // This covers total containment for all test cases
+    if( arect.Contains( bb ) )
+        return true;
+
+    switch( GetShape() )
+    {
+    case PAD_SHAPE_CIRCLE:
+        return arect.IntersectsCircle( GetPosition(), GetBoundingRadius() );
+    case PAD_SHAPE_RECT:
+        shapeRect.SetOrigin( shapePos );
+        shapeRect.Inflate( m_Size.x / 2, m_Size.y / 2 );
+        return arect.Intersects( shapeRect, m_Orient );
+    case PAD_SHAPE_OVAL:
+
+        // Circlular test if dimensions are equal
+        if( m_Size.x == m_Size.y )
+            return arect.IntersectsCircle( shapePos, GetBoundingRadius() );
+
+        shapeRect.SetOrigin( shapePos );
+
+        // Horizontal dimension is greater
+        if( m_Size.x > m_Size.y )
+        {
+            radius = m_Size.y / 2;
+
+            shapeRect.Inflate( m_Size.x / 2 - radius, radius );
+
+            endCenter = wxPoint( m_Size.x / 2 - radius, 0 );
+            RotatePoint( &endCenter, m_Orient );
+
+            // Test circular ends
+            if( arect.IntersectsCircle( shapePos + endCenter, radius ) ||
+                arect.IntersectsCircle( shapePos - endCenter, radius ) )
+            {
+                return true;
+            }
+        }
+        else
+        {
+            radius = m_Size.x / 2;
+
+            shapeRect.Inflate( radius, m_Size.y / 2 - radius );
+
+            endCenter = wxPoint( 0, m_Size.y / 2 - radius );
+            RotatePoint( &endCenter, m_Orient );
+
+            // Test circular ends
+            if( arect.IntersectsCircle( shapePos + endCenter, radius ) ||
+                arect.IntersectsCircle( shapePos - endCenter, radius ) )
+            {
+                return true;
+            }
+        }
+
+        // Test rectangular portion between rounded ends
+        if( arect.Intersects( shapeRect, m_Orient ) )
+        {
+            return true;
+        }
+
+        break;
+    case PAD_SHAPE_TRAPEZOID:
+        /* Trapezoid intersection tests:
+         * A) Any points of rect inside trapezoid
+         * B) Any points of trapezoid inside rect
+         * C) Any sides of trapezoid cross rect
+         */
+        {
+
+        wxPoint poly[4];
+        BuildPadPolygon( poly, wxSize( 0, 0 ), 0 );
+
+        wxPoint corners[4];
+
+        corners[0] = wxPoint( arect.GetLeft(),  arect.GetTop() );
+        corners[1] = wxPoint( arect.GetRight(), arect.GetTop() );
+        corners[2] = wxPoint( arect.GetRight(), arect.GetBottom() );
+        corners[3] = wxPoint( arect.GetLeft(),  arect.GetBottom() );
+
+        for( int i=0; i<4; i++ )
+        {
+            RotatePoint( &poly[i], m_Orient );
+            poly[i] += shapePos;
+        }
+
+        for( int ii=0; ii<4; ii++ )
+        {
+            if( TestPointInsidePolygon( poly, 4, corners[ii] ) )
+            {
+                return true;
+            }
+
+            if( arect.Contains( poly[ii] ) )
+            {
+                return true;
+            }
+
+            if( arect.Intersects( poly[ii], poly[(ii+1) % 4] ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+
+        }
+    case PAD_SHAPE_ROUNDRECT:
+        /* RoundRect intersection can be broken up into simple tests:
+         * a) Test intersection of horizontal rect
+         * b) Test intersection of vertical rect
+         * c) Test intersection of each corner
+         */
+
+
+        r = GetRoundRectCornerRadius();
+
+        /* Test A - intersection of horizontal rect */
+        shapeRect.SetSize( 0, 0 );
+        shapeRect.SetOrigin( shapePos );
+        shapeRect.Inflate( m_Size.x / 2, m_Size.y / 2 - r );
+
+        // Short-circuit test for zero width or height
+        if( shapeRect.GetWidth() > 0 && shapeRect.GetHeight() > 0 &&
+            arect.Intersects( shapeRect, m_Orient ) )
+        {
+            return true;
+        }
+
+        /* Test B - intersection of vertical rect */
+        shapeRect.SetSize( 0, 0 );
+        shapeRect.SetOrigin( shapePos );
+        shapeRect.Inflate( m_Size.x / 2 - r, m_Size.y / 2 );
+
+        // Short-circuit test for zero width or height
+        if( shapeRect.GetWidth() > 0 && shapeRect.GetHeight() > 0 &&
+            arect.Intersects( shapeRect, m_Orient ) )
+        {
+            return true;
+        }
+
+        /* Test C - intersection of each corner */
+
+        endCenter = wxPoint( m_Size.x / 2 - r, m_Size.y / 2 - r );
+        RotatePoint( &endCenter, m_Orient );
+
+        if( arect.IntersectsCircle( shapePos + endCenter, r ) ||
+            arect.IntersectsCircle( shapePos - endCenter, r ) )
+        {
+            return true;
+        }
+
+        endCenter = wxPoint( m_Size.x / 2 - r, -m_Size.y / 2 + r );
+        RotatePoint( &endCenter, m_Orient );
+
+        if( arect.IntersectsCircle( shapePos + endCenter, r ) ||
+            arect.IntersectsCircle( shapePos - endCenter, r ) )
+        {
+            return true;
+        }
+
+        break;
+    default:
+        break;
+    }
+
+    return false;
+}
 
 int D_PAD::Compare( const D_PAD* padref, const D_PAD* padcmp )
 {

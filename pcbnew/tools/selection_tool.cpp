@@ -166,7 +166,8 @@ public:
 
 SELECTION_TOOL::SELECTION_TOOL() :
         PCB_TOOL( "pcbnew.InteractiveSelection" ),
-        m_frame( NULL ), m_additive( false ), m_multiple( false ),
+        m_frame( NULL ), m_additive( false ), m_subtractive( false ),
+        m_multiple( false ),
         m_locked( true ), m_menu( *this ),
         m_priv( std::make_unique<PRIV>() )
 {
@@ -230,6 +231,10 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
         // become the new selection (discarding previously selected items)
         m_additive = evt->Modifier( MD_SHIFT );
 
+        // Should selected items be REMOVED from the current selection?
+        // This will be ignored if the SHIFT modifier is pressed
+        m_subtractive = !m_additive && evt->Modifier( MD_CTRL );
+
         // single click? Select single object
         if( evt->IsClick( BUT_LEFT ) )
         {
@@ -269,7 +274,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
         // drag with LMB? Select multiple objects (or at least draw a selection box) or drag them
         else if( evt->IsDrag( BUT_LEFT ) )
         {
-            if( m_additive )
+            if( m_additive || m_subtractive )
             {
                 selectMultiple();
             }
@@ -483,12 +488,13 @@ bool SELECTION_TOOL::selectMultiple()
 
         if( evt->IsDrag( BUT_LEFT ) )
         {
-            if( !m_additive )
-                clearSelection();
 
             // Start drawing a selection box
             area.SetOrigin( evt->DragOrigin() );
             area.SetEnd( evt->Position() );
+            area.SetAdditive( m_additive );
+            area.SetSubtractive( m_subtractive );
+
             view->SetVisible( &area, true );
             view->Update( &area );
         }
@@ -500,20 +506,54 @@ bool SELECTION_TOOL::selectMultiple()
 
             // Mark items within the selection box as selected
             std::vector<KIGFX::VIEW::LAYER_ITEM_PAIR> selectedItems;
+
+            // Filter the view items based on the selection box
             BOX2I selectionBox = area.ViewBBox();
             view->Query( selectionBox, selectedItems );         // Get the list of selected items
 
             std::vector<KIGFX::VIEW::LAYER_ITEM_PAIR>::iterator it, it_end;
 
+            int width = area.GetEnd().x - area.GetOrigin().x;
+            int height = area.GetEnd().y - area.GetOrigin().y;
+
+            // Construct an EDA_RECT to determine BOARD_ITEM selection
+            EDA_RECT selectionRect( wxPoint( area.GetOrigin().x, area.GetOrigin().y ),
+                                    wxSize( width, height ) );
+
+            selectionRect.Normalize();
+
             for( it = selectedItems.begin(), it_end = selectedItems.end(); it != it_end; ++it )
             {
                 BOARD_ITEM* item = static_cast<BOARD_ITEM*>( it->first );
 
-                // Add only those items that are visible and fully within the selection box
-                if( !item->IsSelected() && selectable( item ) &&
-                        selectionBox.Contains( item->ViewBBox() ) )
+                if( !item || !selectable( item ) )
+                    continue;
+
+                /* Selection mode depends on direction of drag-selection:
+                 * Left > Right : Select objects that are fully enclosed by selection
+                 * Right > Left : Select objects that are crossed by selection
+                 */
+
+                if( width >= 0 )
                 {
-                    select( item );
+                    if( selectionBox.Contains( item->ViewBBox() ) )
+                    {
+                        if( m_subtractive )
+                            unselect( item );
+                        else
+                            select( item );
+                    }
+                }
+                else
+                {
+                    if( item->HitTest( selectionRect, false ) )
+                    {
+                        if( m_subtractive )
+                            unselect( item );
+                        else
+                            select( item );
+                    }
+
                 }
             }
 
@@ -1292,6 +1332,14 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
         break;
 
     case PCB_MODULE_T:
+
+        // In the module editor, we do not want to select the module itself
+        // rather, the module sub-components should be selected individually
+        if( m_editModules )
+        {
+            return false;
+        }
+
         if( aItem->IsOnLayer( F_Cu ) && board()->IsElementVisible( LAYER_MOD_FR ) )
             return !m_editModules;
 
