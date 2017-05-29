@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013 NBEE Embedded Systems SL, Miguel Angel Ajo <miguelangel@ajo.es>
- * Copyright (C) 2013-2017 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 2013-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,20 +27,26 @@
 
 #include <wxPcbStruct.h>
 #include <io_mgr.h>
+
 /* we could be including all these methods as static in a class, but
- * we want plain pcbnew.<method_name> access from python */
+ * we want plain pcbnew.<method_name> access from python
+ */
 
 #ifndef SWIG
 void    ScriptingSetPcbEditFrame( PCB_EDIT_FRAME* aPCBEdaFrame );
 
 #endif
 
+// For Python scripts: return the current board.
 BOARD*  GetBoard();
 
 BOARD*  LoadBoard( wxString& aFileName, IO_MGR::PCB_FILE_T aFormat );
+
+// Default LoadBoard() to load .kicad_pcb files:.
 BOARD*  LoadBoard( wxString& aFileName );
 
-bool    SaveBoard( wxString& aFileName, BOARD* aBoard, IO_MGR::PCB_FILE_T aFormat );
+// Boards can be saved only as .kicad_pcb file format,
+// so no option to choose the file format.
 bool    SaveBoard( wxString& aFileName, BOARD* aBoard );
 
 void    Refresh();

@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
- * Copyright (C) 2017 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -190,7 +190,7 @@ void FOOTPRINT_EDIT_FRAME::LoadModuleFromBoard( wxCommandEvent& event )
     EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
     if( draw3DFrame )
-        draw3DFrame->NewDisplay();
+        draw3DFrame->NewDisplay( true );
 }
 
 
@@ -370,7 +370,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
                 if( draw3DFrame )
-                    draw3DFrame->NewDisplay();
+                    draw3DFrame->NewDisplay( true );
 
                 GetScreen()->ClrModify();
             }
@@ -494,7 +494,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
         if( draw3DFrame )
-            draw3DFrame->NewDisplay();
+            draw3DFrame->NewDisplay( true );
         }
 
         break;
@@ -556,7 +556,7 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
         if( draw3DFrame )
-            draw3DFrame->NewDisplay();
+            draw3DFrame->NewDisplay( true );
         }
 
         GetScreen()->ClrModify();

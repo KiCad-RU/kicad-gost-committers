@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015-2016 Mario Luzeiro <mrluzeiro@ua.pt>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -224,15 +224,23 @@ EDA_3D_VIEWER::~EDA_3D_VIEWER()
     //m_canvas = 0;
 }
 
+
 void EDA_3D_VIEWER::ReloadRequest()
 {
     // This will schedule a request to load later
     if( m_canvas )
         m_canvas->ReloadRequest( GetBoard(), Prj().Get3DCacheManager() );
+}
 
-    // This function is used by moduleframe.cpp
-    // while editing the pcb board, so it will not redraw to not slow the pcbnew
-    //m_canvas->Refresh();
+
+void EDA_3D_VIEWER::NewDisplay( bool aForceImmediateRedraw )
+{
+    ReloadRequest();
+
+    // After the ReloadRequest call, the refresh often takes a bit of time,
+    // and it is made here only on request.
+    if( aForceImmediateRedraw )
+        m_canvas->Refresh();
 }
 
 
@@ -1180,25 +1188,24 @@ bool EDA_3D_VIEWER::Set3DSolderPasteColorFromUser()
 
 
 // Define 3D Viewer Hotkeys
-// !TODO: this is used just for help menu, the structured are not used yet in the viewer
 static EDA_HOTKEY Hk3D_PivotCenter( _HKI( "Center pivot rotation (Middle mouse click)" ), 0, WXK_SPACE );
-static EDA_HOTKEY Hk3D_MoveLeft( _HKI( "Move board Left" ), 0, WXK_LEFT );
-static EDA_HOTKEY Hk3D_MoveRight( _HKI( "Move board Right" ), 0, WXK_RIGHT );
-static EDA_HOTKEY Hk3D_MoveUp( _HKI( "Move board Up" ), 0, WXK_UP );
-static EDA_HOTKEY Hk3D_MoveDown( _HKI( "Move board Down" ), 0, WXK_DOWN );
+static EDA_HOTKEY Hk3D_MoveLeft( _HKI( "Move board Left" ), ID_POPUP_MOVE3D_LEFT, WXK_LEFT );
+static EDA_HOTKEY Hk3D_MoveRight( _HKI( "Move board Right" ), ID_POPUP_MOVE3D_RIGHT, WXK_RIGHT );
+static EDA_HOTKEY Hk3D_MoveUp( _HKI( "Move board Up" ), ID_POPUP_MOVE3D_UP, WXK_UP );
+static EDA_HOTKEY Hk3D_MoveDown( _HKI( "Move board Down" ), ID_POPUP_MOVE3D_DOWN, WXK_DOWN );
 static EDA_HOTKEY Hk3D_HomeView( _HKI( "Home view" ), 0, WXK_HOME );
 static EDA_HOTKEY Hk3D_ResetView( _HKI( "Reset view" ), 0, 'R' );
 
-static EDA_HOTKEY Hk3D_ViewFront( _HKI( "View Top" ), 0, 'y' );
-static EDA_HOTKEY Hk3D_ViewBack( _HKI( "View Bot" ), 0, 'Y' );
-static EDA_HOTKEY Hk3D_ViewLeft( _HKI( "View Left" ), 0, 'X' );
-static EDA_HOTKEY Hk3D_ViewRight( _HKI( "View Right" ), 0, 'x' );
-static EDA_HOTKEY Hk3D_ViewTop( _HKI( "View Top" ), 0, 'z' );
-static EDA_HOTKEY Hk3D_ViewBot( _HKI( "View Bot" ), 0, 'Z' );
+static EDA_HOTKEY Hk3D_ViewFront( _HKI( "View Front" ), ID_POPUP_VIEW_YPOS, 'y' );
+static EDA_HOTKEY Hk3D_ViewBack( _HKI( "View Back" ), ID_POPUP_VIEW_YNEG, 'Y' );
+static EDA_HOTKEY Hk3D_ViewLeft( _HKI( "View Left" ), ID_POPUP_VIEW_XNEG, 'X' );
+static EDA_HOTKEY Hk3D_ViewRight( _HKI( "View Right" ), ID_POPUP_VIEW_XPOS, 'x' );
+static EDA_HOTKEY Hk3D_ViewTop( _HKI( "View Top" ), ID_POPUP_VIEW_ZPOS, 'z' );
+static EDA_HOTKEY Hk3D_ViewBot( _HKI( "View Bot" ), ID_POPUP_VIEW_ZNEG, 'Z' );
 
 static EDA_HOTKEY Hk3D_Rotate45axisZ( _HKI( "Rotate 45 degrees over Z axis" ), 0, WXK_TAB );
-static EDA_HOTKEY Hk3D_ZoomIn( _HKI( "Zoom in " ), 0, WXK_F1 );
-static EDA_HOTKEY Hk3D_ZoomOut( _HKI( "Zoom out" ), 0, WXK_F2 );
+static EDA_HOTKEY Hk3D_ZoomIn( _HKI( "Zoom in " ), ID_POPUP_ZOOMIN, WXK_F1 );
+static EDA_HOTKEY Hk3D_ZoomOut( _HKI( "Zoom out" ), ID_POPUP_ZOOMOUT, WXK_F2 );
 static EDA_HOTKEY Hk3D_AttributesTHT( _HKI( "Toggle 3D models with type Through Hole" ), 0, 'T' );
 static EDA_HOTKEY Hk3D_AttributesSMD( _HKI( "Toggle 3D models with type Surface Mount" ), 0, 'S' );
 static EDA_HOTKEY Hk3D_AttributesVirtual( _HKI( "Toggle 3D models with type Virtual" ), 0, 'V' );

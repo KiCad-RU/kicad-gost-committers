@@ -381,7 +381,7 @@ void GRDashedLine( EDA_RECT* ClipBox, wxDC*     DC,
 #if defined(KICAD_GOST)
     GRSetColorPen( DC, Color, width, wxPENSTYLE_LONG_DASH );
 #else
-    GRSetColorPen( DC, Color, width, wxPENSTYLE_SHORT_DASH );
+     GRSetColorPen( DC, Color, width, wxPENSTYLE_SHORT_DASH );
 #endif
     WinClipAndDrawLine( ClipBox, DC, x1, y1, x2, y2, width );
     s_DC_lastcolor = COLOR4D::UNSPECIFIED;
@@ -1237,8 +1237,12 @@ void GRBezier( EDA_RECT* ClipBox,
                int       width,
                COLOR4D   Color )
 {
-    std::vector<wxPoint> Points = Bezier2Poly( x1, y1, x2, y2, x3, y3 );
-    GRPoly( ClipBox, DC, Points.size(), &Points[0], false, width, Color, Color );
+    std::vector<wxPoint> points;
+
+    BEZIER_POLY converter( x1, y1, x2, y2, x3, y3 );
+    converter.GetPoly( points );
+
+    GRPoly( ClipBox, DC, points.size(), &points[0], false, width, Color, Color );
 }
 
 
@@ -1255,8 +1259,12 @@ void GRBezier( EDA_RECT* ClipBox,
                int       width,
                COLOR4D   Color )
 {
-    std::vector<wxPoint> Points = Bezier2Poly( x1, y1, x2, y2, x3, y3, x4, y4 );
-    GRPoly( ClipBox, DC, Points.size(), &Points[0], false, width, Color, Color );
+    std::vector<wxPoint> points;
+
+    BEZIER_POLY converter( x1, y1, x2, y2, x3, y3, x4, y4 );
+    converter.GetPoly( points );
+
+    GRPoly( ClipBox, DC, points.size(), &points[0], false, width, Color, Color );
 }
 
 

@@ -1397,7 +1397,7 @@ SCH_COMPONENT* SCH_LEGACY_PLUGIN::loadComponent( FILE_LINE_READER& aReader )
             if( !unit.ToLong( &tmp, 10 ) )
                 SCH_PARSE_ERROR( "expected integer value", aReader, line );
 
-            if( tmp < 0 || tmp > 26 )
+            if( tmp < 0 || tmp > 30 )
                 SCH_PARSE_ERROR( "unit value out of range", aReader, line );
 
             component->AddHierarchicalReference( path, reference, (int)tmp );

@@ -24,12 +24,12 @@
 -->
 <!--
     @package
-    Command line:
-        xsltproc -o "%O.csv" "pathToFile/bom2csv.xsl" "%I"
-
     Output format
         Reference, Value, Fields[n], Library, Library Ref
         U1, PIC32MX, Fields[n], KicadLib, PIC
+
+Command line:
+        xsltproc -o "%O.csv" "pathToFile/bom2csv.xsl" "%I"
 -->
 
 <!DOCTYPE xsl:stylesheet [
@@ -44,9 +44,9 @@
 
     <!-- main part -->
     <xsl:template match="/export">
-        <xsl:text>Source:</xsl:text><xsl:value-of  select="design/source"/><xsl:text>&nl;</xsl:text>
-        <xsl:text>Kicad Rev:</xsl:text><xsl:value-of  select="design/tool"/><xsl:text>&nl;</xsl:text>
-        <xsl:text>Generated Date:</xsl:text><xsl:value-of  select="design/date"/><xsl:text>&nl;</xsl:text>
+        <xsl:text>Source,</xsl:text><xsl:value-of  select="design/source"/><xsl:text>&nl;</xsl:text>
+        <xsl:text>Kicad Rev,</xsl:text><xsl:value-of  select="design/tool"/><xsl:text>&nl;</xsl:text>
+        <xsl:text>Generated Date,</xsl:text><xsl:value-of  select="design/date"/><xsl:text>&nl;</xsl:text>
 
         <xsl:text>&nl;</xsl:text>
 
@@ -56,12 +56,12 @@
         <xsl:text>&nl;</xsl:text>
 
         <!-- Output table header -->
-        <xsl:text>Reference;Value;</xsl:text>
+        <xsl:text>Reference,Value,</xsl:text>
         <xsl:for-each select="components/comp/fields/field[generate-id(.) = generate-id(key('headentr',@name)[1])]">
             <xsl:value-of select="@name"/>
-            <xsl:text>;</xsl:text>
+            <xsl:text>,</xsl:text>
         </xsl:for-each>
-        <xsl:text>Library;Library Ref</xsl:text>
+        <xsl:text>Library,Library Ref</xsl:text>
         <xsl:text>&nl;</xsl:text>
 
         <!-- all table entries -->
@@ -73,38 +73,38 @@
 
         <xsl:choose>
             <xsl:when test="title_block/title !=''">
-                <xsl:text>Title:</xsl:text><xsl:value-of  select="title_block/title"/><xsl:text>&nl;</xsl:text>
+                <xsl:text>Title,</xsl:text><xsl:value-of  select="title_block/title"/><xsl:text>&nl;</xsl:text>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:text>Title:Not Set</xsl:text><xsl:text>&nl;</xsl:text>
+                <xsl:text>Title,Not Set</xsl:text><xsl:text>&nl;</xsl:text>
             </xsl:otherwise>
         </xsl:choose>
 
 
         <xsl:choose>
             <xsl:when test="title_block/company !=''">
-                <xsl:text>Company:</xsl:text><xsl:value-of  select="title_block/company"/><xsl:text>&nl;</xsl:text>
+                <xsl:text>Company,</xsl:text><xsl:value-of  select="title_block/company"/><xsl:text>&nl;</xsl:text>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:text>Company:Not Set</xsl:text><xsl:text>&nl;</xsl:text>
+                <xsl:text>Company,Not Set</xsl:text><xsl:text>&nl;</xsl:text>
             </xsl:otherwise>
         </xsl:choose>
 
         <xsl:choose>
             <xsl:when test="title_block/rev !=''">
-                <xsl:text>Revision:</xsl:text><xsl:value-of  select="title_block/rev"/><xsl:text>&nl;</xsl:text>
+                <xsl:text>Revision,</xsl:text><xsl:value-of  select="title_block/rev"/><xsl:text>&nl;</xsl:text>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:text>Revision:Not Set</xsl:text><xsl:text>&nl;</xsl:text>
+                <xsl:text>Revision,Not Set</xsl:text><xsl:text>&nl;</xsl:text>
             </xsl:otherwise>
         </xsl:choose>
 
         <xsl:choose>
             <xsl:when test="title_block/date !=''">
-                <xsl:text>Date Issue:</xsl:text><xsl:value-of  select="title_block/date"/><xsl:text>&nl;</xsl:text>
+                <xsl:text>Date Issue,</xsl:text><xsl:value-of  select="title_block/date"/><xsl:text>&nl;</xsl:text>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:text>Date Issue:Not Set</xsl:text><xsl:text>&nl;</xsl:text>
+                <xsl:text>Date Issue,Not Set</xsl:text><xsl:text>&nl;</xsl:text>
             </xsl:otherwise>
         </xsl:choose>
 
@@ -115,7 +115,7 @@
     <xsl:template match="title_block/comment">
         <xsl:choose>
             <xsl:when test="@value !=''">
-            <xsl:text>Comment:</xsl:text><xsl:value-of  select="@value"/><xsl:text>&nl;</xsl:text>
+            <xsl:text>Comment,</xsl:text><xsl:value-of  select="@value"/><xsl:text>&nl;</xsl:text>
             </xsl:when>
         </xsl:choose>
     </xsl:template>
@@ -124,8 +124,8 @@
 
     <!-- the table entries -->
     <xsl:template match="components/comp">
-        <xsl:value-of select="@ref"/><xsl:text>;</xsl:text>
-        <xsl:value-of select="value"/><xsl:text>;</xsl:text>
+        <xsl:value-of select="@ref"/><xsl:text>,</xsl:text>
+        <xsl:value-of select="value"/><xsl:text>,</xsl:text>
         <xsl:apply-templates select="fields"/>
         <xsl:apply-templates select="libsource"/>
         <xsl:text>&nl;</xsl:text>
@@ -133,7 +133,7 @@
 
     <!-- the library selection -->
     <xsl:template match="libsource">
-        <xsl:value-of select="@lib"/><xsl:text>;</xsl:text>
+        <xsl:value-of select="@lib"/><xsl:text>,</xsl:text>
         <xsl:value-of select="@part"/>
     </xsl:template>
 
@@ -160,7 +160,7 @@
                     Every non-blank entry is assigned to its proper column.
                 -->
             </xsl:for-each>
-            <xsl:text>;</xsl:text>
+            <xsl:text>,</xsl:text>
         </xsl:for-each>
     </xsl:template>
 
