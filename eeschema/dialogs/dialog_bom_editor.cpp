@@ -41,10 +41,10 @@
 /* BOM Table Colours */
 
 // Create and show BOM editor
-int InvokeDialogCreateBOMEditor( SCH_EDIT_FRAME* aCaller )
+void InvokeDialogCreateBOMEditor( SCH_EDIT_FRAME* aCaller )
 {
     DIALOG_BOM_EDITOR dlg( aCaller );
-    return dlg.ShowModal();
+    dlg.ShowQuasiModal();
 }
 
 DIALOG_BOM_EDITOR::DIALOG_BOM_EDITOR( SCH_EDIT_FRAME* parent ) :
@@ -115,23 +115,28 @@ DIALOG_BOM_EDITOR::DIALOG_BOM_EDITOR( SCH_EDIT_FRAME* parent ) :
     Centre();
 }
 
+
 DIALOG_BOM_EDITOR::~DIALOG_BOM_EDITOR()
 {
-    //TODO
+    // Nothing to do.
 }
+
 
 void DIALOG_BOM_EDITOR::OnCloseButton( wxCommandEvent& event )
 {
-    CloseDialog();
+    // DIALOG_BOM_EDITOR::OnDialogClosed() will be called,
+    // when closing this dialog.
+    // The default wxID_CANCEL handler is not suitable for us,
+    // because it calls DIALOG_SHIM::EndQuasiModal() without calling
+    // DIALOG_BOM_EDITOR::OnDialogClosed()
+    Close();
 }
 
-bool DIALOG_BOM_EDITOR::CloseDialog()
+
+bool DIALOG_BOM_EDITOR::CanCloseDialog()
 {
     if( !m_bom->HaveFieldsChanged() )
-    {
-        Destroy();
         return true;
-    }
 
     int result = DisplayExitDialog( this, _( "Changes exist in component table" ) );
 
@@ -139,24 +144,31 @@ bool DIALOG_BOM_EDITOR::CloseDialog()
     {
     case wxID_CANCEL:
        return false;
+
     case wxID_NO:
        break;
+
     case wxID_YES:
        ApplyAllChanges();
        break;
     }
 
-    Destroy();
     return true;
 }
 
+
 void DIALOG_BOM_EDITOR::OnDialogClosed( wxCloseEvent& event )
 {
-    if( !CloseDialog() )
+    if( !CanCloseDialog() )
     {
         event.Veto();
     }
+    else
+        // Mandatory to call DIALOG_SHIM::OnCloseWindow( wxCloseEvent& aEvent )
+        // and actually close the dialog
+        event.Skip();
 }
+
 
 /* Struct for keeping track of schematic sheet changes
  * Stores:
@@ -251,6 +263,7 @@ void DIALOG_BOM_EDITOR::ApplyAllChanges()
     m_bom->SetBackupPoint();
 }
 
+
 /**
  * Update the window title to reflect the contents of the table
  */
@@ -281,6 +294,7 @@ void DIALOG_BOM_EDITOR::UpdateTitle()
         SetTitle( title );
 }
 
+
 /**
  * Load component data from the entire schematic set
  */
@@ -298,6 +312,7 @@ void DIALOG_BOM_EDITOR::LoadComponents()
     // Pass the references through to the model
     m_bom->SetComponents( refs, m_parent->GetTemplateFieldNames() );
 }
+
 
 /**
  * Display list of columns (fields)
@@ -323,12 +338,14 @@ void DIALOG_BOM_EDITOR::LoadColumnNames()
     }
 }
 
+
 void DIALOG_BOM_EDITOR::ReloadColumns()
 {
     m_bom->AttachTo( m_bomView );
 
     UpdateTitle();
 }
+
 
 void DIALOG_BOM_EDITOR::OnColumnItemToggled( wxDataViewEvent& event )
 {
@@ -370,6 +387,7 @@ void DIALOG_BOM_EDITOR::OnColumnItemToggled( wxDataViewEvent& event )
     }
 }
 
+
 /**
  * Called when the "Group Components" toggle is pressed
  */
@@ -383,6 +401,7 @@ void DIALOG_BOM_EDITOR::OnGroupComponentsToggled( wxCommandEvent& event )
     Update();
 }
 
+
 void DIALOG_BOM_EDITOR::OnUpdateUI( wxUpdateUIEvent& event )
 {
     m_regroupComponentsButton->Enable( m_bom->GetColumnGrouping() );
@@ -395,10 +414,12 @@ void DIALOG_BOM_EDITOR::OnUpdateUI( wxUpdateUIEvent& event )
     UpdateTitle();
 }
 
+
 void DIALOG_BOM_EDITOR::OnTableValueChanged( wxDataViewEvent& event )
 {
     Update();
 }
+
 
 void DIALOG_BOM_EDITOR::OnRegroupComponents( wxCommandEvent& event )
 {
@@ -411,6 +432,7 @@ void DIALOG_BOM_EDITOR::OnApplyFieldChanges( wxCommandEvent& event )
     ApplyAllChanges();
     Update();
 }
+
 
 void DIALOG_BOM_EDITOR::OnRevertFieldChanges( wxCommandEvent& event )
 {
@@ -433,6 +455,8 @@ void DIALOG_BOM_EDITOR::OnTableItemActivated( wxDataViewEvent& event )
 
     event.Skip();
 }
+
+
 // Called when a cell is right-clicked
 void DIALOG_BOM_EDITOR::OnTableItemContextMenu( wxDataViewEvent& event )
 {

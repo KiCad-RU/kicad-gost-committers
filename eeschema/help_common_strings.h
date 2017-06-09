@@ -76,7 +76,7 @@
 #define HELP_ANNOTATE _( "Annotate schematic components" )
 #define HELP_RUN_LIB_EDITOR _( "Library Editor - Create/edit components" )
 #define HELP_RUN_LIB_VIEWER _( "Library Browser - Browse components" )
-#define HELP_GENERATE_BOM _( "Generate bill of materials and/or cross references" )
+#define HELP_GENERATE_BOM _( "Generate bill of materials" )
 
 #if defined(KICAD_GOST)
 #define HELP_GOST_TOOLS _( "GOST tools" )

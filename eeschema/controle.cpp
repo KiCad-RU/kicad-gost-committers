@@ -175,7 +175,7 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateItem( const wxPoint& aPosition, const KICAD_T aF
             wxMenu selectMenu;
 
             AddMenuItem( &selectMenu, wxID_NONE, _( "Clarify Selection" ),
-                         KiBitmap( dismiss_xpm ) );
+                         KiBitmap( info_xpm ) );
             selectMenu.AppendSeparator();
 
             for( int i = 0;  i < m_collectedItems.GetCount() && i < MAX_SELECT_ITEM_IDS;  i++ )

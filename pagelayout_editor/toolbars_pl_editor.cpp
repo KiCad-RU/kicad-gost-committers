@@ -48,7 +48,7 @@ void PL_EDITOR_FRAME::ReCreateHToolbar( void )
     m_mainToolBar = new wxAuiToolBar( this, ID_H_TOOLBAR, wxDefaultPosition, wxDefaultSize,
                                       wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORZ_LAYOUT );
 
-    m_mainToolBar->AddTool( wxID_NEW, wxEmptyString, KiBitmap( pagelayout_new_xpm ),
+    m_mainToolBar->AddTool( wxID_NEW, wxEmptyString, KiBitmap( new_generic_xpm ),
                             _( "New page layout design" ) );
 
     m_mainToolBar->AddTool( wxID_OPEN, wxEmptyString, KiBitmap( pagelayout_load_xpm ),
@@ -76,25 +76,25 @@ void PL_EDITOR_FRAME::ReCreateHToolbar( void )
 
     // Standard Zoom controls:
     m_mainToolBar->AddSeparator();
+    msg = AddHotkeyName( _( "Redraw view" ), PlEditorHokeysDescr, HK_ZOOM_REDRAW,  IS_COMMENT );
+    m_mainToolBar->AddTool( ID_ZOOM_REDRAW, wxEmptyString, KiBitmap( zoom_redraw_xpm ), msg );
+
     msg = AddHotkeyName( _( "Zoom in" ), PlEditorHokeysDescr, HK_ZOOM_IN,  IS_COMMENT );
     m_mainToolBar->AddTool( ID_ZOOM_IN, wxEmptyString, KiBitmap( zoom_in_xpm ), msg );
 
     msg = AddHotkeyName( _( "Zoom out" ), PlEditorHokeysDescr, HK_ZOOM_OUT,  IS_COMMENT );
     m_mainToolBar->AddTool( ID_ZOOM_OUT, wxEmptyString, KiBitmap( zoom_out_xpm ), msg );
 
-    msg = AddHotkeyName( _( "Redraw view" ), PlEditorHokeysDescr, HK_ZOOM_REDRAW,  IS_COMMENT );
-    m_mainToolBar->AddTool( ID_ZOOM_REDRAW, wxEmptyString, KiBitmap( zoom_redraw_xpm ), msg );
-
     msg = AddHotkeyName( _( "Zoom auto" ), PlEditorHokeysDescr, HK_ZOOM_AUTO,  IS_COMMENT );
     m_mainToolBar->AddTool( ID_ZOOM_PAGE, wxEmptyString, KiBitmap( zoom_fit_in_page_xpm ), msg );
 
     // Zoom-to-selection
+    m_mainToolBar->AddTool( ID_ZOOM_SELECTION, wxEmptyString, KiBitmap( zoom_area_xpm ),
+                            _( "Zoom to selection" ), wxITEM_CHECK );
+
     m_mainToolBar->AddSeparator();
     m_mainToolBar->AddTool( ID_NO_TOOL_SELECTED, wxEmptyString, KiBitmap( cursor_xpm ),
                             wxEmptyString, wxITEM_CHECK );
-
-    m_mainToolBar->AddTool( ID_ZOOM_SELECTION, wxEmptyString, KiBitmap( zoom_area_xpm ),
-                            _( "Zoom to selection" ), wxITEM_CHECK );
 
     // Display mode switch
     m_mainToolBar->AddSeparator();
@@ -124,7 +124,7 @@ void PL_EDITOR_FRAME::ReCreateHToolbar( void )
                                       wxDefaultPosition, wxDefaultSize,
                                       5, choiceList );
     m_mainToolBar->AddControl( m_originSelectBox );
-    m_originSelectBox->SetToolTip( _(" Origin of coordinates displayed to the status bar") );
+    m_originSelectBox->SetToolTip( _("Origin of coordinates displayed to the status bar") );
 
     int minwidth = 0;
     for( int ii = 0; ii < 5; ii++ )
