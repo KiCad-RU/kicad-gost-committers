@@ -36,7 +36,7 @@
 
 namespace PCAD2KICAD {
 
-const int FONT_PINSTYLE_HEIGHT = 91;
+const int FONT_PINSTYLE_HEIGHT = 79;
 
 SCH_PIN::SCH_PIN()
 {
