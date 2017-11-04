@@ -36,6 +36,8 @@
 
 namespace PCAD2KICAD {
 
+const int FONT_PINSTYLE_HEIGHT = 91;
+
 SCH_PIN::SCH_PIN()
 {
     m_objType = wxT( "pin" );
@@ -252,7 +254,9 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
                                     m_positionX,
                                     m_positionY,
                                     m_pinLength ) + wxT( ' ' ) + orientation +
-                  wxString::Format( wxT( " 30 30 %d 0 " ), m_partNum ) +
+                  wxString::Format( wxT( " %d %d %d 0 " ),
+				    FONT_PINSTYLE_HEIGHT, FONT_PINSTYLE_HEIGHT,
+				    m_partNum ) +
                   pinType + wxT( ' ' ) + shape + wxT( "\n" ) );
 }
 
