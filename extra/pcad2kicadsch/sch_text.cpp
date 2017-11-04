@@ -69,6 +69,7 @@ void SCH_TEXT::Parse( XNODE*  aNode,
     if( aNode->GetName() == wxT( "text" ) )
     {
         aNode->GetAttribute( wxT( "Name" ), &m_text.text );
+        m_text.text.Replace( "\r", "" );
 
         SetTextParameters( aNode, &m_text,
                            aDefaultMeasurementUnit, aActualConversion );
