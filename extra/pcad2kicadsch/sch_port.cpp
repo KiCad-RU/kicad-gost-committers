@@ -35,6 +35,8 @@
 
 namespace PCAD2KICAD {
 
+const int FONT_PORTSTYLE_HEIGHT = 89;
+
 SCH_PORT::SCH_PORT()
 {
     m_objType   = wxT( "port" );
@@ -87,7 +89,9 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
 
     aFile->Write( wxString::Format( wxT( "Text Label %d %d" ),
                                     m_positionX, m_positionY ) +
-                  wxT( ' ' ) + lr + wxT( ' ' ) + wxT( " 60 ~\n" ) );
+                  wxT( ' ' ) + lr +
+                  wxString::Format( wxT( " %d " ), FONT_PORTSTYLE_HEIGHT ) +
+                  wxT( "~\n" ) );
     aFile->Write( m_labelText.text + wxT( "\n" ) );
 }
 

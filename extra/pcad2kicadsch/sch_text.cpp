@@ -87,7 +87,9 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
     {
         aFile->Write( wxString::Format( wxT( "T %d %d %d %d 0 %d 0 " ), m_text.textRotation,
                                         m_text.textPositionX, m_text.textPositionY,
-                                        m_text.textHeight, m_partNum ) +
+                                        KiROUND( (double) m_text.textHeight *
+                                                 TEXT_HEIGHT_TO_SIZE ),
+                                        m_partNum ) +
                       m_text.text + wxT( " Normal 0 C C\n" ) );
     }
     else // schematic
@@ -101,7 +103,11 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
 
         aFile->Write( wxString::Format( wxT( "Text Notes %d %d" ),
                                         m_positionX, m_positionY ) +
-                      wxT( ' ' ) + lr + wxT( ' ' ) + wxT( " 60 ~\n" ) );
+                      wxT( ' ' ) + lr +
+                      wxString::Format( wxT( " %d " ),
+                                        KiROUND( (double) m_text.textHeight *
+                                                 TEXT_HEIGHT_TO_SIZE ) ) +
+                      wxT( "~\n" ) );
         aFile->Write( m_text.text + wxT( "\n" ) );
     }
 }

@@ -314,9 +314,6 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     wxString orientation, visibility, str;
     int      a, b, c, d, i;
 
-//    CorrectTextPosition( &m_value, m_rotation );
-//    CorrectTextPosition( &m_reference, m_rotation );
-
     CorrectTextPosition( &m_value );
     RotatePoint( &m_value.correctedPositionX, &m_value.correctedPositionY,
                  (double) -m_rotation );
@@ -346,7 +343,8 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_reference.correctedPositionX + m_positionX,
                                     m_reference.correctedPositionY + m_positionY,
-                                    KiROUND( (double) m_reference.textHeight / 2.0 ) ) +
+                                    KiROUND( (double) m_reference.textHeight *
+                                             TEXT_HEIGHT_TO_SIZE ) ) +
                   wxT( ' ' ) + visibility + wxT( " C C\n" ) );
 
     // Value
@@ -364,7 +362,8 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_value.correctedPositionX + m_positionX,
                                     m_value.correctedPositionY + m_positionY,
-                                    KiROUND( (double) m_value.textHeight / 2.0 ) ) +
+                                    KiROUND( (double) m_value.textHeight *
+                                             TEXT_HEIGHT_TO_SIZE ) ) +
                   wxT( ' ' ) + visibility + wxT( " C C\n" ) );
 
     for( i = 0; i < (int)m_attributes.GetCount(); i++ )

@@ -326,9 +326,6 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
 {
     int i, symbolIndex;
 
-//    CorrectTextPosition( &m_name, m_rotation );
-//    CorrectTextPosition( &m_reference, m_rotation );
-
     CorrectTextPosition( &m_name );
     RotatePoint( &m_name.correctedPositionX, &m_name.correctedPositionY,
                  (double) -m_rotation );

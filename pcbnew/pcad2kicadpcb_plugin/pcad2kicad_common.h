@@ -40,6 +40,7 @@ namespace PCAD2KICAD
 {
 
 #define PCAD2KICAD_SCALE_SCH_TO_INCH_GRID
+extern const double TEXT_HEIGHT_TO_SIZE;
 
 enum TTEXT_JUSTIFY
 {
