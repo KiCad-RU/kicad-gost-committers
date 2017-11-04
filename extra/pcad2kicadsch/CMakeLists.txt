@@ -1,3 +1,4 @@
+add_definitions(-DEESCHEMA)
 
 include_directories(BEFORE ${INC_BEFORE})
 include_directories(
