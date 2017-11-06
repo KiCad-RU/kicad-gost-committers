@@ -94,22 +94,158 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
     }
     else // schematic
     {
-        wxString lr;
+        int spin_style = CorrectSchTextPosition( &m_text );
 
-        if( m_text.textRotation == 0 )
-            lr = wxT( '0' );
-        else
-            lr = wxT( '1' );
-
-        aFile->Write( wxString::Format( wxT( "Text Notes %d %d" ),
-                                        m_positionX, m_positionY ) +
-                      wxT( ' ' ) + lr +
-                      wxString::Format( wxT( " %d " ),
+        aFile->Write( wxString::Format( wxT( "Text Notes %d %d %d %d ~\n" ),
+                                        m_text.correctedPositionX, m_text.correctedPositionY,
+                                        spin_style,
                                         KiROUND( (double) m_text.textHeight *
-                                                 TEXT_HEIGHT_TO_SIZE ) ) +
-                      wxT( "~\n" ) );
+                                                 TEXT_HEIGHT_TO_SIZE ) ) );
         aFile->Write( m_text.text + wxT( "\n" ) );
     }
+}
+
+
+/* Correct text position and get Spin Style. See description of SCH_TEXT::SetLabelSpinStyle() */
+int SCH_TEXT::CorrectSchTextPosition( TTEXTVALUE* aValue )
+{
+    int spin_style = 0;
+    // sizes of justify correction
+    int cl = KiROUND( (double) CalculateTextLengthSize( aValue ) / 2.0 );
+    int ch = KiROUND( (double) aValue->textHeight );
+
+    aValue->correctedPositionX = m_positionX;
+    aValue->correctedPositionY = m_positionY;
+
+    switch( aValue->textRotation )
+    {
+    case 0:
+        if( aValue->justify == LowerLeft ||
+            aValue->justify == Left ||
+            aValue->justify == UpperLeft )
+        {
+            spin_style = aValue->mirror ? 2 : 0;
+        }
+        else if( aValue->justify == LowerRight ||
+                 aValue->justify == Right ||
+                 aValue->justify == UpperRight )
+        {
+            spin_style = aValue->mirror ? 0 : 2;
+        }
+        else
+        {
+            aValue->correctedPositionX -= cl;
+            spin_style = 0;
+        }
+
+        if( aValue->justify == Left ||
+            aValue->justify == Center ||
+            aValue->justify == Right )
+            aValue->correctedPositionY += ch / 2;
+        else if( aValue->justify == UpperLeft ||
+                 aValue->justify == UpperCenter ||
+                 aValue->justify == UpperRight )
+            aValue->correctedPositionY += ch;
+        break;
+    case 900:
+        if( aValue->justify == LowerLeft ||
+            aValue->justify == Left ||
+            aValue->justify == UpperLeft )
+        {
+            spin_style = 1;
+        }
+        else if( aValue->justify == LowerRight ||
+                 aValue->justify == Right ||
+                 aValue->justify == UpperRight )
+        {
+            spin_style = 3;
+        }
+        else
+        {
+            aValue->correctedPositionY += cl;
+            spin_style = 1;
+        }
+
+        if( aValue->justify == Left ||
+            aValue->justify == Center ||
+            aValue->justify == Right )
+            aValue->correctedPositionX += ch / 2;
+        else if( ( aValue->mirror &&
+                   ( aValue->justify == LowerLeft ||
+                     aValue->justify == LowerCenter ||
+                     aValue->justify == LowerRight ) ) ||
+                 ( !aValue->mirror &&
+                   ( aValue->justify == UpperLeft ||
+                     aValue->justify == UpperCenter ||
+                     aValue->justify == UpperRight ) ) )
+            aValue->correctedPositionX += ch;
+        break;
+    case 1800:
+        if( aValue->justify == LowerLeft ||
+            aValue->justify == Left ||
+            aValue->justify == UpperLeft )
+        {
+            spin_style = aValue->mirror ? 0 : 2;
+        }
+        else if( aValue->justify == LowerRight ||
+                 aValue->justify == Right ||
+                 aValue->justify == UpperRight )
+        {
+            spin_style = aValue->mirror ? 2 : 0;
+        }
+        else
+        {
+            aValue->correctedPositionX -= cl;
+            spin_style = 0;
+        }
+
+        if( aValue->justify == Left ||
+            aValue->justify == Center ||
+            aValue->justify == Right )
+            aValue->correctedPositionY += ch / 2;
+        else if( aValue->justify == LowerLeft ||
+                 aValue->justify == LowerCenter ||
+                 aValue->justify == LowerRight )
+            aValue->correctedPositionY += ch;
+        break;
+    case 2700:
+        if( aValue->justify == LowerLeft ||
+            aValue->justify == Left ||
+            aValue->justify == UpperLeft )
+        {
+            spin_style = 3;
+        }
+        else if( aValue->justify == LowerRight ||
+                 aValue->justify == Right ||
+                 aValue->justify == UpperRight )
+        {
+            spin_style = 1;
+        }
+        else
+        {
+            aValue->correctedPositionY += cl;
+            spin_style = 1;
+        }
+
+        if( aValue->justify == Left ||
+            aValue->justify == Center ||
+            aValue->justify == Right )
+            aValue->correctedPositionX += ch / 2;
+        else if( ( !aValue->mirror &&
+                   ( aValue->justify == LowerLeft ||
+                     aValue->justify == LowerCenter ||
+                     aValue->justify == LowerRight ) ) ||
+                 ( aValue->mirror &&
+                   ( aValue->justify == UpperLeft ||
+                     aValue->justify == UpperCenter ||
+                     aValue->justify == UpperRight ) ) )
+            aValue->correctedPositionX += ch;
+        break;
+    default:
+        break;
+    }
+
+    return spin_style;
 }
 
 } // namespace PCAD2KICAD

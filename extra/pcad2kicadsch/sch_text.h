@@ -48,6 +48,9 @@ public:
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
+
+private:
+    int CorrectSchTextPosition( TTEXTVALUE* aValue );
 };
 
 } // namespace PCAD2KICAD
