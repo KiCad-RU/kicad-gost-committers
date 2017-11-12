@@ -359,7 +359,7 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     int     i;
 
     f.Open( aFileName + wxT( "_" ) + m_name + wxT( ".sch" ), wxFile::write );
-    f.Write( wxT( "EESchema Schematic File Version 1\n" ) );
+    f.Write( wxT( "EESchema Schematic File Version 3\n" ) );
     wxFileName tmpFile( aFileName );
     tmpFile.SetExt( wxEmptyString );
     f.Write( wxT( "LIBS:" ) + aFileName + wxT( "\n" ) );

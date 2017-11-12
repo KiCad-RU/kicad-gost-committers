@@ -39,6 +39,11 @@
 
 namespace PCAD2KICAD {
 
+wxString GetJustifyString( const TTEXTVALUE* aValue );
+void MirrorJustify( TTEXT_JUSTIFY* aJustify );
+void RotateJustify180( TTEXT_JUSTIFY* aJustify );
+
+
 SCH_SYMBOL::SCH_SYMBOL()
 {
     m_objType = wxT( "symbol" );
@@ -174,6 +179,7 @@ void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
     }
 }
 
+
 void SCH_SYMBOL::ParseLibrary( XNODE*   aNode, wxString aModule,
                                wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
@@ -230,6 +236,7 @@ void SCH_SYMBOL::ParseLibrary( XNODE*   aNode, wxString aModule,
         }
     }
 }
+
 
 void SCH_SYMBOL::Parse( XNODE*   aNode,
                         wxString aDefaultMeasurementUnit, wxString aActualConversion )
@@ -296,11 +303,13 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
             {
                 SetTextParameters( lNode, &m_reference, aDefaultMeasurementUnit,
                                    aActualConversion );
+                m_reference.isLibValues = false;
             }
 
             if( propValue == wxT( "Value" ) )
             {
                 SetTextParameters( lNode, &m_value, aDefaultMeasurementUnit, aActualConversion );
+                m_value.isLibValues = false;
             }
         }
 
@@ -311,20 +320,15 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
 
 void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
 {
-    wxString orientation, visibility, str;
+    wxString orientation, visibility;
     int      a, b, c, d, i;
 
-    CorrectTextPosition( &m_value );
-    RotatePoint( &m_value.correctedPositionX, &m_value.correctedPositionY,
-                 (double) -m_rotation );
-
-    CorrectTextPosition( &m_reference );
-    RotatePoint( &m_reference.correctedPositionX, &m_reference.correctedPositionY,
-                 (double) -m_rotation );
+    CorrectField( &m_value );
+    CorrectField( &m_reference );
 
     // Go out
-    aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol )
-                  + wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
+    aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol ) +
+                  wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
     aFile->Write( wxString::Format( wxT( "U %d 1 00000000\n" ), m_partNum ) );
     aFile->Write( wxString::Format( wxT( "P %d %d\n" ), m_positionX, m_positionY ) );
 
@@ -341,11 +345,12 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
 
     aFile->Write( wxT( "F 0 \"" ) + m_reference.text + wxT( "\" " ) + orientation + wxT( ' ' ) +
                   wxString::Format( wxT( "%d %d %d" ),
-                                    m_reference.correctedPositionX + m_positionX,
-                                    m_reference.correctedPositionY + m_positionY,
+                                    m_reference.textPositionX + m_positionX,
+                                    m_reference.textPositionY + m_positionY,
                                     KiROUND( (double) m_reference.textHeight *
                                              TEXT_HEIGHT_TO_SIZE ) ) +
-                  wxT( ' ' ) + visibility + wxT( " C C\n" ) );
+                  wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_reference ) +
+                  wxT( "NN\n" ) );
 
     // Value
     if( m_value.textIsVisible == 1 )
@@ -353,18 +358,19 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     else
         visibility = wxT( "0001" );
 
-    if( m_value.textRotation == 900 || m_value.textRotation == 2700 )
+    if( m_value.textRotation == 900 )
         orientation = wxT( 'V' );
     else
         orientation = wxT( 'H' );
 
     aFile->Write( wxT( "F 1 \"" ) + m_value.text + wxT( "\" " ) + orientation + wxT( ' ' ) +
                   wxString::Format( wxT( "%d %d %d" ),
-                                    m_value.correctedPositionX + m_positionX,
-                                    m_value.correctedPositionY + m_positionY,
+                                    m_value.textPositionX + m_positionX,
+                                    m_value.textPositionY + m_positionY,
                                     KiROUND( (double) m_value.textHeight *
                                              TEXT_HEIGHT_TO_SIZE ) ) +
-                  wxT( ' ' ) + visibility + wxT( " C C\n" ) );
+                  wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_value ) +
+                  wxT( "NN\n" ) );
 
     for( i = 0; i < (int)m_attributes.GetCount(); i++ )
     {
@@ -453,4 +459,135 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     // FOOTPRINT
 }
 
+
+void SCH_SYMBOL::CorrectField( TTEXTVALUE* aValue )
+{
+    aValue->textPositionY = -aValue->textPositionY;
+
+    if( aValue->isLibValues )
+    {
+        if( aValue->textRotation == 1800 || aValue->textRotation == 2700 )
+            RotateJustify180( &aValue->justify );
+
+        if( aValue->mirror )
+            MirrorJustify( &aValue->justify );
+    }
+    else
+    {
+        if( m_mirror )
+        {
+            aValue->textPositionX = -aValue->textPositionX;
+            MirrorJustify( &aValue->justify );
+        }
+
+        if( aValue->mirror )
+        {
+            if( !m_mirror )
+                aValue->textRotation = -aValue->textRotation;
+            MirrorJustify( &aValue->justify );
+        }
+
+        aValue->textRotation = NormalizeAnglePos( aValue->textRotation - m_rotation );
+
+        if( aValue->textRotation == 1800 || aValue->textRotation == 2700 )
+            RotateJustify180( &aValue->justify );
+
+        RotatePoint( &aValue->textPositionX, &aValue->textPositionY, (double) m_rotation );
+    }
+
+    if( aValue->textRotation == 1800 )
+        aValue->textRotation = 0;
+    else if( aValue->textRotation == 2700 )
+        aValue->textRotation = 900;
+}
+
+
+wxString GetJustifyString( const TTEXTVALUE* aValue )
+{
+    switch( aValue->justify )
+    {
+    case LowerLeft:
+        return wxT( "L B" );
+    case LowerCenter:
+        return wxT( "C B" );
+    case LowerRight:
+        return wxT( "R B" );
+    case Left:
+        return wxT( "L C" );
+    case Center:
+        return wxT( "C C" );
+    case Right:
+        return wxT( "R C" );
+    case UpperLeft:
+        return wxT( "L T" );
+    case UpperCenter:
+        return wxT( "C T" );
+    case UpperRight:
+        return wxT( "R T" );
+    default:
+        return wxT( "L B" );
+    }
+}
+
+
+void MirrorJustify( TTEXT_JUSTIFY* aJustify )
+{
+    switch( *aJustify )
+    {
+    case LowerLeft:
+        *aJustify = LowerRight;
+        break;
+    case LowerRight:
+        *aJustify = LowerLeft;
+        break;
+    case Left:
+        *aJustify = Right;
+        break;
+    case Right:
+        *aJustify = Left;
+        break;
+    case UpperLeft:
+        *aJustify = UpperRight;
+        break;
+    case UpperRight:
+        *aJustify = UpperLeft;
+        break;
+    default:
+        break;
+    }
+}
+
+
+void RotateJustify180( TTEXT_JUSTIFY* aJustify )
+{
+    switch( *aJustify )
+    {
+    case LowerLeft:
+        *aJustify = UpperRight;
+        break;
+    case LowerCenter:
+        *aJustify = UpperCenter;
+        break;
+    case LowerRight:
+        *aJustify = UpperLeft;
+        break;
+    case Left:
+        *aJustify = Right;
+        break;
+    case Right:
+        *aJustify = Left;
+        break;
+    case UpperLeft:
+        *aJustify = LowerRight;
+        break;
+    case UpperCenter:
+        *aJustify = LowerCenter;
+        break;
+    case UpperRight:
+        *aJustify = LowerLeft;
+        break;
+    default:
+        break;
+    }
+}
 } // namespace PCAD2KICAD

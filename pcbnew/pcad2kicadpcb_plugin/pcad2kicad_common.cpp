@@ -327,12 +327,16 @@ void SetTextParameters( XNODE*      aNode,
         str.Trim( false );
         aTextValue->textRotation = StrToInt1Units( str );
     }
+    else
+    {
+        aTextValue->textRotation = 0;
+    }
 
     str = FindNodeGetContent( aNode, wxT( "isVisible" ) );
 
     if( str == wxT( "True" ) )
         aTextValue->textIsVisible = 1;
-    else if( str == wxT( "False" ) )
+    else
         aTextValue->textIsVisible = 0;
 
     str = FindNodeGetContent( aNode, wxT( "justify" ) );
@@ -342,6 +346,8 @@ void SetTextParameters( XNODE*      aNode,
 
     if( str == wxT( "True" ) )
         aTextValue->mirror = 1;
+    else
+        aTextValue->mirror = 0;
 
     tNode = FindNode( aNode, wxT( "textStyleRef" ) );
 
@@ -601,6 +607,7 @@ void InitTTextValue( TTEXTVALUE* aTextValue )
     aTextValue->correctedPositionX  = 0;
     aTextValue->correctedPositionY  = 0;
     aTextValue->justify = LowerLeft;
+    aTextValue->isLibValues = true;
 }
 
 } // namespace PCAD2KICAD

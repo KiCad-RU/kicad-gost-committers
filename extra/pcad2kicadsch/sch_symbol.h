@@ -68,6 +68,7 @@ private:
     void ParseNetlist( XNODE* aNode, wxString aReference );
     void ParseLibrary( XNODE* aNode, wxString aModule,
                        wxString aDefaultMeasurementUnit, wxString aActualConversion );
+    void CorrectField( TTEXTVALUE* aValue );
 };
 
 } // namespace PCAD2KICAD
