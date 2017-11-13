@@ -3,9 +3,14 @@
 
 #include <wx/wx.h>
 
+#include <pcad2kicad_common.h>
+
 namespace PCAD2KICAD {
 
 void EscapeTextQuotes( wxString& aStr );
+wxString GetJustifyString( const TTEXTVALUE* aValue );
+void MirrorJustify( TTEXT_JUSTIFY* aJustify );
+void RotateJustify180( TTEXT_JUSTIFY* aJustify );
 
 } // namespace PCAD2KICAD
 

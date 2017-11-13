@@ -64,6 +64,7 @@ public:
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 
 private:
+    void            CorrectField( TTEXTVALUE* aValue );
     void            SetPinProperties( XNODE*   aNode, int aSymbolIndex,
                                       wxString aDefaultMeasurementUnit,
                                       wxString aActualConversion );

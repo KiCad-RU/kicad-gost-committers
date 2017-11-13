@@ -40,11 +40,6 @@
 
 namespace PCAD2KICAD {
 
-wxString GetJustifyString( const TTEXTVALUE* aValue );
-void MirrorJustify( TTEXT_JUSTIFY* aJustify );
-void RotateJustify180( TTEXT_JUSTIFY* aJustify );
-
-
 SCH_SYMBOL::SCH_SYMBOL()
 {
     m_objType = wxT( "symbol" );
@@ -503,96 +498,6 @@ void SCH_SYMBOL::CorrectField( TTEXTVALUE* aValue )
         aValue->textRotation = 0;
     else if( aValue->textRotation == 2700 )
         aValue->textRotation = 900;
-}
-
-
-wxString GetJustifyString( const TTEXTVALUE* aValue )
-{
-    switch( aValue->justify )
-    {
-    case LowerLeft:
-        return wxT( "L B" );
-    case LowerCenter:
-        return wxT( "C B" );
-    case LowerRight:
-        return wxT( "R B" );
-    case Left:
-        return wxT( "L C" );
-    case Center:
-        return wxT( "C C" );
-    case Right:
-        return wxT( "R C" );
-    case UpperLeft:
-        return wxT( "L T" );
-    case UpperCenter:
-        return wxT( "C T" );
-    case UpperRight:
-        return wxT( "R T" );
-    default:
-        return wxT( "L B" );
-    }
-}
-
-
-void MirrorJustify( TTEXT_JUSTIFY* aJustify )
-{
-    switch( *aJustify )
-    {
-    case LowerLeft:
-        *aJustify = LowerRight;
-        break;
-    case LowerRight:
-        *aJustify = LowerLeft;
-        break;
-    case Left:
-        *aJustify = Right;
-        break;
-    case Right:
-        *aJustify = Left;
-        break;
-    case UpperLeft:
-        *aJustify = UpperRight;
-        break;
-    case UpperRight:
-        *aJustify = UpperLeft;
-        break;
-    default:
-        break;
-    }
-}
-
-
-void RotateJustify180( TTEXT_JUSTIFY* aJustify )
-{
-    switch( *aJustify )
-    {
-    case LowerLeft:
-        *aJustify = UpperRight;
-        break;
-    case LowerCenter:
-        *aJustify = UpperCenter;
-        break;
-    case LowerRight:
-        *aJustify = UpperLeft;
-        break;
-    case Left:
-        *aJustify = Right;
-        break;
-    case Right:
-        *aJustify = Left;
-        break;
-    case UpperLeft:
-        *aJustify = LowerRight;
-        break;
-    case UpperCenter:
-        *aJustify = LowerCenter;
-        break;
-    case UpperRight:
-        *aJustify = LowerLeft;
-        break;
-    default:
-        break;
-    }
 }
 
 } // namespace PCAD2KICAD
