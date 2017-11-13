@@ -33,6 +33,7 @@
 
 #include <common.h>
 
+#include <sch_common.h>
 #include <sch_symbol.h>
 
 #include <trigo.h>
@@ -326,6 +327,9 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     CorrectField( &m_value );
     CorrectField( &m_reference );
 
+    EscapeTextQuotes( m_value.text );
+    EscapeTextQuotes( m_reference.text );
+
     // Go out
     aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol ) +
                   wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
@@ -590,4 +594,5 @@ void RotateJustify180( TTEXT_JUSTIFY* aJustify )
         break;
     }
 }
+
 } // namespace PCAD2KICAD

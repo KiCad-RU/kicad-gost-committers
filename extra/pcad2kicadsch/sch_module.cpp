@@ -32,9 +32,10 @@
 
 #include <common.h>
 
-#include <sch_module.h>
 #include <sch_arc.h>
+#include <sch_common.h>
 #include <sch_line.h>
+#include <sch_module.h>
 #include <sch_pin.h>
 #include <sch_text.h>
 
@@ -342,6 +343,10 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " U 0 40 " ) +
                   m_pinNumVisibility + wxT( ' ' ) + m_pinNameVisibility +
                   wxString::Format( wxT( " %d F N\n" ), m_numParts ) );
+
+    EscapeTextQuotes( m_reference.text );
+    EscapeTextQuotes( m_name.text );
+    EscapeTextQuotes( m_attachedPattern );
 
     // REFERENCE
     aFile->Write( wxT( "F0 \"" ) + m_reference.text + wxT( "\" " ) +

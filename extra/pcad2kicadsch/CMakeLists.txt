@@ -17,6 +17,7 @@ set(PCAD2KICADSCH_SRCS
     sch_arc.cpp
     sch_bus.cpp
     sch_component.cpp
+    sch_common.cpp
     sch_junction.cpp
     sch_line.cpp
     sch_module.cpp
