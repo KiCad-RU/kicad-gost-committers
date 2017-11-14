@@ -41,6 +41,7 @@ class SCH_PORT : public SCH_COMPONENT
 {
 public:
     TTEXTVALUE  m_labelText;
+    bool        m_isHorizontal;
 
     SCH_PORT();
     ~SCH_PORT();

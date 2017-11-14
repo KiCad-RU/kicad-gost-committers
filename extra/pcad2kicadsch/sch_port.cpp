@@ -51,26 +51,34 @@ void SCH_PORT::Parse( XNODE*   aNode,
     XNODE*      lNode;
     wxString    propValue;
 
-    lNode = FindNode( aNode, wxT( "pt" ) );
-
-    if( lNode )
-    {
+    if( ( lNode = FindNode( aNode, wxT( "pt" ) ) ) )
         SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                      &m_positionX, &m_positionY, aActualConversion );
-    }
 
-    if( FindNode( aNode, wxT( "netNameRef" ) ) )
+    if( ( lNode = FindNode( aNode, wxT( "netNameRef" ) ) ) )
     {
-        FindNode( aNode,
-                  wxT( "netNameRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
+        lNode->GetAttribute( wxT( "Name" ), &propValue );
         propValue.Trim( false );
         propValue.Trim( true );
         m_labelText.text = propValue;
     }
 
-    if( FindNode( lNode, wxT( "rotation" ) ) )
-        m_labelText.textRotation = StrToInt1Units(
-            FindNode( lNode, wxT( "rotation" ) )->GetNodeContent() );
+    if( ( lNode = FindNode( aNode, wxT( "rotation" ) ) ) )
+        m_labelText.textRotation = StrToInt1Units( lNode->GetNodeContent() );
+    else
+        m_labelText.textRotation = 0;
+
+    propValue = FindNodeGetContent( aNode, wxT( "portType" ) );
+    if( propValue.EndsWith( wxT( "_Horz" ) ) )
+        m_isHorizontal = true;
+    else
+        m_isHorizontal = false;
+
+    propValue = FindNodeGetContent( aNode, wxT( "isFlipped" ) );
+    if( propValue == wxT( "True" ) )
+        m_labelText.mirror = 1;
+    else
+        m_labelText.mirror = 0;
 }
 
 
@@ -80,18 +88,52 @@ SCH_PORT::~SCH_PORT()
 
 void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
 {
-    wxString lr;
+    int lr;
 
-    if( m_labelText.textRotation == 0 )
-        lr = wxT( '0' );
+    m_labelText.textHeight = FONT_PORTSTYLE_HEIGHT;
+
+    if( m_isHorizontal )
+    {
+        switch( m_labelText.textRotation )
+        {
+        case 0:
+            lr = 0;
+            break;
+        case 900:
+            lr = 1;
+            break;
+        case 1800:
+            lr = 2;
+            break;
+        case 2700:
+            lr = 3;
+            break;
+        }
+
+        if( m_labelText.mirror )
+        {
+            if( lr == 0 )
+                lr = 2;
+            else if( lr == 2 )
+                lr = 0;
+        }
+    }
     else
-        lr = wxT( '1' );
+    {
+        if( m_labelText.textRotation == 0 || m_labelText.textRotation == 1800 )
+        {
+            lr = 0;
+            m_positionX -= KIROUND( (double) CalculateTextLengthSize( &m_labelText ) / 2. );
+        }
+        else
+        {
+            lr = 1;
+            m_positionY += KIROUND( (double) CalculateTextLengthSize( &m_labelText ) / 2. );
+        }
+    }
 
-    aFile->Write( wxString::Format( wxT( "Text Label %d %d" ),
-                                    m_positionX, m_positionY ) +
-                  wxT( ' ' ) + lr +
-                  wxString::Format( wxT( " %d " ), FONT_PORTSTYLE_HEIGHT ) +
-                  wxT( "~\n" ) );
+    aFile->Write( wxString::Format( wxT( "Text Label %d %d %d %d ~\n" ),
+                                    m_positionX, m_positionY, lr, m_labelText.textHeight ) );
     aFile->Write( m_labelText.text + wxT( "\n" ) );
 }
 
