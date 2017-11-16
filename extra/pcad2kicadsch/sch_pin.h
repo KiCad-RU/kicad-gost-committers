@@ -50,6 +50,7 @@ public:
     int         m_pinLength;
     bool        m_pinNumVisible;
     bool        m_pinNameVisible;
+    bool        m_isPower;
 
     SCH_PIN();
     ~SCH_PIN();

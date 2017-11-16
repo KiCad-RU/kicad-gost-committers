@@ -52,6 +52,7 @@ private:
     wxArrayString           m_attachedSymbols;
     wxString                m_pinNumVisibility;
     wxString                m_pinNameVisibility;
+    bool                    m_isPower;
 
 public:
     SCH_MODULE();

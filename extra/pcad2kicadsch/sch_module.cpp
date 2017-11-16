@@ -54,6 +54,7 @@ SCH_MODULE::SCH_MODULE()
     m_alias = wxEmptyString;
     m_pinNumVisibility = wxT( 'Y' );
     m_pinNameVisibility = wxT( 'N' );
+    m_isPower = false;
 }
 
 
@@ -95,6 +96,14 @@ void SCH_MODULE::Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
             FindNode( lNode, wxT( "numParts" ) )->GetNodeContent().ToLong( &num );
             m_numParts = (int) num;
         }
+
+        if( FindNode( lNode, wxT( "compType" ) ) )
+        {
+            propValue = FindNode( lNode, wxT( "compType" ) )->GetNodeContent();
+            propValue.Trim( false );
+            if( propValue == wxT( "Power" ) )
+                m_isPower = true;
+        }
     }
 
     tNode = aNode->GetChildren();
@@ -105,6 +114,7 @@ void SCH_MODULE::Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
         {
             pin = new SCH_PIN;
             pin->Parse( tNode );
+            pin->m_isPower = m_isPower;
             m_moduleObjects.Add( pin );
         }
 
@@ -336,15 +346,26 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxT( "#\n" ) );
     aFile->Write( wxT( "# " ) + ValidateName( m_name.text ) + wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );
-    aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " U 0 40 " ) +
-                  m_pinNumVisibility + wxT( ' ' ) + m_pinNameVisibility +
-                  wxString::Format( wxT( " %d F N\n" ), m_numParts ) );
+    if( m_isPower )
+        aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " #PWR 0 40 " ) +
+                      m_pinNumVisibility + wxT( ' ' ) + m_pinNameVisibility +
+                      wxString::Format( wxT( " %d F P\n" ), m_numParts ) );
+    else
+        aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " U 0 40 " ) +
+                      m_pinNumVisibility + wxT( ' ' ) + m_pinNameVisibility +
+                      wxString::Format( wxT( " %d F N\n" ), m_numParts ) );
 
     EscapeTextQuotes( m_reference.text );
     EscapeTextQuotes( m_name.text );
     EscapeTextQuotes( m_attachedPattern );
 
     // REFERENCE
+    if( m_isPower )
+    {
+        m_reference.text = wxT( "#PWR" );
+        m_reference.textIsVisible = false;
+    }
+
     orientation = ( m_reference.textRotation == 900 ) ? wxT( 'V' ) : wxT( 'H' );
     visibility = m_reference.textIsVisible ? wxT( 'V' ) : wxT( 'I' );
 
@@ -397,8 +418,6 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
             if( m_moduleObjects[i]->m_objType == wxT( "line" ) )
                 if( ( (SCH_LINE*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
-
-
         }
 
         // ARCS
@@ -407,8 +426,6 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
             if( m_moduleObjects[i]->m_objType == wxT( "arc" ) )
                 if( ( (SCH_ARC*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
-
-
         }
 
         // TEXTS
@@ -417,8 +434,6 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
             if( m_moduleObjects[i]->m_objType == wxT( "text" ) )
                 if( ( (SCH_TEXT*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
-
-
         }
 
         // PINS
@@ -427,8 +442,6 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
             if( m_moduleObjects[i]->m_objType == wxT( "pin" ) )
                 if( ( (SCH_PIN*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
-
-
         }
     }
 

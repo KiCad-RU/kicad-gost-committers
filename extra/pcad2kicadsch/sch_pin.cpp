@@ -49,6 +49,7 @@ SCH_PIN::SCH_PIN()
     m_pinLength = 0;
     m_pinNumVisible = true;
     m_pinNameVisible = false;
+    m_isPower = false;
 }
 
 
@@ -186,20 +187,17 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
         orientation = wxT( 'L' );
         m_positionX += m_pinLength;    // Set corrected to KiCad position
     }
-
-    if( m_rotation == 900 )
+    else if( m_rotation == 900 )
     {
         orientation = wxT( 'D' );
         m_positionY += m_pinLength;    // Set corrected to KiCad position
     }
-
-    if( m_rotation == 1800 )
+    else if( m_rotation == 1800 )
     {
         orientation = wxT( 'R' );
         m_positionX -= m_pinLength;    // Set corrected to KiCad position
     }
-
-    if( m_rotation == 2700 )
+    else if( m_rotation == 2700 )
     {
         orientation = wxT( 'U' );
         m_positionY -= m_pinLength;    // Set corrected to KiCad position
@@ -219,44 +217,78 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
  *   I Input */
     if( m_pinType == wxT( "Pasive" ) )
         pinType = wxT( 'P' );
-
-    if( m_pinType == wxT( "Input" ) )
+    else if( m_pinType == wxT( "Input" ) )
         pinType = wxT( 'I' );
-
-    if( m_pinType == wxT( "Output" ) )
+    else if( m_pinType == wxT( "Output" ) )
         pinType = wxT( 'O' );
-
-    if( m_pinType == wxT( "Power" ) )
+    else if( m_pinType == wxT( "Power" ) )
         pinType = wxT( 'W' );
-
-    if( m_pinType == wxT( "Bidirectional" ) )
+    else if( m_pinType == wxT( "Bidirectional" ) )
         pinType = wxT( 'B' );
 
     shape = wxEmptyString;    // Default , standard line without shape
 
-    if( m_edgeStyle == wxT( "Dot" ) )
-        shape = wxT( 'I' ); // Invert
+    if( m_isPower )
+    {
+        shape = wxT( 'N' ); // Invisible
+    }
+    else
+    {
+        if( m_edgeStyle == wxT( "Dot" ) )
+            shape = wxT( 'I' ); // Invert
 
-    if( m_edgeStyle == wxT( "Clock" ) )
-        shape = wxT( 'C' ); // Clock
+        if( m_edgeStyle == wxT( "Clock" ) )
+            shape = wxT( 'C' ); // Clock
 
-    if( m_edgeStyle == wxT( "???" ) )
-        shape = wxT( "IC" ); // Clock Invert
+        if( m_edgeStyle == wxT( "???" ) )
+            shape = wxT( "IC" ); // Clock Invert
 
-    if( m_isVisible == 0 )
-        shape += wxT( 'N' ); // Invisible
+        if( m_isVisible == 0 )
+            shape += wxT( 'N' ); // Invisible
+    }
 
     // unit = 0 if common to the parts; if not, number of part (1. .n).
     // convert = 0 so common to the representations, if not 1 or 2.
     // Go out
+    if( m_isPower )
+    {
+        int toX = m_positionX;
+        int toY = m_positionY;
+
+        switch( m_rotation )
+        {
+        case 0:
+            toX += m_pinLength;
+            break;
+        case 900:
+            toY -= m_pinLength;
+            break;
+        case 1800:
+            toX -= m_pinLength;
+            break;
+        case 2700:
+            toY += m_pinLength;
+            break;
+        }
+
+        aFile->Write( wxString::Format( wxT( "P 2 %d 0 %d %d %d %d %d N\n" ),
+                                        0,
+                                        0,
+                                        m_positionX,
+                                        m_positionY,
+                                        toX,
+                                        toY ) );
+        m_pinLength = 0;
+    }
+
     aFile->Write( wxT( "X " ) + m_pinName.text + wxT( ' ' ) + m_number.text + wxT( ' ' ) +
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_positionX,
                                     m_positionY,
                                     m_pinLength ) + wxT( ' ' ) + orientation +
                   wxString::Format( wxT( " %d %d %d 0 " ),
-				    FONT_PINSTYLE_HEIGHT, FONT_PINSTYLE_HEIGHT,
-				    m_partNum ) +
+                                    FONT_PINSTYLE_HEIGHT, FONT_PINSTYLE_HEIGHT,
+                                    m_partNum ) +
                   pinType + wxT( ' ' ) + shape + wxT( "\n" ) );
 }
 
