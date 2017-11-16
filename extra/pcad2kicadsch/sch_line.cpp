@@ -36,6 +36,8 @@
 
 namespace PCAD2KICAD {
 
+const int LEAD_OFFSET = 100;
+
 SCH_LINE::SCH_LINE( wxString aLineType )
 {
     m_objType        = wxT( "line" );
@@ -163,7 +165,6 @@ void SCH_LINE::SetPosOffset( int aX_offs, int aY_offs )
 void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
 {
     wxString lt;
-    int prevX;
 
     if( aFileType == wxT( 'L' ) )
         aFile->Write( wxString::Format( wxT( "P 2 %d 0 %d %d %d %d %d N\n" ),
@@ -180,28 +181,128 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
         {
             lt = wxT( "Wire" );
 
-            if( m_start_endStyle == wxT( "RightLead" ) ||
-                m_start_endStyle == wxT( "LeftLead" ) )
+            //TODO refactor
+            bool is_horiz_wire = ( m_positionY == m_toY );
+            bool is_norm_pt_order = ( is_horiz_wire && ( m_positionX < m_toX ) ) ||
+                                    ( !is_horiz_wire && ( m_positionY < m_toY ) );
+            int rx_offset;
+            int ry_offset;
+            int lx_offset;
+            int ly_offset;
+
+            if( m_start_endStyle != wxT( "Rounded" ) )
             {
-                // place wires to bus entries
-                prevX = m_positionX;
-
-                if( m_toX > m_positionX )
-                    m_positionX += 100;
-                else
-                    m_positionX -= 100;
-
-                aFile->Write( wxT( "Entry " ) + lt + wxT( " Line\n" ) );
-
-                if( (m_start_endStyle == wxT( "RightLead" )) != (m_toX > m_positionX) )
+                if( is_horiz_wire )
                 {
-                    aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
-                                                    m_positionX, m_positionY, prevX, m_positionY + 100 ) );
+                    if( is_norm_pt_order )
+                        m_positionX += LEAD_OFFSET;
+                    else
+                        m_positionX -= LEAD_OFFSET;
                 }
                 else
                 {
+                    if( is_norm_pt_order )
+                        m_positionY += LEAD_OFFSET;
+                    else
+                        m_positionY -= LEAD_OFFSET;
+                }
+
+                // normal point order horizontal wire
+                rx_offset = -LEAD_OFFSET;
+                ry_offset = -LEAD_OFFSET;
+                lx_offset = -LEAD_OFFSET;
+                ly_offset = LEAD_OFFSET;
+
+                if( !is_horiz_wire )
+                {
+                    rx_offset = -rx_offset;
+                    ly_offset = -ly_offset;
+                }
+
+                if( !is_norm_pt_order )
+                {
+                    rx_offset = -rx_offset;
+                    ry_offset = -ry_offset;
+                    lx_offset = -lx_offset;
+                    ly_offset = -ly_offset;
+                }
+
+                if( m_start_endStyle == wxT( "RightLead" ) ||
+                    m_start_endStyle == wxT( "TwoLeads" ) )
+                {
+                    aFile->Write( wxT( "Entry " ) + lt + wxT( " Line\n" ) );
                     aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
-                                                    m_positionX, m_positionY, prevX, m_positionY - 100 ) );
+                                                    m_positionX, m_positionY,
+                                                    m_positionX + rx_offset,
+                                                    m_positionY + ry_offset ) );
+                }
+
+                if( m_start_endStyle == wxT( "LeftLead" ) ||
+                    m_start_endStyle == wxT( "TwoLeads" ) )
+                {
+                    aFile->Write( wxT( "Entry " ) + lt + wxT( " Line\n" ) );
+                    aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
+                                                    m_positionX, m_positionY,
+                                                    m_positionX + lx_offset,
+                                                    m_positionY + ly_offset ) );
+                }
+            }
+
+            if( m_end_endStyle != wxT( "Rounded" ) )
+            {
+                if( is_horiz_wire )
+                {
+                    if( is_norm_pt_order )
+                        m_toX -= LEAD_OFFSET;
+                    else
+                        m_toX += LEAD_OFFSET;
+                }
+                else
+                {
+                    if( is_norm_pt_order )
+                        m_toY -= LEAD_OFFSET;
+                    else
+                        m_toY += LEAD_OFFSET;
+                }
+
+                // normal point order horizontal wire
+                rx_offset = LEAD_OFFSET;
+                ry_offset = LEAD_OFFSET;
+                lx_offset = LEAD_OFFSET;
+                ly_offset = -LEAD_OFFSET;
+
+                if( !is_horiz_wire )
+                {
+                    rx_offset = -rx_offset;
+                    ly_offset = -ly_offset;
+                }
+
+                if( !is_norm_pt_order )
+                {
+                    rx_offset = -rx_offset;
+                    ry_offset = -ry_offset;
+                    lx_offset = -lx_offset;
+                    ly_offset = -ly_offset;
+                }
+
+                if( m_end_endStyle == wxT( "RightLead" ) ||
+                    m_end_endStyle == wxT( "TwoLeads" ) )
+                {
+                    aFile->Write( wxT( "Entry " ) + lt + wxT( " Line\n" ) );
+                    aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
+                                                    m_toX, m_toY,
+                                                    m_toX + rx_offset,
+                                                    m_toY + ry_offset ) );
+                }
+
+                if( m_end_endStyle == wxT( "LeftLead" ) ||
+                    m_end_endStyle == wxT( "TwoLeads" ) )
+                {
+                    aFile->Write( wxT( "Entry " ) + lt + wxT( " Line\n" ) );
+                    aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
+                                                    m_toX, m_toY,
+                                                    m_toX + lx_offset,
+                                                    m_toY + ly_offset ) );
                 }
             }
         }
