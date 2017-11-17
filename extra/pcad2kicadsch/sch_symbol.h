@@ -51,6 +51,7 @@ public:
     TTEXTVALUE     m_module;
     TTEXTVALUE     m_reference;
     TTEXTVALUE     m_value;
+    TTEXTVALUE     m_type;
     wxString       m_attachedSymbol;
     wxString       m_attachedPattern;
     TATTR_ARRAY    m_attributes;

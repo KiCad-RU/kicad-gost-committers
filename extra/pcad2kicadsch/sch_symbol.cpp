@@ -46,6 +46,7 @@ SCH_SYMBOL::SCH_SYMBOL()
     InitTTextValue( &m_module );
     InitTTextValue( &m_reference );
     InitTTextValue( &m_value );
+    InitTTextValue( &m_type );
     m_attachedSymbol  = wxEmptyString;
     m_attachedPattern = wxEmptyString;
 }
@@ -129,13 +130,14 @@ void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
                     propValue.Trim( true );
                     m_value.text = propValue;
                 }
-                //else if( FindNode( lNode, wxT( "originalName" ) ) )
-                //{
-                //    FindNode( lNode,
-                //              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
-                //                                                     &propValue );
-                //    m_typ.text = propValue;
-                //}
+
+                if( FindNode( lNode, wxT( "originalName" ) ) )
+                {
+                    FindNode( lNode,
+                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
+                                                                     &propValue );
+                    m_type.text = propValue;
+                }
 
                 FindAttributes( lNode );
 
@@ -213,9 +215,9 @@ void SCH_SYMBOL::ParseLibrary( XNODE*   aNode, wxString aModule,
                                                aDefaultMeasurementUnit, aActualConversion );
 
                         // Type (type field is not supported in KiCad)
-                        //if( propValue == wxT( "Type {Type}" ) || propValue == wxT( "Type" ) )
-                        //    SetTextParameters( lNode, &m_typ,
-                        //                       aDefaultMeasurementUnit, aActualConversion );
+                        if( propValue == wxT( "Type {Type}" ) || propValue == wxT( "Type" ) )
+                            SetTextParameters( lNode, &m_type,
+                                               aDefaultMeasurementUnit, aActualConversion );
 
                         // Value
                         if( propValue == wxT( "Value" ) )
@@ -301,11 +303,15 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
                                    aActualConversion );
                 m_reference.isLibValues = false;
             }
-
-            if( propValue == wxT( "Value" ) )
+            else if( propValue == wxT( "Value" ) )
             {
                 SetTextParameters( lNode, &m_value, aDefaultMeasurementUnit, aActualConversion );
                 m_value.isLibValues = false;
+            }
+            else if( propValue == wxT( "Type" ) )
+            {
+                SetTextParameters( lNode, &m_type, aDefaultMeasurementUnit, aActualConversion );
+                m_type.isLibValues = false;
             }
         }
 
@@ -319,11 +325,13 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     wxString orientation, visibility;
     int      a, b, c, d, i;
 
-    CorrectField( &m_value );
     CorrectField( &m_reference );
+    CorrectField( &m_value );
+    CorrectField( &m_type );
 
-    EscapeTextQuotes( m_value.text );
     EscapeTextQuotes( m_reference.text );
+    EscapeTextQuotes( m_value.text );
+    EscapeTextQuotes( m_type.text );
 
     // Go out
     aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol ) +
@@ -371,9 +379,29 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_value ) +
                   wxT( "NN\n" ) );
 
+    // Type as a common KiCAD field
+    if( m_type.textIsVisible == 1 )
+        visibility = wxT( "0000" );
+    else
+        visibility = wxT( "0001" );
+
+    if( m_type.textRotation == 900 )
+        orientation = wxT( 'V' );
+    else
+        orientation = wxT( 'H' );
+
+    aFile->Write( wxT( "F 4 \"" ) + m_type.text + wxT( "\" " ) + orientation + wxT( ' ' ) +
+                  wxString::Format( wxT( "%d %d %d" ),
+                                    m_type.textPositionX + m_positionX,
+                                    m_type.textPositionY + m_positionY,
+                                    KiROUND( (double) m_type.textHeight *
+                                             TEXT_HEIGHT_TO_SIZE ) ) +
+                  wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_type ) +
+                  wxT( "NN \"Type\"\n" ) );
+
     for( i = 0; i < (int)m_attributes.GetCount(); i++ )
     {
-        aFile->Write( wxString::Format( wxT( "F %d \"" ), i + 4 ) +
+        aFile->Write( wxString::Format( wxT( "F %d \"" ), i + 5 ) +
                       (m_attributes[i])->attrValue + wxT( "\" H " ) +
                       wxString::Format( wxT( "%d %d %d" ),
                                         m_positionX,
