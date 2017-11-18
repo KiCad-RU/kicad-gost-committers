@@ -55,6 +55,7 @@ public:
     wxString       m_attachedSymbol;
     wxString       m_attachedPattern;
     TATTR_ARRAY    m_attributes;
+    bool           m_isPower;
 
     SCH_SYMBOL();
     ~SCH_SYMBOL();

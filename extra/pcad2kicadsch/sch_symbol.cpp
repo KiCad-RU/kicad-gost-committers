@@ -49,6 +49,7 @@ SCH_SYMBOL::SCH_SYMBOL()
     InitTTextValue( &m_type );
     m_attachedSymbol  = wxEmptyString;
     m_attachedPattern = wxEmptyString;
+    m_isPower = false;
 }
 
 
@@ -233,6 +234,42 @@ void SCH_SYMBOL::ParseLibrary( XNODE*   aNode, wxString aModule,
                 lNode = lNode->GetNext();
         }
     }
+
+    lNode = aNode;
+
+    while( lNode->GetName() != wxT( "www.lura.sk" ) )
+        lNode = lNode->GetParent();
+
+    lNode = FindNode( lNode, wxT( "library" ) );
+
+    if( lNode )
+    {
+        lNode = FindNode( lNode, wxT( "compDef" ) );
+
+        while( lNode )
+        {
+            lNode->GetAttribute( wxT( "Name" ), &propValue );
+
+            if( lNode->GetName() == wxT( "compDef" ) && propValue == aModule )
+            {
+                lNode = FindNode( lNode, wxT( "compHeader" ) );
+
+                if( lNode )
+                {
+                    if( FindNode( lNode, wxT( "compType" ) ) )
+                    {
+                        propValue = FindNode( lNode, wxT( "compType" ) )->GetNodeContent();
+                        propValue.Trim( false );
+                        if( propValue == wxT( "Power" ) )
+                            m_isPower = true;
+                    }
+                }
+                break;
+            }
+
+            lNode = lNode->GetNext();
+        }
+    }
 }
 
 
@@ -332,6 +369,9 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     EscapeTextQuotes( m_reference.text );
     EscapeTextQuotes( m_value.text );
     EscapeTextQuotes( m_type.text );
+
+    if( m_isPower )
+        m_reference.text.Prepend('#');
 
     // Go out
     aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol ) +
@@ -433,7 +473,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
  *  MirrorY     -1   0    0   -1
  */
     aFile->Write( wxString::Format( wxT( " %d %d %d\n" ), m_partNum, m_positionX, m_positionY ) );
-    // Miror is negative in compare with PCad represenation...
+    // Mirror is negative in compare with PCad represenation...
     a = 0; b = 0; c = 0; d = 0;
 
     if( m_mirror == 0 )
