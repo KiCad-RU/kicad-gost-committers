@@ -29,6 +29,7 @@
 
 #include <wx/wx.h>
 #include <wx/config.h>
+#include <wx/regex.h>
 #include <wx/tokenzr.h>
 
 #include <common.h>
@@ -370,8 +371,14 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     EscapeTextQuotes( m_value.text );
     EscapeTextQuotes( m_type.text );
 
+    wxRegEx reRef;
+    reRef.Compile( wxT( "^[[:digit:]][[:digit:]]*$" ) );
+
+    if( reRef.Matches( m_reference.text ) )
+        m_reference.text.Prepend( wxT( '.' ) );
+
     if( m_isPower )
-        m_reference.text.Prepend('#');
+        m_reference.text.Prepend( wxT( '#' ) );
 
     // Go out
     aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol ) +
