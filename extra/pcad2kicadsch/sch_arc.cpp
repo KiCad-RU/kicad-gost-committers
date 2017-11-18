@@ -78,23 +78,24 @@ void SCH_ARC::Parse( XNODE*   aNode, int aSymbolIndex,
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &m_positionX, &m_positionY, aActualConversion );
 
-        // First - starting point in PCAS is ENDING point in KiCAd
-        lNode = lNode->GetNext();
-
-        if( lNode )
-            SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
-                         &m_toX, &m_toY, aActualConversion );
-
-        // Second - ending point in PCAS is STARTING point in KiCAd
         lNode = lNode->GetNext();
 
         if( lNode )
             SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
                          &m_startX, &m_startY, aActualConversion );
 
-        // now temporary, it can be fixed later.....
-        // SCHArc.StartAngle:=0;
-        // SCHArc.SweepAngle:=3600;
+        lNode = lNode->GetNext();
+
+        if( lNode )
+            SetPosition( lNode->GetNodeContent(), aDefaultMeasurementUnit,
+                         &m_toX, &m_toY, aActualConversion );
+
+        m_radius = KIROUND( GetLineLength( wxPoint( m_positionX, m_positionY ),
+                                           wxPoint( m_startX, m_startY ) ) );
+
+        m_startAngle = KIROUND( ArcTangente( m_startY - m_positionY, m_startX - m_positionX ) );
+        m_sweepAngle = m_startAngle -
+                       KIROUND( ArcTangente( m_toY - m_positionY, m_toX - m_positionX ) );
     }
 
     if( aNode->GetName() == wxT( "arc" ) )
@@ -134,9 +135,44 @@ void SCH_ARC::Parse( XNODE*   aNode, int aSymbolIndex,
 
 void SCH_ARC::WriteToFile( wxFile* aFile, char aFileType )
 {
+    int startAngle = m_startAngle;
+    int endAngle = m_startAngle + m_sweepAngle;
+
+    CorrectAngles( startAngle, endAngle );
+
     aFile->Write( wxString::Format( wxT( "A %d %d %d %d %d %d 0 %d N %d %d %d %d\n" ),
-                                    m_positionX, m_positionY, m_radius, m_startAngle, m_sweepAngle,
+                                    m_positionX, m_positionY, m_radius, startAngle, endAngle,
                                     m_partNum, m_width, m_startX, m_startY, m_toX, m_toY ) );
+}
+
+
+void SCH_ARC::CorrectAngles( int& aStartAngle, int& aEndAngle )
+{
+    NORMALIZE_ANGLE_POS( aStartAngle );
+    NORMALIZE_ANGLE_POS( aEndAngle );  // angles = 0 .. 3600
+
+    // Restrict angle to less than 180 to avoid PBS display mirror Trace because it is
+    // assumed that the arc is less than 180 deg to find orientation after rotate or mirror.
+    // See LIB_ARC::calcRadiusAngles().
+    if( ( aEndAngle - aStartAngle ) > 1800 )
+        aEndAngle -= 3600;
+    else if( ( aEndAngle - aStartAngle ) <= -1800 )
+        aEndAngle += 3600;
+
+    while( ( aEndAngle - aStartAngle ) >= 1800 )
+    {
+        aEndAngle--;
+        aStartAngle++;
+    }
+
+    while( ( aStartAngle - aEndAngle ) >= 1800 )
+    {
+        aEndAngle++;
+        aStartAngle--;
+    }
+
+    NORMALIZE_ANGLE_POS( aStartAngle );
+    NORMALIZE_ANGLE_POS( aEndAngle );
 }
 
 } // namespace PCAD2KICAD
