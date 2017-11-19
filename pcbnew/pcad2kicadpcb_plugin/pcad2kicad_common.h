@@ -77,6 +77,10 @@ extern void         SetWidth( wxString  aStr,
                               wxString  aDefaultMeasurementUnit,
                               int*      aWidth,
                               wxString  aActualConversion );
+extern void         SetHeight( wxString  aStr,
+                              wxString  aDefaultMeasurementUnit,
+                              int*      aHeight,
+                              wxString  aActualConversion );
 extern void         SetPosition( wxString   aStr,
                                  wxString   aDefaultMeasurementUnit,
                                  int*       aX,

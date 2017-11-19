@@ -35,8 +35,6 @@
 
 namespace PCAD2KICAD {
 
-const int FONT_PORTSTYLE_HEIGHT = 89;
-
 SCH_PORT::SCH_PORT()
 {
     m_objType   = wxT( "port" );
@@ -79,6 +77,8 @@ void SCH_PORT::Parse( XNODE*   aNode,
         m_labelText.mirror = 1;
     else
         m_labelText.mirror = 0;
+
+    SetPortFontProperty( aNode, &m_labelText, aDefaultMeasurementUnit, aActualConversion );
 }
 
 
@@ -89,8 +89,6 @@ SCH_PORT::~SCH_PORT()
 void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
 {
     int lr;
-
-    m_labelText.textHeight = FONT_PORTSTYLE_HEIGHT;
 
     if( m_isHorizontal )
     {
@@ -133,8 +131,71 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
     }
 
     aFile->Write( wxString::Format( wxT( "Text Label %d %d %d %d ~\n" ),
-                                    m_positionX, m_positionY, lr, m_labelText.textHeight ) );
+                                    m_positionX, m_positionY, lr,
+                                    KIROUND( (double) m_labelText.textHeight *
+                                             TEXT_HEIGHT_TO_SIZE ) ) );
     aFile->Write( m_labelText.text + wxT( "\n" ) );
+}
+
+
+void SCH_PORT::SetPortFontProperty( XNODE*        aNode,
+                                    TTEXTVALUE*   aTextValue,
+                                    wxString      aDefaultMeasurementUnit,
+                                    wxString      aActualConversion )
+{
+    wxString n = wxT( "(PortStyle)" );
+    wxString propValue;
+
+    while( aNode->GetName() != wxT( "www.lura.sk" ) )
+        aNode = aNode->GetParent();
+
+    aNode = FindNode( aNode, wxT( "library" ) );
+
+    if( aNode )
+        aNode = FindNode( aNode, wxT( "textStyleDef" ) );
+
+    while( aNode )
+    {
+        aNode->GetAttribute( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
+
+        if( propValue == n )
+            break;
+
+        aNode = aNode->GetNext();
+    }
+
+    if( aNode )
+    {
+        bool isTrueType;
+        wxString fontType;
+
+        propValue = FindNodeGetContent( aNode, wxT( "textStyleDisplayTType" ) );
+        if( propValue == wxT( "True" ) )
+            isTrueType = true;
+        else
+            isTrueType = false;
+
+        aNode = FindNode( aNode, wxT( "font" ) );
+        fontType = FindNodeGetContent( aNode, wxT( "fontType" ) );
+        if( ( isTrueType && ( fontType != wxT( "TrueType" ) ) ) ||
+            ( !isTrueType && ( fontType != wxT( "Stroke" ) ) ) )
+            aNode = aNode->GetNext();
+
+        if( aNode )
+        {
+            if( FindNode( aNode, wxT( "fontHeight" ) ) )
+                SetHeight( FindNode( aNode, wxT( "fontHeight" ) )->GetNodeContent(),
+                           aDefaultMeasurementUnit, &aTextValue->textHeight,
+                           wxT( "FONT" ) );
+
+            if( FindNode( aNode, wxT( "strokeWidth" ) ) )
+                SetWidth( FindNode( aNode, wxT( "strokeWidth" ) )->GetNodeContent(),
+                          aDefaultMeasurementUnit, &aTextValue->textstrokeWidth,
+                          wxT( "FONT" ) );
+        }
+    }
 }
 
 } // namespace PCAD2KICAD

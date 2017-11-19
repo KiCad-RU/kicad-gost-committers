@@ -50,6 +50,12 @@ public:
                            wxString aDefaultMeasurementUnit, wxString aActualConversion );
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
+
+private:
+    void SetPortFontProperty( XNODE*        aNode,
+                              TTEXTVALUE*   aTextValue,
+                              wxString      aDefaultMeasurementUnit,
+                              wxString      aActualConversion );
 };
 
 } // namespace PCAD2KICAD
