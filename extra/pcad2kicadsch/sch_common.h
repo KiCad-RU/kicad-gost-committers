@@ -11,6 +11,7 @@ void EscapeTextQuotes( wxString& aStr );
 wxString GetJustifyString( const TTEXTVALUE* aValue );
 void MirrorJustify( TTEXT_JUSTIFY* aJustify );
 void RotateJustify180( TTEXT_JUSTIFY* aJustify );
+int GetPenSizeForBold( int aTextSize );
 
 } // namespace PCAD2KICAD
 

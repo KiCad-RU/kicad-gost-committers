@@ -373,41 +373,72 @@ void SetFontProperty( XNODE*        aNode,
     if( aNode )
         aNode = FindNode( aNode, wxT( "textStyleDef" ) );
 
+    while( aNode )
+    {
+        aNode->GetAttribute( wxT( "Name" ), &propValue );
+        propValue.Trim( false );
+        propValue.Trim( true );
+
+        if( propValue == n )
+            break;
+
+        aNode = aNode->GetNext();
+    }
+
     if( aNode )
     {
-        while( true )
-        {
-            aNode->GetAttribute( wxT( "Name" ), &propValue );
-            propValue.Trim( false );
-            propValue.Trim( true );
+        bool isTrueType;
+        wxString fontType;
 
-            if( propValue == n )
-                break;
+        propValue = FindNodeGetContent( aNode, wxT( "textStyleDisplayTType" ) );
 
+        if( propValue == wxT( "True" ) )
+            isTrueType = true;
+        else
+            isTrueType = false;
+
+        aNode = FindNode( aNode, wxT( "font" ) );
+        fontType = FindNodeGetContent( aNode, wxT( "fontType" ) );
+        if( ( isTrueType && ( fontType != wxT( "TrueType" ) ) ) ||
+            ( !isTrueType && ( fontType != wxT( "Stroke" ) ) ) )
             aNode = aNode->GetNext();
-        }
 
         if( aNode )
         {
-            aNode = FindNode( aNode, wxT( "font" ) );
-
-            if( aNode )
+            if( isTrueType )
             {
-                if( FindNode( aNode, wxT( "fontHeight" ) ) )
-                    // // SetWidth(iNode.ChildNodes.FindNode('fontHeight').Text,
-                    // //          DefaultMeasurementUnit,tv.TextHeight);
-                    // Fixed By Lubo, 02/2008
-                    SetHeight( FindNode( aNode, wxT(
-                                             "fontHeight" ) )->GetNodeContent(),
-                               aDefaultMeasurementUnit, &aTextValue->textHeight,
-                               aActualConversion );
+                propValue = FindNodeGetContent( aNode, wxT( "fontItalic" ) );
 
-                if( FindNode( aNode, wxT( "strokeWidth" ) ) )
-                    SetWidth( FindNode( aNode, wxT(
-                                            "strokeWidth" ) )->GetNodeContent(),
-                              aDefaultMeasurementUnit, &aTextValue->textstrokeWidth,
-                              aActualConversion );
+                if( propValue == wxT( "True" ) )
+                    aTextValue->isItalic = true;
+                else
+                    aTextValue->isItalic = false;
+
+                propValue = FindNodeGetContent( aNode, wxT( "fontWeight" ) );
+
+                if( propValue != wxT( "" ) )
+                {
+                    long fontWeight;
+
+                    propValue.ToLong(&fontWeight);
+
+                    if( fontWeight >= 700 )
+                        aTextValue->isBold = true;
+                    else
+                        aTextValue->isBold = false;
+                }
             }
+
+            if( FindNode( aNode, wxT( "fontHeight" ) ) )
+                // // SetWidth(iNode.ChildNodes.FindNode('fontHeight').Text,
+                // //          DefaultMeasurementUnit,tv.TextHeight);
+                // Fixed By Lubo, 02/2008
+                SetHeight( FindNode( aNode, wxT( "fontHeight" ) )->GetNodeContent(),
+                           aDefaultMeasurementUnit, &aTextValue->textHeight, wxT( "FONT" ) );
+
+            if( FindNode( aNode, wxT( "strokeWidth" ) ) )
+                SetWidth( FindNode( aNode, wxT( "strokeWidth" ) )->GetNodeContent(),
+                          aDefaultMeasurementUnit, &aTextValue->textstrokeWidth, wxT( "FONT" ) );
         }
     }
 }
@@ -607,6 +638,8 @@ void InitTTextValue( TTEXTVALUE* aTextValue )
     aTextValue->correctedPositionX  = 0;
     aTextValue->correctedPositionY  = 0;
     aTextValue->justify = LowerLeft;
+    aTextValue->isBold = false;
+    aTextValue->isItalic = false;
     aTextValue->isLibValues = true;
 }
 

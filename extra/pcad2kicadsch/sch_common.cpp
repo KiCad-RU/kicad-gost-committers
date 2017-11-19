@@ -127,4 +127,11 @@ void RotateJustify180( TTEXT_JUSTIFY* aJustify )
     }
 }
 
+
+//See drawtxt.cpp
+int GetPenSizeForBold( int aTextSize )
+{
+    return KiROUND( aTextSize / 5.0 );
+}
+
 } // namespace PCAD2KICAD

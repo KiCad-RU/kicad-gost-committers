@@ -31,6 +31,7 @@
 
 #include <common.h>
 
+#include <sch_common.h>
 #include <sch_port.h>
 
 namespace PCAD2KICAD {
@@ -88,7 +89,18 @@ SCH_PORT::~SCH_PORT()
 
 void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
 {
+    wxString boldStr;
+    wxString italicStr;
     int lr;
+
+    m_labelText.textHeight = KiROUND( (double) m_labelText.textHeight * TEXT_HEIGHT_TO_SIZE );
+
+    if( m_labelText.isBold )
+        boldStr = wxString::Format( wxT( "%i" ), GetPenSizeForBold( m_labelText.textHeight ) );
+    else
+        boldStr = wxT( "0" );
+
+    italicStr = m_labelText.isItalic ? wxT( "Italic" ) : wxT( "~" );
 
     if( m_isHorizontal )
     {
@@ -130,10 +142,9 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
         }
     }
 
-    aFile->Write( wxString::Format( wxT( "Text Label %d %d %d %d ~\n" ),
-                                    m_positionX, m_positionY, lr,
-                                    KIROUND( (double) m_labelText.textHeight *
-                                             TEXT_HEIGHT_TO_SIZE ) ) );
+    aFile->Write( wxString::Format( wxT( "Text Label %d %d %d %d " ),
+                                    m_positionX, m_positionY, lr, m_labelText.textHeight ) +
+                  italicStr + wxT( ' ' ) + boldStr + wxT( "\n" ) );
     aFile->Write( m_labelText.text + wxT( "\n" ) );
 }
 
@@ -185,6 +196,30 @@ void SCH_PORT::SetPortFontProperty( XNODE*        aNode,
 
         if( aNode )
         {
+            if( isTrueType )
+            {
+                propValue = FindNodeGetContent( aNode, wxT( "fontItalic" ) );
+
+                if( propValue == wxT( "True" ) )
+                    aTextValue->isItalic = true;
+                else
+                    aTextValue->isItalic = false;
+
+                propValue = FindNodeGetContent( aNode, wxT( "fontWeight" ) );
+
+                if( propValue != wxT( "" ) )
+                {
+                    long fontWeight;
+
+                    propValue.ToLong(&fontWeight);
+
+                    if( fontWeight >= 700 )
+                        aTextValue->isBold = true;
+                    else
+                        aTextValue->isBold = false;
+                }
+            }
+
             if( FindNode( aNode, wxT( "fontHeight" ) ) )
                 SetHeight( FindNode( aNode, wxT( "fontHeight" ) )->GetNodeContent(),
                            aDefaultMeasurementUnit, &aTextValue->textHeight,

@@ -31,6 +31,7 @@
 
 #include <common.h>
 
+#include <sch_common.h>
 #include <sch_text.h>
 
 namespace PCAD2KICAD {
@@ -79,28 +80,43 @@ void SCH_TEXT::Parse( XNODE*  aNode,
 
 void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
 {
+    wxString boldStr;
+    wxString italicStr;
+
     m_text.text.Replace( wxT( "\n" ), wxT( "\\n" ), true );
     m_text.text.Replace( wxT( "\r" ), wxT( "\\r" ), true );
     m_text.text.Replace( wxT( "\t" ), wxT( "\\t" ), true );
 
     if( aFileType == wxT( 'L' ) ) // library
     {
+        boldStr = m_text.isBold ? wxT( "1" ) : wxT( "0" );
+        italicStr = m_text.isItalic ? wxT( "Italic" ) : wxT( "Normal" );
+
         aFile->Write( wxString::Format( wxT( "T %d %d %d %d 0 %d 0 " ), m_text.textRotation,
                                         m_text.textPositionX, m_text.textPositionY,
                                         KiROUND( (double) m_text.textHeight *
                                                  TEXT_HEIGHT_TO_SIZE ),
                                         m_partNum ) +
-                      m_text.text + wxT( " Normal 0 C C\n" ) );
+                      m_text.text + wxT( " " ) + italicStr + wxT( " " ) + boldStr +
+                      wxT( " C C\n" ) );
     }
     else // schematic
     {
         int spin_style = CorrectSchTextPosition( &m_text );
 
-        aFile->Write( wxString::Format( wxT( "Text Notes %d %d %d %d ~\n" ),
+        m_text.textHeight = KiROUND( (double) m_text.textHeight * TEXT_HEIGHT_TO_SIZE );
+
+        if( m_text.isBold )
+            boldStr = wxString::Format( wxT( "%i" ), GetPenSizeForBold( m_text.textHeight ) );
+        else
+            boldStr = wxT( "0" );
+
+        italicStr = m_text.isItalic ? wxT( "Italic" ) : wxT( "~" );
+
+        aFile->Write( wxString::Format( wxT( "Text Notes %d %d %d %d " ),
                                         m_text.correctedPositionX, m_text.correctedPositionY,
-                                        spin_style,
-                                        KiROUND( (double) m_text.textHeight *
-                                                 TEXT_HEIGHT_TO_SIZE ) ) );
+                                        spin_style, m_text.textHeight ) +
+                      italicStr + wxT( ' ' ) + boldStr + wxT( "\n" ) );
         aFile->Write( m_text.text + wxT( "\n" ) );
     }
 }

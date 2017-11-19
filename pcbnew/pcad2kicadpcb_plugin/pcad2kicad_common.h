@@ -62,6 +62,8 @@ typedef struct _TTEXTVALUE
                   textRotation, textHeight, textstrokeWidth;
     int           textIsVisible, mirror, textUnit;
     int           correctedPositionX, correctedPositionY;
+    bool          isBold;
+    bool          isItalic;
     bool          isLibValues;
     TTEXT_JUSTIFY justify;
 } TTEXTVALUE;

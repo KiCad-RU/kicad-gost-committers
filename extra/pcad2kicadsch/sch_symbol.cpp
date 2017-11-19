@@ -361,6 +361,8 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
 void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
 {
     wxString orientation, visibility;
+    wxString boldStr;
+    wxString italicStr;
     int      a, b, c, d, i;
 
     CorrectField( &m_reference );
@@ -387,6 +389,9 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxString::Format( wxT( "P %d %d\n" ), m_positionX, m_positionY ) );
 
     // Reference
+    boldStr = m_reference.isBold ? wxT( "B" ) : wxT( "N" );
+    italicStr = m_reference.isItalic ? wxT( "I" ) : wxT( "N" );
+
     if( m_reference.textRotation == 900 )
         orientation = wxT( 'V' );
     else
@@ -404,9 +409,12 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                                     KiROUND( (double) m_reference.textHeight *
                                              TEXT_HEIGHT_TO_SIZE ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_reference ) +
-                  wxT( "NN\n" ) );
+                  italicStr + boldStr + wxT( "\n" ) );
 
     // Value
+    boldStr = m_value.isBold ? wxT( "B" ) : wxT( "N" );
+    italicStr = m_value.isItalic ? wxT( "I" ) : wxT( "N" );
+
     if( m_value.textIsVisible == 1 )
         visibility = wxT( "0000" );
     else
@@ -424,9 +432,12 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                                     KiROUND( (double) m_value.textHeight *
                                              TEXT_HEIGHT_TO_SIZE ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_value ) +
-                  wxT( "NN\n" ) );
+                  italicStr + boldStr + wxT( "\n" ) );
 
     // Type as a common KiCAD field
+    boldStr = m_type.isBold ? wxT( "B" ) : wxT( "N" );
+    italicStr = m_type.isItalic ? wxT( "I" ) : wxT( "N" );
+
     if( m_type.textIsVisible == 1 )
         visibility = wxT( "0000" );
     else
@@ -444,7 +455,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                                     KiROUND( (double) m_type.textHeight *
                                              TEXT_HEIGHT_TO_SIZE ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_type ) +
-                  wxT( "NN \"Type\"\n" ) );
+                  italicStr + boldStr + wxT( " \"Type\"\n" ) );
 
     for( i = 0; i < (int)m_attributes.GetCount(); i++ )
     {
