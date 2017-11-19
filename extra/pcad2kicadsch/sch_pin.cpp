@@ -36,8 +36,6 @@
 
 namespace PCAD2KICAD {
 
-const int FONT_PINSTYLE_HEIGHT = 79;
-
 SCH_PIN::SCH_PIN()
 {
     m_objType = wxT( "pin" );
@@ -98,7 +96,6 @@ void SCH_PIN::ParsePinProperties( XNODE*   aNode, int aSymbolIndex,
                                   wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
     wxString    pn, t, str;
-    TTEXTVALUE  lpn;
     XNODE* cNode;
 
     pn = FindNodeGetContent( aNode, wxT( "pinNum" ) );
@@ -137,27 +134,14 @@ void SCH_PIN::ParsePinProperties( XNODE*   aNode, int aSymbolIndex,
             m_mirror = 1;
 
         if( FindNode( aNode, wxT( "pinName" ) ) )
-        {
-            lpn = m_number;
-
-            if( FindNode( FindNode( aNode,
-                                    wxT( "pinName" ) )->GetChildren(), wxT( "text" ) ) )
-            {
+            if( FindNode( FindNode( aNode, wxT( "pinName" ) ), wxT( "text" ) ) )
                 SetTextParameters( FindNode( FindNode( aNode, wxT( "pinName" ) ), wxT( "text" ) ),
-                                   &lpn, aDefaultMeasurementUnit, aActualConversion );
-            }
-        }
+                                   &m_pinName, aDefaultMeasurementUnit, aActualConversion );
 
         if( FindNode( aNode, wxT( "pinDes" ) ) )
-        {
-            lpn = m_pinName;
-
             if( FindNode( FindNode( aNode, wxT( "pinDes" ) ), wxT( "text" ) ) )
-            {
                 SetTextParameters( FindNode( FindNode( aNode, wxT( "pinDes" ) ), wxT( "text" ) ),
-                                   &lpn, aDefaultMeasurementUnit, aActualConversion );
-            }
-        }
+                                   &m_pinNum, aDefaultMeasurementUnit, aActualConversion );
 
         cNode = FindNode( aNode, wxT( "pinDisplay" ) );
         if( cNode )
@@ -281,13 +265,20 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
         m_pinLength = 0;
     }
 
+    if( !m_pinNumVisible )
+        m_pinNum.textHeight = 0;
+
+    if( !m_pinNameVisible )
+        m_pinName.textHeight = 0;
+
     aFile->Write( wxT( "X " ) + m_pinName.text + wxT( ' ' ) + m_number.text + wxT( ' ' ) +
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_positionX,
                                     m_positionY,
                                     m_pinLength ) + wxT( ' ' ) + orientation +
                   wxString::Format( wxT( " %d %d %d 0 " ),
-                                    FONT_PINSTYLE_HEIGHT, FONT_PINSTYLE_HEIGHT,
+                                    KIROUND( (double) m_pinNum.textHeight * TEXT_HEIGHT_TO_SIZE ),
+                                    KIROUND( (double) m_pinName.textHeight * TEXT_HEIGHT_TO_SIZE ),
                                     m_partNum ) +
                   pinType + wxT( ' ' ) + shape + wxT( "\n" ) );
 }
