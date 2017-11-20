@@ -59,9 +59,10 @@ void SCH_LINE::Parse( XNODE*   aNode, int aSymbolIndex,
 
     m_partNum   = aSymbolIndex;
 
-    if( FindNode( aNode, wxT( "width" ) ) )
-        m_width = StrToIntUnits( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
-                                 wxT( ' ' ), aActualConversion );
+    lNode = FindNode( aNode, wxT( "width" ) );
+
+    if( lNode )
+        SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion );
     else
         m_width = 10; // default: Thin
 
