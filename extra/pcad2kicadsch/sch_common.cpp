@@ -29,8 +29,24 @@
 
 #include <common.h>
 #include <pcad2kicad_common.h>
+#include <sch_common.h>
 
 namespace PCAD2KICAD {
+
+void CorrectLibText( TTEXTVALUE* aValue )
+{
+    if( aValue->textRotation == 1800 || aValue->textRotation == 2700 )
+        RotateJustify180( &aValue->justify );
+
+    if( aValue->mirror )
+        MirrorJustify( &aValue->justify );
+
+    if( aValue->textRotation == 1800 )
+        aValue->textRotation = 0;
+    else if( aValue->textRotation == 2700 )
+        aValue->textRotation = 900;
+}
+
 
 void EscapeTextQuotes( wxString& aStr )
 {

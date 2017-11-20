@@ -338,9 +338,10 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     int i, symbolIndex;
     wxString orientation, visibility;
 
-    CorrectField( &m_name );
-    CorrectField( &m_reference );
+    CorrectLibText( &m_name );
+    CorrectLibText( &m_reference );
 
+    // TODO: import Type field
     // Go out
     aFile->Write( wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );
@@ -447,23 +448,6 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
 
     aFile->Write( wxT( "ENDDRAW\n" ) );     // ??
     aFile->Write( wxT( "ENDDEF\n" ) );      // ??
-}
-
-
-void SCH_MODULE::CorrectField( TTEXTVALUE* aValue )
-{
-    aValue->textPositionY = -aValue->textPositionY;
-
-    if( aValue->textRotation == 1800 || aValue->textRotation == 2700 )
-        RotateJustify180( &aValue->justify );
-
-    if( aValue->mirror )
-        MirrorJustify( &aValue->justify );
-
-    if( aValue->textRotation == 1800 )
-        aValue->textRotation = 0;
-    else if( aValue->textRotation == 2700 )
-        aValue->textRotation = 900;
 }
 
 } // namespace PCAD2KICAD

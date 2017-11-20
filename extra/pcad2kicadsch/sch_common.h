@@ -7,6 +7,7 @@
 
 namespace PCAD2KICAD {
 
+void CorrectLibText( TTEXTVALUE* aValue );
 void EscapeTextQuotes( wxString& aStr );
 wxString GetJustifyString( const TTEXTVALUE* aValue );
 void MirrorJustify( TTEXT_JUSTIFY* aJustify );

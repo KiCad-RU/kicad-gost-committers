@@ -72,8 +72,7 @@ void SCH_TEXT::Parse( XNODE*  aNode,
         aNode->GetAttribute( wxT( "Name" ), &m_text.text );
         m_text.text.Replace( "\r", "" );
 
-        SetTextParameters( aNode, &m_text,
-                           aDefaultMeasurementUnit, aActualConversion );
+        SetTextParameters( aNode, &m_text, aDefaultMeasurementUnit, aActualConversion );
     }
 }
 
@@ -89,6 +88,8 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
 
     if( aFileType == wxT( 'L' ) ) // library
     {
+        CorrectLibText( &m_text );
+
         boldStr = m_text.isBold ? wxT( "1" ) : wxT( "0" );
         italicStr = m_text.isItalic ? wxT( "Italic" ) : wxT( "Normal" );
 
@@ -97,8 +98,8 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
                                         KiROUND( (double) m_text.textHeight *
                                                  TEXT_HEIGHT_TO_SIZE ),
                                         m_partNum ) +
-                      m_text.text + wxT( " " ) + italicStr + wxT( " " ) + boldStr +
-                      wxT( " C C\n" ) );
+                      m_text.text + wxT( " " ) + italicStr + wxT( " " ) + boldStr + wxT( " " ) +
+                      GetJustifyString( &m_text ) + wxT( "\n" ) );
     }
     else // schematic
     {
