@@ -63,9 +63,10 @@ void SCH_TEXT::Parse( XNODE*  aNode,
                      &m_positionX, &m_positionY, aActualConversion );
     }
 
-    if( FindNode( lNode, wxT( "rotation" ) ) )
-        m_text.textRotation = StrToInt1Units(
-            FindNode( lNode, wxT( "rotation" ) )->GetNodeContent() );
+    lNode = FindNode( aNode, wxT( "rotation" ) );
+
+    if( lNode )
+        m_text.textRotation = StrToInt1Units( lNode->GetNodeContent() );
 
     if( aNode->GetName() == wxT( "text" ) )
     {
