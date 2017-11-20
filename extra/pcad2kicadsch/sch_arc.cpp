@@ -58,16 +58,13 @@ void SCH_ARC::Parse( XNODE*   aNode, int aSymbolIndex,
                      wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
     XNODE*      lNode;
-    wxString    propValue;
-    double      r = 0.0;
 
     m_partNum   = aSymbolIndex;
 
-    if( FindNode( aNode, wxT( "width" ) ) )
-        m_width = StrToIntUnits( FindNode( aNode, wxT( "width" ) )->GetNodeContent(),
-                                 wxT( ' ' ), aActualConversion );
-    else
-        m_width = 1; // default
+    lNode = FindNode( aNode, wxT( "width" ) );
+
+    if( lNode )
+        SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion );
 
     if( aNode->GetName() == wxT( "triplePointArc" ) )
     {
@@ -93,12 +90,19 @@ void SCH_ARC::Parse( XNODE*   aNode, int aSymbolIndex,
         m_radius = KIROUND( GetLineLength( wxPoint( m_positionX, m_positionY ),
                                            wxPoint( m_startX, m_startY ) ) );
 
-        m_startAngle = KIROUND( ArcTangente( m_startY - m_positionY, m_startX - m_positionX ) );
-        m_sweepAngle = m_startAngle -
-                       KIROUND( ArcTangente( m_toY - m_positionY, m_toX - m_positionX ) );
+        if( ( m_startX == m_toX ) && ( m_startY == m_toY ) )
+        {
+            m_sweepAngle = 3600;
+        }
+        else
+        {
+            m_startAngle = KIROUND( ArcTangente( m_startY - m_positionY,
+                                                 m_startX - m_positionX ) );
+            m_sweepAngle = m_startAngle -
+                           KIROUND( ArcTangente( m_toY - m_positionY, m_toX - m_positionX ) );
+        }
     }
-
-    if( aNode->GetName() == wxT( "arc" ) )
+    else if( aNode->GetName() == wxT( "arc" ) )
     {
         lNode = FindNode( aNode, wxT( "pt" ) );
 
@@ -107,42 +111,56 @@ void SCH_ARC::Parse( XNODE*   aNode, int aSymbolIndex,
                          &m_positionX, &m_positionY, aActualConversion );
 
         lNode = FindNode( aNode, wxT( "radius" ) );
-        if( lNode )
-            r = StrToIntUnits( lNode->GetNodeContent(), wxT( ' ' ), aActualConversion );
 
-        m_radius = r;
+        if( lNode )
+        {
+            wxString propValue = lNode->GetNodeContent();
+            m_radius = StrToIntUnits(
+                           GetAndCutWordWithMeasureUnits( &propValue, aDefaultMeasurementUnit ),
+                           wxT( ' ' ), aActualConversion );
+        }
 
         lNode = FindNode( aNode, wxT( "startAngle" ) );
+
         if( lNode )
             m_startAngle = StrToInt1Units( lNode->GetNodeContent() );
 
-        m_startX =
-            KiROUND( m_positionX + r * sin( (m_startAngle - 900.0) * M_PI / 1800.0 ) );
-        m_startY        = KiROUND( m_positionY -
-                                   r * cos( (m_startAngle - 900) * M_PI / 1800.0 ) );
+        m_startX = KiROUND( m_positionX +
+                            m_radius * sin( ( m_startAngle - 900. ) * M_PI / 1800. ) );
+        m_startY = KiROUND( m_positionY -
+                            m_radius * cos( ( m_startAngle - 900. ) * M_PI / 1800. ) );
 
         lNode = FindNode( aNode, wxT( "sweepAngle" ) );
+
         if( lNode )
-            m_sweepAngle    = StrToInt1Units( lNode->GetNodeContent() );
+            m_sweepAngle = StrToInt1Units( lNode->GetNodeContent() );
 
         m_toX = KiROUND( m_positionX +
-                         r * sin( (m_startAngle + m_sweepAngle - 900.0) * M_PI / 1800.0 ) );
+                         m_radius * sin( ( m_startAngle + m_sweepAngle - 900. ) * M_PI / 1800. ) );
         m_toY = KiROUND( m_positionY -
-                         r * cos( (m_startAngle + m_sweepAngle - 900.0) * M_PI / 1800.0 ) );
+                         m_radius * cos( ( m_startAngle + m_sweepAngle - 900. ) * M_PI / 1800. ) );
     }
 }
 
 
 void SCH_ARC::WriteToFile( wxFile* aFile, char aFileType )
 {
-    int startAngle = m_startAngle;
-    int endAngle = m_startAngle + m_sweepAngle;
+    if( m_sweepAngle == 3600 )
+    {
+        aFile->Write( wxString::Format( wxT( "C %d %d %d %d 1 %d N\n" ),
+                                        m_positionX, m_positionY, m_radius, m_partNum, m_width ) );
+    }
+    else
+    {
+        int startAngle = m_startAngle;
+        int endAngle = m_startAngle + m_sweepAngle;
 
-    CorrectAngles( startAngle, endAngle );
+        CorrectAngles( startAngle, endAngle );
 
-    aFile->Write( wxString::Format( wxT( "A %d %d %d %d %d %d 0 %d N %d %d %d %d\n" ),
-                                    m_positionX, m_positionY, m_radius, startAngle, endAngle,
-                                    m_partNum, m_width, m_startX, m_startY, m_toX, m_toY ) );
+        aFile->Write( wxString::Format( wxT( "A %d %d %d %d %d %d 0 %d N %d %d %d %d\n" ),
+                                        m_positionX, m_positionY, m_radius, startAngle, endAngle,
+                                        m_partNum, m_width, m_startX, m_startY, m_toX, m_toY ) );
+    }
 }
 
 
