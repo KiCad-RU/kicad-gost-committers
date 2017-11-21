@@ -37,6 +37,12 @@
 
 namespace PCAD2KICAD {
 
+enum LineStyle {
+    Solid,
+    Dotted,
+    Dashed
+};
+
 class SCH_LINE : public SCH_COMPONENT
 {
 public:
@@ -46,6 +52,7 @@ public:
     TTEXTVALUE  m_labelText;
     wxString    m_start_endStyle;
     wxString    m_end_endStyle;
+    LineStyle   m_style;
 
     SCH_LINE( wxString aLineType = wxT( '?' ) );
     ~SCH_LINE();

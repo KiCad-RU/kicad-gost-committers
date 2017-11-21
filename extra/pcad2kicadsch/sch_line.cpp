@@ -48,6 +48,7 @@ SCH_LINE::SCH_LINE( wxString aLineType )
     m_start_endStyle = wxT( "Rounded" );
     m_end_endStyle   = wxT( "Rounded" );
     InitTTextValue( &m_labelText );
+    m_style          = Solid;
 }
 
 
@@ -65,6 +66,14 @@ void SCH_LINE::Parse( XNODE*   aNode, int aSymbolIndex,
         SetWidth( lNode->GetNodeContent(), aDefaultMeasurementUnit, &m_width, aActualConversion );
     else
         m_width = 10; // default: Thin
+
+    propValue = FindNodeGetContent( aNode, wxT( "style" ) );
+    if( propValue == wxT( "DottedLine" ) )
+        m_style = Dotted;
+    else if( propValue == wxT( "DashedLine" ) )
+        m_style = Dashed;
+    else
+        m_style = Solid;
 
     lNode = FindNode( aNode, wxT( "pt" ) );
 
@@ -168,6 +177,7 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
     wxString lt;
 
     if( aFileType == wxT( 'L' ) )
+    {
         aFile->Write( wxString::Format( wxT( "P 2 %d 0 %d %d %d %d %d N\n" ),
                                         m_partNum,
                                         m_width,
@@ -175,14 +185,13 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
                                         m_positionY,
                                         m_toX,
                                         m_toY ) );
-
-    if( aFileType == wxT( 'S' ) )
+    }
+    else if( aFileType == wxT( 'S' ) )
     {
         if( m_lineType == wxT( 'W' ) )
         {
             lt = wxT( "Wire" );
 
-            //TODO refactor
             bool is_horiz_wire = ( m_positionY == m_toY );
             bool is_norm_pt_order = ( is_horiz_wire && ( m_positionX < m_toX ) ) ||
                                     ( !is_horiz_wire && ( m_positionY < m_toY ) );
@@ -307,14 +316,38 @@ void SCH_LINE::WriteToFile( wxFile* aFile, char aFileType )
                 }
             }
         }
-
-        if( m_lineType == wxT( 'B' ) )
+        else if( m_lineType == wxT( 'B' ) )
+        {
             lt = wxT( "Bus" );
+        }
+        else if( m_lineType == wxT( 'N' ) )
+        {
+            lt = wxT( "Notes" );
+        }
+
+        aFile->Write( wxT( "Wire " ) + lt + wxT( " Line" ) );
 
         if( m_lineType == wxT( 'N' ) )
-            lt = wxT( "Notes" );
+        {
+            wxString styleStr;
 
-        aFile->Write( wxT( "Wire " ) + lt + wxT( " Line\n" ) );
+            switch( m_style )
+            {
+            case Solid:
+                styleStr = wxT( " style solid" );
+                break;
+            case Dotted:
+                styleStr = wxT( " style dotted" );
+                break;
+            case Dashed:
+                styleStr = wxT( "" );
+                break;
+            }
+
+            aFile->Write( wxString::Format( wxT( " width %d" ), m_width ) + styleStr );
+        }
+        aFile->Write( wxT( "\n" ) );
+
         aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
                                         m_positionX, m_positionY, m_toX, m_toY ) );
     }
