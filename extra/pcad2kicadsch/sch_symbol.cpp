@@ -488,53 +488,31 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
  *  MirrorY     -1   0    0   -1
  */
     aFile->Write( wxString::Format( wxT( " %d %d %d\n" ), m_partNum, m_positionX, m_positionY ) );
+
     // Mirror is negative in compare with PCad represenation...
-    a = 0; b = 0; c = 0; d = 0;
+    a = 0;
+    b = 0;
+    c = 0;
+    d = 0;
 
-    if( m_mirror == 0 )
+    switch( m_rotation )
     {
-        if( m_rotation == 0 )
-        {
-            a = 1; d = -1;
-        }
-
-        if( m_rotation == 900 )
-        {
-            b = -1; c = -1;
-        }
-
-        if( m_rotation == 1800 )
-        {
-            a = -1; d = 1;
-        }
-
-        if( m_rotation == 2700 )
-        {
-            b = 1; c = 1;
-        }
-    }
-
-    if( m_mirror == 1 )
-    {
-        if( m_rotation == 0 )
-        {
-            a = -1; d = -1;
-        }
-
-        if( m_rotation == 900 )
-        {
-            b = 1; c = -1;
-        }
-
-        if( m_rotation == 1800 )
-        {
-            a = 1; d = 1;
-        }
-
-        if( m_rotation == 2700 )
-        {
-            b = -1; c = 1;
-        }
+    case 0:
+        a = m_mirror ? -1 : 1;
+        d = -1;
+        break;
+    case 900:
+        b = m_mirror ? 1 : -1;
+        c = -1;
+        break;
+    case 1800:
+        a = m_mirror ? 1 : -1;
+        d = 1;
+        break;
+    case 2700:
+        b = m_mirror ? -1 : 1;
+        c = 1;
+        break;
     }
 
     aFile->Write( wxString::Format( wxT( " %d %d %d %d \n" ), a, b, c, d ) );
