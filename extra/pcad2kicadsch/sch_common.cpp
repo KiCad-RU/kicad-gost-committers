@@ -60,6 +60,12 @@ void EscapeTextQuotes( wxString& aStr )
 }
 
 
+void ReplaceTextQuotes( wxString& aStr )
+{
+    aStr.Replace( wxT( "\"" ), wxT( "_" ) );
+}
+
+
 wxString GetJustifyString( const TTEXTVALUE* aValue )
 {
     switch( aValue->justify )

@@ -369,6 +369,9 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     CorrectField( &m_value );
     CorrectField( &m_type );
 
+    ReplaceTextQuotes( m_module.text );
+    ReplaceTextQuotes( m_attachedSymbol );
+
     EscapeTextQuotes( m_reference.text );
     EscapeTextQuotes( m_value.text );
     EscapeTextQuotes( m_type.text );

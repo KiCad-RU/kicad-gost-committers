@@ -341,6 +341,8 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     CorrectLibText( &m_name );
     CorrectLibText( &m_reference );
 
+    ReplaceTextQuotes( m_name.text );
+
     // TODO: import Type field
     // Go out
     aFile->Write( wxT( "\n" ) );
@@ -357,7 +359,6 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
                       wxString::Format( wxT( " %d F N\n" ), m_numParts ) );
 
     EscapeTextQuotes( m_reference.text );
-    EscapeTextQuotes( m_name.text );
     EscapeTextQuotes( m_attachedPattern );
 
     // REFERENCE
