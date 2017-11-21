@@ -93,7 +93,7 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
     wxString italicStr;
     int lr;
 
-    m_labelText.textHeight = KiROUND( (double) m_labelText.textHeight * TEXT_HEIGHT_TO_SIZE );
+    m_labelText.textHeight = GetCorrectedHeight( m_labelText.textHeight );
 
     if( m_labelText.isBold )
         boldStr = wxString::Format( wxT( "%i" ), GetPenSizeForBold( m_labelText.textHeight ) );

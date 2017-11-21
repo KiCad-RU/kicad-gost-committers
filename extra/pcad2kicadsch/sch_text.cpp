@@ -96,9 +96,7 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
 
         aFile->Write( wxString::Format( wxT( "T %d %d %d %d 0 %d 0 " ), m_text.textRotation,
                                         m_text.textPositionX, m_text.textPositionY,
-                                        KiROUND( (double) m_text.textHeight *
-                                                 TEXT_HEIGHT_TO_SIZE ),
-                                        m_partNum ) +
+                                        GetCorrectedHeight( m_text.textHeight ), m_partNum ) +
                       m_text.text + wxT( " " ) + italicStr + wxT( " " ) + boldStr + wxT( " " ) +
                       GetJustifyString( &m_text ) + wxT( "\n" ) );
     }
@@ -106,7 +104,7 @@ void SCH_TEXT::WriteToFile( wxFile* aFile, char aFileType )
     {
         int spin_style = CorrectSchTextPosition( &m_text );
 
-        m_text.textHeight = KiROUND( (double) m_text.textHeight * TEXT_HEIGHT_TO_SIZE );
+        m_text.textHeight = GetCorrectedHeight( m_text.textHeight );
 
         if( m_text.isBold )
             boldStr = wxString::Format( wxT( "%i" ), GetPenSizeForBold( m_text.textHeight ) );

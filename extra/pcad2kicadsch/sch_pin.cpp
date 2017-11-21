@@ -32,6 +32,7 @@
 
 #include <common.h>
 
+#include <sch_common.h>
 #include <sch_pin.h>
 
 namespace PCAD2KICAD {
@@ -277,8 +278,8 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
                                     m_positionY,
                                     m_pinLength ) + wxT( ' ' ) + orientation +
                   wxString::Format( wxT( " %d %d %d 0 " ),
-                                    KIROUND( (double) m_pinNum.textHeight * TEXT_HEIGHT_TO_SIZE ),
-                                    KIROUND( (double) m_pinName.textHeight * TEXT_HEIGHT_TO_SIZE ),
+                                    GetCorrectedHeight( m_pinNum.textHeight ),
+                                    GetCorrectedHeight( m_pinName.textHeight ),
                                     m_partNum ) +
                   pinType + wxT( ' ' ) + shape + wxT( "\n" ) );
 }

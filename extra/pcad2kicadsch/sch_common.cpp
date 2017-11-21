@@ -33,6 +33,12 @@
 
 namespace PCAD2KICAD {
 
+int GetCorrectedHeight( int aHeight )
+{
+    return KIROUND( (double) aHeight * TEXT_HEIGHT_TO_SIZE );
+}
+
+
 void CorrectLibText( TTEXTVALUE* aValue )
 {
     if( aValue->textRotation == 1800 || aValue->textRotation == 2700 )

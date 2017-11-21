@@ -7,6 +7,7 @@
 
 namespace PCAD2KICAD {
 
+int GetCorrectedHeight( int aHeight );
 void CorrectLibText( TTEXTVALUE* aValue );
 void EscapeTextQuotes( wxString& aStr );
 wxString GetJustifyString( const TTEXTVALUE* aValue );

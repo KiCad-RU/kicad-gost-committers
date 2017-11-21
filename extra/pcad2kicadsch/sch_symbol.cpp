@@ -406,8 +406,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_reference.textPositionX + m_positionX,
                                     m_reference.textPositionY + m_positionY,
-                                    KiROUND( (double) m_reference.textHeight *
-                                             TEXT_HEIGHT_TO_SIZE ) ) +
+                                    GetCorrectedHeight( m_reference.textHeight ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_reference ) +
                   italicStr + boldStr + wxT( "\n" ) );
 
@@ -429,8 +428,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_value.textPositionX + m_positionX,
                                     m_value.textPositionY + m_positionY,
-                                    KiROUND( (double) m_value.textHeight *
-                                             TEXT_HEIGHT_TO_SIZE ) ) +
+                                    GetCorrectedHeight( m_value.textHeight ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_value ) +
                   italicStr + boldStr + wxT( "\n" ) );
 
@@ -452,8 +450,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_type.textPositionX + m_positionX,
                                     m_type.textPositionY + m_positionY,
-                                    KiROUND( (double) m_type.textHeight *
-                                             TEXT_HEIGHT_TO_SIZE ) ) +
+                                    GetCorrectedHeight( m_type.textHeight ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_type ) +
                   italicStr + boldStr + wxT( " \"Type\"\n" ) );
 
