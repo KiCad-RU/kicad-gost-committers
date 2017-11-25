@@ -376,6 +376,9 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     EscapeTextQuotes( m_value.text );
     EscapeTextQuotes( m_type.text );
 
+    if( m_value.text == wxEmptyString )
+        m_value.text = wxT( '~' );
+
     wxRegEx reRef;
     reRef.Compile( wxT( "^[[:digit:]][[:digit:]]*$" ) );
 
