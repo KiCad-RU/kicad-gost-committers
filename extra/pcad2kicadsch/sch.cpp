@@ -180,6 +180,12 @@ void SCH::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
 
             iNode = iNode->GetNext();
         }
+
+        for( int i = 0; i < ( int ) m_sheets.GetCount(); i++ )
+        {
+            ( ( SCH_SHEET* ) m_sheets[i] )->SetSheetNumber( i );
+            ( ( SCH_SHEET* ) m_sheets[i] )->SetSheetsNumber( ( int ) m_sheets.GetCount() );
+        }
     }
 }
 

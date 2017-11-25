@@ -50,6 +50,8 @@ SCH_SHEET::SCH_SHEET()
 {
     m_sizeX = 0;
     m_sizeY = 0;
+    m_numSheet = 0;
+    m_numSheets = 0;
 }
 
 
@@ -353,6 +355,18 @@ YOU HAVE TO CHECK/CORRECT Juntions in converted design, placement is only approx
 }
 
 
+void SCH_SHEET::SetSheetNumber( int aNumber )
+{
+    m_numSheet = aNumber;
+}
+
+
+void SCH_SHEET::SetSheetsNumber( int aNumber )
+{
+    m_numSheets = aNumber;
+}
+
+
 void SCH_SHEET::WriteToFile( wxString aFileName )
 {
     wxFile  f;
@@ -368,6 +382,7 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     f.Write( wxT( "$Descr User " ) + wxString::Format( wxT( "%d" ),
                                                        m_sizeX ) + wxT( ' ' ) +
              wxString::Format( wxT( "%d" ), m_sizeY ) + wxT( "\n" ) );
+    f.Write( wxString::Format( wxT( "Sheet %d %d\n" ), m_numSheet + 1, m_numSheets ) );
     f.Write( wxT( "$EndDescr\n" ) );
 
     // Junctions
@@ -413,6 +428,31 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
             f.Write( wxT( "$Comp\n" ) );
             m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
             f.Write( wxT( "$EndComp\n" ) );
+        }
+    }
+
+    // First sheet of Multi-sheet design
+    if( m_numSheet == 0 && m_numSheets > 1 )
+    {
+        const int sizeX = 2000;
+        const int sizeY = 500;
+        const int stepX = sizeX + 200;
+        const int posY = -1000;
+        int posX = 0;
+        wxString fname = wxFileName( aFileName ).GetFullName(); // without path
+
+        // Sheets
+        for( i = 1; i < m_numSheets; i++ )
+        {
+            f.Write( wxT( "$Sheet\n" ) );
+            f.Write( wxString::Format( wxT( "S %d %d %d %d\n" ), posX, posY, sizeX, sizeY ) );
+            f.Write( wxT( "U 0\n" ) );
+            f.Write( wxString::Format( wxT( "F0 \"Sheet%d\" 60\n" ), i + 1 ) );
+            f.Write( wxT( "F1 \"") + fname +
+                     wxString::Format( wxT( "_Sheet%d.sch\" 60\n" ), i + 1 ) );
+            f.Write( wxT( "$EndSheet\n" ) );
+
+            posX += stepX;
         }
     }
 

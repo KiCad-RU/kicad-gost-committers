@@ -48,10 +48,15 @@ public:
     ~SCH_SHEET();
 
     void            Parse( XNODE* aNode, wxString aDefaultMeasurementUnit );
+    void            SetSheetNumber( int aNumber );
+    void            SetSheetsNumber( int aNumber );
 
     virtual void    WriteToFile( wxString aFileName );
 
 private:
+    int m_numSheet;
+    int m_numSheets;
+
     void            LinesIntersect( const int aX1, const int aY1, const int aX2, const int aY2,
                                     const int aX3, const int aY3, const int aX4, const int aY4,
                                     int* aCode, int* aX, int* aY );
