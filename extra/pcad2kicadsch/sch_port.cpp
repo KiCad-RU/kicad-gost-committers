@@ -39,6 +39,7 @@ namespace PCAD2KICAD {
 SCH_PORT::SCH_PORT()
 {
     m_objType   = wxT( "port" );
+    m_id = 0;
 
     InitTTextValue( &m_labelText );
 }
@@ -146,6 +147,24 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
                                     m_positionX, m_positionY, lr, m_labelText.textHeight ) +
                   italicStr + wxT( ' ' ) + boldStr + wxT( "\n" ) );
     aFile->Write( m_labelText.text + wxT( "\n" ) );
+
+    // Convert labels to global labels (PCad support only global ports)
+    const int originX = -3000;
+    const int stepY = 200;
+
+    aFile->Write( wxString::Format( wxT( "Text GLabel %d %d 0 60 UnSpc ~ 0\n" ),
+                                    originX, stepY * m_id ) );
+    aFile->Write( m_labelText.text + wxT( "\n" ) );
+
+    aFile->Write( wxString::Format( wxT( "Text Label %d %d 0 60 ~ 0\n" ),
+                                    originX, stepY * m_id ) );
+    aFile->Write( m_labelText.text + wxT( "\n" ) );
+}
+
+
+void SCH_PORT::SetID( int aID )
+{
+    m_id = aID;
 }
 
 

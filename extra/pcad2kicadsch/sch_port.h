@@ -51,7 +51,11 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 
+    void SetID( int aID );
+
 private:
+    int m_id;
+
     void SetPortFontProperty( XNODE*        aNode,
                               TTEXTVALUE*   aTextValue,
                               wxString      aDefaultMeasurementUnit,

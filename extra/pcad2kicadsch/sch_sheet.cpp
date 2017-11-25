@@ -400,10 +400,14 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     }
 
     // Ports
-    for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
+    for( int id = 0, i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
         if( m_schComponents[i]->m_objType == wxT( "port" ) )
+        {
+            ( ( SCH_PORT* ) m_schComponents[i] )->SetID( id );
             m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
+            id++;
+        }
     }
 
     // Texts
