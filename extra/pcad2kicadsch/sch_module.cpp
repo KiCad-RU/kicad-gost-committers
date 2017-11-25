@@ -52,8 +52,6 @@ SCH_MODULE::SCH_MODULE()
     m_attachedPattern   = wxEmptyString;
     m_moduleDescription = wxEmptyString;
     m_alias = wxEmptyString;
-    m_pinNumVisibility = wxT( 'Y' );
-    m_pinNameVisibility = wxT( 'N' );
     m_isPower = false;
 }
 
@@ -179,12 +177,6 @@ void SCH_MODULE::SetPinProperties( XNODE*   aNode, int aSymbolIndex,
             schPin = (SCH_PIN*) m_moduleObjects[i];
             schPin->ParsePinProperties( aNode, aSymbolIndex,
                                         aDefaultMeasurementUnit, aActualConversion );
-
-            if( !schPin->m_pinNumVisible )
-                m_pinNumVisibility = wxT( 'N' );
-
-            if( schPin->m_pinNameVisible )
-                m_pinNameVisibility = wxT( 'Y' );
         }
     }
 }
@@ -343,20 +335,17 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
 
     ReplaceTextQuotes( m_name.text );
 
-    // TODO: import Type field
     // Go out
     aFile->Write( wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );
     aFile->Write( wxT( "# " ) + ValidateName( m_name.text ) + wxT( "\n" ) );
     aFile->Write( wxT( "#\n" ) );
     if( m_isPower )
-        aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " #PWR 0 40 " ) +
-                      m_pinNumVisibility + wxT( ' ' ) + m_pinNameVisibility +
-                      wxString::Format( wxT( " %d F P\n" ), m_numParts ) );
+        aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " #PWR 0 40 Y Y " ) +
+                      wxString::Format( wxT( "%d F P\n" ), m_numParts ) );
     else
-        aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " U 0 40 " ) +
-                      m_pinNumVisibility + wxT( ' ' ) + m_pinNameVisibility +
-                      wxString::Format( wxT( " %d F N\n" ), m_numParts ) );
+        aFile->Write( wxT( "DEF " ) + ValidateName( m_name.text ) + wxT( " U 0 40 Y Y " ) +
+                      wxString::Format( wxT( "%d F N\n" ), m_numParts ) );
 
     EscapeTextQuotes( m_reference.text );
     EscapeTextQuotes( m_attachedPattern );
