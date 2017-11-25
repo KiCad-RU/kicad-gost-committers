@@ -136,8 +136,7 @@ void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
                 if( FindNode( lNode, wxT( "originalName" ) ) )
                 {
                     FindNode( lNode,
-                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
-                                                                     &propValue );
+                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     m_type.text = propValue;
                 }
 
@@ -153,8 +152,7 @@ void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
                 else if( FindNode( lNode, wxT( "originalName" ) ) )
                 {
                     FindNode( lNode,
-                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
-                                                                     &propValue );
+                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     m_attachedPattern = propValue;
                 }
 
@@ -162,15 +160,20 @@ void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
                 if( FindNode( lNode, wxT( "originalName" ) ) )
                 {
                     FindNode( lNode,
-                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
-                                                                     &propValue );
+                              wxT( "originalName" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     m_attachedSymbol = propValue;
                 }
                 else if( FindNode( lNode, wxT( "compRef" ) ) )
                 {
-                    FindNode( lNode,
-                              wxT( "compRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
+                    FindNode( lNode, wxT( "compRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
                     m_attachedSymbol = propValue;
+                }
+
+                // Component
+                if( FindNode( lNode, wxT( "compRef" ) ) )
+                {
+                    FindNode( lNode, wxT( "compRef" ) )->GetAttribute( wxT( "Name" ), &propValue );
+                    m_component = propValue;
                 }
             }
 
@@ -180,7 +183,7 @@ void SCH_SYMBOL::ParseNetlist( XNODE* aNode, wxString aReference )
 }
 
 
-void SCH_SYMBOL::ParseLibrary( XNODE*   aNode, wxString aModule,
+void SCH_SYMBOL::ParseLibrary( XNODE*   aNode, wxString aModule, wxString aComponent,
                                wxString aDefaultMeasurementUnit, wxString aActualConversion )
 {
     wxString   propValue;
@@ -251,7 +254,7 @@ void SCH_SYMBOL::ParseLibrary( XNODE*   aNode, wxString aModule,
         {
             lNode->GetAttribute( wxT( "Name" ), &propValue );
 
-            if( lNode->GetName() == wxT( "compDef" ) && propValue == aModule )
+            if( propValue == aComponent )
             {
                 lNode = FindNode( lNode, wxT( "compHeader" ) );
 
@@ -296,9 +299,6 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
         m_module.text = propValue;
     }
 
-    ParseLibrary( aNode, m_module.text,
-                  aDefaultMeasurementUnit, aActualConversion );
-
     if( FindNode( aNode, wxT( "refDesRef" ) ) )
     {
         FindNode( aNode, wxT( "refDesRef" ) )->GetAttribute( wxT( "Name" ),
@@ -309,6 +309,7 @@ void SCH_SYMBOL::Parse( XNODE*   aNode,
     }
 
     ParseNetlist( aNode, m_reference.text );
+    ParseLibrary( aNode, m_module.text, m_component, aDefaultMeasurementUnit, aActualConversion );
 
     if( FindNode( aNode, wxT( "pt" ) ) )
     {
@@ -371,6 +372,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
 
     ReplaceTextQuotes( m_module.text );
     ReplaceTextQuotes( m_attachedSymbol );
+    ReplaceTextQuotes( m_component );
 
     EscapeTextQuotes( m_reference.text );
     EscapeTextQuotes( m_value.text );
@@ -437,6 +439,9 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                                     GetCorrectedHeight( m_value.textHeight ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_value ) +
                   italicStr + boldStr + wxT( "\n" ) );
+
+    // Footprint
+    aFile->Write( wxT( "F 2 \"" ) + m_component + wxT( "\" H 0 0 60 0001 C CNN\n" ) );
 
     // Type as a common KiCAD field
     boldStr = m_type.isBold ? wxT( "B" ) : wxT( "N" );

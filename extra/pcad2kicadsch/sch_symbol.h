@@ -66,9 +66,10 @@ public:
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 
 private:
+    wxString        m_component;
     void FindAttributes( XNODE* aNode );
     void ParseNetlist( XNODE* aNode, wxString aReference );
-    void ParseLibrary( XNODE* aNode, wxString aModule,
+    void ParseLibrary( XNODE* aNode, wxString aModule, wxString aComponent,
                        wxString aDefaultMeasurementUnit, wxString aActualConversion );
     void CorrectField( TTEXTVALUE* aValue );
 };
