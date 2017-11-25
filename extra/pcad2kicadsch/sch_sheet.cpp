@@ -372,7 +372,9 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     wxFile  f;
     int     i;
 
-    f.Open( aFileName + wxT( "_" ) + m_name + wxT( ".sch" ), wxFile::write );
+    f.Open( aFileName +
+            ( ( m_numSheet == 0 ) ? wxT( "" ) : wxT( "_" ) + m_name ) +
+            wxT( ".sch" ), wxFile::write );
     f.Write( wxT( "EESchema Schematic File Version 3\n" ) );
     wxFileName tmpFile( aFileName );
     tmpFile.SetExt( wxEmptyString );

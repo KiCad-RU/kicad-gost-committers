@@ -131,12 +131,26 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     sch.Parse( m_statusBar, &xmlDoc, m_actualConversion );
 
     m_statusBar->SetStatusText( _( "Generating output file.... " ) );
+
     wxFileName outFile( fileName );
+    outFile.SetPath( outFile.GetPath() + wxFileName::GetPathSeparator() + wxT( "kicad" ) );
+
+    if( !wxFileName::Exists( outFile.GetPath() ) )
+        outFile.Mkdir();
+
+    outFile.SetExt( wxT( "pro" ) );
+    wxFile pro;
+    pro.Open( outFile.GetFullPath(), wxFile::write );
+    // Part Reference format: .1
+    pro.Write( wxT( "[schematic_editor]\nSubpartIdSeparator=46\nSubpartFirstId=49\n" ) );
+    // Set lib
+    pro.Write( wxT( "[eeschema/libraries]\nLibName1=" ) + outFile.GetName() + wxT( "\n" ) );
+    pro.Close();
 
     // we convert also library for schematics file
-    outFile.SetExt( wxT( "KiCad.lib" ) );
+    outFile.SetExt( wxT( "lib" ) );
     sch.WriteToFile( outFile.GetFullPath(), wxT( 'L' ) );
-    outFile.SetExt( wxT( "KiCad" ) );
+    outFile.SetExt( wxEmptyString );
     sch.WriteToFile( outFile.GetFullPath(), wxT( 'S' ) );
 
     m_statusBar->SetStatusText( _( "Done." ) );
