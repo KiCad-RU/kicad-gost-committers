@@ -52,6 +52,7 @@ SCH_MODULE::SCH_MODULE()
     m_attachedPattern   = wxEmptyString;
     m_moduleDescription = wxEmptyString;
     m_alias = wxEmptyString;
+    m_component = wxEmptyString;
     m_isPower = false;
 }
 
@@ -74,8 +75,10 @@ void SCH_MODULE::Parse( XNODE*   aNode, wxStatusBar* aStatusBar,
     long        num;
     int         i;
 
-    FindNode( aNode, wxT( "originalName" ) )->GetAttribute( wxT( "Name" ),
-                                                            &propValue );
+    aNode->GetAttribute( wxT( "Name" ), &propValue );
+    m_component = propValue;
+
+    FindNode( aNode, wxT( "originalName" ) )->GetAttribute( wxT( "Name" ), &propValue );
     propValue.Trim( false );
     m_name.text = propValue;
     aStatusBar->SetStatusText( _( "Creating Component : " ) + m_name.text );
@@ -334,6 +337,8 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     CorrectLibText( &m_reference );
 
     ReplaceTextQuotes( m_name.text );
+    ReplaceTextQuotes( m_attachedPattern );
+    ReplaceTextQuotes( m_component );
 
     // Go out
     aFile->Write( wxT( "\n" ) );
@@ -348,7 +353,6 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
                       wxString::Format( wxT( "%d F N\n" ), m_numParts ) );
 
     EscapeTextQuotes( m_reference.text );
-    EscapeTextQuotes( m_attachedPattern );
 
     // REFERENCE
     if( m_isPower )
@@ -375,8 +379,7 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
                                     GetCorrectedHeight( m_name.textHeight ) ) + " " +
                   orientation + " " + visibility + " " + GetJustifyString( &m_name ) + "\n" );
     // FOOTPRINT
-    aFile->Write( wxT( "F2 \"" ) + m_attachedPattern +
-                  wxT( "\" 0 0 50 H I C C\n" ) );    // invisible as default
+    aFile->Write( wxT( "F2 \"" ) + m_component + wxT( "\" 0 0 50 H I C C\n" ) );
 
     // Footprints filter
     if( m_attachedPattern.Len() > 0 )

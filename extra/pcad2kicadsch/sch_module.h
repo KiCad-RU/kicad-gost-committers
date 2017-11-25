@@ -50,6 +50,7 @@ private:
     int                     m_numParts;
     wxString                m_attachedPattern;
     wxArrayString           m_attachedSymbols;
+    wxString                m_component;
     bool                    m_isPower;
 
 public:
