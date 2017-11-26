@@ -338,8 +338,10 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     CorrectLibText( &m_reference );
 
     ReplaceTextQuotes( m_name.text );
+    ReplaceTextSlashes( m_name.text );
     ReplaceTextQuotes( m_attachedPattern );
     ReplaceTextQuotes( m_component );
+    ReplaceTextSlashes( m_component );
 
     // Go out
     aFile->Write( wxT( "\n" ) );

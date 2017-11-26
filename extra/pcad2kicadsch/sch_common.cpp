@@ -66,6 +66,13 @@ void ReplaceTextQuotes( wxString& aStr )
 }
 
 
+void ReplaceTextSlashes( wxString& aStr )
+{
+    aStr.Replace( wxT( "\\" ), wxT( "_" ) );
+    aStr.Replace( wxT( "/" ), wxT( "_" ) );
+}
+
+
 wxString GetJustifyString( const TTEXTVALUE* aValue )
 {
     switch( aValue->justify )

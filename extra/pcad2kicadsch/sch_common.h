@@ -11,6 +11,7 @@ int GetCorrectedHeight( int aHeight );
 void CorrectLibText( TTEXTVALUE* aValue );
 void EscapeTextQuotes( wxString& aStr );
 void ReplaceTextQuotes( wxString& aStr );
+void ReplaceTextSlashes( wxString& aStr );
 wxString GetJustifyString( const TTEXTVALUE* aValue );
 void MirrorJustify( TTEXT_JUSTIFY* aJustify );
 void RotateJustify180( TTEXT_JUSTIFY* aJustify );

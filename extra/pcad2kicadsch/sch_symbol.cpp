@@ -373,7 +373,9 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
 
     ReplaceTextQuotes( m_module.text );
     ReplaceTextQuotes( m_attachedSymbol );
+    ReplaceTextSlashes( m_attachedSymbol );
     ReplaceTextQuotes( m_component );
+    ReplaceTextSlashes( m_component );
 
     EscapeTextQuotes( m_reference.text );
     EscapeTextQuotes( m_value.text );
