@@ -143,9 +143,15 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     pro.Open( outFile.GetFullPath(), wxFile::write );
     // Part Reference format: .1
     pro.Write( wxT( "[schematic_editor]\nSubpartIdSeparator=46\nSubpartFirstId=49\n" ) );
-    // Set lib
-    pro.Write( wxT( "[eeschema/libraries]\nLibName1=" ) + outFile.GetName() + wxT( "\n" ) );
     pro.Close();
+
+    wxFile symtab;
+    symtab.Open( outFile.GetPath() + wxFileName::GetPathSeparator() + wxT( "sym-lib-table" ),
+                 wxFile::write );
+    symtab.Write( wxT( "(sym_lib_table\n  (lib (name " ) + outFile.GetName() +
+                  wxT( ")(type Legacy)(uri ${KIPRJMOD}/" ) + outFile.GetName() +
+                  wxT( ".lib)(options \"\")(descr \"\"))\n)\n" ) );
+    symtab.Close();
 
     // we convert also library for schematics file
     outFile.SetExt( wxT( "lib" ) );

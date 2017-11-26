@@ -50,6 +50,7 @@ SCH_SYMBOL::SCH_SYMBOL()
     InitTTextValue( &m_type );
     m_attachedSymbol  = wxEmptyString;
     m_attachedPattern = wxEmptyString;
+    m_libName = wxEmptyString;
     m_isPower = false;
 }
 
@@ -391,7 +392,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
         m_reference.text.Prepend( wxT( '#' ) );
 
     // Go out
-    aFile->Write( wxT( "L " ) + ValidateName( m_attachedSymbol ) +
+    aFile->Write( wxT( "L " ) + m_libName + ":" + ValidateName( m_attachedSymbol ) +
                   wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
     aFile->Write( wxString::Format( wxT( "U %d 1 00000000\n" ), m_partNum ) );
     aFile->Write( wxString::Format( wxT( "P %d %d\n" ), m_positionX, m_positionY ) );
@@ -528,6 +529,12 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
 
     aFile->Write( wxString::Format( wxT( " %d %d %d %d \n" ), a, b, c, d ) );
     // FOOTPRINT
+}
+
+
+void SCH_SYMBOL::SetLibName( wxString aName )
+{
+    m_libName = aName;
 }
 
 

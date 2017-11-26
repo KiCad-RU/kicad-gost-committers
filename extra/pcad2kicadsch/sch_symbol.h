@@ -65,8 +65,11 @@ public:
 
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
 
+    void            SetLibName( wxString aName );
+
 private:
     wxString        m_component;
+    wxString        m_libName;
     void FindAttributes( XNODE* aNode );
     void ParseNetlist( XNODE* aNode, wxString aReference );
     void ParseLibrary( XNODE* aNode, wxString aModule, wxString aComponent,

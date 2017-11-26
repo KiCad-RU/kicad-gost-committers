@@ -375,16 +375,16 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     f.Open( aFileName +
             ( ( m_numSheet == 0 ) ? wxT( "" ) : wxT( "_" ) + m_name ) +
             wxT( ".sch" ), wxFile::write );
-    f.Write( wxT( "EESchema Schematic File Version 3\n" ) );
+    f.Write( wxT( "EESchema Schematic File Version 4\n" ) );
     wxFileName tmpFile( aFileName );
     tmpFile.SetExt( wxEmptyString );
-    f.Write( wxT( "LIBS:" ) + aFileName + wxT( "\n" ) );
-    f.Write( wxT( "EELAYER 43  0\n" ) );
+    f.Write( wxT( "EELAYER 26  0\n" ) );
     f.Write( wxT( "EELAYER END\n" ) );
     f.Write( wxT( "$Descr User " ) + wxString::Format( wxT( "%d" ),
                                                        m_sizeX ) + wxT( ' ' ) +
              wxString::Format( wxT( "%d" ), m_sizeY ) + wxT( "\n" ) );
     f.Write( wxString::Format( wxT( "Sheet %d %d\n" ), m_numSheet + 1, m_numSheets ) );
+    f.Write( wxT( "encoding utf-8\n" ) );
     f.Write( wxT( "$EndDescr\n" ) );
 
     // Junctions
@@ -427,11 +427,13 @@ void SCH_SHEET::WriteToFile( wxString aFileName )
     }
 
     // Symbols
+    wxString name = wxFileName( aFileName ).GetName();
     for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
     {
         if( m_schComponents[i]->m_objType == wxT( "symbol" ) )
         {
             f.Write( wxT( "$Comp\n" ) );
+            ( ( SCH_SYMBOL* ) m_schComponents[i] )->SetLibName( name );
             m_schComponents[i]->WriteToFile( &f, wxT( 'S' ) );
             f.Write( wxT( "$EndComp\n" ) );
         }
