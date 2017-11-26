@@ -93,6 +93,8 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
     wxString boldStr;
     wxString italicStr;
     int lr;
+    int cposX;
+    int cposY;
 
     m_labelText.textHeight = GetCorrectedHeight( m_labelText.textHeight );
 
@@ -102,6 +104,9 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
         boldStr = wxT( "0" );
 
     italicStr = m_labelText.isItalic ? wxT( "Italic" ) : wxT( "~" );
+
+    cposX = m_positionX;
+    cposY = m_positionY;
 
     if( m_isHorizontal )
     {
@@ -134,19 +139,24 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
         if( m_labelText.textRotation == 0 || m_labelText.textRotation == 1800 )
         {
             lr = 0;
-            m_positionX -= KIROUND( (double) CalculateTextLengthSize( &m_labelText ) / 2. );
+            cposX -= KIROUND( (double) CalculateTextLengthSize( &m_labelText ) / 2. );
         }
         else
         {
             lr = 1;
-            m_positionY += KIROUND( (double) CalculateTextLengthSize( &m_labelText ) / 2. );
+            cposY += KIROUND( (double) CalculateTextLengthSize( &m_labelText ) / 2. );
         }
     }
 
     aFile->Write( wxString::Format( wxT( "Text Label %d %d %d %d " ),
-                                    m_positionX, m_positionY, lr, m_labelText.textHeight ) +
+                                    cposX, cposY, lr, m_labelText.textHeight ) +
                   italicStr + wxT( ' ' ) + boldStr + wxT( "\n" ) );
     aFile->Write( m_labelText.text + wxT( "\n" ) );
+
+    // Fix not connected Labels
+    aFile->Write( wxT( "Wire Wire Line\n" ) );
+    aFile->Write( wxString::Format( wxT( "               %d %d %d %d\n" ),
+                                    m_positionX, m_positionY, cposX, cposY ) );
 
     // Convert labels to global labels (PCad support only global ports)
     const int originX = -3000;
