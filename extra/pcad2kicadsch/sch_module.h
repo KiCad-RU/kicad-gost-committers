@@ -52,6 +52,7 @@ private:
     wxArrayString           m_attachedSymbols;
     wxString                m_component;
     bool                    m_isPower;
+    wxString                m_libName;
 
 public:
     SCH_MODULE();
@@ -62,6 +63,8 @@ public:
                            wxString     aDefaultMeasurementUnit,
                            wxString     aActualConversion );
     virtual void    WriteToFile( wxFile* aFile, char aFileType );
+
+    void            SetLibName( wxString aName );
 
 private:
     void            SetPinProperties( XNODE*   aNode, int aSymbolIndex,

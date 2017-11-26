@@ -202,10 +202,15 @@ void SCH::WriteToFile( wxString aFileName, char aFileType )
         f.Write( wxT( "EESchema-LIBRARY Version 2.3  Date: 01/1/2001-01:01:01\n" ) );
         f.Write( wxT( "\n" ) );
 
+        wxString name = wxFileName( aFileName ).GetName();
+
         for( i = 0; i < (int) m_schComponents.GetCount(); i++ )
         {
             if( m_schComponents[i]->m_objType == wxT( "module" ) )
+            {
+                ( ( SCH_MODULE* ) m_schComponents[i] )->SetLibName( name );
                 m_schComponents[i]->WriteToFile( &f, aFileType );
+            }
         }
 
         f.Write( wxT( "# End Library\n" ) );

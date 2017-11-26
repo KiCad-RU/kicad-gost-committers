@@ -53,6 +53,7 @@ SCH_MODULE::SCH_MODULE()
     m_moduleDescription = wxEmptyString;
     m_alias = wxEmptyString;
     m_component = wxEmptyString;
+    m_libName = wxEmptyString;
     m_isPower = false;
 }
 
@@ -379,7 +380,8 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
                                     GetCorrectedHeight( m_name.textHeight ) ) + " " +
                   orientation + " " + visibility + " " + GetJustifyString( &m_name ) + "\n" );
     // FOOTPRINT
-    aFile->Write( wxT( "F2 \"" ) + m_component + wxT( "\" 0 0 50 H I C C\n" ) );
+    aFile->Write( wxT( "F2 \"" ) + m_libName + wxT( ':' ) + m_component +
+                  wxT( "\" 0 0 50 H I C C\n" ) );
 
     // Footprints filter
     if( m_attachedPattern.Len() > 0 )
@@ -439,6 +441,12 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
 
     aFile->Write( wxT( "ENDDRAW\n" ) );     // ??
     aFile->Write( wxT( "ENDDEF\n" ) );      // ??
+}
+
+
+void SCH_MODULE::SetLibName( wxString aName )
+{
+    m_libName = aName;
 }
 
 } // namespace PCAD2KICAD

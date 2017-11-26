@@ -392,7 +392,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
         m_reference.text.Prepend( wxT( '#' ) );
 
     // Go out
-    aFile->Write( wxT( "L " ) + m_libName + ":" + ValidateName( m_attachedSymbol ) +
+    aFile->Write( wxT( "L " ) + m_libName + wxT( ':' ) + ValidateName( m_attachedSymbol ) +
                   wxT( ' ' ) + m_reference.text + wxT( "\n" ) );
     aFile->Write( wxString::Format( wxT( "U %d 1 00000000\n" ), m_partNum ) );
     aFile->Write( wxString::Format( wxT( "P %d %d\n" ), m_positionX, m_positionY ) );
@@ -442,7 +442,8 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   italicStr + boldStr + wxT( "\n" ) );
 
     // Footprint
-    aFile->Write( wxT( "F 2 \"" ) + m_component + wxT( "\" H 0 0 60 0001 C CNN\n" ) );
+    aFile->Write( wxT( "F 2 \"" ) + m_libName + wxT( ':' ) + m_component +
+                  wxT( "\" H 0 0 60 0001 C CNN\n" ) );
 
     // Type as a common KiCAD field
     boldStr = m_type.isBold ? wxT( "B" ) : wxT( "N" );

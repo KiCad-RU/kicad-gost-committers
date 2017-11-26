@@ -145,13 +145,20 @@ void PCAD2KICAD_FRAME::OnSch( wxCommandEvent& event )
     pro.Write( wxT( "[schematic_editor]\nSubpartIdSeparator=46\nSubpartFirstId=49\n" ) );
     pro.Close();
 
-    wxFile symtab;
-    symtab.Open( outFile.GetPath() + wxFileName::GetPathSeparator() + wxT( "sym-lib-table" ),
-                 wxFile::write );
-    symtab.Write( wxT( "(sym_lib_table\n  (lib (name " ) + outFile.GetName() +
-                  wxT( ")(type Legacy)(uri ${KIPRJMOD}/" ) + outFile.GetName() +
-                  wxT( ".lib)(options \"\")(descr \"\"))\n)\n" ) );
-    symtab.Close();
+    wxFile ftab;
+    ftab.Open( outFile.GetPath() + wxFileName::GetPathSeparator() + wxT( "sym-lib-table" ),
+               wxFile::write );
+    ftab.Write( wxT( "(sym_lib_table\n  (lib (name " ) + outFile.GetName() +
+                wxT( ")(type Legacy)(uri \"${KIPRJMOD}/" ) + outFile.GetName() +
+                wxT( ".lib\")(options \"\")(descr \"\"))\n)\n" ) );
+    ftab.Close();
+
+    ftab.Open( outFile.GetPath() + wxFileName::GetPathSeparator() + wxT( "fp-lib-table" ),
+               wxFile::write );
+    ftab.Write( wxT( "(fp_lib_table\n  (lib (name " ) + outFile.GetName() +
+                wxT( ")(type KiCad)(uri \"$(KIPRJMOD)/" ) + outFile.GetName() +
+                wxT( ".pretty\")(options \"\")(descr \"\"))\n)\n" ) );
+    ftab.Close();
 
     // we convert also library for schematics file
     outFile.SetExt( wxT( "lib" ) );
