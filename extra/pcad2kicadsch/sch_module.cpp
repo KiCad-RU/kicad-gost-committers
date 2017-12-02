@@ -34,6 +34,7 @@
 
 #include <sch_arc.h>
 #include <sch_common.h>
+#include <sch_ieeesymbol.h>
 #include <sch_line.h>
 #include <sch_module.h>
 #include <sch_pin.h>
@@ -196,6 +197,7 @@ void SCH_MODULE::FindAndProcessSymbolDef( XNODE*        aNode,
     SCH_LINE*   line;
     SCH_ARC*    arc;
     SCH_TEXT*   text;
+    SCH_IEEESYMBOL* ieeesym;
 
     tNode = aNode;
 
@@ -320,6 +322,21 @@ void SCH_MODULE::FindAndProcessSymbolDef( XNODE*        aNode,
 
                     tNode = tNode->GetNext();
                 }
+
+                tNode = FindNode( ttNode, wxT( "ieeeSymbol" ) );
+
+                while( tNode )
+                {
+                    if( tNode->GetName() == wxT( "ieeeSymbol" ) )
+                    {
+                        ieeesym = new SCH_IEEESYMBOL();
+                        ieeesym->Parse( tNode, aSymbolIndex,
+                                        aDefaultMeasurementUnit, aActualConversion );
+                        m_moduleObjects.Add( ieeesym );
+                    }
+
+                    tNode = tNode->GetNext();
+                }
             }
 
             if( tNode )
@@ -429,6 +446,14 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
         {
             if( m_moduleObjects[i]->m_objType == wxT( "text" ) )
                 if( ( (SCH_TEXT*) m_moduleObjects[i] )->m_partNum == symbolIndex )
+                    m_moduleObjects[i]->WriteToFile( aFile, aFileType );
+        }
+
+        // IEEE symbols
+        for( i = 0; i < (int) m_moduleObjects.GetCount(); i++ )
+        {
+            if( m_moduleObjects[i]->m_objType == wxT( "ieeeSymbol" ) )
+                if( ( (SCH_IEEESYMBOL*) m_moduleObjects[i] )->m_partNum == symbolIndex )
                     m_moduleObjects[i]->WriteToFile( aFile, aFileType );
         }
 

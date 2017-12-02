@@ -18,6 +18,7 @@ set(PCAD2KICADSCH_SRCS
     sch_bus.cpp
     sch_component.cpp
     sch_common.cpp
+    sch_ieeesymbol.cpp
     sch_junction.cpp
     sch_line.cpp
     sch_module.cpp
