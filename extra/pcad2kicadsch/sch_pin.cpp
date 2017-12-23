@@ -278,8 +278,9 @@ void SCH_PIN::WriteToFile( wxFile* aFile, char aFileType )
                                     m_positionY,
                                     m_pinLength ) + wxT( ' ' ) + orientation +
                   wxString::Format( wxT( " %d %d %d 0 " ),
-                                    GetCorrectedHeight( m_pinNum.textHeight ),
-                                    GetCorrectedHeight( m_pinName.textHeight ),
+                                    GetCorrectedHeight( m_pinNum.textHeight, m_pinNum.isTrueType ),
+                                    GetCorrectedHeight( m_pinName.textHeight,
+                                                        m_pinName.isTrueType ),
                                     m_partNum ) +
                   pinType + wxT( ' ' ) + shape + wxT( "\n" ) );
 }

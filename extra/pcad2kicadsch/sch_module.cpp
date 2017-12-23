@@ -387,7 +387,8 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxT( "F0 \"" ) + m_reference.text + wxT( "\" " ) +
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_reference.textPositionX, m_reference.textPositionY,
-                                    GetCorrectedHeight( m_reference.textHeight ) ) + " " +
+                                    GetCorrectedHeight( m_reference.textHeight,
+                                                        m_reference.isTrueType ) ) + " " +
                   orientation + " " + visibility + " " + GetJustifyString( &m_reference ) + "\n" );
     // NAME
     orientation = ( m_name.textRotation == 900 ) ? wxT( 'V' ) : wxT( 'H' );
@@ -396,8 +397,9 @@ void SCH_MODULE::WriteToFile( wxFile* aFile, char aFileType )
     aFile->Write( wxT( "F1 \"" ) + ValidateName( m_name.text ) + wxT( "\" " ) +
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_name.textPositionX, m_name.textPositionY,
-                                    GetCorrectedHeight( m_name.textHeight ) ) + " " +
-                  orientation + " " + visibility + " " + GetJustifyString( &m_name ) + "\n" );
+                                    GetCorrectedHeight( m_name.textHeight, m_name.isTrueType ) ) +
+                  " " + orientation + " " + visibility + " " + GetJustifyString( &m_name ) +
+                  "\n" );
     // FOOTPRINT
     aFile->Write( wxT( "F2 \"" ) + m_libName + wxT( ':' ) + m_component +
                   wxT( "\" 0 0 50 H I C C\n" ) );

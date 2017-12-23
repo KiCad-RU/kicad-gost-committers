@@ -40,7 +40,9 @@ namespace PCAD2KICAD
 {
 
 #define PCAD2KICAD_SCALE_SCH_TO_INCH_GRID
-extern const double TEXT_HEIGHT_TO_SIZE;
+
+extern const double STROKE_HEIGHT_TO_SIZE;
+extern const double TRUETYPE_HEIGHT_TO_SIZE;
 
 enum TTEXT_JUSTIFY
 {
@@ -62,10 +64,11 @@ typedef struct _TTEXTVALUE
                   textRotation, textHeight, textstrokeWidth;
     int           textIsVisible, mirror, textUnit;
     int           correctedPositionX, correctedPositionY;
+    TTEXT_JUSTIFY justify;
     bool          isBold;
     bool          isItalic;
+    bool          isTrueType;
     bool          isLibValues;
-    TTEXT_JUSTIFY justify;
 } TTEXTVALUE;
 
 extern wxString     GetWord( wxString* aStr );
@@ -75,14 +78,15 @@ extern wxString     GetAndCutWordWithMeasureUnits( wxString*    aStr,
                                                    wxString     aDefaultMeasurementUnit );
 extern int          StrToInt1Units( wxString aStr );
 extern wxString     ValidateName( wxString aName );
+extern wxString     ValidateReference( wxString aRef );
 extern void         SetWidth( wxString  aStr,
                               wxString  aDefaultMeasurementUnit,
                               int*      aWidth,
                               wxString  aActualConversion );
 extern void         SetHeight( wxString  aStr,
-                              wxString  aDefaultMeasurementUnit,
-                              int*      aHeight,
-                              wxString  aActualConversion );
+                               wxString  aDefaultMeasurementUnit,
+                               int*      aHeight,
+                               wxString  aActualConversion );
 extern void         SetPosition( wxString   aStr,
                                  wxString   aDefaultMeasurementUnit,
                                  int*       aX,
@@ -107,7 +111,7 @@ extern int          CalculateTextLengthSize( TTEXTVALUE* aText );
 extern void         CorrectTextPosition( TTEXTVALUE* aValue );
 extern void         SetTextSizeFromStrokeFontHeight( EDA_TEXT* aText,
                                                      int aTextHeight );
-
+extern void         SetTextSizeFromTrueTypeFontHeight( EDA_TEXT* aText, int aTextHeight );
 extern XNODE*       FindNode( XNODE* aChild, wxString aTag );
 extern wxString     FindNodeGetContent( XNODE* aChild, wxString aTag );
 extern void         InitTTextValue( TTEXTVALUE* aTextValue );

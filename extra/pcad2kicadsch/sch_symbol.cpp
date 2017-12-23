@@ -29,7 +29,6 @@
 
 #include <wx/wx.h>
 #include <wx/config.h>
-#include <wx/regex.h>
 #include <wx/tokenzr.h>
 
 #include <common.h>
@@ -384,11 +383,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
     if( m_value.text == wxEmptyString )
         m_value.text = wxT( '~' );
 
-    wxRegEx reRef;
-    reRef.Compile( wxT( "^[[:digit:]][[:digit:]]*$" ) );
-
-    if( reRef.Matches( m_reference.text ) )
-        m_reference.text.Prepend( wxT( '.' ) );
+    m_reference.text = ValidateReference( m_reference.text );
 
     if( m_isPower )
         m_reference.text.Prepend( wxT( '#' ) );
@@ -417,7 +412,8 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_reference.textPositionX + m_positionX,
                                     m_reference.textPositionY + m_positionY,
-                                    GetCorrectedHeight( m_reference.textHeight ) ) +
+                                    GetCorrectedHeight( m_reference.textHeight,
+                                                        m_reference.isTrueType ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_reference ) +
                   italicStr + boldStr + wxT( "\n" ) );
 
@@ -439,7 +435,8 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_value.textPositionX + m_positionX,
                                     m_value.textPositionY + m_positionY,
-                                    GetCorrectedHeight( m_value.textHeight ) ) +
+                                    GetCorrectedHeight( m_value.textHeight,
+                                                        m_value.isTrueType ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_value ) +
                   italicStr + boldStr + wxT( "\n" ) );
 
@@ -465,7 +462,7 @@ void SCH_SYMBOL::WriteToFile( wxFile* aFile, char aFileType )
                   wxString::Format( wxT( "%d %d %d" ),
                                     m_type.textPositionX + m_positionX,
                                     m_type.textPositionY + m_positionY,
-                                    GetCorrectedHeight( m_type.textHeight ) ) +
+                                    GetCorrectedHeight( m_type.textHeight, m_type.isTrueType ) ) +
                   wxT( ' ' ) + visibility + wxT( ' ' ) + GetJustifyString( &m_type ) +
                   italicStr + boldStr + wxT( " \"Type\"\n" ) );
 

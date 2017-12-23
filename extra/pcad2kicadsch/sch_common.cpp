@@ -34,9 +34,10 @@
 
 namespace PCAD2KICAD {
 
-int GetCorrectedHeight( int aHeight )
+int GetCorrectedHeight( int aHeight, bool isTrueType )
 {
-    return KIROUND( (double) aHeight * TEXT_HEIGHT_TO_SIZE );
+    return KIROUND( (double) aHeight *
+                    ( ( isTrueType ) ? TRUETYPE_HEIGHT_TO_SIZE : STROKE_HEIGHT_TO_SIZE ) );
 }
 
 

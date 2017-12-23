@@ -96,7 +96,7 @@ void SCH_PORT::WriteToFile( wxFile* aFile, char aFileType )
     int cposX;
     int cposY;
 
-    m_labelText.textHeight = GetCorrectedHeight( m_labelText.textHeight );
+    m_labelText.textHeight = GetCorrectedHeight( m_labelText.textHeight, m_labelText.isTrueType );
 
     if( m_labelText.isBold )
         boldStr = wxString::Format( wxT( "%i" ), GetPenSizeForBold( m_labelText.textHeight ) );
@@ -249,6 +249,7 @@ void SCH_PORT::SetPortFontProperty( XNODE*        aNode,
                 }
             }
 
+            // FIXME: set the actual conversion to "FONT" to disable scale font properties (a trick)
             if( FindNode( aNode, wxT( "fontHeight" ) ) )
                 SetHeight( FindNode( aNode, wxT( "fontHeight" ) )->GetNodeContent(),
                            aDefaultMeasurementUnit, &aTextValue->textHeight,
