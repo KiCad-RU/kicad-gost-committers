@@ -147,7 +147,7 @@ double StrToDoublePrecisionUnits( wxString aStr, char aAxe, wxString aActualConv
 #ifdef PCAD2KICAD_SCALE_SCH_TO_INCH_GRID
             if( aActualConversion == wxT( "SCH" )
                 || aActualConversion == wxT( "SCHLIB" ) )
-                i = i * (0.0254 / 0.02);
+                i = i * (0.254 / 0.25);
 #endif
             i = Millimeter2iu( i );
         }
