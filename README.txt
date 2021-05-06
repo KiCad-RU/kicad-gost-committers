@@ -1,3 +1,18 @@
+Build PCAD schematic importer:
+# install dependencies
+mkdir build
+cd build
+cmake -DKICAD_SCRIPTING=OFF -DKICAD_SCRIPTING_MODULES=OFF \
+      -DKICAD_SCRIPTING_WXPYTHON=OFF \
+      -DCMAKE_BUILD_TYPE=Debug \
+      -DKICAD_SPICE=OFF \
+      -DUSE_PCAD2KICAD=ON \
+      -DKICAD_GOST=ON ..
+make -j2 pcad2kicadsch
+Run:
+./extra/pcad2kicadsch/pcad2kicadsch
+
+
 KiCad README
 ============
 For specific documentation like Compiling, GUI translation, old
